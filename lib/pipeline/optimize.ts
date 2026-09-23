@@ -13,7 +13,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
 import { getMarket } from "@/lib/settings/market";
-import { getProductRow, listImageRows, withDisplayUrls, type RunRow } from "@/lib/products/store";
+import { getProductRow, imagesForGeneration, listImageRows, withDisplayUrls, type RunRow } from "@/lib/products/store";
 
 // "Optimizar con IA", primera parte del pipeline de agentes creativos (agentes-creativos/README.md):
 //   1. product_brief   → la ficha de producto (con visión sobre las imágenes de referencia)
@@ -77,7 +77,8 @@ export async function startOptimization(userId: string, productId: string): Prom
   fail("Leer la optimización", active.error);
   if (active.data) return { run: active.data as RunRow, created: false };
 
-  const images = (await listImageRows(userId, [productId])).filter((i) => !i.excluded);
+  // La imagen base va primero: el modelo la trata como la foto principal del producto.
+  const images = imagesForGeneration(await listImageRows(userId, [productId]));
   if (!images.length) throw new OptimizeError("Agrega al menos una imagen de referencia para optimizar.", 409);
 
   const since = new Date(Date.now() - 86_400_000).toISOString();
@@ -133,7 +134,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
           compareAtPrice: product.compare_at_price == null ? null : Number(product.compare_at_price),
           cost: product.cost == null ? null : Number(product.cost),
           baseInfo: product.base_info,
-          images: images.map((r) => ({ id: r.id, source: r.source, alt: r.alt })),
+          images: images.map((r) => ({ id: r.id, source: r.source, alt: r.alt, base: r.id === wanted[0] })),
         },
         market,
       ),

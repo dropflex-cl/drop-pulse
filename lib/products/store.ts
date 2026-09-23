@@ -1,5 +1,6 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
+import { baseFirst, pickBase } from "./base";
 import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
 import type { AvatarProposal, ContentStatus, OptimizationRun, ReferenceImage, RunStatus } from "@/lib/types";
 
@@ -42,6 +43,8 @@ export interface ImageRow {
   alt: string | null;
   position: number;
   is_cover: boolean;
+  /** Elegida por el comerciante como imagen base (una por producto). */
+  is_base: boolean;
   excluded: boolean;
 }
 
@@ -122,7 +125,7 @@ export async function listImageRows(userId: string, productIds: string[]): Promi
   if (!productIds.length) return [];
   const { data, error } = await adminClient()
     .from("product_reference_images")
-    .select("id, product_id, source, url, storage_path, alt, position, is_cover, excluded")
+    .select("id, product_id, source, url, storage_path, alt, position, is_cover, is_base, excluded")
     .eq("user_id", userId)
     .in("product_id", productIds)
     .order("position", { ascending: true })
@@ -152,8 +155,20 @@ export async function withDisplayUrls(rows: ImageRow[]): Promise<Map<string, str
   return urls;
 }
 
+const rowFlags = (r: Pick<ImageRow, "is_base" | "is_cover" | "excluded">) => ({ base: r.is_base, cover: r.is_cover, excluded: r.excluded });
+
+/** La imagen base del producto (lib/products/base.ts). Toda generación nueva parte de ella. */
+export function baseImage<T extends Pick<ImageRow, "is_base" | "is_cover" | "excluded">>(rows: T[]): T | undefined {
+  return pickBase(rows, rowFlags);
+}
+
+/** Las imágenes en uso con la base primero: lo que se le pasa al modelo, en ese orden. */
+export function imagesForGeneration<T extends Pick<ImageRow, "is_base" | "is_cover" | "excluded">>(rows: T[]): T[] {
+  return baseFirst(rows, rowFlags);
+}
+
 export function toReferenceImage(r: ImageRow, src: string): ReferenceImage {
-  return { id: r.id, src, alt: r.alt ?? "", source: r.source, excluded: r.excluded, cover: r.is_cover };
+  return { id: r.id, src, alt: r.alt ?? "", source: r.source, excluded: r.excluded, cover: r.is_cover, base: r.is_base };
 }
 
 // ---------------------------------------------------------------- Corridas y propuestas

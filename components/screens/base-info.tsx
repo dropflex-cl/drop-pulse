@@ -24,6 +24,7 @@ import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { count } from "@/lib/format";
+import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
 import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
@@ -149,6 +150,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
   const running = run?.status === "queued" || run?.status === "running";
   const failed = run?.status === "failed" && !(avatar && avatar.createdAt >= run.createdAt);
   const inUse = images.filter((i) => !i.excluded).length;
+  const baseId = pickBase(images, (i) => i)?.id;
   const approved = avatar?.status === "aprobado";
 
   // ---------------------------------------------------------------- Sondeo de la corrida
@@ -240,12 +242,29 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
 
   const toggle = async (img: RefImage) => {
     const excluded = !img.excluded;
+    if (excluded && img.id === baseId) {
+      notify("Es la imagen base. Toca otra para elegirla como base antes de dejar de usar esta.");
+      return;
+    }
     setImages((list) => list.map((i) => (i.id === img.id ? { ...i, excluded } : i)));
     try {
       await productsApi.setExcluded(product.id, img.id, excluded);
     } catch (e) {
       setImages((list) => list.map((i) => (i.id === img.id ? { ...i, excluded: !excluded } : i)));
       notify(errorText(e, "No pudimos guardar el cambio. Intenta de nuevo."));
+    }
+  };
+
+  const chooseBase = async (img: RefImage) => {
+    if (img.id === baseId && img.base) return;
+    const before = images;
+    setImages((list) => list.map((i) => ({ ...i, base: i.id === img.id, excluded: i.id === img.id ? false : i.excluded })));
+    try {
+      await productsApi.setBase(product.id, img.id);
+      notify("Imagen base elegida. La IA partirá de ella en todo lo que genere.");
+    } catch (e) {
+      setImages(before);
+      notify(errorText(e, "No pudimos elegir la imagen base. Intenta de nuevo."));
     }
   };
 
@@ -313,9 +332,11 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
           alt={img.alt || "Imagen de referencia"}
           source={img.source}
           cover={img.cover}
+          base={img.id === baseId}
           dense={dense}
           state={img.excluded ? "excluded" : "ready"}
           onToggle={() => toggle(img)}
+          onSelect={() => chooseBase(img)}
         />
       ))}
       {pendingUploads.map((u) => (

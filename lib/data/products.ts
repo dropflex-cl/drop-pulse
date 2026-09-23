@@ -9,6 +9,7 @@ import { NOTE } from "@/lib/mock/content";
 import { syncSelectedProducts } from "@/lib/products/sync";
 import { productPosition } from "@/lib/products/stages";
 import {
+  baseImage,
   expireStaleRuns,
   getProductRow,
   latestAvatars,
@@ -33,9 +34,9 @@ const userId = cache(async () => {
   return user.id;
 });
 
+/** La miniatura del producto es su imagen base (o, si todas están excluidas, la primera). */
 function cover(images: ImageRow[]): ImageRow | undefined {
-  const usable = images.filter((i) => !i.excluded);
-  return usable.find((i) => i.is_cover) ?? usable[0] ?? images[0];
+  return baseImage(images) ?? images[0];
 }
 
 function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow): Product {

@@ -61,6 +61,8 @@ export interface ReferenceImage {
   excluded: boolean;
   /** Portada actual en la tienda. */
   cover: boolean;
+  /** Elegida como imagen base. Sin elección, la base se resuelve con pickBase (lib/products/base.ts). */
+  base: boolean;
 }
 
 export interface OptimizationRun {

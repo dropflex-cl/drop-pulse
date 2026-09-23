@@ -73,7 +73,7 @@ async function insertRow(
       size_bytes: size,
       position: ((last?.position as number | undefined) ?? -1) + 1,
     })
-    .select("id, product_id, source, url, storage_path, alt, position, is_cover, excluded")
+    .select("id, product_id, source, url, storage_path, alt, position, is_cover, is_base, excluded")
     .single();
   if (error) {
     await db.storage.from(REFERENCES_BUCKET).remove([path]);
@@ -231,13 +231,28 @@ export async function addImageFromUrl(userId: string, productId: string, raw: st
 }
 
 export async function setImageExcluded(userId: string, productId: string, imageId: string, excluded: boolean) {
-  const { data, error } = await adminClient()
+  let q = adminClient()
     .from("product_reference_images")
     .update({ excluded })
     .eq("user_id", userId)
     .eq("product_id", productId)
-    .eq("id", imageId)
-    .select("id");
+    .eq("id", imageId);
+  // La imagen base no se excluye: primero se elige otra como base.
+  if (excluded) q = q.eq("is_base", false);
+  const { data, error } = await q.select("id");
   if (error) throw new Error(`Guardar la imagen: ${error.message}`);
-  if (!data?.length) throw new ProductApiError("No encontramos esa imagen.", 404);
+  if (!data?.length) {
+    if (excluded) {
+      const { data: row } = await adminClient().from("product_reference_images").select("is_base").eq("user_id", userId).eq("product_id", productId).eq("id", imageId).maybeSingle();
+      if (row?.is_base) throw new ProductApiError("Es la imagen base. Elige otra como base antes de dejar de usarla.", 409);
+    }
+    throw new ProductApiError("No encontramos esa imagen.", 404);
+  }
+}
+
+/** Elige la imagen base del producto (y la vuelve a usar si estaba excluida). */
+export async function setBaseImage(userId: string, productId: string, imageId: string) {
+  const { data, error } = await adminClient().rpc("set_base_reference_image", { p_user_id: userId, p_product_id: productId, p_image_id: imageId });
+  if (error) throw new Error(`Elegir la imagen base: ${error.message}`);
+  if (!data) throw new ProductApiError("No encontramos esa imagen.", 404);
 }

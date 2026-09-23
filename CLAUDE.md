@@ -73,6 +73,10 @@ Español neutro con tuteo, nunca voseo ni “usted”: “Revisa”, “Elige”
   - **Toda tabla, columna o asset nuevo ligado a un producto** (textos, imágenes generadas, anuncios, archivos en otro bucket…) debe borrarse en `deleteProducts`: con `on delete cascade` hacia `products` o con un paso explícito ahí. Un `on delete set null` o un archivo en Storage sin borrar es un bug.
   - Primero Storage, después la base: si falla Storage, la fila queda y la próxima sincronización reintenta.
   - Solo se borra con la lista de Shopify leída **completa** (todas las páginas, todos los estados). Borrador o archivado no es eliminado. Si la lectura falla, no se borra nada.
+- **Obligatorio: toda generación parte de la imagen base.** En Información base, tocar una imagen de referencia la elige como base (`product_reference_images.is_base`, una por producto, vía `set_base_reference_image`; migración `20260925000000_base_reference_image.sql`). Sin elección, la base es la portada de Shopify y, si no, la primera en uso (`pickBase` en `lib/products/base.ts`). Reglas:
+  - Todo agente o paso nuevo que use imágenes (ficha, cliente ideal, ángulos, creativos, anuncios) las toma con `imagesForGeneration` (`lib/products/store.ts`): solo las en uso, **la base primero**, y le dice al modelo cuál es la base (ver `productBriefUser` en `lib/ai/prompts.ts`). Nunca se arma la lista a mano con `!excluded`.
+  - La imagen base no se puede excluir: primero se elige otra. Elegir una excluida como base la vuelve a usar.
+  - La miniatura del producto en las listas es su imagen base.
 - **Todavía de ejemplo** (`lib/mock/`): textos e imágenes generados, campañas, supuestos y el asistente. `docs/esquema-supabase.md` es la propuesta original para esas partes (conceptos en español: al implementarlas, pásalas a inglés).
 - Pantallas en `app/(app)/`; piezas interactivas de pantalla en `components/screens/`; shell (layout, asistente, barra fija, estados) en `components/shell/`.
 - Rutas con `[id]` de producto no tienen `generateStaticParams`: con `cacheComponents`, todo lo que usa `usePathname` bajo ellas va dentro de `<Suspense>` (ver `AppShell` y `StageNav`).

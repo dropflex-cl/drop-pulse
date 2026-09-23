@@ -49,7 +49,8 @@ export interface BriefInput {
   compareAtPrice?: number | null;
   cost?: number | null;
   baseInfo: string;
-  images: { id: string; source: string; alt?: string | null }[];
+  /** En uso, la imagen base primero (`base: true`). */
+  images: { id: string; source: string; alt?: string | null; base?: boolean }[];
 }
 
 export function productBriefUser(p: BriefInput, market: Market): string {
@@ -70,7 +71,10 @@ export function productBriefUser(p: BriefInput, market: Market): string {
     p.baseInfo.trim() || "(vacío)",
     "",
     `IMÁGENES DE REFERENCIA: ${p.images.length}, en el orden en que van arriba. Sus ids:`,
-    ...p.images.map((img, i) => `${i + 1}. ${img.id} (${img.source}${img.alt ? `, alt: «${img.alt}»` : ""})`),
+    ...p.images.map((img, i) => `${i + 1}. ${img.id} (${img.source}${img.alt ? `, alt: «${img.alt}»` : ""})${img.base ? " — IMAGEN BASE" : ""}`),
+    ...(p.images.some((img) => img.base)
+      ? ["La IMAGEN BASE la eligió el comerciante: es la foto principal del producto. Describe el producto a partir de ella; las demás solo complementan."]
+      : []),
     "",
     "Arma la ficha de producto.",
   );

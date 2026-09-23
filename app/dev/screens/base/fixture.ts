@@ -96,9 +96,9 @@ export function fixture(state: string): ProductBase {
     baseInfo: PP_TEXT,
     fromShopify: true,
     images: [
-      { id: "i1", src: productImage(1, 1), alt: "Imagen 1 de Shopify", source: "shopify", excluded: false, cover: true },
-      { id: "i2", src: productImage(5, 1), alt: "Imagen 2 de Shopify", source: "shopify", excluded: false, cover: false },
-      { id: "i3", src: productImage(0, 1), alt: "Imagen 3 de Shopify, con texto del proveedor", source: "shopify", excluded: true, cover: false },
+      { id: "i1", src: productImage(1, 1), alt: "Imagen 1 de Shopify", source: "shopify", excluded: false, cover: true, base: false },
+      { id: "i2", src: productImage(5, 1), alt: "Imagen 2 de Shopify", source: "shopify", excluded: false, cover: false, base: false },
+      { id: "i3", src: productImage(0, 1), alt: "Imagen 3 de Shopify, con texto del proveedor", source: "shopify", excluded: true, cover: false, base: false },
     ],
     run,
     avatar,

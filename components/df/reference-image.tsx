@@ -13,6 +13,8 @@ export interface ReferenceImageProps {
   state?: ReferenceImageState;
   /** Portada actual en la tienda. */
   cover?: boolean;
+  /** La imagen base: toda generación parte de ella. */
+  base?: boolean;
   /** Avance de la subida, de 0 a 1. */
   progress?: number;
   /** Motivo del error. */
@@ -23,6 +25,8 @@ export interface ReferenceImageProps {
   dense?: boolean;
   /** Excluir o volver a usar. */
   onToggle?: () => void;
+  /** Tocar la imagen la elige como base. */
+  onSelect?: () => void;
   onRetry?: () => void;
   className?: string;
 }
@@ -35,7 +39,7 @@ const frame = "relative m-0 aspect-square overflow-hidden rounded-md bg-muted in
  * Una imagen de origen (de Shopify, subida o traída por enlace) que la IA usará como referencia.
  * Excluir no borra nada en Shopify: solo le dice a la IA que no la use.
  */
-export function ReferenceImage({ src, alt = "", source = "shopify", state = "ready", cover, progress = 0, error, name, dense, onToggle, onRetry, className }: ReferenceImageProps) {
+export function ReferenceImage({ src, alt = "", source = "shopify", state = "ready", cover, base, progress = 0, error, name, dense, onToggle, onSelect, onRetry, className }: ReferenceImageProps) {
   if (state === "uploading") {
     const pct = Math.round(progress * 100);
     return (
@@ -72,8 +76,10 @@ export function ReferenceImage({ src, alt = "", source = "shopify", state = "rea
   }
 
   const off = state === "excluded";
+  const isBase = base && !off;
+  const badge = cn("rounded-sm font-semibold", dense ? "px-1 text-nano" : "px-1.5 py-0.5 text-micro");
   return (
-    <figure className={cn(frame, className)}>
+    <figure className={cn(frame, isBase && "ring-2 ring-primary ring-offset-2 ring-offset-background", className)}>
       {src ? (
         <Image
           src={src}
@@ -85,11 +91,25 @@ export function ReferenceImage({ src, alt = "", source = "shopify", state = "rea
           className={cn("object-cover transition-opacity duration-base ease-standard", off && "opacity-35 grayscale")}
         />
       ) : null}
-      <span className={cn("absolute top-1.5 left-1.5 rounded-sm bg-card font-medium text-foreground ring-1 ring-border", dense ? "px-1 text-nano" : "px-1.5 py-px text-micro")}>
+      <span className={cn("pointer-events-none absolute top-1.5 left-1.5 rounded-sm bg-card font-medium text-foreground ring-1 ring-border", dense ? "px-1 text-nano" : "px-1.5 py-px text-micro")}>
         {SOURCE[source]}
       </span>
-      {cover && !off ? (
-        <span className="absolute bottom-1.5 left-1.5 rounded-sm bg-foreground px-1.5 py-0.5 text-micro font-semibold text-background">Portada</span>
+      {/* Toda la imagen elige la base; el botón de excluir va encima, en su esquina. */}
+      {onSelect ? (
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-pressed={isBase}
+          aria-label={isBase ? `Imagen base${alt ? `: ${alt}` : ""}` : `Usar como imagen base${alt ? `: ${alt}` : ""}`}
+          className="absolute inset-0 cursor-pointer rounded-md focus-visible:outline-none focus-visible:inset-ring-2 focus-visible:inset-ring-ring"
+        />
+      ) : null}
+      {/* En la grilla densa no caben las dos etiquetas: manda “Base”. */}
+      {!off && (isBase || cover) ? (
+        <span className="pointer-events-none absolute bottom-1.5 left-1.5 flex flex-wrap gap-1">
+          {isBase ? <span className={cn(badge, "bg-primary text-primary-foreground")}>Base</span> : null}
+          {cover && !(dense && isBase) ? <span className={cn(badge, "bg-foreground text-background")}>Portada</span> : null}
+        </span>
       ) : null}
       {/* Área de 40×40 aunque el círculo mida 24. */}
       <button
@@ -104,7 +124,7 @@ export function ReferenceImage({ src, alt = "", source = "shopify", state = "rea
         </span>
       </button>
       {off ? (
-        <figcaption className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center rounded-sm bg-card px-1.5 py-0.5 text-micro font-medium text-foreground">
+        <figcaption className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex items-center justify-center rounded-sm bg-card px-1.5 py-0.5 text-micro font-medium text-foreground">
           No se usa
         </figcaption>
       ) : null}
