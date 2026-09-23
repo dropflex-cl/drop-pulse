@@ -15,6 +15,22 @@ export const PAGE_BLOCKS = [
   "seo_description",
 ] as const;
 export type PageBlock = (typeof PAGE_BLOCKS)[number];
+/**
+ * La razón de compra de cada beneficio: uno por razón, para que no digan lo mismo con otras palabras
+ * (dos sobre ingredientes, dos sobre la forma de uso). Siempre hay uno del resultado.
+ */
+export const BENEFIT_KINDS = ["result", "ease", "difference", "comfort", "value", "safety", "fit"] as const;
+export type BenefitKind = (typeof BENEFIT_KINDS)[number];
+export const BENEFIT_KIND_GUIDE: Record<BenefitKind, string> = {
+  result: "el resultado que busca el comprador, lo que siente o logra",
+  ease: "qué tan fácil o rápido es usarlo",
+  difference: "en qué gana frente a lo que ya probó (sin marcas)",
+  comfort: "comodidad, discreción o que lo lleva a todas partes",
+  value: "cuánto rinde o por qué conviene el pack",
+  safety: "ingredientes, materiales o seguridad",
+  fit: "para quién o para qué situación es",
+};
+
 /** Las preguntas frecuentes van aparte en la salida del modelo (pregunta y respuesta). */
 export type CopyKey = PageBlock | "faq";
 
@@ -44,8 +60,8 @@ export const BLOCKS: BlockDef[] = [
   { key: "short_name", label: "Nombre corto", section: "Arriba del precio", min: 1, max: 1, limit: 30, unit: "caracteres", required: true, guide: "Cómo se llama el producto en una etiqueta, un anuncio o el carrito («Corrector de postura»)." },
   { key: "short_description", label: "Descripción corta", section: "Arriba del precio", min: 1, max: 1, limit: 160, unit: "caracteres", required: true, guide: "Una o dos frases bajo el título: el resultado y el dato que lo sostiene." },
   { key: "offer_line", label: "Frase de la oferta", section: "Arriba del precio", min: 1, max: 1, limit: 90, unit: "caracteres", required: true, guide: "Bajo el precio: la oferta principal con su número exacto y el cierre («2 por $39.990 · Paga al recibir»)." },
-  { key: "benefit", label: "Beneficio", section: "Por qué comprarlo", min: 3, max: 5, limit: 110, unit: "caracteres", required: false, guide: "Resultado + el dato de la ficha que lo sostiene. Uno por bloque; al menos uno sale del ángulo secundario." },
-  { key: "how_it_works", label: "Cómo funciona", section: "Por qué comprarlo", min: 1, max: 1, limit: 120, unit: "palabras", required: true, guide: "De 40 a 120 palabras: el mecanismo físico de la ficha contado con el ángulo principal, y para quién es." },
+  { key: "benefit", label: "Beneficio", section: "Por qué comprarlo", min: 3, max: 5, limit: 110, unit: "caracteres", required: false, guide: "Qué gana el comprador + el dato que lo prueba. Cada uno con una razón de compra distinta (kind) y uno siempre del resultado. Al menos uno sale del ángulo secundario. Si no hay 5 razones distintas, escribe 3 o 4." },
+  { key: "how_it_works", label: "Cómo funciona", section: "Por qué comprarlo", min: 1, max: 1, limit: 120, unit: "palabras", required: true, guide: "De 40 a 120 palabras: el mecanismo contado con el ángulo principal (por qué funciona), no una lista de beneficios ni de ingredientes que ya dicen otros bloques." },
   { key: "faq", label: "Pregunta frecuente", section: "Dudas", min: 3, max: 6, limit: 280, unit: "caracteres", required: false, guide: "Las objeciones de los 2 desarrollos y de la ficha, respondidas. Al menos una sobre el pago contra entrega. Pregunta de hasta 90 caracteres." },
   { key: "shipping_payment", label: "Envío y pago", section: "Dudas", min: 1, max: 1, limit: 280, unit: "caracteres", required: true, guide: "Cómo paga (contra entrega, siempre) y cómo le llega, con los datos de ENVÍO Y PAGO. Sin plazos ni contactos que no estén ahí." },
   { key: "guarantee", label: "Garantía", section: "Dudas", min: 0, max: 1, limit: 160, unit: "caracteres", required: false, guide: "Solo si la ficha trae días de garantía: los días exactos y qué cubre." },

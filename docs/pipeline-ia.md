@@ -182,6 +182,7 @@ Los 2 desarrollos aprobados + ficha + cliente ideal + precio (y etiquetas aproba
 **Reglas:**
 
 - La IA escribe texto plano; el HTML de la descripción de Shopify lo arma una plantilla al publicar.
+- Beneficios: cada uno trae su razón de compra (`kind`: `result`, `ease`, `difference`, `comfort`, `value`, `safety`, `fit`), distinta en cada uno y siempre con un `result`; si no hay tantas razones, escribe menos. Cada dato va en un solo bloque («Cómo funciona» explica, los beneficios dicen qué gana el comprador). Nada de palabras internas («la ficha», «ángulo principal») en la tienda.
 - Montos: solo los de PRECIO Y OFERTA (precio, tachado y su ahorro, packs, precio por unidad y ahorro), revisados en código.
 - Pago contra entrega siempre (oferta, envío y pago, y al menos una pregunta). Garantía solo con días en la ficha; si no, la pantalla la muestra como «No se incluye».
 - Plazo de entrega y WhatsApp no se conocen: el bloque sale sin ellos y con `missing`, y la pantalla pide completarlos al editar.

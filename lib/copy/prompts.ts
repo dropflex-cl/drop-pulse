@@ -8,7 +8,7 @@ import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { countryName, type Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import { BLOCKS, FAQ_QUESTION_LIMIT } from "./blocks";
+import { BENEFIT_KINDS, BENEFIT_KIND_GUIDE, BLOCKS, FAQ_QUESTION_LIMIT } from "./blocks";
 
 const RULES = [
   "REGLAS QUE NO SE NEGOCIAN",
@@ -34,7 +34,10 @@ export function copySystem(market: Market): string {
     "",
     "CÓMO ESCRIBIR",
     "- El ángulo PRINCIPAL manda en el título, la descripción corta y «cómo funciona». El SECUNDARIO aporta al menos un beneficio y una pregunta. Marca en angle de dónde sale cada bloque.",
-    "- Beneficio = resultado + el dato de la ficha que lo sostiene («Tela transpirable que puedes usar bajo la ropa todo el día»), nunca un adjetivo suelto.",
+    "- Beneficio = lo que gana el comprador + el dato que lo prueba («Tela transpirable que puedes usar bajo la ropa todo el día»). Nunca una especificación sola ni un adjetivo suelto.",
+    `- Cada beneficio da una razón de compra DISTINTA (kind): ${BENEFIT_KINDS.map((k) => `${k} = ${BENEFIT_KIND_GUIDE[k]}`).join("; ")}. Uno siempre es result. Dos beneficios sobre ingredientes, o dos sobre la forma de uso, son el mismo beneficio: escribe menos antes que repetir.`,
+    "- Cada dato de la ficha va en UN bloque. «Cómo funciona» explica por qué funciona; los beneficios dicen qué gana el comprador; la descripción corta resume. No repitas en uno lo que ya dijo otro (la dosis, los ingredientes, el tamaño).",
+    "- Escribe para el comprador: nunca nombres «la ficha», los ángulos, «precio y oferta» ni el cliente ideal.",
     "- Las preguntas salen de las objeciones de los 2 desarrollos, de known_objections de la ficha y de las objeciones del cliente ideal. La respuesta es corta, concreta y sin rodeos.",
     "- Usa las palabras del cliente ideal (cómo nombra su problema), no jerga de marketing.",
     "- Texto plano: sin HTML, sin markdown, sin emojis. Frases cortas. El código arma la página.",

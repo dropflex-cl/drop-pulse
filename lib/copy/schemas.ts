@@ -6,10 +6,10 @@
 import * as z from "zod/v4";
 import { currencySymbol, parseAmount } from "@/lib/format";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { BLOCKS, FAQ_QUESTION_LIMIT, PAGE_BLOCKS, measure, type CopyKey } from "./blocks";
+import { BENEFIT_KINDS, BLOCKS, FAQ_QUESTION_LIMIT, PAGE_BLOCKS, measure, type CopyKey } from "./blocks";
 
 /** Bump cuando cambie el prompt o el esquema del redactor de página. */
-export const COPY_PROMPT_VERSION = 1;
+export const COPY_PROMPT_VERSION = 2;
 
 const text = z.string();
 const angle = z.enum(["primary", "secondary", "none"]).describe("De qué desarrollo sale: el principal, el secundario o ninguno (datos de la ficha).");
@@ -20,6 +20,7 @@ const block = z.object({
   angle,
   note: text.describe("Para el comerciante, una frase: por qué lo propones («Nombra qué es y el dolor que resuelve, como en el ángulo principal»)."),
   missing: z.string().nullable().describe("Si falta un dato para completar este bloque, cuál («el plazo de entrega y tu WhatsApp»). null si no falta nada."),
+  kind: z.enum(BENEFIT_KINDS).nullable().describe("Solo en benefit: la razón de compra, distinta en cada uno. null en los demás bloques."),
 });
 
 export const pageCopySchema = z.object({
@@ -43,6 +44,9 @@ export interface CopyFacts {
   /** Al reescribir: cuántos bloques de cada clave ya están aprobados (no se vuelven a escribir). */
   kept?: Partial<Record<CopyKey, number>>;
 }
+
+/** Palabras de trabajo que no pueden llegar a la tienda («según la ficha», «el ángulo principal»). */
+const INTERNAL = /(?<![\p{L}])(la ficha|ficha de producto|precio y oferta|cliente ideal|[áa]ngulo (principal|secundario))(?![\p{L}])/iu;
 
 // Promesas que la ley y Meta no permiten en productos de bienestar (el prompt da las alternativas).
 const FORBIDDEN = [/\bcura(n|r)?\b/i, /\bresultados? garantizados?\b/i, /\b100\s?% garantizad[oa]s?\b/i];
@@ -109,7 +113,16 @@ export function copyProblems(out: PageCopyOutput, facts: CopyFacts): string[] {
     problems.push("Ninguna pregunta frecuente responde sobre el pago contra entrega: agrega una.");
   }
 
+  // Beneficios: una razón de compra por beneficio, y uno del resultado (salvo que ya esté aprobado).
+  const kinds = out.blocks.filter((b) => b.key === "benefit").map((b) => b.kind);
+  if (kinds.some((k) => !k)) problems.push("Cada benefit necesita su kind (la razón de compra).");
+  const repeated = [...new Set(kinds.filter((k, i) => k && kinds.indexOf(k) !== i))];
+  if (repeated.length) problems.push(`Hay beneficios con la misma razón de compra (${repeated.join(", ")}): cada uno tiene que dar una razón distinta; si no hay tantas, escribe menos.`);
+  if (kinds.length && !kept.benefit && !kinds.includes("result")) problems.push("Ningún beneficio habla del resultado que busca el comprador (kind result).");
+
   const texts = [...out.blocks.map((b) => b.text), ...out.faq.flatMap((f) => [f.question, f.answer])];
+  const internal = texts.find((t) => INTERNAL.test(t));
+  if (internal) problems.push(`Un texto usa una palabra interna («${internal.match(INTERNAL)![0]}»): escribe para el comprador, sin nombrar la ficha, los ángulos ni el precio y oferta.`);
   const wrong = new Set<number>();
   for (const t of texts) for (const n of amountsIn(t, facts.currency)) if (!facts.amounts.some((a) => Math.abs(a - n) <= 1)) wrong.add(n);
   if (wrong.size) problems.push(`Estos montos no están en PRECIO Y OFERTA: ${[...wrong].join(", ")}. Usa solo esos números.`);

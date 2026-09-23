@@ -19,16 +19,17 @@ const words = (n: number) => Array.from({ length: n }, (_, i) => `palabra${i}`).
 
 /** Una página válida: los obligatorios, 3 beneficios y 3 preguntas (una del pago contra entrega). */
 function page(): PageCopyOutput {
-  const b = (key: PageCopyOutput["blocks"][number]["key"], text: string) => ({ key, text, angle: "primary" as const, note: "n", missing: null });
+  type Block = PageCopyOutput["blocks"][number];
+  const b = (key: Block["key"], text: string, kind: Block["kind"] = null): Block => ({ key, text, angle: "primary", note: "n", missing: null, kind });
   return {
     blocks: [
       b("title", "Corrector de postura ajustable para trabajar sin dolor de espalda"),
       b("short_name", "Corrector de postura"),
       b("short_description", "Te ayuda a mantener la espalda recta mientras trabajas. Ajuste con velcro."),
       b("offer_line", `2 por ${"$"}${pricing.packs[1].price.toLocaleString("es-CL")} · Paga al recibir`),
-      b("benefit", "Tela transpirable que puedes usar bajo la ropa todo el día"),
-      b("benefit", "Se ajusta en segundos con velcro"),
-      b("benefit", "Delgado: no se nota bajo la camisa"),
+      b("benefit", "Menos tensión en la espalda al final de la jornada", "result"),
+      b("benefit", "Se ajusta en segundos con velcro", "ease"),
+      b("benefit", "Delgado: no se nota bajo la camisa", "comfort"),
       b("how_it_works", words(60)),
       b("shipping_payment", "Pagas cuando lo recibes. Envío gratis a todo Chile."),
       b("seo_title", "Corrector de postura ajustable"),
@@ -93,7 +94,7 @@ describe("validación del redactor", () => {
 
   it("garantía solo con días en la ficha", () => {
     const withGuarantee = page();
-    withGuarantee.blocks.push({ key: "guarantee", text: "30 días de garantía", angle: "none", note: "n", missing: null });
+    withGuarantee.blocks.push({ key: "guarantee", text: "30 días de garantía", angle: "none", note: "n", missing: null, kind: null });
     expect(copyProblems(withGuarantee, facts)).toContain("Incluiste una garantía y la ficha no trae días de garantía: quita ese bloque.");
     expect(copyProblems(withGuarantee, { ...facts, guaranteeDays: 30 })).toEqual([]);
     expect(copyProblems(page(), { ...facts, guaranteeDays: 30 })).toContain("La ficha trae días de garantía: agrega el bloque guarantee con esos días.");
@@ -117,9 +118,34 @@ describe("validación del redactor", () => {
     expect(problems).toContain("Ninguna pregunta frecuente responde sobre el pago contra entrega: agrega una.");
   });
 
+  it("beneficios: una razón de compra distinta cada uno, y uno del resultado", () => {
+    const same = page();
+    same.blocks.find((x) => x.text.startsWith("Delgado"))!.kind = "ease";
+    expect(copyProblems(same, facts)).toContain(
+      "Hay beneficios con la misma razón de compra (ease): cada uno tiene que dar una razón distinta; si no hay tantas, escribe menos.",
+    );
+    const noResult = page();
+    noResult.blocks.find((x) => x.kind === "result")!.kind = "safety";
+    expect(copyProblems(noResult, facts)).toContain("Ningún beneficio habla del resultado que busca el comprador (kind result).");
+    const noKind = page();
+    noKind.blocks.find((x) => x.kind === "ease")!.kind = null;
+    expect(copyProblems(noKind, facts)).toContain("Cada benefit necesita su kind (la razón de compra).");
+  });
+
+  it("nada de palabras internas en la tienda", () => {
+    const p = page();
+    p.blocks.find((x) => x.kind === "comfort")!.text = "Rinde 25 días según la ficha";
+    expect(copyProblems(p, facts)).toContain("Un texto usa una palabra interna («la ficha»): escribe para el comprador, sin nombrar la ficha, los ángulos ni el precio y oferta.");
+    p.blocks.find((x) => x.kind === "comfort")!.text = "Como dice el ángulo principal";
+    expect(copyProblems(p, facts).some((x) => x.includes("«ángulo principal»"))).toBe(true);
+    // «fichar» o «ficharte» no son la palabra interna.
+    p.blocks.find((x) => x.kind === "comfort")!.text = "Úsalo antes de fichar en la oficina";
+    expect(copyProblems(p, facts)).toEqual([]);
+  });
+
   it("al reescribir, lo aprobado cuenta y no se pide de nuevo", () => {
     const p = page();
-    p.blocks = p.blocks.filter((b) => b.key !== "title" && b.key !== "benefit").concat({ key: "benefit", text: "Uno nuevo", angle: "secondary", note: "n", missing: null });
+    p.blocks = p.blocks.filter((b) => b.key !== "title" && b.key !== "benefit").concat({ key: "benefit", text: "Uno nuevo", angle: "secondary", note: "n", missing: null, kind: "value" });
     p.faq = [];
     expect(copyProblems(p, { ...facts, kept: { title: 1, benefit: 2, faq: 3 } })).toEqual([]);
     expect(copyProblems(p, { ...facts, kept: { title: 1, benefit: 1, faq: 3 } })).toContain("Faltan bloques benefit: trae 1 y deben ser al menos 2.");

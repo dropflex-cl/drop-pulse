@@ -19,16 +19,8 @@ import {
   type ReviewState,
   type SummaryTag,
 } from "@/components/df";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import {
-  AssistantButton,
-  AssistantScope,
-} from "@/components/shell/assistant-provider";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
+import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { PAGE_SECTIONS, splitFaq } from "@/lib/copy/blocks";
@@ -46,8 +38,7 @@ import { cn } from "@/lib/utils";
 const POLL_MS = 2500;
 const EXIT_MS = 200; // duration-base: la propuesta decidida sale antes de mostrar la siguiente
 const active = (s?: RunStatus) => s === "queued" || s === "running";
-const errorText = (e: unknown, fallback: string) =>
-  e instanceof ProductApiClientError ? e.message : fallback;
+const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 const pendingItem = (i: CopyItem) => itemState(i) === "pending";
 
 /** Qué pasa si se descarta, dicho antes de decidir. */
@@ -55,8 +46,7 @@ function discardHint(i: CopyItem): string {
   if (i.key === "title") return "se mantiene el título actual de Shopify.";
   if (i.original) return "se mantiene la descripción actual de Shopify.";
   if (i.key === "faq") return "esta pregunta no va en la página.";
-  if (i.required)
-    return "queda pendiente: es obligatorio y tendrás que aprobar una versión.";
+  if (i.required) return "queda pendiente: es obligatorio y tendrás que aprobar una versión.";
   return "este bloque no va en la página.";
 }
 
@@ -106,14 +96,20 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const redoable = items.some((i) => i.status !== "aprobado");
 
   // ---------------------------------------------------------------- Sondeo
+  // Al llegar desde «Continuar» en Ángulos, el layout del producto (encabezado y ruta) se conserva de
+  // la pantalla anterior: se relee una vez para que diga «Escribiendo» y no «Ángulos listos».
+  useEffect(() => {
+    if (writing) router.refresh();
+    // Solo al montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const wasWriting = useRef(writing);
   useEffect(() => {
     if (wasWriting.current && !writing) {
       router.refresh();
-      if (run?.status === "succeeded")
-        notify("La página está escrita: revisa cada bloque");
-      else if (run?.status === "failed")
-        notify(run.error ?? "No pudimos escribir la página. Toca Reintentar.");
+      if (run?.status === "succeeded") notify("La página está escrita: revisa cada bloque");
+      else if (run?.status === "failed") notify(run.error ?? "No pudimos escribir la página. Toca Reintentar.");
     }
     wasWriting.current = writing;
     if (!writing) return;
@@ -137,23 +133,14 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
       setEditing(false);
       router.refresh();
     } catch (e) {
-      setError(
-        errorText(
-          e,
-          "No pudimos empezar a escribir la página. Intenta de nuevo.",
-        ),
-      );
+      setError(errorText(e, "No pudimos empezar a escribir la página. Intenta de nuevo."));
     } finally {
       setBusy(null);
     }
   };
 
   const decide = useCallback(
-    async (
-      item: CopyItem,
-      action: "approve" | "reject" | "reopen",
-      text?: string,
-    ) => {
+    async (item: CopyItem, action: "approve" | "reject" | "reopen", text?: string) => {
       setBusy(action);
       setError(undefined);
       const exit = action !== "reopen";
@@ -172,18 +159,11 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         // Pasa sola al siguiente pendiente, como la revisión de textos.
         setSelected(null);
         router.refresh();
-        notifyUndo(
-          action === "approve"
-            ? text != null
-              ? "Tu versión quedó aceptada"
-              : "Propuesta aceptada"
-            : "Propuesta descartada",
-          () => decide(item, "reopen"),
+        notifyUndo(action === "approve" ? (text != null ? "Tu versión quedó aceptada" : "Propuesta aceptada") : "Propuesta descartada", () =>
+          decide(item, "reopen"),
         );
       } catch (e) {
-        setError(
-          errorText(e, "No pudimos guardar tu decisión. Intenta de nuevo."),
-        );
+        setError(errorText(e, "No pudimos guardar tu decisión. Intenta de nuevo."));
       } finally {
         setBusy(null);
         setLeaving(false);
@@ -198,11 +178,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     const onKey = (e: KeyboardEvent) => {
       if (editing || busy || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
-      if (
-        t &&
-        (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
-      )
-        return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       const k = e.key.toLowerCase();
       if (k === "a") decide(current, "approve");
       else if (k === "d") decide(current, "reject");
@@ -245,14 +221,9 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
           id: i.id,
           label: i.label,
           required: i.required,
-          state:
-            i.id === current?.id
-              ? ("current" as const)
-              : OUTLINE_STATE[itemState(i)],
+          state: i.id === current?.id ? ("current" as const) : OUTLINE_STATE[itemState(i)],
         })),
-      ...(title === "Dudas" && state.noGuarantee
-        ? [{ label: "Garantía", state: "omitted" as const }]
-        : []),
+      ...(title === "Dudas" && state.noGuarantee ? [{ label: "Garantía", state: "omitted" as const }] : []),
     ],
   })).filter((g) => g.items.length);
 
@@ -263,12 +234,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         .filter((i) => i.section === title)
         .map((i) => {
           const s = itemState(i);
-          const text =
-            s === "kept"
-              ? i.original
-              : s === "accepted" || s === "edited"
-                ? plain(i)
-                : undefined;
+          const text = s === "kept" ? i.original : s === "accepted" || s === "edited" ? plain(i) : undefined;
           return { id: i.id, label: i.label, text, tag: SUMMARY_TAG[s] };
         }),
       ...(title === "Dudas" && state.noGuarantee
@@ -288,14 +254,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
       title="Cambiaste tus ángulos."
       body="Reescribe los textos que no aprobaste."
       action={
-        <Button
-          size="sm"
-          variant="secondary"
-          icon="sparkle"
-          loading={busy === "redo"}
-          disabled={writing || !redoable}
-          onClick={() => write(true)}
-        >
+        <Button size="sm" variant="secondary" icon="sparkle" loading={busy === "redo"} disabled={writing || !redoable} onClick={() => write(true)}>
           Reescribir
         </Button>
       }
@@ -305,19 +264,10 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   // Una reescritura en curso o con error no tapa lo que ya está escrito.
   const runNotice =
     items.length && writing ? (
-      <Notice
-        tone="info"
-        icon="sparkle"
-        title="La IA está reescribiendo los textos que no aprobaste."
-        body="Puedes seguir revisando: se actualizan solos."
-      />
+      <Notice tone="info" icon="sparkle" title="La IA está reescribiendo los textos que no aprobaste." body="Puedes seguir revisando: se actualizan solos." />
     ) : items.length && run?.status === "failed" ? (
-      <div
-        role="alert"
-        className="rounded-md bg-destructive-soft p-3 text-label font-normal text-destructive"
-      >
-        {run.error ??
-          "No pudimos reescribir los textos. Toca Rehacer descartados."}
+      <div role="alert" className="rounded-md bg-destructive-soft p-3 text-label font-normal text-destructive">
+        {run.error ?? "No pudimos reescribir los textos. Toca Rehacer descartados."}
       </div>
     ) : null;
 
@@ -344,23 +294,14 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
       <EmptyState
         icon={failed ? "alert" : "text"}
         tone={failed ? "error" : "neutral"}
-        title={
-          failed
-            ? "No se pudieron escribir los textos"
-            : "Escribe la página de tu producto"
-        }
+        title={failed ? "No se pudieron escribir los textos" : "Escribe la página de tu producto"}
         body={
           failed
             ? (run?.error ?? "Toca Reintentar.")
             : "Título, descripción, beneficios, cómo funciona, preguntas, envío y pago, y lo que ve Google. Cada texto lo apruebas tú."
         }
         action={
-          <Button
-            variant="primary"
-            icon="sparkle"
-            loading={busy === "write"}
-            onClick={() => write(false)}
-          >
+          <Button variant="primary" icon="sparkle" loading={busy === "write"} onClick={() => write(false)}>
             {failed ? "Reintentar" : "Escribir textos con IA"}
           </Button>
         }
@@ -368,52 +309,28 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     );
   } else if (view === "writing") {
     body = (
-      <EmptyState
-        icon="sparkle"
-        busy
-        title="La IA está escribiendo los textos"
-        body="Suele tardar menos de un minuto. Puedes salir: te avisamos en Hoy."
-      >
-        <div
-          aria-hidden
-          className="mt-2 flex w-full flex-col items-center gap-2"
-        >
+      <EmptyState icon="sparkle" busy title="La IA está escribiendo los textos" body="Suele tardar menos de un minuto. Puedes salir: te avisamos en Hoy.">
+        <div aria-hidden className="mt-2 flex w-full flex-col items-center gap-2">
           {["w-4/5", "w-2/3", "w-3/4"].map((w) => (
-            <span
-              key={w}
-              className={cn("block h-3.5 animate-pulse rounded-sm bg-muted", w)}
-            />
+            <span key={w} className={cn("block h-3.5 animate-pulse rounded-sm bg-muted", w)} />
           ))}
         </div>
       </EmptyState>
     );
   } else if (view === "review" && current) {
     const faq = current.key === "faq" ? splitFaq(current.text) : undefined;
-    const cardState: ReviewState = editing
-      ? "editing"
-      : current.status === "aprobado"
-        ? "accepted"
-        : current.status === "rechazado"
-          ? "discarded"
-          : "pending";
+    const cardState: ReviewState = editing ? "editing" : current.status === "aprobado" ? "accepted" : current.status === "rechazado" ? "discarded" : "pending";
     body = (
       <div className="flex flex-col gap-3">
         {staleNotice}
         {runNotice}
         {current.missing ? (
-          <Notice
-            tone="info"
-            icon="clock"
-            title={`Completa ${current.missing}.`}
-            body="La IA no lo tiene: escríbelo al editar este bloque."
-          />
+          <Notice tone="info" icon="clock" title={`Completa ${current.missing}.`} body="La IA no lo tiene: escríbelo al editar este bloque." />
         ) : null}
         <div
           className={cn(
             "transition-[opacity,translate] duration-base",
-            leaving
-              ? "-translate-y-2 opacity-0 ease-exit"
-              : "translate-y-0 opacity-100 ease-enter",
+            leaving ? "-translate-y-2 opacity-0 ease-exit" : "translate-y-0 opacity-100 ease-enter",
           )}
         >
           <ReviewCard
@@ -436,13 +353,8 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
             total={items.length}
             state={cardState}
             keys={desktop}
-          autoFocus
-            rows={
-              current.key === "how_it_works" ||
-              current.key === "shipping_payment"
-                ? 6
-                : undefined
-            }
+            autoFocus
+            rows={current.key === "how_it_works" || current.key === "shipping_payment" ? 6 : undefined}
             layout={current.original ? "side" : "stacked"}
             hideActions={!desktop && !editing}
             onAccept={() => decide(current, "approve")}
@@ -494,23 +406,11 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     );
     const nextLabel = desktop ? "Continuar: Imágenes" : "Imágenes";
     const next = progress.complete ? (
-      <Button
-        variant="primary"
-        size="lg"
-        iconEnd="chevron-right"
-        href={imagesHref}
-        className={actionClass}
-      >
+      <Button variant="primary" size="lg" iconEnd="chevron-right" href={imagesHref} className={actionClass}>
         {nextLabel}
       </Button>
     ) : (
-      <Button
-        variant="primary"
-        size="lg"
-        iconEnd="chevron-right"
-        disabled
-        className={actionClass}
-      >
+      <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={actionClass}>
         {nextLabel}
       </Button>
     );
@@ -518,20 +418,12 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
       <StickyActions
         variant="bar"
         summary={
-          progress.complete
-            ? "La página está lista. Sigue con las imágenes."
-            : "Aprueba los obligatorios para continuar."
+          // En escritorio angosto no cabe junto a los dos botones.
+          <span className="hidden @4xl:inline">{progress.complete ? "La página está lista. Sigue con las imágenes." : "Aprueba los obligatorios para continuar."}</span>
         }
         className="lg:px-8"
       >
-        <Button
-          size="lg"
-          icon="sparkle"
-          loading={busy === "redo"}
-          disabled={!redoable || writing}
-          onClick={() => write(true)}
-          className={actionClass}
-        >
+        <Button size="lg" icon="sparkle" loading={busy === "redo"} disabled={!redoable || writing} onClick={() => write(true)} className={actionClass}>
           {desktop ? "Rehacer descartados" : "Rehacer"}
         </Button>
         {next}
@@ -539,20 +431,12 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     );
   }
 
-  const meter: MeterStage[] = items.map((i) =>
-    i.id === current?.id ? "current" : pendingItem(i) ? "locked" : "done",
-  );
+  const meter: MeterStage[] = items.map((i) => (i.id === current?.id ? "current" : pendingItem(i) ? "locked" : "done"));
   const reviewing = view === "review" || view === "done";
 
   return (
-    <div className="flex flex-col lg:min-h-svh">
-      <AssistantScope
-        productId={product.id}
-        product={product.name}
-        stage={COPY_STAGE_TITLE}
-        stageKey="textos"
-        image={product.image}
-      />
+    <div className="@container flex flex-col lg:min-h-svh">
+      <AssistantScope productId={product.id} product={product.name} stage={COPY_STAGE_TITLE} stageKey="textos" image={product.image} />
       <TopBar
         back={product.name}
         backHref={`/products/${product.id}`}
@@ -561,12 +445,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         actions={
           <>
             {reviewing ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setOutlineOpen(true)}
-                aria-label={`La página: ${counter}`}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setOutlineOpen(true)} aria-label={`La página: ${counter}`}>
                 {progress.approved}/{progress.total}
               </Button>
             ) : null}
@@ -581,25 +460,20 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "flex flex-1 flex-col lg:grid",
-          reviewing && "lg:grid-cols-[minmax(0,1fr)_--spacing(70)]",
-        )}
-      >
+      {/* La página como índice a la derecha solo si queda espacio para la tarjeta (≥ 896px de contenido); si no, se abre como hoja. */}
+      <div className={cn("flex flex-1 flex-col", reviewing && "@4xl:grid @4xl:grid-cols-[minmax(0,1fr)_--spacing(70)]")}>
         <div className="flex min-w-0 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
           <div className="hidden items-center gap-3 lg:flex lg:max-w-content">
             <p className="flex-1 text-body text-muted-foreground">
               {COPY_STAGE_TITLE} · {reviewing ? counter : subtitle}
             </p>
+            {reviewing ? (
+              <Button variant="ghost" size="sm" className="@4xl:hidden" onClick={() => setOutlineOpen(true)}>
+                Ver la página
+              </Button>
+            ) : null}
             {view === "review" ? (
-              <Button
-                variant="ghost"
-                icon="sparkle"
-                loading={busy === "redo"}
-                disabled={!redoable || writing}
-                onClick={() => write(true)}
-              >
+              <Button variant="ghost" icon="sparkle" loading={busy === "redo"} disabled={!redoable || writing} onClick={() => write(true)}>
                 Rehacer descartados
               </Button>
             ) : null}
@@ -612,43 +486,28 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
           ) : null}
         </div>
         {reviewing ? (
-          <aside
-            aria-label="La página"
-            className="hidden border-l bg-sidebar px-4 pt-6 pb-4 lg:block"
-          >
+          <aside aria-label="La página" className="hidden border-l bg-sidebar px-4 pt-6 pb-4 @4xl:block">
             <div className="flex items-center justify-between px-2">
               <h2 className="text-heading">La página</h2>
               <span className="text-caption text-muted-foreground tabular-nums">
                 {progress.approved}/{progress.total}
               </span>
             </div>
-            <PageOutline
-              groups={outlineGroups}
-              onPick={pick}
-              className="sticky top-6 mt-3"
-            />
+            <PageOutline groups={outlineGroups} onPick={pick} className="sticky top-6 mt-3" />
           </aside>
         ) : null}
       </div>
 
       {footer}
 
-      {/* Móvil: el contador de la barra superior abre la página completa como hoja. */}
-      <Drawer
-        open={outlineOpen && !desktop}
-        onOpenChange={setOutlineOpen}
-        repositionInputs={false}
-      >
-        <DrawerContent className="max-h-[85svh]">
+      {/* Móvil (el contador de la barra superior) y escritorio angosto («Ver la página»): la página completa como hoja. */}
+      <Drawer open={outlineOpen} onOpenChange={setOutlineOpen} direction={desktop ? "right" : "bottom"} repositionInputs={false}>
+        <DrawerContent className="max-h-[85svh] lg:max-h-none">
           <div className="flex items-center justify-between gap-2 px-4 pt-2 pb-1">
             <DrawerTitle className="text-heading">La página</DrawerTitle>
-            <span className="text-caption text-muted-foreground tabular-nums">
-              {counter}
-            </span>
+            <span className="text-caption text-muted-foreground tabular-nums">{counter}</span>
           </div>
-          <DrawerDescription className="sr-only">
-            Los bloques de la página en su orden. Toca uno para revisarlo.
-          </DrawerDescription>
+          <DrawerDescription className="sr-only">Los bloques de la página en su orden. Toca uno para revisarlo.</DrawerDescription>
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-[calc(var(--space-3)+env(safe-area-inset-bottom))]">
             <PageOutline groups={outlineGroups} onPick={pick} />
           </div>
