@@ -1,6 +1,6 @@
 import type * as React from 'react';
 
-export type IconName = 'sparkle' | 'eye' | 'check' | 'x' | 'loader' | 'check-circle' | 'alert' | 'chevron-right' | 'chevron-left' | 'plus' | 'inbox' | 'box' | 'megaphone' | 'chat' | 'lock' | 'image' | 'tag' | 'text' | 'store' | 'send' | 'arrow-up' | 'arrow-down' | 'pause' | 'power' | 'more' | 'undo' | 'edit' | 'search' | 'clock' | 'minus' | 'truck' | 'trend' | 'grip' | 'star' | 'settings' | 'shield';
+export type IconName = 'sparkle' | 'eye' | 'check' | 'x' | 'loader' | 'check-circle' | 'alert' | 'chevron-right' | 'chevron-left' | 'plus' | 'inbox' | 'box' | 'megaphone' | 'chat' | 'lock' | 'image' | 'tag' | 'text' | 'store' | 'send' | 'arrow-up' | 'arrow-down' | 'pause' | 'power' | 'more' | 'undo' | 'edit' | 'search' | 'clock' | 'minus' | 'truck' | 'trend' | 'grip' | 'star' | 'settings' | 'shield' | 'upload' | 'link';
 export interface IconProps { name: IconName; size?: 'sm'; label?: string; strokeWidth?: number; className?: string }
 export declare function Icon(props: IconProps): React.ReactElement;
 
@@ -105,6 +105,28 @@ export interface SetupItem { title: string; desc?: string; done?: boolean; actio
 export interface SetupChecklistProps { title?: string; items: SetupItem[] }
 export declare function SetupChecklist(props: SetupChecklistProps): React.ReactElement;
 
+export interface ProductInfoInputProps { value?: string; found?: string[]; fromShopify?: boolean; saving?: boolean; saved?: string; rows?: number; label?: string; hint?: string; placeholder?: string; suggest?: string[]; focused?: boolean }
+export declare function ProductInfoInput(props: ProductInfoInputProps): React.ReactElement;
+
+export interface ReferenceImageProps { src?: string; alt?: string; source?: 'shopify' | 'upload' | 'url'; state?: 'ready' | 'excluded' | 'uploading' | 'error'; cover?: boolean; progress?: number; error?: string; name?: string; imageIndex?: number; shape?: number }
+export declare function ReferenceImage(props: ReferenceImageProps): React.ReactElement;
+
+export interface UploadItem { name: string; state: 'uploading' | 'done' | 'error'; progress?: number; detail?: string }
+export interface ImageUploaderProps { mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
+export declare function ImageUploader(props: ImageUploaderProps): React.ReactElement;
+
+export interface StarsProps { value: number; size?: 'lg' }
+export declare function Stars(props: StarsProps): React.ReactElement;
+
+export interface ReviewImporterProps { state?: 'idle' | 'fetching' | 'done' | 'error'; url?: string; error?: string; progress?: number; detail?: string; summary?: string; actions?: React.ReactNode; minStars?: '1' | '4' | '5'; photosOnly?: boolean; filters?: boolean; primary?: boolean; title?: string }
+export declare function ReviewImporter(props: ReviewImporterProps): React.ReactElement;
+
+export interface ReviewSummaryProps { average: number; total: number; distribution: [number, number, number, number, number] }
+export declare function ReviewSummary(props: ReviewSummaryProps): React.ReactElement;
+
+export interface ReviewItemProps { author: string; country?: string; date?: string; rating: number; variant?: string; text: string; photos?: number; imageIndex?: number; translated?: boolean; original?: string; lang?: string; flags?: string[]; state?: 'pending' | 'approved' | 'rejected' | 'published'; editing?: boolean; edited?: boolean; hideActions?: boolean }
+export declare function ReviewItem(props: ReviewItemProps): React.ReactElement;
+
 declare global {
   interface Window {
     DropFlex: {
@@ -115,6 +137,8 @@ declare global {
       TopBar: typeof TopBar; Toast: typeof Toast; AssistantSheet: typeof AssistantSheet; Icon: typeof Icon;
       OnboardingHeader: typeof OnboardingHeader; ProviderMark: typeof ProviderMark; ConnectionCard: typeof ConnectionCard; PermissionList: typeof PermissionList;
       OptionList: typeof OptionList; PickRow: typeof PickRow; GenerationProgress: typeof GenerationProgress; SetupChecklist: typeof SetupChecklist;
+      ProductInfoInput: typeof ProductInfoInput; ReferenceImage: typeof ReferenceImage; ImageUploader: typeof ImageUploader;
+      Stars: typeof Stars; ReviewImporter: typeof ReviewImporter; ReviewSummary: typeof ReviewSummary; ReviewItem: typeof ReviewItem;
     };
   }
 }

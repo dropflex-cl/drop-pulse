@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"Icon"}]} */
+/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"Icon"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -41,6 +41,8 @@
     trend: 'M3.5 16.5l5.5-5.5 4 4 7.5-7.5 M15 7.5h5.5V13',
     grip: 'M9 6h.01 M15 6h.01 M9 12h.01 M15 12h.01 M9 18h.01 M15 18h.01',
     star: 'M12 4l2.4 5 5.3.6-3.9 3.7 1 5.2L12 16l-4.8 2.5 1-5.2-3.9-3.7 5.3-.6z',
+    upload: 'M12 15V4.5 M7.5 9L12 4.5 16.5 9 M4.5 15v4.5h15V15',
+    link: 'M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.1 1.1 M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.1-1.1',
     shield: 'M12 3.25l7.25 2.75v5.5c0 4.5-3.1 8-7.25 9.25C7.85 19.5 4.75 16 4.75 11.5V6z M8.75 12l2.25 2.25 4.25-4.5',
     settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.1-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2.1 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.1 1.2L10 21h4l.5-2.6a7 7 0 0 0 2.1-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z'
   };
@@ -495,6 +497,176 @@
   }
 
   /* =========================================================
+     Producto sin optimizar: materia prima para la IA
+     ========================================================= */
+
+  /* ReferenceImage: imagen de origen (Shopify o subida) usada como referencia */
+  var REF_SRC = { shopify: 'Shopify', upload: 'Subida', url: 'Enlace' };
+  function ReferenceImage(props) {
+    var st = props.state || 'ready';
+    if (st === 'uploading') return h('div', { className: 'df-ref is-uploading', role: 'status', 'aria-label': 'Subiendo ' + (props.name || 'imagen') },
+      h('span', { className: 'df-tile-center' }, h('span', { className: 'df-ref-pct' }, Math.round((props.progress || 0) * 100) + '%'), 'Subiendo'),
+      h('span', { className: 'df-ref-bar' }, h('span', { style: { width: Math.round((props.progress || 0) * 100) + '%' } })));
+    if (st === 'error') return h('div', { className: 'df-ref is-error', role: 'alert' },
+      h('span', { className: 'df-tile-center' }, h(Icon, { name: 'alert' }), props.error || 'No se pudo subir'),
+      h('button', { type: 'button', className: 'df-ref-retry' }, 'Reintentar'));
+    var off = st === 'excluded';
+    return h('figure', { className: cx('df-ref', off && 'is-off') },
+      h('img', { src: props.src || productImage(props.imageIndex || 0, props.shape), alt: props.alt || '' }),
+      h('span', { className: cx('df-ref-src', 'src-' + (props.source || 'shopify')) }, REF_SRC[props.source || 'shopify']),
+      props.cover && !off ? h('span', { className: 'df-tile-cover' }, 'Portada') : null,
+      h('button', { type: 'button', className: 'df-ref-toggle', 'aria-pressed': off ? 'false' : 'true', 'aria-label': off ? 'Usar como referencia' : 'No usar como referencia' },
+        h(Icon, { name: off ? 'plus' : 'x', size: 'sm', strokeWidth: 2.25 })),
+      off ? h('figcaption', { className: 'df-tile-tag' }, 'No se usa') : null);
+  }
+
+  /* ImageUploader: desde el equipo o desde un enlace */
+  function ImageUploader(props) {
+    var mode = props.mode || 'file', st = props.state || 'idle';
+    var modeCtl = h(SegmentedControl, { block: true, value: mode, label: 'Cómo agregar imágenes', options: [{ value: 'file', label: 'Desde tu equipo' }, { value: 'url', label: 'Desde un enlace' }] });
+    var body;
+    if (mode === 'file') {
+      body = h('label', { className: cx('df-drop', st === 'dragover' && 'is-over', st === 'error' && 'is-error') },
+        h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', multiple: true, className: 'df-sr' }),
+        h('span', { className: 'df-drop-ico' }, h(Icon, { name: st === 'dragover' ? 'arrow-down' : 'upload' })),
+        h('span', { className: 'df-drop-t' }, st === 'dragover' ? 'Suelta para subir' : props.compact ? 'Elige imágenes' : h(Frag, null, h('span', { className: 'df-drop-desk' }, 'Arrastra imágenes aquí o '), h('u', null, 'elige desde tu equipo'))),
+        h('span', { className: 'df-drop-s' }, 'JPG, PNG o WEBP · hasta 10 MB cada una · máximo 10'));
+    } else {
+      body = h('div', { className: 'df-urlin' },
+        h('div', { className: cx('df-field', props.urlError && 'is-error') },
+          h('label', { className: 'df-field-label', htmlFor: 'df-url' }, 'Enlace de la imagen'),
+          h('div', { className: 'df-urlrow' },
+            h('div', { className: 'df-field-box', style: { flex: 1 } }, h(Icon, { name: 'link', size: 'sm', className: 'df-muted' }), h('input', { id: 'df-url', type: 'url', inputMode: 'url', defaultValue: props.url || '', placeholder: 'https://', 'aria-invalid': props.urlError ? 'true' : undefined })),
+            h(Button, { variant: 'secondary', loading: st === 'fetching' }, st === 'fetching' ? 'Trayendo' : 'Traer')),
+          h('span', { className: 'df-field-hint' }, props.urlError || 'Pega el enlace directo a la imagen (por ejemplo, desde la página del proveedor).')));
+    }
+    return h('section', { className: 'df-uploader', 'aria-label': 'Agregar imágenes' },
+      props.hideModes ? null : modeCtl,
+      body,
+      props.items && props.items.length ? h('ul', { className: 'df-uplist' }, props.items.map(function (it, i) {
+        return h('li', { key: i, className: 'is-' + it.state },
+          h('span', { className: 'df-uplist-ico' }, h(Icon, { name: it.state === 'error' ? 'alert' : it.state === 'done' ? 'check' : 'image', size: 'sm', strokeWidth: 2 })),
+          h('span', { className: 'df-uplist-b' },
+            h('span', { className: 'df-uplist-n' }, it.name),
+            it.state === 'uploading' ? h('span', { className: 'df-conn-track' }, h('span', { style: { width: Math.round(it.progress * 100) + '%' } })) : h('span', { className: 'df-uplist-m' }, it.detail)),
+          it.state === 'error' ? h(Button, { size: 'sm', variant: 'ghost' }, 'Reintentar') : it.state === 'uploading' ? h(IconButton, { icon: 'x', label: 'Cancelar subida' }) : null);
+      })) : null);
+  }
+
+  /* ProductInfoInput: todo lo que el comerciante sabe del producto, en un solo campo */
+  var TOPICS = ['Beneficios', 'Medidas', 'Materiales', 'Qué incluye', 'Modo de uso', 'Garantía', 'Para quién es'];
+  function ProductInfoInput(props) {
+    var found = props.found || [];
+    var len = (props.value || '').length;
+    return h('section', { className: 'df-info', 'aria-label': 'Información del producto' },
+      h('div', { className: 'df-info-head' },
+        h('label', { className: 'df-info-l', htmlFor: 'df-info' }, props.label || 'Todo lo que sabes del producto'),
+        h('span', { className: 'df-info-save', role: 'status' }, props.saving ? h(Frag, null, h(Icon, { name: 'loader', size: 'sm', className: 'df-spin' }), 'Guardando') : h(Frag, null, h(Icon, { name: 'check', size: 'sm' }), props.saved || 'Guardado'))),
+      h('p', { className: 'df-info-hint', id: 'df-info-h' }, props.hint || 'Pega la descripción del proveedor, medidas, materiales, reseñas o lo que te hayan preguntado tus clientes. Sin orden: la IA lo organiza.'),
+      h('div', { className: cx('df-info-box', props.focused && 'is-focus') },
+        props.fromShopify ? h('span', { className: 'df-info-src' }, h(Icon, { name: 'store', size: 'sm' }), 'Incluye la descripción de Shopify') : null,
+        h('textarea', { id: 'df-info', 'aria-describedby': 'df-info-h df-info-cov', defaultValue: props.value || '', placeholder: props.placeholder || 'Ej.: Corrector de postura de neopreno, talla única ajustable hasta 110 cm de pecho…', rows: props.rows || 8 }),
+        h('div', { className: 'df-info-foot' },
+          h('div', { className: 'df-chips', 'aria-label': 'Agregar un tema' }, (props.suggest || TOPICS.filter(function (t) { return found.indexOf(t) < 0; }).slice(0, 4)).map(function (t) { return h('button', { key: t, type: 'button', className: 'df-chipbtn df-chip-sm' }, '+ ' + t); })),
+          h('span', { className: 'df-info-count' }, len.toLocaleString('es-CL') + ' caracteres'))),
+      h('div', { className: 'df-cov', id: 'df-info-cov' },
+        h('span', { className: 'df-cov-l' }, h(Icon, { name: 'sparkle', size: 'sm' }), found.length >= 3 ? 'Suficiente para empezar' : 'Agrega un poco más', ' · ', 'la IA encontró:'),
+        h('ul', null, TOPICS.map(function (t) {
+          var ok = found.indexOf(t) >= 0;
+          return h('li', { key: t, className: ok ? 'is-ok' : '' }, h(Icon, { name: ok ? 'check' : 'minus', size: 'sm', strokeWidth: 2.25 }), t);
+        }))));
+  }
+
+  /* =========================================================
+     Reseñas importadas de AliExpress
+     ========================================================= */
+
+  /* Stars: calificación con estrellas en tinta, con texto accesible */
+  function Stars(props) {
+    var n = props.value || 0, out = [];
+    for (var i = 1; i <= 5; i++) out.push(h('svg', { key: i, className: cx('df-star', i <= Math.round(n) && 'is-on'), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: P.star })));
+    return h('span', { className: cx('df-stars', props.size === 'lg' && 'is-lg'), role: 'img', 'aria-label': String(n).replace('.', ',') + ' de 5 estrellas' }, out);
+  }
+
+  /* ReviewImporter: trae reseñas desde el enlace del producto en AliExpress */
+  function ReviewImporter(props) {
+    var st = props.state || 'idle';
+    return h('section', { className: cx('df-card df-rimp', 'is-' + st), 'aria-label': 'Importar reseñas' },
+      h('div', { className: 'df-conn-head' },
+        h('span', { className: 'df-pmark', 'aria-hidden': 'true' }, h(Icon, { name: 'star' })),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { className: 'df-conn-name' }, props.title || 'Reseñas de AliExpress'),
+          h('div', { className: 'df-conn-acc' }, st === 'done' ? props.summary : 'Pega el enlace del producto en AliExpress')),
+        st === 'fetching' ? h('span', { className: 'df-status df-status-progress', role: 'status' }, h(Icon, { name: 'loader', className: 'df-spin', strokeWidth: 2 }), 'Importando') :
+          st === 'done' ? h('span', { className: 'df-status df-status-success' }, h(Icon, { name: 'check-circle', strokeWidth: 2 }), 'Importadas') :
+          st === 'error' ? h('span', { className: 'df-status df-status-danger' }, h(Icon, { name: 'alert', strokeWidth: 2 }), 'No se pudo') : null),
+      st === 'fetching' ? h('div', { className: 'df-conn-prog' },
+        h('div', { className: 'df-conn-track' }, h('span', { style: { width: Math.round((props.progress || 0) * 100) + '%' } })),
+        h('div', { className: 'df-conn-detail' }, props.detail || 'Leyendo reseñas…')) : null,
+      st === 'idle' || st === 'error' ? h(Frag, null,
+        h('div', { className: cx('df-field', st === 'error' && 'is-error') },
+          h('label', { className: 'df-field-label', htmlFor: 'df-ali' }, 'Enlace del producto'),
+          h('div', { className: 'df-field-box' }, h(Icon, { name: 'link', size: 'sm', className: 'df-muted' }), h('input', { id: 'df-ali', type: 'url', inputMode: 'url', defaultValue: props.url || '', placeholder: 'https://es.aliexpress.com/item/…', 'aria-invalid': st === 'error' ? 'true' : undefined })),
+          h('span', { className: 'df-field-hint' }, props.error || 'Lo encuentras en la barra de direcciones del producto en AliExpress.')),
+        props.filters === false ? null : h('fieldset', { className: 'df-rimp-f' },
+          h('legend', { className: 'df-field-label' }, 'Qué traer'),
+          h(SegmentedControl, { block: true, value: props.minStars || '4', label: 'Calificación mínima', options: [{ value: '1', label: 'Todas' }, { value: '4', label: '4★ o más' }, { value: '5', label: 'Solo 5★' }] }),
+          h('label', { className: 'df-switch' }, h('input', { type: 'checkbox', defaultChecked: true }), h('span', { className: 'df-switch-ui', 'aria-hidden': 'true' }), h('span', null, 'Traducir al español', h('small', null, 'Se guarda el texto original'))),
+          h('label', { className: 'df-switch' }, h('input', { type: 'checkbox', defaultChecked: props.photosOnly }), h('span', { className: 'df-switch-ui', 'aria-hidden': 'true' }), h('span', null, 'Solo con fotos', h('small', null, 'Las que más convencen')))),
+        h(Button, { variant: props.primary === false ? 'secondary' : 'primary', block: true, icon: 'arrow-down' }, 'Importar reseñas')) : null,
+      st === 'done' && props.actions ? h('div', { className: 'df-conn-actions' }, props.actions) : null);
+  }
+
+  /* ReviewSummary: promedio, distribución y avance de la curación */
+  function ReviewSummary(props) {
+    var dist = props.distribution || [0, 0, 0, 0, 0];
+    var max = Math.max.apply(null, dist) || 1;
+    return h('div', { className: 'df-rsum' },
+      h('div', { className: 'df-rsum-avg' },
+        h('span', { className: 'df-profit-v' }, String(props.average).replace('.', ',')),
+        h(Stars, { value: props.average }),
+        h('span', { className: 'df-pick-meta' }, props.total + ' importadas')),
+      h('ul', { className: 'df-rsum-dist', 'aria-label': 'Distribución por estrellas' }, [5, 4, 3, 2, 1].map(function (s) {
+        var v = dist[s - 1];
+        return h('li', { key: s }, h('span', null, s + '★'), h('span', { className: 'df-rsum-bar' }, h('span', { style: { width: (v / max * 100) + '%' } })), h('span', { className: 'df-rsum-n' }, v));
+      })));
+  }
+
+  /* ReviewItem: una reseña para aprobar, rechazar o editar */
+  var RV_STATE = {
+    pending: null,
+    approved: { status: 'aprobado', label: 'Aprobada' },
+    rejected: { status: 'rechazado', label: 'Rechazada' },
+    published: { status: 'publicado', label: 'Publicada' }
+  };
+  function ReviewItem(props) {
+    var st = props.state || 'pending', editing = props.editing, badge = RV_STATE[st];
+    return h('article', { className: cx('df-rev', 'is-' + st, editing && 'is-editing'), 'aria-label': 'Reseña de ' + props.author },
+      h('header', { className: 'df-rev-head' },
+        h(Stars, { value: props.rating }),
+        h('span', { className: 'df-rev-who' }, props.author, ' · ', props.country, ' · ', props.date),
+        badge ? h('span', { style: { marginLeft: 'auto' } }, h(StatusBadge, { status: badge.status, label: badge.label, size: 'sm' })) : null),
+      props.variant ? h('div', { className: 'df-rev-var' }, props.variant) : null,
+      editing ? h('div', { className: 'df-rev-edit' },
+          h('textarea', { defaultValue: props.text, 'aria-label': 'Editar texto de la reseña', rows: 3 }),
+          h('div', { className: 'df-rev-edit-n' }, h(Icon, { name: 'shield', size: 'sm' }), 'Corrige traducción u ortografía sin cambiar lo que opinó el cliente.'))
+        : h('p', { className: 'df-rev-text' }, props.text),
+      props.photos ? h('div', { className: 'df-rev-photos' }, Array.apply(null, Array(props.photos)).map(function (_, i) { return h('img', { key: i, src: productImage((props.imageIndex || 1) + i, 1), alt: 'Foto ' + (i + 1) + ' del cliente' }); })) : null,
+      h('div', { className: 'df-rev-meta' },
+        props.translated ? h('button', { type: 'button', className: 'df-rev-link' }, h(Icon, { name: 'text', size: 'sm' }), 'Traducida · ver original') : null,
+        props.edited ? h('span', { className: 'df-rev-tag' }, h(Icon, { name: 'edit', size: 'sm' }), 'Editada por ti') : null,
+        (props.flags || []).map(function (f, i) { return h('span', { key: i, className: 'df-issue' }, f); })),
+      props.original && editing ? h('div', { className: 'df-orig' }, h('div', { className: 'df-orig-label' }, 'Original (' + (props.lang || 'inglés') + ')'), h('div', { className: 'df-orig-text' }, props.original)) : null,
+      props.hideActions ? null : editing
+        ? h('div', { className: 'df-rev-actions', style: { gridTemplateColumns: '1fr 1.4fr' } }, h(Button, { variant: 'ghost', size: 'sm' }, 'Cancelar'), h(Button, { variant: 'primary', size: 'sm', icon: 'check' }, 'Guardar y aprobar'))
+        : st === 'pending' ? h('div', { className: 'df-rev-actions' },
+            h(Button, { variant: 'secondary', size: 'sm', icon: 'x' }, 'Rechazar'),
+            h(Button, { variant: 'secondary', size: 'sm', icon: 'edit' }, 'Editar'),
+            h(Button, { variant: 'primary', size: 'sm', icon: 'check' }, 'Aprobar'))
+        : h('div', { className: 'df-rev-actions is-done' }, h(Button, { variant: 'ghost', size: 'sm', icon: 'undo' }, 'Deshacer')));
+  }
+
+  /* =========================================================
      Pantallas de ejemplo (no son componentes: composiciones)
      ========================================================= */
   function Phone(props) {
@@ -867,6 +1039,175 @@
           h(Button, { variant: 'primary', icon: 'check' }, 'Guardar y terminar'))));
   }
 
+  /* ---------- Pantallas: producto sin optimizar ---------- */
+  var PP_TEXT = 'Corrector Postura Espalda Ajustable Unisex. Material: neopreno + velcro. Talla única, ajustable hasta 110 cm de pecho. Ayuda a mantener la espalda recta y reduce la tensión en hombros. Se usa debajo de la ropa. Clientes preguntan si sirve para trabajar sentado 8 horas: sí, recomendado 2 a 3 horas al día al inicio.';
+  var PP_FOUND = ['Beneficios', 'Medidas', 'Materiales', 'Modo de uso'];
+  var PP_STAGES = [
+    { title: 'Información base', state: 'current', desc: 'Lo que sabes del producto e imágenes de referencia' },
+    { title: 'Reseñas', state: 'available', optional: true, desc: 'Importa de AliExpress; la IA las usa para escribir' },
+    { title: 'Textos', state: 'locked', desc: 'Se generan con la información base' },
+    { title: 'Imágenes', state: 'locked', desc: 'Se generan desde tus imágenes de referencia' },
+    { title: 'Precio y oferta', state: 'available', desc: 'Puedes adelantarlo' },
+    { title: 'Publicar en tu tienda', state: 'locked', desc: 'Necesita textos, imágenes y precio aprobados' },
+    { title: 'Anuncios', state: 'locked', optional: true, desc: 'Se habilita al publicar' }
+  ];
+  function ppRefs(extra) {
+    var r = [
+      { source: 'shopify', imageIndex: 1, shape: 1, cover: true, alt: 'Imagen 1 de Shopify' },
+      { source: 'shopify', imageIndex: 5, shape: 1, alt: 'Imagen 2 de Shopify' },
+      { source: 'shopify', imageIndex: 0, shape: 1, state: 'excluded', alt: 'Imagen 3 de Shopify, con texto del proveedor' }
+    ];
+    return r.concat(extra || []);
+  }
+  function RefGrid(props) {
+    return h('div', { className: 'df-grid3', style: props.cols ? { gridTemplateColumns: 'repeat(' + props.cols + ', 1fr)' } : null },
+      props.items.map(function (r, i) { return h(ReferenceImage, Object.assign({ key: i }, r)); }),
+      props.add ? h('button', { type: 'button', className: 'df-ref-add' }, h(Icon, { name: 'plus' }), 'Agregar') : null);
+  }
+
+  function PpMain() {
+    return h(Phone, { label: 'P1 · Producto sin optimizar: materia prima para la IA' },
+      h(TopBar, { back: 'Productos', title: 'Corrector de postura', subtitle: 'Importado de Shopify · sin optimizar', actions: h(IconButton, { icon: 'sparkle', label: 'Abrir asistente' }) }),
+      h('div', { style: { padding: '0 16px 8px' } }, h(StageMeter, { stages: ['current', 'locked', 'locked', 'locked', 'locked', 'optional'] })),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px 0', display: 'flex', flexDirection: 'column', gap: 20 } },
+        h('section', null,
+          h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Imágenes de referencia'), h('span', { className: 'df-review-count' }, '2 de 3 en uso')),
+          h(RefGrid, { items: ppRefs(), add: true, cols: 4 })),
+        h(ProductInfoInput, { value: PP_TEXT, found: PP_FOUND, fromShopify: true, rows: 4, saved: 'Guardado hace 5 s' }),
+        h('button', { type: 'button', className: 'df-inline-cta' }, h(Icon, { name: 'star', size: 'sm' }), h('span', null, h('b', null, 'Importa reseñas de AliExpress'), h('small', null, 'Opcional. La IA las usa para escribir beneficios reales.')), h(Icon, { name: 'chevron-right', size: 'sm' }))),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 6 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'sparkle' }, 'Optimizar con IA'),
+        h('p', { className: 'df-ob-fine', style: { margin: 0 } }, 'Genera textos e imágenes en ~2 min. Nada se publica sin tu OK.')));
+  }
+
+  function PpSheetFile() {
+    return h(Phone, { label: 'P2 · Agregar desde tu equipo (hoja inferior)' },
+      h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } },
+        h(TopBar, { back: 'Productos', title: 'Corrector de postura', subtitle: 'Importado de Shopify · sin optimizar' }),
+        h('div', { style: { padding: '8px 16px' } }, h(RefGrid, { items: ppRefs(), add: true, cols: 4 })),
+        h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+        h('div', { className: 'df-sheet', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '72%' } },
+          h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+          h('div', { className: 'df-sheet-head' }, h('strong', null, 'Agregar imágenes'), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+          h('div', { style: { padding: '0 16px', flex: 1, overflow: 'hidden' } },
+            h(ImageUploader, { mode: 'file', compact: true, items: [
+              { name: 'corrector-espalda.jpg', state: 'done', detail: '1,2 MB · lista' },
+              { name: 'corrector-lateral.png', state: 'uploading', progress: 0.62 },
+              { name: 'video-proveedor.mp4', state: 'error', detail: 'Solo imágenes JPG, PNG o WEBP' }] })),
+          h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', icon: 'check' }, 'Listo')))));
+  }
+
+  function PpSheetUrl() {
+    return h(Phone, { label: 'P3 · Agregar desde un enlace' },
+      h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } },
+        h(TopBar, { back: 'Productos', title: 'Corrector de postura', subtitle: 'Importado de Shopify · sin optimizar' }),
+        h('div', { style: { padding: '8px 16px' } }, h(RefGrid, { items: ppRefs([{ state: 'uploading', progress: 0.4 }]), add: true, cols: 4 })),
+        h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+        h('div', { className: 'df-sheet', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '56%' } },
+          h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+          h('div', { className: 'df-sheet-head' }, h('strong', null, 'Agregar imágenes'), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+          h('div', { style: { padding: '0 16px', flex: 1 } },
+            h(ImageUploader, { mode: 'url', url: 'https://proveedor.com/producto/corrector', urlError: 'Ese enlace es una página, no una imagen. Abre la imagen y copia su dirección.' })))));
+  }
+
+  function PpDesk() {
+    return h(DeskFrame, { label: 'Escritorio · Información a la izquierda, referencias y carga a la derecha' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('img', { className: 'df-thumb', src: productImage(1, 1), alt: '' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Importado de Shopify · sin optimizar · $24.990')),
+          h(IconButton, { icon: 'sparkle', label: 'Abrir asistente' })),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr) 360px', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', paddingTop: 12 } }, h(StageList, { stages: PP_STAGES })),
+          h('div', { style: { padding: '24px 32px', overflow: 'hidden' } }, h(ProductInfoInput, { value: PP_TEXT, found: PP_FOUND, fromShopify: true, rows: 9, focused: true, saved: 'Guardado hace 5 s' })),
+          h('div', { style: { padding: '24px 32px 24px 0', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Imágenes de referencia'), h('span', { className: 'df-review-count' }, '3 de 4 en uso')),
+            h(RefGrid, { items: ppRefs([{ source: 'upload', imageIndex: 3, shape: 1, alt: 'Subida' }]), cols: 2 }),
+            h(ImageUploader, { mode: 'file', state: 'dragover' }),
+            h('button', { type: 'button', className: 'df-inline-cta' }, h(Icon, { name: 'star', size: 'sm' }), h('span', null, h('b', null, 'Importa reseñas de AliExpress'), h('small', null, 'Opcional. La IA las usa para escribir.')), h(Icon, { name: 'chevron-right', size: 'sm' })))),
+        h('div', { className: 'df-ob-deskfoot' },
+          h('span', { className: 'df-ob-desc', style: { flex: 1, margin: 0 } }, 'Genera textos e imágenes en ~2 min. Nada se publica sin tu OK.'),
+          h(Button, { variant: 'primary', icon: 'sparkle' }, 'Optimizar con IA'))));
+  }
+
+  /* ---------- Pantallas: reseñas ---------- */
+  var RV = [
+    { author: 'M***a', country: 'CL', date: 'ago 2026', rating: 5, variant: 'Talla única · Negro', text: 'Llegó rápido y se ajusta bien. Después de una semana ya noto menos dolor en los hombros al trabajar sentada.', photos: 2, imageIndex: 1, translated: true, original: 'Arrived fast and fits well. After one week I already feel less shoulder pain when working seated.', lang: 'inglés' },
+    { author: 'J***n', country: 'MX', date: 'jul 2026', rating: 4, text: 'Buena calidad, el velcro es firme. Al principio incomoda un poco, pero te acostumbras.', photos: 0 },
+    { author: 'A***o', country: 'ES', date: 'jul 2026', rating: 5, text: 'Mejor que el de la marca PostureX que tenía antes, y mucho más barato.', flags: ['Menciona otra marca'] },
+    { author: 'R***s', country: 'BR', date: 'jun 2026', rating: 4, text: 'Buen producto, llegó en 20 días.', translated: true, flags: ['Habla del envío', 'Muy corta'] }
+  ];
+  var RV_STAGES = [
+    { title: 'Información base', state: 'done', desc: 'Listo · 3 imágenes de referencia' },
+    { title: 'Reseñas', state: 'current', optional: true, desc: '14 por revisar' },
+    { title: 'Textos', state: 'review', desc: '8 propuestas esperan tu revisión' },
+    { title: 'Imágenes', state: 'available', desc: 'Elige y ordena 4 a 6' },
+    { title: 'Precio y oferta', state: 'available', desc: 'Calcula cuánto ganas' },
+    { title: 'Publicar en tu tienda', state: 'locked', desc: 'Necesita textos, imágenes y precio aprobados' },
+    { title: 'Anuncios', state: 'locked', optional: true, desc: 'Se habilita al publicar' }
+  ];
+
+  function RvImport() {
+    return h(Phone, { label: 'R1 · Reseñas (opcional): importar desde AliExpress' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Reseñas', subtitle: 'Opcional · la IA también las usa para escribir' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+        h(ReviewImporter, { url: 'https://es.aliexpress.com/item/1005006….html', minStars: '4' }),
+        h('div', { className: 'df-card df-card-pad', style: { display: 'flex', gap: 12 } },
+          h('span', { className: 'df-att-ico k-review' }, h(Icon, { name: 'shield' })),
+          h('div', null, h('div', { className: 'type-heading', style: { fontSize: 15 } }, 'Nada se publica sin tu aprobación'), h('div', { className: 'df-att-detail' }, 'Cada reseña queda pendiente hasta que la apruebes. Las publicamos con su calificación y fecha originales.')))),
+      h(Navigation, { active: 'productos', badges: { hoy: 6 } }));
+  }
+
+  function RvList() {
+    return h(Phone, { label: 'R2 · Curar: aprobar, rechazar o editar' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Reseñas', subtitle: '48 importadas · 14 por revisar', actions: h(IconButton, { icon: 'more', label: 'Más opciones' }) }),
+      h('div', { style: { padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 8 } },
+        h(SegmentedControl, { block: true, value: 'p', label: 'Filtrar reseñas', options: [{ value: 'p', label: 'Por revisar', count: 14 }, { value: 'a', label: 'Aprobadas', count: 30 }, { value: 'r', label: 'Rechazadas', count: 4 }] }),
+        h('div', { className: 'df-rv-bulk' }, h(Icon, { name: 'sparkle', size: 'sm' }), h('span', null, '9 son de 5★ con foto y sin alertas'), h(Button, { size: 'sm', variant: 'secondary' }, 'Aprobar 9'))),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(ReviewItem, RV[0]), h(ReviewItem, RV[2])),
+      h(Navigation, { active: 'productos', badges: { hoy: 6 } }));
+  }
+
+  function RvEdit() {
+    return h(Phone, { label: 'R3 · Editar sin cambiar el sentido' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Reseñas', subtitle: '48 importadas · 13 por revisar' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(ReviewItem, Object.assign({}, RV[0], { editing: true })),
+        h(ReviewItem, Object.assign({}, RV[1], { state: 'approved', edited: false }))),
+      h('div', { style: { padding: '0 16px 12px' } }, h(Toast, { message: 'Reseña aprobada', action: 'Deshacer' })),
+      h(Navigation, { active: 'productos', badges: { hoy: 6 } }));
+  }
+
+  function RvDesk() {
+    return h(DeskFrame, { label: 'Escritorio · Reseñas: ruta, curación y vista en la tienda' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Reseñas · 48 importadas de AliExpress · 14 por revisar')),
+          h(Button, { variant: 'secondary', icon: 'arrow-down' }, 'Importar más')),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr) 340px', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', paddingTop: 12 } }, h(StageList, { stages: RV_STAGES })),
+          h('div', { style: { padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h(SegmentedControl, { value: 'p', label: 'Filtrar reseñas', options: [{ value: 'p', label: 'Por revisar', count: 14 }, { value: 'a', label: 'Aprobadas', count: 30 }, { value: 'r', label: 'Rechazadas', count: 4 }] }),
+            h('div', { className: 'df-rv-bulk' }, h(Icon, { name: 'sparkle', size: 'sm' }), h('span', null, '9 son de 5★ con foto y sin alertas'), h(Button, { size: 'sm', variant: 'secondary' }, 'Aprobar 9')),
+            h(ReviewItem, Object.assign({ keys: true }, RV[0])),
+            h(ReviewItem, RV[2]),
+            h(ReviewItem, RV[3])),
+          h('div', { style: { padding: '20px 28px 20px 0', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' } },
+            h('div', { className: 'df-card df-card-pad' }, h(ReviewSummary, { average: 4.6, total: 48, distribution: [1, 1, 3, 12, 31] })),
+            h('div', null,
+              h('div', { className: 'df-offer-frame' }, h('span', null, 'Así se verán en tu tienda'), h('span', null, '30 aprobadas')),
+              h('div', { className: 'df-offer df-rv-store' },
+                h('div', { className: 'df-rv-store-h' }, h('b', null, '4,7'), h(Stars, { value: 4.7 }), h('span', null, '30 reseñas')),
+                h('div', { className: 'df-rv-store-src' }, 'Reseñas de compradores del mismo producto en AliExpress'),
+                h('div', { className: 'df-rv-store-i' }, h(Stars, { value: 5 }), h('p', null, 'Llegó rápido y se ajusta bien. Después de una semana ya noto menos dolor en los hombros…'), h('small', null, 'M***a · Chile')),
+                h('div', { className: 'df-rv-store-i' }, h(Stars, { value: 4 }), h('p', null, 'Buena calidad, el velcro es firme.'), h('small', null, 'J***n · México'))))))));
+  }
+
   var Screens = {
     Movil1: function () { return h('div', { className: 'df-screens' }, h(ScreenHoy), h(ScreenProductos), h(ScreenProducto)); },
     Movil2: function () { return h('div', { className: 'df-screens' }, h(ScreenRevision), h(ScreenImagenes), h(ScreenPrecio)); },
@@ -877,7 +1218,11 @@
     Onboarding2: function () { return h('div', { className: 'df-screens' }, h(ObProductos), h(ObNumeros), h(ObMeta)); },
     Onboarding3: function () { return h('div', { className: 'df-screens' }, h(ObMetaCuentas), h(ObListo), h(ObHoy)); },
     OnboardingEscritorio1: function () { return h('div', { className: 'df-screens' }, h(ObDeskProductos)); },
-    OnboardingEscritorio2: function () { return h('div', { className: 'df-screens' }, h(ObDeskMeta)); }
+    OnboardingEscritorio2: function () { return h('div', { className: 'df-screens' }, h(ObDeskMeta)); },
+    ProductoNuevo1: function () { return h('div', { className: 'df-screens' }, h(PpMain), h(PpSheetFile), h(PpSheetUrl)); },
+    ProductoNuevoEscritorio: function () { return h('div', { className: 'df-screens' }, h(PpDesk)); },
+    Resenas1: function () { return h('div', { className: 'df-screens' }, h(RvImport), h(RvList), h(RvEdit)); },
+    ResenasEscritorio: function () { return h('div', { className: 'df-screens' }, h(RvDesk)); }
   };
 
   window.DropFlex = Object.assign(window.DropFlex || {}, {
@@ -886,6 +1231,8 @@
     SegmentedControl: SegmentedControl, Field: Field, PriceBreakdown: PriceBreakdown, OfferPreview: OfferPreview,
     Metric: Metric, CampaignCard: CampaignCard, Verdict: Verdict, Navigation: Navigation, TopBar: TopBar, Toast: Toast,
     AssistantSheet: AssistantSheet, Icon: Icon,
-    OnboardingHeader: OnboardingHeader, ProviderMark: ProviderMark, ConnectionCard: ConnectionCard, PermissionList: PermissionList, OptionList: OptionList, PickRow: PickRow, GenerationProgress: GenerationProgress, SetupChecklist: SetupChecklist, productImage: productImage, money: money, Screens: Screens
+    OnboardingHeader: OnboardingHeader, ProviderMark: ProviderMark, ConnectionCard: ConnectionCard, PermissionList: PermissionList, OptionList: OptionList, PickRow: PickRow, GenerationProgress: GenerationProgress, SetupChecklist: SetupChecklist,
+    ReferenceImage: ReferenceImage, ImageUploader: ImageUploader, ProductInfoInput: ProductInfoInput,
+    Stars: Stars, ReviewImporter: ReviewImporter, ReviewSummary: ReviewSummary, ReviewItem: ReviewItem, productImage: productImage, money: money, Screens: Screens
   });
 })();

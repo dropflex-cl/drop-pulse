@@ -1,0 +1,18 @@
+<!-- @dsCard group="Producto" height=170 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>ReferenceImage</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{padding:16, maxWidth:720}}, h('div',{className:'df-grid3', style:{gridTemplateColumns:'repeat(6,1fr)'}},
+  h(D.ReferenceImage,{source:'shopify', imageIndex:1, shape:1, cover:true, alt:'Imagen de Shopify'}),
+  h(D.ReferenceImage,{source:'upload', imageIndex:3, shape:1, alt:'Imagen subida'}),
+  h(D.ReferenceImage,{source:'url', imageIndex:4, shape:1, alt:'Imagen desde enlace'}),
+  h(D.ReferenceImage,{source:'shopify', imageIndex:0, shape:1, state:'excluded', alt:'Imagen excluida'}),
+  h(D.ReferenceImage,{state:'uploading', progress:0.62, name:'corrector.png'}),
+  h(D.ReferenceImage,{state:'error', error:'Pesa más de 10 MB'}))));
+</script>
+</body>
+</html>

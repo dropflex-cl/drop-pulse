@@ -1,0 +1,16 @@
+<!-- @dsCard group="Producto" height=560 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>ImageUploader</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:24, padding:16, alignItems:'start'}},
+  h(D.ImageUploader,{mode:'file', items:[{name:'corrector-espalda.jpg', state:'done', detail:'1,2 MB · lista'},{name:'corrector-lateral.png', state:'uploading', progress:0.62},{name:'video-proveedor.mp4', state:'error', detail:'Solo imágenes JPG, PNG o WEBP'}]}),
+  h('div',{style:{display:'flex', flexDirection:'column', gap:24}},
+    h(D.ImageUploader,{mode:'file', state:'dragover', hideModes:true}),
+    h(D.ImageUploader,{mode:'url', url:'https://proveedor.com/producto/corrector', urlError:'Ese enlace es una página, no una imagen. Abre la imagen y copia su dirección.'}))));
+</script>
+</body>
+</html>

@@ -12,6 +12,8 @@ Hoy  ─────────── cola de decisiones (todas las pantallas d
 │
 Productos ────── lista filtrable: Avanzan · Detenidos · Publicados
 │   └─ Producto ── ruta de etapas + "Continuar"
+│        ├─ Información base  (producto sin optimizar) texto libre + imágenes de referencia → "Optimizar con IA"
+│        ├─ Reseñas (opcional) importar de AliExpress → aprobar · rechazar · editar
 │        ├─ Textos ........ revisión propuesta por propuesta
 │        ├─ Imágenes ...... elegir, ordenar, descartar
 │        ├─ Precio y oferta  calculadora + vista del comprador
@@ -66,6 +68,23 @@ Ajustes ──────── supuestos (tasa de entrega, CPA máximo), Conex
 - Pedir consejo no debe sacarlo de lo que ve (caso 7). En móvil el asistente se abre como hoja inferior al 60% sobre la pantalla actual; en escritorio, como panel derecho.
 - Siempre dice sobre qué responde (chip de contexto), y lo que propone entra al ciclo como `generado`, nunca se aplica directo.
 - Se abre con el destello de la barra superior de cada pantalla de producto: mismo lugar, mismo ícono.
+
+### 8. Producto sin optimizar: primero la materia prima
+
+- Un producto recién importado abre en la etapa **Información base**: un solo campo de texto libre (`ProductInfoInput`) y sus imágenes de referencia (`ReferenceImage` + `ImageUploader`). Es lo que la IA necesita para generar bien, y el comerciante lo tiene desordenado; por eso no es un formulario.
+- Parte lleno: la descripción y las imágenes de Shopify ya están ahí. El comerciante solo agrega lo que sabe y excluye las imágenes que no sirven (con texto del proveedor, de baja calidad).
+- La IA muestra qué temas encontró (beneficios, medidas, materiales…) para que sepa qué falta, pero nunca bloquea: "Optimizar con IA" está siempre disponible con al menos una imagen.
+- Textos e Imágenes quedan bloqueadas hasta optimizar; Precio y oferta se puede adelantar.
+- Móvil: imágenes en una fila de 4 arriba (tile "Agregar" abre una hoja inferior), texto debajo, "Optimizar con IA" en la barra fija. Escritorio: ruta a la izquierda, texto al centro, referencias y carga a la derecha.
+
+### 9. Reseñas: etapa opcional, justo después de Información base
+
+- **Dónde:** una etapa propia y opcional, "Reseñas", entre Información base y Textos. Nunca se bloquea ni bloquea a otras: se puede hacer antes o después de optimizar, y "Publicar" no la exige.
+- **Por qué ahí y no más tarde:** las reseñas reales son materia prima. Si se importan antes de "Optimizar con IA", la IA las usa para escribir beneficios, objeciones y preguntas frecuentes con palabras de clientes. Por eso Información base ofrece un acceso directo ("Importa reseñas de AliExpress").
+- **Por qué no dentro de Información base:** curar 50 o 200 reseñas es un trabajo de decisión, como revisar textos, no de carga de datos. Mezclarlo alargaría la pantalla que debe llevar rápido a "Optimizar con IA".
+- **Por qué no dentro de Textos:** tienen su propio ciclo (importada → aprobada/rechazada → publicada) y se publican en otro lugar de la tienda (el widget de reseñas).
+- **Curación en lote con control:** filtro Por revisar · Aprobadas · Rechazadas, una acción sugerida ("Aprobar las 9 de 5★ con foto y sin alertas") y decisión por tarjeta con Deshacer.
+- **Honestidad:** se publican con calificación, fecha y país originales y con la fuente visible en la tienda ("Reseñas de compradores del mismo producto en AliExpress"); editar solo corrige traducción u ortografía, conserva el original y marca la reseña como editada. Presentar reseñas de otra tienda como propias o cambiar su sentido puede infringir normas de protección al consumidor: el diseño lo evita por defecto.
 
 ## De móvil a escritorio
 

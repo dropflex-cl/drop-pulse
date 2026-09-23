@@ -1,0 +1,12 @@
+<!-- @dsCard group="Reseñas" height=80 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Stars</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {className:'df-row'}, h(D.Stars,{value:5}), h(D.Stars,{value:4}), h(D.Stars,{value:2.6}), h(D.Stars,{value:4.7, size:'lg'})));
+</script>
+</body>
+</html>
