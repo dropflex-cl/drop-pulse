@@ -84,38 +84,62 @@ export interface ShopMarketQuery {
 
 // Detalle de un producto para su información base: descripción completa, opciones y todas sus
 // imágenes (hasta 20), acotadas a 1600 px para que la IA las lea sin pedir el original.
-export const PRODUCT_DETAIL_QUERY = (withCost: boolean) => /* GraphQL */ `
-  query DropFlexProduct($id: ID!) {
-    product(id: $id) {
+const PRODUCT_DETAIL_FIELDS = (withCost: boolean) => /* GraphQL */ `
+  id
+  title
+  handle
+  status
+  vendor
+  productType
+  tags
+  description
+  category { fullName }
+  options { name values }
+  featuredMedia { id }
+  media(first: 20) {
+    nodes {
       id
-      title
-      handle
-      status
-      vendor
-      productType
-      tags
-      description
-      category { fullName }
-      options { name values }
-      featuredMedia { id }
-      media(first: 20) {
-        nodes {
-          id
-          alt
-          mediaContentType
-          ... on MediaImage { image { url(transform: { maxWidth: 1600, maxHeight: 1600 }) width height } }
-        }
-      }
-      variants(first: 1) {
-        nodes {
-          price
-          compareAtPrice
-          ${withCost ? "inventoryItem { unitCost { amount } }" : ""}
-        }
-      }
+      alt
+      mediaContentType
+      ... on MediaImage { image { url(transform: { maxWidth: 1600, maxHeight: 1600 }) width height } }
+    }
+  }
+  variants(first: 1) {
+    nodes {
+      price
+      compareAtPrice
+      ${withCost ? "inventoryItem { unitCost { amount } }" : ""}
     }
   }
 `;
+
+export const PRODUCT_DETAIL_QUERY = (withCost: boolean) => /* GraphQL */ `
+  query DropFlexProduct($id: ID!) {
+    product(id: $id) { ${PRODUCT_DETAIL_FIELDS(withCost)} }
+  }
+`;
+
+// Varios productos en una sola ida (sincronizar). Un id que ya no existe vuelve como null.
+export const PRODUCTS_DETAIL_QUERY = (withCost: boolean) => /* GraphQL */ `
+  query DropFlexProductsDetail($ids: [ID!]!) {
+    nodes(ids: $ids) { ... on Product { ${PRODUCT_DETAIL_FIELDS(withCost)} } }
+  }
+`;
+
+// Todos los ids de la tienda, en cualquier estado (activo, borrador, archivado): lo que no aparece
+// aquí es lo que se eliminó en Shopify. Liviano a propósito: 250 por página.
+export const PRODUCT_IDS_QUERY = /* GraphQL */ `
+  query DropFlexProductIds($first: Int!, $after: String) {
+    products(first: $first, after: $after, sortKey: ID) {
+      nodes { id status }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+export interface ProductIdsQuery {
+  products: { nodes: { id: string; status: string }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
+}
 
 export interface ProductDetailNode {
   id: string;
@@ -137,4 +161,8 @@ export interface ProductDetailNode {
 
 export interface ProductDetailQuery {
   product: ProductDetailNode | null;
+}
+
+export interface ProductsDetailQuery {
+  nodes: (ProductDetailNode | Record<string, never> | null)[];
 }

@@ -66,6 +66,7 @@ export function uploadImage(productId: string, file: File, onProgress: (p: numbe
 }
 
 export const productsApi = {
+  sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
   saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),
   imageFromUrl: (id: string, url: string) => send<{ image: ReferenceImage }>("POST", `/${id}/images/url`, { url }),
   setExcluded: (id: string, imageId: string, excluded: boolean) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { excluded }),

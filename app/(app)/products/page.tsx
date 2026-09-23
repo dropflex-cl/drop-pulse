@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Icon, ProductRow } from "@/components/df";
-import { NewProductButton } from "@/components/screens/actions";
+import { SyncProductsButton } from "@/components/screens/actions";
 import { UrlFilter } from "@/components/screens/filters";
 import { EmptyState, PageHeader, SectionTitle } from "@/components/shell/page-header";
 import { RowsSkeleton } from "@/components/shell/skeletons";
@@ -88,7 +88,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         large
         title="Productos"
         subtitle={`${counts.total} productos`}
-        actions={<NewProductButton />}
+        actions={<SyncProductsButton />}
       />
       <div className="pb-6 lg:max-w-content lg:px-8 lg:py-6">
         <Suspense fallback={<RowsSkeleton rows={3} className="mt-12" />}>

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Icon, IconButton, notify, type NativeButtonProps } from "@/components/df";
+import { useRouter } from "next/navigation";
+import { Button, Icon, notify, type NativeButtonProps } from "@/components/df";
 import { buttonVariants } from "@/components/ui/button";
+import { productsApi } from "@/lib/products/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,14 +86,38 @@ export function CampaignActions({
 }
 
 /** Nuevo producto (círculo primary). La importación aún no existe en esta versión. */
-export function NewProductButton() {
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** Trae los productos activos de Shopify y borra, con todo lo suyo, los que se eliminaron allá. */
+export function SyncProductsButton() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   return (
-    <IconButton
-      icon="plus"
-      label="Nuevo producto"
-      variant="primary"
-      onClick={() => notify("Pronto podrás importar productos del proveedor desde aquí.")}
-    />
+    <Button
+      icon="refresh"
+      loading={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const { created, deleted, pending } = await productsApi.sync();
+          const parts = [
+            created && plural(created, "producto nuevo", "productos nuevos"),
+            deleted && `${plural(deleted, "eliminado", "eliminados")} porque ya no están en Shopify`,
+          ].filter(Boolean);
+          notify(
+            (parts.length ? `Sincronizado: ${parts.join(", ")}.` : "Todo al día con Shopify.") +
+              (pending ? ` Faltan ${pending}: sincroniza otra vez para traerlos.` : ""),
+          );
+          router.refresh();
+        } catch (e) {
+          notify(e instanceof Error ? e.message : "No pudimos sincronizar con Shopify. Intenta de nuevo.");
+        } finally {
+          setLoading(false);
+        }
+      }}
+    >
+      Sincronizar
+    </Button>
   );
 }
 

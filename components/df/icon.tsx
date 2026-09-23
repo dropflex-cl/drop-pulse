@@ -23,6 +23,7 @@ import {
   Pencil,
   Plus,
   Power,
+  RefreshCw,
   Search,
   SendHorizontal,
   Settings,
@@ -47,7 +48,7 @@ export type IconName =
   | "chat" | "lock" | "image" | "tag" | "text" | "store" | "send" | "arrow-up"
   | "arrow-down" | "pause" | "power" | "more" | "undo" | "edit" | "search"
   | "clock" | "minus" | "truck" | "trend" | "grip" | "star" | "settings" | "shield"
-  | "upload" | "link";
+  | "upload" | "link" | "refresh";
 
 // Significados fijos (design-system/README.md → Iconografía): destello = IA, ojo = en revisión,
 // check = aprobado, triángulo = error, reloj = detenido, candado = bloqueada.
@@ -90,6 +91,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   shield: ShieldCheck,
   upload: Upload,
   link: Link,
+  refresh: RefreshCw,
 };
 
 export interface IconProps {
