@@ -52,8 +52,9 @@ Las medidas de `bundle.css` que no están en `tokens.json` se declaran en el blo
 ## Rutas
 
 - **Las rutas van siempre en inglés** (segmentos de URL, carpetas de `app/`, rutas de API y parámetros de búsqueda): `/today`, `/products/[id]/images`, `/api/onboarding/products`, `?filter=stuck`. Los textos visibles siguen en español.
-- Pantallas: `/today`, `/products?filter=moving|stuck|published`, `/products/[id]` (`/base`, `/copy`, `/images`, `/price`), `/campaigns?period=today|7|30`, `/campaigns/[id]`, `/settings`. Onboarding: `/auth/create-account`, `/onboarding/shopify|products|numbers|meta|meta/accounts|done`. Integraciones: `/api/onboarding/*`, `/api/products/*`, `/api/webhooks/*`, `/api/cron/*`.
-- Las claves internas siguen el vocabulario del design system (`StageKey` `textos|imagenes|precio`, `ProductFilter` `detenidos…`); su traducción a URL vive en `lib/routes.ts` (`productHref`, `FILTER_PARAM`). No armes a mano una URL de etapa.
+- Pantallas: `/today`, `/products?filter=moving|stuck|published`, `/products/[id]` (`/base`, `/copy`, `/images`), `/campaigns?period=today|7|30`, `/campaigns/[id]`, `/settings`. Onboarding: `/auth/create-account`, `/onboarding/shopify|products|numbers|meta|meta/accounts|done`. Integraciones: `/api/onboarding/*`, `/api/products/*`, `/api/webhooks/*`, `/api/cron/*`.
+- **No hay etapa Precio.** El precio y los packs se definen en Información base (“Precio y packs”, requisito para optimizar); la ruta tiene 5 etapas: Información base, Textos, Imágenes, Publicar y Anuncios. `/products/[id]/price` y `/productos/[id]/precio` redirigen a `/base`. `design-system/` todavía dibuja la etapa Precio y oferta (es la copia del artifact): en esto manda este archivo.
+- Las claves internas siguen el vocabulario del design system (`StageKey` `textos|imagenes`, `ProductFilter` `detenidos…`); su traducción a URL vive en `lib/routes.ts` (`productHref`, `FILTER_PARAM`). No armes a mano una URL de etapa.
 - Las rutas antiguas en español redirigen de forma permanente (`redirects` en `next.config.ts`). `design-system/arquitectura.md` es la copia del artifact y conserva los nombres originales.
 
 ## Textos de UI

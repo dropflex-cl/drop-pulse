@@ -5,7 +5,9 @@ const LEGACY_ROUTES: [string, string][] = [
   ["/hoy", "/today"],
   ["/productos/:id/textos", "/products/:id/copy"],
   ["/productos/:id/imagenes", "/products/:id/images"],
-  ["/productos/:id/precio", "/products/:id/price"],
+  // La etapa Precio se unió a Información base (“Precio y packs”).
+  ["/productos/:id/precio", "/products/:id/base"],
+  ["/products/:id/price", "/products/:id/base"],
   ["/productos/:id", "/products/:id"],
   ["/productos", "/products"],
   ["/campanas/:id", "/campaigns/:id"],

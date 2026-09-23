@@ -4,11 +4,11 @@ import { basePhase, productPosition } from "./stages";
 const base = { price: 24990, currency: "CLP" };
 
 describe("productPosition", () => {
-  it("un producto recién importado abre en Información base, con Precio adelantable", () => {
+  it("un producto recién importado abre en Información base (ahí se define también el precio)", () => {
     const p = productPosition(base);
     expect(p.phase).toBe("new");
     expect(p.nextStage).toBe("importado");
-    expect(p.stages.map((s) => s.state)).toEqual(["current", "locked", "locked", "available", "locked", "locked"]);
+    expect(p.stages.map((s) => s.state)).toEqual(["current", "locked", "locked", "locked", "locked"]);
     expect(p.summary).toBe("Importado de Shopify · sin optimizar · $24.990");
     expect(p.status).toBeUndefined();
   });
@@ -40,10 +40,12 @@ describe("productPosition", () => {
     ).toBe("failed");
   });
 
-  it("aprobado: sigue Precio y oferta", () => {
+  it("aprobado: siguen los textos (el precio ya se definió en Información base)", () => {
     const p = productPosition({ ...base, avatar: { status: "aprobado", createdAt: "2026-09-24T10:01:00Z" } });
-    expect(p.nextStage).toBe("precio");
+    expect(p.nextStage).toBe("textos");
     expect(p.stages[0].state).toBe("done");
-    expect(p.stages[3].state).toBe("current");
+    expect(p.stages.find((s) => s.key === "textos")!.state).toBe("current");
+    expect(p.stages.map((s) => s.key)).not.toContain("precio");
+    expect(p.meter).toHaveLength(5);
   });
 });

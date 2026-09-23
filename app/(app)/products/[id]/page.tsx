@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 function NextAction({ product }: { product: Product }) {
   const stage = product.stages.find((s) => s.key === product.nextStage);
   const title = stage?.title ?? "";
-  if (product.nextStage === "textos" || product.nextStage === "imagenes" || product.nextStage === "precio") {
+  if (product.nextStage === "textos" || product.nextStage === "imagenes") {
     return (
       <Button href={productHref(product.id, product.nextStage)} variant="primary" size="lg" iconEnd="chevron-right">
         Continuar: {title}

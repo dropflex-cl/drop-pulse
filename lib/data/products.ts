@@ -5,7 +5,6 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { sessionUser } from "@/lib/integrations/session";
-import { NOTE } from "@/lib/mock/content";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
@@ -28,7 +27,7 @@ import {
   type ProductRow,
   type RunRow,
 } from "@/lib/products/store";
-import type { ContentItem, ImageOption, Pricing, Product, ProductBase, ProductFilter } from "@/lib/types";
+import type { ContentItem, ImageOption, Product, ProductBase, ProductFilter } from "@/lib/types";
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -141,39 +140,4 @@ export async function getProductContent(productId: string): Promise<ContentItem[
 export async function getProductImages(productId: string): Promise<ImageOption[]> {
   void productId;
   return [];
-}
-
-export async function getPricing(productId: string): Promise<Pricing | null> {
-  const product = await getProduct(productId);
-  if (!product) return null;
-  // Con “Precio y packs” guardado (Información base), la etapa Precio parte de esos números.
-  const saved = await getPricingPlan(await userId(), productId);
-  if (saved) {
-    return {
-      productId,
-      price: saved.salePrice,
-      compareAt: saved.compareAtPrice ?? undefined,
-      costs: [
-        { label: "Costo del producto", value: saved.unitCost },
-        { label: "Envío", value: saved.avgShippingCost },
-        { label: "Publicidad por venta", value: saved.purchaseCostLimit },
-      ],
-      note: `Se confirma el ${saved.confirmationRate}% y se entrega el ${saved.deliveryRate}%. Cámbialo en Información base.`,
-      status: "aprobado",
-    };
-  }
-  const cost = product.supplierCost;
-  // Con precio en la tienda se parte de él; sin precio, la IA propone uno a partir del costo (entra como `generado`).
-  const price = product.price && product.price > 0 ? product.price : Math.round((cost * 3.2) / 1000) * 1000 - 10;
-  return {
-    productId,
-    price,
-    costs: [
-      { label: "Costo del producto", value: cost },
-      { label: "Envío", value: 3500 },
-      { label: "Publicidad por venta", value: 6000 },
-    ],
-    note: NOTE,
-    status: "generado",
-  };
 }

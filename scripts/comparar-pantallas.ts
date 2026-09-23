@@ -18,7 +18,7 @@ const GROUPS: { ref: string; ours: string[]; vp: "390" | "1280"; dir?: string }[
   { ref: "PantallasOnboarding3", ours: ["o8-listo", "o9-hoy"], vp: "390", dir: "onboarding" },
   { ref: "PantallasOnboardingEscritorio1", ours: ["o4-productos"], vp: "1280", dir: "onboarding" },
   { ref: "PantallasMovil1", ours: ["hoy", "productos", "producto"], vp: "390" },
-  { ref: "PantallasMovil2", ours: ["textos", "imagenes", "precio"], vp: "390" },
+  { ref: "PantallasMovil2", ours: ["textos", "imagenes"], vp: "390" },
   { ref: "PantallasMovil3", ours: ["campanas", "asistente"], vp: "390" },
   { ref: "PantallasEscritorio1", ours: ["textos"], vp: "1280" },
   { ref: "PantallasEscritorio2", ours: ["campanas"], vp: "1280" },

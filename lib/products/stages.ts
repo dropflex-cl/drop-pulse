@@ -42,11 +42,11 @@ export function basePhase(f: ProductFacts): BasePhase {
 }
 
 const BASE_DESC: Record<BasePhase, string> = {
-  new: "Lo que sabes del producto e imágenes de referencia",
+  new: "Lo que sabes del producto, imágenes y precio",
   optimizing: "La IA está definiendo a tu cliente ideal",
   failed: "No se pudo optimizar",
   review: "Tu cliente ideal espera tu revisión",
-  done: "Cliente ideal aprobado",
+  done: "Cliente ideal aprobado · precio y packs listos",
 };
 
 const BASE_STATE: Record<BasePhase, Stage["state"]> = {
@@ -75,13 +75,13 @@ export function productPosition(f: ProductFacts): ProductPosition {
       state: BASE_STATE[phase],
       desc: phase === "failed" && f.run?.error ? f.run.error : BASE_DESC[phase],
     },
-    { key: "textos", title: "Textos", state: "locked", desc: "Se generan con la información base" },
+    // El precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
+    { key: "textos", title: "Textos", state: done ? "current" : "locked", desc: done ? "Se generan con tu cliente ideal y tu oferta" : "Se generan con la información base" },
     { key: "imagenes", title: "Imágenes", state: "locked", desc: "Se generan desde tus imágenes de referencia" },
-    { key: "precio", title: "Precio y oferta", state: done ? "current" : "available", desc: done ? "Calcula cuánto ganas" : "Puedes adelantarlo" },
-    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita textos, imágenes y precio aprobados" },
+    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita textos e imágenes aprobados" },
     { key: "anuncios", title: "Anuncios", state: "locked", optional: true, desc: "Se habilita al publicar" },
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], "locked", "locked", done ? "current" : "locked", "locked", "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], done ? "current" : "locked", "locked", "locked", "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
 
   switch (phase) {
@@ -94,7 +94,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
     case "review":
       return { phase, stages, meter, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · cliente ideal", nextStage: "importado", summary: `Cliente ideal por revisar${price}`, status: "revision" };
     case "done":
-      return { phase, stages, meter, filter: "avanzan", tone: "primary", reason: "Siguiente: precio y oferta", nextStage: "precio", summary: `Información base lista${price}`, status: "aprobado" };
+      return { phase, stages, meter, filter: "avanzan", tone: "primary", reason: "Siguiente: textos", nextStage: "textos", summary: `Información base lista${price}`, status: "aprobado" };
   }
 }
 

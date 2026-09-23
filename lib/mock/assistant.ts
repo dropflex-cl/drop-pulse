@@ -2,7 +2,8 @@
 import type { AssistantMessage } from "@/components/df/assistant-sheet";
 
 export const ASSISTANT_THREADS: Record<string, { messages: AssistantMessage[]; suggestions: string[] }> = {
-  "corrector-de-postura:precio": {
+  // El precio vive en Información base (stageKey "importado").
+  "corrector-de-postura:importado": {
     messages: [
       { from: "user", text: "¿Me conviene bajar a $19.990?" },
       {

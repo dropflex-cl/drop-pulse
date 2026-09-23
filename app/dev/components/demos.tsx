@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button, Field, SegmentedControl, notify, notifyUndo } from "@/components/df";
 import { ImagePicker } from "@/components/screens/image-picker";
-import { PriceEditor } from "@/components/screens/price-editor";
 import { ReviewFlow } from "@/components/screens/review-flow";
 import { productImage } from "@/lib/mock/images";
 import type { ContentItem, ImageOption } from "@/lib/types";
@@ -79,7 +78,7 @@ const IMAGES: ImageOption[] = [
   { id: "i9", productId: "demo", alt: "Opción 9", status: "error" },
 ];
 
-type Demo = "revision" | "imagenes" | "precio";
+type Demo = "revision" | "imagenes";
 
 /** Las piezas interactivas, una a la vez (cada una tiene su barra fija de acción). */
 export function InteractiveDemo() {
@@ -93,34 +92,14 @@ export function InteractiveDemo() {
         options={[
           { value: "revision", label: "Revisión" },
           { value: "imagenes", label: "Imágenes" },
-          { value: "precio", label: "Precio" },
         ]}
       />
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => notify("Precio aprobado")}>Toast simple</Button>
+        <Button size="sm" onClick={() => notify("Cliente ideal aprobado")}>Toast simple</Button>
         <Button size="sm" onClick={() => notifyUndo("Imagen descartada", () => notify("Imagen recuperada"))}>Toast con Deshacer</Button>
       </div>
       {demo === "revision" ? <ReviewFlow items={REVIEW} nextHref="#" nextLabel="Continuar: Imágenes" /> : null}
       {demo === "imagenes" ? <ImagePicker images={IMAGES} onApprove={(ids) => notify(`${ids.length} imágenes aprobadas`)} /> : null}
-      {demo === "precio" ? (
-        <PriceEditor
-          title="Corrector de postura ajustable"
-          image={productImage(1)}
-          pricing={{
-            productId: "demo",
-            price: 24990,
-            compareAt: 39990,
-            costs: [
-              { label: "Costo del producto", value: 6900 },
-              { label: "Envío", value: 3500 },
-              { label: "Publicidad por venta", value: 6000 },
-            ],
-            note: "Supone 1 de cada 5 pedidos sin entregar. Cambia supuestos en Ajustes.",
-            status: "revision",
-          }}
-          onApprove={() => notify("Precio aprobado")}
-        />
-      ) : null}
     </div>
   );
 }

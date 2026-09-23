@@ -1,6 +1,6 @@
 // Propuestas de texto de ejemplo. Las del Corrector de postura salen de bundle.js (ScreenRevision,
 // ScreenDeskProducto) y de las previews de ReviewCard: 8 textos, 3 aceptados, la 4 es el título.
-import type { ContentItem, ImageOption, Pricing } from "@/lib/types";
+import type { ContentItem, ImageOption } from "@/lib/types";
 import { productImage } from "./images";
 
 export const CONTENT: ContentItem[] = [
@@ -86,17 +86,3 @@ export const IMAGES: ImageOption[] = [
   status: t.status as ImageOption["status"],
   order: "order" in t ? t.order : undefined,
 }));
-
-const COSTS = (supplier: number) => [
-  { label: "Costo del producto", value: supplier },
-  { label: "Envío", value: 3500 },
-  { label: "Publicidad por venta", value: 6000 },
-];
-
-export const NOTE = "Supone 1 de cada 5 pedidos sin entregar. Cambia supuestos en Ajustes.";
-
-export const PRICING: Pricing[] = [
-  { productId: "corrector-de-postura", price: 24990, compareAt: 39990, costs: COSTS(6900), note: NOTE, status: "generado" },
-  { productId: "lampara-lunar-3d", price: 19990, compareAt: 29990, costs: COSTS(7400), note: NOTE, status: "aprobado" },
-  { productId: "botella-termica-1l", price: 17990, costs: COSTS(5200), note: NOTE, status: "generado" },
-];

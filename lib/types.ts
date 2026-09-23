@@ -13,7 +13,7 @@ import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 export type { ContentStatus, Verdict };
 
 /** Etapas de la ruta de un producto, en orden. */
-export type StageKey = "importado" | "textos" | "imagenes" | "precio" | "publicar" | "anuncios";
+export type StageKey = "importado" | "textos" | "imagenes" | "publicar" | "anuncios";
 
 export interface Stage {
   key: StageKey;
@@ -144,16 +144,6 @@ export interface ImageOption {
   status: ImageStatus;
   /** Posición en la tienda cuando está elegida (1 = portada). */
   order?: number;
-}
-
-export interface Pricing {
-  productId: string;
-  price: number;
-  compareAt?: number;
-  costs: { label: string; value: number }[];
-  /** Supuestos del cálculo (se cambian en Ajustes). */
-  note: string;
-  status: ContentStatus;
 }
 
 export interface Campaign {

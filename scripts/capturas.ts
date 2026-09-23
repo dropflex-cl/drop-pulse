@@ -19,10 +19,9 @@ export const ROUTES: { name: string; path: string; after?: (p: Page) => Promise<
   { name: "producto", path: "/products/corrector-de-postura" },
   { name: "textos", path: "/products/corrector-de-postura/copy" },
   { name: "imagenes", path: "/products/corrector-de-postura/images" },
-  { name: "precio", path: "/products/corrector-de-postura/price" },
   {
     name: "asistente",
-    path: "/products/corrector-de-postura/price",
+    path: "/products/corrector-de-postura/base",
     after: async (p) => {
       await p.getByRole("button", { name: "Abrir asistente" }).first().click();
       await p.getByRole("button", { name: "Cerrar asistente" }).waitFor();
