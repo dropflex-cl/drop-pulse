@@ -100,4 +100,5 @@ export const productsApi = {
   writeCopy: (id: string, redo = false) => send<CopyState>("POST", `/${id}/copy`, { redo }),
   decideCopyItem: (id: string, itemId: string, action: "approve" | "reject" | "reopen", text?: string) =>
     send<CopyState>("PATCH", `/${id}/copy/items/${itemId}`, { action, text }),
+  saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),
 };

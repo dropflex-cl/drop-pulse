@@ -22,6 +22,7 @@ import {
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
+import { PageAccent } from "./page-accent";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { PAGE_SECTIONS, splitFaq } from "@/lib/copy/blocks";
 import { copyProgress, itemState, type ItemState } from "@/lib/copy/progress";
@@ -479,6 +480,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
             ) : null}
           </div>
           <div className="lg:max-w-content">{body}</div>
+          {view !== "locked" ? <PageAccent productId={product.id} initial={data.accent} className="lg:max-w-content" /> : null}
           {error ? (
             <p role="alert" className="text-label font-normal text-destructive">
               {error}

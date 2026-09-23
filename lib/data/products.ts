@@ -223,9 +223,9 @@ export async function anglesState(uid: string, productId: string): Promise<Angle
 /** La etapa Textos: la página del producto, bloque a bloque. */
 export const getProductCopy = cache(async (id: string): Promise<ProductCopy | null> => {
   const uid = await userId();
-  const product = await getProduct(id);
-  if (!product) return null;
-  return { product, ...(await copyState(uid, id)) };
+  const [product, row] = await Promise.all([getProduct(id), getProductRow(uid, id)]);
+  if (!product || !row) return null;
+  return { product, accent: row.page_accent_color ?? null, ...(await copyState(uid, id)) };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */

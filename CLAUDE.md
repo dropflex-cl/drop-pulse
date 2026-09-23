@@ -110,6 +110,7 @@ Español neutro con tuteo, nunca voseo ni “usted”: “Revisa”, “Elige”
   - Un solo catálogo de bloques (`lib/copy/blocks.ts`): el límite del prompt, el de la validación y el del contador de `ReviewCard` son el mismo.
   - La salida se valida en código (`copyProblems`): cantidades, largos, montos que no son de PRECIO Y OFERTA, garantía sin `guarantee_days`, promesas prohibidas. Si falla se pide otra vez con lo que falló; nunca se recorta ni completa en silencio. Cambiar el prompt o el esquema sube `COPY_PROMPT_VERSION`.
   - Pago contra entrega siempre; el envío sale de `merchant_settings.free_shipping`. Plazo de entrega y WhatsApp no se inventan: el bloque los pide (`missing`).
+  - **Color de la página**: `products.page_accent_color` (`#rrggbb`, migración `20261002000000_page_accent_color.sql`), elegido en la misma pantalla de una paleta con contraste AA (`lib/copy/accent.ts`) o a mano. Los hex de la paleta viven en `lib/`, nunca en `components/` ni `app/` (van por `style`).
   - Reescribir nunca toca lo aprobado. La etapa termina con los obligatorios aprobados (o, si tienen original de Shopify, descartados: se mantiene el original).
 - Variables de entorno: `ANTHROPIC_API_KEY` (solo servidor), creada dentro de un workspace; si es una key de organización, también `ANTHROPIC_WORKSPACE_ID` (se envía como header `anthropic-workspace-id`).
 

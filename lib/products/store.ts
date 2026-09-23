@@ -31,6 +31,8 @@ export interface ProductRow {
   compare_at_price: number | null;
   cost: number | null;
   currency: string;
+  /** Color de acento de la página del producto (#rrggbb); null si no se eligió. */
+  page_accent_color: string | null;
   created_at: string;
 }
 
@@ -117,6 +119,18 @@ export async function updateBaseInfo(userId: string, id: string, text: string): 
   fail("Guardar la información", error);
   if (!data?.length) throw new Error("Producto no encontrado");
   return now;
+}
+
+/** Guarda el color de acento de la página (ya normalizado a #rrggbb). */
+export async function updatePageAccent(userId: string, id: string, hex: string): Promise<void> {
+  const { data, error } = await adminClient()
+    .from("products")
+    .update({ page_accent_color: hex, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("id", id)
+    .select("id");
+  fail("Guardar el color de la página", error);
+  if (!data?.length) throw new Error("Producto no encontrado");
 }
 
 // ---------------------------------------------------------------- Imágenes de referencia

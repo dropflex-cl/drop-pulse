@@ -1,5 +1,6 @@
 // Datos de ejemplo de la página del producto (etapa Textos), con los textos de
 // design-system/reference/bundle.js (TX_OUTLINE, TX_FAQ, TxReview, TxEdit, TxDone).
+import { ACCENT_PALETTE } from "@/lib/copy/accent";
 import { BLOCKS } from "@/lib/copy/blocks";
 import { copyProgress } from "@/lib/copy/progress";
 import { productImage } from "@/lib/mock/images";
@@ -102,6 +103,8 @@ export function fixture(state: string): ProductCopy {
       price: 24990,
       currency: "CLP",
     },
+    // Con la página lista, un color ya elegido (Esmeralda); en los demás, sin elegir.
+    accent: state === "done" || state === "complete" ? ACCENT_PALETTE[4].hex : null,
     locked,
     run,
     items: list,

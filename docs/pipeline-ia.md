@@ -190,10 +190,13 @@ Los 2 desarrollos aprobados + ficha + cliente ideal + precio (y etiquetas aproba
 - «Rehacer descartados» / «Reescribir» (`{ redo: true }`) reescribe lo no aprobado y le pasa al modelo lo aprobado (no se toca) y lo descartado (no se repite).
 - Si se reabre, regenera o edita un desarrollo después de escribir, la etapa avisa «Cambiaste tus ángulos».
 
+**Color de la página** (`lib/copy/accent.ts`, `components/screens/page-accent.tsx`, migración `20261002000000_page_accent_color.sql`): el acento de los botones y detalles de la tienda. Paleta de 18 colores sólidos, todos con texto blanco a 4,5:1 o más (AA, probado en `accent.test.ts`), o uno elegido a mano (rueda del sistema o hex): el texto encima se elige solo (blanco o negro, el de más contraste) y, si el color se lee poco sobre blanco (< 3:1), la pantalla lo advierte. Se guarda al tocar, en `products.page_accent_color` como `#rrggbb` en minúsculas; lo usará Publicar.
+
 **Rutas**
 
 | Método y ruta | Qué hace |
 |---|---|
+| `PUT /api/products/[id]/copy/accent` | `{ color }` (hex): guarda el color de la página |
 | `GET /api/products/[id]/copy` | Estado de la etapa (sondeo cada 2,5 s mientras escribe) |
 | `POST /api/products/[id]/copy` | `{ redo?: boolean }`: escribe, o reescribe lo no aprobado |
 | `PATCH /api/products/[id]/copy/items/[itemId]` | `{ action: "approve" \| "reject" \| "reopen", text? }` |

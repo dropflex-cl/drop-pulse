@@ -237,6 +237,8 @@ export interface CopyState {
 
 export interface ProductCopy extends CopyState {
   product: Product;
+  /** Color de acento de la página (#rrggbb, lib/copy/accent.ts); null si todavía no se eligió. */
+  accent: string | null;
 }
 
 /** Ciclo de una reseña importada (ReviewItem): pendiente → aprobada o rechazada → publicada. */
