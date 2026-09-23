@@ -5,7 +5,7 @@
 // margen del pack) pisan lo que diga el modelo: la IA no inventa pruebas. Puro y con tests.
 
 import { ANGLES, SALES_ANGLES, type SalesAngle } from "./catalog";
-import type { AngleEvaluation, AngleRouterOutput } from "./schemas";
+import type { AngleEvaluation, AngleEvaluations } from "./schemas";
 
 /** Lo que el sistema sabe con certeza (ficha, cliente ideal y precio). */
 export interface AngleFacts {
@@ -54,7 +54,7 @@ const SOPHISTICATION_SCORE = [0, 0, 2, 4, 5, 5];
 /** Criterios y penalización después de aplicar los hechos comprobables. */
 function grounded(angle: SalesAngle, ev: AngleEvaluation, f: AngleFacts): { criteria: Record<string, number>; penalty: boolean } {
   const criteria: Record<string, number> = {};
-  for (const c of ANGLES[angle].criteria) criteria[c.key] = clamp(Math.round(Number((ev.criteria as Record<string, number>)[c.key]) || 0), 0, 5);
+  for (const c of ANGLES[angle].criteria) criteria[c.key] = clamp(Math.round(Number(ev.criteria[c.key]) || 0), 0, 5);
   let penalty = ev.penalty_applies;
   switch (angle) {
     case "authority":
@@ -100,9 +100,9 @@ export function scoreAngle(angle: SalesAngle, criteria: Record<string, number>, 
  * - Si los dos primeros están a menos de 5 puntos, gana el que tiene la prueba real hoy.
  * - La oferta rara vez es la principal: si hay otro a menos de 10 puntos, pasa a secundario.
  */
-export function rankAngles(output: Pick<AngleRouterOutput, "angles">, facts: AngleFacts): Ranking {
+export function rankAngles(evals: AngleEvaluations, facts: AngleFacts): Ranking {
   const scored: ScoredAngle[] = SALES_ANGLES.map((angle) => {
-    const ev = output.angles[angle];
+    const ev = evals[angle];
     const g = grounded(angle, ev, facts);
     const { score, breakdown } = scoreAngle(angle, g.criteria, g.penalty);
     const def = ANGLES[angle];
@@ -128,8 +128,8 @@ export function rankAngles(output: Pick<AngleRouterOutput, "angles">, facts: Ang
  * Cuánto subiría un ángulo con la prueba que le falta (para “Para elegir mejor, falta”): la
  * penalización desaparece y el criterio de la prueba se asume en 4 de 5.
  */
-export function potentialScore(angle: "authority" | "personal_story", output: Pick<AngleRouterOutput, "angles">): number {
+export function potentialScore(angle: "authority" | "personal_story", evals: AngleEvaluations): number {
   const key = angle === "authority" ? "real_expert" : "narrative_reviews";
-  const criteria = { ...(output.angles[angle].criteria as Record<string, number>), [key]: 4 };
+  const criteria = { ...evals[angle].criteria, [key]: 4 };
   return scoreAngle(angle, criteria, false).score;
 }

@@ -9,6 +9,7 @@ import {
   angleBriefEditSchema,
   angleBriefSchema,
   angleRouterSchema,
+  evaluationsFrom,
   type AngleBriefEdit,
   type AngleBriefPayload,
 } from "@/lib/angles/schemas";
@@ -164,7 +165,8 @@ export async function runRanking(rankingId: string): Promise<void> {
       effort: "medium",
     });
     await logGeneration(r.user_id, r.product_id, "angle_ranking", usage);
-    const ranking = rankAngles(data, facts(ctx.brief, ctx.avatar, ctx.pricing));
+    const evals = evaluationsFrom(data);
+    const ranking = rankAngles(evals, facts(ctx.brief, ctx.avatar, ctx.pricing));
     const now = new Date().toISOString();
     fail(
       "Guardar la evaluación",
@@ -178,7 +180,7 @@ export async function runRanking(rankingId: string): Promise<void> {
             suggested_primary: ranking.suggested.primary,
             suggested_secondary: ranking.suggested.secondary,
             // Cuánto subirían con la prueba que falta (“Para elegir mejor, falta”).
-            input: { ...r.input, potential: { reviews: potentialScore("personal_story", data), expert: potentialScore("authority", data) } },
+            input: { ...r.input, potential: { reviews: potentialScore("personal_story", evals), expert: potentialScore("authority", evals) } },
             prompt_version: ANGLE_ROUTER_PROMPT_VERSION,
             model: usage.model,
             finished_at: now,
@@ -373,7 +375,7 @@ export async function decideBrief(userId: string, productId: string, briefId: st
 export function applyEdit(payload: AngleBriefPayload, edit: AngleBriefEdit): AngleBriefPayload {
   const hooks = edit.hooks.map((text, i) => {
     const before = payload.hooks.find((h) => h.text === text) ?? payload.hooks[i];
-    return before ? { ...before, text } : { text, type: "edited", visual_first_3s: "", aida_stage: "attention" as const, meta_policy_check: "review" as const };
+    return before ? { ...before, text } : { text, visual_first_3s: "", policy_ok: false };
   });
   return {
     ...payload,

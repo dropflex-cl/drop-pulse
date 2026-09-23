@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { SALES_ANGLES, type SalesAngle } from "./catalog";
-import type { AngleRouterOutput } from "./schemas";
+import type { AngleEvaluations } from "./schemas";
 import { potentialScore, rankAngles, scoreAngle, type AngleFacts } from "./score";
 
-type Angles = AngleRouterOutput["angles"];
-
-function evaluation(overrides: Partial<Record<SalesAngle, { criteria?: Record<string, number>; penalty_applies?: boolean; risks?: string[] }>> = {}): Pick<AngleRouterOutput, "angles"> {
+function evaluation(overrides: Partial<Record<SalesAngle, { criteria?: Record<string, number>; penalty_applies?: boolean; risks?: string[] }>> = {}): AngleEvaluations {
   const base: Record<SalesAngle, Record<string, number>> = {
     authority: { professional_domain: 4, expert_would_use: 4, real_expert: 5 },
     common_enemy: { failed_popular_solution: 3, high_sophistication: 5, attackable_practice: 3 },
@@ -14,13 +12,12 @@ function evaluation(overrides: Partial<Record<SalesAngle, { criteria?: Record<st
     personal_story: { narrative_reviews: 5, emotional_trigger: 4, medium_consideration: 3 },
     offer: { low_ticket_bundle: 4, impulse_or_consumable: 3, obvious_result: 4, real_event: 5 },
   };
-  const angles = Object.fromEntries(
+  return Object.fromEntries(
     SALES_ANGLES.map((a) => [
       a,
       { criteria: { ...base[a], ...overrides[a]?.criteria }, penalty_applies: overrides[a]?.penalty_applies ?? false, why: `Por qué ${a}`, risks: overrides[a]?.risks ?? [] },
     ]),
-  ) as unknown as Angles;
-  return { angles };
+  ) as AngleEvaluations;
 }
 
 const FACTS: AngleFacts = { hasRealExpert: false, hasRealReviews: false, sophistication: 4, hasRealEvent: false, packEarnsMore: true };

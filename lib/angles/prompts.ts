@@ -32,7 +32,7 @@ export function angleRouterSystem(market: Market): string {
     const d = ANGLES[a];
     return [
       `${a} — ${d.name}: ${d.gist}`,
-      ...d.criteria.map((c) => `  · ${c.key} (peso ${c.weight}): ${c.label}. ${c.guide}`),
+      ...d.criteria.map((c, i) => `  ${i + 1}. ${c.key} (peso ${c.weight}): ${c.label}. ${c.guide}`),
       `  · Penalización (penalty_applies, −${d.penalty.points}): ${d.penalty.when}`,
     ].join("\n");
   });
@@ -46,7 +46,7 @@ export function angleRouterSystem(market: Market): string {
     "",
     "CÓMO EVALUAR",
     "1. Diagnóstico: tipo de problema, nivel de consciencia (Schwartz; parte del del cliente ideal), sofisticación (1–5), si el resultado se ve en 3 segundos de video, las pruebas reales que hay hoy y qué permite la economía (PRECIO Y OFERTA: packs, ganancia, CPA máximo).",
-    "2. Puntúa cada criterio de cada ángulo de 0 a 5 con la guía de arriba y marca si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
+    "2. En angles, un elemento por ángulo: scores lleva un número de 0 a 5 por criterio, EN EL ORDEN NUMERADO de arriba (3 números; 4 en offer), y penalty si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
     "3. NO calcules puntajes totales ni ordenes los ángulos: el sistema calcula el puntaje con pesos fijos y comprueba por su cuenta si hay experto o reseñas reales, la sofisticación, la fecha comercial y el margen de los packs.",
     "4. why: una o dos frases para el comerciante, en tuteo, sobre SU producto y SU cliente («Tu cliente ideal ya siente el dolor al final de la jornada: el gancho nombra algo que vive a diario»). Si no encaja, di por qué sin rodeos.",
     "5. combinations: el principal define el gancho y el secundario refuerza el cuerpo. Combinaciones probadas: autoridad + mecanismo, historia + enemigo, identidad + oferta. La oferta rara vez es principal en un problema complejo: úsala como capa.",
@@ -118,7 +118,7 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     aida: ["Atención: credencial en 2 segundos.", "Interés: observación del oficio y error común.", "Deseo: «lo uso yo mismo» y la demostración.", "Acción: cierre suave con el pago contra entrega."],
     hooks: ["«Como [profesión], veo [problema] todos los días; por eso tengo [producto] en casa.»", "«Después de [X] años como [profesión], esto es lo único que le digo a cada paciente con [síntoma].»", "«La mayoría de los [profesión] no lo dice, pero…»", "«Lo que uso para mi propia [parte del cuerpo] como [profesión].»", "«Soy [profesión]. Por esto dejé de recomendar [alternativa común].»", "«Mis pacientes siempre me preguntan qué uso. Es esto.»"],
     visuals: ["Experto en su consulta (9:16), luz natural, el producto sobre la camilla o el modelo anatómico.", "Reacción del experto a un video del problema.", "Estático de estilo de vida con el copy del experto."],
-    guardrails: ["Experto real, con credencial verificable y consentimiento; si cobra, se declara.", "Si no hay experto real en la ficha: expert_spec.status = «to_hire» con el perfil a contratar, nunca una identidad ficticia, y fit_check.go = false si no se puede conseguir.", "Habla de pacientes o en primera persona, nunca «tu ciática»."],
+    guardrails: ["Experto real, con credencial verificable y consentimiento; si cobra, se declara.", "Si no hay experto real en la ficha: expert_is_real = false y en expert el perfil a contratar, nunca una identidad ficticia; go = false si no se puede conseguir.", "Habla de pacientes o en primera persona, nunca «tu ciática»."],
   },
   common_enemy: {
     role: "Eres especialista en creativos de enemigo común: «lo que la industria no te dice». El cliente no fracasó: le vendieron lo incorrecto.",
@@ -186,7 +186,7 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     aida: ["Atención: el peor momento con un detalle.", "Interés: contexto, escalada y giro.", "Deseo: descubrimiento y resolución.", "Acción: «si te suena, esto es lo que usó»."],
     hooks: ["«Gasté $[monto exacto] en [alternativas] antes de [evento].»", "«[Día y lugar concretos], [el mal momento]. Ahí supe que algo tenía que cambiar.»", "«[Persona inesperada] me hizo UNA pregunta que cambió cómo [manejo el problema].»", "«Casi [dejo / cancelo / pierdo] [algo que ama] por culpa de [problema].»", "«Mi [perro / mamá / pareja] ya no podía [actividad]. Esto fue lo que cambiamos.»", "«Nadie me creyó hasta que vieron [resultado].»"],
     visuals: ["Texto largo sobre una foto cotidiana (9:16), sin estética publicitaria.", "Selfie narrado por la persona real, en un solo plano.", "Estático tipo unboxing con el copy largo."],
-    guardrails: ["Solo historias reales con consentimiento, o dramatizaciones etiquetadas como tales.", "Si no hay reseñas reales en la ficha: story_source.type = «none», fit_check.go = false, las preguntas de entrevista en interview_questions y otro ángulo recomendado en fit_check.reason.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
+    guardrails: ["Solo historias reales con consentimiento, o dramatizaciones etiquetadas como tales.", "Si no hay reseñas reales en la ficha: story_is_real = false, go = false, las preguntas de entrevista en interview_questions y otro ángulo recomendado en fit_reason.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
   },
   offer: {
     role: "Eres especialista en ofertas: el pack es el mensaje (lleva 3 y paga 2, precio ancla, una fecha real). Con pago contra entrega, cada pedido paga el anuncio y el despacho una vez: el pack es lo que sostiene el CPA.",
@@ -204,7 +204,7 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     aida: ["Atención: la oferta en 1–2 segundos.", "Interés: el producto y 3 beneficios.", "Deseo: el ancla y el pago contra entrega.", "Acción: la fecha real y la llamada."],
     hooks: ["«LLEVA 3, PAGA 2: [producto] [beneficio].» (solo si el pack de 3 cuesta lo de 2)", "«[Pack] por $[precio del pack]: $[precio por unidad] cada uno.»", "«Compra esto → llévate esto GRATIS.» (solo si es real)", "«[Evento real]: [oferta]. Termina [fecha real].»", "«¿Por qué pagar $[ancla] por [alternativa] si esto cuesta $[precio]?»", "«Menos de $[monto] al día por [beneficio].»"],
     visuals: ["Estático grilla de precio (1:1): las variantes, el precio grande y 3 checks.", "«Compra esto / llévate esto GRATIS» con flechas a mano.", "Video del producto con stickers de oferta (9:16)."],
-    guardrails: ["La estructura recomendada es uno de los packs de PRECIO Y OFERTA: no inventes otra ni recalcules márgenes.", "«GRATIS» tiene que ser gratis de verdad.", "Nada de contadores que se reinician ni «termina hoy» permanente.", "Si el ángulo principal es otro, este desarrollo es la capa de oferta: details.role = «layer»."],
+    guardrails: ["La estructura recomendada es uno de los packs de PRECIO Y OFERTA: no inventes otra ni recalcules márgenes.", "«GRATIS» tiene que ser gratis de verdad.", "Nada de contadores que se reinician ni «termina hoy» permanente.", "Si el ángulo principal es otro, este desarrollo es la capa de oferta: details.as_layer = true."],
   },
 };
 

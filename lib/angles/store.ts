@@ -124,7 +124,8 @@ export function toRankingView(r: RankingRow, currentAvatarId: string | undefined
   if (scores.some((s) => s.risks.some((k) => k.fix === "expert"))) {
     missing.push({ text: `Un experto real que lo recomiende: subiría Autoridad hasta ~${potential.expert ?? 70}`, fix: "expert" });
   }
-  for (const m of r.payload?.missing_inputs ?? []) missing.push({ text: m.gain ? `${m.text}: ${m.gain}` : m.text });
+  // Evaluaciones de la versión 1 guardaban { text, gain }.
+  for (const m of (r.payload?.missing_inputs ?? []) as (string | { text: string; gain?: string })[]) missing.push({ text: typeof m === "string" ? m : m.gain ? `${m.text}: ${m.gain}` : m.text });
   return {
     id: r.id,
     status: r.status,
