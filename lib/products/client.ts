@@ -1,7 +1,7 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
-import type { CustomerAvatar } from "@/lib/ai/schemas";
+import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
-import type { AvatarProposal, OptimizationRun, ReferenceImage, SavedPricingDto } from "@/lib/types";
+import type { AvatarProposal, OptimizationRun, PackLabelsProposal, ReferenceImage, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -67,6 +67,9 @@ export function uploadImage(productId: string, file: File, onProgress: (p: numbe
 }
 
 export const productsApi = {
+  decidePackLabels: (id: string, action: "approve" | "reopen") => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action }),
+  editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
+  regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
   savePricing: (id: string, form: PricingForm) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, form),
   sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
   saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildPricingPlan } from "@/lib/pricing/plan";
-import { customerAvatarSystem, customerAvatarUser, marketBlock, productBriefSystem, productBriefUser } from "./prompts";
-import { customerAvatarSchema, productBriefSchema } from "./schemas";
+import { pricingBlock } from "@/lib/pricing/prompt";
+import { customerAvatarSystem, customerAvatarUser, marketBlock, packLabelsSystem, packLabelsUser, productBriefSystem, productBriefUser } from "./prompts";
+import { avatarStepSchema, customerAvatarSchema, packLabelsOnlySchema, productBriefSchema } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 
@@ -56,6 +57,26 @@ describe("prompts", () => {
     expect(u).toContain("OFERTA PRINCIPAL: Pack 3 unidades a $49.990");
   });
 
+  it("etiquetas de los packs: duración solo con datos reales y sin «tratamiento»", () => {
+    for (const sys of [customerAvatarSystem(CL), packLabelsSystem(CL)]) {
+      expect(sys).toContain("ETIQUETAS DE LOS PACKS");
+      expect(sys).toContain("nunca inventes una dosis");
+      expect(sys).toContain("nunca «2 meses de tratamiento»");
+    }
+    expect(productBriefSystem(CL)).toContain("cuánto trae ni cuánto se usa");
+  });
+
+  it("«otras etiquetas» no repite las anteriores", () => {
+    const u = packLabelsUser("{}", null, pricing, ["2 meses de uso"]);
+    expect(u).toContain("No repitas estas: «2 meses de uso»");
+    expect(u).toContain("PRECIO Y OFERTA");
+  });
+
+  it("las etiquetas aprobadas viajan con el precio", () => {
+    const b = pricingBlock(pricing, [{ units: 2, label: "2 meses de uso", support: null, badge: null, basis: "duration", reason: "" }]);
+    expect(b).toContain("se presenta como «2 meses de uso»");
+  });
+
   it("el cliente ideal también recibe el precio y los packs", () => {
     const u = customerAvatarUser("{}", "neopreno", pricing);
     expect(u).toContain("PRECIO Y OFERTA");
@@ -69,5 +90,7 @@ describe("esquemas", () => {
     const { toJSONSchema } = await import("zod/v4");
     expect(toJSONSchema(productBriefSchema)).toHaveProperty("properties.missing_inputs");
     expect(toJSONSchema(customerAvatarSchema)).toHaveProperty("properties.formula");
+    expect(toJSONSchema(avatarStepSchema)).toHaveProperty("properties.pack_labels");
+    expect(toJSONSchema(packLabelsOnlySchema)).toHaveProperty("properties.pack_labels");
   });
 });

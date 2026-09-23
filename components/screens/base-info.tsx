@@ -494,7 +494,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
             </div>
           </section>
           {infoInput(desktop ? 9 : 4)}
-          <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} onSaved={setPricing} />
+          <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
         </div>
         {/* Escritorio: referencias y carga a la derecha. */}
         <aside aria-label="Imágenes de referencia" className="hidden flex-col gap-4 lg:flex">

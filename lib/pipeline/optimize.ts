@@ -5,7 +5,8 @@ import { customerAvatarSystem, customerAvatarUser, productBriefSystem, productBr
 import {
   CUSTOMER_AVATAR_PROMPT_VERSION,
   PRODUCT_BRIEF_PROMPT_VERSION,
-  customerAvatarSchema,
+  avatarStepSchema,
+  PACK_LABELS_PROMPT_VERSION,
   productBriefSchema,
   type ProductBrief,
 } from "@/lib/ai/schemas";
@@ -14,6 +15,7 @@ import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
 import { getMarket } from "@/lib/settings/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
+import { saveGeneratedPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { imageBlock } from "./images";
 import { getProductRow, imagesForGeneration, listImageRows, withDisplayUrls, type RunRow } from "@/lib/products/store";
@@ -192,7 +194,8 @@ async function avatarStep(run: RunRow, market: Market, brief: ProductBrief, brie
   const { data, usage } = await generateStructured({
     system: customerAvatarSystem(market),
     content: [{ type: "text", text: customerAvatarUser(JSON.stringify(brief, null, 2), baseInfo, run.input.pricing as PricingPlan) }],
-    schema: customerAvatarSchema,
+    // Una sola llamada: el perfil y las etiquetas de los packs (se guardan y se deciden por separado).
+    schema: avatarStepSchema,
     effort: "high",
   });
   await logGeneration(run, "customer_avatar", usage);
@@ -210,13 +213,15 @@ async function avatarStep(run: RunRow, market: Market, brief: ProductBrief, brie
         user_id: run.user_id,
         run_id: run.id,
         brief_id: briefId,
-        payload: data,
+        payload: data.avatar,
         status: "generated",
         prompt_version: CUSTOMER_AVATAR_PROMPT_VERSION,
         model: usage.model,
       })
     ).error,
   );
+  // Las etiquetas de los packs se guardan aparte: el comerciante las decide en “Precio y packs”.
+  await saveGeneratedPackLabels(run, data.pack_labels, run.input.pricing as PricingPlan, { promptVersion: PACK_LABELS_PROMPT_VERSION, model: usage.model });
 }
 
 /** Ejecuta la corrida. Pensada para `after()`: nunca lanza; deja el resultado en pipeline_runs. */

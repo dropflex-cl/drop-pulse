@@ -101,6 +101,22 @@ export function fixture(state: string): ProductBase {
       { id: "i3", src: productImage(0, 1), alt: "Imagen 3 de Shopify, con texto del proveedor", source: "shopify", excluded: true, cover: false, base: false },
     ],
     run,
+    packLabels: {
+      id: "labels-1",
+      status: "generado",
+      stale: false,
+      prices: [
+        { units: 1, price: 24990 },
+        { units: 2, price: 37990 },
+        { units: 3, price: 49990 },
+      ],
+      createdAt: "2026-09-23T12:00:00.000Z",
+      labels: [
+        { units: 1, label: "Para probarlo", support: null, badge: null, basis: "other", reason: "La referencia de precio." },
+        { units: 2, label: "Uno para ti y otro para tu pareja", support: "$18.995 cada uno", badge: null, basis: "sharing", reason: "La ficha dice que lo usan parejas que trabajan sentadas." },
+        { units: 3, label: "Lleva 3, paga 2", support: "Ahorras $24.980", badge: "Más elegido", basis: "savings", reason: "El pack de 3 cuesta lo mismo que 2 unidades." },
+      ],
+    },
     pricingDefaults: { unitCost: 3900, avgShippingCost: 8000, purchaseCostLimit: 4500, confirmationRate: 70, deliveryRate: 70, extraUnitDiscount: 50 },
     avatar,
     missingInputs:

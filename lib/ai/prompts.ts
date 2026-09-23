@@ -37,6 +37,7 @@ export function productBriefSystem(market: Market): string {
     "- Las reseñas, expertos, estudios y cifras de ventas solo cuentan si el comerciante los escribió. Nunca redactes una reseña ni inventes una cifra: la ley y Meta lo castigan.",
     "- Mira cada imagen: di qué muestra y si sirve para anuncios. Una imagen con texto del proveedor (a menudo en chino), marca de agua o collage confuso no sirve.",
     "- Precio de venta, tachado, costo del proveedor y packs vienen en PRECIO Y OFERTA: son decisiones del comerciante. Cópialos tal cual en la ficha y no los preguntes. La OFERTA PRINCIPAL es el pack: en bundle_options va primero, y cuenta para qué le sirve al comprador llevar más de una unidad.",
+    "- Si el producto se consume o se gasta (cápsulas, cremas, recargas) y no sabes cuánto trae ni cuánto se usa, pregúntalo en missing_inputs: sin ese dato no se puede decir cuánto dura cada pack.",
     "- missing_inputs son preguntas para el comerciante, cortas y en tuteo, ordenadas por cuánto mejorarían los anuncios. No preguntes lo que ya está.",
   ].join("\n");
 }
@@ -86,6 +87,41 @@ export function productBriefUser(p: BriefInput, market: Market): string {
   return lines.join("\n");
 }
 
+// ---------------------------------------------------------------- Etiquetas de los packs
+// Salen con el cliente ideal (misma llamada) y, si el comerciante pide otras, en una llamada aparte.
+
+const PACK_LABEL_RULES = [
+  "ETIQUETAS DE LOS PACKS (campo pack_labels)",
+    "- Una por pack de PRECIO Y OFERTA. Convierten la cantidad en algo que esta persona quiere: cuánto le dura, con quién lo comparte, el repuesto, el regalo o el ahorro. «Pack 2 unidades» no vende; «2 meses de uso» o «Uno para ti y otro para tu pareja», sí.",
+    "- Duración solo con datos reales: «2 meses de uso» exige que la ficha diga cuánto trae y cuánto se usa (60 cápsulas, 2 al día → 1 mes). Si no lo dice, usa otro ángulo; nunca inventes una dosis ni un rendimiento.",
+    "- Nada de promesas de salud ni resultados: «2 meses de uso», nunca «2 meses de tratamiento» ni «resultados en 60 días». Respeta forbidden_claims de la ficha.",
+    "- label: hasta 40 caracteres, en el idioma del mercado y con tuteo. support: una cifra real de PRECIO Y OFERTA (por unidad, por mes o el ahorro) o null. badge: 1 a 2 palabras en un solo pack, el de la OFERTA PRINCIPAL, o null.",
+    "- La etiqueta del pack de la OFERTA PRINCIPAL es la más fuerte: es la que se va a empujar.",
+];
+
+export function packLabelsSystem(market: Market): string {
+  return [
+    "Eres el estratega de oferta de una tienda de dropshipping. Escribes el nombre de cada pack para que el cliente elija llevar más de una unidad.",
+    "",
+    marketBlock(market),
+    "",
+    ...PACK_LABEL_RULES,
+  ].join("\n");
+}
+
+export function packLabelsUser(briefJson: string, avatarJson: string | null, pricing: PricingPlan, previous: string[]): string {
+  return [
+    "FICHA DE PRODUCTO",
+    briefJson,
+    "",
+    ...(avatarJson ? ["CLIENTE IDEAL", avatarJson, ""] : []),
+    pricingBlock(pricing),
+    "",
+    ...(previous.length ? [`El comerciante pidió otras etiquetas. No repitas estas: ${previous.map((l) => `«${l}»`).join(", ")}.`, ""] : []),
+    "Escribe las etiquetas de los packs.",
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------- Cliente ideal
 
 /** La plantilla de docs/prompt-avatar.md (dropflex base), que allá se nombraba pero no se enviaba. */
@@ -120,6 +156,8 @@ export function customerAvatarSystem(market: Market): string {
     "",
     "FÓRMULA DEL CLIENTE IDEAL (campo formula): un párrafo que sigue esta plantilla, con los corchetes reemplazados por lo que definiste y la concordancia de género correcta:",
     FORMULA_TEMPLATE,
+    "",
+    ...PACK_LABEL_RULES,
   ].join("\n");
 }
 

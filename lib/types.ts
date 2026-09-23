@@ -7,7 +7,7 @@ import type { StageState } from "@/components/df/stage-list";
 import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
-import type { CustomerAvatar } from "@/lib/ai/schemas";
+import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 
 export type { ContentStatus, Verdict };
@@ -89,6 +89,19 @@ export interface AvatarProposal {
   editedAt?: string;
 }
 
+/** Etiquetas de los packs propuestas por la IA; se aprueban aparte del cliente ideal. */
+export interface PackLabelsProposal {
+  id: string;
+  status: ContentStatus;
+  labels: PackLabel[];
+  /** Los precios de los packs cambiaron desde que se generaron: hay que revisarlas. */
+  stale: boolean;
+  /** Precios de los packs con que se generaron o aprobaron (para recalcular `stale` en vivo). */
+  prices: { units: number; price: number }[];
+  createdAt: string;
+  editedAt?: string;
+}
+
 /** Todo lo que necesita la etapa Información base. */
 export interface ProductBase {
   product: Product;
@@ -101,6 +114,8 @@ export interface ProductBase {
   avatar?: AvatarProposal;
   /** Precio y packs guardados; sin ellos no se puede optimizar. */
   pricing?: SavedPricingDto;
+  /** Etiquetas de los packs (salen con el cliente ideal). */
+  packLabels?: PackLabelsProposal;
   /** Valores para abrir la calculadora la primera vez (costo de Shopify, números del onboarding). */
   pricingDefaults: Partial<PricingForm>;
   /** Lo que la ficha dice que falta, como preguntas para el comerciante. */

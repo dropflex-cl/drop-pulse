@@ -6,8 +6,9 @@ import { amount, currencySymbol, fractionDigits, money, parseAmount } from "@/li
 import { roundingFor, suggestCompareAtPrice } from "@/lib/pricing/calculator";
 import { buildPricingPlan, suggestPrices, validatePricingForm, type PricingForm } from "@/lib/pricing/plan";
 import { productsApi, ProductApiClientError } from "@/lib/products/client";
-import type { SavedPricingDto } from "@/lib/types";
+import type { PackLabelsProposal, SavedPricingDto } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { PackLabelsBar, PackLabelsEditor, usePackLabels } from "./pack-labels";
 
 // “Precio y packs” (Información base): la calculadora de dropflex v1, con el orden de la pantalla de
 // precio del design system (la ganancia primero, los supuestos en una línea). Empuja los packs. Requisito para “Optimizar con
@@ -57,14 +58,19 @@ export function PricingSection({
   currency,
   saved,
   defaults,
+  packLabels: packLabelsFromServer,
   onSaved,
 }: {
   productId: string;
   currency: string;
   saved?: SavedPricingDto;
   defaults: Partial<PricingForm>;
+  /** Etiquetas propuestas por la IA (salen con el cliente ideal). */
+  packLabels?: PackLabelsProposal;
   onSaved: (pricing: SavedPricingDto) => void;
 }) {
+  const [labels, setLabels] = usePackLabels(packLabelsFromServer);
+  const [editingLabels, setEditingLabels] = useState(false);
   const [texts, setTexts] = useState<Texts>(() => toTexts(saved ?? defaults, currency));
   // Como en v1: el precio y el tachado siguen al recomendado hasta que el comerciante los toca.
   const [priceTouched, setPriceTouched] = useState(Boolean(saved));
@@ -218,31 +224,59 @@ export function PricingSection({
           hint={Number(texts.extraUnitDiscount) === 50 ? "El pack de 3 queda al precio de 2" : "Con 50%, el de 3 queda al precio de 2"}
         />
       </div>
-      {plan ? (
+      {plan && labels && !editingLabels ? (
+        <PackLabelsBar productId={productId} proposal={labels} packs={plan.packs} onChange={setLabels} onEdit={() => setEditingLabels(true)} />
+      ) : null}
+      {plan && labels && editingLabels ? (
+        <PackLabelsEditor
+          productId={productId}
+          proposal={labels}
+          packs={plan.packs}
+          onSaved={(p) => {
+            setLabels(p);
+            setEditingLabels(false);
+          }}
+          onCancel={() => setEditingLabels(false)}
+        />
+      ) : null}
+      {plan && !labels ? (
+        <p className="mt-3 text-caption text-muted-foreground">Al optimizar con IA te propone cómo nombrar cada pack, por ejemplo “2 meses de uso”.</p>
+      ) : null}
+      {plan && !editingLabels ? (
         <ul aria-label="Packs" className="mt-3 divide-y rounded-md border">
-          {plan.packs.map((p) => (
-            <li key={p.units} className="flex items-start justify-between gap-3 px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="flex flex-wrap items-center gap-1.5 text-row">
-                  {p.units === 1 ? "1 unidad" : `Pack ${p.units} unidades`}
-                  {p.recommended && p.units > 1 ? (
-                    <span className="rounded-sm bg-foreground px-1.5 py-0.5 text-micro font-semibold text-background">Recomendado</span>
-                  ) : null}
-                </p>
-                {p.units > 1 ? (
-                  <p className="text-caption text-muted-foreground tabular-nums">
-                    Ahorra {m(p.savings)} ({Math.round(p.savingsRate * 100)}%) · {m(p.perUnitPrice)} c/u
+          {plan.packs.map((p) => {
+            // La etiqueta aprobada o propuesta manda; sin etiquetas, el nombre por cantidad.
+            const l = labels?.labels.find((x) => x.units === p.units);
+            const badge = l ? l.badge : p.recommended && p.units > 1 ? "Recomendado" : null;
+            return (
+              <li key={p.units} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-1.5 text-row">
+                    {l ? l.label : p.units === 1 ? "1 unidad" : `Pack ${p.units} unidades`}
+                    {badge ? <span className="rounded-sm bg-foreground px-1.5 py-0.5 text-micro font-semibold text-background">{badge}</span> : null}
                   </p>
-                ) : null}
-                <p className={cn("text-caption tabular-nums", p.earnsMoreThanPrevious ? "text-muted-foreground" : "text-warning")}>
-                  {p.earnsMoreThanPrevious
-                    ? `Ganas ${m(p.profit)}${p.units > 1 && p.profitMultiple && p.profitMultiple >= 2 ? ` · ${Math.round(p.profitMultiple)} veces lo que deja 1 unidad` : ""}`
-                    : `Ganas ${m(p.profit)}: no gana más que el anterior, baja el descuento`}
-                </p>
-              </div>
-              <span className="text-row font-semibold tabular-nums">{m(p.price)}</span>
-            </li>
-          ))}
+                  {/* Lo que lee el cliente (etiqueta y apoyo) arriba; los datos para ti, debajo en gris. */}
+                  {l?.support ? <p className="text-small">{l.support}</p> : null}
+                  {l || p.units > 1 ? (
+                    <p className="text-caption text-muted-foreground tabular-nums">
+                      {[
+                        l ? (p.units === 1 ? "1 unidad" : `${p.units} unidades`) : null,
+                        p.units > 1 ? `Ahorra ${m(p.savings)} (${Math.round(p.savingsRate * 100)}%) · ${m(p.perUnitPrice)} c/u` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
+                  <p className={cn("text-caption tabular-nums", p.earnsMoreThanPrevious ? "text-muted-foreground" : "text-warning")}>
+                    {p.earnsMoreThanPrevious
+                      ? `Ganas ${m(p.profit)}${p.units > 1 && p.profitMultiple && p.profitMultiple >= 2 ? ` · ${Math.round(p.profitMultiple)} veces lo que deja 1 unidad` : ""}`
+                      : `Ganas ${m(p.profit)}: no gana más que el anterior, baja el descuento`}
+                  </p>
+                </div>
+                <span className="text-row font-semibold tabular-nums">{m(p.price)}</span>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 

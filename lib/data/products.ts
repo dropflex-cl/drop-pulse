@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { sessionUser } from "@/lib/integrations/session";
 import { NOTE } from "@/lib/mock/content";
+import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
 import { productPosition } from "@/lib/products/stages";
@@ -103,13 +104,14 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
   const uid = await userId();
   const [product, row] = await Promise.all([getProduct(id), getProductRow(uid, id)]);
   if (!product || !row) return null;
-  const [images, runs, avatars, brief, pricing, pricingDefaultsValue] = await Promise.all([
+  const [images, runs, avatars, brief, pricing, pricingDefaultsValue, packLabels] = await Promise.all([
     listImageRows(uid, [id]),
     latestRuns(uid, [id]),
     latestAvatars(uid, [id]),
     latestBrief(uid, id),
     getPricingPlan(uid, id),
     pricingDefaults(uid, row),
+    latestPackLabels(uid, id),
   ]);
   const urls = await withDisplayUrls(images);
   const run = runs.get(id);
@@ -123,6 +125,7 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     run: run ? toRun(run) : undefined,
     avatar: avatar ? toProposal(avatar) : undefined,
     pricing: pricing ?? undefined,
+    packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
     missingInputs: brief?.missing_inputs ?? [],
   };

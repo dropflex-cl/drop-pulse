@@ -6,9 +6,9 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 4;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 5;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
-export const CUSTOMER_AVATAR_PROMPT_VERSION = 3;
+export const CUSTOMER_AVATAR_PROMPT_VERSION = 4;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -191,3 +191,31 @@ export const AVATAR_SECTIONS: { key: keyof CustomerAvatar; title: string; fields
     ],
   },
 ];
+
+// ---------------------------------------------------------------- Etiquetas de los packs
+// Salen en la misma llamada que el cliente ideal (ya tiene la ficha, el precio y quién compra), pero
+// se guardan y se aprueban aparte (pack_labels): aceptar una no obliga a revisar la otra.
+
+/** Bump cuando cambie el prompt o el esquema de las etiquetas. */
+export const PACK_LABELS_PROMPT_VERSION = 1;
+
+export const PACK_LABEL_BASES = ["duration", "sharing", "spare", "gift", "savings", "other"] as const;
+
+export const packLabelSchema = z.object({
+  units: z.number().int().describe("Unidades del pack (1, 2 o 3), igual que en PRECIO Y OFERTA."),
+  label: text.describe("El nombre del pack que lee el cliente, hasta 40 caracteres: «2 meses de uso», «Uno para ti y otro para tu pareja». Sin promesas de salud ni resultados."),
+  support: maybe.describe("Línea de apoyo corta con una cifra real de PRECIO Y OFERTA («$17.495 al mes», «Ahorras $24.980»), o null."),
+  badge: maybe.describe("Distintivo de 1 a 2 palabras solo para 1 pack («Más elegido», «Mejor precio»), o null."),
+  basis: z.enum(PACK_LABEL_BASES).describe("En qué se apoya: duración real, compartir, repuesto, regalo, ahorro u otro."),
+  reason: text.describe("Para el comerciante, en una frase: por qué esta etiqueta y de qué dato sale."),
+});
+
+export const packLabelsSchema = z.array(packLabelSchema).describe("Una etiqueta por pack de PRECIO Y OFERTA, en el mismo orden.");
+
+export type PackLabel = z.infer<typeof packLabelSchema>;
+
+/** Lo que devuelve el paso del cliente ideal: el perfil y, aparte, las etiquetas de los packs. */
+export const avatarStepSchema = z.object({ avatar: customerAvatarSchema, pack_labels: packLabelsSchema });
+
+/** “Otras etiquetas”: la llamada aparte, solo con las etiquetas. */
+export const packLabelsOnlySchema = z.object({ pack_labels: packLabelsSchema });

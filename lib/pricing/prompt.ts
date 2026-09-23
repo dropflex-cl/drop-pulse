@@ -1,5 +1,6 @@
 // Los precios del comerciante como texto para los prompts (ficha y cliente ideal). Puro.
 import { money } from "@/lib/format";
+import type { PackLabel } from "@/lib/ai/schemas";
 import type { PricingPlan } from "./plan";
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -10,7 +11,8 @@ const units = (n: number) => (n === 1 ? "1 unidad" : `Pack ${n} unidades`);
  * principal es el pack recomendado: el CPA y el despacho se pagan una vez por pedido, así que el
  * negocio está en que el cliente lleve más de una unidad; 1 unidad es la referencia de precio.
  */
-export function pricingBlock(p: PricingPlan): string {
+/** `labels`: las etiquetas APROBADAS de los packs (textos, anuncios); sin aprobar no se pasan. */
+export function pricingBlock(p: PricingPlan, labels?: PackLabel[]): string {
   const m = (v: number) => money(v, p.currency);
   const main = p.packs.find((k) => k.recommended);
   const threeForTwo = (k: (typeof p.packs)[number]) => k.units === 3 && Math.abs(k.price - 2 * p.salePrice) <= 10 * (p.salePrice >= 1000 ? 100 : 1);
@@ -25,6 +27,7 @@ export function pricingBlock(p: PricingPlan): string {
         `  · ${units(k.units)}: ${m(k.price)}` +
         (k.units > 1 ? ` (${m(k.perUnitPrice)} c/u; ahorra ${m(k.savings)}, ${pct(k.savingsRate)}${threeForTwo(k) ? "; «lleva 3, paga 2»" : ""})` : "") +
         ` · ganancia ${m(k.profit)} por pedido entregado` +
+        (labels?.find((l) => l.units === k.units) ? ` · se presenta como «${labels.find((l) => l.units === k.units)!.label}»` : "") +
         (k.recommended ? " ← OFERTA PRINCIPAL" : ""),
     ),
   ];
