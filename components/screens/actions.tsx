@@ -96,6 +96,9 @@ export function SyncProductsButton() {
     <Button
       icon="refresh"
       loading={loading}
+      // TopBar deja 4px a la derecha (sus acciones son IconButton); un botón con fondo necesita
+      // 12px más para cerrar en el mismo borde de 16px que el título y la lista.
+      className="mr-3 lg:mr-0"
       onClick={async () => {
         setLoading(true);
         try {
