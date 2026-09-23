@@ -54,3 +54,9 @@ export { Switch, type SwitchProps } from "./switch";
 export { ReviewImporter, type MinStars, type ReviewImporterProps, type ReviewImporterState } from "./review-importer";
 export { ReviewSummary, type ReviewSummaryProps } from "./review-summary";
 export { ReviewItem, type ReviewItemProps, type ReviewItemState } from "./review-item";
+// Página del producto (etapa Textos, design-system/textos.md)
+export { CharCount, type CharCountProps } from "./char-count";
+export { Notice, type NoticeProps } from "./notice";
+export { EmptyState, type EmptyStateProps } from "./empty-state";
+export { PageOutline, type BlockState, type OutlineItem, type PageOutlineProps } from "./page-outline";
+export { CopySummary, type CopySummaryProps, type SummaryTag } from "./copy-summary";

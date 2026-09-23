@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"Icon"}]} */
+/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"Icon"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -151,25 +151,40 @@
   }
 
   /* ---------- ReviewCard: original vs. propuesta ---------- */
+  function CharCount(props) {
+    var n = props.count || 0, over = props.limit && n > props.limit;
+    return h('span', { className: cx('df-cc', over && 'is-over'), 'aria-live': props.live ? 'polite' : undefined },
+      over ? h(Icon, { name: 'alert', size: 'sm', strokeWidth: 2 }) : null,
+      n.toLocaleString('es-CL') + (props.limit ? ' / ' + props.limit : '') + ' ' + (props.unit || 'caracteres'));
+  }
   function ReviewCard(props) {
     var state = props.state || 'pending';
     var editing = state === 'editing';
+    var roleMap = { primary: 'principal', secondary: 'secundario' };
+    var body = props.faq
+      ? h('div', { className: 'df-prop-faq' }, h('b', null, props.faq.q), h('span', null, props.faq.a))
+      : h('div', { className: 'df-prop-text' }, props.proposal);
     return h('section', { className: cx('df-review', 'st-' + state), 'aria-label': 'Revisar ' + props.field },
       h('div', { className: 'df-review-head' },
-        h('span', { className: 'df-review-field' }, props.field),
+        h('span', { className: 'df-review-field' }, props.section ? h('span', { className: 'df-review-sec' }, props.section + ' · ') : null, props.field, props.required ? h('span', { className: 'df-req' }, 'Obligatorio') : null),
         props.total ? h('span', { className: 'df-review-count' }, props.index + ' de ' + props.total) : null),
       props.original != null ? h('div', { className: 'df-orig' },
-        h('div', { className: 'df-orig-label' }, 'Original'),
+        h('div', { className: 'df-orig-label' }, props.originalLabel || 'Original'),
         h('div', { className: 'df-orig-text' }, props.original)) : null,
       h('div', { className: 'df-prop' },
         h('div', { className: 'df-prop-label' }, h(Icon, { name: 'sparkle', size: 'sm' }), editing ? 'Tu versión' : 'Propuesta',
-          state === 'accepted' ? h('span', { style: { marginLeft: 'auto' } }, h(StatusBadge, { status: 'aprobado', size: 'sm' })) : null,
-          state === 'discarded' ? h('span', { style: { marginLeft: 'auto' } }, h(StatusBadge, { status: 'rechazado', size: 'sm' })) : null),
-        editing ? h('textarea', { defaultValue: props.proposalText || '', 'aria-label': 'Editar propuesta' }) : h('div', { className: 'df-prop-text' }, props.proposal)),
+          props.angle && roleMap[props.angle] ? h(RoleChip, { role: roleMap[props.angle], short: true }) : null,
+          state === 'accepted' ? h('span', { style: { marginLeft: 'auto' } }, h(StatusBadge, { status: 'aprobado', size: 'sm', label: props.edited ? 'Tu versión' : undefined })) : null,
+          state === 'discarded' ? h('span', { style: { marginLeft: 'auto' } }, h(StatusBadge, { status: 'rechazado', size: 'sm', label: 'Descartada' })) : null),
+        editing ? h('textarea', { defaultValue: props.proposalText || '', 'aria-label': 'Editar propuesta', rows: props.rows }) : body,
+        props.limit ? h('div', { className: 'df-prop-foot' }, h(CharCount, { count: props.count, limit: props.limit, unit: props.unit, live: editing })) : null),
+      props.missing ? h('div', { className: 'df-review-miss' }, h(Icon, { name: 'clock', size: 'sm', strokeWidth: 2 }), h('span', null, props.missing)) : null,
+      props.note && !editing ? h('p', { className: 'df-review-note' }, h(Icon, { name: 'sparkle', size: 'sm' }), props.note) : null,
+      props.discardHint && !editing && state === 'pending' ? h('p', { className: 'df-review-dh' }, 'Si descartas: ', props.discardHint) : null,
       props.hideActions ? null : editing
         ? h('div', { className: 'df-review-actions', style: { gridTemplateColumns: '1fr 1.4fr' } },
             h(Button, { variant: 'ghost' }, 'Cancelar'),
-            h(Button, { variant: 'primary', icon: 'check' }, 'Guardar y aceptar'))
+            h(Button, { variant: 'primary', icon: 'check', disabled: props.limit && props.count > props.limit }, 'Guardar y aceptar'))
         : h('div', { className: 'df-review-actions' },
             h(Button, { variant: 'secondary', icon: 'x', kbd: props.keys ? 'D' : null }, 'Descartar'),
             h(Button, { variant: 'secondary', icon: 'edit', kbd: props.keys ? 'E' : null }, 'Editar'),
@@ -529,8 +544,8 @@
       body = h('label', { className: cx('df-drop', st === 'dragover' && 'is-over', st === 'error' && 'is-error') },
         h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', multiple: true, className: 'df-sr' }),
         h('span', { className: 'df-drop-ico' }, h(Icon, { name: st === 'dragover' ? 'arrow-down' : 'upload' })),
-        h('span', { className: 'df-drop-t' }, st === 'dragover' ? 'Suelta para subir' : props.compact ? 'Elige imágenes' : h(Frag, null, h('span', { className: 'df-drop-desk' }, 'Arrastra imágenes aquí o '), h('u', null, 'elige desde tu equipo'))),
-        h('span', { className: 'df-drop-s' }, 'JPG, PNG o WEBP · hasta 10 MB cada una · máximo 10'));
+        h('span', { className: 'df-drop-t' }, st === 'dragover' ? 'Suelta para subir' : props.compact ? (props.pickLabel || 'Elige imágenes') : h(Frag, null, h('span', { className: 'df-drop-desk' }, (props.dragLabel || 'Arrastra imágenes aquí') + ' o '), h('u', null, 'elige desde tu equipo'))),
+        h('span', { className: 'df-drop-s' }, props.formats || 'JPG, PNG o WEBP · hasta 10 MB cada una · máximo 10'));
     } else {
       body = h('div', { className: 'df-urlin' },
         h('div', { className: cx('df-field', props.urlError && 'is-error') },
@@ -664,6 +679,304 @@
             h(Button, { variant: 'secondary', size: 'sm', icon: 'edit' }, 'Editar'),
             h(Button, { variant: 'primary', size: 'sm', icon: 'check' }, 'Aprobar'))
         : h('div', { className: 'df-rev-actions is-done' }, h(Button, { variant: 'ghost', size: 'sm', icon: 'undo' }, 'Deshacer')));
+  }
+
+  /* =========================================================
+     Ángulos de venta: ranking del orquestador y desarrollos
+     ========================================================= */
+
+  /* ScoreBar: puntaje 0–100 calculado en código */
+  function ScoreBar(props) {
+    var v = Math.max(0, Math.min(100, props.value || 0));
+    var band = v >= 70 ? 'Alto' : v >= 45 ? 'Medio' : 'Bajo';
+    return h('div', { className: cx('df-score', props.size === 'lg' && 'is-lg'), role: 'meter', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': v, 'aria-label': 'Puntaje ' + v + ' de 100, ' + band.toLowerCase() },
+      h('span', { className: 'df-score-v' }, v, h('small', null, '/100')),
+      h('span', { className: 'df-score-track' }, h('span', { className: 'band-' + band.toLowerCase(), style: { width: v + '%' } })),
+      props.hideBand ? null : h('span', { className: 'df-score-band' }, band));
+  }
+
+  /* RoleChip: principal / secundario / sugerencia IA */
+  function RoleChip(props) {
+    if (props.role === 'principal') return h('span', { className: 'df-role is-principal' }, h('b', null, '1'), props.short ? 'Principal' : 'Principal · gancho');
+    if (props.role === 'secundario') return h('span', { className: 'df-role is-secundario' }, h('b', null, '2'), props.short ? 'Secundario' : 'Secundario · refuerzo');
+    if (props.role === 'sugerido') return h('span', { className: 'df-role is-ai' }, h(Icon, { name: 'sparkle', size: 'sm' }), 'Sugerido por la IA');
+    return null;
+  }
+
+  /* AngleCard: un ángulo del ranking con puntaje, motivos, riesgos y desglose */
+  function AngleCard(props) {
+    var role = props.role, low = props.score < 45;
+    return h('article', { className: cx('df-angle', role && 'is-' + role, low && 'is-low', props.expanded && 'is-open'), 'aria-label': 'Ángulo ' + props.name + ', puesto ' + props.rank },
+      h('header', { className: 'df-angle-head' },
+        h('span', { className: 'df-angle-rank', 'aria-hidden': 'true' }, props.rank),
+        h('div', { className: 'df-angle-t' },
+          h('div', { className: 'df-angle-name' }, props.name),
+          h('div', { className: 'df-angle-roles' }, h(RoleChip, { role: role }), props.suggestedRole && props.suggestedRole !== role ? h('span', { className: 'df-role is-ai' }, h(Icon, { name: 'sparkle', size: 'sm' }), 'La IA sugería ' + props.suggestedRole) : role && props.suggestedRole === role ? h(RoleChip, { role: 'sugerido' }) : null))),
+      h(ScoreBar, { value: props.score }),
+      props.fit ? h('p', { className: 'df-angle-fit' }, h(Icon, { name: low ? 'minus' : 'check', size: 'sm', strokeWidth: 2.25 }), props.fit) : null,
+      props.risks && props.risks.length ? h('ul', { className: 'df-angle-risks', 'aria-label': 'Riesgos' }, props.risks.map(function (r, i) {
+        return h('li', { key: i }, h(Icon, { name: 'alert', size: 'sm', strokeWidth: 2 }), h('span', null, r.text), r.penalty ? h('b', null, '−' + r.penalty) : null, r.fix ? h('button', { type: 'button', className: 'df-rev-link' }, r.fix) : null);
+      })) : null,
+      props.expanded && props.breakdown ? h('dl', { className: 'df-angle-bd' },
+        props.breakdown.map(function (b, i) { return h('div', { key: i, className: b.value < 0 ? 'is-neg' : '' }, h('dt', null, b.label), h('dd', null, (b.value > 0 ? '+' : b.value < 0 ? '−' : '') + Math.abs(b.value))); }),
+        h('div', { className: 'is-total' }, h('dt', null, 'Puntaje final'), h('dd', null, props.score))) : null,
+      props.hideActions ? null : h('div', { className: 'df-angle-actions' },
+        h('button', { type: 'button', className: 'df-rev-link', 'aria-expanded': props.expanded ? 'true' : 'false' }, props.expanded ? 'Ocultar cálculo' : 'Cómo se calculó'),
+        h('span', { style: { flex: 1 } }),
+        role ? h(Button, { size: 'sm', variant: 'ghost' }, 'Quitar') : h(Button, { size: 'sm', variant: 'secondary', iconEnd: 'chevron-right' }, 'Usar este')));
+  }
+
+  /* AngleSuggestion: la elección del orquestador, cómo se combinan y qué falta */
+  function AngleSuggestion(props) {
+    return h('section', { className: 'df-card df-asug', 'aria-label': 'Sugerencia de la IA' },
+      h('div', { className: 'df-asug-h' }, h(Icon, { name: 'sparkle', size: 'sm' }), props.changed ? 'Tu elección' : 'La IA sugiere'),
+      h('div', { className: 'df-asug-pair' },
+        h('div', null, h(RoleChip, { role: 'principal', short: true }), h('b', null, props.principal), h('small', null, props.principalScore + '/100')),
+        h('span', { className: 'df-asug-plus', 'aria-hidden': 'true' }, '+'),
+        h('div', null, h(RoleChip, { role: 'secundario', short: true }), h('b', null, props.secundario), h('small', null, props.secundarioScore + '/100'))),
+      props.combo ? h('p', { className: 'df-asug-combo' }, props.combo) : null,
+      props.missing && props.missing.length ? h('div', { className: 'df-asug-miss' },
+        h('div', { className: 'df-asug-mt' }, 'Para elegir mejor, falta:'),
+        h('ul', null, props.missing.map(function (m, i) { return h('li', { key: i }, h('span', null, m.text), m.action ? h(Button, { size: 'sm', variant: 'secondary' }, m.action) : null); }))) : null);
+  }
+
+  /* IcpSummary: el cliente ideal aprobado, entrada del orquestador */
+  function IcpSummary(props) {
+    return h('section', { className: 'df-card df-icp', 'aria-label': 'Cliente ideal' },
+      h('div', { className: 'df-icp-h' }, h('span', { className: 'df-conn-name' }, 'Cliente ideal'), h(StatusBadge, { status: props.approved === false ? 'revision' : 'aprobado', size: 'sm' })),
+      h('p', { className: 'df-icp-t' }, props.text),
+      props.tags ? h('div', { className: 'df-pick-issues' }, props.tags.map(function (t, i) { return h('span', { key: i, className: 'df-rev-tag' }, t); })) : null,
+      props.action ? h('button', { type: 'button', className: 'df-rev-link', style: { alignSelf: 'flex-start' } }, props.action) : null);
+  }
+
+  /* AngleDevelopment: el desarrollo de un ángulo para revisar y aprobar */
+  var AIDA = [['atencion', 'Atención'], ['interes', 'Interés'], ['deseo', 'Deseo'], ['accion', 'Acción']];
+  function AngleDevelopment(props) {
+    var st = props.status || 'revision';
+    if (st === 'generando') return h('section', { className: 'df-card df-adev is-loading', role: 'status' },
+      h('div', { className: 'df-adev-h' }, h(RoleChip, { role: props.role }), h('b', null, props.angle), h(StatusBadge, { status: 'publicando', label: 'Generando', size: 'sm' })),
+      [1, 2, 3, 4].map(function (i) { return h('span', { key: i, className: 'df-skel', style: { width: (90 - i * 12) + '%' } }); }));
+    return h('section', { className: cx('df-card df-adev', 'is-' + st), 'aria-label': 'Desarrollo del ángulo ' + props.angle },
+      h('div', { className: 'df-adev-h' },
+        h(RoleChip, { role: props.role }),
+        h('b', null, props.angle),
+        h(StatusBadge, { status: st === 'aprobado' ? 'aprobado' : 'revision', size: 'sm' })),
+      h('div', { className: 'df-adev-s' },
+        h('div', { className: 'df-adev-st' }, 'Ganchos', h('small', null, props.role === 'principal' ? 'abren el anuncio' : 'refuerzan el argumento')),
+        h('ol', { className: 'df-hooks' }, (props.hooks || []).map(function (x, i) { return h('li', { key: i, className: props.pickedHook === i ? 'is-pick' : '' }, h('span', null, x), props.pickedHook === i ? h('span', { className: 'df-role is-ai' }, 'Recomendado') : null); }))),
+      props.aida ? h('div', { className: 'df-adev-s' },
+        h('div', { className: 'df-adev-st' }, 'Argumento por etapa'),
+        h('dl', { className: 'df-aida' }, AIDA.map(function (a) { return h('div', { key: a[0] }, h('dt', null, a[1]), h('dd', null, props.aida[a[0]])); }))) : null,
+      props.objections ? h('div', { className: 'df-adev-s' },
+        h('div', { className: 'df-adev-st' }, 'Objeciones'),
+        h('ul', { className: 'df-obj' }, props.objections.map(function (o, i) { return h('li', { key: i }, h('b', null, '“' + o.q + '”'), h('span', null, o.a)); }))) : null,
+      props.offer ? h('div', { className: 'df-adev-s' }, h('div', { className: 'df-adev-st' }, 'Oferta'), h('p', { className: 'df-adev-offer' }, props.offer)) : null,
+      props.hideActions || st === 'aprobado' ? (st === 'aprobado' ? h('div', { className: 'df-rev-actions is-done' }, h(Button, { variant: 'ghost', size: 'sm', icon: 'undo' }, 'Volver a revisar')) : null) :
+        h('div', { className: 'df-review-actions' },
+          h(Button, { variant: 'secondary', icon: 'sparkle' }, 'Regenerar'),
+          h(Button, { variant: 'secondary', icon: 'edit' }, 'Editar'),
+          h(Button, { variant: 'primary', icon: 'check' }, 'Aprobar')));
+  }
+
+  /* =========================================================
+     Anuncios: configurador de lanzamiento y motor de decisión
+     ========================================================= */
+
+  /* StructurePicker: ABO o CBO */
+  var STRUCT = {
+    abo: { t: 'ABO · presupuesto por conjunto', d: 'Para testear. Un conjunto por creativo: apagas el que no funciona sin tocar al resto.', tag: 'Testeo' },
+    cbo: { t: 'CBO · presupuesto de campaña', d: 'Para escalar ganadores. Meta reparte el presupuesto entre los conjuntos.', tag: 'Escalado' }
+  };
+  function StructurePicker(props) {
+    return h('fieldset', { className: 'df-opts' },
+      h('legend', { className: 'df-opts-l' }, props.label || 'Estructura'),
+      h('div', { className: 'df-struct' }, ['abo', 'cbo'].map(function (k) {
+        var s = STRUCT[k], sel = props.value === k;
+        return h('label', { key: k, className: cx('df-struct-o', sel && 'is-sel') },
+          h('input', { type: 'radio', name: 'df-struct', defaultChecked: sel }),
+          h('span', { className: 'df-radio', 'aria-hidden': 'true' }),
+          h('span', { className: 'df-struct-b' },
+            h('span', { className: 'df-opt-t' }, s.t),
+            h('span', { className: 'df-opt-m' }, s.d)),
+          h('span', { className: 'df-struct-mini', 'aria-hidden': 'true' },
+            h('i', { className: k === 'cbo' ? 'is-budget' : '' }),
+            h('span', null, h('i', { className: k === 'abo' ? 'is-budget' : '' }), h('i', { className: k === 'abo' ? 'is-budget' : '' }), h('i', { className: k === 'abo' ? 'is-budget' : '' }))));
+      })));
+  }
+
+  /* PresetSelect: plantillas precargadas, editables */
+  function PresetSelect(props) {
+    return h('div', { className: 'df-preset' },
+      h('div', { className: 'df-field' },
+        h('label', { className: 'df-field-label', htmlFor: 'df-preset' }, props.label || 'Plantilla'),
+        h('div', { className: 'df-field-box df-sel-box' },
+          h('select', { id: 'df-preset', className: 'df-sel', defaultValue: props.value }, (props.options || []).map(function (o) { return h('option', { key: o.value, value: o.value }, o.label); })),
+          h(Icon, { name: 'chevron-right', size: 'sm', className: 'df-sel-ico' }))),
+      props.source ? h('p', { className: 'df-field-hint', style: { margin: 0 } }, props.source) : null,
+      props.modified ? h('div', { className: 'df-preset-mod' },
+        h('span', null, h(Icon, { name: 'edit', size: 'sm' }), props.modified + ' cambios sobre la plantilla'),
+        h('button', { type: 'button', className: 'df-rev-link' }, 'Restablecer'),
+        h('button', { type: 'button', className: 'df-rev-link' }, 'Guardar como plantilla')) : null);
+  }
+
+  /* ConfigSection: sección plegable con resumen y marca de editado */
+  function ConfigSection(props) {
+    return h('section', { className: cx('df-cfg', props.open && 'is-open', props.error && 'is-error') },
+      h('button', { type: 'button', className: 'df-cfg-h', 'aria-expanded': props.open ? 'true' : 'false' },
+        h('span', { className: 'df-cfg-n' }, props.error ? h(Icon, { name: 'alert', size: 'sm', strokeWidth: 2 }) : props.done ? h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.25 }) : props.index),
+        h('span', { className: 'df-cfg-t' }, h('b', null, props.title), props.open ? null : h('small', null, props.error || props.summary)),
+        props.edited ? h('span', { className: 'df-rev-tag' }, 'Editado') : null,
+        h(Icon, { name: 'chevron-right', size: 'sm', className: 'df-cfg-chev' })),
+      props.open ? h('div', { className: 'df-cfg-b' }, props.children) : null);
+  }
+
+  /* ChipInput: países, regiones o intereses */
+  function ChipInput(props) {
+    return h('div', { className: 'df-field' },
+      h('span', { className: 'df-field-label' }, props.label),
+      h('div', { className: cx('df-chipin', props.disabled && 'is-dis') },
+        (props.values || []).map(function (v, i) { return h('span', { key: i, className: 'df-chipv' }, v, props.disabled ? null : h('button', { type: 'button', 'aria-label': 'Quitar ' + v }, h(Icon, { name: 'x', size: 'sm', strokeWidth: 2.25 }))); }),
+        props.disabled ? null : h('input', { placeholder: props.placeholder || 'Agregar…', 'aria-label': props.label })),
+      props.hint ? h('span', { className: 'df-field-hint' }, props.hint) : null);
+  }
+
+  /* RuleRow: una regla escrita como frase, con los valores editables en línea */
+  function Inline(props) {
+    return h('span', { className: cx('df-inl', props.select && 'is-sel') }, props.prefix ? h('small', null, props.prefix) : null, h('b', null, props.value), props.suffix ? h('small', null, props.suffix) : null);
+  }
+  function RuleRow(props) {
+    return h('li', { className: cx('df-rule', props.off && 'is-off') },
+      h('label', { className: 'df-switch df-rule-sw' }, h('input', { type: 'checkbox', defaultChecked: !props.off, 'aria-label': 'Activar regla' }), h('span', { className: 'df-switch-ui', 'aria-hidden': 'true' })),
+      h('span', { className: 'df-rule-txt' }, props.parts.map(function (p, i) { return typeof p === 'string' ? h(Frag, { key: i }, p) : h(Inline, Object.assign({ key: i }, p)); })),
+      h(IconButton, { icon: 'more', label: 'Opciones de la regla' }));
+  }
+  var RG = {
+    esperar: { t: 'Esperar', d: 'No decidir mientras Meta aprende', icon: 'clock', c: 'k-wait' },
+    pausar: { t: 'Pausar', d: 'Cortar lo que pierde dinero', icon: 'pause', c: 'k-pause' },
+    escalar: { t: 'Escalar', d: 'Subir presupuesto a lo que gana', icon: 'trend', c: 'k-scale' }
+  };
+  function RuleGroup(props) {
+    var g = RG[props.kind];
+    return h('section', { className: cx('df-rg', g.c) },
+      h('div', { className: 'df-rg-h' }, h('span', { className: 'df-rg-ico' }, h(Icon, { name: g.icon, size: 'sm', strokeWidth: 2 })), h('span', null, h('b', null, g.t), h('small', null, props.desc || g.d)), props.level ? h('span', { className: 'df-rev-tag' }, props.level) : null),
+      h('ul', { className: 'df-rules' }, props.children),
+      props.add === false ? null : h('button', { type: 'button', className: 'df-rg-add' }, h(Icon, { name: 'plus', size: 'sm' }), 'Agregar condición'));
+  }
+
+  /* CreativeSlot: un creativo subido y el conjunto que genera */
+  function CreativeSlot(props) {
+    var st = props.state || 'ready';
+    return h('div', { className: cx('df-cslot', 'is-' + st) },
+      h('div', { className: 'df-cslot-m' },
+        st === 'uploading' ? h('span', { className: 'df-tile-center' }, h('span', { className: 'df-ref-pct' }, Math.round((props.progress || 0) * 100) + '%'), 'Subiendo') :
+        st === 'error' ? h('span', { className: 'df-tile-center', style: { color: 'var(--destructive)' } }, h(Icon, { name: 'alert' }), 'Error') :
+        h('img', { src: productImage(props.imageIndex || 0, 1), alt: '' }),
+        props.type === 'video' && st === 'ready' ? h('span', { className: 'df-cslot-play' }, h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: 'M8 5.5v13l10-6.5z', fill: 'currentColor' })), props.duration) : null,
+        st === 'ready' || st === 'processing' ? h('span', { className: 'df-ref-src' }, props.ratio || (props.type === 'video' ? 'Video' : 'Imagen')) : null),
+      h('div', { className: 'df-cslot-b' },
+        h('span', { className: 'df-uplist-n' }, props.name),
+        h('span', { className: cx('df-uplist-m', st === 'error' && 't-danger') }, st === 'error' ? props.error : st === 'processing' ? 'Meta está procesando el video…' : props.adset ? '→ ' + props.adset : props.detail)),
+      h(IconButton, { icon: 'x', label: 'Quitar creativo' }));
+  }
+
+  /* CampaignTree: vista previa de la estructura que se creará en Meta */
+  function CampaignTree(props) {
+    var abo = props.structure !== 'cbo';
+    return h('div', { className: 'df-tree', role: 'tree', 'aria-label': 'Estructura de la campaña' },
+      h('div', { className: 'df-tree-n is-camp', role: 'treeitem' },
+        h(Icon, { name: 'megaphone', size: 'sm' }), h('span', null, h('b', null, props.name), h('small', null, 'Campaña · Ventas · ' + (abo ? 'ABO' : 'CBO'))),
+        abo ? null : h('span', { className: 'df-tree-bud' }, props.budget + '/día')),
+      h('ul', null, (props.adsets || []).map(function (a, i) {
+        return h('li', { key: i },
+          h('div', { className: 'df-tree-n', role: 'treeitem' }, h(Icon, { name: 'box', size: 'sm' }), h('span', null, h('b', null, a.name), h('small', null, a.audience)), abo ? h('span', { className: 'df-tree-bud' }, a.budget + '/día') : null),
+          h('ul', null, (a.ads || []).map(function (ad, j) { return h('li', { key: j }, h('div', { className: 'df-tree-n is-ad', role: 'treeitem' }, h(Icon, { name: ad.type === 'video' ? 'image' : 'image', size: 'sm' }), h('span', null, h('b', null, ad.name), h('small', null, ad.type === 'video' ? 'Video' : 'Imagen')))); })));
+      })),
+      props.note ? h('p', { className: 'df-field-hint', style: { margin: '8px 0 0' } }, props.note) : null);
+  }
+
+  /* DecisionRow: lo que el motor decidió para un conjunto o anuncio */
+  var DEC = {
+    esperar: { t: 'Esperando', icon: 'clock', c: 'k-wait' },
+    mantener: { t: 'Mantener', icon: 'check', c: 'k-keep' },
+    pausar: { t: 'Pausar', icon: 'pause', c: 'k-pause' },
+    pausado: { t: 'Pausado', icon: 'pause', c: 'k-paused' },
+    escalar: { t: 'Escalar', icon: 'trend', c: 'k-scale' }
+  };
+  function DecisionRow(props) {
+    var d = DEC[props.decision];
+    return h('article', { className: cx('df-dec', d.c) },
+      h('div', { className: 'df-dec-h' },
+        h('img', { className: 'df-thumb', style: { width: 40, height: 40 }, src: productImage(props.imageIndex || 0, 1), alt: '' }),
+        h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'df-conn-name' }, props.name), h('div', { className: 'df-pick-meta' }, props.metrics)),
+        h('span', { className: 'df-dec-chip' }, h(Icon, { name: d.icon, size: 'sm', strokeWidth: 2.25 }), props.label || d.t)),
+      props.progress != null ? h('div', { className: 'df-conn-prog' }, h('div', { className: 'df-conn-track' }, h('span', { style: { width: Math.round(props.progress * 100) + '%' } })), h('div', { className: 'df-conn-detail' }, props.reason)) :
+        h('p', { className: 'df-dec-r' }, props.reason),
+      props.rule ? h('div', { className: 'df-dec-rule' }, h(Icon, { name: 'settings', size: 'sm' }), 'Regla: ', props.rule) : null,
+      props.actions ? h('div', { className: 'df-camp-actions' }, props.actions) : null);
+  }
+
+  /* =========================================================
+     Textos: la página del producto
+     ========================================================= */
+
+  /* EmptyState: estados de una etapa sin contenido que revisar */
+  function EmptyState(props) {
+    var tone = props.tone || 'neutral';
+    return h('section', { className: cx('df-empty', 't-' + tone), role: tone === 'error' ? 'alert' : props.busy ? 'status' : undefined },
+      h('span', { className: 'df-empty-ico' }, h(Icon, { name: props.icon || 'text', className: props.busy ? 'df-pulse' : undefined })),
+      h('h2', { className: 'df-empty-t' }, props.title),
+      props.body ? h('p', { className: 'df-empty-b' }, props.body) : null,
+      props.children,
+      props.action || props.secondary ? h('div', { className: 'df-empty-a' }, props.action, props.secondary) : null);
+  }
+
+  /* Notice: aviso sobre una lista (desactualizado, faltan datos) */
+  function Notice(props) {
+    var tone = props.tone || 'warning';
+    return h('div', { className: cx('df-notice', 't-' + tone), role: 'status' },
+      h(Icon, { name: props.icon || (tone === 'warning' ? 'alert' : 'sparkle'), size: 'sm', strokeWidth: 2 }),
+      h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, props.title), props.body ? h('span', null, props.body) : null),
+      props.action || null);
+  }
+
+  /* PageOutline: los bloques de la página en orden, con su estado; navega la revisión */
+  var BLK = {
+    accepted: { i: 'check', c: 'is-ok', t: 'Aceptado' },
+    edited: { i: 'check', c: 'is-ok', t: 'Tu versión' },
+    pending: { i: null, c: 'is-pend', t: 'Por revisar' },
+    current: { i: null, c: 'is-cur', t: 'Revisando' },
+    discarded: { i: 'x', c: 'is-off', t: 'Descartado' },
+    missing: { i: 'alert', c: 'is-miss', t: 'Falta aprobar' },
+    omitted: { i: 'minus', c: 'is-omit', t: 'No se incluye' }
+  };
+  function PageOutline(props) {
+    return h('nav', { className: 'df-outline', 'aria-label': 'Bloques de la página' },
+      (props.groups || []).map(function (g, gi) {
+        return h('div', { key: gi, className: 'df-outline-g' },
+          h('div', { className: 'df-outline-gt' }, g.title),
+          h('ul', null, g.items.map(function (it, i) {
+            var b = BLK[it.state || 'pending'];
+            return h('li', { key: i },
+              h('button', { type: 'button', className: cx('df-outline-i', b.c), 'aria-current': it.state === 'current' ? 'true' : undefined },
+                h('span', { className: 'df-outline-dot', 'aria-hidden': 'true' }, b.i ? h(Icon, { name: b.i, size: 'sm', strokeWidth: 2.5 }) : null),
+                h('span', { className: 'df-outline-l' }, it.label, it.required ? h('small', null, ' · obligatorio') : null),
+                h('span', { className: 'df-sr' }, b.t)));
+          })));
+      }));
+  }
+
+  /* CopySummary: lo aprobado por sección, al terminar la etapa */
+  function CopySummary(props) {
+    var TAG = { edited: 'Tu versión', kept: 'Se mantiene Shopify', omitted: 'No va en la página', missing: 'Falta aprobar' };
+    return h('div', { className: 'df-csum' }, (props.sections || []).map(function (s, i) {
+      return h('section', { key: i, className: 'df-csum-s' },
+        h('div', { className: 'df-adev-st' }, s.title),
+        h('ul', null, s.items.map(function (it, j) {
+          return h('li', { key: j, className: it.tag ? 'is-' + it.tag : '' },
+            h('span', { className: 'df-csum-l' }, it.label, it.tag ? h('span', { className: cx('df-rev-tag', it.tag === 'missing' && 't-miss') }, TAG[it.tag]) : null),
+            it.text ? h('span', { className: 'df-csum-t' }, it.text) : null);
+        })));
+    }));
   }
 
   /* =========================================================
@@ -1208,6 +1521,351 @@
                 h('div', { className: 'df-rv-store-i' }, h(Stars, { value: 4 }), h('p', null, 'Buena calidad, el velcro es firme.'), h('small', null, 'J***n · México'))))))));
   }
 
+  /* ---------- Pantallas: Ángulos ---------- */
+  var ANG = [
+    { rank: 1, name: 'Problema → solución', score: 84, suggestedRole: 'principal', fit: 'Tu cliente ideal ya siente el dolor de espalda al trabajar sentado: el gancho nombra algo que vive a diario.',
+      breakdown: [{ label: 'Encaje con el cliente ideal', value: 38 }, { label: 'Fuerza de la prueba disponible', value: 22 }, { label: 'Claridad del beneficio', value: 24 }] },
+    { rank: 2, name: 'Transformación (antes y después)', score: 71, suggestedRole: 'secundario', fit: 'La postura cambia de forma visible; sirve para demostrar el resultado que promete el gancho.',
+      risks: [{ text: 'Sin fotos reales de clientes', penalty: 8, fix: 'Importar reseñas con fotos' }],
+      breakdown: [{ label: 'Encaje con el cliente ideal', value: 30 }, { label: 'Fuerza de la prueba disponible', value: 25 }, { label: 'Claridad del beneficio', value: 24 }, { label: 'Sin fotos reales de clientes', value: -8 }] },
+    { rank: 3, name: 'Mecanismo único', score: 62, fit: 'El ajuste cruzado en la espalda es un buen “cómo funciona”, pero no es exclusivo del producto.' },
+    { rank: 4, name: 'Oferta y urgencia', score: 55, fit: 'El precio con descuento ayuda, aunque el pago contra entrega ya baja el riesgo percibido.', risks: [{ text: 'Urgencia sin fecha real se lee como falsa', penalty: 10 }] },
+    { rank: 5, name: 'Prueba social', score: 38, fit: 'Funcionaría muy bien, pero hoy no hay reseñas reales del producto.', risks: [{ text: 'No hay reseñas reales', penalty: 35, fix: 'Importar reseñas' }] },
+    { rank: 6, name: 'Autoridad (experto)', score: 21, fit: 'No se puede respaldar: no hay un kinesiólogo ni un experto real que lo recomiende.', risks: [{ text: 'No hay experto real', penalty: 45 }] }
+  ];
+  var ANG_STAGES = [
+    { title: 'Información base', state: 'done', desc: 'Cliente ideal aprobado' },
+    { title: 'Reseñas', state: 'available', optional: true, desc: 'Sube el puntaje de Prueba social' },
+    { title: 'Ángulos', state: 'current', desc: 'Elige principal y secundario' },
+    { title: 'Textos', state: 'locked', desc: 'Se habilita al aprobar los 2 desarrollos' },
+    { title: 'Imágenes', state: 'locked', desc: 'Después de Textos' },
+    { title: 'Publicar en tu tienda', state: 'locked', desc: 'Necesita textos e imágenes aprobados' },
+    { title: 'Anuncios', state: 'locked', optional: true, desc: 'Usa los ángulos elegidos' }
+  ];
+  var SUG = { principal: 'Problema → solución', principalScore: 84, secundario: 'Transformación', secundarioScore: 71,
+    combo: 'El gancho nombra el dolor de espalda al trabajar sentado; la transformación lo remata mostrando la postura antes y después en 2 semanas.',
+    missing: [{ text: 'Reseñas reales: subirían Prueba social hasta ~70', action: 'Importar' }, { text: 'Fotos de clientes usando el producto' }] };
+  var DEV = {
+    principal: { role: 'principal', angle: 'Problema → solución', pickedHook: 0,
+      hooks: ['¿Te duele la espalda después de 8 horas sentado?', 'Tu silla no es el problema: es cómo te sientas.', 'El dolor de hombros que aparece a las 4 de la tarde tiene solución.'],
+      aida: { atencion: 'Nombra el dolor al final de la jornada frente al computador.', interes: 'Explica por qué la postura encorvada lo provoca y empeora con los días.', deseo: 'Muestra el corrector bajo la ropa: nadie lo nota y la espalda se mantiene recta.', accion: 'Pídelo hoy y paga al recibir; si no te ajusta, lo cambias.' },
+      objections: [{ q: '¿Se nota bajo la ropa?', a: 'Es delgado y se usa bajo una polera o camisa.' }, { q: '¿Es incómodo?', a: 'Los primeros días úsalo 2 horas; el velcro permite ajustarlo.' }],
+      offer: '$24.990 (antes $39.990) · Envío gratis · Paga al recibir' },
+    secundario: { role: 'secundario', angle: 'Transformación', status: 'generando' }
+  };
+
+  function AnStart() {
+    return h(Phone, { label: 'A1 · Punto de partida: el cliente ideal aprobado' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Ángulos', subtitle: 'Cómo vas a vender este producto', actions: h(IconButton, { icon: 'sparkle', label: 'Abrir asistente' }) }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+        h(IcpSummary, { text: 'Oficinistas y personas que trabajan desde casa, de 28 a 45 años, que sienten dolor de espalda o de hombros al final del día y no quieren ir al kinesiólogo.', tags: ['Trabaja sentado', 'Dolor al final del día', 'Busca algo discreto'], action: 'Ver o cambiar' }),
+        h('div', { className: 'df-card df-card-pad df-an-how' },
+          h('div', { className: 'type-heading', style: { fontSize: 15 } }, 'Qué hará la IA'),
+          h('ol', null,
+            h('li', null, 'Evalúa ', h('b', null, '6 ángulos'), ' de venta con tu cliente ideal, tus reseñas y tu información.'),
+            h('li', null, 'Te los muestra todos con su puntaje, sus motivos y sus riesgos.'),
+            h('li', null, 'Sugiere un ', h('b', null, 'principal'), ' (el gancho) y un ', h('b', null, 'secundario'), ' (el refuerzo). Tú decides.')),
+          h('p', { className: 'df-ob-fine', style: { textAlign: 'left', margin: 0 } }, 'No inventa pruebas: si falta un experto o reseñas reales, baja el puntaje del ángulo que las necesita.'))),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 6 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'sparkle' }, 'Elegir ángulos con IA'),
+        h('p', { className: 'df-ob-fine', style: { margin: 0 } }, 'Toma unos 30 segundos.')));
+  }
+
+  function AnRanking() {
+    return h(Phone, { label: 'A2 · Ranking: los 6 ángulos, con la sugerencia marcada' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Ángulos', subtitle: '6 evaluados · sugerencia lista' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(AngleSuggestion, SUG),
+        h('div', { className: 'df-section-t', style: { padding: '4px 0 0' } }, 'Ranking completo', h('span', { style: { fontWeight: 400 } }, 'de mayor a menor')),
+        h(AngleCard, Object.assign({ role: 'principal' }, ANG[0])),
+        h(AngleCard, Object.assign({ role: 'secundario' }, ANG[1])),
+        h(AngleCard, ANG[4])),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 6 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, iconEnd: 'chevron-right' }, 'Confirmar y desarrollar'),
+        h('p', { className: 'df-ob-fine', style: { margin: 0 } }, 'Se generan los 2 desarrollos en paralelo.')));
+  }
+
+  function AnSwap() {
+    return h(Phone, { label: 'A3 · Cambiar el secundario por otro del ranking' },
+      h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } },
+        h(TopBar, { back: 'Corrector de postura', title: 'Ángulos', subtitle: '6 evaluados · sugerencia lista' }),
+        h('div', { style: { padding: '8px 16px' } }, h(AngleSuggestion, { principal: SUG.principal, principalScore: 84, secundario: SUG.secundario, secundarioScore: 71 })),
+        h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+        h('div', { className: 'df-sheet', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '74%' } },
+          h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+          h('div', { className: 'df-sheet-head' }, h('strong', null, 'Ángulo secundario'), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+          h('div', { style: { padding: '0 16px', flex: 1, overflow: 'hidden' } },
+            h(OptionList, { label: 'Refuerza el argumento del principal', name: 'sec', value: 'm', options: [
+              { value: 't', title: 'Transformación', meta: '71/100 · sugerido por la IA', tag: 'Sugerido' },
+              { value: 'm', title: 'Mecanismo único', meta: '62/100' },
+              { value: 'o', title: 'Oferta y urgencia', meta: '55/100 · riesgo: urgencia sin fecha real', tone: 'warning' },
+              { value: 's', title: 'Prueba social', meta: '38/100 · no hay reseñas reales', tone: 'warning' },
+              { value: 'a', title: 'Autoridad (experto)', meta: '21/100 · no hay experto real', tone: 'danger' },
+              { value: 'p', title: 'Problema → solución', meta: 'Ya es el principal', disabled: true }] })),
+          h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', icon: 'check' }, 'Usar Mecanismo único')))));
+  }
+
+  function AnDev() {
+    return h(Phone, { label: 'A4 · Revisar y aprobar los 2 desarrollos' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Ángulos', subtitle: '0 de 2 desarrollos aprobados' }),
+      h('div', { style: { padding: '0 16px 8px' } }, h(SegmentedControl, { block: true, value: 'p', label: 'Desarrollo', options: [{ value: 'p', label: '1 · Problema → solución' }, { value: 's', label: '2 · Transformación' }] })),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px' } }, h(AngleDevelopment, Object.assign({ hideActions: true }, DEV.principal))),
+      h('div', { className: 'df-sticky', style: { display: 'block' } },
+        h('div', { className: 'df-review-actions' }, h(Button, { variant: 'secondary', icon: 'sparkle' }, 'Regenerar'), h(Button, { variant: 'secondary', icon: 'edit' }, 'Editar'), h(Button, { variant: 'primary', icon: 'check' }, 'Aprobar'))));
+  }
+
+  function AnDeskRanking() {
+    return h(DeskFrame, { label: 'Escritorio · Ranking: ruta, los 6 ángulos y la elección fija a la derecha' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Ángulos · 6 evaluados · sugerencia lista')),
+          h(Button, { variant: 'ghost', icon: 'sparkle' }, 'Volver a evaluar')),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr) 360px', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', paddingTop: 12 } }, h(StageList, { stages: ANG_STAGES })),
+          h('div', { style: { padding: '20px 28px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignContent: 'start', overflow: 'hidden' } },
+            h(AngleCard, Object.assign({ role: 'principal', expanded: true }, ANG[0])),
+            h(AngleCard, Object.assign({ role: 'secundario' }, ANG[1])),
+            h(AngleCard, ANG[2]), h(AngleCard, ANG[3]), h(AngleCard, ANG[4]), h(AngleCard, ANG[5])),
+          h('div', { style: { padding: '20px 28px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h(AngleSuggestion, SUG),
+            h(Button, { variant: 'primary', block: true, iconEnd: 'chevron-right' }, 'Confirmar y desarrollar'),
+            h('p', { className: 'df-ob-fine', style: { margin: 0 } }, 'Se generan los 2 desarrollos en paralelo.')))));
+  }
+
+  function AnDeskDev() {
+    return h(DeskFrame, { label: 'Escritorio · Los 2 desarrollos lado a lado; se generan en paralelo' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Ángulos · 0 de 2 desarrollos aprobados')),
+          h(Button, { variant: 'ghost' }, 'Cambiar ángulos')),
+        h('div', { style: { padding: '20px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start', overflow: 'hidden', flex: 1 } },
+          h(AngleDevelopment, DEV.principal),
+          h(AngleDevelopment, DEV.secundario)),
+        h('div', { className: 'df-ob-deskfoot' },
+          h('span', { className: 'df-ob-desc', style: { flex: 1, margin: 0 } }, 'Aprueba los 2 desarrollos para habilitar Textos.'),
+          h(Button, { variant: 'primary', iconEnd: 'chevron-right', disabled: true }, 'Continuar: Textos'))));
+  }
+
+  /* ---------- Pantallas: lanzar campaña y motor de decisión ---------- */
+  var AD_PRESETS = [
+    { value: 'abo-test', label: 'Testeo ABO · 1 creativo por conjunto (base)' },
+    { value: 'abo-int', label: 'Testeo ABO · con intereses' },
+    { value: 'cbo-scale', label: 'Escalado CBO · ganadores' },
+    { value: 'mine', label: 'Mi plantilla · Chile 23+' }
+  ];
+  var AD_TREE = { name: 'Corrector de postura · Testeo', structure: 'abo', adsets: [
+    { name: 'Conjunto 1 · Video UGC', audience: 'Chile · 23+ · abierto', budget: '$10.000', ads: [{ name: 'Video UGC', type: 'video' }] },
+    { name: 'Conjunto 2 · Antes y después', audience: 'Chile · 23+ · abierto', budget: '$10.000', ads: [{ name: 'Antes y después', type: 'image' }] },
+    { name: 'Conjunto 3 · Problema', audience: 'Chile · 23+ · abierto', budget: '$10.000', ads: [{ name: 'Problema', type: 'image' }] }] };
+  function RulesEsperar() {
+    return h(RuleGroup, { kind: 'esperar' },
+      h(RuleRow, { parts: ['No decidir antes de gastar ', { value: '1×', select: true }, ' tu CPA límite (', { value: '$6.000' }, ') o de ', { value: '48 h', select: true }] }),
+      h(RuleRow, { parts: ['Tras editar un conjunto, esperar ', { value: '24 h', select: true }] }));
+  }
+  function RulesPausar(p) {
+    return h(RuleGroup, { kind: 'pausar', level: p && p.cbo ? 'Por anuncio' : 'Por conjunto' },
+      h(RuleRow, { parts: ['Si gasta ', { value: '1,5×', select: true }, ' el CPA límite ', { value: 'sin ventas', select: true }] }),
+      h(RuleRow, { parts: ['Si el ', { value: 'CPA', select: true }, ' supera ', { value: '1,3×', select: true }, ' el límite por ', { value: '2 días', select: true }] }),
+      h(RuleRow, { off: true, parts: ['Si el ', { value: 'CTR', select: true }, ' es menor a ', { value: '0,8 %' }, ' tras ', { value: '1.000' }, ' impresiones'] }));
+  }
+  function RulesEscalar(p) {
+    return h(RuleGroup, { kind: 'escalar', level: p && p.cbo ? 'Campaña' : 'Por conjunto' },
+      h(RuleRow, { parts: ['Si el CPA es ', { value: '≤ 0,8×', select: true }, ' el límite por ', { value: '3 días', select: true }, ', subir ', { value: '+20 %', select: true }, ' cada ', { value: '48 h', select: true }] }),
+      h(RuleRow, { parts: ['Nunca pasar de ', { value: '$60.000' }, ' diarios'] }));
+  }
+
+  function AdLaunch() {
+    return h(Phone, { label: 'L1 · Lanzar: estructura, plantilla y secciones' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Lanzar campaña', subtitle: 'Anuncios · todo es editable' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+        h(StructurePicker, { value: 'abo' }),
+        h(PresetSelect, { value: 'abo-test', options: AD_PRESETS, source: 'Carga público, presupuesto, horario y reglas. Cámbiala cuando quieras.', modified: 2 }),
+        h('div', { className: 'df-cfgs' },
+          h(ConfigSection, { index: 1, title: 'Creativos', summary: '3 listos → 3 conjuntos', done: true }),
+          h(ConfigSection, { index: 2, title: 'Público', summary: 'Chile · 23+ · abierto (Advantage+)', edited: true }),
+          h(ConfigSection, { index: 3, title: 'Presupuesto y horario', summary: '$10.000 por conjunto · empieza mañana 8:00', edited: true }),
+          h(ConfigSection, { index: 4, title: 'Textos del anuncio', summary: 'Del ángulo Problema → solución · Comprar' }),
+          h(ConfigSection, { index: 5, title: 'Motor de decisión', summary: 'Esperar, pausar y escalar · solo recomendar' }))),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 6 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, iconEnd: 'chevron-right' }, 'Revisar y lanzar'),
+        h('p', { className: 'df-ob-fine', style: { margin: 0 } }, 'Se crea en pausa. Tú la activas.')));
+  }
+
+  function AdCreatives() {
+    return h(Phone, { label: 'L2 · Creativos y público (secciones abiertas)' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Lanzar campaña', subtitle: 'ABO · Testeo base (editada)' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(ConfigSection, { index: 1, title: 'Creativos', open: true },
+          h('p', { className: 'df-field-hint', style: { margin: 0 } }, 'En ABO cada creativo crea su propio conjunto.'),
+          h(CreativeSlot, { name: 'ugc-espalda.mp4', type: 'video', ratio: '9:16', duration: '0:18', imageIndex: 1, adset: 'Conjunto 1' }),
+          h(CreativeSlot, { name: 'antes-despues.jpg', type: 'image', ratio: '1:1', imageIndex: 3, adset: 'Conjunto 2' }),
+          h(CreativeSlot, { name: 'problema-v2.mp4', state: 'uploading', progress: 0.45 }),
+          h(ImageUploader, { mode: 'file', compact: true, hideModes: true, pickLabel: 'Sube imágenes o videos', formats: 'Imagen JPG o PNG · video MP4 o MOV · 1:1, 4:5 o 9:16' })),
+        h(ConfigSection, { index: 2, title: 'Público', open: true, edited: true },
+          h(ChipInput, { label: 'Países', values: ['Chile'] }),
+          h(SegmentedControl, { block: true, value: 'open', label: 'Tipo de público', options: [{ value: 'open', label: 'Abierto (Advantage+)' }, { value: 'int', label: 'Intereses' }] }),
+          h(ChipInput, { label: 'Intereses', disabled: true, hint: 'Solo con público de intereses.' }),
+          h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } }, h(Field, { label: 'Edad mínima', value: '23', suffix: 'años', id: 'ad-age' }), h(Field, { label: 'Ubicación', value: 'Vive o estuvo', id: 'ad-loc' })))));
+  }
+
+  function AdRules() {
+    return h(Phone, { label: 'L3 · Motor de decisión: esperar, pausar, escalar' },
+      h(TopBar, { back: 'Lanzar campaña', title: 'Motor de decisión', subtitle: 'Plantilla: Testeo ABO (base)' }),
+      h('div', { style: { padding: '0 16px 8px' } }, h(SegmentedControl, { block: true, value: 'rec', label: 'Cómo actúa', options: [{ value: 'rec', label: 'Solo recomendar' }, { value: 'auto', label: 'Automático' }] })),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(RulesEsperar), h(RulesPausar), h(RulesEscalar)),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', icon: 'check' }, 'Guardar reglas')));
+  }
+
+  function AdMonitor() {
+    return h(Phone, { label: 'L4 · Campaña en curso: qué decidió el motor' },
+      h(TopBar, { back: 'Campañas', title: 'Corrector · Testeo', subtitle: 'ABO · 3 conjuntos · día 3 · solo recomendar' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(DecisionRow, { decision: 'escalar', name: 'Conjunto 1 · Video UGC', imageIndex: 1, metrics: 'Gasto $28.400 · 7 ventas · CPA $4.057', reason: 'CPA 32% bajo tu límite por 3 días.', rule: 'Escalar si CPA ≤ 0,8× por 3 días', actions: [h(Button, { key: 1, variant: 'secondary', size: 'sm' }, 'Ignorar'), h(Button, { key: 2, variant: 'primary', size: 'sm', icon: 'arrow-up' }, 'Subir a $12.000')] }),
+        h(DecisionRow, { decision: 'pausar', name: 'Conjunto 3 · Problema', imageIndex: 0, metrics: 'Gasto $9.300 · 0 ventas', reason: 'Gastó 1,5× tu CPA límite sin ventas.', rule: 'Pausar si gasta 1,5× sin ventas', actions: [h(Button, { key: 1, variant: 'secondary', size: 'sm' }, 'Mantener'), h(Button, { key: 2, variant: 'destructive', size: 'sm', icon: 'pause' }, 'Pausar conjunto')] }),
+        h(DecisionRow, { decision: 'esperar', name: 'Conjunto 2 · Antes y después', imageIndex: 3, metrics: 'Gasto $3.700 · 1 venta', progress: 0.62, reason: 'Falta gastar $2.300 para decidir (62% de 1× CPA).' })),
+      h(Navigation, { active: 'campanas', badges: { hoy: 6 } }));
+  }
+
+  function AdDeskLaunch() {
+    return h(DeskFrame, { label: 'Escritorio · Configuración a la izquierda, estructura en vivo a la derecha' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Corrector de postura' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Lanzar campaña'), h('div', { className: 'df-topbar-s' }, 'Corrector de postura · Anuncios'))),
+        h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', flex: 1, minHeight: 0 } },
+          h('div', { style: { padding: '20px 32px', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' } },
+            h('div', { style: { display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20, alignItems: 'start' } },
+              h(StructurePicker, { value: 'abo' }),
+              h(PresetSelect, { value: 'abo-test', options: AD_PRESETS, source: 'Carga público, presupuesto, horario y reglas.', modified: 2 })),
+            h(ConfigSection, { index: 1, title: 'Creativos', summary: '3 listos → 3 conjuntos', done: true }),
+            h(ConfigSection, { index: 2, title: 'Público', summary: 'Chile · 23+ · abierto (Advantage+)', edited: true }),
+            h(ConfigSection, { index: 3, title: 'Presupuesto y horario', open: true, edited: true },
+              h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 } },
+                h(Field, { label: 'Presupuesto por conjunto', prefix: '$', value: '10.000', suffix: '/día', id: 'dk-b', hint: 'ABO: se fija en cada conjunto' }),
+                h(Field, { label: 'Puja', value: 'Menor costo', id: 'dk-bid', hint: 'Sin tope de costo' }),
+                h(Field, { label: 'Empieza', value: 'Mañana 8:00', id: 'dk-t', hint: 'Hora de Chile' })),
+              h('p', { className: 'df-field-hint', style: { margin: 0 } }, 'Total diario: $30.000 (3 conjuntos × $10.000).')),
+            h(ConfigSection, { index: 4, title: 'Textos del anuncio', summary: 'Del ángulo Problema → solución · 3 textos · 2 títulos · Comprar' }),
+            h(ConfigSection, { index: 5, title: 'Motor de decisión', summary: '2 reglas de espera · 2 de pausa · 2 de escalado · solo recomendar' })),
+          h('div', { style: { borderLeft: '1px solid var(--border)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden', background: 'var(--sidebar)' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Se creará en Meta'), h(StatusBadge, { status: 'rechazado', label: 'En pausa', size: 'sm' })),
+            h(CampaignTree, Object.assign({ note: 'Presupuesto en cada conjunto. Un anuncio por conjunto.' }, AD_TREE)))),
+        h('div', { className: 'df-ob-deskfoot' },
+          h('span', { className: 'df-ob-desc', style: { flex: 1, margin: 0 } }, 'Se crea en pausa: campaña → medios → creativos → conjuntos y anuncios. Tú la activas.'),
+          h(Button, { variant: 'ghost' }, 'Guardar borrador'),
+          h(Button, { variant: 'primary', iconEnd: 'chevron-right' }, 'Revisar y lanzar'))));
+  }
+
+  function AdDeskEngine() {
+    return h(DeskFrame, { label: 'Escritorio · Motor en marcha: decisiones por conjunto y reglas al lado' },
+      h(Navigation, { variant: 'rail', active: 'campanas', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Campañas' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector · Testeo'), h('div', { className: 'df-topbar-s' }, 'ABO · 3 conjuntos · día 3 · gasto $41.400 · 8 ventas')),
+          h(SegmentedControl, { value: 'rec', label: 'Cómo actúa', options: [{ value: 'rec', label: 'Solo recomendar' }, { value: 'auto', label: 'Automático' }] })),
+        h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', flex: 1, minHeight: 0 } },
+          h('div', { style: { padding: '20px 32px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h('div', { className: 'df-section-t', style: { padding: 0 } }, 'Decisiones de hoy'),
+            h(DecisionRow, { decision: 'escalar', name: 'Conjunto 1 · Video UGC', imageIndex: 1, metrics: 'Gasto $28.400 · 7 ventas · CPA $4.057', reason: 'CPA 32% bajo tu límite por 3 días.', rule: 'Escalar si CPA ≤ 0,8× por 3 días', actions: [h(Button, { key: 1, variant: 'secondary', size: 'sm' }, 'Ignorar'), h(Button, { key: 2, variant: 'primary', size: 'sm', icon: 'arrow-up' }, 'Subir a $12.000')] }),
+            h(DecisionRow, { decision: 'pausar', name: 'Conjunto 3 · Problema', imageIndex: 0, metrics: 'Gasto $9.300 · 0 ventas', reason: 'Gastó 1,5× tu CPA límite sin ventas.', rule: 'Pausar si gasta 1,5× sin ventas', actions: [h(Button, { key: 1, variant: 'secondary', size: 'sm' }, 'Mantener'), h(Button, { key: 2, variant: 'destructive', size: 'sm', icon: 'pause' }, 'Pausar conjunto')] }),
+            h(DecisionRow, { decision: 'esperar', name: 'Conjunto 2 · Antes y después', imageIndex: 3, metrics: 'Gasto $3.700 · 1 venta', progress: 0.62, reason: 'Falta gastar $2.300 para decidir (62% de 1× CPA).' })),
+          h('div', { style: { borderLeft: '1px solid var(--border)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Reglas activas'), h('button', { type: 'button', className: 'df-rev-link' }, 'Editar')),
+            h(RulesEsperar), h(RulesPausar)))));
+  }
+
+  /* ---------- Pantallas: Textos ---------- */
+  var TX_STAGES = function (textos) {
+    return [
+      { title: 'Información base', state: 'done', desc: 'Ficha, cliente ideal y precio' },
+      { title: 'Reseñas', state: 'done', optional: true, desc: '30 aprobadas' },
+      { title: 'Ángulos', state: 'done', desc: 'Problema → solución + Transformación' },
+      textos,
+      { title: 'Imágenes', state: 'locked', desc: 'Después de Textos' },
+      { title: 'Publicar en tu tienda', state: 'locked', desc: 'Necesita textos e imágenes aprobados' },
+      { title: 'Anuncios', state: 'locked', optional: true, desc: 'Se habilita al publicar' }];
+  };
+  var TX_OUTLINE = [
+    { title: 'Arriba del precio', items: [{ label: 'Título del producto', state: 'accepted', required: true }, { label: 'Nombre corto', state: 'edited', required: true }, { label: 'Descripción corta', state: 'accepted', required: true }, { label: 'Frase de la oferta', state: 'accepted', required: true }] },
+    { title: 'Por qué comprarlo', items: [{ label: 'Beneficio 1', state: 'accepted' }, { label: 'Beneficio 2', state: 'discarded' }, { label: 'Beneficio 3', state: 'accepted' }, { label: 'Cómo funciona', state: 'accepted', required: true }] },
+    { title: 'Dudas', items: [{ label: 'Pregunta 1', state: 'current' }, { label: 'Pregunta 2', state: 'pending' }, { label: 'Pregunta 3', state: 'pending' }, { label: 'Envío y pago', state: 'pending', required: true }, { label: 'Garantía', state: 'omitted' }] },
+    { title: 'Google', items: [{ label: 'Título para Google', state: 'pending', required: true }, { label: 'Descripción para Google', state: 'pending', required: true }] }
+  ];
+  var TX_FAQ = { field: 'Pregunta frecuente 1', section: 'Dudas', index: 9, total: 14, angle: 'secondary', faq: { q: '¿Tengo que pagar antes de recibirlo?', a: 'No. Pagas en efectivo o con tarjeta cuando el repartidor te entrega el pedido. Si no te lo entregan, no pagas nada.' }, limit: 280, count: 118, note: 'Responde la objeción más común del pago contra entrega.', discardHint: 'esta pregunta no va en la página.' };
+
+  function TxStates() {
+    return h(Phone, { label: 'T1 · Bloqueada → empezar → escribiendo' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Textos', subtitle: 'La página del producto en tu tienda' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(EmptyState, { icon: 'lock', title: 'Aprueba los 2 desarrollos de Ángulos', body: 'Los textos de la página salen del ángulo principal y del secundario.', action: h(Button, { size: 'sm', variant: 'secondary', iconEnd: 'chevron-right' }, 'Ir a Ángulos') }),
+        h(EmptyState, { icon: 'text', title: 'Escribe la página de tu producto', body: 'Título, descripción, beneficios, cómo funciona, preguntas, envío y pago, y lo que ve Google. Cada texto lo apruebas tú.', action: h(Button, { variant: 'primary', icon: 'sparkle' }, 'Escribir textos con IA') }),
+        h(EmptyState, { icon: 'sparkle', busy: true, title: 'La IA está escribiendo los textos', body: 'Suele tardar menos de un minuto. Puedes salir: te avisamos en Hoy.' },
+          h('div', { className: 'df-empty-skel' }, [80, 64, 72].map(function (w, i) { return h('span', { key: i, className: 'df-skel', style: { width: w + '%' } }); })))));
+  }
+
+  function TxReview() {
+    return h(Phone, { label: 'T2 · Revisar: un bloque a la vez, con límite y ángulo' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Textos', subtitle: '0 de 14 aceptados' }),
+      h('div', { style: { padding: '0 16px 8px' } }, h(StageMeter, { stages: ['current', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'] })),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px' } },
+        h(ReviewCard, { field: 'Título del producto', section: 'Arriba del precio', required: true, index: 1, total: 14, angle: 'primary', original: 'Corrector Postura Espalda Ajustable Unisex Hombre Mujer Talla Única', originalLabel: 'Hoy en Shopify', proposal: 'Corrector de postura ajustable para trabajar sentado sin dolor de espalda', limit: 70, count: 70, note: 'Nombra qué es y el dolor que resuelve, como en el ángulo principal.', discardHint: 'se mantiene el título actual de Shopify.', hideActions: true })),
+      h('div', { className: 'df-sticky', style: { display: 'block' } },
+        h('div', { className: 'df-review-actions' }, h(Button, { variant: 'secondary', icon: 'x' }, 'Descartar'), h(Button, { variant: 'secondary', icon: 'edit' }, 'Editar'), h(Button, { variant: 'primary', icon: 'check' }, 'Aceptar'))));
+  }
+
+  function TxEdit() {
+    return h(Phone, { label: 'T3 · Editar: el contador avisa antes de pasarse' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Textos', subtitle: '11 de 14 aceptados' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(Notice, { tone: 'info', icon: 'clock', title: 'Completa el plazo de entrega y tu WhatsApp', body: 'La IA no los tiene: escríbelos al editar este bloque.' }),
+        h(ReviewCard, { field: 'Envío y pago', section: 'Dudas', required: true, index: 12, total: 14, state: 'editing', rows: 5, proposalText: 'Paga al recibir: en efectivo o con tarjeta cuando te entregan el pedido. Envío a todo Chile en 2 a 4 días hábiles. ¿Dudas? Escríbenos por WhatsApp al +56 9 1234 5678 y te respondemos el mismo día hábil, de lunes a sábado.', limit: 280, count: 288 })));
+  }
+
+  function TxFaqFail() {
+    return h(Phone, { label: 'T4 · Pregunta frecuente · y si falla la generación' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Textos', subtitle: '8 de 14 aceptados' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+        h(ReviewCard, TX_FAQ),
+        h(EmptyState, { tone: 'error', icon: 'alert', title: 'No se pudieron escribir los textos', body: 'La IA escribió textos que no cumplen las reglas. Toca Reintentar.', action: h(Button, { variant: 'primary', icon: 'sparkle' }, 'Reintentar') })));
+  }
+
+  function TxDone() {
+    return h(Phone, { label: 'T5 · Listo: lo aprobado por sección' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Textos', subtitle: '13 de 14 aceptados · 1 obligatorio pendiente' }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(Notice, { tone: 'warning', title: 'Falta aprobar Envío y pago', body: 'Es obligatorio: escribe tu versión para completar la etapa.', action: h(Button, { size: 'sm', variant: 'secondary' }, 'Escribir') }),
+        h(CopySummary, { sections: [
+          { title: 'Arriba del precio', items: [{ label: 'Título', text: 'Corrector de postura ajustable para trabajar sentado sin dolor de espalda' }, { label: 'Nombre corto', tag: 'edited', text: 'Corrector de postura' }, { label: 'Frase de la oferta', text: '2 por $39.990 · Paga al recibir' }] },
+          { title: 'Por qué comprarlo', items: [{ label: 'Beneficio 1', text: 'Tela transpirable que puedes usar bajo la ropa todo el día' }, { label: 'Beneficio 2', tag: 'omitted' }] },
+          { title: 'Dudas', items: [{ label: 'Envío y pago', tag: 'missing' }, { label: 'Garantía', tag: 'omitted', text: 'Tu ficha no tiene días de garantía.' }] }] })),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'secondary', icon: 'sparkle' }, 'Rehacer'), h(Button, { variant: 'primary', iconEnd: 'chevron-right', disabled: true }, 'Imágenes')));
+  }
+
+  function TxDeskReview() {
+    return h(DeskFrame, { label: 'Escritorio · Ruta, bloque en revisión y la página completa como índice' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Textos · 8 de 14 aceptados')),
+          h(Button, { variant: 'ghost', icon: 'sparkle' }, 'Rehacer descartados')),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr) 280px', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', paddingTop: 12 } }, h(StageList, { stages: TX_STAGES({ title: 'Textos', state: 'current', desc: '8 de 14 aceptados' }) })),
+          h('div', { style: { padding: '20px 32px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h(Notice, { tone: 'warning', title: 'Cambiaste tus ángulos.', body: ' Reescribe los textos que no aprobaste.', action: h(Button, { size: 'sm', variant: 'secondary', icon: 'sparkle' }, 'Reescribir') }),
+            h(ReviewCard, Object.assign({ keys: true }, TX_FAQ))),
+          h('div', { style: { borderLeft: '1px solid var(--border)', padding: '20px 16px', overflow: 'hidden', background: 'var(--sidebar)' } },
+            h('div', { className: 'df-pp-sect', style: { padding: '0 8px' } }, h('span', { className: 'type-heading' }, 'La página'), h('span', { className: 'df-review-count' }, '8/14')),
+            h(PageOutline, { groups: TX_OUTLINE })))));
+  }
+
   var Screens = {
     Movil1: function () { return h('div', { className: 'df-screens' }, h(ScreenHoy), h(ScreenProductos), h(ScreenProducto)); },
     Movil2: function () { return h('div', { className: 'df-screens' }, h(ScreenRevision), h(ScreenImagenes), h(ScreenPrecio)); },
@@ -1222,7 +1880,18 @@
     ProductoNuevo1: function () { return h('div', { className: 'df-screens' }, h(PpMain), h(PpSheetFile), h(PpSheetUrl)); },
     ProductoNuevoEscritorio: function () { return h('div', { className: 'df-screens' }, h(PpDesk)); },
     Resenas1: function () { return h('div', { className: 'df-screens' }, h(RvImport), h(RvList), h(RvEdit)); },
-    ResenasEscritorio: function () { return h('div', { className: 'df-screens' }, h(RvDesk)); }
+    ResenasEscritorio: function () { return h('div', { className: 'df-screens' }, h(RvDesk)); },
+    Angulos1: function () { return h('div', { className: 'df-screens' }, h(AnStart), h(AnRanking), h(AnSwap)); },
+    Angulos2: function () { return h('div', { className: 'df-screens' }, h(AnDev)); },
+    AngulosEscritorio1: function () { return h('div', { className: 'df-screens' }, h(AnDeskRanking)); },
+    AngulosEscritorio2: function () { return h('div', { className: 'df-screens' }, h(AnDeskDev)); },
+    Anuncios1: function () { return h('div', { className: 'df-screens' }, h(AdLaunch), h(AdCreatives), h(AdRules)); },
+    Anuncios2: function () { return h('div', { className: 'df-screens' }, h(AdMonitor)); },
+    AnunciosEscritorio1: function () { return h('div', { className: 'df-screens' }, h(AdDeskLaunch)); },
+    AnunciosEscritorio2: function () { return h('div', { className: 'df-screens' }, h(AdDeskEngine)); },
+    Textos1: function () { return h('div', { className: 'df-screens' }, h(TxStates), h(TxReview), h(TxEdit)); },
+    Textos2: function () { return h('div', { className: 'df-screens' }, h(TxFaqFail), h(TxDone)); },
+    TextosEscritorio: function () { return h('div', { className: 'df-screens' }, h(TxDeskReview)); }
   };
 
   window.DropFlex = Object.assign(window.DropFlex || {}, {
@@ -1233,6 +1902,9 @@
     AssistantSheet: AssistantSheet, Icon: Icon,
     OnboardingHeader: OnboardingHeader, ProviderMark: ProviderMark, ConnectionCard: ConnectionCard, PermissionList: PermissionList, OptionList: OptionList, PickRow: PickRow, GenerationProgress: GenerationProgress, SetupChecklist: SetupChecklist,
     ReferenceImage: ReferenceImage, ImageUploader: ImageUploader, ProductInfoInput: ProductInfoInput,
-    Stars: Stars, ReviewImporter: ReviewImporter, ReviewSummary: ReviewSummary, ReviewItem: ReviewItem, productImage: productImage, money: money, Screens: Screens
+    Stars: Stars, ReviewImporter: ReviewImporter, ReviewSummary: ReviewSummary, ReviewItem: ReviewItem,
+    ScoreBar: ScoreBar, RoleChip: RoleChip, AngleCard: AngleCard, AngleSuggestion: AngleSuggestion, IcpSummary: IcpSummary, AngleDevelopment: AngleDevelopment,
+    StructurePicker: StructurePicker, PresetSelect: PresetSelect, ConfigSection: ConfigSection, ChipInput: ChipInput, RuleRow: RuleRow, RuleGroup: RuleGroup, CreativeSlot: CreativeSlot, CampaignTree: CampaignTree, DecisionRow: DecisionRow,
+    CharCount: CharCount, EmptyState: EmptyState, Notice: Notice, PageOutline: PageOutline, CopySummary: CopySummary, productImage: productImage, money: money, Screens: Screens
   });
 })();

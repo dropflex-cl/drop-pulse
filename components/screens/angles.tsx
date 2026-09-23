@@ -25,13 +25,14 @@ import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ANGLES, type AngleRole, type SalesAngle } from "@/lib/angles/catalog";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
+import { COPY_STAGE_TITLE } from "@/lib/products/stages";
 import { productHref } from "@/lib/routes";
 import type { AngleBriefView, AngleOption, AnglesState, ProductAngles, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // Etapa Ángulos (PantallasAngulos1/2 y PantallasAngulosEscritorio1/2): el cliente ideal aprobado →
 // “Elegir ángulos con IA” → ranking de los 6 con la sugerencia → el comerciante confirma principal y
-// secundario → 2 desarrollos en paralelo → aprobar los 2 habilita Textos.
+// secundario → 2 desarrollos en paralelo → aprobar los 2 habilita la página del producto (Textos).
 
 const POLL_MS = 2500;
 const UI_ROLE: Record<AngleRole, AngleRoleUi> = { primary: "principal", secondary: "secundario" };
@@ -193,6 +194,16 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       setEditing(null);
       notifyUndo("Cambios guardados y desarrollo aprobado", () => decide(role, "reopen"));
     });
+  };
+
+  const continueToCopy = async () => {
+    setBusy({ what: "copy" });
+    try {
+      await productsApi.writeCopy(product.id);
+    } catch {
+      // Si no se pudo empezar (tope diario, conexión), la página lo dice y ofrece empezar desde ahí.
+    }
+    router.push(productHref(product.id, "textos"));
   };
 
   /** Pone un ángulo en un papel; si ya estaba en el otro, se intercambian. */
@@ -454,13 +465,11 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     };
     const done = approvedCount === 2;
     const nextClass = "max-lg:w-full lg:h-control lg:text-row";
-    const next = done ? (
-      <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "textos")} className={nextClass}>
-        Continuar: Textos
-      </Button>
-    ) : (
-      <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={nextClass}>
-        Continuar: Textos
+    // «Continuar» ya dispara la escritura de la página (design-system/textos.md › start); si ya
+    // estaba escrita, solo lleva a ella.
+    const next = (
+      <Button variant="primary" size="lg" iconEnd="chevron-right" disabled={!done} loading={busy?.what === "copy"} onClick={continueToCopy} className={nextClass}>
+        Continuar: {COPY_STAGE_TITLE}
       </Button>
     );
     const current = briefs[tab];
@@ -492,7 +501,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </div>
     );
     footer = desktop ? (
-      <StickyActions variant="bar" summary={done ? "Los 2 desarrollos están aprobados. Los textos se escriben con ellos." : "Aprueba los 2 desarrollos para habilitar Textos."} className="lg:px-8">
+      <StickyActions variant="bar" summary={done ? "Los 2 desarrollos están aprobados. La página del producto se escribe con ellos." : "Aprueba los 2 desarrollos para escribir la página del producto."} className="lg:px-8">
         <Button variant="ghost" onClick={() => setChoosing(true)}>
           Cambiar ángulos
         </Button>

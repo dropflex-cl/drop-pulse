@@ -3,7 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { SalesAngle } from "@/lib/angles/catalog";
-import type { AnglesState, AvatarProposal, CustomerReview, OptimizationRun, PackLabelsProposal, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, CopyState, CustomerReview, OptimizationRun, PackLabelsProposal, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -95,4 +95,9 @@ export const productsApi = {
   decideAngleBrief: (id: string, briefId: string, action: "approve" | "reopen") => send<AnglesState>("PATCH", `/${id}/angles/briefs/${briefId}`, { action }),
   editAngleBrief: (id: string, briefId: string, edit: AngleBriefEdit, approve: boolean) => send<AnglesState>("PUT", `/${id}/angles/briefs/${briefId}`, { edit, approve }),
   regenerateAngleBrief: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}`),
+  // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
+  copy: (id: string) => call<CopyState>(`/${id}/copy`),
+  writeCopy: (id: string, redo = false) => send<CopyState>("POST", `/${id}/copy`, { redo }),
+  decideCopyItem: (id: string, itemId: string, action: "approve" | "reject" | "reopen", text?: string) =>
+    send<CopyState>("PATCH", `/${id}/copy/items/${itemId}`, { action, text }),
 };

@@ -62,7 +62,9 @@ create table product_stages (
   primary key (product_id, key)
 );
 
--- Propuestas de texto (ReviewCard)
+-- Propuestas de texto (ReviewCard). IMPLEMENTADO en inglés y con historial de escrituras:
+-- supabase/migrations/20261001000000_page_copy.sql (copy_runs + content_items). Esto queda como la
+-- propuesta original.
 create table content_items (
   id          uuid primary key default gen_random_uuid(),
   product_id  uuid not null references products on delete cascade,

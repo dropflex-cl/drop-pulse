@@ -34,7 +34,7 @@ export interface Stage { title: string; state: 'done' | 'current' | 'review' | '
 export interface StageListProps { stages: Stage[]; label?: string }
 export declare function StageList(props: StageListProps): React.ReactElement;
 
-export interface ReviewCardProps { field: string; original?: React.ReactNode; proposal?: React.ReactNode; proposalText?: string; index?: number; total?: number; state?: 'pending' | 'editing' | 'accepted' | 'discarded'; keys?: boolean; hideActions?: boolean }
+export interface ReviewCardProps { section?: string; required?: boolean; angle?: 'primary' | 'secondary' | 'none'; note?: string; limit?: number; count?: number; unit?: string; faq?: { q: string; a: string }; originalLabel?: string; discardHint?: string; missing?: string; edited?: boolean; rows?: number; field: string; original?: React.ReactNode; proposal?: React.ReactNode; proposalText?: string; index?: number; total?: number; state?: 'pending' | 'editing' | 'accepted' | 'discarded'; keys?: boolean; hideActions?: boolean }
 export declare function ReviewCard(props: ReviewCardProps): React.ReactElement;
 
 export interface ImageTileProps { src?: string; alt?: string; state?: 'idle' | 'selected' | 'discarded' | 'generating' | 'error'; order?: number; imageIndex?: number; shape?: number }
@@ -112,7 +112,7 @@ export interface ReferenceImageProps { src?: string; alt?: string; source?: 'sho
 export declare function ReferenceImage(props: ReferenceImageProps): React.ReactElement;
 
 export interface UploadItem { name: string; state: 'uploading' | 'done' | 'error'; progress?: number; detail?: string }
-export interface ImageUploaderProps { mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
+export interface ImageUploaderProps { pickLabel?: string; dragLabel?: string; formats?: string; mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
 export declare function ImageUploader(props: ImageUploaderProps): React.ReactElement;
 
 export interface StarsProps { value: number; size?: 'lg' }
@@ -127,6 +127,74 @@ export declare function ReviewSummary(props: ReviewSummaryProps): React.ReactEle
 export interface ReviewItemProps { author: string; country?: string; date?: string; rating: number; variant?: string; text: string; photos?: number; imageIndex?: number; translated?: boolean; original?: string; lang?: string; flags?: string[]; state?: 'pending' | 'approved' | 'rejected' | 'published'; editing?: boolean; edited?: boolean; hideActions?: boolean }
 export declare function ReviewItem(props: ReviewItemProps): React.ReactElement;
 
+export interface ScoreBarProps { value: number; size?: 'lg'; hideBand?: boolean }
+export declare function ScoreBar(props: ScoreBarProps): React.ReactElement;
+
+export type AngleRole = 'principal' | 'secundario';
+export interface RoleChipProps { role: AngleRole | 'sugerido'; short?: boolean }
+export declare function RoleChip(props: RoleChipProps): React.ReactElement | null;
+
+export interface AngleRisk { text: string; penalty?: number; fix?: string }
+export interface ScoreFactor { label: string; value: number }
+export interface AngleCardProps { rank: number; name: string; score: number; role?: AngleRole; suggestedRole?: AngleRole; fit?: string; risks?: AngleRisk[]; breakdown?: ScoreFactor[]; expanded?: boolean; hideActions?: boolean }
+export declare function AngleCard(props: AngleCardProps): React.ReactElement;
+
+export interface AngleSuggestionProps { principal: string; principalScore: number; secundario: string; secundarioScore: number; combo?: string; missing?: { text: string; action?: string }[]; changed?: boolean }
+export declare function AngleSuggestion(props: AngleSuggestionProps): React.ReactElement;
+
+export interface IcpSummaryProps { text: string; tags?: string[]; approved?: boolean; action?: string }
+export declare function IcpSummary(props: IcpSummaryProps): React.ReactElement;
+
+export interface AngleDevelopmentProps { role: AngleRole; angle: string; status?: 'generando' | 'revision' | 'aprobado'; hooks?: string[]; pickedHook?: number; aida?: { atencion: string; interes: string; deseo: string; accion: string }; objections?: { q: string; a: string }[]; offer?: string; hideActions?: boolean }
+export declare function AngleDevelopment(props: AngleDevelopmentProps): React.ReactElement;
+
+export type Structure = 'abo' | 'cbo';
+export interface StructurePickerProps { value: Structure; label?: string }
+export declare function StructurePicker(props: StructurePickerProps): React.ReactElement;
+
+export interface PresetSelectProps { value: string; options: { value: string; label: string }[]; source?: string; modified?: number; label?: string }
+export declare function PresetSelect(props: PresetSelectProps): React.ReactElement;
+
+export interface ConfigSectionProps { index: number; title: string; summary?: string; open?: boolean; done?: boolean; edited?: boolean; error?: string; children?: React.ReactNode }
+export declare function ConfigSection(props: ConfigSectionProps): React.ReactElement;
+
+export interface ChipInputProps { label: string; values?: string[]; placeholder?: string; hint?: string; disabled?: boolean }
+export declare function ChipInput(props: ChipInputProps): React.ReactElement;
+
+export interface RulePart { value: string; select?: boolean; prefix?: string; suffix?: string }
+export interface RuleRowProps { parts: (string | RulePart)[]; off?: boolean }
+export declare function RuleRow(props: RuleRowProps): React.ReactElement;
+
+export interface RuleGroupProps { kind: 'esperar' | 'pausar' | 'escalar'; desc?: string; level?: string; add?: boolean; children?: React.ReactNode }
+export declare function RuleGroup(props: RuleGroupProps): React.ReactElement;
+
+export interface CreativeSlotProps { name: string; type?: 'image' | 'video'; ratio?: string; duration?: string; state?: 'ready' | 'uploading' | 'processing' | 'error'; progress?: number; error?: string; adset?: string; detail?: string; imageIndex?: number }
+export declare function CreativeSlot(props: CreativeSlotProps): React.ReactElement;
+
+export interface TreeAd { name: string; type?: 'image' | 'video' }
+export interface TreeAdset { name: string; audience?: string; budget?: string; ads?: TreeAd[] }
+export interface CampaignTreeProps { name: string; structure: Structure; budget?: string; adsets: TreeAdset[]; note?: string }
+export declare function CampaignTree(props: CampaignTreeProps): React.ReactElement;
+
+export interface DecisionRowProps { decision: 'esperar' | 'mantener' | 'pausar' | 'pausado' | 'escalar'; label?: string; name: string; metrics?: string; reason?: string; rule?: string; progress?: number; actions?: React.ReactNode; imageIndex?: number }
+export declare function DecisionRow(props: DecisionRowProps): React.ReactElement;
+
+export interface CharCountProps { count: number; limit?: number; unit?: string; live?: boolean }
+export declare function CharCount(props: CharCountProps): React.ReactElement;
+
+export interface EmptyStateProps { icon?: IconName; title: string; body?: string; action?: React.ReactNode; secondary?: React.ReactNode; tone?: 'neutral' | 'error'; busy?: boolean; children?: React.ReactNode }
+export declare function EmptyState(props: EmptyStateProps): React.ReactElement;
+
+export interface NoticeProps { tone?: 'warning' | 'info'; icon?: IconName; title: string; body?: string; action?: React.ReactNode }
+export declare function Notice(props: NoticeProps): React.ReactElement;
+
+export type BlockState = 'accepted' | 'edited' | 'pending' | 'current' | 'discarded' | 'missing' | 'omitted';
+export interface PageOutlineProps { groups: { title: string; items: { label: string; state?: BlockState; required?: boolean }[] }[] }
+export declare function PageOutline(props: PageOutlineProps): React.ReactElement;
+
+export interface CopySummaryProps { sections: { title: string; items: { label: string; text?: string; tag?: 'edited' | 'kept' | 'omitted' | 'missing' }[] }[] }
+export declare function CopySummary(props: CopySummaryProps): React.ReactElement;
+
 declare global {
   interface Window {
     DropFlex: {
@@ -139,6 +207,9 @@ declare global {
       OptionList: typeof OptionList; PickRow: typeof PickRow; GenerationProgress: typeof GenerationProgress; SetupChecklist: typeof SetupChecklist;
       ProductInfoInput: typeof ProductInfoInput; ReferenceImage: typeof ReferenceImage; ImageUploader: typeof ImageUploader;
       Stars: typeof Stars; ReviewImporter: typeof ReviewImporter; ReviewSummary: typeof ReviewSummary; ReviewItem: typeof ReviewItem;
+      ScoreBar: typeof ScoreBar; RoleChip: typeof RoleChip; AngleCard: typeof AngleCard; AngleSuggestion: typeof AngleSuggestion; IcpSummary: typeof IcpSummary; AngleDevelopment: typeof AngleDevelopment;
+      StructurePicker: typeof StructurePicker; PresetSelect: typeof PresetSelect; ConfigSection: typeof ConfigSection; ChipInput: typeof ChipInput; RuleRow: typeof RuleRow; RuleGroup: typeof RuleGroup; CreativeSlot: typeof CreativeSlot; CampaignTree: typeof CampaignTree; DecisionRow: typeof DecisionRow;
+      CharCount: typeof CharCount; EmptyState: typeof EmptyState; Notice: typeof Notice; PageOutline: typeof PageOutline; CopySummary: typeof CopySummary;
     };
   }
 }

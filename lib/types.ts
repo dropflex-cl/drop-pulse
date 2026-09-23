@@ -47,6 +47,8 @@ export interface Product {
   status?: ContentStatus;
   /** Fase de la etapa Ángulos (lib/products/stages.ts › anglesPhase). */
   anglesPhase?: "locked" | "new" | "evaluating" | "failed" | "choose" | "developing" | "review" | "done";
+  /** Fase de la etapa Textos, la página del producto (lib/products/stages.ts › copyPhase). */
+  copyPhase?: "locked" | "new" | "writing" | "failed" | "review" | "done";
   supplierCost: number;
   /** Precio actual en la tienda y su moneda (ISO 4217). */
   price?: number;
@@ -195,6 +197,45 @@ export interface AnglesState {
 
 /** Todo lo que necesita la etapa Ángulos. */
 export interface ProductAngles extends AnglesState {
+  product: Product;
+}
+
+/** Un bloque de la página del producto (ReviewCard en la etapa Textos). */
+export interface CopyItem {
+  id: string;
+  /** lib/copy/blocks.ts › PAGE_BLOCKS o "faq". */
+  key: string;
+  /** «Beneficio 2», «Pregunta frecuente 1». */
+  label: string;
+  section: string;
+  /** Lo que hay hoy en Shopify (título; en «Cómo funciona», la descripción como referencia). */
+  original?: string;
+  /** El texto vigente: tu versión si la editaste, si no la propuesta. Preguntas: «pregunta\nrespuesta». */
+  text: string;
+  edited: boolean;
+  angle?: AngleRole;
+  note?: string;
+  /** Dato que la IA no tiene («el plazo de entrega y tu WhatsApp»). */
+  missing?: string;
+  status: ContentStatus;
+  required: boolean;
+  limit: number;
+  unit: "caracteres" | "palabras";
+}
+
+/** El estado de la etapa Textos (lo que devuelve el sondeo). */
+export interface CopyState {
+  /** Se habilita con los 2 desarrollos de Ángulos aprobados. */
+  locked: boolean;
+  run?: { id: string; status: RunStatus; error?: string; createdAt: string };
+  items: CopyItem[];
+  /** Los ángulos cambiaron después de escribir la página. */
+  stale: boolean;
+  /** La ficha no trae días de garantía: el bloque no se incluye a propósito. */
+  noGuarantee: boolean;
+}
+
+export interface ProductCopy extends CopyState {
   product: Product;
 }
 

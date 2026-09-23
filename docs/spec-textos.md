@@ -1,7 +1,8 @@
 # Spec: etapa Textos (la página del producto)
 
-> Estado: **propuesta**, sin implementar.
+> Estado: **implementado el 2026-09-23** con el diseño PantallasTextos1/2 y PantallasTextosEscritorio (`design-system/textos.md`). Falta la prueba con la IA real (F6). El detalle de lo construido está en `docs/pipeline-ia.md` › Página del producto.
 > Fecha: 2026-09-23.
+> Decisiones tomadas (§8): Textos es la página del producto y en la UI se llama **Página del producto**; la tienda despacha con **envío gratis a todo Chile y pago contra entrega** (`merchant_settings.free_shipping`); SEO, nombre corto y los demás bloques del diseño van desde ya.
 > Depende de: Ángulos (los 2 desarrollos aprobados), Información base (ficha, cliente ideal, precio y packs) y Reseñas (opcional).
 
 ## 0. Resumen
@@ -117,7 +118,7 @@ Devuelve la lista de problemas, que va vacía si se puede guardar. Revisa:
 - los largos de la tabla del §2;
 - que no haya `guarantee` si `guarantee_days` es null o 0, y que sí venga si es mayor que 0;
 - los precios: todo monto con el símbolo de la moneda debe ser el precio, el precio antes, el precio de un pack o su ahorro;
-- las palabras prohibidas de salud («cura», «elimina», «trata», «garantizado») y los `forbidden_claims` de la ficha;
+- las promesas prohibidas que se pueden detectar con seguridad («cura», «resultados garantizados»); el resto de la salud y los `forbidden_claims` de la ficha quedan en el prompt, porque «elimina» o «se trata de» son legítimos en muchos productos;
 - que haya al menos una pregunta sobre el pago contra entrega o la compra online.
 
 Con problemas se reintenta una vez, con `copyUser(ctx, problems)`. Si falla otra vez, `error_code = "invalid_output"` y el mensaje «La IA escribió textos que no cumplen las reglas. Toca Reintentar.».
@@ -125,6 +126,8 @@ Con problemas se reintenta una vez, con `copyUser(ctx, problems)`. Si falla otra
 ---
 
 ## 4. Datos (migración `20261001000000_page_copy.sql`)
+
+> Implementado con dos cambios: `content_items` suma `missing` (el dato que la IA no tiene, que el diseño muestra como aviso) y `merchant_settings` suma `free_shipping`.
 
 ```sql
 create table public.copy_runs (

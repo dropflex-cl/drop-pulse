@@ -78,6 +78,40 @@ function productEntries(products: Product[]): AttentionEntry[] {
         actions: [{ label: "Empezar", href: anglesHref, iconEnd: "chevron-right" }],
       });
     }
+
+    // Página del producto (etapa Textos): se habilita con los 2 desarrollos aprobados.
+    const copy = p.stages.find((s) => s.key === "textos");
+    const copyHref = productHref(p.id, "textos");
+    if (p.copyPhase === "failed") {
+      out.push({
+        id: `copy-error-${p.id}`,
+        group: "primero",
+        kind: "error",
+        title: "No se pudieron escribir los textos",
+        product: p.name,
+        detail: copy?.desc,
+        actions: [{ label: "Reintentar", href: copyHref, variant: "primary" }],
+      });
+    } else if (p.copyPhase === "review") {
+      out.push({
+        id: `copy-review-${p.id}`,
+        group: "revisar",
+        kind: "review",
+        title: "La página del producto está lista para revisar",
+        product: p.name,
+        detail: copy?.desc,
+        actions: [{ label: "Revisar ahora", href: copyHref, iconEnd: "chevron-right" }],
+      });
+    } else if (p.copyPhase === "new") {
+      out.push({
+        id: `copy-${p.id}`,
+        group: "revisar",
+        kind: "stuck",
+        title: "Falta escribir la página del producto",
+        product: `${p.name} · ángulos aprobados`,
+        actions: [{ label: "Empezar", href: copyHref, iconEnd: "chevron-right" }],
+      });
+    }
   }
   return out;
 }

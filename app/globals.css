@@ -231,6 +231,10 @@
 
   /* .df-stage-dot, .df-prop: trazo de 1,5px. */
   --stroke-strong: 1.5px;
+  /* .df-outline-i.is-cur .df-outline-dot: el bloque en revisión, un anillo de 5px. */
+  --stroke-current: 5px;
+  /* .df-empty-b: ancho de lectura del cuerpo de un estado vacío. */
+  --container-empty: 42ch;
 
   /* .df-btn:active: presionado. */
   --scale-press: 0.98;

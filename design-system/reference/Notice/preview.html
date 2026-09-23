@@ -1,0 +1,14 @@
+<!-- @dsCard group="Textos" height=170 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Notice</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {className:'df-col', style:{maxWidth:520}},
+  h(D.Notice,{tone:'warning', title:'Cambiaste tus ángulos.', body:'Reescribe los textos que no aprobaste.', action:h(D.Button,{size:'sm', variant:'secondary'},'Reescribir')}),
+  h(D.Notice,{tone:'info', icon:'clock', title:'Completa el plazo de entrega y tu WhatsApp', body:'La IA no los tiene: escríbelos al editar.'})));
+</script>
+</body>
+</html>

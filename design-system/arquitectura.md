@@ -12,19 +12,20 @@ Hoy  ─────────── cola de decisiones (todas las pantallas d
 │
 Productos ────── lista filtrable: Avanzan · Detenidos · Publicados
 │   └─ Producto ── ruta de etapas + "Continuar"
-│        ├─ Información base  (producto sin optimizar) texto libre + imágenes de referencia → "Optimizar con IA"
+│        ├─ Información base  texto libre + imágenes de referencia → cliente ideal (aprobar)
 │        ├─ Reseñas (opcional) importar de AliExpress → aprobar · rechazar · editar
-│        ├─ Textos ........ revisión propuesta por propuesta
+│        ├─ Ángulos ....... ranking de 6 → principal + secundario → 2 desarrollos → aprobar
+│        ├─ Textos ........ la página del producto: 14 bloques, uno a la vez → aceptar · editar · descartar
 │        ├─ Imágenes ...... elegir, ordenar, descartar
-│        ├─ Precio y oferta  calculadora + vista del comprador
 │        ├─ Publicar en tu tienda
-│        └─ Anuncios (opcional) ─→ enlaza a la campaña
+│        └─ Anuncios (opcional) lanzar campaña: ABO o CBO + plantilla + creativos + motor de decisión
+│        (Precio y oferta: por ubicar en la nueva ruta)
 │
 Campañas ─────── tarjetas con veredicto: Sube · Déjala · Vigílala · Apágala
-    └─ Campaña ── cifras, historial, presupuesto
+    └─ Campaña ── decisiones del motor por conjunto o anuncio (esperar · pausar · escalar), reglas, cifras
 
 Asistente ────── hoja sobre cualquier pantalla, con el contexto actual
-Ajustes ──────── supuestos (tasa de entrega, CPA máximo), Conexiones (Shopify, Meta Ads), plan
+Ajustes ──────── supuestos (tasa de entrega, CPA máximo), Conexiones (Shopify, Meta Ads), Plantillas de campaña, plan
 ```
 
 ## Decisiones y por qué
@@ -85,6 +86,16 @@ Ajustes ──────── supuestos (tasa de entrega, CPA máximo), Conex
 - **Por qué no dentro de Textos:** tienen su propio ciclo (importada → aprobada/rechazada → publicada) y se publican en otro lugar de la tienda (el widget de reseñas).
 - **Curación en lote con control:** filtro Por revisar · Aprobadas · Rechazadas, una acción sugerida ("Aprobar las 9 de 5★ con foto y sin alertas") y decisión por tarjeta con Deshacer.
 - **Honestidad:** se publican con calificación, fecha y país originales y con la fuente visible en la tienda ("Reseñas de compradores del mismo producto en AliExpress"); editar solo corrige traducción u ortografía, conserva el original y marca la reseña como editada. Presentar reseñas de otra tienda como propias o cambiar su sentido puede infringir normas de protección al consumidor: el diseño lo evita por defecto.
+
+### 10. Ángulos: diagnosticar, elegir y desarrollar
+
+- **Dónde:** entre Información base y Textos. Se habilita cuando el comerciante aprueba el cliente ideal; antes aparece bloqueada con ese motivo. Textos se habilita al aprobar los 2 desarrollos.
+- **Entrada visible:** al entrar se ve el cliente ideal aprobado (`IcpSummary`) y qué hará la IA, antes del botón "Elegir ángulos con IA". El comerciante sabe sobre qué base se decide.
+- **Los 6, siempre:** el ranking muestra todos los ángulos en orden de puntaje (`AngleCard`), también los bajos, atenuados. Cada uno dice por qué encaja o no y sus riesgos con el castigo en puntos. "Cómo se calculó" muestra el desglose que produce el código, así el puntaje se puede explicar y probar.
+- **La IA sugiere, el comerciante decide:** `AngleSuggestion` arriba (móvil) o fija a la derecha (escritorio) con principal, secundario, cómo se combinan y qué falta. Cambiar un rol abre una hoja con el ranking como opciones (`OptionList`), con el puntaje y el riesgo de cada uno; el que ya ocupa el otro rol aparece deshabilitado.
+- **Lo que falta se puede resolver ahí:** un riesgo como "No hay reseñas reales" trae su acción ("Importar reseñas"). Al volver, "Volver a evaluar" recalcula el ranking.
+- **Dos desarrollos en paralelo:** al confirmar, cada ángulo muestra su propio estado (`AngleDevelopment`); se puede revisar el primero mientras el segundo sigue generándose. Cada uno se aprueba, edita o regenera por separado.
+- **Cambiar de ángulos después** de desarrollar pide confirmación, porque descarta los desarrollos que dependen de la elección anterior.
 
 ## De móvil a escritorio
 

@@ -1,10 +1,11 @@
 // Dónde está un producto en su ruta, derivado de lo que hay en la base: la última optimización, la
-// última propuesta de cliente ideal, las reseñas (opcional) y la etapa Ángulos (evaluación y
-// desarrollos). Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
+// última propuesta de cliente ideal, las reseñas (opcional), la etapa Ángulos (evaluación y
+// desarrollos) y la página del producto (Textos). Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
 // Textos de design-system/reference/bundle.js (PP_STAGES, RV_STAGES y ANG_STAGES).
 
 import type { MeterStage } from "@/components/df/stage-meter";
 import type { AngleRole } from "@/lib/angles/catalog";
+import type { CopyProgress } from "@/lib/copy/progress";
 import { money } from "@/lib/format";
 import type { ContentStatus, ProductFilter, RunStatus, Stage, StageKey } from "@/lib/types";
 
@@ -15,12 +16,21 @@ export interface AngleFacts {
   briefs: { role: AngleRole; name: string; status: ContentStatus; generation: RunStatus; error?: string | null }[];
 }
 
+export interface CopyFacts {
+  /** La escritura más reciente de la página. */
+  run: { status: RunStatus; error?: string | null } | null;
+  progress: CopyProgress;
+  /** Los ángulos cambiaron después de escribirla. */
+  stale?: boolean;
+}
+
 export interface ProductFacts {
   price: number;
   currency: string;
   run?: { status: RunStatus; error?: string | null; createdAt: string } | null;
   avatar?: { status: ContentStatus; createdAt: string } | null;
   angles?: AngleFacts | null;
+  copy?: CopyFacts | null;
   /** Reseñas importadas (etapa opcional): nunca bloquean ni se bloquean. */
   reviews?: ReviewFacts | null;
 }
@@ -34,10 +44,15 @@ export interface ReviewFacts {
 
 export type BasePhase = "new" | "optimizing" | "failed" | "review" | "done";
 export type AnglesPhase = "locked" | "new" | "evaluating" | "failed" | "choose" | "developing" | "review" | "done";
+export type CopyPhase = "locked" | "new" | "writing" | "failed" | "review" | "done";
+
+/** Nombre de la etapa Textos para el comerciante: escribe la página del producto, no el anuncio. */
+export const COPY_STAGE_TITLE = "Página del producto";
 
 export interface ProductPosition {
   phase: BasePhase;
   anglesPhase: AnglesPhase;
+  copyPhase: CopyPhase;
   stages: Stage[];
   meter: MeterStage[];
   filter: ProductFilter;
@@ -76,6 +91,55 @@ export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): An
   if (briefs.some((b) => b.generation === "failed")) return "failed";
   if (briefs.every((b) => b.status === "aprobado")) return "done";
   return "review";
+}
+
+/**
+ * La página se habilita con los 2 desarrollos aprobados. Una reescritura que falla con bloques ya
+ * escritos no tapa la revisión: la pantalla muestra el error sobre la lista.
+ */
+export function copyPhase(f: ProductFacts, angles: AnglesPhase): CopyPhase {
+  if (angles !== "done") return "locked";
+  const c = f.copy;
+  if (!c) return "new";
+  if (active(c.run?.status)) return "writing";
+  if (!c.progress.total) return c.run?.status === "failed" ? "failed" : "new";
+  return c.progress.complete ? "done" : "review";
+}
+
+const COPY_STATE: Record<CopyPhase, Stage["state"]> = {
+  locked: "locked",
+  new: "current",
+  writing: "current",
+  failed: "error",
+  review: "review",
+  done: "done",
+};
+
+const COPY_METER: Record<CopyPhase, MeterStage> = {
+  locked: "locked",
+  new: "current",
+  writing: "current",
+  failed: "error",
+  review: "review",
+  done: "done",
+};
+
+function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined): string {
+  const p = c?.progress;
+  switch (phase) {
+    case "locked":
+      return "Se habilita al aprobar los 2 desarrollos";
+    case "new":
+      return "Título, beneficios, preguntas y SEO con tus ángulos";
+    case "writing":
+      return "La IA está escribiendo la página";
+    case "failed":
+      return c?.run?.error ?? "No se pudo escribir la página";
+    case "review":
+      return p?.pending ? `${p.approved} de ${p.total} aceptados` : `Falta aprobar ${p?.missing[0] ?? "un obligatorio"}`;
+    case "done":
+      return `${p?.approved ?? 0} de ${p?.total ?? 0} aceptados`;
+  }
 }
 
 const BASE_DESC: Record<BasePhase, string> = {
@@ -159,7 +223,8 @@ function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter:
 export function productPosition(f: ProductFacts): ProductPosition {
   const phase = basePhase(f);
   const angles = anglesPhase(f, phase);
-  const done = angles === "done";
+  const copy = copyPhase(f, angles);
+  const pageDone = copy === "done";
   const reviews = reviewsStage(f.reviews);
   const stages: Stage[] = [
     {
@@ -172,14 +237,14 @@ export function productPosition(f: ProductFacts): ProductPosition {
     reviews.stage,
     { key: "angulos", title: "Ángulos", state: ANGLES_STATE[angles], desc: anglesDesc(angles, f.angles) },
     // El precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
-    { key: "textos", title: "Textos", state: done ? "current" : "locked", desc: done ? "Se generan con tus ángulos y tu oferta" : "Se habilita al aprobar los 2 desarrollos" },
-    { key: "imagenes", title: "Imágenes", state: "locked", desc: "Después de Textos" },
-    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita textos e imágenes aprobados" },
+    { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy) },
+    { key: "imagenes", title: "Imágenes", state: pageDone ? "current" : "locked", desc: pageDone ? "Elige las imágenes de tu tienda" : "Después de la página del producto" },
+    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita la página y las imágenes aprobadas" },
     { key: "anuncios", title: "Anuncios", state: "locked", optional: true, desc: "Usa los ángulos elegidos" },
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], done ? "current" : "locked", "locked", "locked", "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], pageDone ? "current" : "locked", "locked", "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
-  const common = { phase, anglesPhase: angles, stages, meter };
+  const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
 
   switch (phase) {
     case "new":
@@ -204,9 +269,22 @@ export function productPosition(f: ProductFacts): ProductPosition {
     case "review":
       return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · ángulos", nextStage: "angulos", summary: `Ángulos por revisar${price}`, status: "revision" };
     case "done":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: textos", nextStage: "textos", summary: `Ángulos listos${price}`, status: "aprobado" };
+      break;
     default:
       return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: ángulos de venta", nextStage: "angulos", summary: `Información base lista${price}`, status: "aprobado" };
+  }
+
+  switch (copy) {
+    case "writing":
+      return { ...common, filter: "avanzan", tone: "primary", reason: "Escribiendo la página con IA", nextStage: "textos", summary: `Escribiendo la página${price}` };
+    case "failed":
+      return { ...common, filter: "detenidos", tone: "danger", reason: "Página: no se pudo · reintenta", nextStage: "textos", summary: `Página con error${price}`, status: "error" };
+    case "review":
+      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · página del producto", nextStage: "textos", summary: `Página por revisar${price}`, status: "revision" };
+    case "done":
+      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: imágenes", nextStage: "imagenes", summary: `Página lista${price}`, status: "aprobado" };
+    default:
+      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: página del producto", nextStage: "textos", summary: `Ángulos listos${price}`, status: "aprobado" };
   }
 }
 

@@ -1,6 +1,6 @@
-# Pipeline de IA: “Optimizar con IA” y Ángulos
+# Pipeline de IA: “Optimizar con IA”, Ángulos y la página del producto
 
-Sistema de agentes creativos, adaptado a LATAM con pago contra entrega. Hoy genera la **ficha de producto** y el **cliente ideal** (Información base) y, en la etapa **Ángulos**, el ranking del orquestador y los **2 desarrollos de ángulo** elegidos. Los textos, los estáticos, los guiones y el copywriter vienen después y leen estas piezas.
+Sistema de agentes creativos, adaptado a LATAM con pago contra entrega. Hoy genera la **ficha de producto** y el **cliente ideal** (Información base), en la etapa **Ángulos** el ranking del orquestador y los **2 desarrollos de ángulo** elegidos, y en la etapa **Textos** (“Página del producto”) los bloques de la página en la tienda. Los estáticos, los guiones y el copywriter de anuncios vienen después y leen estas piezas.
 
 ```
 Shopify ──► products (descripción + imágenes)       merchant_settings (país, moneda, idioma)
@@ -21,7 +21,10 @@ excluye imágenes que no sirven y sube otras                 │
  Etapa Ángulos (ver abajo): angle-router → angulo-<principal> ∥ angulo-<secundario>
                  │
                  ▼
- Siguiente: textos · guionista-ugc ∥ generador-estaticos → productor-clips → copywriter
+ Página del producto (ver abajo): redactor de página → content_items, bloque a bloque
+                 │
+                 ▼
+ Siguiente: imágenes · guionista-ugc ∥ generador-estaticos → productor-clips → copywriter
 ```
 
 ## Modelo de datos (en inglés)
@@ -149,10 +152,58 @@ Desempates: si los dos primeros están a menos de 5 puntos, gana el que tiene la
 
 Topes: 20 evaluaciones y 60 desarrollos por comerciante cada 24 horas. `/dev/screens/angles?state=locked|start|evaluating|failed|ranking|developing|review|approved` muestra la etapa con datos de ejemplo.
 
+## Página del producto (etapa Textos)
+
+Spec: `docs/spec-textos.md`. Diseño: `design-system/textos.md` (PantallasTextos1/2 y PantallasTextosEscritorio). La clave interna sigue siendo `textos` y la URL `/products/[id]/copy`; el comerciante la ve como **Página del producto** (`COPY_STAGE_TITLE`), para no confundirla con el texto del anuncio, que escribe el copywriter en Anuncios.
+
+```
+Los 2 desarrollos aprobados + ficha + cliente ideal + precio (y etiquetas aprobadas) + envío de la tienda
+                 │
+      “Escribir textos con IA” (o “Continuar” en Ángulos)  POST /api/products/[id]/copy
+                 ▼   (copy_runs: queued → running, after())
+ redactor de página (effort medium) → bloques con clave de enum + preguntas frecuentes
+                 │
+ copyProblems (lib/copy/schemas.ts): cantidades, largos, montos, garantía, promesas prohibidas
+                 │   si falla: se pide otra vez diciendo qué falló; si vuelve a fallar, error
+                 ▼
+ content_items (generated) → aceptar · editar · descartar, uno a la vez, con Deshacer
+                 ▼
+ Obligatorios aprobados (o con el original de Shopify) → habilita Imágenes
+```
+
+| Tabla | Qué guarda |
+|---|---|
+| `copy_runs` | Una escritura: `status`, `input` (mercado, precio, etiquetas, `avatar_id`, los 2 desarrollos usados con su `edited_at`, `free_shipping`, `redo`), `payload` (lo que devolvió el modelo). Una activa por producto |
+| `content_items` | Un bloque: `key` (`lib/copy/blocks.ts`), `position` (orden de la página), `original` (título de Shopify; en «Cómo funciona», la descripción como referencia), `proposal`, `edited_text`, `angle_role`, `note`, `missing`, `status`. Reescribir deja `superseded_at` en lo que no estaba aprobado |
+| `merchant_settings.free_shipping` | Cómo despacha la tienda (hoy: envío gratis a todo el país, siempre con pago contra entrega) |
+
+**Bloques** (`lib/copy/blocks.ts`, el mismo límite para el prompt, la validación y el contador de la pantalla): título (70), nombre corto (30), descripción corta (160), frase de la oferta (90), 3 a 5 beneficios (110), cómo funciona (40 a 120 palabras), 3 a 6 preguntas (pregunta 90, respuesta 280), envío y pago (280), garantía (160, solo con `guarantee_days`), título y descripción para Google (60 y 155). Obligatorios: título, nombre corto, descripción corta, oferta, cómo funciona, envío y pago y los dos de Google.
+
+**Reglas:**
+
+- La IA escribe texto plano; el HTML de la descripción de Shopify lo arma una plantilla al publicar.
+- Montos: solo los de PRECIO Y OFERTA (precio, tachado y su ahorro, packs, precio por unidad y ahorro), revisados en código.
+- Pago contra entrega siempre (oferta, envío y pago, y al menos una pregunta). Garantía solo con días en la ficha; si no, la pantalla la muestra como «No se incluye».
+- Plazo de entrega y WhatsApp no se conocen: el bloque sale sin ellos y con `missing`, y la pantalla pide completarlos al editar.
+- Descartar: con original, se mantiene lo de Shopify; sin original, el bloque no va (y si es obligatorio queda «Falta aprobar»).
+- «Rehacer descartados» / «Reescribir» (`{ redo: true }`) reescribe lo no aprobado y le pasa al modelo lo aprobado (no se toca) y lo descartado (no se repite).
+- Si se reabre, regenera o edita un desarrollo después de escribir, la etapa avisa «Cambiaste tus ángulos».
+
+**Rutas**
+
+| Método y ruta | Qué hace |
+|---|---|
+| `GET /api/products/[id]/copy` | Estado de la etapa (sondeo cada 2,5 s mientras escribe) |
+| `POST /api/products/[id]/copy` | `{ redo?: boolean }`: escribe, o reescribe lo no aprobado |
+| `PATCH /api/products/[id]/copy/items/[itemId]` | `{ action: "approve" \| "reject" \| "reopen", text? }` |
+
+Tope: 20 escrituras por comerciante cada 24 horas. `/dev/screens/copy?state=locked|start|writing|failed|fresh|review|stale|done|complete` muestra la etapa con datos de ejemplo.
+
 ## Pendiente
 
-- **Siguiente iteración:** Textos (la página del producto) a partir de los 2 desarrollos aprobados; después, estáticos, guiones y el copywriter (`agentes-creativos 4/copywriter.md`, con cierre COD).
-- **Datos de la tienda para el cierre COD:** envío gratis, plazo real de entrega, WhatsApp y garantía (el copywriter los necesita).
-- **Textos e imágenes generados:** `getProductContent` y `getProductImages` devuelven vacío.
+- **Siguiente iteración:** Imágenes; después, estáticos, guiones y el copywriter de anuncios (`agentes-creativos 4/copywriter.md`, con cierre COD).
+- **Datos de la tienda:** plazo real de entrega, WhatsApp y garantía de la tienda (la página y el copywriter los necesitan); hoy solo se guarda `free_shipping`, sin pantalla para cambiarlo.
+- **Publicar la página:** plantilla HTML con los bloques aprobados y `productUpdate` (título, descripción, SEO) en la etapa Publicar.
+- **Imágenes generadas:** `getProductImages` devuelve vacío.
 - **Precio:** `getPricing` todavía usa envío y publicidad fijos. Hay que usar los números del onboarding y la moneda del mercado.
 - **Evaluaciones:** medir con casos reales si el cliente ideal mejora los anuncios (ver el análisis de dropflex base).

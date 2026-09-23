@@ -1,0 +1,16 @@
+<!-- @dsCard group="Textos" height=560 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>EmptyState</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:12, padding:16, alignItems:'start'}},
+  h(D.EmptyState,{icon:'lock', title:'Aprueba los 2 desarrollos de Ángulos', body:'Los textos de la página salen del ángulo principal y del secundario.', action:h(D.Button,{size:'sm', variant:'secondary', iconEnd:'chevron-right'},'Ir a Ángulos')}),
+  h(D.EmptyState,{icon:'text', title:'Escribe la página de tu producto', body:'Cada texto lo apruebas tú.', action:h(D.Button,{variant:'primary', icon:'sparkle'},'Escribir textos con IA')}),
+  h(D.EmptyState,{icon:'sparkle', busy:true, title:'La IA está escribiendo los textos', body:'Puedes salir: te avisamos en Hoy.'}),
+  h(D.EmptyState,{tone:'error', icon:'alert', title:'No se pudieron escribir los textos', body:'La IA escribió textos que no cumplen las reglas. Toca Reintentar.', action:h(D.Button,{variant:'primary', icon:'sparkle'},'Reintentar')})));
+</script>
+</body>
+</html>

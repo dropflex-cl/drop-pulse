@@ -1,16 +1,19 @@
 // Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs,
-// customer_avatars, las reseñas importadas y la etapa Ángulos: angle_rankings, angle_briefs). Los
-// textos e imágenes generados todavía no existen: esas lecturas devuelven vacío y las pantallas muestran su espera.
+// customer_avatars, las reseñas importadas, la etapa Ángulos: angle_rankings, angle_briefs, y la
+// página del producto: copy_runs, content_items). Las imágenes generadas todavía no existen: esa
+// lectura devuelve vacío y la pantalla muestra su espera.
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { ANGLES } from "@/lib/angles/catalog";
 import { currentBriefs, expireStaleAngles, latestRankings, toBriefView, toRankingView, type BriefRow, type RankingRow } from "@/lib/angles/store";
+import { copyProgress } from "@/lib/copy/progress";
+import { activeItems, expireStaleCopy, isStale, latestCopyRuns, toCopyItems, type ContentItemRow, type CopyRunRow } from "@/lib/copy/store";
 import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition, type AngleFacts, type ReviewFacts } from "@/lib/products/stages";
+import { productPosition, type AngleFacts, type CopyFacts, type ReviewFacts } from "@/lib/products/stages";
 import { customerReviews, expireStaleImports, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
 import {
   baseImage,
@@ -31,7 +34,7 @@ import {
   type ProductRow,
   type RunRow,
 } from "@/lib/products/store";
-import type { AnglesState, ContentItem, ImageOption, Product, ProductAngles, ProductBase, ProductFilter, ProductReviews } from "@/lib/types";
+import type { AnglesState, CopyState, ImageOption, Product, ProductAngles, ProductBase, ProductCopy, ProductFilter, ProductReviews } from "@/lib/types";
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -52,7 +55,17 @@ function angleFacts(ranking: RankingRow | undefined, briefs: Partial<Record<"pri
   };
 }
 
-function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts, angles?: AngleFacts | null): Product {
+function copyFacts(run: CopyRunRow | undefined, items: ContentItemRow[] | undefined, briefs: Partial<Record<"primary" | "secondary", BriefRow>> | undefined): CopyFacts | null {
+  if (!run && !items?.length) return null;
+  const views = toCopyItems(items ?? []);
+  return {
+    run: run ? { status: run.status, error: run.error_message } : null,
+    progress: copyProgress(views.map((v) => ({ key: v.key, status: v.status, edited: v.edited, original: v.original }))),
+    stale: isStale(run, briefs ?? {}),
+  };
+}
+
+function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts, angles?: AngleFacts | null, copy?: CopyFacts | null): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
@@ -60,6 +73,7 @@ function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: Avatar
     avatar: avatar ? { status: toProposal(avatar).status, createdAt: avatar.created_at } : null,
     reviews,
     angles,
+    copy,
   });
   return {
     id: row.id,
@@ -75,6 +89,7 @@ function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: Avatar
     summary: position.summary,
     status: position.status,
     anglesPhase: position.anglesPhase,
+    copyPhase: position.copyPhase,
     supplierCost: row.cost == null ? 0 : Number(row.cost),
     price: Number(row.price),
     currency: row.currency,
@@ -86,15 +101,17 @@ const allProducts = cache(async (): Promise<Product[]> => {
   const uid = await userId();
   // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
   await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid)]);
+  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars, reviews, rankings] = await Promise.all([
+  const [images, runs, avatars, reviews, rankings, copyRuns, copyItems] = await Promise.all([
     listImageRows(uid, ids),
     latestRuns(uid, ids),
     latestAvatars(uid, ids),
     reviewFacts(uid, ids),
     latestRankings(uid, ids),
+    latestCopyRuns(uid, ids),
+    activeItems(uid, ids),
   ]);
   const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
@@ -102,8 +119,10 @@ const allProducts = cache(async (): Promise<Product[]> => {
   return rows.map((r) => {
     const c = covers.find((i) => i.product_id === r.id);
     const ranking = rankings.get(r.id);
-    const angles = angleFacts(ranking, ranking?.confirmed_at ? briefs.get(ranking.id) : undefined);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles);
+    const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
+    const angles = angleFacts(ranking, chosen);
+    const copy = copyFacts(copyRuns.get(r.id), copyItems.get(r.id), chosen);
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy);
   });
 });
 
@@ -201,10 +220,28 @@ export async function anglesState(uid: string, productId: string): Promise<Angle
   };
 }
 
-/** Propuestas de texto de un producto, en orden de revisión. Aún no se generan. */
-export async function getProductContent(productId: string): Promise<ContentItem[]> {
-  void productId;
-  return [];
+/** La etapa Textos: la página del producto, bloque a bloque. */
+export const getProductCopy = cache(async (id: string): Promise<ProductCopy | null> => {
+  const uid = await userId();
+  const product = await getProduct(id);
+  if (!product) return null;
+  return { product, ...(await copyState(uid, id)) };
+});
+
+/** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
+export async function copyState(uid: string, productId: string): Promise<CopyState> {
+  const [runs, items, rankings, brief] = await Promise.all([latestCopyRuns(uid, [productId]), activeItems(uid, [productId]), latestRankings(uid, [productId]), latestBrief(uid, productId)]);
+  const run = runs.get(productId);
+  const ranking = rankings.get(productId);
+  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
+  const approved = (["primary", "secondary"] as const).every((r) => briefs[r]?.generation === "succeeded" && briefs[r]?.status === "approved");
+  return {
+    locked: !approved,
+    run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
+    items: toCopyItems(items.get(productId) ?? []),
+    stale: approved && isStale(run, briefs),
+    noGuarantee: !((brief?.proof.guarantee_days ?? 0) > 0),
+  };
 }
 
 /** Opciones de imagen generadas. Aún no se generan. */

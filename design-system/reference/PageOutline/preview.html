@@ -1,0 +1,15 @@
+<!-- @dsCard group="Textos" height=560 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>PageOutline</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{padding:16, maxWidth:280}}, h(D.PageOutline,{groups:[
+  {title:'Arriba del precio', items:[{label:'Título del producto', state:'accepted', required:true},{label:'Nombre corto', state:'edited', required:true},{label:'Frase de la oferta', state:'current', required:true}]},
+  {title:'Por qué comprarlo', items:[{label:'Beneficio 1', state:'accepted'},{label:'Beneficio 2', state:'discarded'},{label:'Cómo funciona', state:'pending', required:true}]},
+  {title:'Dudas', items:[{label:'Envío y pago', state:'missing', required:true},{label:'Garantía', state:'omitted'}]}]})));
+</script>
+</body>
+</html>
