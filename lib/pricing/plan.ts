@@ -43,6 +43,10 @@ export interface PackPrice {
   savings: number;
   savingsRate: number;
   earnsMoreThanPrevious: boolean;
+  /** Cuántas veces la ganancia de 1 unidad (null si 1 unidad no gana). */
+  profitMultiple: number | null;
+  /** La oferta a empujar: el pack más grande cuya escalera de ganancia no se corta. */
+  recommended: boolean;
 }
 
 export interface PricingPlan extends PricingForm {
@@ -64,7 +68,12 @@ export interface PricingPlan extends PricingForm {
 }
 
 export const PACK_TIERS = [1, 2, 3];
-export const DEFAULT_EXTRA_UNIT_DISCOUNT = 35;
+/**
+ * 50 %: el pack de 3 queda al precio de 2 (“Lleva 3, paga 2”). El CPA y el despacho se pagan una vez
+ * por pedido, así que cada unidad extra solo cuesta el producto: hay espacio para un descuento que el
+ * cliente note (v1 usaba 35 %, que en el pack de 2 se veía como un 16 % de ahorro).
+ */
+export const DEFAULT_EXTRA_UNIT_DISCOUNT = 50;
 export const MAX_EXTRA_UNIT_DISCOUNT = 95;
 /** Supuestos del curso (v1, TFL_PRICING_DEFAULTS), en CLP. */
 export const CLP_DEFAULTS = { purchaseCostLimit: 5000, avgShippingCost: 8000, confirmationRate: 70, deliveryRate: 70 } as const;
@@ -117,15 +126,32 @@ export function buildPricingPlan(f: PricingForm, currency: string): PricingPlan 
     margin: profit.margin,
     maxCpa: beroas ? beroas.maxCpa : null,
     beroas: beroas?.beroas ?? null,
-    packs: ladder.map((t) => ({
-      units: t.units,
-      price: t.suggestedPrice,
-      profit: t.profit,
-      margin: t.margin,
-      perUnitPrice: t.perUnitPrice,
-      savings: t.savings,
-      savingsRate: t.savingsRate,
-      earnsMoreThanPrevious: t.earnsMoreThanPrevious,
-    })),
+    packs: withRecommendation(
+      ladder.map((t) => ({
+        units: t.units,
+        price: t.suggestedPrice,
+        profit: t.profit,
+        margin: t.margin,
+        perUnitPrice: t.perUnitPrice,
+        savings: t.savings,
+        savingsRate: t.savingsRate,
+        earnsMoreThanPrevious: t.earnsMoreThanPrevious,
+        profitMultiple: null,
+        recommended: false,
+      })),
+    ),
   };
+}
+
+/** Marca el pack a empujar y cuánto más gana cada uno que 1 unidad. */
+export function withRecommendation(packs: PackPrice[]): PackPrice[] {
+  const single = packs.find((p) => p.units === 1)?.profit ?? 0;
+  // El más grande mientras cada pack gane más que el anterior; si ninguno lo hace, 1 unidad.
+  let best = packs[0]?.units;
+  for (const p of packs) {
+    if (p.units === 1) continue;
+    if (!p.earnsMoreThanPrevious || p.profit <= 0) break;
+    best = p.units;
+  }
+  return packs.map((p) => ({ ...p, profitMultiple: single > 0 ? p.profit / single : null, recommended: p.units === best }));
 }

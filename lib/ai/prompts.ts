@@ -36,7 +36,7 @@ export function productBriefSystem(market: Market): string {
     "- Puedes inferir el público, las alternativas que ya usa y sus objeciones: es criterio de estratega. Anota cada campo inferido en inferred_fields.",
     "- Las reseñas, expertos, estudios y cifras de ventas solo cuentan si el comerciante los escribió. Nunca redactes una reseña ni inventes una cifra: la ley y Meta lo castigan.",
     "- Mira cada imagen: di qué muestra y si sirve para anuncios. Una imagen con texto del proveedor (a menudo en chino), marca de agua o collage confuso no sirve.",
-    "- Precio de venta, tachado, costo del proveedor y packs vienen en PRECIO Y OFERTA: son decisiones del comerciante. Cópialos tal cual en la ficha y no los preguntes.",
+    "- Precio de venta, tachado, costo del proveedor y packs vienen en PRECIO Y OFERTA: son decisiones del comerciante. Cópialos tal cual en la ficha y no los preguntes. La OFERTA PRINCIPAL es el pack: en bundle_options va primero, y cuenta para qué le sirve al comprador llevar más de una unidad.",
     "- missing_inputs son preguntas para el comerciante, cortas y en tuteo, ordenadas por cuánto mejorarían los anuncios. No preguntes lo que ya está.",
   ].join("\n");
 }
@@ -129,7 +129,7 @@ export function customerAvatarUser(briefJson: string, baseInfo: string, pricing:
     briefJson,
     "",
     pricingBlock(pricing),
-    "Usa el precio, el tachado y los packs para juzgar cuánto le duele pagar, qué objeciones de precio tendría y qué oferta lo mueve (1 unidad o pack).",
+    "Usa el precio, el tachado y los packs para juzgar cuánto le duele pagar y qué objeciones de precio tendría. La oferta principal es el pack: define por qué esta persona llevaría más de una unidad (para regalar, para la pareja o la familia, repuesto, uso diario, stock) y qué la convence de hacerlo.",
     "",
     "LO QUE EL COMERCIANTE ESCRIBIÓ (contexto original; la ficha ya lo ordenó)",
     baseInfo.trim() || "(vacío)",

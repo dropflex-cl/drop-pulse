@@ -82,6 +82,8 @@ Español neutro con tuteo, nunca voseo ni “usted”: “Revisa”, “Elige”
   - Todo paso de IA recibe el precio con `pricingBlock` (`lib/pricing/prompt.ts`): la ficha y el cliente ideal ya lo hacen; los ángulos, textos y anuncios que vengan, también.
   - El servidor recalcula con `buildPricingPlan` antes de guardar (`lib/pricing/store.ts`): nunca se guarda un número derivado que venga del navegador.
   - Guardar no cambia el precio en Shopify: publicarlo es un paso aparte.
+  - **Se empujan los packs.** El CPA y el despacho se pagan una vez por pedido: cada unidad extra solo cuesta el producto. Descuento por unidad extra por defecto: 50 % (el pack de 3 queda al precio de 2). El pack recomendado (`withRecommendation`: el más grande mientras cada uno gane más que el anterior) es la OFERTA PRINCIPAL en los prompts; 1 unidad es la referencia de precio.
+  - La sección sigue la pantalla de precio del design system: `PriceBreakdown` primero, tres campos (costo, precio, tachado) y los supuestos en una línea con “Cambiar supuestos”.
 - **Todavía de ejemplo** (`lib/mock/`): textos e imágenes generados, campañas, supuestos y el asistente. `docs/esquema-supabase.md` es la propuesta original para esas partes (conceptos en español: al implementarlas, pásalas a inglés).
 - Pantallas en `app/(app)/`; piezas interactivas de pantalla en `components/screens/`; shell (layout, asistente, barra fija, estados) en `components/shell/`.
 - Rutas con `[id]` de producto no tienen `generateStaticParams`: con `cacheComponents`, todo lo que usa `usePathname` bajo ellas va dentro de `<Suspense>` (ver `AppShell` y `StageNav`).

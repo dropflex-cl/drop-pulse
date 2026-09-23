@@ -36,7 +36,7 @@ describe("prompts", () => {
     const u = productBriefUser({ title: "Corrector", price: 24990, pricing, baseInfo: "neopreno", images: [{ id: "img-1", source: "shopify" }] }, CL);
     expect(u).toContain("img-1");
     expect(u).toContain("PRECIO Y OFERTA");
-    expect(u).toContain("Precio de venta: $24.990");
+    expect(u).toContain("Precio de 1 unidad: $24.990");
     expect(u).toContain("Precio tachado: $32.990");
     expect(u).toContain("Precio de compra al proveedor: $3.000");
     expect(u).toMatch(/2 unidades: \$\d/);
@@ -48,10 +48,19 @@ describe("prompts", () => {
     expect(u).toContain("Precio publicado hoy en Shopify: $19.990");
   });
 
+  it("con el 50 % el pack de 3 es la oferta principal y se anuncia como «lleva 3, paga 2»", () => {
+    const p50 = buildPricingPlan({ ...pricing, compareAtPrice: null, extraUnitDiscount: 50 }, "CLP")!;
+    const u = productBriefUser({ title: "Corrector", pricing: p50, baseInfo: "", images: [] }, CL);
+    expect(u).toContain("Pack 3 unidades: $49.990");
+    expect(u).toContain("«lleva 3, paga 2»");
+    expect(u).toContain("OFERTA PRINCIPAL: Pack 3 unidades a $49.990");
+  });
+
   it("el cliente ideal también recibe el precio y los packs", () => {
     const u = customerAvatarUser("{}", "neopreno", pricing);
     expect(u).toContain("PRECIO Y OFERTA");
-    expect(u).toContain("3 unidades");
+    expect(u).toContain("Pack 3 unidades");
+    expect(u).toContain("La oferta principal es el pack");
   });
 });
 

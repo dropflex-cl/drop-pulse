@@ -1,7 +1,7 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import type { ProductRow } from "@/lib/products/store";
-import { buildPricingPlan, CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT, type PackPrice, type PricingForm, type PricingPlan } from "./plan";
+import { buildPricingPlan, CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT, withRecommendation, type PackPrice, type PricingForm, type PricingPlan } from "./plan";
 
 // product_pricing: el plan de precios guardado. Escrituras solo desde el servidor (service_role),
 // siempre recalculadas con la calculadora: nunca se guarda un número derivado que mande el navegador.
@@ -56,7 +56,8 @@ function toPlan(r: PricingRow): PricingPlan & { updatedAt: string } {
     margin: salePrice > 0 ? n(r.profit) / salePrice : 0,
     maxCpa: nn(r.max_cpa),
     beroas: nn(r.beroas),
-    packs: r.packs.map(
+    packs: withRecommendation(
+      r.packs.map(
       (p): PackPrice => ({
         units: p.units,
         price: p.price,
@@ -66,7 +67,10 @@ function toPlan(r: PricingRow): PricingPlan & { updatedAt: string } {
         savings: p.savings,
         savingsRate: p.savings_rate,
         earnsMoreThanPrevious: p.earns_more_than_previous,
+        profitMultiple: null,
+        recommended: false,
       }),
+      ),
     ),
     updatedAt: r.updated_at,
   };

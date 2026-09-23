@@ -6,9 +6,9 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 3;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 4;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
-export const CUSTOMER_AVATAR_PROMPT_VERSION = 2;
+export const CUSTOMER_AVATAR_PROMPT_VERSION = 3;
 
 const text = z.string();
 const maybe = z.string().nullable();

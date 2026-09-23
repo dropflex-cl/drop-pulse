@@ -1,4 +1,4 @@
-import { money, percent } from "@/lib/format";
+import { money as formatMoney, percent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export interface PricePart {
@@ -12,6 +12,8 @@ export interface PriceBreakdownProps {
   parts: PricePart[];
   /** Los supuestos del cálculo. */
   note?: string;
+  /** Moneda de la tienda (CLP por defecto). */
+  currency?: string;
   className?: string;
 }
 
@@ -19,7 +21,8 @@ export interface PriceBreakdownProps {
 const COST_COLORS = ["bg-chart-1", "bg-chart-2", "bg-chart-3"];
 
 /** Cuánto ganas por venta y en qué se va el resto del precio. Cálculo puro: se recalcula al cambiar las props. */
-export function PriceBreakdown({ price, parts, note, className }: PriceBreakdownProps) {
+export function PriceBreakdown({ price, parts, note, currency = "CLP", className }: PriceBreakdownProps) {
+  const money = (v: number) => formatMoney(v, currency);
   const cost = parts.reduce((sum, p) => sum + p.value, 0);
   const profit = price - cost;
   const total = Math.max(price, cost, 1);

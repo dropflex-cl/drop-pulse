@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, Field, Icon } from "@/components/df";
-import { amount, currencySymbol, fractionDigits, money, parseAmount, percent } from "@/lib/format";
+import { Button, Field, Icon, PriceBreakdown } from "@/components/df";
+import { amount, currencySymbol, fractionDigits, money, parseAmount } from "@/lib/format";
 import { roundingFor, suggestCompareAtPrice } from "@/lib/pricing/calculator";
 import { buildPricingPlan, suggestPrices, validatePricingForm, type PricingForm } from "@/lib/pricing/plan";
 import { productsApi, ProductApiClientError } from "@/lib/products/client";
 import type { SavedPricingDto } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// “Precio y packs” (Información base): la calculadora de dropflex v1. Requisito para “Optimizar con
+// “Precio y packs” (Información base): la calculadora de dropflex v1, con el orden de la pantalla de
+// precio del design system (la ganancia primero, los supuestos en una línea). Empuja los packs. Requisito para “Optimizar con
 // IA”: la ficha y el cliente ideal leen estos números. Todo se recalcula mientras escribes; el
 // servidor vuelve a calcular al guardar.
 
@@ -71,6 +72,7 @@ export function PricingSection({
   const [savedTexts, setSavedTexts] = useState<Texts | null>(() => (saved ? toTexts(saved, currency) : null));
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<{ field?: string; message: string }>();
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false);
 
   const form = toForm(texts, currency);
   const suggestion = suggestPrices(form, currency);
@@ -124,6 +126,21 @@ export function PricingSection({
   // Un campo vacío no se marca en rojo hasta que se escribe algo: el botón ya dice que falta.
   const err = (k: Key) => (serverError?.field === k ? serverError.message : shownTexts[k] ? errors[k] : undefined);
   const m = (v: number) => money(v, currency);
+  const assumptionsError = (["avgShippingCost", "purchaseCostLimit", "confirmationRate", "deliveryRate"] as Key[]).some((k) => err(k));
+  const showAssumptions = assumptionsOpen || assumptionsError;
+
+  // En qué se va el precio de 1 unidad (PriceBreakdown). Envío y publicidad incluyen lo que se pierde
+  // en pedidos no confirmados o no entregados; el redondeo del equilibrio va en publicidad.
+  const parts = plan
+    ? (() => {
+        const shipping = plan.avgShippingCost / (plan.deliveryRate / 100);
+        return [
+          { label: "Producto", value: plan.unitCost },
+          { label: "Envío, con los no entregados", value: shipping },
+          { label: "Anuncios, con los no confirmados", value: plan.minimumPrice - plan.unitCost - shipping },
+        ];
+      })()
+    : [];
 
   return (
     <section aria-labelledby="precio-packs" className="rounded-lg border bg-card p-4">
@@ -142,24 +159,11 @@ export function PricingSection({
       </div>
       <p className="mt-0.5 text-label font-normal text-muted-foreground">La IA escribe la ficha y el cliente ideal para este precio y estos packs.</p>
 
-      <h3 className="mt-4 text-label text-muted-foreground">Tus costos</h3>
-      <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
+      {/* La ganancia primero (design-system/arquitectura.md › 5). */}
+      {plan ? <PriceBreakdown className="mt-4" price={plan.salePrice} parts={parts} currency={currency} /> : null}
+
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Field label="Costo en el proveedor" prefix={sym} inputMode="numeric" value={texts.unitCost} onValueChange={set("unitCost")} error={err("unitCost")} />
-        <Field label="Envío por pedido" prefix={sym} inputMode="numeric" value={texts.avgShippingCost} onValueChange={set("avgShippingCost")} error={err("avgShippingCost")} />
-        <Field label="Anuncios por pedido" prefix={sym} inputMode="numeric" value={texts.purchaseCostLimit} onValueChange={set("purchaseCostLimit")} error={err("purchaseCostLimit")} hint="CPA objetivo" />
-        <Field label="Pedidos confirmados" suffix="%" inputMode="decimal" value={texts.confirmationRate} onValueChange={set("confirmationRate")} error={err("confirmationRate")} />
-        <Field label="Confirmados entregados" suffix="%" inputMode="decimal" value={texts.deliveryRate} onValueChange={set("deliveryRate")} error={err("deliveryRate")} />
-      </div>
-
-      {suggestion ? (
-        <p className="mt-3 text-small text-muted-foreground">
-          Equilibrio <span className="text-foreground tabular-nums">{m(suggestion.minimumPrice)}</span> · recomendado{" "}
-          <span className="font-semibold text-foreground tabular-nums">{m(suggestion.recommendedPrice)}</span>
-        </p>
-      ) : null}
-
-      <h3 className="mt-4 text-label text-muted-foreground">Tu oferta</h3>
-      <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Field
           label="Precio de venta"
           prefix={sym}
@@ -167,8 +171,7 @@ export function PricingSection({
           value={shownTexts.salePrice}
           onValueChange={set("salePrice")}
           error={err("salePrice")}
-          ai={!priceTouched && Boolean(suggestion)}
-          hint={!priceTouched && suggestion ? "El recomendado" : undefined}
+          hint={suggestion ? `Recomendado ${m(suggestion.recommendedPrice)} · equilibrio ${m(suggestion.minimumPrice)}` : undefined}
         />
         <Field
           label="Precio tachado"
@@ -179,41 +182,68 @@ export function PricingSection({
           error={err("compareAtPrice")}
           hint={plan?.discountPercent != null ? `${plan.discountPercent}% de descuento` : "Opcional"}
         />
-        <Field label="Descuento por unidad extra" suffix="%" inputMode="numeric" value={texts.extraUnitDiscount} onValueChange={set("extraUnitDiscount")} error={err("extraUnitDiscount")} hint="En los packs" />
       </div>
 
+      {/* Supuestos: declarados en una línea; se cambian aparte para no llenar la pantalla de campos. */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="min-w-0 flex-1 text-caption text-muted-foreground">
+          Se confirma el {texts.confirmationRate || "—"}% y se entrega el {texts.deliveryRate || "—"}% · envío {texts.avgShippingCost ? `${sym}${texts.avgShippingCost}` : "—"} y anuncios{" "}
+          {texts.purchaseCostLimit ? `${sym}${texts.purchaseCostLimit}` : "—"} por pedido
+        </p>
+        <Button size="sm" variant="ghost" aria-expanded={showAssumptions} aria-controls="supuestos" onClick={() => setAssumptionsOpen((o) => !o)}>
+          {showAssumptions ? "Listo" : "Cambiar supuestos"}
+        </Button>
+      </div>
+      {showAssumptions ? (
+        <div id="supuestos" className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Field label="Envío por pedido" prefix={sym} inputMode="numeric" value={texts.avgShippingCost} onValueChange={set("avgShippingCost")} error={err("avgShippingCost")} />
+          <Field label="Anuncios por pedido" prefix={sym} inputMode="numeric" value={texts.purchaseCostLimit} onValueChange={set("purchaseCostLimit")} error={err("purchaseCostLimit")} hint="CPA objetivo" />
+          <Field label="Pedidos confirmados" suffix="%" inputMode="decimal" value={texts.confirmationRate} onValueChange={set("confirmationRate")} error={err("confirmationRate")} />
+          <Field label="Confirmados entregados" suffix="%" inputMode="decimal" value={texts.deliveryRate} onValueChange={set("deliveryRate")} error={err("deliveryRate")} />
+        </div>
+      ) : null}
+
+      <h3 className="mt-5 text-row">Packs</h3>
+      <p className="mt-0.5 text-caption text-muted-foreground">
+        El anuncio y el envío se pagan una vez por pedido: cada unidad extra solo te cuesta el producto. Empuja el pack.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <Field
+          label="Descuento por unidad extra"
+          suffix="%"
+          inputMode="numeric"
+          value={texts.extraUnitDiscount}
+          onValueChange={set("extraUnitDiscount")}
+          error={err("extraUnitDiscount")}
+          hint={Number(texts.extraUnitDiscount) === 50 ? "El pack de 3 queda al precio de 2" : "Con 50%, el de 3 queda al precio de 2"}
+        />
+      </div>
       {plan ? (
-        <>
-          <p className="mt-3 text-small">
-            Ganas{" "}
-            <span className={cn("font-semibold tabular-nums", plan.profit < 0 ? "text-destructive" : "text-foreground")}>{m(plan.profit)}</span> por pedido
-            entregado <span className="text-muted-foreground tabular-nums">({percent(plan.margin * 100)})</span>
-            {plan.maxCpa != null ? (
-              <span className="text-muted-foreground">
-                {" "}
-                · puedes pagar hasta <span className="tabular-nums">{m(plan.maxCpa)}</span> en anuncios por pedido
-              </span>
-            ) : null}
-          </p>
-          <ul aria-label="Packs" className="mt-3 divide-y rounded-md border">
-            {plan.packs.map((p) => (
-              <li key={p.units} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-3 py-2.5">
-                <span className="text-row">
+        <ul aria-label="Packs" className="mt-3 divide-y rounded-md border">
+          {plan.packs.map((p) => (
+            <li key={p.units} className="flex items-start justify-between gap-3 px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-1.5 text-row">
                   {p.units === 1 ? "1 unidad" : `Pack ${p.units} unidades`}
-                  {p.units > 1 && p.savingsRate > 0 ? (
-                    <span className="ml-1.5 text-caption text-muted-foreground tabular-nums">−{Math.round(p.savingsRate * 100)}% c/u</span>
+                  {p.recommended && p.units > 1 ? (
+                    <span className="rounded-sm bg-foreground px-1.5 py-0.5 text-micro font-semibold text-background">Recomendado</span>
                   ) : null}
-                </span>
-                <span className="text-row font-semibold tabular-nums">{m(p.price)}</span>
-                <span className={cn("w-full text-caption tabular-nums", p.earnsMoreThanPrevious ? "text-muted-foreground" : "text-warning")}>
+                </p>
+                {p.units > 1 ? (
+                  <p className="text-caption text-muted-foreground tabular-nums">
+                    Ahorra {m(p.savings)} ({Math.round(p.savingsRate * 100)}%) · {m(p.perUnitPrice)} c/u
+                  </p>
+                ) : null}
+                <p className={cn("text-caption tabular-nums", p.earnsMoreThanPrevious ? "text-muted-foreground" : "text-warning")}>
                   {p.earnsMoreThanPrevious
-                    ? `Ganas ${m(p.profit)}${p.units > 1 ? ` · ${m(p.perUnitPrice)} c/u` : ""}`
+                    ? `Ganas ${m(p.profit)}${p.units > 1 && p.profitMultiple && p.profitMultiple >= 2 ? ` · ${Math.round(p.profitMultiple)} veces lo que deja 1 unidad` : ""}`
                     : `Ganas ${m(p.profit)}: no gana más que el anterior, baja el descuento`}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
+                </p>
+              </div>
+              <span className="text-row font-semibold tabular-nums">{m(p.price)}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
 
       {serverError && !serverError.field ? (
