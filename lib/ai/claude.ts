@@ -80,7 +80,9 @@ export async function generateStructured<S extends z.ZodType>({
     if (e instanceof AiStepError) throw e;
     if (e instanceof Anthropic.RateLimitError) throw new AiStepError("rate_limited", "La IA está con mucha demanda. Intenta de nuevo en un minuto.");
     if (e instanceof Anthropic.AuthenticationError) throw new AiStepError("config", "La IA no está bien configurada en el servidor. Avísanos para revisarla.");
-    if (e instanceof Anthropic.BadRequestError) throw new AiStepError("bad_request", "La IA no pudo leer este producto. Revisa que las imágenes abran bien y reintenta.");
+    // El motivo real queda en los logs (Vercel): la pantalla solo muestra el mensaje en español.
+    if (e instanceof Anthropic.APIError) console.error(`[ai] ${e.status ?? "?"} ${e.requestID ?? ""}`, e.message);
+    if (e instanceof Anthropic.BadRequestError) throw new AiStepError("bad_request", "La IA no pudo procesar este producto. Reintenta en un momento; si vuelve a pasar, avísanos.");
     if (e instanceof Anthropic.APIError) throw new AiStepError(`api_${e.status ?? "error"}`, "La IA no respondió. Intenta de nuevo en un momento.");
     throw new AiStepError("network", "No pudimos conectarnos con la IA. Intenta de nuevo en un momento.");
   }

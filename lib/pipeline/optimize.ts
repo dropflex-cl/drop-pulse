@@ -13,6 +13,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
 import { getMarket } from "@/lib/settings/market";
+import { imageBlock } from "./images";
 import { getProductRow, imagesForGeneration, listImageRows, withDisplayUrls, type RunRow } from "@/lib/products/store";
 
 // "Optimizar con IA", primera parte del pipeline de agentes creativos (agentes-creativos/README.md):
@@ -116,10 +117,28 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
   const rows = (await listImageRows(run.user_id, [run.product_id])).filter((r) => wanted.includes(r.id));
   rows.sort((a, b) => wanted.indexOf(a.id) - wanted.indexOf(b.id));
   const urls = await withDisplayUrls(rows);
-  const images = rows.filter((r) => urls.has(r.id));
+  // Se descargan aquí (lib/pipeline/images.ts). Una imagen que no abre se salta; si es la base,
+  // se avisa: la ficha no puede partir de otra sin que el comerciante lo decida.
+  const loaded = await Promise.all(
+    rows.map(async (r) => {
+      const url = urls.get(r.id);
+      if (!url) return null;
+      try {
+        return { row: r, block: await imageBlock(url) };
+      } catch (e) {
+        console.warn(`[pipeline] imagen ${r.id} (${r.source}) no se pudo leer:`, (e as Error).message);
+        return null;
+      }
+    }),
+  );
+  if (wanted.length && loaded[0]?.row.id !== wanted[0]) {
+    throw new AiStepError("image_unreadable", "No pudimos abrir la imagen base. Elige otra como base o vuelve a subirla y reintenta.");
+  }
+  const ok = loaded.filter((l): l is NonNullable<typeof l> => !!l);
+  const images = ok.map((l) => l.row);
 
   const content: Anthropic.Beta.BetaContentBlockParam[] = [
-    ...images.map((r) => ({ type: "image" as const, source: { type: "url" as const, url: urls.get(r.id)! } })),
+    ...ok.map((l) => l.block),
     {
       type: "text",
       text: productBriefUser(
