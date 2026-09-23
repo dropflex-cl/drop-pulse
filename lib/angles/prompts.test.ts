@@ -5,7 +5,7 @@ import { buildPricingPlan } from "@/lib/pricing/plan";
 import { SALES_ANGLES } from "./catalog";
 import { angleRouterSystem, angleRouterUser, angleSystem, angleUser } from "./prompts";
 import { avatarStepSchema } from "@/lib/ai/schemas";
-import { angleBriefSchema, angleRouterSchema, evaluationsFrom } from "./schemas";
+import { angleBriefSchema, angleRouterSchema, evaluationsFrom, routerProblems } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 const pricing = buildPricingPlan(
@@ -92,5 +92,35 @@ describe("esquemas de ángulos", () => {
     expect(evals.offer.penalty_applies).toBe(true);
     // Un ángulo que el modelo omitió cuenta como 0.
     expect(evals.authority.criteria).toEqual({ professional_domain: 0, expert_would_use: 0, real_expert: 0 });
+  });
+
+  const complete = () => [
+    { angle: "authority" as const, scores: [4, 3, 0], penalty: true, why: "", risks: [] },
+    { angle: "common_enemy" as const, scores: [3, 5, 3], penalty: false, why: "", risks: [] },
+    { angle: "unique_mechanism" as const, scores: [5, 4, 4], penalty: false, why: "", risks: [] },
+    { angle: "age_identity" as const, scores: [2, 2, 3], penalty: false, why: "", risks: [] },
+    { angle: "personal_story" as const, scores: [0, 4, 3], penalty: true, why: "", risks: [] },
+    { angle: "offer" as const, scores: [4, 3, 4, 0], penalty: false, why: "", risks: [] },
+  ];
+
+  it("acepta una lista completa y rechaza puntajes que no calzan con los criterios", () => {
+    expect(routerProblems({ angles: complete() })).toEqual([]);
+    const short = complete().map((x) => (x.angle === "offer" ? { ...x, scores: [4, 3, 4] } : x));
+    expect(routerProblems({ angles: short })).toEqual(["offer trae 3 puntajes y debe traer 4, uno por criterio en orden."]);
+    const range = complete().map((x) => (x.angle === "authority" ? { ...x, scores: [4, 7, 0] } : x));
+    expect(routerProblems({ angles: range })).toEqual(["authority tiene puntajes fuera de 0 a 5."]);
+  });
+
+  it("rechaza ángulos que faltan o se repiten", () => {
+    const missing = complete().filter((x) => x.angle !== "age_identity");
+    expect(routerProblems({ angles: missing })).toEqual(["Falta el ángulo age_identity."]);
+    const dup = [...complete(), complete()[0]];
+    expect(routerProblems({ angles: dup })).toEqual(["El ángulo authority viene 2 veces."]);
+  });
+
+  it("el reintento le dice al modelo qué falló", () => {
+    const u = angleRouterUser(ctx, ["offer trae 3 puntajes y debe traer 4, uno por criterio en orden."]);
+    expect(u).toContain("Tu respuesta anterior no se pudo puntuar: offer trae 3 puntajes");
+    expect(angleRouterUser(ctx)).not.toContain("respuesta anterior");
   });
 });

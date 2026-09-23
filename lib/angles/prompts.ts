@@ -45,7 +45,7 @@ export function angleRouterSystem(market: Market): string {
     ...angles,
     "",
     "CÓMO EVALUAR",
-    "1. Diagnóstico: tipo de problema, nivel de consciencia (Schwartz; parte del del cliente ideal), sofisticación (1–5), si el resultado se ve en 3 segundos de video, las pruebas reales que hay hoy y qué permite la economía (PRECIO Y OFERTA: packs, ganancia, CPA máximo).",
+    "1. Diagnóstico, campo por campo: nivel de consciencia (Schwartz; parte del del cliente ideal), sofisticación (1–5), si el resultado se ve en 3 segundos de video (result_visible), las pruebas reales que hay hoy en la ficha (available_proof) y, en diagnosis, el tipo de problema y qué permite la economía (PRECIO Y OFERTA: packs, ganancia, CPA máximo). Úsalo para puntuar: sin prueba real no hay 5 en los criterios que la piden.",
     "2. En angles, un elemento por ángulo: scores lleva un número de 0 a 5 por criterio, EN EL ORDEN NUMERADO de arriba (3 números; 4 en offer), y penalty si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
     "3. NO calcules puntajes totales ni ordenes los ángulos: el sistema calcula el puntaje con pesos fijos y comprueba por su cuenta si hay experto o reseñas reales, la sofisticación, la fecha comercial y el margen de los packs.",
     "4. why: una o dos frases para el comerciante, en tuteo, sobre SU producto y SU cliente («Tu cliente ideal ya siente el dolor al final de la jornada: el gancho nombra algo que vive a diario»). Si no encaja, di por qué sin rodeos.",
@@ -84,8 +84,14 @@ function contextBlock(c: AngleContext): string[] {
   ];
 }
 
-export function angleRouterUser(c: AngleContext): string {
-  return [...contextBlock(c), "", "Evalúa los 6 ángulos para este producto."].join("\n");
+/** `retry`: lo que estuvo mal en el intento anterior (lib/angles/schemas.ts › routerProblems). */
+export function angleRouterUser(c: AngleContext, retry: string[] = []): string {
+  return [
+    ...contextBlock(c),
+    "",
+    ...(retry.length ? [`Tu respuesta anterior no se pudo puntuar: ${retry.join(" ")} Revisa que cada ángulo aparezca una vez y traiga un puntaje de 0 a 5 por criterio, en el orden numerado.`, ""] : []),
+    "Evalúa los 6 ángulos para este producto.",
+  ].join("\n");
 }
 
 // ---------------------------------------------------------------- Agentes de ángulo

@@ -7,7 +7,7 @@ import { AWARENESS_LEVELS } from "@/lib/ai/schemas";
 import { ANGLES, SALES_ANGLES, type SalesAngle } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. */
-export const ANGLE_ROUTER_PROMPT_VERSION = 2;
+export const ANGLE_ROUTER_PROMPT_VERSION = 3;
 /** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. */
 export const ANGLE_BRIEF_PROMPT_VERSION = 2;
 
@@ -30,7 +30,10 @@ const angleItem = z.object({
 export const angleRouterSchema = z.object({
   awareness_level: z.enum(AWARENESS_LEVELS),
   sophistication: z.number().int().describe("De 1 a 5."),
-  diagnosis: text.describe("Tipo de problema, si el resultado se ve en 3 segundos, las pruebas reales que hay y qué permite la economía, en 2 o 3 frases."),
+  // Campos propios (y no solo el texto): obligan a revisar cada punto del diagnóstico.
+  result_visible: z.boolean().describe("true si el resultado se ve en 3 segundos de video; false si es invisible (alivio, bienestar)."),
+  available_proof: z.array(text).describe("Pruebas reales que hay hoy en la ficha (reseñas, experto, estudios, cifras). Vacío si no hay."),
+  diagnosis: text.describe("Tipo de problema y qué permite la economía de PRECIO Y OFERTA, en 1 o 2 frases."),
   angles: z.array(angleItem).describe("Los 6 ángulos, uno por elemento."),
   combinations: z
     .array(z.object({ primary: z.enum(SALES_ANGLES), secondary: z.enum(SALES_ANGLES), how: text }))
@@ -51,7 +54,29 @@ export interface AngleEvaluation {
 }
 export type AngleEvaluations = Record<SalesAngle, AngleEvaluation>;
 
-/** De la lista del modelo a un mapa por ángulo. Un ángulo que falte cuenta como 0 en todo. */
+/**
+ * Qué está mal en la lista del modelo: ángulos que faltan o se repiten, o puntajes que no calzan con
+ * los criterios (cantidad o rango). Vacío si se puede puntuar. Con problemas, la respuesta se
+ * rechaza y se pide otra: completar con 0 bajaría un puntaje sin que nadie lo note.
+ */
+export function routerProblems(output: Pick<AngleRouterOutput, "angles">): string[] {
+  const problems: string[] = [];
+  for (const a of SALES_ANGLES) {
+    const items = output.angles.filter((x) => x.angle === a);
+    if (!items.length) {
+      problems.push(`Falta el ángulo ${a}.`);
+      continue;
+    }
+    if (items.length > 1) problems.push(`El ángulo ${a} viene ${items.length} veces.`);
+    const expected = ANGLES[a].criteria.length;
+    const scores = items[0].scores;
+    if (scores.length !== expected) problems.push(`${a} trae ${scores.length} puntajes y debe traer ${expected}, uno por criterio en orden.`);
+    if (scores.some((n) => !Number.isInteger(n) || n < 0 || n > 5)) problems.push(`${a} tiene puntajes fuera de 0 a 5.`);
+  }
+  return problems;
+}
+
+/** De la lista del modelo (ya validada con routerProblems) a un mapa por ángulo. */
 export function evaluationsFrom(output: Pick<AngleRouterOutput, "angles">): AngleEvaluations {
   return Object.fromEntries(
     SALES_ANGLES.map((a) => {

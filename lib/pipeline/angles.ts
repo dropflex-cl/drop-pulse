@@ -10,6 +10,7 @@ import {
   angleBriefSchema,
   angleRouterSchema,
   evaluationsFrom,
+  routerProblems,
   type AngleBriefEdit,
   type AngleBriefPayload,
 } from "@/lib/angles/schemas";
@@ -158,13 +159,26 @@ export async function runRanking(rankingId: string): Promise<void> {
   const r = claimed.data as RankingRow;
   try {
     const ctx = await contextFor(r, r.input);
-    const { data, usage } = await generateStructured({
-      system: angleRouterSystem(r.input.market as Market),
-      content: [{ type: "text", text: angleRouterUser(ctx) }],
-      schema: angleRouterSchema,
-      effort: "medium",
-    });
-    await logGeneration(r.user_id, r.product_id, "angle_ranking", usage);
+    // Si la lista de puntajes no calza con los criterios, se pide otra una vez (diciendo qué falló);
+    // nunca se completa con ceros.
+    const evaluate = (retry: string[]) =>
+      generateStructured({
+        system: angleRouterSystem(r.input.market as Market),
+        content: [{ type: "text", text: angleRouterUser(ctx, retry) }],
+        schema: angleRouterSchema,
+        effort: "medium",
+      });
+    let problems: string[] = [];
+    let result: Awaited<ReturnType<typeof evaluate>> | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      result = await evaluate(problems);
+      problems = routerProblems(result.data);
+      await logGeneration(r.user_id, r.product_id, "angle_ranking", result.usage, problems.length ? "invalid_scores" : undefined);
+      if (!problems.length) break;
+      console.warn("[angles] puntajes inválidos", problems);
+    }
+    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA respondió con puntajes incompletos. Toca Reintentar.");
+    const { data, usage } = result;
     const evals = evaluationsFrom(data);
     const ranking = rankAngles(evals, facts(ctx.brief, ctx.avatar, ctx.pricing));
     const now = new Date().toISOString();

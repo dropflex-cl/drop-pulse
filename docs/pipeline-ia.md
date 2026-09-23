@@ -125,6 +125,8 @@ Cliente ideal aprobado + ficha + precio (y etiquetas de packs aprobadas)
 - la fecha comercial de Oferta sale de `real_deadline_or_event`;
 - Oferta se castiga si ningún pack gana más que 1 unidad.
 
+**Esquema compacto y validado:** la API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled grammar is too large»). Por eso los 6 ángulos comparten una forma y los criterios van como lista de puntajes en el orden de `lib/angles/catalog.ts`. `routerProblems` revisa que estén los 6, sin repetir, con un puntaje de 0 a 5 por criterio; si no, se pide otra respuesta una vez diciendo qué falló y, si vuelve a fallar, la evaluación queda con error. Nunca se completa con ceros. Un test impide que un esquema de ángulos sea más grande que el del cliente ideal.
+
 Desempates: si los dos primeros están a menos de 5 puntos, gana el que tiene la prueba real hoy; la oferta pasa a secundario si otro está a menos de 10 puntos.
 
 **Prompts** (`lib/angles/prompts.ts`): los de `agentes-creativos/*.md`, adaptados a LATAM:
