@@ -43,6 +43,41 @@ function productEntries(products: Product[]): AttentionEntry[] {
         actions: [{ label: "Empezar", href, iconEnd: "chevron-right" }],
       });
     }
+
+    // Etapa Ángulos: se habilita al aprobar el cliente ideal.
+    const angles = p.stages.find((s) => s.key === "angulos");
+    const anglesHref = productHref(p.id, "angulos");
+    if (angles?.state === "error") {
+      out.push({
+        id: `angles-error-${p.id}`,
+        group: "primero",
+        kind: "error",
+        title: "No se pudieron preparar los ángulos",
+        product: p.name,
+        detail: angles.desc,
+        actions: [{ label: "Reintentar", href: anglesHref, variant: "primary" }],
+      });
+    } else if (p.anglesPhase === "choose" || p.anglesPhase === "review") {
+      const choosing = p.anglesPhase === "choose";
+      out.push({
+        id: `angles-review-${p.id}`,
+        group: "revisar",
+        kind: "review",
+        title: choosing ? "Elige cómo vender este producto" : "Tus ángulos están listos para revisar",
+        product: p.name,
+        detail: angles?.desc,
+        actions: [{ label: choosing ? "Elegir ángulos" : "Revisar ahora", href: anglesHref, iconEnd: "chevron-right" }],
+      });
+    } else if (p.anglesPhase === "new") {
+      out.push({
+        id: `angles-${p.id}`,
+        group: "revisar",
+        kind: "stuck",
+        title: "Falta elegir los ángulos de venta",
+        product: `${p.name} · cliente ideal aprobado`,
+        actions: [{ label: "Empezar", href: anglesHref, iconEnd: "chevron-right" }],
+      });
+    }
   }
   return out;
 }

@@ -34,3 +34,17 @@ export { StateChip } from "./state-chip";
 export { ProductInfoInput, INFO_TOPICS, type ProductInfoInputProps } from "./product-info-input";
 export { ReferenceImage, ReferenceAddTile, type ReferenceImageProps, type ReferenceImageState } from "./reference-image";
 export { ImageUploader, ACCEPTED_TYPES, type ImageUploaderProps, type UploadItem, type UploaderMode } from "./image-uploader";
+// Ángulos de venta (etapa Ángulos: ranking del orquestador y desarrollos)
+export { ScoreBar, type ScoreBarProps } from "./score-bar";
+export { RoleChip, AiChip, type RoleChipProps, type AngleRoleUi } from "./role-chip";
+export { AngleCard, type AngleCardProps, type AngleRisk, type ScoreFactor } from "./angle-card";
+export { AngleSuggestion, type AngleSuggestionProps } from "./angle-suggestion";
+export { IcpSummary, linkClasses, type IcpSummaryProps } from "./icp-summary";
+export {
+  AngleDevelopment,
+  AngleDevelopmentActions,
+  type AngleDevelopmentProps,
+  type AngleDevelopmentStatus,
+  type AngleDevelopmentValue,
+  type AidaText,
+} from "./angle-development";

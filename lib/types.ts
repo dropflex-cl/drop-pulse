@@ -9,11 +9,12 @@ import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
+import type { AngleRole, SalesAngle } from "@/lib/angles/catalog";
 
 export type { ContentStatus, Verdict };
 
 /** Etapas de la ruta de un producto, en orden. */
-export type StageKey = "importado" | "textos" | "imagenes" | "publicar" | "anuncios";
+export type StageKey = "importado" | "angulos" | "textos" | "imagenes" | "publicar" | "anuncios";
 
 export interface Stage {
   key: StageKey;
@@ -44,6 +45,8 @@ export interface Product {
   summary: string;
   /** Estado del contenido en el encabezado; un producto sin optimizar no tiene. */
   status?: ContentStatus;
+  /** Fase de la etapa Ángulos (lib/products/stages.ts › anglesPhase). */
+  anglesPhase?: "locked" | "new" | "evaluating" | "failed" | "choose" | "developing" | "review" | "done";
   supplierCost: number;
   /** Precio actual en la tienda y su moneda (ISO 4217). */
   price?: number;
@@ -120,6 +123,79 @@ export interface ProductBase {
   pricingDefaults: Partial<PricingForm>;
   /** Lo que la ficha dice que falta, como preguntas para el comerciante. */
   missingInputs: { field: string; question: string }[];
+}
+
+/** Un ángulo del ranking del orquestador, con su puntaje calculado en código (AngleCard). */
+export interface AngleOption {
+  angle: SalesAngle;
+  name: string;
+  rank: number;
+  score: number;
+  why: string;
+  /** La penalización fuerte trae sus puntos; `fix` dice qué dato la resuelve. */
+  risks: { text: string; penalty?: number; fix?: "reviews" | "expert" }[];
+  breakdown: { label: string; value: number }[];
+}
+
+export interface AnglePair {
+  primary: SalesAngle;
+  secondary: SalesAngle;
+}
+
+/** La evaluación del orquestador y la elección del comerciante. */
+export interface AngleRankingView {
+  id: string;
+  status: RunStatus;
+  error?: string;
+  createdAt: string;
+  /** Los 6, de mayor a menor (vacío mientras evalúa o si falló). */
+  angles: AngleOption[];
+  suggested?: AnglePair;
+  /** Lo que confirmó el comerciante. */
+  chosen?: AnglePair;
+  confirmedAt?: string;
+  /** Cómo se combinan los pares con más sentido, según el orquestador. */
+  combos: (AnglePair & { text: string })[];
+  /** “Para elegir mejor, falta”: nunca bloquea la confirmación. */
+  missing: { text: string; fix?: "reviews" | "expert" }[];
+  /** El cliente ideal cambió después de evaluar. */
+  avatarChanged: boolean;
+}
+
+/** Lo que el comerciante revisa y edita de un desarrollo (AngleDevelopment). */
+export interface AngleBriefContent {
+  coreMessage: string;
+  hooks: string[];
+  recommendedHook: number;
+  aida: { attention: string; interest: string; desire: string; action: string };
+  objections: { objection: string; answer: string }[];
+  offer: string;
+}
+
+export interface AngleBriefView {
+  id: string;
+  angle: SalesAngle;
+  name: string;
+  role: AngleRole;
+  generation: RunStatus;
+  error?: string;
+  status: ContentStatus;
+  content?: AngleBriefContent;
+  createdAt: string;
+  editedAt?: string;
+}
+
+/** El estado de la etapa Ángulos (lo que devuelve el sondeo). */
+export interface AnglesState {
+  /** El cliente ideal vigente (IcpSummary). */
+  avatar?: { summary: string; tags: string[]; approved: boolean };
+  ranking?: AngleRankingView;
+  briefs: Partial<Record<AngleRole, AngleBriefView>>;
+}
+
+/** Todo lo que necesita la etapa Ángulos. */
+export interface ProductAngles extends AnglesState {
+  product: Product;
 }
 
 /** Una propuesta de la IA para un campo del producto. */

@@ -1,7 +1,9 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
-import type { AvatarProposal, OptimizationRun, PackLabelsProposal, ReferenceImage, SavedPricingDto } from "@/lib/types";
+import type { AngleBriefEdit } from "@/lib/angles/schemas";
+import type { SalesAngle } from "@/lib/angles/catalog";
+import type { AnglesState, AvatarProposal, OptimizationRun, PackLabelsProposal, ReferenceImage, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -80,4 +82,11 @@ export const productsApi = {
   status: (id: string) => call<{ run: OptimizationRun | null; avatar: AvatarProposal | null }>(`/${id}/optimize`),
   decideAvatar: (id: string, action: "approve" | "reopen") => send<{ avatar: AvatarProposal }>("PATCH", `/${id}/avatar`, { action }),
   editAvatar: (id: string, avatar: CustomerAvatar, approve: boolean) => send<{ avatar: AvatarProposal }>("PUT", `/${id}/avatar`, { avatar, approve }),
+  // Etapa Ángulos: cada acción devuelve el estado completo de la etapa.
+  angles: (id: string) => call<AnglesState>(`/${id}/angles`),
+  evaluateAngles: (id: string) => send<AnglesState>("POST", `/${id}/angles`),
+  confirmAngles: (id: string, primary: SalesAngle, secondary: SalesAngle) => send<AnglesState>("PUT", `/${id}/angles/selection`, { primary, secondary }),
+  decideAngleBrief: (id: string, briefId: string, action: "approve" | "reopen") => send<AnglesState>("PATCH", `/${id}/angles/briefs/${briefId}`, { action }),
+  editAngleBrief: (id: string, briefId: string, edit: AngleBriefEdit, approve: boolean) => send<AnglesState>("PUT", `/${id}/angles/briefs/${briefId}`, { edit, approve }),
+  regenerateAngleBrief: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}`),
 };

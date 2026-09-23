@@ -8,7 +8,7 @@ import { useDesktop } from "./use-desktop";
 
 // Las pantallas de etapa (información base, revisión, imágenes, precio) ocupan el alto completo con su propia barra
 // de acción, sin barra de pestañas (design-system/reference/bundle.js → ScreenRevision/Imagenes/Precio).
-const STAGE_SCREEN = /^\/products\/[^/]+\/(base|copy|images|price)$/;
+const STAGE_SCREEN = /^\/products\/[^/]+\/(base|angles|copy|images|price)$/;
 
 type Badges = Partial<Record<NavId, number>>;
 

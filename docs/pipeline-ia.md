@@ -1,6 +1,6 @@
-# Pipeline de IA: “Optimizar con IA”
+# Pipeline de IA: “Optimizar con IA” y Ángulos
 
-Primera iteración del sistema de agentes creativos, adaptado a LATAM con pago contra entrega. Hoy genera la **ficha de producto** y el **cliente ideal**. Los ángulos de venta, los guiones y los estáticos vienen después y leen estas dos piezas.
+Sistema de agentes creativos, adaptado a LATAM con pago contra entrega. Hoy genera la **ficha de producto** y el **cliente ideal** (Información base) y, en la etapa **Ángulos**, el ranking del orquestador y los **2 desarrollos de ángulo** elegidos. Los textos, los estáticos, los guiones y el copywriter vienen después y leen estas piezas.
 
 ```
 Shopify ──► products (descripción + imágenes)       merchant_settings (país, moneda, idioma)
@@ -18,7 +18,10 @@ excluye imágenes que no sirven y sube otras                 │
  El comerciante acepta, edita o vuelve a generar (approved / in_review)
                  │
                  ▼
- Siguiente iteración: angle-router → agentes de ángulo → guionista-ugc ∥ generador-estaticos → productor-clips
+ Etapa Ángulos (ver abajo): angle-router → angulo-<principal> ∥ angulo-<secundario>
+                 │
+                 ▼
+ Siguiente: textos · guionista-ugc ∥ generador-estaticos → productor-clips → copywriter
 ```
 
 ## Modelo de datos (en inglés)
@@ -91,11 +94,63 @@ La plantilla de la fórmula va en el prompt: en el proyecto base solo se nombrab
 3. Los productos elegidos en el onboarding se crean al guardar “Tus números”. Para cuentas anteriores, se crean al abrir Productos.
 4. `/dev/screens/base?state=new|optimizing|failed|review|approved` muestra la pantalla con datos de ejemplo (solo en desarrollo).
 
+## Etapa Ángulos
+
+```
+Cliente ideal aprobado + ficha + precio (y etiquetas de packs aprobadas)
+                 │
+      “Elegir ángulos con IA”  POST /api/products/[id]/angles   (angle_rankings: queued → running)
+                 ▼
+ angle-router (effort medium) → criterios 0–5 y penalización por ángulo, combinaciones, datos que faltan
+                 │
+ lib/angles/score.ts → puntaje 0–100 por ángulo, ranking y sugerencia (principal + secundario)
+                 ▼
+ El comerciante confirma o cambia   PUT /api/products/[id]/angles/selection
+                 ▼
+ angulo-<principal> ∥ angulo-<secundario> (effort high) → angle_briefs.payload (generated)
+                 ▼
+ Aprobar, editar o regenerar cada uno; con los 2 aprobados se habilita Textos
+```
+
+| Tabla | Qué guarda |
+|---|---|
+| `angle_rankings` | Una evaluación: `status`, `input` (mercado, precio, `avatar_id` y el puntaje posible con la prueba que falta), `payload` (lo que dijo el modelo), `scores` (el ranking calculado), `suggested_*`, la elección confirmada (`primary_angle`, `secondary_angle`, `confirmed_at`). Una activa por producto |
+| `angle_briefs` | Un desarrollo por intento: `angle`, `role` (`primary`/`secondary`), `generation` (estado de la llamada), `payload` (el brief), `status` (`content_status`). Regenerar crea otro y el anterior queda `rejected`. Uno activo por papel |
+
+**Puntaje** (`lib/angles/score.ts`): `fit = Σ(criterio × peso) / (5 × Σpesos) × 100 − penalización`, con los pesos y castigos de `angle-router.md` (`lib/angles/catalog.ts`). El sistema pisa al modelo con lo que puede comprobar:
+
+- `real_expert` y la penalización de Autoridad salen de `proof.real_expert` de la ficha;
+- `narrative_reviews` y la penalización de Historia personal salen de `proof.real_reviews`;
+- la sofisticación de Enemigo común sale del cliente ideal;
+- la fecha comercial de Oferta sale de `real_deadline_or_event`;
+- Oferta se castiga si ningún pack gana más que 1 unidad.
+
+Desempates: si los dos primeros están a menos de 5 puntos, gana el que tiene la prueba real hoy; la oferta pasa a secundario si otro está a menos de 10 puntos.
+
+**Prompts** (`lib/angles/prompts.ts`): los de `agentes-creativos/*.md`, adaptados a LATAM:
+
+- copy en el idioma del mercado con tuteo (`marketBlock`), no en inglés;
+- el riesgo lo quita el pago contra entrega; la garantía solo si la ficha la trae;
+- los umbrales en USD se reemplazan por `pricingBlock` (packs, ganancia, CPA máximo);
+- la ley es la del país (`consumerAuthority`), además de las políticas de Meta.
+
+**Rutas**
+
+| Método y ruta | Qué hace |
+|---|---|
+| `GET /api/products/[id]/angles` | Estado de la etapa (sondeo cada 2,5 s) |
+| `POST /api/products/[id]/angles` | Evalúa (o devuelve la evaluación activa) |
+| `PUT /api/products/[id]/angles/selection` | `{ primary, secondary }`: confirma y desarrolla los que falten |
+| `PATCH /api/products/[id]/angles/briefs/[briefId]` | `{ action: "approve" \| "reopen" }` |
+| `PUT /api/products/[id]/angles/briefs/[briefId]` | `{ edit, approve? }`: ganchos, argumento por etapa, objeciones y oferta |
+| `POST /api/products/[id]/angles/briefs/[briefId]` | Regenera |
+
+Topes: 20 evaluaciones y 60 desarrollos por comerciante cada 24 horas. `/dev/screens/angles?state=locked|start|evaluating|failed|ranking|developing|review|approved` muestra la etapa con datos de ejemplo.
+
 ## Pendiente
 
-- **Siguiente iteración:** `angle-router` y los agentes de ángulo, con la ficha y el cliente ideal como entrada.
-  - Adaptarlos a LATAM y a pago contra entrega.
-  - La puntuación se calcula en código, no en el prompt.
+- **Siguiente iteración:** Textos (la página del producto) a partir de los 2 desarrollos aprobados; después, estáticos, guiones y el copywriter (`agentes-creativos 4/copywriter.md`, con cierre COD).
+- **Datos de la tienda para el cierre COD:** envío gratis, plazo real de entrega, WhatsApp y garantía (el copywriter los necesita).
 - **Textos e imágenes generados:** `getProductContent` y `getProductImages` devuelven vacío.
 - **Precio:** `getPricing` todavía usa envío y publicidad fijos. Hay que usar los números del onboarding y la moneda del mercado.
 - **Evaluaciones:** medir con casos reales si el cliente ideal mejora los anuncios (ver el análisis de dropflex base).

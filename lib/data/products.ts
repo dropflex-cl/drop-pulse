@@ -1,14 +1,16 @@
-// Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs y
-// customer_avatars). Los textos e imágenes generados todavía no existen: esas lecturas devuelven
-// vacío y las pantallas muestran su estado de espera.
+// Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs,
+// customer_avatars y la etapa Ángulos: angle_rankings, angle_briefs). Los textos e imágenes
+// generados todavía no existen: esas lecturas devuelven vacío y las pantallas muestran su espera.
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { ANGLES } from "@/lib/angles/catalog";
+import { currentBriefs, expireStaleAngles, latestRankings, toBriefView, toRankingView, type BriefRow, type RankingRow } from "@/lib/angles/store";
 import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition } from "@/lib/products/stages";
+import { productPosition, type AngleFacts } from "@/lib/products/stages";
 import {
   baseImage,
   expireStaleRuns,
@@ -20,6 +22,7 @@ import {
   listProductRows,
   toProposal,
   toReferenceImage,
+  toUiStatus,
   toRun,
   withDisplayUrls,
   type AvatarRow,
@@ -27,7 +30,7 @@ import {
   type ProductRow,
   type RunRow,
 } from "@/lib/products/store";
-import type { ContentItem, ImageOption, Product, ProductBase, ProductFilter } from "@/lib/types";
+import type { AnglesState, ContentItem, ImageOption, Product, ProductAngles, ProductBase, ProductFilter } from "@/lib/types";
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -40,12 +43,21 @@ function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow): Product {
+function angleFacts(ranking: RankingRow | undefined, briefs: Partial<Record<"primary" | "secondary", BriefRow>> | undefined): AngleFacts | null {
+  if (!ranking) return null;
+  return {
+    ranking: { status: ranking.status, error: ranking.error_message, confirmed: Boolean(ranking.confirmed_at) },
+    briefs: Object.values(briefs ?? {}).map((b) => ({ role: b.role, name: ANGLES[b.angle].name, status: toUiStatus(b.status), generation: b.generation, error: b.error_message })),
+  };
+}
+
+function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, angles?: AngleFacts | null): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
     run: run ? { status: run.status, error: run.error_message, createdAt: run.created_at } : null,
     avatar: avatar ? { status: toProposal(avatar).status, createdAt: avatar.created_at } : null,
+    angles,
   });
   return {
     id: row.id,
@@ -60,6 +72,7 @@ function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: Avatar
     stages: position.stages,
     summary: position.summary,
     status: position.status,
+    anglesPhase: position.anglesPhase,
     supplierCost: row.cost == null ? 0 : Number(row.cost),
     price: Number(row.price),
     currency: row.currency,
@@ -71,15 +84,17 @@ const allProducts = cache(async (): Promise<Product[]> => {
   const uid = await userId();
   // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
   await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await expireStaleRuns(uid);
+  await Promise.all([expireStaleRuns(uid), expireStaleAngles(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars] = await Promise.all([listImageRows(uid, ids), latestRuns(uid, ids), latestAvatars(uid, ids)]);
+  const [images, runs, avatars, rankings] = await Promise.all([listImageRows(uid, ids), latestRuns(uid, ids), latestAvatars(uid, ids), latestRankings(uid, ids)]);
+  const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
   const urls = await withDisplayUrls(covers);
   return rows.map((r) => {
     const c = covers.find((i) => i.product_id === r.id);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id));
+    const ranking = rankings.get(r.id);
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), angleFacts(ranking, ranking?.confirmed_at ? briefs.get(ranking.id) : undefined));
   });
 });
 
@@ -129,6 +144,37 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     missingInputs: brief?.missing_inputs ?? [],
   };
 });
+
+/** La etapa Ángulos: el cliente ideal que la alimenta, la evaluación del orquestador y los 2 desarrollos. */
+export const getProductAngles = cache(async (id: string): Promise<ProductAngles | null> => {
+  const uid = await userId();
+  const product = await getProduct(id);
+  if (!product) return null;
+  return { product, ...(await anglesState(uid, id)) };
+});
+
+/** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/angles). */
+export async function anglesState(uid: string, productId: string): Promise<AnglesState> {
+  const [avatars, rankings] = await Promise.all([latestAvatars(uid, [productId]), latestRankings(uid, [productId])]);
+  const avatar = avatars.get(productId);
+  const ranking = rankings.get(productId);
+  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
+  const a = avatar?.payload;
+  return {
+    avatar: a
+      ? {
+          summary: a.summary,
+          tags: [a.demographics.age_range, a.demographics.occupation_or_role, a.demographics.location].map((t) => t?.trim()).filter(Boolean).slice(0, 3),
+          approved: avatar.status === "approved",
+        }
+      : undefined,
+    ranking: ranking ? toRankingView(ranking, avatar?.status === "approved" ? avatar.id : undefined) : undefined,
+    briefs: {
+      primary: briefs.primary ? toBriefView(briefs.primary) : undefined,
+      secondary: briefs.secondary ? toBriefView(briefs.secondary) : undefined,
+    },
+  };
+}
 
 /** Propuestas de texto de un producto, en orden de revisión. Aún no se generan. */
 export async function getProductContent(productId: string): Promise<ContentItem[]> {

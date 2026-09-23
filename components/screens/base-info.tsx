@@ -451,11 +451,11 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
     summary = "Revisa la propuesta. Puedes editarla o volver a generarla.";
   } else if (approved) {
     primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" href={productHref(product.id, "textos")}>
-        Continuar: Textos
+      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
+        Continuar: Ángulos
       </Button>
     );
-    summary = "Cliente ideal aprobado. Textos e imágenes se generarán con él.";
+    summary = "Cliente ideal aprobado. Con él, la IA evalúa cómo vender el producto.";
   } else {
     primary = (
       <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={starting} disabled={inUse === 0 || !pricing} onClick={optimize}>
