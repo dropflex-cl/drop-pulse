@@ -103,6 +103,8 @@ export interface MetaOption {
   tone?: "warning" | "danger";
   disabled?: boolean;
   tag?: string;
+  id?: string;
+  details?: string[];
 }
 
 export interface MetaAssets {

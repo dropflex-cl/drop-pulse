@@ -13,6 +13,10 @@ export interface Option {
   disabled?: boolean;
   /** “Sugerida”. */
   tag?: string;
+  /** Identificador visible (ID de Meta) para distinguir opciones con el mismo nombre. */
+  id?: string;
+  /** Datos para reconocerla: negocio, zona horaria, gasto, último evento. Cada uno se corta entero. */
+  details?: string[];
 }
 
 export interface OptionListProps {
@@ -82,6 +86,8 @@ export function OptionList({ label, hint, name, value, onChange, options, classN
                     {o.meta}
                   </span>
                 ) : null}
+                {o.details?.length ? <span className="text-caption text-muted-foreground">{o.details.map((d) => d.replaceAll(" ", "\u00a0")).join(" · ")}</span> : null}
+                {o.id ? <span className="font-mono text-caption text-muted-foreground tabular-nums">ID {o.id}</span> : null}
               </span>
               {o.tag ? (
                 <span className="shrink-0 rounded-full bg-background px-1.5 py-px text-micro font-medium text-primary inset-ring inset-ring-primary">

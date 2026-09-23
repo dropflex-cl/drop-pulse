@@ -10,16 +10,62 @@ interface AdAccount {
   name: string;
   account_status: number;
   currency: string;
+  /** El número sin `act_`, como lo muestra el Administrador de anuncios. */
+  account_id?: string;
+  timezone_name?: string;
+  /** Gasto histórico en la unidad mínima de la moneda (ver CURRENCY_OFFSET). */
+  amount_spent?: string;
+  business?: { id: string; name: string };
 }
 interface Page {
   id: string;
   name: string;
+  category?: string;
+  username?: string;
 }
 interface Pixel {
   id: string;
   name: string;
   last_fired_time?: string;
+  creation_time?: string;
+  owner_business?: { id: string; name: string };
 }
+
+const ACCOUNT_FIELDS = "id,name,account_status,currency,account_id,timezone_name,amount_spent,business{id,name}";
+const PAGE_FIELDS = "id,name,category,username";
+const PIXEL_FIELDS = "id,name,last_fired_time,creation_time,owner_business{id,name}";
+
+// Meta expresa los montos en la unidad mínima; estas monedas no tienen decimales (offset 1).
+const NO_DECIMALS = new Set(["CLP", "COP", "CRC", "HUF", "ISK", "IDR", "JPY", "KRW", "PYG", "TWD", "VND"]);
+
+export function formatSpent(amount: string | undefined, currency: string): string | null {
+  const minor = Number(amount);
+  if (!Number.isFinite(minor)) return null;
+  if (minor === 0) return "Sin gasto aún";
+  const value = NO_DECIMALS.has(currency) ? minor : minor / 100;
+  try {
+    const money = new Intl.NumberFormat("es-CL", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+    return `Gastado ${money}`;
+  } catch {
+    return `Gastado ${Math.round(value)} ${currency}`;
+  }
+}
+
+/** “hace 3 h”, “hace 5 días”. */
+export function ago(iso: string | undefined, now: number): string | null {
+  const t = iso ? Date.parse(iso) : NaN;
+  if (Number.isNaN(t)) return null;
+  const min = Math.max(0, Math.round((now - t) / 60_000));
+  if (min < 60) return min <= 1 ? "hace un momento" : `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  if (d < 60) return d === 1 ? "hace 1 día" : `hace ${d} días`;
+  const m = Math.round(d / 30);
+  return m < 24 ? `hace ${m} meses` : `hace ${Math.round(m / 12)} años`;
+}
+
+const compact = (xs: (string | null | undefined)[]) => xs.filter((x): x is string => Boolean(x));
 
 const MAX_ACCOUNTS_WITH_PIXELS = 25;
 const PIXEL_STALE_MS = 7 * 86_400_000;
@@ -43,11 +89,28 @@ function disabledReason(status: number): string | null {
   }
 }
 
+function accountDetails(a: AdAccount): Pick<MetaOption, "id" | "details"> {
+  return {
+    id: a.account_id ?? a.id.replace(/^act_/, ""),
+    details: compact([a.business?.name ?? "Cuenta personal", a.timezone_name, formatSpent(a.amount_spent, a.currency)]),
+  };
+}
+
 function pixelOption(p: Pixel, now: number): MetaOption {
+  const base = {
+    value: p.id,
+    title: p.name,
+    id: p.id,
+    details: compact([
+      p.last_fired_time ? `Último evento ${ago(p.last_fired_time, now)}` : null,
+      p.owner_business?.name,
+      p.creation_time ? `Creado ${ago(p.creation_time, now)}` : null,
+    ]),
+  };
   const last = p.last_fired_time ? Date.parse(p.last_fired_time) : NaN;
-  if (Number.isNaN(last)) return { value: p.id, title: p.name, meta: "Sin eventos aún: revisa que esté en tu tienda", tone: "warning" };
-  if (now - last > PIXEL_STALE_MS) return { value: p.id, title: p.name, meta: "Sin eventos en 7 días: revisa que esté en tu tienda", tone: "warning" };
-  return { value: p.id, title: p.name, meta: "Recibiendo eventos" };
+  if (Number.isNaN(last)) return { ...base, meta: "Sin eventos aún: revisa que esté en tu tienda", tone: "warning" };
+  if (now - last > PIXEL_STALE_MS) return { ...base, meta: "Sin eventos en 7 días: revisa que esté en tu tienda", tone: "warning" };
+  return { ...base, meta: "Recibiendo eventos" };
 }
 
 export interface RawAssets {
@@ -57,15 +120,15 @@ export interface RawAssets {
 }
 
 export async function fetchAccounts(token: string): Promise<AdAccount[]> {
-  return graphList<AdAccount>(token, "/me/adaccounts", { fields: "id,name,account_status,currency" });
+  return graphList<AdAccount>(token, "/me/adaccounts", { fields: ACCOUNT_FIELDS });
 }
 
 export async function fetchPages(token: string): Promise<Page[]> {
-  return graphList<Page>(token, "/me/accounts", { fields: "id,name" });
+  return graphList<Page>(token, "/me/accounts", { fields: PAGE_FIELDS });
 }
 
 export async function fetchPixels(token: string, accountId: string): Promise<Pixel[]> {
-  return graphList<Pixel>(token, `/${accountId}/adspixels`, { fields: "id,name,last_fired_time" });
+  return graphList<Pixel>(token, `/${accountId}/adspixels`, { fields: PIXEL_FIELDS });
 }
 
 export async function fetchRawAssets(token: string): Promise<RawAssets> {
@@ -81,10 +144,21 @@ export function toMetaAssets(raw: RawAssets, shopCurrency: string | null, now = 
   const suggestedAccount = active.find((a) => a.currency === shopCurrency) ?? active[0];
 
   const adAccounts: MetaOption[] = [
-    ...active.map((a) => ({ value: a.id, title: a.name, meta: `${a.currency} · activa`, tag: a.id === suggestedAccount?.id ? "Sugerida" : undefined })),
-    ...raw.accounts
-      .filter((a) => a.account_status !== 1)
-      .map((a) => ({ value: a.id, title: a.name, meta: disabledReason(a.account_status) ?? undefined, tone: "danger" as const, disabled: true })),
+    ...active.map((a) => ({
+      value: a.id,
+      title: a.name,
+      meta: `${a.currency} · activa`,
+      tag: a.id === suggestedAccount?.id ? "Sugerida" : undefined,
+      ...accountDetails(a),
+    })),
+    ...raw.accounts.filter((a) => a.account_status !== 1).map((a) => ({
+      value: a.id,
+      title: a.name,
+      meta: disabledReason(a.account_status) ?? undefined,
+      tone: "danger" as const,
+      disabled: true,
+      ...accountDetails(a),
+    })),
   ];
 
   const pixelsByAccount: Record<string, MetaOption[]> = {};
@@ -94,7 +168,12 @@ export function toMetaAssets(raw: RawAssets, shopCurrency: string | null, now = 
     pixelsByAccount[account] = sorted.map((p) => pixelOption(p, now));
   }
 
-  const pages: MetaOption[] = raw.pages.map((p) => ({ value: p.id, title: p.name }));
+  const pages: MetaOption[] = raw.pages.map((p) => ({
+    value: p.id,
+    title: p.name,
+    id: p.id,
+    details: compact([p.username ? `@${p.username}` : null, p.category]),
+  }));
   const account = suggestedAccount?.id ?? "";
   return {
     adAccounts,

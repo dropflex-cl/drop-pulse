@@ -58,9 +58,9 @@ export function OnboardingDemos() {
             value={acc}
             onChange={setAcc}
             options={[
-              { value: "a1", title: "Mi Tienda CL", meta: "CLP · activa", tag: "Sugerida" },
-              { value: "a3", title: "Mi Tienda PE", meta: "PEN · activa" },
-              { value: "a2", title: "Pruebas 2025", meta: "Deshabilitada por Meta", tone: "danger", disabled: true },
+              { value: "a1", title: "Mi Tienda", meta: "CLP · activa", tag: "Sugerida", id: "1043587720913", details: ["Tiendas SpA", "America/Santiago", "Gastado $1.250.000"] },
+              { value: "a3", title: "Mi Tienda", meta: "USD · activa", id: "2208841157302", details: ["Cuenta personal", "America/Lima", "Sin gasto aún"] },
+              { value: "a2", title: "Pruebas 2025", meta: "Deshabilitada por Meta", tone: "danger", disabled: true, id: "871204456120", details: ["Tiendas SpA"] },
             ]}
           />
         </div>
