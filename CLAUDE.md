@@ -87,7 +87,7 @@ Español neutro con tuteo, nunca voseo ni “usted”: “Revisa”, “Elige”
 - Claude (`@anthropic-ai/sdk`) en `lib/ai/claude.ts`: `claude-opus-5`, pensamiento adaptativo, salida estructurada validada con zod (`lib/ai/schemas.ts`) y `fallbacks: "default"`. Prompts puros en `lib/ai/prompts.ts` (system estable por mercado, para la caché). Cada llamada queda en `ai_generations` con su costo.
 - LATAM con pago contra entrega: el mercado (país, moneda, idioma) se detecta en Shopify al conectar y el comerciante lo confirma en “Tienda conectada” o en Ajustes (`lib/market.ts`, `lib/settings/market.ts`). Todo prompt lleva `marketBlock(market)`.
 - La IA propone y el comerciante decide: el cliente ideal entra como `generated` y solo cambia por su acción (aceptar, editar, volver a generar).
-- Variable de entorno: `ANTHROPIC_API_KEY` (solo servidor).
+- Variables de entorno: `ANTHROPIC_API_KEY` (solo servidor), creada dentro de un workspace; si es una key de organización, también `ANTHROPIC_WORKSPACE_ID` (se envía como header `anthropic-workspace-id`).
 
 ## Onboarding
 

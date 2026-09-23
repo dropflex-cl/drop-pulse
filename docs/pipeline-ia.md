@@ -87,7 +87,7 @@ La plantilla de la fórmula va en el prompt: en el proyecto base solo se nombrab
 ## Poner en marcha
 
 1. Aplica `supabase/migrations/20260924000000_products_and_optimization.sql`. Crea el bucket privado `product-references`.
-2. Agrega `ANTHROPIC_API_KEY` a `.env.local` y a Vercel.
+2. Agrega `ANTHROPIC_API_KEY` a `.env.local` y a Vercel. Usa una key creada dentro de un workspace (Console → Workspaces → API keys). Si la key es de la organización, agrega también `ANTHROPIC_WORKSPACE_ID` con el id del workspace; sin él la API responde 400 “This API key is not scoped to a workspace”.
 3. Los productos elegidos en el onboarding se crean al guardar “Tus números”. Para cuentas anteriores, se crean al abrir Productos.
 4. `/dev/screens/base?state=new|optimizing|failed|review|approved` muestra la pantalla con datos de ejemplo (solo en desarrollo).
 

@@ -47,7 +47,10 @@ function client(): Anthropic {
   if (!process.env.ANTHROPIC_API_KEY?.trim()) {
     throw new AiStepError("config", "Falta configurar la IA en el servidor (ANTHROPIC_API_KEY). Avísanos para activarla.");
   }
-  return new Anthropic({ maxRetries: 2 });
+  // Una key de organización (no creada dentro de un workspace) exige decir el workspace en cada
+  // llamada; sin él, la API responde 400. Con una key de workspace, esta variable queda vacía.
+  const workspace = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+  return new Anthropic({ maxRetries: 2, defaultHeaders: workspace ? { "anthropic-workspace-id": workspace } : undefined });
 }
 
 export async function generateStructured<S extends z.ZodType>({
