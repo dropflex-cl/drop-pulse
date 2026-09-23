@@ -95,7 +95,7 @@ const PACK_LABEL_RULES = [
     "- Una por pack de PRECIO Y OFERTA. Convierten la cantidad en algo que esta persona quiere: cuánto le dura, con quién lo comparte, el repuesto, el regalo o el ahorro. «Pack 2 unidades» no vende; «2 meses de uso» o «Uno para ti y otro para tu pareja», sí.",
     "- Duración solo con datos reales: «2 meses de uso» exige que la ficha diga cuánto trae y cuánto se usa (60 cápsulas, 2 al día → 1 mes). Si no lo dice, usa otro ángulo; nunca inventes una dosis ni un rendimiento.",
     "- Nada de promesas de salud ni resultados: «2 meses de uso», nunca «2 meses de tratamiento» ni «resultados en 60 días». Respeta forbidden_claims de la ficha.",
-    "- label: hasta 40 caracteres, en el idioma del mercado y con tuteo. support: una cifra real de PRECIO Y OFERTA (por unidad, por mes o el ahorro) o null. badge: 1 a 2 palabras en un solo pack, el de la OFERTA PRINCIPAL, o null.",
+    "- label: hasta 40 caracteres (cuéntalos: si pasa, reescríbela más corta, nunca la dejes a medias), en el idioma del mercado y con tuteo. support: una cifra real de PRECIO Y OFERTA (por unidad, por mes o el ahorro) o null. badge: 1 a 2 palabras en un solo pack, el de la OFERTA PRINCIPAL, o null.",
     "- La etiqueta del pack de la OFERTA PRINCIPAL es la más fuerte: es la que se va a empujar.",
 ];
 

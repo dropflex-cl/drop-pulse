@@ -286,7 +286,8 @@ export function PricingSection({
         </p>
       ) : null}
 
-      <div className="mt-4 flex justify-end">
+      {/* Mientras se editan las etiquetas, su formulario tiene su propio guardar: uno a la vez. */}
+      <div className={cn("mt-4 flex justify-end", editingLabels && "hidden")}>
         <Button icon="check" loading={saving} disabled={!plan || !dirty} onClick={save}>
           {savedTexts ? "Guardar cambios" : "Guardar precio"}
         </Button>

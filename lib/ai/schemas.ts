@@ -203,7 +203,7 @@ export const PACK_LABEL_BASES = ["duration", "sharing", "spare", "gift", "saving
 
 export const packLabelSchema = z.object({
   units: z.number().int().describe("Unidades del pack (1, 2 o 3), igual que en PRECIO Y OFERTA."),
-  label: text.describe("El nombre del pack que lee el cliente, hasta 40 caracteres: «2 meses de uso», «Uno para ti y otro para tu pareja». Sin promesas de salud ni resultados."),
+  label: text.describe("El nombre del pack que lee el cliente, idealmente hasta 40 caracteres (cuéntalos; si pasa, acórtalo tú en vez de dejarlo a medias): «2 meses de uso», «Uno para ti y otro para tu pareja». Sin promesas de salud ni resultados."),
   support: maybe.describe("Línea de apoyo corta con una cifra real de PRECIO Y OFERTA («$17.495 al mes», «Ahorras $24.980»), o null."),
   badge: maybe.describe("Distintivo de 1 a 2 palabras solo para 1 pack («Más elegido», «Mejor precio»), o null."),
   basis: z.enum(PACK_LABEL_BASES).describe("En qué se apoya: duración real, compartir, repuesto, regalo, ahorro u otro."),

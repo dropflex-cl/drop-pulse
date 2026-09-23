@@ -23,10 +23,16 @@ describe("normalizePackLabels", () => {
     const out = normalizePackLabels([l(1), l(2, { badge: "Más elegido" }), l(3, { badge: "Mejor precio" })], packs);
     expect(out.map((x) => x.badge)).toEqual([null, "Más elegido", null]);
   });
-  it("recorta y descarta etiquetas vacías", () => {
-    const out = normalizePackLabels([l(1, { label: "  " }), l(2, { label: "x".repeat(80), support: "" })], packs);
+  it("no corta una etiqueta apenas más larga que lo recomendado", () => {
+    const label = "Bolso, escritorio y casa: nunca sin él"; // lo que llegó cortado en “nunca sin”
+    expect(normalizePackLabels([l(3, { label })], packs)[0].label).toBe(label);
+  });
+  it("sobre el tope duro corta en palabra completa y descarta vacías", () => {
+    const long = "palabra ".repeat(20).trim(); // 159 caracteres
+    const out = normalizePackLabels([l(1, { label: "  " }), l(2, { label: long, support: "" })], packs);
     expect(out).toHaveLength(1);
-    expect(out[0].label).toHaveLength(40);
+    expect(out[0].label.length).toBeLessThanOrEqual(80);
+    expect(out[0].label.endsWith("palabra")).toBe(true);
     expect(out[0].support).toBeNull();
   });
 });

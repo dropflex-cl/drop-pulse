@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button, Field, notify, notifyUndo, StatusBadge } from "@/components/df";
 import type { PackLabel } from "@/lib/ai/schemas";
-import { MAX_BADGE_CHARS, MAX_LABEL_CHARS, MAX_SUPPORT_CHARS, labelsStale } from "@/lib/pricing/labels";
+import { BADGE_CHARS, LABEL_CHARS, SUPPORT_CHARS, labelsStale } from "@/lib/pricing/labels";
+import { cn } from "@/lib/utils";
 import type { PackPrice } from "@/lib/pricing/plan";
 import { productsApi } from "@/lib/products/client";
 import type { PackLabelsProposal } from "@/lib/types";
@@ -97,6 +98,19 @@ export function PackLabelsBar({
   );
 }
 
+/** Caracteres usados frente a lo recomendado; pasarse avisa, no bloquea. */
+function Counter({ value, limit }: { value: string; limit: { recommended: number } }) {
+  const n = value.trim().length;
+  if (!n) return null;
+  const over = n > limit.recommended;
+  return (
+    <span className={cn("text-caption tabular-nums", over ? "text-warning" : "text-muted-foreground")} title={over ? "Más larga de lo recomendado: en el móvil puede ocupar dos líneas" : undefined}>
+      {n}/{limit.recommended}
+      {over ? <span className="sr-only">: más larga de lo recomendado</span> : null}
+    </span>
+  );
+}
+
 /** Edición: una etiqueta, un apoyo y un distintivo por pack. */
 export function PackLabelsEditor({
   productId,
@@ -154,10 +168,24 @@ export function PackLabelsEditor({
       {draft.map((l) => (
         <fieldset key={l.units} className="flex flex-col gap-3 rounded-md border p-3">
           <legend className="px-1 text-label text-muted-foreground">{l.units === 1 ? "1 unidad" : `Pack ${l.units} unidades`}</legend>
-          <Field label="Etiqueta" value={l.label} maxLength={MAX_LABEL_CHARS} onValueChange={(v) => set(l.units, { label: v })} hint={l.reason} />
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Apoyo" value={l.support ?? ""} maxLength={MAX_SUPPORT_CHARS} onValueChange={(v) => set(l.units, { support: v || null })} hint="Opcional" />
-            <Field label="Distintivo" value={l.badge ?? ""} maxLength={MAX_BADGE_CHARS} onValueChange={(v) => set(l.units, { badge: v || null })} hint="Solo en un pack" />
+          <Field
+            label="Etiqueta"
+            value={l.label}
+            maxLength={LABEL_CHARS.max}
+            labelEnd={<Counter value={l.label} limit={LABEL_CHARS} />}
+            onValueChange={(v) => set(l.units, { label: v })}
+            hint={l.reason}
+          />
+          <div className="grid grid-cols-[2fr_1fr] gap-3">
+            <Field
+              label="Apoyo"
+              value={l.support ?? ""}
+              maxLength={SUPPORT_CHARS.max}
+              labelEnd={<Counter value={l.support ?? ""} limit={SUPPORT_CHARS} />}
+              onValueChange={(v) => set(l.units, { support: v || null })}
+              hint="Opcional"
+            />
+            <Field label="Distintivo" value={l.badge ?? ""} maxLength={BADGE_CHARS.max} onValueChange={(v) => set(l.units, { badge: v || null })} hint="Solo en un pack" />
           </div>
         </fieldset>
       ))}

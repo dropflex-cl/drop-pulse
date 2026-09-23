@@ -2,18 +2,27 @@
 import type { PackLabel } from "@/lib/ai/schemas";
 import type { PricingPlan } from "./plan";
 
-export const MAX_LABEL_CHARS = 40;
-export const MAX_SUPPORT_CHARS = 60;
-export const MAX_BADGE_CHARS = 20;
+/**
+ * Largo recomendado (lo que se le pide a la IA y lo que marca el contador) y tope duro (solo para no
+ * guardar un párrafo). Nunca se corta en el largo recomendado: una etiqueta a mitad de palabra
+ * (“nunca sin”) es peor que una un poco larga, que el comerciante decide si acorta.
+ */
+export const LABEL_CHARS = { recommended: 40, max: 80 };
+export const SUPPORT_CHARS = { recommended: 40, max: 100 };
+export const BADGE_CHARS = { recommended: 16, max: 30 };
 
+/** Espacios normalizados; si pasa el tope duro, se corta en la última palabra completa. */
 const clean = (s: string | null | undefined, max: number) => {
   const t = (s ?? "").replace(/\s+/g, " ").trim();
-  return t ? t.slice(0, max) : null;
+  if (!t) return null;
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  return (cut.includes(" ") ? cut.slice(0, cut.lastIndexOf(" ")) : cut).replace(/[\s,;:·-]+$/, "");
 };
 
 /**
  * Una etiqueta por pack del plan, en su orden; descarta packs que no existen y duplicados, recorta
- * largos y deja un solo distintivo (el primero): si todos dicen “Más elegido”, ninguno lo es.
+ * solo lo que pasa el tope duro (en palabra completa) y deja un solo distintivo (el primero): si todos dicen “Más elegido”, ninguno lo es.
  */
 export function normalizePackLabels(labels: PackLabel[], packs: { units: number }[]): PackLabel[] {
   const out: PackLabel[] = [];
@@ -21,12 +30,12 @@ export function normalizePackLabels(labels: PackLabel[], packs: { units: number 
   for (const pack of packs) {
     const l = labels.find((x) => x.units === pack.units);
     if (!l) continue;
-    const label = clean(l.label, MAX_LABEL_CHARS);
+    const label = clean(l.label, LABEL_CHARS.max);
     if (!label) continue;
-    let badge = clean(l.badge, MAX_BADGE_CHARS);
+    let badge = clean(l.badge, BADGE_CHARS.max);
     if (badge && badgeUsed) badge = null;
     if (badge) badgeUsed = true;
-    out.push({ ...l, units: pack.units, label, support: clean(l.support, MAX_SUPPORT_CHARS), badge, reason: l.reason.trim() });
+    out.push({ ...l, units: pack.units, label, support: clean(l.support, SUPPORT_CHARS.max), badge, reason: l.reason.trim() });
   }
   return out;
 }
