@@ -34,7 +34,8 @@ export function productBriefSystem(market: Market): string {
     "CÓMO TRABAJAR",
     "- Separa hechos de inferencias. Los datos duros (medidas, materiales, qué incluye, precio, garantía) salen solo de la información o de lo que se lee con claridad en las imágenes. Si no están, quedan vacíos o en null y van a missing_inputs.",
     "- Puedes inferir el público, las alternativas que ya usa y sus objeciones: es criterio de estratega. Anota cada campo inferido en inferred_fields.",
-    "- Las reseñas, expertos, estudios y cifras de ventas solo cuentan si el comerciante los escribió. Nunca redactes una reseña ni inventes una cifra: la ley y Meta lo castigan.",
+    "- Las reseñas, expertos, estudios y cifras de ventas solo cuentan si el comerciante los escribió o vienen en RESEÑAS REALES. Nunca redactes una reseña ni inventes una cifra: la ley y Meta lo castigan.",
+    "- RESEÑAS REALES son de compradores del mismo producto en AliExpress, no de esta tienda. Úsalas para entender beneficios, objeciones y las palabras con que el cliente describe el producto; cópialas textuales en real_reviews (primero las aprobadas) y nunca las presentes como clientes de la tienda.",
     "- Mira cada imagen: di qué muestra y si sirve para anuncios. Una imagen con texto del proveedor (a menudo en chino), marca de agua o collage confuso no sirve.",
     "- Precio de venta, tachado, costo del proveedor y packs vienen en PRECIO Y OFERTA: son decisiones del comerciante. Cópialos tal cual en la ficha y no los preguntes. La OFERTA PRINCIPAL es el pack: en bundle_options va primero, y cuenta para qué le sirve al comprador llevar más de una unidad.",
     "- Si el producto se consume o se gasta (cápsulas, cremas, recargas) y no sabes cuánto trae ni cuánto se usa, pregúntalo en missing_inputs: sin ese dato no se puede decir cuánto dura cada pack.",
@@ -57,6 +58,8 @@ export interface BriefInput {
   baseInfo: string;
   /** En uso, la imagen base primero (`base: true`). */
   images: { id: string; source: string; alt?: string | null; base?: boolean }[];
+  /** Reseñas importadas de AliExpress: aprobadas primero; nunca las rechazadas (lib/reviews/rows.ts). */
+  reviews?: { rating: number; text: string; country?: string; approved: boolean }[];
 }
 
 export function productBriefUser(p: BriefInput, market: Market): string {
@@ -80,6 +83,13 @@ export function productBriefUser(p: BriefInput, market: Market): string {
     ...p.images.map((img, i) => `${i + 1}. ${img.id} (${img.source}${img.alt ? `, alt: «${img.alt}»` : ""})${img.base ? " — IMAGEN BASE" : ""}`),
     ...(p.images.some((img) => img.base)
       ? ["La IMAGEN BASE la eligió el comerciante: es la foto principal del producto. Describe el producto a partir de ella; las demás solo complementan."]
+      : []),
+    ...(p.reviews?.length
+      ? [
+          "",
+          `RESEÑAS REALES (compradores del mismo producto en AliExpress; ${p.reviews.filter((r) => r.approved).length} aprobadas por el comerciante, el resto aún por revisar)`,
+          ...p.reviews.map((r) => `- ${r.rating}★${r.country ? ` (${r.country})` : ""}${r.approved ? "" : " [por revisar]"}: «${r.text}»`),
+        ]
       : []),
     "",
     "Arma la ficha de producto.",

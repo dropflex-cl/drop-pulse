@@ -18,6 +18,7 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { saveGeneratedPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { imageBlock } from "./images";
+import { reviewsForPrompt } from "@/lib/reviews/rows";
 import { getProductRow, imagesForGeneration, listImageRows, withDisplayUrls, type RunRow } from "@/lib/products/store";
 
 // "Optimizar con IA", primera parte del pipeline de agentes creativos (agentes-creativos/README.md):
@@ -166,6 +167,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
           pricing,
           baseInfo: product.base_info,
           images: images.map((r) => ({ id: r.id, source: r.source, alt: r.alt, base: r.id === wanted[0] })),
+          reviews: await reviewsForPrompt(run.user_id, run.product_id),
         },
         market,
       ),

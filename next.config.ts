@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 // Rutas anteriores en español → rutas en inglés (CLAUDE.md › Rutas). Permanentes, para enlaces y marcadores viejos.
 const LEGACY_ROUTES: [string, string][] = [
   ["/hoy", "/today"],
+  ["/productos/:id/resenas", "/products/:id/reviews"],
   ["/productos/:id/textos", "/products/:id/copy"],
   ["/productos/:id/imagenes", "/products/:id/images"],
   // La etapa Precio se unió a Información base (“Precio y packs”).

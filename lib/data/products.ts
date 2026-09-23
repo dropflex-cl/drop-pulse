@@ -1,6 +1,6 @@
-// Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs y
-// customer_avatars). Los textos e imágenes generados todavía no existen: esas lecturas devuelven
-// vacío y las pantallas muestran su estado de espera.
+// Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs,
+// customer_avatars y las reseñas importadas). Los textos e imágenes generados todavía no existen:
+// esas lecturas devuelven vacío y las pantallas muestran su estado de espera.
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -8,7 +8,8 @@ import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition } from "@/lib/products/stages";
+import { productPosition, type ReviewFacts } from "@/lib/products/stages";
+import { customerReviews, expireStaleImports, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
 import {
   baseImage,
   expireStaleRuns,
@@ -27,7 +28,7 @@ import {
   type ProductRow,
   type RunRow,
 } from "@/lib/products/store";
-import type { ContentItem, ImageOption, Product, ProductBase, ProductFilter } from "@/lib/types";
+import type { ContentItem, ImageOption, Product, ProductBase, ProductFilter, ProductReviews } from "@/lib/types";
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -40,12 +41,13 @@ function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow): Product {
+function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
     run: run ? { status: run.status, error: run.error_message, createdAt: run.created_at } : null,
     avatar: avatar ? { status: toProposal(avatar).status, createdAt: avatar.created_at } : null,
+    reviews,
   });
   return {
     id: row.id,
@@ -71,15 +73,15 @@ const allProducts = cache(async (): Promise<Product[]> => {
   const uid = await userId();
   // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
   await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await expireStaleRuns(uid);
+  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars] = await Promise.all([listImageRows(uid, ids), latestRuns(uid, ids), latestAvatars(uid, ids)]);
+  const [images, runs, avatars, reviews] = await Promise.all([listImageRows(uid, ids), latestRuns(uid, ids), latestAvatars(uid, ids), reviewFacts(uid, ids)]);
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
   const urls = await withDisplayUrls(covers);
   return rows.map((r) => {
     const c = covers.find((i) => i.product_id === r.id);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id));
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id));
   });
 });
 
@@ -127,6 +129,22 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
     missingInputs: brief?.missing_inputs ?? [],
+  };
+});
+
+/** La etapa Reseñas: las reseñas importadas, su listado de AliExpress y la última importación. */
+export const getProductReviews = cache(async (id: string): Promise<ProductReviews | null> => {
+  const uid = await userId();
+  const product = await getProduct(id);
+  if (!product) return null;
+  const [reviews, source, job] = await Promise.all([customerReviews(uid, id), latestSource(uid, id), latestImport(uid, id)]);
+  return {
+    product,
+    reviews,
+    source: source
+      ? { url: source.url, avgRating: source.avg_rating == null ? undefined : Number(source.avg_rating), totalReviews: source.total_reviews ?? undefined }
+      : undefined,
+    lastImport: job ? toReviewImport(job) : undefined,
   };
 });
 

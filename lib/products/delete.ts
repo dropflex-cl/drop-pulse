@@ -3,7 +3,8 @@ import { adminClient } from "@/lib/integrations/admin";
 import { REFERENCES_BUCKET } from "./store";
 
 // Borrado completo de un producto (CLAUDE.md › Datos › Productos eliminados en Shopify): archivos en
-// Storage, filas propias y en cascada (imágenes de referencia, corridas, fichas, clientes ideales),
+// Storage, filas propias y en cascada (imágenes de referencia, corridas, fichas, clientes ideales,
+// reseñas importadas con sus listados e importaciones),
 // el registro de costo de IA y su rastro en el catálogo del onboarding. Nada queda huérfano.
 //
 // Orden: primero Storage, después la base. Si Storage falla, la fila del producto sigue ahí y la
@@ -34,7 +35,11 @@ async function removeFiles(userId: string, productId: string) {
     .eq("product_id", productId)
     .not("storage_path", "is", null);
   if (error) throw new Error(`Leer imágenes de ${productId}: ${error.message}`);
-  const paths = [...new Set([...(await storedPaths(userId, productId)), ...(rows ?? []).map((r) => r.storage_path as string)])];
+  // Fotos de reseñas (lib/reviews/store.ts): viven bajo el mismo prefijo; se nombran también por si acaso.
+  const { data: reviews, error: reviewsError } = await db.from("product_reviews").select("photos").eq("user_id", userId).eq("product_id", productId);
+  if (reviewsError) throw new Error(`Leer reseñas de ${productId}: ${reviewsError.message}`);
+  const reviewPaths = (reviews ?? []).flatMap((r) => ((r.photos ?? []) as { path: string }[]).map((p) => p.path));
+  const paths = [...new Set([...(await storedPaths(userId, productId)), ...(rows ?? []).map((r) => r.storage_path as string), ...reviewPaths])];
   for (let i = 0; i < paths.length; i += REMOVE_BATCH) {
     const { error: rmError } = await db.storage.from(REFERENCES_BUCKET).remove(paths.slice(i, i + REMOVE_BATCH));
     if (rmError) throw new Error(`Borrar archivos de ${productId}: ${rmError.message}`);
@@ -54,7 +59,8 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
       // ai_generations tiene "on delete set null": se borra antes para no dejar filas sueltas.
       const gen = await db.from("ai_generations").delete().eq("user_id", userId).eq("product_id", id);
       if (gen.error) throw new Error(`Borrar generaciones de ${id}: ${gen.error.message}`);
-      // La cascada se lleva product_reference_images, pipeline_runs, product_briefs y customer_avatars.
+      // La cascada se lleva product_reference_images, pipeline_runs, product_briefs, customer_avatars,
+      // product_pricing, pack_labels, review_sources, review_imports y product_reviews.
       const { data, error } = await db.from("products").delete().eq("user_id", userId).eq("id", id).select("shopify_product_id");
       if (error) throw new Error(`Borrar el producto ${id}: ${error.message}`);
       const shopifyId = data?.[0]?.shopify_product_id as string | undefined;

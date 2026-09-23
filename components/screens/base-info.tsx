@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -416,6 +417,25 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
     </>
   );
 
+  // Acceso a la etapa opcional Reseñas (arquitectura.md › 9): importadas antes de optimizar, la IA
+  // las usa para escribir con palabras de clientes.
+  const reviewsStage = product.stages.find((s) => s.key === "resenas");
+  const reviewsCta = (
+    <Link
+      href={productHref(product.id, "resenas")}
+      className="grid min-h-14 w-full grid-cols-[--spacing(5)_1fr_--spacing(4)] items-center gap-3 rounded-lg border bg-card px-4 py-3 text-left text-foreground hover:bg-accent"
+    >
+      <Icon name="star" size="sm" />
+      <span>
+        <b className="block text-small font-medium">{reviewsStage?.state === "available" ? "Importa reseñas de AliExpress" : "Reseñas"}</b>
+        <small className="block text-caption text-muted-foreground">
+          {reviewsStage?.state === "available" ? "Opcional. La IA las usa para escribir." : reviewsStage?.desc}
+        </small>
+      </span>
+      <Icon name="chevron-right" size="sm" />
+    </Link>
+  );
+
   const infoInput = (rows: number) => (
     <ProductInfoInput
       value={info.text}
@@ -494,6 +514,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
             </div>
           </section>
           {infoInput(desktop ? 9 : 4)}
+          <div className="lg:hidden">{reviewsCta}</div>
           <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
         </div>
         {/* Escritorio: referencias y carga a la derecha. */}
@@ -503,6 +524,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
             <div className="grid grid-cols-2 gap-2">{refTiles(false)}</div>
           </div>
           {uploader(false)}
+          {reviewsCta}
         </aside>
       </div>
 

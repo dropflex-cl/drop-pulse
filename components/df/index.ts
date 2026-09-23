@@ -14,7 +14,7 @@ export { ImageTile, type ImageTileProps, type ImageTileState } from "./image-til
 export { SegmentedControl, type SegmentedControlProps, type SegmentedOption } from "./segmented-control";
 export { Field, type FieldProps } from "./field";
 export { PriceBreakdown, type PriceBreakdownProps, type PricePart } from "./price-breakdown";
-export { OfferPreview, type OfferPreviewProps } from "./offer-preview";
+export { OfferPreview, ReviewsStorePreview, type OfferPreviewProps, type ReviewsStorePreviewProps } from "./offer-preview";
 export { Metric, MetricGrid, type MetricProps, type MetricTrend } from "./metric";
 export { CampaignCard, VerdictNote, type CampaignCardProps, type Verdict, type VerdictProps } from "./campaign-card";
 export { Navigation, type NavigationProps, type NavId, type NavItem } from "./navigation";
@@ -34,3 +34,9 @@ export { StateChip } from "./state-chip";
 export { ProductInfoInput, INFO_TOPICS, type ProductInfoInputProps } from "./product-info-input";
 export { ReferenceImage, ReferenceAddTile, type ReferenceImageProps, type ReferenceImageState } from "./reference-image";
 export { ImageUploader, ACCEPTED_TYPES, type ImageUploaderProps, type UploadItem, type UploaderMode } from "./image-uploader";
+// Reseñas importadas (design-system/arquitectura.md › 9)
+export { Stars, type StarsProps } from "./stars";
+export { Switch, type SwitchProps } from "./switch";
+export { ReviewImporter, type MinStars, type ReviewImporterProps, type ReviewImporterState } from "./review-importer";
+export { ReviewSummary, type ReviewSummaryProps } from "./review-summary";
+export { ReviewItem, type ReviewItemProps, type ReviewItemState } from "./review-item";
