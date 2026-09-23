@@ -13,6 +13,8 @@ import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
 import { getMarket } from "@/lib/settings/market";
+import type { PricingPlan } from "@/lib/pricing/plan";
+import { getPricingPlan } from "@/lib/pricing/store";
 import { imageBlock } from "./images";
 import { getProductRow, imagesForGeneration, listImageRows, withDisplayUrls, type RunRow } from "@/lib/products/store";
 
@@ -81,6 +83,9 @@ export async function startOptimization(userId: string, productId: string): Prom
   // La imagen base va primero: el modelo la trata como la foto principal del producto.
   const images = imagesForGeneration(await listImageRows(userId, [productId]));
   if (!images.length) throw new OptimizeError("Agrega al menos una imagen de referencia para optimizar.", 409);
+  // Requisito: la IA escribe para un precio y unos packs concretos (CLAUDE.md › Precio y packs).
+  const pricing = await getPricingPlan(userId, productId);
+  if (!pricing) throw new OptimizeError("Guarda el precio y los packs antes de optimizar.", 409);
 
   const since = new Date(Date.now() - 86_400_000).toISOString();
   const recent = await db.from("pipeline_runs").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since);
@@ -96,7 +101,8 @@ export async function startOptimization(userId: string, productId: string): Prom
       user_id: userId,
       product_id: productId,
       status: "queued",
-      input: { market, image_ids: images.slice(0, MAX_IMAGES).map((i) => i.id) },
+      // Copia del precio: los dos pasos leen los mismos números aunque el comerciante lo cambie a mitad.
+      input: { market, image_ids: images.slice(0, MAX_IMAGES).map((i) => i.id), pricing },
     })
     .select("*")
     .single();
@@ -113,6 +119,9 @@ export async function startOptimization(userId: string, productId: string): Prom
 async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductBrief; briefId: string; baseInfo: string }> {
   const product = await getProductRow(run.user_id, run.product_id);
   if (!product) throw new AiStepError("not_found", "El producto ya no existe.");
+  // Una corrida creada antes de exigir el precio no lo trae: se pide guardarlo y reintentar.
+  const pricing = run.input.pricing as PricingPlan | undefined;
+  if (!pricing) throw new AiStepError("no_pricing", "Guarda el precio y los packs y vuelve a optimizar.");
   const wanted = (run.input.image_ids as string[] | undefined) ?? [];
   const rows = (await listImageRows(run.user_id, [run.product_id])).filter((r) => wanted.includes(r.id));
   rows.sort((a, b) => wanted.indexOf(a.id) - wanted.indexOf(b.id));
@@ -152,6 +161,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
           price: Number(product.price) || null,
           compareAtPrice: product.compare_at_price == null ? null : Number(product.compare_at_price),
           cost: product.cost == null ? null : Number(product.cost),
+          pricing,
           baseInfo: product.base_info,
           images: images.map((r) => ({ id: r.id, source: r.source, alt: r.alt, base: r.id === wanted[0] })),
         },
@@ -181,7 +191,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
 async function avatarStep(run: RunRow, market: Market, brief: ProductBrief, briefId: string, baseInfo: string) {
   const { data, usage } = await generateStructured({
     system: customerAvatarSystem(market),
-    content: [{ type: "text", text: customerAvatarUser(JSON.stringify(brief, null, 2), baseInfo) }],
+    content: [{ type: "text", text: customerAvatarUser(JSON.stringify(brief, null, 2), baseInfo, run.input.pricing as PricingPlan) }],
     schema: customerAvatarSchema,
     effort: "high",
   });

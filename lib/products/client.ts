@@ -1,6 +1,7 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
 import type { CustomerAvatar } from "@/lib/ai/schemas";
-import type { AvatarProposal, OptimizationRun, ReferenceImage } from "@/lib/types";
+import type { PricingForm } from "@/lib/pricing/plan";
+import type { AvatarProposal, OptimizationRun, ReferenceImage, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -66,6 +67,7 @@ export function uploadImage(productId: string, file: File, onProgress: (p: numbe
 }
 
 export const productsApi = {
+  savePricing: (id: string, form: PricingForm) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, form),
   sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
   saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),
   imageFromUrl: (id: string, url: string) => send<{ image: ReferenceImage }>("POST", `/${id}/images/url`, { url }),

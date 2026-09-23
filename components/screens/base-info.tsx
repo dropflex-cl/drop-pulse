@@ -28,8 +28,9 @@ import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
 import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
-import type { AvatarProposal, OptimizationRun, ProductBase, ReferenceImage as RefImage } from "@/lib/types";
+import type { AvatarProposal, OptimizationRun, ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
 import { AvatarProposalCard } from "./avatar-proposal";
+import { PricingSection } from "./pricing-section";
 
 const AUTOSAVE_MS = 1500;
 const POLL_MS = 2500;
@@ -140,6 +141,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
   const [urlError, setUrlError] = useState<string>();
   const [fetching, setFetching] = useState(false);
 
+  const [pricing, setPricing] = useState<SavedPricingDto | undefined>(base.pricing);
   const [run, setRun] = useState<OptimizationRun | undefined>(base.run);
   const [avatar, setAvatar] = useState<AvatarProposal | undefined>(base.avatar);
   const [starting, setStarting] = useState(false);
@@ -456,11 +458,12 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
     summary = "Cliente ideal aprobado. Textos e imágenes se generarán con él.";
   } else {
     primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={starting} disabled={inUse === 0} onClick={optimize}>
+      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={starting} disabled={inUse === 0 || !pricing} onClick={optimize}>
         {failed ? "Reintentar" : "Optimizar con IA"}
       </Button>
     );
     if (inUse === 0) summary = "Agrega o vuelve a usar al menos una imagen para optimizar.";
+    else if (!pricing) summary = "Guarda el precio y los packs para optimizar: la IA escribe para ese precio.";
   }
 
   return (
@@ -491,6 +494,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
             </div>
           </section>
           {infoInput(desktop ? 9 : 4)}
+          <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} onSaved={setPricing} />
         </div>
         {/* Escritorio: referencias y carga a la derecha. */}
         <aside aria-label="Imágenes de referencia" className="hidden flex-col gap-4 lg:flex">

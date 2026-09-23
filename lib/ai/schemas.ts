@@ -6,9 +6,9 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 2;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 3;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
-export const CUSTOMER_AVATAR_PROMPT_VERSION = 1;
+export const CUSTOMER_AVATAR_PROMPT_VERSION = 2;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -34,9 +34,9 @@ export const productBriefSchema = z.object({
     where_they_feel_it: maybe.describe("En qué momento o lugar concreto sienten el problema."),
   }),
   alternatives_already_tried: z.array(text).describe("Lo que el comprador suele usar hoy y le falla (categorías o prácticas, nunca marcas)."),
-  price: z.number().nullable().describe("Precio de venta actual en la moneda del mercado."),
-  unit_cost: z.number().nullable().describe("Costo del producto si se conoce."),
-  bundle_options: z.array(text).describe("Ofertas que el comerciante ya ofrece (2x1, kit…). Vacío si no las menciona."),
+  price: z.number().nullable().describe("Precio de venta de PRECIO Y OFERTA, en la moneda del mercado."),
+  unit_cost: z.number().nullable().describe("Precio de compra al proveedor de PRECIO Y OFERTA."),
+  bundle_options: z.array(text).describe("Los packs de PRECIO Y OFERTA, uno por línea, p. ej. «2 unidades: $47.990 ($23.995 c/u, ahorra $9.990)»; más cualquier otra oferta que el comerciante mencione (kit, regalo)."),
   real_deadline_or_event: maybe.describe("Fecha comercial real que el comerciante mencionó, o null."),
   proof: z.object({
     real_reviews: z.array(text).describe("Solo reseñas que el comerciante pegó, copiadas textuales. Nunca redactadas."),

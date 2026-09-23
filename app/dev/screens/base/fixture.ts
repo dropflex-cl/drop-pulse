@@ -101,6 +101,7 @@ export function fixture(state: string): ProductBase {
       { id: "i3", src: productImage(0, 1), alt: "Imagen 3 de Shopify, con texto del proveedor", source: "shopify", excluded: true, cover: false, base: false },
     ],
     run,
+    pricingDefaults: { unitCost: 7000, avgShippingCost: 8000, purchaseCostLimit: 5000, confirmationRate: 70, deliveryRate: 70, extraUnitDiscount: 35 },
     avatar,
     missingInputs:
       state === "review"

@@ -4,6 +4,8 @@
 
 import { countryInfo, languageName, type Market } from "@/lib/market";
 import { money } from "@/lib/format";
+import type { PricingPlan } from "@/lib/pricing/plan";
+import { pricingBlock } from "@/lib/pricing/prompt";
 
 /** Cómo se escribe en este mercado: idioma, trato, moneda, pago contra entrega y normativa. */
 export function marketBlock(market: Market): string {
@@ -34,6 +36,7 @@ export function productBriefSystem(market: Market): string {
     "- Puedes inferir el público, las alternativas que ya usa y sus objeciones: es criterio de estratega. Anota cada campo inferido en inferred_fields.",
     "- Las reseñas, expertos, estudios y cifras de ventas solo cuentan si el comerciante los escribió. Nunca redactes una reseña ni inventes una cifra: la ley y Meta lo castigan.",
     "- Mira cada imagen: di qué muestra y si sirve para anuncios. Una imagen con texto del proveedor (a menudo en chino), marca de agua o collage confuso no sirve.",
+    "- Precio de venta, tachado, costo del proveedor y packs vienen en PRECIO Y OFERTA: son decisiones del comerciante. Cópialos tal cual en la ficha y no los preguntes.",
     "- missing_inputs son preguntas para el comerciante, cortas y en tuteo, ordenadas por cuánto mejorarían los anuncios. No preguntes lo que ya está.",
   ].join("\n");
 }
@@ -48,6 +51,8 @@ export interface BriefInput {
   price?: number | null;
   compareAtPrice?: number | null;
   cost?: number | null;
+  /** Precio y packs del comerciante (requisito para optimizar). */
+  pricing: PricingPlan;
   baseInfo: string;
   /** En uso, la imagen base primero (`base: true`). */
   images: { id: string; source: string; alt?: string | null; base?: boolean }[];
@@ -62,10 +67,10 @@ export function productBriefUser(p: BriefInput, market: Market): string {
   for (const o of p.options ?? []) {
     if (o.values.length > 1 || o.name.toLowerCase() !== "title") lines.push(`- ${o.name}: ${o.values.join(", ")}`);
   }
-  if (p.price) lines.push(`- Precio actual: ${money(p.price, market.currency)}`);
-  if (p.compareAtPrice && p.price && p.compareAtPrice > p.price) lines.push(`- Precio tachado: ${money(p.compareAtPrice, market.currency)}`);
-  if (p.cost) lines.push(`- Costo del producto: ${money(p.cost, market.currency)}`);
+  if (p.price && p.price !== p.pricing.salePrice) lines.push(`- Precio publicado hoy en Shopify: ${money(p.price, market.currency)} (el que vale es el de PRECIO Y OFERTA)`);
   lines.push(
+    "",
+    pricingBlock(p.pricing),
     "",
     "LO QUE EL COMERCIANTE SABE DEL PRODUCTO (texto libre; puede incluir la descripción de Shopify)",
     p.baseInfo.trim() || "(vacío)",
@@ -118,10 +123,13 @@ export function customerAvatarSystem(market: Market): string {
   ].join("\n");
 }
 
-export function customerAvatarUser(briefJson: string, baseInfo: string): string {
+export function customerAvatarUser(briefJson: string, baseInfo: string, pricing: PricingPlan): string {
   return [
     "FICHA DE PRODUCTO",
     briefJson,
+    "",
+    pricingBlock(pricing),
+    "Usa el precio, el tachado y los packs para juzgar cuánto le duele pagar, qué objeciones de precio tendría y qué oferta lo mueve (1 unidad o pack).",
     "",
     "LO QUE EL COMERCIANTE ESCRIBIÓ (contexto original; la ficha ya lo ordenó)",
     baseInfo.trim() || "(vacío)",

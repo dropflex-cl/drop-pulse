@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { customerAvatarSystem, marketBlock, productBriefSystem, productBriefUser } from "./prompts";
+import { buildPricingPlan } from "@/lib/pricing/plan";
+import { customerAvatarSystem, customerAvatarUser, marketBlock, productBriefSystem, productBriefUser } from "./prompts";
 import { customerAvatarSchema, productBriefSchema } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
@@ -26,10 +27,31 @@ describe("prompts", () => {
     expect(customerAvatarSystem(CL)).toContain("El nombre de mi cliente ideal es [NOMBRE].");
   });
 
-  it("la ficha lista las imágenes por id y formatea el precio en la moneda del mercado", () => {
-    const u = productBriefUser({ title: "Corrector", price: 24990, baseInfo: "neopreno", images: [{ id: "img-1", source: "shopify" }] }, CL);
+  const pricing = buildPricingPlan(
+    { unitCost: 3000, avgShippingCost: 8000, purchaseCostLimit: 5000, confirmationRate: 70, deliveryRate: 70, salePrice: 24990, compareAtPrice: 32990, extraUnitDiscount: 35 },
+    "CLP",
+  )!;
+
+  it("la ficha lista las imágenes por id y lleva el precio y los packs del comerciante", () => {
+    const u = productBriefUser({ title: "Corrector", price: 24990, pricing, baseInfo: "neopreno", images: [{ id: "img-1", source: "shopify" }] }, CL);
     expect(u).toContain("img-1");
-    expect(u).toContain("$24.990");
+    expect(u).toContain("PRECIO Y OFERTA");
+    expect(u).toContain("Precio de venta: $24.990");
+    expect(u).toContain("Precio tachado: $32.990");
+    expect(u).toContain("Precio de compra al proveedor: $3.000");
+    expect(u).toMatch(/2 unidades: \$\d/);
+    expect(u).not.toContain("Precio publicado hoy en Shopify"); // igual al de la calculadora
+  });
+
+  it("avisa si el precio publicado en Shopify es otro", () => {
+    const u = productBriefUser({ title: "Corrector", price: 19990, pricing, baseInfo: "", images: [] }, CL);
+    expect(u).toContain("Precio publicado hoy en Shopify: $19.990");
+  });
+
+  it("el cliente ideal también recibe el precio y los packs", () => {
+    const u = customerAvatarUser("{}", "neopreno", pricing);
+    expect(u).toContain("PRECIO Y OFERTA");
+    expect(u).toContain("3 unidades");
   });
 });
 

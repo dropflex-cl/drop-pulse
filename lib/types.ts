@@ -8,6 +8,7 @@ import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
+import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 
 export type { ContentStatus, Verdict };
 
@@ -65,6 +66,9 @@ export interface ReferenceImage {
   base: boolean;
 }
 
+/** Plan de precios guardado (lib/pricing/store.ts), tal como lo recibe la pantalla. */
+export type SavedPricingDto = PricingPlan & { updatedAt: string };
+
 export interface OptimizationRun {
   id: string;
   status: RunStatus;
@@ -95,6 +99,10 @@ export interface ProductBase {
   images: ReferenceImage[];
   run?: OptimizationRun;
   avatar?: AvatarProposal;
+  /** Precio y packs guardados; sin ellos no se puede optimizar. */
+  pricing?: SavedPricingDto;
+  /** Valores para abrir la calculadora la primera vez (costo de Shopify, números del onboarding). */
+  pricingDefaults: Partial<PricingForm>;
   /** Lo que la ficha dice que falta, como preguntas para el comerciante. */
   missingInputs: { field: string; question: string }[];
 }

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { sessionUser } from "@/lib/integrations/session";
 import { NOTE } from "@/lib/mock/content";
+import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
 import { productPosition } from "@/lib/products/stages";
 import {
@@ -102,11 +103,13 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
   const uid = await userId();
   const [product, row] = await Promise.all([getProduct(id), getProductRow(uid, id)]);
   if (!product || !row) return null;
-  const [images, runs, avatars, brief] = await Promise.all([
+  const [images, runs, avatars, brief, pricing, pricingDefaultsValue] = await Promise.all([
     listImageRows(uid, [id]),
     latestRuns(uid, [id]),
     latestAvatars(uid, [id]),
     latestBrief(uid, id),
+    getPricingPlan(uid, id),
+    pricingDefaults(uid, row),
   ]);
   const urls = await withDisplayUrls(images);
   const run = runs.get(id);
@@ -119,6 +122,8 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     images: images.filter((i) => urls.has(i.id)).map((i) => toReferenceImage(i, urls.get(i.id)!)),
     run: run ? toRun(run) : undefined,
     avatar: avatar ? toProposal(avatar) : undefined,
+    pricing: pricing ?? undefined,
+    pricingDefaults: pricingDefaultsValue,
     missingInputs: brief?.missing_inputs ?? [],
   };
 });
@@ -138,6 +143,22 @@ export async function getProductImages(productId: string): Promise<ImageOption[]
 export async function getPricing(productId: string): Promise<Pricing | null> {
   const product = await getProduct(productId);
   if (!product) return null;
+  // Con “Precio y packs” guardado (Información base), la etapa Precio parte de esos números.
+  const saved = await getPricingPlan(await userId(), productId);
+  if (saved) {
+    return {
+      productId,
+      price: saved.salePrice,
+      compareAt: saved.compareAtPrice ?? undefined,
+      costs: [
+        { label: "Costo del producto", value: saved.unitCost },
+        { label: "Envío", value: saved.avgShippingCost },
+        { label: "Publicidad por venta", value: saved.purchaseCostLimit },
+      ],
+      note: `Se confirma el ${saved.confirmationRate}% y se entrega el ${saved.deliveryRate}%. Cámbialo en Información base.`,
+      status: "aprobado",
+    };
+  }
   const cost = product.supplierCost;
   // Con precio en la tienda se parte de él; sin precio, la IA propone uno a partir del costo (entra como `generado`).
   const price = product.price && product.price > 0 ? product.price : Math.round((cost * 3.2) / 1000) * 1000 - 10;
