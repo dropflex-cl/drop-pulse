@@ -3,7 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { SalesAngle } from "@/lib/angles/catalog";
-import type { AnglesState, AvatarProposal, OptimizationRun, PackLabelsProposal, ReferenceImage, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, CustomerReview, OptimizationRun, PackLabelsProposal, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -81,6 +81,12 @@ export const productsApi = {
   optimize: (id: string) => send<{ run: OptimizationRun }>("POST", `/${id}/optimize`),
   status: (id: string) => call<{ run: OptimizationRun | null; avatar: AvatarProposal | null }>(`/${id}/optimize`),
   decideAvatar: (id: string, action: "approve" | "reopen") => send<{ avatar: AvatarProposal }>("PATCH", `/${id}/avatar`, { action }),
+  importReviews: (id: string, input: { url: string; minRating: 1 | 4 | 5; photosOnly: boolean; translate: boolean }) =>
+    send<{ job: ReviewImport }>("POST", `/${id}/reviews/import`, input),
+  reviewImport: (id: string) => call<{ job: ReviewImport | null }>(`/${id}/reviews/import`),
+  decideReviews: (id: string, ids: string[], action: "approve" | "reject" | "reopen") => send<{ count: number }>("PATCH", `/${id}/reviews`, { ids, action }),
+  decideReview: (id: string, reviewId: string, action: "approve" | "reject" | "reopen") => send<{ ok: true }>("PATCH", `/${id}/reviews/${reviewId}`, { action }),
+  editReview: (id: string, reviewId: string, text: string) => send<{ review: CustomerReview }>("PUT", `/${id}/reviews/${reviewId}`, { text }),
   editAvatar: (id: string, avatar: CustomerAvatar, approve: boolean) => send<{ avatar: AvatarProposal }>("PUT", `/${id}/avatar`, { avatar, approve }),
   // Etapa Ángulos: cada acción devuelve el estado completo de la etapa.
   angles: (id: string) => call<AnglesState>(`/${id}/angles`),

@@ -1,6 +1,6 @@
 // Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs,
-// customer_avatars y la etapa Ángulos: angle_rankings, angle_briefs). Los textos e imágenes
-// generados todavía no existen: esas lecturas devuelven vacío y las pantallas muestran su espera.
+// customer_avatars, las reseñas importadas y la etapa Ángulos: angle_rankings, angle_briefs). Los
+// textos e imágenes generados todavía no existen: esas lecturas devuelven vacío y las pantallas muestran su espera.
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -10,7 +10,8 @@ import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition, type AngleFacts } from "@/lib/products/stages";
+import { productPosition, type AngleFacts, type ReviewFacts } from "@/lib/products/stages";
+import { customerReviews, expireStaleImports, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
 import {
   baseImage,
   expireStaleRuns,
@@ -30,7 +31,7 @@ import {
   type ProductRow,
   type RunRow,
 } from "@/lib/products/store";
-import type { AnglesState, ContentItem, ImageOption, Product, ProductAngles, ProductBase, ProductFilter } from "@/lib/types";
+import type { AnglesState, ContentItem, ImageOption, Product, ProductAngles, ProductBase, ProductFilter, ProductReviews } from "@/lib/types";
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -51,12 +52,13 @@ function angleFacts(ranking: RankingRow | undefined, briefs: Partial<Record<"pri
   };
 }
 
-function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, angles?: AngleFacts | null): Product {
+function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts, angles?: AngleFacts | null): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
     run: run ? { status: run.status, error: run.error_message, createdAt: run.created_at } : null,
     avatar: avatar ? { status: toProposal(avatar).status, createdAt: avatar.created_at } : null,
+    reviews,
     angles,
   });
   return {
@@ -84,17 +86,24 @@ const allProducts = cache(async (): Promise<Product[]> => {
   const uid = await userId();
   // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
   await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await Promise.all([expireStaleRuns(uid), expireStaleAngles(uid)]);
+  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars, rankings] = await Promise.all([listImageRows(uid, ids), latestRuns(uid, ids), latestAvatars(uid, ids), latestRankings(uid, ids)]);
+  const [images, runs, avatars, reviews, rankings] = await Promise.all([
+    listImageRows(uid, ids),
+    latestRuns(uid, ids),
+    latestAvatars(uid, ids),
+    reviewFacts(uid, ids),
+    latestRankings(uid, ids),
+  ]);
   const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
   const urls = await withDisplayUrls(covers);
   return rows.map((r) => {
     const c = covers.find((i) => i.product_id === r.id);
     const ranking = rankings.get(r.id);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), angleFacts(ranking, ranking?.confirmed_at ? briefs.get(ranking.id) : undefined));
+    const angles = angleFacts(ranking, ranking?.confirmed_at ? briefs.get(ranking.id) : undefined);
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles);
   });
 });
 
@@ -142,6 +151,22 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
     missingInputs: brief?.missing_inputs ?? [],
+  };
+});
+
+/** La etapa Reseñas: las reseñas importadas, su listado de AliExpress y la última importación. */
+export const getProductReviews = cache(async (id: string): Promise<ProductReviews | null> => {
+  const uid = await userId();
+  const product = await getProduct(id);
+  if (!product) return null;
+  const [reviews, source, job] = await Promise.all([customerReviews(uid, id), latestSource(uid, id), latestImport(uid, id)]);
+  return {
+    product,
+    reviews,
+    source: source
+      ? { url: source.url, avgRating: source.avg_rating == null ? undefined : Number(source.avg_rating), totalReviews: source.total_reviews ?? undefined }
+      : undefined,
+    lastImport: job ? toReviewImport(job) : undefined,
   };
 });
 

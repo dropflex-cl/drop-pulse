@@ -8,8 +8,8 @@ describe("productPosition", () => {
     const p = productPosition(base);
     expect(p.phase).toBe("new");
     expect(p.nextStage).toBe("importado");
-    expect(p.stages.map((s) => s.state)).toEqual(["current", "locked", "locked", "locked", "locked", "locked"]);
-    expect(p.stages[1]).toMatchObject({ key: "angulos", desc: "Se habilita al aprobar tu cliente ideal" });
+    expect(p.stages.map((s) => s.state)).toEqual(["current", "available", "locked", "locked", "locked", "locked", "locked"]);
+    expect(p.stages.find((s) => s.key === "angulos")).toMatchObject({ desc: "Se habilita al aprobar tu cliente ideal" });
     expect(p.summary).toBe("Importado de Shopify · sin optimizar · $24.990");
     expect(p.status).toBeUndefined();
   });
@@ -47,10 +47,23 @@ describe("productPosition", () => {
     const p = productPosition(approved);
     expect(p.nextStage).toBe("angulos");
     expect(p.stages[0].state).toBe("done");
-    expect(p.stages[1]).toMatchObject({ key: "angulos", state: "current" });
+    expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current" });
     expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
     expect(p.stages.map((s) => s.key)).not.toContain("precio");
-    expect(p.meter).toHaveLength(6);
+    expect(p.meter).toHaveLength(7);
+  });
+
+  it("Reseñas es opcional, va después de Información base y dice cuántas esperan", () => {
+    const keys = productPosition(base).stages.map((s) => s.key);
+    expect(keys.slice(0, 4)).toEqual(["importado", "resenas", "angulos", "textos"]);
+    const pending = productPosition({ ...base, reviews: { pending: 14, approved: 30, total: 48 } });
+    const stage = pending.stages.find((s) => s.key === "resenas")!;
+    expect(stage).toMatchObject({ state: "review", optional: true, desc: "14 por revisar" });
+    expect(pending.meter[1]).toBe("review");
+    // Nunca bloquea: el siguiente paso sigue siendo Información base.
+    expect(pending.nextStage).toBe("importado");
+    const done = productPosition({ ...base, reviews: { pending: 0, approved: 30, total: 34 } });
+    expect(done.stages[1]).toMatchObject({ state: "done", desc: "30 aprobadas" });
   });
 });
 
@@ -74,23 +87,23 @@ describe("etapa Ángulos", () => {
     expect(choose.anglesPhase).toBe("choose");
     expect(choose).toMatchObject({ filter: "detenidos", reason: "Espera tu elección · ángulos", status: "revision" });
     const failed = productPosition(facts({ ranking: { status: "failed", error: "La IA no respondió.", confirmed: false }, briefs: [] }));
-    expect(failed.stages[1]).toMatchObject({ state: "error", desc: "La IA no respondió." });
+    expect(failed.stages[2]).toMatchObject({ state: "error", desc: "La IA no respondió." });
   });
 
   it("confirmados: desarrollando, por revisar y listos", () => {
     const ranking = { status: "succeeded" as const, confirmed: true };
     expect(anglesPhase(facts({ ranking, briefs: [brief("primary", "generado", "running"), brief("secondary", "generado")] }))).toBe("developing");
     const review = productPosition(facts({ ranking, briefs: [brief("primary", "aprobado"), brief("secondary", "generado")] }));
-    expect(review.stages[1]).toMatchObject({ state: "review", desc: "1 de 2 desarrollos aprobados" });
+    expect(review.stages[2]).toMatchObject({ state: "review", desc: "1 de 2 desarrollos aprobados" });
     const done = productPosition(facts({ ranking, briefs: [brief("primary", "aprobado"), brief("secondary", "aprobado")] }));
     expect(done.nextStage).toBe("textos");
-    expect(done.stages[1]).toMatchObject({ state: "done", desc: "Mecanismo único + Oferta" });
-    expect(done.stages[2].state).toBe("current");
+    expect(done.stages[2]).toMatchObject({ state: "done", desc: "Mecanismo único + Oferta" });
+    expect(done.stages[3]).toMatchObject({ key: "textos", state: "current" });
   });
 
   it("un desarrollo fallido detiene la etapa con su motivo", () => {
     const p = productPosition(facts({ ranking: { status: "succeeded", confirmed: true }, briefs: [{ ...brief("primary", "generado", "failed"), error: "La IA no respondió." }, brief("secondary", "generado")] }));
     expect(p.anglesPhase).toBe("failed");
-    expect(p.stages[1].desc).toBe("La IA no respondió.");
+    expect(p.stages[2].desc).toBe("La IA no respondió.");
   });
 });

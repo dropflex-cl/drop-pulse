@@ -1,0 +1,17 @@
+<!-- @dsCard group="Reseñas" height=640 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>ReviewItem</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:16, padding:16, alignItems:'start'}},
+  h(D.ReviewItem,{author:'M***a', country:'CL', date:'ago 2026', rating:5, variant:'Talla única · Negro', text:'Llegó rápido y se ajusta bien. Después de una semana ya noto menos dolor en los hombros al trabajar sentada.', photos:2, imageIndex:1, translated:true, original:'Arrived fast and fits well. After one week I already feel less shoulder pain when working seated.', lang:'inglés'}),
+  h(D.ReviewItem,Object.assign({editing:true},{author:'M***a', country:'CL', date:'ago 2026', rating:5, variant:'Talla única · Negro', text:'Llegó rápido y se ajusta bien. Después de una semana ya noto menos dolor en los hombros al trabajar sentada.', photos:2, imageIndex:1, translated:true, original:'Arrived fast and fits well. After one week I already feel less shoulder pain when working seated.', lang:'inglés'})),
+  h(D.ReviewItem,{author:'A***o', country:'ES', date:'jul 2026', rating:5, text:'Mejor que el de la marca PostureX que tenía antes, y mucho más barato.', flags:['Menciona otra marca']}),
+  h(D.ReviewItem,{author:'J***n', country:'MX', date:'jul 2026', rating:4, state:'approved', edited:true, text:'Buena calidad, el velcro es firme. Al principio incomoda un poco, pero te acostumbras.'}),
+  h(D.ReviewItem,{author:'R***s', country:'BR', date:'jun 2026', rating:3, state:'rejected', translated:true, text:'Buen producto, llegó en 20 días.'})));
+</script>
+</body>
+</html>

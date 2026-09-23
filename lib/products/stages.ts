@@ -1,7 +1,7 @@
 // Dónde está un producto en su ruta, derivado de lo que hay en la base: la última optimización, la
-// última propuesta de cliente ideal y la etapa Ángulos (evaluación y desarrollos). Puro: lo usan
-// lib/data (lista, ruta, Hoy) y los tests.
-// Textos de design-system/reference/bundle.js (PP_STAGES y ANG_STAGES).
+// última propuesta de cliente ideal, las reseñas (opcional) y la etapa Ángulos (evaluación y
+// desarrollos). Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
+// Textos de design-system/reference/bundle.js (PP_STAGES, RV_STAGES y ANG_STAGES).
 
 import type { MeterStage } from "@/components/df/stage-meter";
 import type { AngleRole } from "@/lib/angles/catalog";
@@ -21,6 +21,15 @@ export interface ProductFacts {
   run?: { status: RunStatus; error?: string | null; createdAt: string } | null;
   avatar?: { status: ContentStatus; createdAt: string } | null;
   angles?: AngleFacts | null;
+  /** Reseñas importadas (etapa opcional): nunca bloquean ni se bloquean. */
+  reviews?: ReviewFacts | null;
+}
+
+export interface ReviewFacts {
+  pending: number;
+  approved: number;
+  total: number;
+  importing?: boolean;
 }
 
 export type BasePhase = "new" | "optimizing" | "failed" | "review" | "done";
@@ -138,10 +147,20 @@ function anglesDesc(phase: AnglesPhase, a: AngleFacts | null | undefined): strin
   }
 }
 
+/** Reseñas: opcional, entre Información base y Ángulos (arquitectura.md › 9). */
+function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter: MeterStage } {
+  const base = { key: "resenas", title: "Reseñas", optional: true } as const;
+  if (r?.importing) return { stage: { ...base, state: "available", desc: "Importando de AliExpress" }, meter: "optional" };
+  if (!r?.total) return { stage: { ...base, state: "available", desc: "Importa de AliExpress; la IA las usa para escribir" }, meter: "optional" };
+  if (r.pending) return { stage: { ...base, state: "review", desc: `${r.pending} por revisar` }, meter: "review" };
+  return { stage: { ...base, state: "done", desc: r.approved === 1 ? "1 aprobada" : `${r.approved} aprobadas` }, meter: "done" };
+}
+
 export function productPosition(f: ProductFacts): ProductPosition {
   const phase = basePhase(f);
   const angles = anglesPhase(f, phase);
   const done = angles === "done";
+  const reviews = reviewsStage(f.reviews);
   const stages: Stage[] = [
     {
       key: "importado",
@@ -149,6 +168,8 @@ export function productPosition(f: ProductFacts): ProductPosition {
       state: BASE_STATE[phase],
       desc: phase === "failed" && f.run?.error ? f.run.error : BASE_DESC[phase],
     },
+    // Reseñas es opcional: nunca bloquea ni se bloquea (arquitectura.md › 9).
+    reviews.stage,
     { key: "angulos", title: "Ángulos", state: ANGLES_STATE[angles], desc: anglesDesc(angles, f.angles) },
     // El precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
     { key: "textos", title: "Textos", state: done ? "current" : "locked", desc: done ? "Se generan con tus ángulos y tu oferta" : "Se habilita al aprobar los 2 desarrollos" },
@@ -156,7 +177,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
     { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita textos e imágenes aprobados" },
     { key: "anuncios", title: "Anuncios", state: "locked", optional: true, desc: "Usa los ángulos elegidos" },
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], ANGLES_METER[angles], done ? "current" : "locked", "locked", "locked", "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], done ? "current" : "locked", "locked", "locked", "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
   const common = { phase, anglesPhase: angles, stages, meter };
 

@@ -6,7 +6,7 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 5;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 6;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
 export const CUSTOMER_AVATAR_PROMPT_VERSION = 4;
 
@@ -39,7 +39,7 @@ export const productBriefSchema = z.object({
   bundle_options: z.array(text).describe("Los packs de PRECIO Y OFERTA, uno por línea, p. ej. «2 unidades: $47.990 ($23.995 c/u, ahorra $9.990)»; más cualquier otra oferta que el comerciante mencione (kit, regalo)."),
   real_deadline_or_event: maybe.describe("Fecha comercial real que el comerciante mencionó, o null."),
   proof: z.object({
-    real_reviews: z.array(text).describe("Solo reseñas que el comerciante pegó, copiadas textuales. Nunca redactadas."),
+    real_reviews: z.array(text).describe("Solo reseñas que el comerciante pegó o que vienen en RESEÑAS REALES, copiadas textuales. Nunca redactadas."),
     real_expert: maybe.describe("Experto real que el comerciante nombró, con su credencial. null si no hay."),
     studies_or_certifications: z.array(text).describe("Solo los que aparecen con su fuente."),
     units_sold_or_social_proof: maybe,

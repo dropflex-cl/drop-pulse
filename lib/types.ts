@@ -14,7 +14,7 @@ import type { AngleRole, SalesAngle } from "@/lib/angles/catalog";
 export type { ContentStatus, Verdict };
 
 /** Etapas de la ruta de un producto, en orden. */
-export type StageKey = "importado" | "angulos" | "textos" | "imagenes" | "publicar" | "anuncios";
+export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "anuncios";
 
 export interface Stage {
   key: StageKey;
@@ -196,6 +196,53 @@ export interface AnglesState {
 /** Todo lo que necesita la etapa Ángulos. */
 export interface ProductAngles extends AnglesState {
   product: Product;
+}
+
+/** Ciclo de una reseña importada (ReviewItem): pendiente → aprobada o rechazada → publicada. */
+export type CustomerReviewState = "pending" | "approved" | "rejected" | "published";
+
+/** Una reseña importada de AliExpress, lista para curar. */
+export interface CustomerReview {
+  id: string;
+  /** Anonimizado: “M***a”. */
+  author: string;
+  /** ISO 3166 (CL, MX…). */
+  country?: string;
+  /** “ago 2026”. */
+  date?: string;
+  rating: number;
+  variant?: string;
+  /** Lo que se muestra y se publica: tu versión, la traducción o el original. */
+  text: string;
+  /** El texto tal como lo escribió el cliente (se ve al editar o con “ver original”). */
+  original?: string;
+  translated: boolean;
+  edited: boolean;
+  photos: string[];
+  flags: string[];
+  state: CustomerReviewState;
+}
+
+/** Una importación de reseñas en curso o terminada (ReviewImporter). */
+export interface ReviewImport {
+  id: string;
+  status: RunStatus;
+  step?: "reading" | "photos";
+  read: number;
+  total?: number;
+  imported: number;
+  skipped: number;
+  error?: string;
+  createdAt: string;
+  finishedAt?: string;
+}
+
+/** La etapa Reseñas: las reseñas, el listado de origen y la última importación. */
+export interface ProductReviews {
+  product: Product;
+  reviews: CustomerReview[];
+  source?: { url: string; avgRating?: number; totalReviews?: number };
+  lastImport?: ReviewImport;
 }
 
 /** Una propuesta de la IA para un campo del producto. */

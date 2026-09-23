@@ -62,8 +62,8 @@ function devValue(b: AngleBriefView): Partial<AngleDevelopmentValue> {
   };
 }
 
-/** Riesgo que se resuelve en Información base (agregar reseñas o un experto al texto del producto). */
-const FIX_LABEL = { reviews: "Agregar reseñas", expert: "Agregar experto" } as const;
+/** Riesgo que se resuelve con un dato real: las reseñas se importan en Reseñas; el experto se escribe en Información base. */
+const FIX_LABEL = { reviews: "Importar reseñas", expert: "Agregar experto" } as const;
 
 export function AnglesScreen({ data }: { data: ProductAngles }) {
   const router = useRouter();
@@ -73,6 +73,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   const ranking = state.ranking;
   const briefs = state.briefs;
   const baseHref = productHref(product.id, "importado");
+  const fixHref = (fix?: "reviews" | "expert") => (fix === "reviews" ? productHref(product.id, "resenas") : baseHref);
 
   const evaluating = active(ranking?.status);
   const generating = ROLES.some((r) => active(briefs[r]?.generation));
@@ -229,7 +230,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         setSheetValue(!pick.primary ? "primary" : "secondary");
       }}
       onRemove={() => remove(a.angle)}
-      onFix={() => router.push(baseHref)}
+      onFix={(r) => router.push(fixHref(a.risks.find((k) => k.text === r.text)?.fix))}
     />
   );
 
@@ -241,7 +242,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       secundarioScore={pick.secondary && byAngle.get(pick.secondary)?.score}
       combo={combo}
       changed={changed}
-      missing={ranking.missing.map((m) => ({ text: m.text, action: m.fix ? "Agregar" : undefined, onAction: () => router.push(baseHref) }))}
+      missing={ranking.missing.map((m) => ({ text: m.text, action: m.fix === "reviews" ? "Importar" : m.fix ? "Agregar" : undefined, onAction: () => router.push(fixHref(m.fix)) }))}
       onPick={(r) => {
         const role = DATA_ROLE[r];
         setSheet({ kind: "role", role });
@@ -391,7 +392,8 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           <h2 className="flex items-baseline justify-between pt-1 text-label font-semibold text-muted-foreground lg:hidden">
             Ranking completo <span className="font-normal">de mayor a menor</span>
           </h2>
-          <div className="grid gap-3 lg:grid-cols-2 lg:items-start">{ranking.angles.map(card)}</div>
+          {/* 2 columnas solo si cada tarjeta tiene al menos 300px (escritorio angosto: 1). */}
+          <div className="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">{ranking.angles.map(card)}</div>
           <div className="flex flex-wrap gap-2 lg:hidden">
             <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
               Volver a evaluar
@@ -483,7 +485,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           </Button>
         </div>
         {/* Escritorio: lado a lado. */}
-        <div className="hidden gap-4 lg:grid lg:grid-cols-2 lg:items-start">
+        <div className="hidden gap-4 lg:grid lg:grid-cols-[repeat(auto-fill,minmax(--spacing(85),1fr))] lg:items-start">
           {dev("primary", false)}
           {dev("secondary", false)}
         </div>
