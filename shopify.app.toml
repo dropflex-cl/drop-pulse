@@ -4,14 +4,14 @@
 #
 # Antes de desplegar:
 #   1. `shopify app config link` rellena client_id (o cópialo del Dev Dashboard).
-#   2. Reemplaza APP_URL por el dominio de v2 en application_url, redirect_urls y los uri de webhooks.
+#   2. El dominio de v2 (drop-pulse.vercel.app) va en application_url, redirect_urls y los uri de webhooks.
 #   3. Verifica la versión estable vigente del Admin API en webhooks.api_version (igual a SHOPIFY_API_VERSION).
 #   4. `shopify app deploy` y confirma en el Dev Dashboard que "Use legacy install flow" quedó desactivado.
 
 client_id = "REEMPLAZAR_CON_CLIENT_ID"
 name = "DropFlex"
 # Lanzamiento de la app: valida hmac y timestamp y arranca el OAuth (spec §5.2).
-application_url = "https://APP_URL/api/onboarding/shopify/install"
+application_url = "https://drop-pulse.vercel.app/api/onboarding/shopify/install"
 embedded = false
 
 [access_scopes]
@@ -21,19 +21,19 @@ scopes = "read_products,write_products,read_inventory,read_orders"
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = ["https://APP_URL/api/onboarding/shopify/callback"]
+redirect_urls = ["https://drop-pulse.vercel.app/api/onboarding/shopify/callback"]
 
 [webhooks]
 api_version = "2026-07"
 
   [[webhooks.subscriptions]]
   topics = ["app/uninstalled"]
-  uri = "https://APP_URL/api/webhooks/shopify"
+  uri = "https://drop-pulse.vercel.app/api/webhooks/shopify"
 
   # Webhooks GDPR obligatorios para apps públicas (spec §5.5).
   [[webhooks.subscriptions]]
   compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-  uri = "https://APP_URL/api/webhooks/shopify"
+  uri = "https://drop-pulse.vercel.app/api/webhooks/shopify"
 
 [build]
 automatically_update_urls_on_dev = false
