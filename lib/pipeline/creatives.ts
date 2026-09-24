@@ -1,5 +1,4 @@
 import "server-only";
-import sharp from "sharp";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
@@ -32,6 +31,7 @@ import { imagesForGeneration, latestAvatars, latestBrief, listImageRows, withDis
 import { getMarket } from "@/lib/settings/market";
 import { approvedBriefs } from "./copy";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
+import { optimizeForAds } from "@/lib/media/optimize";
 import { OptimizeError } from "./optimize";
 
 // Etapa Creativos (docs/spec-creativos.md). Tres pasos, cada uno en segundo plano (after):
@@ -436,11 +436,11 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
     await logRender(a, false, state.status, Date.now() - started);
     return;
   }
+  // Va a Meta Ads (copyToAds): JPEG optimizado, que /adimages acepta siempre. El QA mira el original.
   const bytes = await download(state.images[0]);
-  const meta = await sharp(bytes).metadata();
-  const ext = meta.format === "jpeg" ? "jpg" : meta.format === "webp" ? "webp" : "png";
-  const path = `${a.user_id}/${a.product_id}/${a.id}.${ext}`;
-  const up = await adminClient().storage.from(CREATIVES_BUCKET).upload(path, bytes, { contentType: `image/${meta.format === "jpeg" ? "jpeg" : ext}`, upsert: true });
+  const img = await optimizeForAds(bytes);
+  const path = `${a.user_id}/${a.product_id}/${a.id}.${img.ext}`;
+  const up = await adminClient().storage.from(CREATIVES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true });
   fail("Guardar la imagen", up.error);
   await logRender(a, true, undefined, Date.now() - started);
 
@@ -448,7 +448,7 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
     console.error("[creatives] QA", e);
     return null;
   });
-  await patchAsset(a.id, { render_status: "succeeded", storage_path: path, width: meta.width ?? null, height: meta.height ?? null, size_bytes: bytes.byteLength, qa, finished_at: new Date().toISOString() });
+  await patchAsset(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, finished_at: new Date().toISOString() });
 
   // Un solo reintento automático: sin preset, que respeta mejor el texto (spec §7.2).
   if (qa && !qa.pass && a.attempt === 1) {

@@ -3,6 +3,7 @@
 // (el bucket de Supabase no es alcanzable desde Shopify) y en producción.
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
+import { optimizeImage, withExt } from "@/lib/media/optimize";
 import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
 import type { ShopifyConnection } from "@/lib/integrations/shopify/connection";
 
@@ -153,9 +154,15 @@ export async function ensureImages(conn: ShopifyConnection, productId: string, i
     const batch = missing.slice(i, i + 10);
     const uploads = await Promise.all(
       batch.map(async (img) => {
-        const { data, name } = await readSource(img);
-        const ext = name.split(".").pop()?.toLowerCase() ?? "jpg";
-        return { filename: `dropflex-${name}`, mimeType: MIME[ext] ?? "image/jpeg", data };
+        const source = await readSource(img);
+        // Última puerta antes de la landing: lo guardado antes del optimizador y las fotos que ya
+        // estaban en Shopify también salen como WebP optimizado. Si no se puede o no gana, va el original.
+        const opt = await optimizeImage(source.data).catch(() => null);
+        if (opt && opt.data.byteLength < source.data.byteLength) {
+          return { filename: `dropflex-${withExt(source.name, opt.ext)}`, mimeType: opt.mime, data: opt.data };
+        }
+        const ext = source.name.split(".").pop()?.toLowerCase() ?? "jpg";
+        return { filename: `dropflex-${source.name}`, mimeType: MIME[ext] ?? "image/jpeg", data: source.data };
       }),
     );
     const urls = await stageUploads(conn, "IMAGE", uploads);

@@ -5,11 +5,13 @@ import { isIP } from "node:net";
 import { adminClient } from "@/lib/integrations/admin";
 import { REFERENCES_BUCKET, withDisplayUrls, toReferenceImage, type ImageRow } from "./store";
 import { ProductApiError } from "./http";
+import { ImageOptimizeError, optimizeImage } from "@/lib/media/optimize";
 import type { ReferenceImage } from "@/lib/types";
 
 // Imágenes de referencia agregadas por el comerciante (ImageUploader): desde su equipo o desde un
 // enlace. JPG, PNG o WEBP, hasta 10 MB cada una y 10 agregadas por producto. Se guardan en Storage
-// (privado) para no depender del enlace original.
+// (privado) para no depender del enlace original, siempre como WebP optimizado (lib/media/optimize.ts):
+// pueden terminar en la landing.
 
 export const MAX_BYTES = 10 * 1024 * 1024;
 export const MAX_ADDED_PER_PRODUCT = 10;
@@ -17,6 +19,16 @@ const FETCH_TIMEOUT_MS = 10_000;
 const MAX_REDIRECTS = 3;
 
 type Kind = { mime: "image/jpeg" | "image/png" | "image/webp"; ext: "jpg" | "png" | "webp" };
+const WEBP: Kind = { mime: "image/webp", ext: "webp" };
+
+async function optimized(bytes: Uint8Array) {
+  try {
+    return await optimizeImage(bytes);
+  } catch (e) {
+    if (e instanceof ImageOptimizeError) throw new ProductApiError("No pudimos leer esa imagen. Prueba con otro archivo JPG, PNG o WEBP.", 415, "file");
+    throw e;
+  }
+}
 
 /** El tipo real, por los primeros bytes (no por la extensión ni por lo que declare el cliente). */
 export function sniffImage(bytes: Uint8Array): Kind | null {
@@ -95,15 +107,17 @@ async function store(
   const kind = sniffImage(bytes);
   if (!kind) throw new ProductApiError("Solo imágenes JPG, PNG o WEBP.", 415);
   await assertRoom(userId, productId);
-  const path = `${userId}/${productId}/${randomUUID()}.${kind.ext}`;
-  const up = await adminClient().storage.from(REFERENCES_BUCKET).upload(path, bytes, { contentType: kind.mime, upsert: false });
+  const img = await optimized(bytes);
+  const path = `${userId}/${productId}/${randomUUID()}.${img.ext}`;
+  const up = await adminClient().storage.from(REFERENCES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: false });
   if (up.error) throw new Error(`Subir la imagen: ${up.error.message}`);
-  return insertRow(userId, productId, path, kind, bytes.byteLength, meta);
+  return insertRow(userId, productId, path, WEBP, img.data.byteLength, meta);
 }
 
 // ---------------------------------------------------------------- Desde el equipo
 // El navegador sube directo a Storage con una URL firmada: una función de Vercel no acepta cuerpos
-// de 10 MB. Después la app confirma: revisa el tipo real por los primeros bytes y registra la imagen.
+// de 10 MB. Después la app confirma: revisa el tipo real por los primeros bytes, la reemplaza por su
+// versión WebP optimizada (el original se borra) y registra la imagen.
 
 const EXT: Record<string, Kind["ext"]> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
@@ -131,13 +145,19 @@ export async function confirmUpload(userId: string, productId: string, path: str
     throw new ProductApiError(kind ? "La imagen pesa más de 10 MB. Usa una más liviana." : "Solo imágenes JPG, PNG o WEBP.", 415, "file");
   }
   // Varias subidas en paralelo pudieron pasar el control al prepararse: se vuelve a mirar el tope.
+  let stored: string;
+  let size: number;
   try {
     await assertRoom(userId, productId);
-  } catch (e) {
+    const img = await optimized(bytes);
+    stored = `${userId}/${productId}/${randomUUID()}.${img.ext}`;
+    const up = await db.storage.from(REFERENCES_BUCKET).upload(stored, img.data, { contentType: img.mime, upsert: false });
+    if (up.error) throw new Error(`Subir la imagen: ${up.error.message}`);
+    size = img.data.byteLength;
+  } finally {
     await db.storage.from(REFERENCES_BUCKET).remove([path]);
-    throw e;
   }
-  return insertRow(userId, productId, path, kind, bytes.byteLength, { source: "upload", alt: name.replace(/\.[a-z0-9]+$/i, "") });
+  return insertRow(userId, productId, stored, WEBP, size, { source: "upload", alt: name.replace(/\.[a-z0-9]+$/i, "") });
 }
 
 // ---------------------------------------------------------------- Desde un enlace

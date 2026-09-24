@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { adminClient } from "@/lib/integrations/admin";
+import { optimizeImage } from "@/lib/media/optimize";
 import { sniffImage } from "@/lib/products/images";
 import { ProductApiError } from "@/lib/products/http";
 import { REFERENCES_BUCKET, type DbContentStatus } from "@/lib/products/store";
@@ -244,10 +245,11 @@ async function copyPhoto(userId: string, productId: string, url: string): Promis
     if (Number(res.headers.get("content-length") ?? 0) > PHOTO_MAX_BYTES) return null;
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (bytes.byteLength > PHOTO_MAX_BYTES) return null;
-    const kind = sniffImage(bytes);
-    if (!kind) return null;
-    const path = `${userId}/${productId}/review-${randomUUID()}.${kind.ext}`;
-    const up = await adminClient().storage.from(REFERENCES_BUCKET).upload(path, bytes, { contentType: kind.mime, upsert: false });
+    if (!sniffImage(bytes)) return null;
+    // Las fotos de reseñas se ven en tarjetas del carrusel: 1600 px sobran.
+    const img = await optimizeImage(bytes, { maxSide: 1600 });
+    const path = `${userId}/${productId}/review-${randomUUID()}.${img.ext}`;
+    const up = await adminClient().storage.from(REFERENCES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: false });
     return up.error ? null : { path, source_url: url };
   } catch {
     return null;

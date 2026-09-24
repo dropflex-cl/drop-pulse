@@ -34,6 +34,7 @@ import { getMarket } from "@/lib/settings/market";
 import { approvedBriefs } from "./copy";
 import { onHiggsfieldError, productImageUrls, requireKey } from "./creatives";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
+import { optimizeImage } from "@/lib/media/optimize";
 import { OptimizeError } from "./optimize";
 
 // Etapa Imágenes (docs/spec-imagenes.md): las imágenes de la página del producto, por espacio.
@@ -424,11 +425,11 @@ async function finishImage(a: PageImageRow, state: RequestState, started: number
     await logRender(a, false, state.status, Date.now() - started);
     return;
   }
+  // Va a la landing: se guarda como WebP optimizado. El QA mira el original, sin re-comprimir.
   const bytes = await download(state.images[0]);
-  const meta = await sharp(bytes).metadata();
-  const ext = meta.format === "jpeg" ? "jpg" : meta.format === "webp" ? "webp" : "png";
-  const path = `${a.user_id}/${a.product_id}/${a.id}.${ext}`;
-  const up = await adminClient().storage.from(PAGE_MEDIA_BUCKET).upload(path, bytes, { contentType: `image/${meta.format === "jpeg" ? "jpeg" : ext}`, upsert: true });
+  const img = await optimizeImage(bytes);
+  const path = `${a.user_id}/${a.product_id}/${a.id}.${img.ext}`;
+  const up = await adminClient().storage.from(PAGE_MEDIA_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true });
   fail("Guardar la imagen", up.error);
   await logRender(a, true, undefined, Date.now() - started);
 
@@ -436,7 +437,7 @@ async function finishImage(a: PageImageRow, state: RequestState, started: number
     console.error("[page-images] QA", e);
     return null;
   });
-  await patchImage(a.id, { render_status: "succeeded", storage_path: path, width: meta.width ?? null, height: meta.height ?? null, size_bytes: bytes.byteLength, qa, finished_at: stamp() });
+  await patchImage(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, finished_at: stamp() });
   // El reintento salió: el intento que el QA rechazó se descarta (se borra pasado el plazo), salvo que
   // el comerciante ya lo haya elegido.
   if (a.retry_of) {
@@ -669,17 +670,26 @@ export async function confirmPageUpload(userId: string, productId: string, slot:
   const meta = await sharp(bytes).metadata().catch(() => null);
   if (!meta?.width || !meta.height || !["jpeg", "png", "webp"].includes(meta.format ?? "")) return drop("Sube una imagen JPG, PNG o WebP.");
   if (Math.min(meta.width, meta.height) < 600) return drop("La imagen es muy chica: usa una de al menos 600 px por lado.");
+  // Se reemplaza por su versión WebP optimizada (va a la landing) y el original se borra.
+  const img = await optimizeImage(bytes).catch(() => null);
+  if (!img) return drop("No pudimos leer esa imagen. Prueba con otro archivo JPG, PNG o WebP.");
+  const stored = `${userId}/${productId}/upload-${randomUUID()}.${img.ext}`;
+  const up = await db.storage.from(PAGE_MEDIA_BUCKET).upload(stored, img.data, { contentType: img.mime, upsert: false });
+  await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
+  if (up.error) throw new ProductApiError("No pudimos guardar la imagen. Súbela de nuevo.", 500, "file");
   const { error } = await db.from("page_images").insert({
     product_id: productId,
     user_id: userId,
     slot,
     source: "upload",
+    input: { original_bytes: bytes.byteLength },
     render_status: "succeeded",
-    storage_path: path,
-    width: meta.width,
-    height: meta.height,
-    size_bytes: bytes.byteLength,
+    storage_path: stored,
+    width: img.width,
+    height: img.height,
+    size_bytes: img.data.byteLength,
     finished_at: stamp(),
   });
+  if (error) await db.storage.from(PAGE_MEDIA_BUCKET).remove([stored]);
   fail("Agregar la imagen", error);
 }
