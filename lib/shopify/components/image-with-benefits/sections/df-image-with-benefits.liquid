@@ -121,19 +121,19 @@
 
 {% stylesheet %}
   .df-image-with-benefits {
-    padding-block: var(--df-iwb-pt, 48px) var(--df-iwb-pb, 48px);
+    padding-block: calc(var(--df-iwb-pt, 48px) * var(--df-space, 1)) calc(var(--df-iwb-pb, 48px) * var(--df-space, 1));
     background: var(--df-iwb-bg, transparent);
   }
 
   .df-image-with-benefits__inner {
-    max-width: 1400px;
+    max-width: calc(var(--df-container) + var(--df-gutter) * 2);
     margin-inline: auto;
-    padding-inline: 16px;
+    padding-inline: var(--df-gutter);
   }
 
   .df-image-with-benefits__heading {
-    margin-bottom: 24px;
-    font-size: clamp(1.625rem, 7vw, var(--df-iwb-heading, 48px));
+    margin-bottom: 32px;
+    font-size: min(var(--df-title-size), var(--df-iwb-heading, 40px));
     text-align: center;
   }
 
@@ -364,7 +364,7 @@
       "max": 72,
       "step": 2,
       "unit": "px",
-      "default": 44
+      "default": 40
     },
     {
       "type": "range",

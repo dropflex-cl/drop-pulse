@@ -13,10 +13,9 @@
   Tokens: {return_days} · {warranty_months} · {threshold} (políticas) · {min} {max} (logística).
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign content = product.metafields.dropflex.benefit_double_box.value
   assign policies = shop.metafields.dropflex.policies.value
@@ -253,11 +252,6 @@
     {
       "type": "paragraph",
       "content": "Los textos vienen del metafield dropflex.benefit_double_box; estas tarjetas son el respaldo. Pago y garantía deben ser reales."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "header",

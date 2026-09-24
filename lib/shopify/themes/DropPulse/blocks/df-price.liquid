@@ -8,10 +8,9 @@
   tienda; df-price.js solo elige cuál mostrar (evento shopify:product:select o change del form).
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign variant = product.selected_or_first_available_variant
 -%}
@@ -110,11 +109,6 @@
     {
       "type": "paragraph",
       "content": "Precio y precio tachado de la variante elegida. El ahorro solo aparece si la variante tiene un precio de comparación mayor."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "checkbox",

@@ -16,10 +16,9 @@
   Encabezado con calificación: product.metafields.dropflex.review_summary (real).
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign content = product.metafields.dropflex.ugc_slider.value
   assign summary = product.metafields.dropflex.review_summary.value
@@ -599,11 +598,6 @@
     {
       "type": "paragraph",
       "content": "Muestra los videos que subiste en DropFlex. Si no hay, usa los videos de este bloque. Solo videos con permiso de uso."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "header",

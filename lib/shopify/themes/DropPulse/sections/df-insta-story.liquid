@@ -188,7 +188,7 @@
 
   <df-insta-story
     class="df df-insta-story df-insta-story--ring-{{ s.ring_style }}{% if s.card %} df-insta-story--card{% endif %}"
-    style="{% render 'df-accent-vars', product: product, background: bg_hex %} padding-block: {{ s.padding_top }}px {{ s.padding_bottom }}px; --df-story-size: {{ s.circle_size }}px;{% if bg_hex != blank %} --df-bg: {{ bg_hex }}; background: {{ bg_hex }};{% endif %}{% if dark_bg %} --df-fg: #ffffff;{% endif %}"
+    style="{% render 'df-accent-vars', product: product, background: bg_hex %} padding-block: calc({{ s.padding_top }}px * var(--df-space, 1)) calc({{ s.padding_bottom }}px * var(--df-space, 1)); --df-story-size: {{ s.circle_size }}px;{% if bg_hex != blank %} --df-bg: {{ bg_hex }}; background: {{ bg_hex }};{% endif %}{% if dark_bg %} --df-fg: #ffffff;{% endif %}"
     data-duration="{{ s.duration | times: 1000 }}"
     data-start-muted="{{ s.start_muted }}"
     data-close-at-end="{{ s.close_at_end }}"
@@ -278,14 +278,16 @@
   }
 
   .df-insta-story__inner {
-    max-width: 1200px;
+    max-width: calc(var(--df-container) + var(--df-gutter) * 2);
     margin-inline: auto;
   }
 
   .df-insta-story--card .df-insta-story__inner {
-    margin-inline: 16px;
+    width: calc(100% - var(--df-gutter) * 2);
+    max-width: var(--df-container);
+    margin-inline: auto;
     padding-block: 24px;
-    border-radius: var(--df-radius);
+    border-radius: var(--df-radius-lg);
     background: var(--df-surface);
   }
 
@@ -293,12 +295,12 @@
     display: grid;
     gap: 8px;
     margin-bottom: 20px;
-    padding-inline: 16px;
+    padding-inline: var(--df-gutter);
     text-align: center;
   }
 
   .df-insta-story__heading {
-    font-size: clamp(1.625rem, 5vw, 2.5rem);
+    font-size: var(--df-title-size);
   }
 
   .df-insta-story__row {
@@ -768,7 +770,7 @@
       "max": 120,
       "step": 4,
       "unit": "px",
-      "default": 40
+      "default": 48
     },
     {
       "type": "range",
@@ -778,7 +780,7 @@
       "max": 120,
       "step": 4,
       "unit": "px",
-      "default": 40
+      "default": 48
     }
   ],
   "blocks": [

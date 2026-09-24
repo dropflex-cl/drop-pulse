@@ -115,7 +115,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "use_product_image": true,
     "image_shape": "circle",
     "text_align": "center",
-    "heading_size": 44,
+    "heading_size": 40,
     "icon_size": 36,
     "padding_top": 48,
     "padding_bottom": 48
@@ -129,8 +129,8 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "circle_size": 80,
     "ring_style": "gradient",
     "card": true,
-    "padding_top": 40,
-    "padding_bottom": 40
+    "padding_top": 48,
+    "padding_bottom": 48
   },
   "inventory": {
     "available_text": "En stock, recíbelo en {min} a {max} días hábiles",
@@ -225,9 +225,9 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "show_testimonial": true,
     "show_stats": false,
     "button_label": "Pídelo y paga al recibir",
-    "card_radius": 12,
-    "padding_top": 32,
-    "padding_bottom": 32
+    "card_radius": 14,
+    "padding_top": 48,
+    "padding_bottom": 48
   },
   "ugc-slider": {
     "show_rating": false,

@@ -36,9 +36,43 @@
   --df-info: #0e7490;
   --df-urgent: #c2410c;
   --df-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Layout común de las secciones (design system, grilla de 4 px): el mismo contenedor y los mismos
+     márgenes que la ficha del tema (--page-margin), el mismo ritmo vertical y una sola escala de
+     títulos. En móvil el espacio entre secciones baja a 2/3. */
+  --df-container: 1200px;
+  --df-gutter: var(--page-margin, 16px);
+  --df-space: 0.67;
+  --df-title-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.5rem);
+  --df-radius-lg: var(--style-border-radius-lg, 14px);
 
   color: var(--df-fg);
   font-family: var(--df-font-body);
+}
+
+@media (min-width: 750px) {
+  .df {
+    --df-space: 1;
+  }
+}
+
+/* El contenedor de todas las secciones: alineado con la ficha del producto. */
+.df-container {
+  width: 100%;
+  max-width: calc(var(--df-container) + var(--df-gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--df-gutter);
+}
+
+/* Una tarjeta del ancho del contenedor (con su margen lateral en móvil). */
+.df-container-card {
+  width: calc(100% - var(--df-gutter) * 2);
+  max-width: var(--df-container);
+  margin-inline: auto;
+  border-radius: var(--df-radius-lg);
+}
+
+.df-section-title {
+  font-size: var(--df-title-size);
 }
 
 .df *,

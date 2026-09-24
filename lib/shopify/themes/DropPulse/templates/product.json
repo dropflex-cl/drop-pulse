@@ -70,9 +70,7 @@
           "blocks": {
             "social_proof": {
               "type": "df-social-proof",
-              "settings": {
-                "margin_bottom": 8
-              }
+              "settings": {}
             },
             "review_stars": {
               "type": "df-review-stars",
@@ -97,8 +95,8 @@
                 "thickness": 1,
                 "divider_color": "#e4e6eb",
                 "width_percent": 100,
-                "padding-block-start": 8,
-                "padding-block-end": 8
+                "padding-block-start": 4,
+                "padding-block-end": 4
               }
             },
             "price": {
@@ -265,11 +263,11 @@
         "content_width": "content-center-aligned",
         "desktop_media_position": "left",
         "equal_columns": true,
-        "limit_details_width": true,
+        "limit_details_width": false,
         "gap": 48,
         "enable_sticky_add_to_cart": true,
-        "padding-block-start": 24,
-        "padding-block-end": 48
+        "padding-block-start": 32,
+        "padding-block-end": 32
       }
     },
     "stats_with_image": {

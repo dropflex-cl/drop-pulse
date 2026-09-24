@@ -71,6 +71,8 @@
       --font-accent--family: var(--df-ds-font);
       --font-accent--style: normal;
       --font-accent--weight: 600;
+      /* Un solo ancho para toda la página (ficha y secciones): 1200px, como --df-container. */
+      --narrow-page-width: 75rem;
       --style-border-radius-sm: 6px;
       --style-border-radius-md: 10px;
       --style-border-radius-lg: 14px;
@@ -95,6 +97,13 @@
 
     h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
       letter-spacing: -0.01em;
+    }
+
+    /* Título de la ficha: 26px en móvil, 36px en escritorio (en móvil no puede empujar el precio fuera de la vista). */
+    .product-information .product-details :is(h1, h2, h3) {
+      font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.25rem);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
     }
 
     /* Cifras: precios y cantidades alineadas (type-metric del design system). */

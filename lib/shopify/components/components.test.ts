@@ -89,6 +89,15 @@ describe("_landing", () => {
     }
   });
 
+  it("ningún bloque declara un ajuste de producto (closest.product lo tomaría vacío)", () => {
+    const blocks = readdirSync(ROOT).flatMap((d) => (statSync(join(ROOT, d)).isDirectory() ? files(d) : [])).filter((f) => f.includes("/blocks/"));
+    for (const f of blocks) {
+      walk(schemaOf(readFileSync(f, "utf8")), (n) => {
+        expect(n.type === "product" && typeof n.id === "string", `${f}: ajuste «${String(n.id)}» de tipo product`).toBe(false);
+      });
+    }
+  });
+
   it("el tema usa los bloques de la landing en la ficha", () => {
     const template = readFileSync(join(ROOT, "../themes/DropPulse/templates/product.json"), "utf8");
     for (const type of ["df-social-proof", "df-subtitle", "df-price", "df-pack-offers", "df-trust-note"]) {

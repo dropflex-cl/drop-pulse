@@ -14,10 +14,9 @@
   df-price y df-inventory lo escuchan (df-pack-offers.js).
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign offer = product.metafields.dropflex.offer.value
   assign selected = product.selected_or_first_available_variant
@@ -287,11 +286,6 @@
     {
       "type": "paragraph",
       "content": "Una tarjeta por variante (los packs de 1, 2 y 3 unidades). Precios de cada variante; nombres del metafield dropflex.offer o, si falta, el nombre de la variante."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "text",

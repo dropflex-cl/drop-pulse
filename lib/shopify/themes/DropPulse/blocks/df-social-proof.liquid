@@ -11,10 +11,9 @@
   reseña es su avatar) y review_summary ({ rating, count }).
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign reviews = product.metafields.dropflex.reviews.value.items
   assign images = product.metafields.dropflex.reviews_images.value
@@ -187,11 +186,6 @@
     {
       "type": "paragraph",
       "content": "Fotos, nombres y cantidad salen de las reseñas aprobadas en DropFlex. Sin reseñas suficientes no se muestra."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "text",

@@ -13,10 +13,9 @@
   Datos reales: product.metafields.dropflex.review_summary = { rating, count, source_label }.
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign content = product.metafields.dropflex.review_stars.value
   assign summary = product.metafields.dropflex.review_summary.value
@@ -162,11 +161,6 @@
     {
       "type": "paragraph",
       "content": "La calificación y la cantidad salen de las reseñas aprobadas en DropFlex. No se pueden escribir a mano."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "header",

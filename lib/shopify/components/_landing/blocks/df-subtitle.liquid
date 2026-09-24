@@ -6,10 +6,9 @@
   ficha aprobada en DropFlex) → si falta, el texto del bloque → si tampoco, nada.
 {%- enddoc -%}
 {%- liquid
-  assign product = closest.product
-  if product == blank
-    assign product = block.settings.product
-  endif
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
   assign s = block.settings
   assign text = product.metafields.dropflex.subtitle.value | default: s.text
 -%}
@@ -46,11 +45,6 @@
     {
       "type": "paragraph",
       "content": "El texto sale del metafield dropflex.subtitle (la descripción corta de la ficha aprobada en DropFlex). Este es el respaldo."
-    },
-    {
-      "type": "product",
-      "id": "product",
-      "label": "Producto (fuera de la ficha)"
     },
     {
       "type": "text",
