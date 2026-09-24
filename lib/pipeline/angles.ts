@@ -253,6 +253,10 @@ export async function runRanking(rankingId: string): Promise<void> {
  * Guarda principal y secundario y crea los desarrollos que falten. Un desarrollo que ya existe para
  * el mismo ángulo y papel se conserva (cambiar solo el secundario no regenera el principal).
  * Devuelve los desarrollos nuevos, para ejecutarlos en segundo plano.
+ *
+ * La elección se guarda al final: si algo falla antes, la evaluación no queda confirmada sin sus
+ * desarrollos (la etapa se quedaría «desarrollando» para siempre). Confirmar otra vez completa lo
+ * que falte.
  */
 export async function confirmSelection(userId: string, productId: string, primary: SalesAngle, secondary: SalesAngle): Promise<string[]> {
   if (!SALES_ANGLES.includes(primary) || !SALES_ANGLES.includes(secondary)) throw new OptimizeError("Elige un ángulo principal y uno secundario.", 400);
@@ -263,30 +267,18 @@ export async function confirmSelection(userId: string, productId: string, primar
 
   const db = adminClient();
   const now = new Date().toISOString();
-  fail(
-    "Guardar la elección",
-    (await db.from("angle_rankings").update({ primary_angle: primary, secondary_angle: secondary, confirmed_at: now, updated_at: now }).eq("id", ranking.id)).error,
-  );
 
+  // 1. Solo lecturas: qué se descarta, qué se reutiliza y qué se crea.
   const existing = (await currentBriefs(userId, [ranking.id])).get(ranking.id) ?? {};
   const wanted: Record<AngleRole, SalesAngle> = { primary, secondary };
+  const toReject: BriefRow[] = [];
+  const toReuse: string[] = [];
   const toCreate: AngleRole[] = [];
   let ctx: AngleContext | null = null;
   for (const role of ["primary", "secondary"] as AngleRole[]) {
     const b = existing[role];
     if (b && b.angle === wanted[role] && b.generation !== "failed") continue;
-    if (b) {
-      // El anterior queda descartado (recuperable); si seguía generando, se corta.
-      fail(
-        "Descartar el desarrollo anterior",
-        (
-          await db
-            .from("angle_briefs")
-            .update({ status: "rejected", ...(b.generation === "queued" || b.generation === "running" ? { generation: "failed", error_code: "superseded" } : {}), updated_at: now })
-            .eq("id", b.id)
-        ).error,
-      );
-    }
+    if (b) toReject.push(b);
     // Volver a evaluar sin que cambie nada: el desarrollo vigente del mismo ángulo, papel y compañero
     // se conserva (con su aprobación) en vez de pagar otro que saldría de lo mismo.
     ctx ??= await contextFor(ranking, ranking.input);
@@ -307,22 +299,43 @@ export async function confirmSelection(userId: string, productId: string, primar
       .limit(1)
       .maybeSingle();
     fail("Buscar un desarrollo que sirva", reuseError);
-    if (reusable) {
-      fail("Conservar el desarrollo", (await db.from("angle_briefs").update({ ranking_id: ranking.id, updated_at: now }).eq("id", reusable.id)).error);
-      continue;
-    }
-    toCreate.push(role);
+    if (reusable) toReuse.push(reusable.id as string);
+    else toCreate.push(role);
   }
-  if (!toCreate.length) return [];
-  if ((await dailyCount("angle_briefs", userId)) + toCreate.length > DAILY_BRIEFS) {
+  if (toCreate.length && (await dailyCount("angle_briefs", userId)) + toCreate.length > DAILY_BRIEFS) {
     throw new OptimizeError(`Llegaste al máximo de ${DAILY_BRIEFS} desarrollos en 24 horas. Vuelve mañana.`, 429);
   }
-  const { data, error } = await db
-    .from("angle_briefs")
-    .insert(toCreate.map((role) => ({ product_id: productId, user_id: userId, ranking_id: ranking.id, angle: wanted[role], role, generation: "queued" })))
-    .select("id");
-  fail("Crear los desarrollos", error);
-  return (data ?? []).map((d) => d.id as string);
+
+  // 2. Escrituras: los desarrollos primero, la elección al final.
+  for (const b of toReject) {
+    // El anterior queda descartado (recuperable); si seguía generando, se corta.
+    fail(
+      "Descartar el desarrollo anterior",
+      (
+        await db
+          .from("angle_briefs")
+          .update({ status: "rejected", ...(b.generation === "queued" || b.generation === "running" ? { generation: "failed", error_code: "superseded" } : {}), updated_at: now })
+          .eq("id", b.id)
+      ).error,
+    );
+  }
+  for (const id of toReuse) {
+    fail("Conservar el desarrollo", (await db.from("angle_briefs").update({ ranking_id: ranking.id, updated_at: now }).eq("id", id)).error);
+  }
+  let created: string[] = [];
+  if (toCreate.length) {
+    const { data, error } = await db
+      .from("angle_briefs")
+      .insert(toCreate.map((role) => ({ product_id: productId, user_id: userId, ranking_id: ranking.id, angle: wanted[role], role, generation: "queued" })))
+      .select("id");
+    fail("Crear los desarrollos", error);
+    created = (data ?? []).map((d) => d.id as string);
+  }
+  fail(
+    "Guardar la elección",
+    (await db.from("angle_rankings").update({ primary_angle: primary, secondary_angle: secondary, confirmed_at: now, updated_at: now }).eq("id", ranking.id)).error,
+  );
+  return created;
 }
 
 // ---------------------------------------------------------------- 3. Desarrollar (angulo-*)

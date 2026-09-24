@@ -108,6 +108,14 @@ describe("etapa Ángulos", () => {
     expect(p.anglesPhase).toBe("failed");
     expect(p.stages[2].desc).toBe("La IA no respondió.");
   });
+
+  it("confirmados sin desarrollos no se quedan «desarrollando»", () => {
+    const ranking = { status: "succeeded" as const, confirmed: true };
+    const none = productPosition(facts({ ranking, briefs: [] }));
+    expect(none.anglesPhase).toBe("failed");
+    expect(none.stages[2]).toMatchObject({ state: "error", desc: "Falta un desarrollo · toca Regenerar" });
+    expect(anglesPhase(facts({ ranking, briefs: [brief("primary", "aprobado")] }))).toBe("failed");
+  });
 });
 
 describe("página del producto (Textos)", () => {

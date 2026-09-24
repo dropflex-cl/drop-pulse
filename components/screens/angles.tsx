@@ -176,9 +176,13 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
 
   const regenerate = (role: AngleRole) => {
     const b = briefs[role];
-    if (!b) return;
+    const chosen = ranking?.chosen;
     setEditing(null);
-    run("regenerate", () => productsApi.regenerateAngleBrief(product.id, b.id), "No pudimos regenerar este desarrollo. Intenta de nuevo.", role);
+    if (b) run("regenerate", () => productsApi.regenerateAngleBrief(product.id, b.id), "No pudimos regenerar este desarrollo. Intenta de nuevo.", role);
+    // Sin desarrollo (una confirmación que falló a la mitad): confirmar otra vez la misma elección
+    // crea el que falta.
+    else if (chosen?.primary && chosen.secondary)
+      run("regenerate", () => productsApi.confirmAngles(product.id, chosen.primary!, chosen.secondary!), "No pudimos crear este desarrollo. Intenta de nuevo.", role);
   };
 
   const save = (role: AngleRole, v: AngleDevelopmentValue) => {
@@ -474,8 +478,26 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </StickyActions>
     );
   } else {
+    const missingName = (role: AngleRole) => {
+      const a = ranking?.chosen?.[role];
+      return !briefs[role] && a ? ANGLES[a].name : undefined;
+    };
     const dev = (role: AngleRole, hideActions: boolean) => {
       const b = briefs[role];
+      const missing = missingName(role);
+      if (!b && missing)
+        return (
+          <AngleDevelopment
+            key={`missing-${role}`}
+            role={UI_ROLE[role]}
+            angle={missing}
+            status="error"
+            error="Este desarrollo no se alcanzó a crear. Toca Regenerar."
+            hideActions={hideActions}
+            busy={busy?.role === role && busy.what === "regenerate" ? "regenerate" : null}
+            onRegenerate={() => regenerate(role)}
+          />
+        );
       if (!b) return null;
       return (
         <AngleDevelopment
@@ -511,6 +533,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </Button>
     );
     const current = briefs[tab];
+    const currentStatus: AngleDevelopmentStatus | undefined = current ? devStatus(current) : missingName(tab) ? "error" : undefined;
     body = (
       <div className="flex flex-col gap-3">
         {avatarChanged}
@@ -524,7 +547,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
               setTab(v as AngleRole);
               setEditing(null);
             }}
-            options={ROLES.map((r, i) => ({ value: r, label: `${i + 1} · ${briefs[r]?.name ?? ""}` }))}
+            options={ROLES.map((r, i) => ({ value: r, label: `${i + 1} · ${briefs[r]?.name ?? missingName(r) ?? ""}` }))}
           />
           {dev(tab, true)}
           <Button variant="ghost" className="self-start" onClick={() => setChoosing(true)}>
@@ -545,13 +568,13 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         </Button>
         {next}
       </StickyActions>
-    ) : editing || (current && !done && devStatus(current) === "generando") ? null : (
+    ) : editing || (!done && currentStatus === "generando") ? null : (
       <StickyActions className="block">
-        {done || !current ? (
+        {done || !currentStatus ? (
           next
         ) : (
           <AngleDevelopmentActions
-            status={devStatus(current)}
+            status={currentStatus}
             busy={busy?.role === tab ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
             onApprove={() => decide(tab, "approve")}
             onReopen={() => decide(tab, "reopen")}

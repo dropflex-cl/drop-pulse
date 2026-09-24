@@ -135,8 +135,10 @@ export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): An
   if (r.status === "failed") return "failed";
   if (!r.confirmed) return "choose";
   const briefs = f.angles?.briefs ?? [];
-  if (briefs.length < 2 || briefs.some((b) => active(b.generation))) return "developing";
-  if (briefs.some((b) => b.generation === "failed")) return "failed";
+  if (briefs.some((b) => active(b.generation))) return "developing";
+  // Confirmado sin uno de los 2 desarrollos (una confirmación que falló a la mitad): nada lo está
+  // generando, así que no es «desarrollando»; se recupera con Regenerar.
+  if (briefs.length < 2 || briefs.some((b) => b.generation === "failed")) return "failed";
   if (briefs.every((b) => b.status === "aprobado")) return "done";
   return "review";
 }
@@ -246,7 +248,7 @@ function anglesDesc(phase: AnglesPhase, a: AngleFacts | null | undefined): strin
     case "evaluating":
       return "La IA está evaluando 6 ángulos";
     case "failed":
-      return a?.ranking?.status === "failed" ? (a.ranking.error ?? "No se pudo evaluar") : (a?.briefs.find((b) => b.generation === "failed")?.error ?? "No se pudo desarrollar un ángulo");
+      return a?.ranking?.status === "failed" ? (a.ranking.error ?? "No se pudo evaluar") : (a?.briefs.find((b) => b.generation === "failed")?.error ?? (a && a.briefs.length < 2 ? "Falta un desarrollo · toca Regenerar" : "No se pudo desarrollar un ángulo"));
     case "choose":
       return "Sugerencia lista · elige principal y secundario";
     case "developing":
