@@ -36,6 +36,15 @@ Reglas de la redirección (spec del tema, §9.2):
   - blanco, tinta `#15171c`, bordes `#e4e6eb`;
   - radios de 6, 10 y 14 px.
 
+## EasySell COD Form
+
+`snippets/df-easysell.liquid` (al final del `<body>`) lleva el formulario de pago contra entrega al design system. Portado de v1 (flux › `dropflex-cod-cta-accent` y la capa «EASYSELL» de `flux-redesign.css`). Lo controla el ajuste `df_easysell`, encendido por defecto; se apaga también con `df_design_system`.
+
+- **Formulario (CSS):** campos de 48 px con el borde y el radio de los inputs del tema, prefijo y campo en una sola pieza, foco con el anillo del design system, resumen del pedido con los bordes del tema, fotos con el radio de las fotos del producto y el modal con el radio de las tarjetas.
+- **Botones (script):** el que abre el formulario, la barra fija de la app, el de enviar y el del downsell toman el botón principal del tema: el acento del producto, su texto, su hover y su radio. Planos, sin el degradado ni la sombra de la app. La tarjeta del formulario toma el radio de las tarjetas y va sin sombra.
+- **Por qué script:** EasySell escribe esos estilos inline con `!important`, que le ganan a cualquier hoja. El script lee los tokens ya resueltos del tema con un elemento de prueba, los escribe inline y los repone cada vez que la app los reescribe (un observador por nodo, idempotente).
+- El app embed de EasySell queda siempre encendido desde Publicar (`EASYSELL_EMBED` en `lib/shopify/publish/kit.ts`).
+
 ## Bloques de la ficha
 
 | Bloque | Dónde | Datos |

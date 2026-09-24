@@ -1,0 +1,264 @@
+{%- doc -%}
+  DropFlex · EasySell COD Form con el design system de DropFlex (portado de v1, flux ›
+  dropflex-cod-cta-accent y la capa «EASYSELL» de flux-redesign.css). Va al final del <body>.
+
+  - Formulario: campos, prefijos, resumen del pedido, fotos, errores y modales con los tokens del
+    tema (Geist, tinta, bordes, radios 6/10/14px, anillo de foco, radio de las fotos del producto).
+  - Botones: el que abre el formulario, la barra fija de la app, el de enviar y el del downsell
+    toman el botón principal del tema: el acento del producto (df-design-system), su texto, su
+    hover y su radio. Planos, sin el degradado ni la sombra de la app.
+
+  POR QUÉ HAY SCRIPT: EasySell escribe color, fondo, borde, radio y sombra de sus botones y de la
+  tarjeta del formulario como estilos INLINE con !important, que le ganan a cualquier hoja de
+  estilos. La única forma es escribir esos mismos estilos inline después de que la app monta cada
+  nodo, y volver a escribirlos cuando la app los repone (cambio de variante, animación, carrito).
+  El pintado es idempotente: compara antes de escribir, así el observador no entra en bucle.
+
+  El DOM de una app de terceros no es un contrato: sin la app, o si cambia su markup, no pasa nada
+  (la app queda con sus colores). Solo toca pintura, nunca comportamiento.
+
+  Se apaga con el ajuste `df_easysell` (o con todo el design system, `df_design_system`).
+{%- enddoc -%}
+{%- if settings.df_design_system != false and settings.df_easysell != false -%}
+  {% style %}
+    #easysell,
+    .es-modal {
+      --df-es-ink: var(--color-foreground, #15171c);
+      --df-es-bg: var(--color-background, #ffffff);
+      --df-es-muted: color-mix(in srgb, var(--df-es-ink) 68%, var(--df-es-bg));
+      --df-es-hairline: color-mix(in srgb, var(--df-es-ink) 12%, transparent);
+      --df-es-surface: color-mix(in srgb, var(--df-es-ink) 4%, var(--df-es-bg));
+      --df-es-line: var(--color-input-border, #7d838e);
+      --df-es-field-radius: var(--style-border-radius-inputs, 10px);
+      --df-es-card-radius: var(--style-border-radius-lg, 14px);
+      --df-es-ring: var(--df-ds-ring, #1f4bd8);
+
+      font-family: var(--df-ds-font, inherit);
+    }
+
+    #easysell .es-form-container {
+      padding: 24px 20px 28px;
+    }
+
+    /* Campos: el borde y el radio de los inputs del tema, y el foco del design system. Borde y
+       radio van con !important porque la hoja de la app (de otro origen) los declara así. */
+    #easysell .es-input,
+    #easysell .es-form-control,
+    #easysell .es-select {
+      min-height: 48px;
+      padding: 12px 14px;
+      border-color: var(--df-es-line) !important;
+      border-radius: var(--df-es-field-radius) !important;
+      background-color: var(--color-input-background, var(--df-es-bg));
+      color: var(--df-es-ink);
+      font-family: inherit;
+      font-size: 16px;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    /* El prefijo y el campo son una sola pieza: el campo pierde las esquinas del lado del prefijo. */
+    #easysell .es-input-group > .es-input,
+    #easysell .es-input-group > .es-form-control,
+    #easysell .es-input-group > .es-select {
+      border-top-left-radius: 0 !important;
+      border-bottom-left-radius: 0 !important;
+    }
+
+    #easysell .es-input-group-text {
+      border-color: var(--df-es-line);
+      border-radius: var(--df-es-field-radius) 0 0 var(--df-es-field-radius);
+      background: var(--df-es-surface);
+      color: var(--df-es-muted);
+    }
+
+    #easysell .es-input:focus,
+    #easysell .es-form-control:focus,
+    #easysell .es-select:focus {
+      border-color: var(--df-es-ring) !important;
+      box-shadow: 0 0 0 1px var(--df-es-ring);
+      outline: none;
+    }
+
+    /* Resumen del pedido: los grises fijos de la app pasan a los bordes del tema. */
+    #easysell .es-line-item,
+    #easysell .es-subt-line,
+    #easysell .es-shipping-line {
+      border-color: var(--df-es-hairline) !important;
+    }
+
+    #easysell .es-total-line {
+      border-top-color: var(--df-es-hairline) !important;
+    }
+
+    /* Inline pero sin !important: esto gana. */
+    #easysell .total-container {
+      border-color: var(--df-es-hairline) !important;
+      border-radius: var(--df-es-field-radius) !important;
+      background-color: var(--df-es-surface) !important;
+    }
+
+    #easysell .es-product-title {
+      line-height: 1.35;
+    }
+
+    #easysell .es-image,
+    #easysell .es-image-container img {
+      border-radius: var(--gallery-media-border-radius, 12px);
+    }
+
+    #easysell .quantity-badge {
+      background: var(--df-es-ink) !important;
+      color: var(--df-es-bg) !important;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #easysell .es-errors {
+      color: #b91c1c;
+      font-size: 14px;
+    }
+
+    .es-modal .es-modal-content {
+      border-radius: var(--df-es-card-radius);
+      box-shadow: 0 16px 48px -8px color-mix(in srgb, #000000 22%, transparent);
+    }
+
+    .es-popup-button,
+    .es-sticky-btn,
+    .es-cta-btn,
+    .es-animated-button {
+      font-family: var(--df-ds-font, inherit);
+      letter-spacing: -0.01em;
+      transition: background-color 120ms ease;
+    }
+  {% endstyle %}
+
+  <script>
+    (function () {
+      /* Los botones que la app pinta con su degradado, en el orden del comprador: el que abre el
+         formulario, la barra fija de la app, el de enviar y el del downsell. El sello del downsell
+         solo toma el fondo (su forma es un clip-path de la app). La tarjeta del formulario toma el
+         radio y la tinta del tema, sin la sombra de la app. */
+      var BUTTONS = '.es-popup-button, .es-sticky-btn, .es-cta-btn, .es-animated-button';
+      var BADGE = '.es-downsell-badge';
+      var CARD = '.es-form-container';
+      var HOVER = 'dfEsHover';
+      var WATCHED = 'dfEsWatched';
+      var tokens = null;
+
+      /* Los tokens del tema, resueltos una vez: el botón principal (que df-design-system ya tiñó
+         con el acento del producto), su texto, su hover y su radio; la tinta, el fondo y el radio
+         de las tarjetas. Se escriben ya resueltos para comparar texto con texto. */
+      function readTokens() {
+        var probe = document.createElement('span');
+        probe.setAttribute('aria-hidden', 'true');
+        probe.style.cssText =
+          'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;' +
+          'background-color:var(--color-primary-button-background);' +
+          'color:var(--color-primary-button-text);' +
+          'border-top-color:var(--color-primary-button-hover-background);' +
+          'border-bottom-color:var(--color-foreground);' +
+          'outline-color:var(--color-background);' +
+          'border-top-left-radius:var(--style-border-radius-buttons-primary,10px);' +
+          'border-top-right-radius:var(--style-border-radius-lg,14px);';
+        document.body.appendChild(probe);
+        var cs = window.getComputedStyle(probe);
+        var t = {
+          accent: cs.backgroundColor,
+          onAccent: cs.color,
+          hover: cs.borderTopColor,
+          ink: cs.borderBottomColor,
+          bg: cs.outlineColor,
+          buttonRadius: cs.borderTopLeftRadius,
+          cardRadius: cs.borderTopRightRadius,
+        };
+        probe.remove();
+        /* Sin botón principal resuelto (otro tema, variables ausentes): la app queda como está. */
+        return t.accent && t.accent !== 'rgba(0, 0, 0, 0)' ? t : null;
+      }
+
+      function wanted(el) {
+        if (el.matches(BADGE)) {
+          return { 'background-image': 'none', 'background-color': tokens.accent };
+        }
+        if (el.matches(CARD)) {
+          return { 'border-radius': tokens.cardRadius, 'box-shadow': 'none', color: tokens.ink, 'background-color': tokens.bg };
+        }
+        return {
+          'background-image': 'none',
+          'background-color': el.dataset[HOVER] ? tokens.hover : tokens.accent,
+          'border-color': tokens.accent,
+          color: tokens.onAccent,
+          'border-radius': tokens.buttonRadius,
+          'box-shadow': 'none',
+        };
+      }
+
+      /* Los textos de los botones con color inline propio (el título es .es-button-title en un
+         botón y un span suelto en otro; el downsell no tiene): se buscan por su estilo. */
+      function labels(el) {
+        if (!el.matches(BUTTONS)) return [];
+        var out = [];
+        var nodes = el.querySelectorAll('*');
+        for (var i = 0; i < nodes.length; i++) {
+          if (nodes[i].style && nodes[i].style.color) out.push(nodes[i]);
+        }
+        return out;
+      }
+
+      function paint(el) {
+        watch(el);
+        var want = wanted(el);
+        for (var prop in want) {
+          if (el.style.getPropertyValue(prop) !== want[prop] || el.style.getPropertyPriority(prop) !== 'important') {
+            el.style.setProperty(prop, want[prop], 'important');
+          }
+        }
+        var inner = labels(el);
+        for (var i = 0; i < inner.length; i++) {
+          if (inner[i].style.color !== tokens.onAccent) inner[i].style.setProperty('color', tokens.onAccent, 'important');
+        }
+      }
+
+      /* Un observador por nodo: despierta cuando la app reescribe su propio style (o el de sus
+         textos) y repinta en el mismo momento, sin mostrar un cuadro con el degradado de la app.
+         No entra en bucle: nuestra escritura dispara una vuelta más que ya no escribe nada. */
+      function watch(el) {
+        if (el.dataset[WATCHED]) return;
+        el.dataset[WATCHED] = '1';
+        new MutationObserver(function () {
+          paint(el);
+        }).observe(el, { attributes: true, attributeFilter: ['style'], subtree: true });
+        if (el.matches(BUTTONS)) {
+          el.addEventListener('pointerenter', function () {
+            el.dataset[HOVER] = '1';
+            paint(el);
+          });
+          el.addEventListener('pointerleave', function () {
+            delete el.dataset[HOVER];
+            paint(el);
+          });
+        }
+      }
+
+      function paintAll() {
+        var nodes = document.querySelectorAll(BUTTONS + ', ' + BADGE + ', ' + CARD);
+        for (var i = 0; i < nodes.length; i++) paint(nodes[i]);
+      }
+
+      function start() {
+        tokens = readTokens();
+        if (!tokens) return;
+        paintAll();
+        /* La app monta sus nodos después y los vuelve a montar al actualizar el carrito. Solo
+           childList: una clase que cambia (la animación) nunca cambia el color. */
+        new MutationObserver(paintAll).observe(document.documentElement, { childList: true, subtree: true });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else {
+        start();
+      }
+    })();
+  </script>
+{%- endif -%}

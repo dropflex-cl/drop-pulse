@@ -37,6 +37,13 @@
         "label": "Design system de DropFlex",
         "info": "Tipografía Geist, foco accesible y el color de cada producto en su botón de compra.",
         "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "df_easysell",
+        "label": "EasySell con el diseño de la tienda",
+        "info": "El formulario de pago contra entrega toma la tipografía, los bordes y los radios del tema, y sus botones el color del producto. Mientras esté activo, los colores y la sombra de los botones configurados en EasySell no se ven.",
+        "default": true
       }
     ]
   },
