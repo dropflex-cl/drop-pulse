@@ -1,0 +1,44 @@
+{%- doc -%}
+  DropFlex · una imagen del collage de stats-with-image.
+
+  Recibe un objeto imagen (ajuste image_picker, imagen del producto o la vista previa de un archivo
+  del metafield) y la dibuja con srcset. Solo la primera imagen de una sección que está arriba del
+  pliegue carga con prioridad alta; el resto, diferida. El alt es el de la imagen (image_tag lo
+  toma y lo escapa solo).
+
+  @param {object} image - Imagen (image) a dibujar
+  @param {number} position - Posición en el collage, desde 1
+  @param {number} count - Cantidad de imágenes del collage (1 a 4), define `sizes`
+  @param {boolean} [eager] - La sección está arriba del pliegue
+
+  @example
+  {% render 'df-stats-with-image-image', image: product.featured_image, position: 1, count: 3, eager: true %}
+{%- enddoc -%}
+{%- liquid
+  if count == 1
+    assign df_sizes = '(min-width: 990px) 45vw, 100vw'
+  else
+    assign df_sizes = '(min-width: 990px) 23vw, 50vw'
+  endif
+
+  assign df_loading = 'lazy'
+  assign df_priority = 'auto'
+  if eager
+    assign df_loading = 'eager'
+    if position == 1
+      assign df_priority = 'high'
+    endif
+  endif
+-%}
+<div class="df-stats-with-image__photo">
+  {{-
+    image
+    | image_url: width: 1200
+    | image_tag:
+      widths: '300, 450, 600, 800, 1000, 1200',
+      sizes: df_sizes,
+      loading: df_loading,
+      fetchpriority: df_priority,
+      class: 'df-stats-with-image__img'
+  -}}
+</div>

@@ -1,0 +1,639 @@
+{%- doc -%}
+  DropFlex · Beneficios (benefit-usps). Bloque de la columna del producto, entre el precio y el
+  botón: 3 a 5 beneficios transaccionales (pago, envío, cambios, origen, soporte), cada uno con
+  un ícono y una frase corta.
+
+  REGLA: cada beneficio es una política REAL de la tienda. Los ítems del metafield declaran qué
+  política afirman (`policy`) y se ocultan si esa política no está activa en
+  shop.metafields.dropflex.policies. Las cifras son tokens que llena la tienda; si el dato falta,
+  el ítem no se muestra.
+
+  Contenido: metafield `dropflex.benefit_usps` (json) → si falta, los 5 ítems del bloque.
+    { items: [{ icon (IconKey), text (≤ 34, un **negrita** opcional), policy }] (3 a 5) }
+  Tokens: {min} {max} días hábiles de entrega (logística) · {return_days} · {warranty_months} ·
+  {threshold} monto del envío gratis (políticas).
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.benefit_usps.value
+  assign policies = shop.metafields.dropflex.policies.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+  assign known_icons = 'check,check-circle,x-circle,truck,package,home,cart,cash,shield,lock,return,clock,calendar,star,heart,sparkles,bolt,leaf,droplet,sun,moon,battery,feather,ruler,target,thumbs-up,users,chat,gift,fire,eye,hand,globe,award,phone,headset,flag' | split: ','
+
+  assign use_content = false
+  if content.items != blank
+    assign use_content = true
+  endif
+
+  # Datos reales para los tokens (0 = falta el dato → el ítem que lo usa no se muestra).
+  assign days_min = 0
+  assign days_max = 0
+  if logistics != blank
+    assign handling = logistics.handling_days | plus: 0
+    assign days_min = logistics.transit_days_min | plus: handling
+    assign days_max = logistics.transit_days_max | plus: handling
+    if days_max < days_min
+      assign days_max = days_min
+    endif
+  endif
+  assign return_days = policies.return_days | plus: 0
+  assign warranty_months = policies.warranty_months | plus: 0
+  assign threshold_cents = policies.free_shipping_threshold | times: 100
+  assign threshold = threshold_cents | money_without_trailing_zeros
+-%}
+
+{%- capture items_html -%}
+  {%- for i in (1..5) -%}
+    {%- liquid
+      assign idx = i | minus: 1
+      assign image = nil
+      if use_content
+        assign item = content.items[idx]
+        assign text = item.text
+        assign icon = item.icon
+        assign policy = item.policy
+      else
+        assign key = 'item_' | append: i
+        assign k_text = key | append: '_text'
+        assign k_icon = key | append: '_icon'
+        assign k_image = key | append: '_image'
+        assign text = s[k_text]
+        assign icon = s[k_icon]
+        assign image = s[k_image]
+        assign policy = 'none'
+      endif
+      if text == blank
+        continue
+      endif
+
+      # Filtro de verdad: un beneficio del metafield que afirma una política ausente no se publica.
+      assign ok = true
+      case policy
+        when 'cod'
+          unless policies.cod == true
+            assign ok = false
+          endunless
+        when 'free_shipping'
+          unless policies.free_shipping == true
+            assign ok = false
+          endunless
+        when 'returns'
+          if return_days <= 0
+            assign ok = false
+          endif
+        when 'warranty'
+          if warranty_months <= 0
+            assign ok = false
+          endif
+        when 'whatsapp'
+          if policies.whatsapp == blank
+            assign ok = false
+          endif
+        when 'shipping_time'
+          if days_max <= 0
+            assign ok = false
+          endif
+      endcase
+      unless ok
+        continue
+      endunless
+
+      if days_max > 0
+        assign text = text | replace: '{min}', days_min | replace: '{max}', days_max
+      endif
+      if return_days > 0
+        assign text = text | replace: '{return_days}', return_days
+      endif
+      if warranty_months > 0
+        assign text = text | replace: '{warranty_months}', warranty_months
+      endif
+      if threshold_cents > 0
+        assign text = text | replace: '{threshold}', threshold
+      endif
+      if text contains '{'
+        continue
+      endif
+
+      unless known_icons contains icon
+        assign icon = 'check'
+      endunless
+      assign parts = text | escape | split: '**'
+    -%}
+    <li class="df-benefit-usps__item">
+      <span class="df-benefit-usps__icon">
+        {%- if image != blank -%}
+          {{ image | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '48px', alt: '', class: 'df-benefit-usps__img' }}
+        {%- else -%}
+          {% render 'df-icon', name: icon %}
+        {%- endif -%}
+      </span>
+      <span class="df-benefit-usps__text">
+        {%- for part in parts -%}
+          {%- assign odd = forloop.index0 | modulo: 2 -%}
+          {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+        {%- endfor -%}
+      </span>
+    </li>
+  {%- endfor -%}
+{%- endcapture -%}
+
+{%- if items_html != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <ul
+    class="df df-benefit-usps df-benefit-usps--{{ s.layout }} df-benefit-usps--{{ s.style }} df-benefit-usps--icon-{{ s.icon_color }}"
+    style="{% render 'df-accent-vars', product: product %} --df-usps-icon: {{ s.icon_size }}px; --df-usps-text: {{ s.text_size }}px; --df-usps-gap: {{ s.gap }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    role="list"
+    {{ block.shopify_attributes }}
+  >
+    {{ items_html }}
+  </ul>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Beneficios: escribe al menos un beneficio o genera el contenido con DropFlex. Los ítems con datos que tu tienda no tiene cargados no se muestran.
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-benefit-usps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--df-usps-gap, 8px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--df-usps-text, 15px);
+    line-height: 1.35;
+    --df-usps-icon-color: var(--df-accent-ink);
+  }
+
+  .df-benefit-usps--icon-text {
+    --df-usps-icon-color: var(--df-fg);
+  }
+
+  .df-benefit-usps--row {
+    flex-flow: row wrap;
+    column-gap: calc(var(--df-usps-gap, 8px) * 2);
+  }
+
+  .df-benefit-usps--grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .df-benefit-usps--card {
+    padding: 16px;
+    border-radius: var(--df-radius-sm);
+    background: var(--df-surface);
+  }
+
+  .df-benefit-usps__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .df-benefit-usps__icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--df-usps-icon, 20px);
+    height: var(--df-usps-icon, 20px);
+    color: var(--df-usps-icon-color);
+  }
+
+  .df-benefit-usps__icon .df-icon {
+    width: var(--df-usps-icon, 20px);
+    height: var(--df-usps-icon, 20px);
+  }
+
+  /* Imagen propia: alto fijo, ancho libre hasta el doble (banderas, logos rectangulares). */
+  .df-benefit-usps__img {
+    width: auto;
+    max-width: calc(var(--df-usps-icon, 20px) * 2);
+    height: var(--df-usps-icon, 20px);
+    object-fit: contain;
+  }
+
+  .df-benefit-usps__text {
+    min-width: 0;
+    text-wrap: pretty;
+  }
+
+  .df-benefit-usps__text strong {
+    font-weight: 700;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Beneficios",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Los textos vienen del metafield dropflex.benefit_usps; estos ítems son el respaldo. Cada beneficio debe ser una política real de tu tienda."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Beneficio 1"
+    },
+    {
+      "type": "select",
+      "id": "item_1_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "cash"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_1_image",
+      "label": "Ícono propio (opcional)"
+    },
+    {
+      "type": "text",
+      "id": "item_1_text",
+      "label": "Texto",
+      "info": "Hasta 34 caracteres. **texto** va en negrita. Tokens: {min} {max} (días de entrega), {return_days}, {warranty_months}, {threshold} (monto de envío gratis).",
+      "default": "Pagas al recibir en tu casa"
+    },
+    {
+      "type": "header",
+      "content": "Beneficio 2"
+    },
+    {
+      "type": "select",
+      "id": "item_2_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "truck"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_2_image",
+      "label": "Ícono propio (opcional)"
+    },
+    {
+      "type": "text",
+      "id": "item_2_text",
+      "label": "Texto",
+      "default": "Envío en {min} a {max} días hábiles"
+    },
+    {
+      "type": "header",
+      "content": "Beneficio 3"
+    },
+    {
+      "type": "select",
+      "id": "item_3_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "return"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_3_image",
+      "label": "Ícono propio (opcional)"
+    },
+    {
+      "type": "text",
+      "id": "item_3_text",
+      "label": "Texto",
+      "default": "Cambio gratis por {return_days} días"
+    },
+    {
+      "type": "header",
+      "content": "Beneficio 4"
+    },
+    {
+      "type": "select",
+      "id": "item_4_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_4_image",
+      "label": "Ícono propio (opcional)"
+    },
+    {
+      "type": "text",
+      "id": "item_4_text",
+      "label": "Texto"
+    },
+    {
+      "type": "header",
+      "content": "Beneficio 5"
+    },
+    {
+      "type": "select",
+      "id": "item_5_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_5_image",
+      "label": "Ícono propio (opcional)"
+    },
+    {
+      "type": "text",
+      "id": "item_5_text",
+      "label": "Texto"
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Disposición",
+      "options": [
+        { "value": "column", "label": "Lista" },
+        { "value": "row", "label": "En línea" },
+        { "value": "grid", "label": "Dos columnas" }
+      ],
+      "default": "column"
+    },
+    {
+      "type": "select",
+      "id": "style",
+      "label": "Estilo",
+      "options": [
+        { "value": "plain", "label": "Sin fondo" },
+        { "value": "card", "label": "Tarjeta" }
+      ],
+      "default": "plain"
+    },
+    {
+      "type": "select",
+      "id": "icon_color",
+      "label": "Color de los íconos",
+      "options": [
+        { "value": "text", "label": "Texto" },
+        { "value": "accent", "label": "Acento" }
+      ],
+      "default": "accent"
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "label": "Tamaño del ícono",
+      "min": 16,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "label": "Tamaño del texto",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Separación",
+      "min": 4,
+      "max": 16,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Beneficios"
+    }
+  ]
+}
+{% endschema %}

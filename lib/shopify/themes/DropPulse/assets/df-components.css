@@ -1,0 +1,230 @@
+/*
+  DropFlex · base compartida de los componentes de conversión.
+
+  Portable entre temas: todo color, radio y tipografía sale de un token --df-*, que toma primero
+  el valor del tema (Pitch/Horizon: --color-foreground, --font-heading--family…) y cae a un
+  respaldo neutro si el tema no lo define. Un tema nuevo solo tiene que definir sus variables o
+  sobrescribir estos --df-* en :root; los componentes no cambian.
+
+  El acento por producto (metafield dropflex.accent) llega por `df-accent-vars` en el atributo
+  style de cada componente, ya ajustado a contraste AA. Sin acento, el del botón del tema.
+*/
+
+.df {
+  --df-fg: var(--color-foreground, #16181d);
+  --df-bg: var(--color-background, #ffffff);
+  --df-muted: color-mix(in srgb, var(--df-fg) 68%, var(--df-bg));
+  --df-hairline: color-mix(in srgb, var(--df-fg) 12%, transparent);
+  --df-surface: color-mix(in srgb, var(--df-fg) 4%, var(--df-bg));
+  --df-accent: var(--df-product-accent, var(--color-primary-button-background, #1f4bd8));
+  --df-on-accent: var(--df-product-on-accent, var(--color-primary-button-text, #ffffff));
+  --df-accent-ink: var(--df-product-accent-ink, var(--df-accent));
+  --df-accent-soft: color-mix(in srgb, var(--df-accent) 10%, var(--df-bg));
+  --df-radius: var(--style-border-radius-md, 12px);
+  --df-radius-sm: var(--style-border-radius-sm, 8px);
+  --df-radius-pill: var(--style-border-radius-pills, 999px);
+  --df-font-heading: var(--font-heading--family, inherit);
+  --df-font-heading-weight: var(--font-heading--weight, 700);
+  --df-font-body: var(--font-body--family, inherit);
+  --df-gap: var(--gap-md, 16px);
+  --df-star: #f5a524;
+  /* Colores de significado: fijos a propósito (verde = disponible, rojo = agotado/tachado). Todos
+     pasan 4.5:1 sobre blanco como texto de 14px. */
+  --df-positive: #15803d;
+  --df-negative: #b91c1c;
+  --df-warning: #b45309;
+  --df-info: #0e7490;
+  --df-urgent: #c2410c;
+  --df-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color: var(--df-fg);
+  font-family: var(--df-font-body);
+}
+
+.df *,
+.df *::before,
+.df *::after {
+  box-sizing: border-box;
+}
+
+.df-heading {
+  margin: 0;
+  font-family: var(--df-font-heading);
+  font-weight: var(--df-font-heading-weight);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.df-eyebrow {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--df-accent-ink);
+}
+
+.df-text {
+  margin: 0;
+  color: var(--df-muted);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.df-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.df-icon {
+  display: inline-block;
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+}
+
+/* Estrellas: el relleno parcial es un recorte del ancho, no una estrella dibujada a medias. */
+.df-stars {
+  --df-stars-size: 1rem;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+
+.df-stars__row {
+  display: inline-flex;
+  gap: 0.1em;
+}
+
+.df-stars__row svg {
+  width: var(--df-stars-size);
+  height: var(--df-stars-size);
+}
+
+.df-stars__row--empty {
+  color: color-mix(in srgb, var(--df-fg) 18%, transparent);
+}
+
+.df-stars__row--full {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  color: var(--df-star);
+  width: var(--df-stars-fill, 100%);
+}
+
+/* Carrusel compartido: scroll-snap nativo (arrastre, inercia y teclado gratis) + controles. */
+df-slider {
+  display: block;
+  position: relative;
+}
+
+.df-slider__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--df-slide-width, 85%);
+  gap: var(--df-slide-gap, 12px);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--df-slide-inset, 0px);
+  padding-inline: var(--df-slide-inset, 0px);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.df-slider__track::-webkit-scrollbar {
+  display: none;
+}
+
+.df-slider__track > * {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+.df-slider__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.df-slider__arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--df-hairline);
+  border-radius: 50%;
+  background: var(--df-bg);
+  color: var(--df-fg);
+  cursor: pointer;
+  transition: opacity 0.2s var(--df-ease);
+}
+
+.df-slider__arrow[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.df-slider__dots {
+  display: flex;
+  gap: 2px;
+}
+
+.df-slider__dot {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.df-slider__dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--df-fg) 22%, transparent);
+  transition: width 0.25s var(--df-ease), background 0.25s var(--df-ease);
+}
+
+.df-slider__dot[aria-current='true']::before {
+  width: 20px;
+  border-radius: 4px;
+  background: var(--df-accent);
+}
+
+.df-placeholder {
+  padding: 24px;
+  border: 1px dashed var(--df-hairline);
+  border-radius: var(--df-radius);
+  color: var(--df-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df *,
+  .df *::before,
+  .df *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

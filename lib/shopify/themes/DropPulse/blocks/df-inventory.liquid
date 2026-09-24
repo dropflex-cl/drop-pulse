@@ -1,0 +1,308 @@
+{%- doc -%}
+  DropFlex · Disponibilidad (inventory). Bloque de la columna del producto, entre el precio y el
+  botón: un punto de estado que late + una línea de texto del mismo color.
+
+  REGLA: el estado y la cantidad salen del inventario REAL de la variante. No existe un estado
+  "quedan pocas" manual: la escasez solo aparece con inventario rastreado y bajo el umbral, y el
+  número es `variant.inventory_quantity`, nunca un texto escrito.
+
+  Contenido (textos): metafield `dropflex.inventory` (json) → si falta, los textos del bloque.
+    { available_text, limited_text ({qty}), sold_out_text, preorder_text? }
+  Tokens: {qty} cantidad real · {min} {max} días hábiles de entrega (logística de la tienda).
+  Logística: shop.metafields.dropflex.logistics (json) → si falta, los ajustes del bloque.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.inventory.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign handling = logistics.handling_days | default: s.handling_days | plus: 0
+  assign tmin = logistics.transit_days_min | default: s.transit_days_min | plus: 0
+  assign tmax = logistics.transit_days_max | default: s.transit_days_max | plus: 0
+  if tmax < tmin
+    assign tmax = tmin
+  endif
+  assign days_min = handling | plus: tmin
+  assign days_max = handling | plus: tmax
+
+  assign t_available = content.available_text | default: s.available_text
+  assign t_limited = content.limited_text | default: s.limited_text
+  assign t_sold_out = content.sold_out_text | default: s.sold_out_text
+  assign t_preorder = content.preorder_text | default: s.preorder_text | default: t_available
+-%}
+
+{%- if product != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-inventory.js' | asset_url }}" defer></script>
+
+  {%- capture variants_json -%}
+    {
+    {%- for v in product.variants -%}
+      "{{ v.id }}": { "a": {{ v.available | json }}, "q": {{ v.inventory_quantity | default: 0 | json }}, "m": {{ v.inventory_management | json }}, "p": {{ v.inventory_policy | json }} }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+    }
+  {%- endcapture -%}
+
+  {%- liquid
+    # Estado del primer render: el mismo algoritmo que df-inventory.js (sin parpadeo al hidratar).
+    assign variant = product.selected_or_first_available_variant
+    assign qty = variant.inventory_quantity | default: 0
+    assign tracked = false
+    if variant.inventory_management == 'shopify'
+      assign tracked = true
+    endif
+    if variant.available == false
+      assign status = 'sold_out'
+    elsif tracked and qty <= 0 and variant.inventory_policy == 'continue'
+      assign status = 'preorder'
+    elsif tracked and qty > 0 and qty <= s.low_stock_threshold
+      assign status = 'limited'
+    else
+      assign status = 'available'
+    endif
+    if tracked == false and s.show_when_untracked == false
+      assign status = 'hidden'
+    endif
+
+    case status
+      when 'sold_out'
+        assign text = t_sold_out
+      when 'preorder'
+        assign text = t_preorder
+      when 'limited'
+        assign text = t_limited
+      else
+        assign text = t_available
+    endcase
+    if status == 'limited' and s.show_quantity == false
+      assign text = t_available
+    endif
+    assign text = text | replace: '{qty}', qty | replace: '{min}', days_min | replace: '{max}', days_max
+  -%}
+
+  <df-inventory
+    class="df df-inventory df-inventory--{{ status }}{% if s.pulse %} df-inventory--pulse{% endif %}"
+    style="{% render 'df-accent-vars', product: product %} --df-inventory-size: {{ s.text_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    data-threshold="{{ s.low_stock_threshold }}"
+    data-show-quantity="{{ s.show_quantity }}"
+    data-show-untracked="{{ s.show_when_untracked }}"
+    data-min="{{ days_min }}"
+    data-max="{{ days_max }}"
+    {{ block.shopify_attributes }}
+    {% if status == 'hidden' %}hidden{% endif %}
+  >
+    <span class="df-inventory__dot" aria-hidden="true"></span>
+    <span class="df-inventory__text" role="status" aria-live="polite">{{ text | escape }}</span>
+    <script type="application/json" data-df-variants>{{ variants_json }}</script>
+    <script type="application/json" data-df-texts>
+      {
+        "available": {{ t_available | json }},
+        "limited": {{ t_limited | json }},
+        "sold_out": {{ t_sold_out | json }},
+        "preorder": {{ t_preorder | json }}
+      }
+    </script>
+  </df-inventory>
+
+  {% stylesheet %}
+    .df-inventory {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--df-inventory-size, 14px);
+      line-height: 1.35;
+      --df-inventory-color: var(--df-positive);
+    }
+
+    .df-inventory[hidden] {
+      display: none;
+    }
+
+    .df-inventory--limited { --df-inventory-color: var(--df-warning); }
+    .df-inventory--sold_out { --df-inventory-color: var(--df-negative); }
+    .df-inventory--preorder { --df-inventory-color: var(--df-info); }
+
+    .df-inventory__text {
+      color: var(--df-inventory-color);
+      font-weight: 500;
+    }
+
+    .df-inventory__dot {
+      position: relative;
+      flex: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--df-inventory-color);
+    }
+
+    .df-inventory--pulse .df-inventory__dot::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: inherit;
+      animation: df-inventory-ping 1.4s var(--df-ease) infinite;
+    }
+
+    @keyframes df-inventory-ping {
+      from { transform: scale(1); opacity: 0.7; }
+      to { transform: scale(2.4); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .df-inventory--pulse .df-inventory__dot::after { animation: none; }
+    }
+  {% endstylesheet %}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "DropFlex · Disponibilidad",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "El estado sale del inventario real de la variante. Los textos vienen del metafield dropflex.inventory; estos son el respaldo."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Textos"
+    },
+    {
+      "type": "text",
+      "id": "available_text",
+      "label": "Disponible",
+      "info": "Puedes usar {min} y {max} (días hábiles de entrega).",
+      "default": "En stock, recíbelo en {min} a {max} días hábiles"
+    },
+    {
+      "type": "text",
+      "id": "limited_text",
+      "label": "Quedan pocas",
+      "info": "{qty} es la cantidad real. Sin inventario rastreado no se muestra.",
+      "default": "Solo quedan {qty} unidades"
+    },
+    {
+      "type": "text",
+      "id": "sold_out_text",
+      "label": "Agotado",
+      "default": "Agotado, vuelve pronto"
+    },
+    {
+      "type": "text",
+      "id": "preorder_text",
+      "label": "Preventa",
+      "info": "Sin stock pero con venta permitida."
+    },
+    {
+      "type": "header",
+      "content": "Reglas"
+    },
+    {
+      "type": "range",
+      "id": "low_stock_threshold",
+      "label": "Umbral de pocas unidades",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quantity",
+      "label": "Mostrar cuántas quedan",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_when_untracked",
+      "label": "Mostrar sin inventario rastreado",
+      "info": "Típico en dropshipping: se muestra como disponible.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "handling_days",
+      "label": "Días de preparación",
+      "info": "Respaldo si la tienda no tiene logística cargada.",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "transit_days_min",
+      "label": "Tránsito mínimo (días)",
+      "min": 0,
+      "max": 15,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "transit_days_max",
+      "label": "Tránsito máximo (días)",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "checkbox",
+      "id": "pulse",
+      "label": "Punto animado",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "label": "Tamaño del texto",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Disponibilidad"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,83 @@
+{%- doc -%}
+  DropFlex · tarjeta de la pista de ugc-slider: póster liviano + ícono de play. El <video> no se
+  dibuja aquí: el reproductor del modal es uno solo y toma la URL de data-src al abrir. La vista
+  previa en movimiento (opcional) la crea el JS solo para las tarjetas visibles.
+
+  Fuentes: la rendición MP4 más grande de hasta 720p para el modal y la más chica para la vista
+  previa. Un video sin MP4 (solo HLS) no se dibuja.
+
+  @param {object} video - Objeto video (metafield dropflex.ugc_videos o ajuste de video)
+  @param {number} n - Posición (1…total)
+  @param {number} total - Cantidad de videos
+  @param {string} [caption] - Texto corto del video (ya resuelto: IA → editor)
+  @param {string} shape - 'reel' | 'circle'
+
+  @example
+  {% render 'df-ugc-slider-card', video: video, n: 1, total: 5, caption: caption, shape: 'reel' %}
+{%- enddoc -%}
+{%- liquid
+  assign df_src = ''
+  assign df_src_h = 0
+  assign df_small = ''
+  assign df_small_h = 100000
+  for df_source in video.sources
+    if df_source.mime_type == 'video/mp4'
+      assign df_h = df_source.height | plus: 0
+      if df_h <= 720 and df_h > df_src_h
+        assign df_src = df_source.url
+        assign df_src_h = df_h
+      endif
+      if df_h < df_small_h
+        assign df_small = df_source.url
+        assign df_small_h = df_h
+      endif
+    endif
+  endfor
+  if df_src == blank
+    assign df_src = df_small
+  endif
+
+  assign df_desc = caption | default: video.alt
+  assign df_label = 'Ver video ' | append: n | append: ' de ' | append: total
+  if df_desc != blank
+    assign df_label = df_label | append: ': ' | append: df_desc
+  endif
+
+  if shape == 'circle'
+    assign df_sizes = '88px'
+    assign df_widths = '96, 176, 264'
+  else
+    assign df_sizes = '(min-width: 750px) 180px, 34vw'
+    assign df_widths = '120, 180, 240, 360, 480'
+  endif
+-%}
+{%- if df_src != blank -%}
+  <button
+    type="button"
+    class="df-ugc-slider__card"
+    data-df-ugc-card
+    data-src="{{ df_src | escape }}"
+    data-preview="{{ df_small | escape }}"
+    {% if video.preview_image %}data-poster="{{ video.preview_image | image_url: width: 720 }}"{% endif %}
+    data-caption="{{ caption | escape }}"
+    data-label="{{ df_desc | default: df_label | escape }}"
+    aria-label="{{ df_label | escape }}"
+    aria-haspopup="dialog"
+  >
+    <span class="df-ugc-slider__media" data-df-ugc-media>
+      {%- if video.preview_image -%}
+        {{
+          video.preview_image
+          | image_url: width: 480
+          | image_tag: widths: df_widths, sizes: df_sizes, loading: 'lazy', alt: ''
+        }}
+      {%- endif -%}
+    </span>
+    <span class="df-ugc-slider__play" aria-hidden="true">
+      {% render 'df-icon', name: 'play' %}
+    </span>
+    {%- if caption != blank and shape != 'circle' -%}
+      <span class="df-ugc-slider__caption" aria-hidden="true">{{ caption | escape }}</span>
+    {%- endif -%}
+  </button>
+{%- endif -%}

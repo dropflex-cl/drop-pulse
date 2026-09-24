@@ -1,0 +1,543 @@
+{%- doc -%}
+  DropFlex · Carrusel de reseñas (review-slider). Bloque de la columna del producto, bajo el
+  botón: una reseña real a la vez (foto, nombre enmascarado, estrellas, extracto) que rota sola.
+
+  REGLA: la IA no escribe reseñas. Elige reseñas APROBADAS por su id y puede acortarlas o
+  traducirlas (excerpt_mode); autor, calificación, fecha, país y fotos salen siempre de
+  `dropflex.reviews` / `dropflex.reviews_images`. Un id que ya no existe se omite. Un extracto
+  que no es textual lo dice («Resumida», «Traducida») y abre el texto completo.
+
+  Contenido: metafield `dropflex.review_slider` (json)
+    { heading?, items: [{ review_id, excerpt, excerpt_mode: verbatim|condensed|translated }] }
+  → si falta, el bloque elige las primeras reseñas aprobadas con la calificación mínima.
+  Con menos reseñas que el mínimo del bloque (review_summary.count) no se dibuja nada.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.review_slider.value
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign reviews = product.metafields.dropflex.reviews.value.items
+  assign images = product.metafields.dropflex.reviews_images.value
+
+  assign count = summary.count | default: reviews.size | default: 0 | plus: 0
+  assign source_label = summary.source_label | default: s.source_label
+
+  # Pares «índice de reseña:índice del ítem de la IA» ('x' = sin ítem: texto completo).
+  assign picked = ''
+  assign n_picked = 0
+  if content.items.size > 0
+    for item in content.items
+      if n_picked >= s.max_items
+        break
+      endif
+      assign item_id = item.review_id | append: ''
+      for review in reviews
+        assign review_id = review.id | append: ''
+        if review_id == item_id and item_id != blank
+          assign picked = picked | append: forloop.index0 | append: ':' | append: forloop.parentloop.index0 | append: ','
+          assign n_picked = n_picked | plus: 1
+          break
+        endif
+      endfor
+    endfor
+  endif
+  if n_picked == 0
+    for review in reviews
+      if n_picked >= s.max_items
+        break
+      endif
+      assign r_rating = review.rating | plus: 0
+      assign r_photos = review.image_count | plus: 0
+      if r_rating >= s.min_rating and review.body != blank
+        unless s.only_with_photo and r_photos == 0
+          assign picked = picked | append: forloop.index0 | append: ':x,'
+          assign n_picked = n_picked | plus: 1
+        endunless
+      endif
+    endfor
+  endif
+  assign pairs = picked | split: ','
+  assign total = pairs.size
+
+  assign show = true
+  if product == blank or total == 0 or count < s.min_reviews
+    assign show = false
+  endif
+
+  if show
+    assign rating = summary.rating | default: 0 | plus: 0
+    assign r10 = rating | times: 10 | round
+    assign r_int = r10 | divided_by: 10
+    assign r_dec = r10 | modulo: 10
+    assign rating_text = r_int | append: ',' | append: r_dec
+    assign count_text = count | append: ''
+    if count >= 1000
+      assign thousands = count | divided_by: 1000
+      assign rest = count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    endif
+
+    assign heading = content.heading | default: s.heading
+    if heading contains '{rating}' and rating <= 0
+      assign heading = s.heading
+    endif
+    assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
+
+    assign autoplay = 0
+    if s.autoplay and total > 1
+      assign autoplay = s.autoplay_delay | times: 1000
+    endif
+    assign anchor = s.anchor_id | remove: '#' | strip | handleize
+  endif
+-%}
+
+{%- if show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-slider.js' | asset_url }}" defer></script>
+  <script src="{{ 'df-review-slider.js' | asset_url }}" defer></script>
+
+  <df-review-slider
+    class="df df-review-slider df-review-slider--{{ s.style }}"
+    {% if anchor != blank %}id="{{ anchor }}"{% endif %}
+    style="{% render 'df-accent-vars', product: product %} --df-review-lines: {{ s.text_lines }}; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if heading != blank -%}
+      <p class="df-heading df-review-slider__heading">{{ heading | escape }}</p>
+    {%- endif -%}
+
+    <df-slider
+      {% if autoplay > 0 %}data-autoplay="{{ autoplay }}"{% endif %}
+      data-loop
+      data-dot-label="Ir a la reseña"
+      role="region"
+      aria-roledescription="carrusel"
+      aria-label="Reseñas de compradores"
+    >
+      <div class="df-slider__track" data-df-track>
+        {%- for pair in pairs -%}
+          {%- liquid
+            assign ij = pair | split: ':'
+            assign ri = ij[0] | plus: 0
+            assign review = reviews[ri]
+            assign author = review.author | default: 'Comprador'
+            assign body = review.body
+            assign excerpt = body
+            assign mode = 'verbatim'
+            if ij[1] != 'x'
+              assign ci = ij[1] | plus: 0
+              assign ai_item = content.items[ci]
+              assign excerpt = ai_item.excerpt | default: body
+              assign mode = ai_item.excerpt_mode | default: 'condensed'
+            endif
+            assign r_rating = review.rating | default: 5 | plus: 0
+            assign r_from = review.image_from | plus: 0
+            assign r_photos = review.image_count | plus: 0
+            assign photo = nil
+            if r_photos > 0
+              assign photo = images[r_from]
+            endif
+            assign stars_label = r_rating | append: ' de 5 estrellas' | replace: '.', ','
+          -%}
+          <div
+            class="df-review-slider__card"
+            role="group"
+            aria-roledescription="reseña"
+            aria-label="{{ forloop.index }} de {{ total }}"
+          >
+            {%- if s.style == 'photo' -%}
+              <div class="df-review-slider__avatar">
+                {%- if photo != blank -%}
+                  {%- assign photo_alt = 'Foto de la reseña de ' | append: author -%}
+                  {{
+                    photo
+                    | image_url: width: 124, height: 124, crop: 'center'
+                    | image_tag: width: 62, height: 62, loading: 'lazy', alt: photo_alt
+                  }}
+                {%- else -%}
+                  <span aria-hidden="true">{{ author | slice: 0 | upcase | escape }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+            <div class="df-review-slider__body">
+              <p class="df-review-slider__meta">
+                <span class="df-review-slider__author">{{ author | escape }}</span>
+                {%- render 'df-stars', rating: r_rating, size: '0.875rem', label: stars_label -%}
+                {%- if s.show_country and review.country != blank -%}
+                  <span class="df-review-slider__country">{{ review.country | escape }}</span>
+                {%- endif -%}
+              </p>
+              <blockquote class="df-review-slider__text">
+                <p>{{ excerpt | escape }}</p>
+              </blockquote>
+              {%- if mode != 'verbatim' or s.show_date -%}
+                <div class="df-review-slider__foot">
+                  {%- if mode != 'verbatim' and body != blank -%}
+                    <details class="df-review-slider__full">
+                      <summary>
+                        {%- if mode == 'translated' -%}Traducida{%- else -%}Resumida{%- endif %}
+                        · ver completa
+                      </summary>
+                      <p>{{ body | escape }}</p>
+                    </details>
+                  {%- endif -%}
+                  {%- if s.show_date and review.date != blank -%}
+                    <time datetime="{{ review.date | escape }}">{{ review.date | date: '%d/%m/%Y' | escape }}</time>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+
+      {%- if total > 1 -%}
+        <div class="df-slider__controls">
+          {%- if s.style == 'photo' -%}
+            <button type="button" class="df-slider__arrow" data-df-prev aria-label="Reseña anterior">
+              {% render 'df-icon', name: 'chevron-left' %}
+            </button>
+          {%- else -%}
+            <div class="df-slider__dots" data-df-dots></div>
+          {%- endif -%}
+          {%- if autoplay > 0 -%}
+            <button type="button" class="df-slider__arrow df-review-slider__pause" data-df-pause aria-pressed="false" aria-label="Pausar la rotación">
+              {% render 'df-icon', name: 'pause', class: 'df-review-slider__icon-pause' %}
+              {% render 'df-icon', name: 'play', class: 'df-review-slider__icon-play' %}
+            </button>
+          {%- endif -%}
+          {%- if s.style == 'photo' -%}
+            <button type="button" class="df-slider__arrow" data-df-next aria-label="Reseña siguiente">
+              {% render 'df-icon', name: 'chevron-right' %}
+            </button>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </df-slider>
+
+    {%- if source_label != blank -%}
+      <p class="df-review-slider__source">{{ source_label | escape }}</p>
+    {%- endif -%}
+  </df-review-slider>
+
+  {% stylesheet %}
+    .df-review-slider {
+      display: block;
+      min-width: 0;
+      scroll-margin-top: 96px;
+      --df-slide-width: 100%;
+      --df-slide-gap: 12px;
+    }
+
+    .df-review-slider__heading {
+      margin-bottom: 12px;
+      font-size: 1.125rem;
+    }
+
+    .df-review-slider .df-slider__track > .df-review-slider__card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--df-hairline);
+      border-radius: var(--df-radius);
+      background: var(--df-bg);
+    }
+
+    .df-review-slider--compact .df-slider__track > .df-review-slider__card {
+      padding-inline: 20px;
+    }
+
+    .df-review-slider__avatar {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 50px;
+      height: 50px;
+      overflow: hidden;
+      border-radius: var(--df-radius-sm);
+      background: var(--df-accent-soft);
+      color: var(--df-accent-ink);
+      font-weight: 700;
+      font-size: 1.125rem;
+    }
+
+    .df-review-slider__avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .df-review-slider__body {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .df-review-slider__meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      margin: 0;
+      font-size: 0.8125rem;
+    }
+
+    .df-review-slider__author {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .df-review-slider__country {
+      color: var(--df-muted);
+      font-size: 0.75rem;
+    }
+
+    .df-review-slider__text {
+      margin: 0;
+    }
+
+    .df-review-slider__text p {
+      display: -webkit-box;
+      margin: 0;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: var(--df-review-lines, 2);
+      line-clamp: var(--df-review-lines, 2);
+      color: var(--df-muted);
+      font-size: 0.8125rem;
+      line-height: 1.45;
+    }
+
+    .df-review-slider__foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0 12px;
+      color: var(--df-muted);
+      font-size: 0.75rem;
+    }
+
+    .df-review-slider__full summary {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      list-style: none;
+    }
+
+    .df-review-slider__full summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .df-review-slider__full p {
+      margin: 0 0 4px;
+      color: var(--df-fg);
+      font-size: 0.8125rem;
+      line-height: 1.45;
+    }
+
+    .df-review-slider .df-slider__controls {
+      margin-top: 8px;
+    }
+
+    .df-review-slider__pause .df-review-slider__icon-play,
+    .df-review-slider__pause[aria-pressed='true'] .df-review-slider__icon-pause {
+      display: none;
+    }
+
+    .df-review-slider__pause[aria-pressed='true'] .df-review-slider__icon-play {
+      display: block;
+    }
+
+    .df-review-slider__source {
+      margin: 8px 0 0;
+      color: var(--df-muted);
+      font-size: 0.75rem;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    @media (min-width: 750px) {
+      .df-review-slider__avatar {
+        width: 62px;
+        height: 62px;
+      }
+
+      .df-review-slider__meta,
+      .df-review-slider__text p {
+        font-size: 0.875rem;
+      }
+    }
+  {% endstylesheet %}
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Carrusel de reseñas: se muestra cuando el producto tiene al menos {{ s.min_reviews }} reseñas aprobadas en DropFlex.
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "DropFlex · Reseñas",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Muestra reseñas aprobadas en DropFlex. La selección y los extractos vienen del metafield dropflex.review_slider; sin él, se eligen con estos ajustes."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Textos"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "info": "Opcional. Puedes usar {count} y {rating} (datos reales)."
+    },
+    {
+      "type": "text",
+      "id": "source_label",
+      "label": "Origen (respaldo)",
+      "info": "Se usa si DropFlex no publicó el origen. Siempre visible.",
+      "default": "Reseñas de compradores del mismo producto en AliExpress"
+    },
+    {
+      "type": "header",
+      "content": "Selección"
+    },
+    {
+      "type": "range",
+      "id": "min_reviews",
+      "label": "Mínimo de reseñas",
+      "info": "Con menos reseñas aprobadas, el bloque no se muestra.",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "max_items",
+      "label": "Reseñas a mostrar",
+      "min": 2,
+      "max": 8,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "min_rating",
+      "label": "Calificación mínima",
+      "info": "Solo sin metafield. La nota y la cantidad totales se muestran igual en las estrellas.",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "only_with_photo",
+      "label": "Solo reseñas con foto",
+      "info": "Solo sin metafield.",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "anchor_id",
+      "label": "Ancla",
+      "info": "Id del bloque (sin #). Las estrellas llevan aquí si usan la misma. Usa uno solo por página.",
+      "default": "resenas"
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "select",
+      "id": "style",
+      "label": "Estilo",
+      "options": [
+        { "value": "photo", "label": "Con foto y flechas" },
+        { "value": "compact", "label": "Compacto con puntos" }
+      ],
+      "default": "photo"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Rotar solas",
+      "info": "Se pausa al pasar el puntero, con el foco o al tocar un control.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_delay",
+      "label": "Tiempo por reseña",
+      "min": 3,
+      "max": 8,
+      "step": 1,
+      "unit": "s",
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "text_lines",
+      "label": "Líneas del texto",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "checkbox",
+      "id": "show_country",
+      "label": "Mostrar país",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_date",
+      "label": "Mostrar fecha",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Reseñas"
+    }
+  ]
+}
+{% endschema %}

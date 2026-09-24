@@ -1,0 +1,27 @@
+{%- doc -%}
+  DropFlex · un beneficio de image-with-benefits: ícono + título (h3) + texto. Sin título no dibuja
+  nada. Todo el texto se escapa.
+
+  @param {string} icon - Clave de ICON_KEYS
+  @param {string} title - Título del beneficio (2 o 3 palabras)
+  @param {string} [body] - Una oración: característica → beneficio
+  @param {string} [attributes] - block.shopify_attributes (solo bloques del editor)
+
+  @example
+  {% render 'df-image-with-benefits-item', icon: 'feather', title: 'Tela respirable', body: 'Deja pasar el aire.' %}
+{%- enddoc -%}
+{%- liquid
+  assign df_title = title | strip | escape
+  assign df_body = body | strip | escape
+-%}
+{%- if df_title != blank -%}
+  <li class="df-image-with-benefits__item" {{ attributes }}>
+    <span class="df-image-with-benefits__icon">{% render 'df-icon', name: icon %}</span>
+    <div>
+      <h3 class="df-image-with-benefits__title">{{ df_title }}</h3>
+      {%- if df_body != blank -%}
+        <p class="df-text df-image-with-benefits__body">{{ df_body }}</p>
+      {%- endif -%}
+    </div>
+  </li>
+{%- endif -%}

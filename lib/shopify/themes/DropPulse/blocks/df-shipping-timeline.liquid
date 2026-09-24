@@ -1,0 +1,540 @@
+{%- doc -%}
+  DropFlex · Línea de tiempo de envío (shipping-timeline). Bloque de la columna del producto, bajo
+  el botón: "Pide dentro de 3 h 05 min y sale hoy" + tres hitos (Pedido → Despachado → Entregado)
+  con fechas reales unidos por una línea punteada.
+
+  REGLA: plazos, hora de corte, feriados y zona horaria salen de la logística REAL de la tienda.
+  Las fechas y la cuenta regresiva se calculan en df-shipping-timeline.js con el reloj de la
+  tienda (la página puede venir cacheada: Liquid no puede saber qué hora es).
+
+  Contenido (textos): metafield `dropflex.shipping_timeline` (json) → si falta, los del bloque.
+    { countdown_template ({time}, {ship}?), closed_template? ({ship}), node_ordered_label,
+      node_ordered_sub, node_shipped_label, node_delivered_label, node_delivered_sub_suffix? }
+  Tokens: {time} tiempo al corte · {ship} día de despacho ("hoy", "mañana", "el viernes").
+  Logística: shop.metafields.dropflex.logistics (json) → si falta, los ajustes del bloque.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.shipping_timeline.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign cutoff = logistics.cutoff_hour | default: s.cutoff_hour | plus: 0
+  assign handling = logistics.handling_days | default: s.handling_days | plus: 0
+  assign tmin = logistics.transit_days_min | default: s.transit_days_min | plus: 0
+  assign tmax = logistics.transit_days_max | default: s.transit_days_max | plus: 0
+  if tmax < tmin
+    assign tmax = tmin
+  endif
+  assign biz = logistics.business_days_only | default: s.business_days_only, allow_false: true
+  assign sat = logistics.saturday_delivery | default: s.saturday_delivery, allow_false: true
+  assign tz = logistics.timezone | default: s.timezone | default: 'America/Santiago'
+  assign days_min = handling | plus: tmin
+  assign days_max = handling | plus: tmax
+
+  if logistics.holidays
+    assign holidays_json = logistics.holidays | json
+  else
+    assign holiday_list = s.holidays | split: ','
+    capture holidays_json
+      echo '['
+      for h in holiday_list
+        assign h_clean = h | strip
+        echo h_clean | json
+        unless forloop.last
+          echo ','
+        endunless
+      endfor
+      echo ']'
+    endcapture
+  endif
+
+  assign t_countdown = content.countdown_template | default: s.countdown_text
+  assign t_closed = content.closed_template | default: s.closed_text
+  assign t_ordered = content.node_ordered_label | default: s.ordered_label
+  assign t_ordered_sub = content.node_ordered_sub | default: s.ordered_sub
+  assign t_shipped = content.node_shipped_label | default: s.shipped_label
+  assign t_delivered = content.node_delivered_label | default: s.delivered_label
+  assign t_suffix = content.node_delivered_sub_suffix | default: s.delivered_suffix
+  if s.show_countdown == false
+    assign t_countdown = ''
+    assign t_closed = ''
+  endif
+  unless t_countdown contains '{time}'
+    assign t_countdown = ''
+  endunless
+
+  assign has_content = false
+  if t_ordered != blank and t_shipped != blank and t_delivered != blank
+    assign has_content = true
+  endif
+
+  if biz
+    assign days_word = 'días hábiles'
+  else
+    assign days_word = 'días'
+  endif
+  assign locale = request.locale.iso_code | default: 'es'
+  if localization.country.iso_code != blank and locale.size == 2
+    assign locale = locale | append: '-' | append: localization.country.iso_code
+  endif
+-%}
+
+{%- if has_content -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-shipping-timeline.js' | asset_url }}" defer></script>
+
+  <df-shipping-timeline
+    class="df df-shipping-timeline df-shipping-timeline--icons-{{ s.icon_style }} df-shipping-timeline--time-{{ s.time_color }}{% if s.animate_line %} df-shipping-timeline--animate{% endif %}"
+    style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if t_countdown != blank or t_closed != blank -%}
+      {%- comment -%} Lo llena el JS; reserva su línea mientras tanto (sin salto de diseño). {%- endcomment -%}
+      <p class="df-shipping-timeline__title" data-df-title data-pending>&nbsp;</p>
+    {%- endif -%}
+
+    <ol class="df-shipping-timeline__steps">
+      <li class="df-shipping-timeline__step">
+        <span class="df-shipping-timeline__circle">
+          {%- if s.icon_ordered != blank -%}
+            {{ s.icon_ordered | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '28px', alt: '', class: 'df-shipping-timeline__img' }}
+          {%- else -%}
+            {% render 'df-icon', name: 'cart' %}
+          {%- endif -%}
+        </span>
+        <span class="df-shipping-timeline__label">{{ t_ordered | escape }}</span>
+        <span class="df-shipping-timeline__sub">{{ t_ordered_sub | escape }}</span>
+      </li>
+      <li class="df-shipping-timeline__step">
+        <span class="df-shipping-timeline__circle">
+          {%- if s.icon_shipped != blank -%}
+            {{ s.icon_shipped | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '28px', alt: '', class: 'df-shipping-timeline__img' }}
+          {%- else -%}
+            {% render 'df-icon', name: 'truck' %}
+          {%- endif -%}
+        </span>
+        <span class="df-shipping-timeline__label">{{ t_shipped | escape }}</span>
+        {%- if s.show_ship_date -%}
+          <span class="df-shipping-timeline__sub" data-df-ship>
+            {%- if handling == 0 -%}{{ t_ordered_sub | escape }}{%- else -%}{{ handling }} {{ days_word }}{%- endif -%}
+          </span>
+        {%- endif -%}
+      </li>
+      <li class="df-shipping-timeline__step">
+        <span class="df-shipping-timeline__circle">
+          {%- if s.icon_delivered != blank -%}
+            {{ s.icon_delivered | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '28px', alt: '', class: 'df-shipping-timeline__img' }}
+          {%- else -%}
+            {% render 'df-icon', name: 'package' %}
+          {%- endif -%}
+        </span>
+        <span class="df-shipping-timeline__label">{{ t_delivered | escape }}</span>
+        <span class="df-shipping-timeline__sub" data-df-delivery>
+          {%- if days_min == days_max -%}{{ days_min }}{%- else -%}{{ days_min }} a {{ days_max }}{%- endif %} {{ days_word -}}
+        </span>
+        {%- if t_suffix != blank -%}
+          <span class="df-shipping-timeline__sub df-shipping-timeline__suffix">{{ t_suffix | escape }}</span>
+        {%- endif -%}
+      </li>
+    </ol>
+
+    <p class="df-visually-hidden" data-df-summary>
+      Entrega estimada en {{ days_min }} a {{ days_max }} {{ days_word }}
+    </p>
+
+    <script type="application/json" data-df-config>
+      {
+        "cutoff": {{ cutoff | json }},
+        "handling": {{ handling | json }},
+        "tmin": {{ tmin | json }},
+        "tmax": {{ tmax | json }},
+        "biz": {{ biz | json }},
+        "sat": {{ sat | json }},
+        "holidays": {{ holidays_json }},
+        "tz": {{ tz | json }},
+        "locale": {{ locale | json }},
+        "format": {{ s.date_format | json }}
+      }
+    </script>
+    <script type="application/json" data-df-texts>
+      {
+        "countdown": {{ t_countdown | json }},
+        "closed": {{ t_closed | json }},
+        "summary_range": "Entrega estimada entre el {from} y el {to}",
+        "summary_single": "Entrega estimada el {from}"
+      }
+    </script>
+  </df-shipping-timeline>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Línea de tiempo de envío: completa los nombres de los tres hitos o genera el contenido con DropFlex.
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-shipping-timeline {
+    --df-st-circle: 56px;
+    --df-st-time: var(--df-accent-ink);
+    display: grid;
+    gap: 16px;
+  }
+
+  .df-shipping-timeline--time-positive {
+    --df-st-time: var(--df-positive);
+  }
+
+  .df-shipping-timeline__title {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .df-shipping-timeline__title[data-pending] {
+    visibility: hidden;
+  }
+
+  .df-shipping-timeline__title[hidden] {
+    display: none;
+  }
+
+  .df-shipping-timeline__time {
+    color: var(--df-st-time);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .df-shipping-timeline__steps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Conector punteado entre el centro del primer y del último círculo, detrás de ellos. */
+  .df-shipping-timeline__steps::before {
+    content: '';
+    position: absolute;
+    top: calc(var(--df-st-circle) / 2 - 1px);
+    left: calc(100% / 6);
+    right: calc(100% / 6);
+    height: 2px;
+    background: linear-gradient(90deg, var(--df-muted) 50%, transparent 0) 0 0 / 12px 2px repeat-x;
+    opacity: 0.6;
+  }
+
+  .df-shipping-timeline--animate .df-shipping-timeline__steps::before {
+    animation: df-shipping-timeline-march 0.9s linear infinite;
+  }
+
+  @keyframes df-shipping-timeline-march {
+    to { background-position: 12px 0; }
+  }
+
+  .df-shipping-timeline__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .df-shipping-timeline__circle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--df-st-circle);
+    height: var(--df-st-circle);
+    margin-bottom: 6px;
+    border-radius: 50%;
+    background: var(--df-surface);
+    color: var(--df-fg);
+  }
+
+  .df-shipping-timeline--icons-accent .df-shipping-timeline__circle {
+    background: var(--df-accent-soft);
+    color: var(--df-accent-ink);
+  }
+
+  .df-shipping-timeline__circle .df-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .df-shipping-timeline__img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+
+  .df-shipping-timeline__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .df-shipping-timeline__sub {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--df-muted);
+    text-wrap: balance;
+  }
+
+  .df-shipping-timeline__suffix {
+    color: var(--df-fg);
+    font-weight: 500;
+  }
+
+  @media (min-width: 750px) {
+    .df-shipping-timeline {
+      --df-st-circle: 60px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .df-shipping-timeline--animate .df-shipping-timeline__steps::before {
+      animation: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Envío",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Las fechas se calculan con la logística real de la tienda (plazos, hora de corte, feriados). Los textos vienen del metafield dropflex.shipping_timeline; estos son el respaldo."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Textos"
+    },
+    {
+      "type": "text",
+      "id": "countdown_text",
+      "label": "Cuenta regresiva",
+      "info": "Debe incluir {time} (tiempo al corte). {ship} es el día de despacho: hoy, mañana, el viernes…",
+      "default": "Pide dentro de {time} y sale {ship}"
+    },
+    {
+      "type": "text",
+      "id": "closed_text",
+      "label": "Sin cuenta regresiva",
+      "info": "Fin de semana, feriado o corte lejano. Puedes usar {ship}. Vacío: no se muestra título.",
+      "default": "Pide hoy y lo despachamos {ship}"
+    },
+    {
+      "type": "text",
+      "id": "ordered_label",
+      "label": "Hito 1",
+      "default": "Pedido"
+    },
+    {
+      "type": "text",
+      "id": "ordered_sub",
+      "label": "Hito 1 · subtexto",
+      "default": "Hoy"
+    },
+    {
+      "type": "text",
+      "id": "shipped_label",
+      "label": "Hito 2",
+      "default": "Despachado"
+    },
+    {
+      "type": "text",
+      "id": "delivered_label",
+      "label": "Hito 3",
+      "default": "Entregado"
+    },
+    {
+      "type": "text",
+      "id": "delivered_suffix",
+      "label": "Hito 3 · nota",
+      "info": "Opcional, bajo las fechas. Ej.: pagas al recibir."
+    },
+    {
+      "type": "header",
+      "content": "Logística (respaldo)"
+    },
+    {
+      "type": "paragraph",
+      "content": "Solo se usa si la tienda no tiene la logística cargada en DropFlex."
+    },
+    {
+      "type": "range",
+      "id": "cutoff_hour",
+      "label": "Hora de corte",
+      "info": "Hora de la tienda. 0 = medianoche.",
+      "min": 0,
+      "max": 23,
+      "step": 1,
+      "unit": "h",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "handling_days",
+      "label": "Días de preparación",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "transit_days_min",
+      "label": "Tránsito mínimo (días)",
+      "min": 0,
+      "max": 15,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "transit_days_max",
+      "label": "Tránsito máximo (días)",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "checkbox",
+      "id": "business_days_only",
+      "label": "Solo días hábiles",
+      "info": "Salta sábados, domingos y feriados.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "saturday_delivery",
+      "label": "El courier reparte sábado",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "holidays",
+      "label": "Feriados",
+      "info": "Fechas AAAA-MM-DD separadas por coma."
+    },
+    {
+      "type": "text",
+      "id": "timezone",
+      "label": "Zona horaria (IANA)",
+      "default": "America/Santiago"
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_countdown",
+      "label": "Mostrar cuenta regresiva",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_ship_date",
+      "label": "Fecha en el hito 2",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "date_format",
+      "label": "Formato de fechas",
+      "options": [
+        { "value": "weekday", "label": "Día de la semana si es cercano" },
+        { "value": "date", "label": "Día y mes" }
+      ],
+      "default": "weekday"
+    },
+    {
+      "type": "select",
+      "id": "time_color",
+      "label": "Color del contador",
+      "options": [
+        { "value": "accent", "label": "Acento" },
+        { "value": "positive", "label": "Verde" }
+      ],
+      "default": "accent"
+    },
+    {
+      "type": "select",
+      "id": "icon_style",
+      "label": "Estilo de los círculos",
+      "options": [
+        { "value": "neutral", "label": "Neutro" },
+        { "value": "accent", "label": "Acento" }
+      ],
+      "default": "neutral"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_ordered",
+      "label": "Ícono propio · hito 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_shipped",
+      "label": "Ícono propio · hito 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_delivered",
+      "label": "Ícono propio · hito 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "animate_line",
+      "label": "Línea animada",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Envío"
+    }
+  ]
+}
+{% endschema %}
