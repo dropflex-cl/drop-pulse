@@ -82,8 +82,8 @@ export function planUpdate(local: Pick<KitFile, "path" | "md5">[], remote: Remot
   for (const f of local) {
     const remoteMd5 = theirs.get(f.path);
     if (isProtected(f.path)) {
-      // settings_data.json nunca se repone: cambiaría la paleta y los ajustes que el comerciante eligió.
-      if (!theirs.has(f.path) && f.path !== "config/settings_data.json") plan.restore.push(f.path);
+      // Solo se repone lo que falta (Shopify lo descartó o lo borraron): lo presente nunca se pisa.
+      if (!theirs.has(f.path)) plan.restore.push(f.path);
       else plan.skippedProtected++;
       continue;
     }
@@ -118,4 +118,9 @@ export function mergeAppEmbeds(kitSettings: string, liveSettings: string | null)
   } catch {
     return kitSettings;
   }
+}
+
+/** Los archivos del kit que no llegaron al tema (Shopify los descartó al importar). */
+export function missingFromTheme(kitPaths: string[], remote: Set<string>): string[] {
+  return kitPaths.filter((p) => !remote.has(p));
 }

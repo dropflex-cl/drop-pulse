@@ -234,8 +234,8 @@ export interface PageComponentView {
 
 /** El estado de la etapa Página del producto (lo que devuelve el sondeo). */
 export interface CopyState {
-  /** Se habilita con los 2 desarrollos de Ángulos aprobados. */
-  locked: boolean;
+  /** Qué falta para habilitarla: los 2 desarrollos de Ángulos, o las imágenes (Imágenes va antes). null si está habilitada. */
+  locked: "angles" | "images" | null;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
   /** La ficha y los componentes escritos, en el orden de la página. */
   components: PageComponentView[];

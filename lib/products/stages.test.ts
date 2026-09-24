@@ -55,7 +55,7 @@ describe("productPosition", () => {
 
   it("Reseñas es opcional, va después de Información base y dice cuántas esperan", () => {
     const keys = productPosition(base).stages.map((s) => s.key);
-    expect(keys.slice(0, 4)).toEqual(["importado", "resenas", "angulos", "textos"]);
+    expect(keys.slice(0, 6)).toEqual(["importado", "resenas", "angulos", "imagenes", "textos", "publicar"]);
     const pending = productPosition({ ...base, reviews: { pending: 14, approved: 30, total: 48 } });
     const stage = pending.stages.find((s) => s.key === "resenas")!;
     expect(stage).toMatchObject({ state: "review", optional: true, desc: "14 por revisar" });
@@ -96,9 +96,11 @@ describe("etapa Ángulos", () => {
     const review = productPosition(facts({ ranking, briefs: [brief("primary", "aprobado"), brief("secondary", "generado")] }));
     expect(review.stages[2]).toMatchObject({ state: "review", desc: "1 de 2 desarrollos aprobados" });
     const done = productPosition(facts({ ranking, briefs: [brief("primary", "aprobado"), brief("secondary", "aprobado")] }));
-    expect(done.nextStage).toBe("textos");
+    // Aprobados los 2 desarrollos sigue Imágenes (la Página del producto usa esas imágenes).
+    expect(done.nextStage).toBe("imagenes");
     expect(done.stages[2]).toMatchObject({ state: "done", desc: "Mecanismo único + Oferta" });
-    expect(done.stages[3]).toMatchObject({ key: "textos", state: "current" });
+    expect(done.stages[3]).toMatchObject({ key: "imagenes", state: "current" });
+    expect(done.stages[4]).toMatchObject({ key: "textos", state: "locked", desc: "Se habilita con las imágenes listas" });
   });
 
   it("un desarrollo fallido detiene la etapa con su motivo", () => {
@@ -109,6 +111,7 @@ describe("etapa Ángulos", () => {
 });
 
 describe("página del producto (Textos)", () => {
+  const images = { running: false, rendering: 0, options: 8, cover: true, gallery: 5 };
   const ready = {
     price: 24990,
     currency: "CLP",
@@ -120,56 +123,60 @@ describe("página del producto (Textos)", () => {
         { role: "secondary" as const, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
       ],
     },
+    images,
   };
   const progress = (p: Partial<CopyFacts["progress"]>): CopyFacts["progress"] => ({ total: 13, enabled: 0, listing: "pending", complete: false, ...p });
 
-  it("bloqueada hasta aprobar los 2 desarrollos; después, por escribir", () => {
-    const locked = productPosition({ ...ready, angles: { ...ready.angles, briefs: [ready.angles.briefs[0]] } });
-    expect(locked.stages[3]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
+  it("bloqueada hasta aprobar los 2 desarrollos y tener las imágenes; después, por escribir", () => {
+    const noAngles = productPosition({ ...ready, angles: { ...ready.angles, briefs: [ready.angles.briefs[0]] } });
+    expect(noAngles.stages[3]).toMatchObject({ key: "imagenes", title: "Imágenes", state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
+    expect(noAngles.stages[4]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
+    const noImages = productPosition({ ...ready, images: { ...images, cover: false } });
+    expect(noImages.copyPhase).toBe("locked");
+    expect(noImages).toMatchObject({ nextStage: "imagenes", reason: "Espera tu elección · imágenes" });
     const fresh = productPosition(ready);
     expect(fresh.copyPhase).toBe("new");
-    expect(fresh).toMatchObject({ nextStage: "textos", reason: "Siguiente: página del producto" });
+    expect(fresh).toMatchObject({ nextStage: "textos", reason: "Siguiente: página del producto", summary: "Imágenes listas · $24.990" });
   });
 
   it("escribiendo, con error y por revisar", () => {
     const none = progress({ total: 0, listing: "missing" });
     expect(copyPhase({ ...ready, copy: { run: { status: "running" }, progress: none } }, "done")).toBe("writing");
     const failed = productPosition({ ...ready, copy: { run: { status: "failed", error: "La IA no respondió." }, progress: none } });
-    expect(failed.stages[3]).toMatchObject({ state: "error", desc: "La IA no respondió." });
+    expect(failed.stages[4]).toMatchObject({ state: "error", desc: "La IA no respondió." });
     expect(failed.filter).toBe("detenidos");
     const review = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ enabled: 3 }) } });
-    expect(review.stages[3]).toMatchObject({ state: "review", desc: "Falta aprobar la ficha del producto" });
+    expect(review.stages[4]).toMatchObject({ state: "review", desc: "Falta aprobar la ficha del producto" });
     expect(review.reason).toBe("Espera tu revisión · página del producto");
     // Una reescritura que falla con la página escrita no tapa la revisión.
     expect(copyPhase({ ...ready, copy: { run: { status: "failed" }, progress: progress({}) } }, "done")).toBe("review");
   });
 
-  it("lista con la ficha aprobada: habilita Imágenes", () => {
+  it("lista con la ficha aprobada: habilita Publicar", () => {
     const done = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ listing: "approved", enabled: 5, complete: true }) } });
-    expect(done.stages[3]).toMatchObject({ state: "done", desc: "5 componentes en la página" });
-    expect(done.stages[4]).toMatchObject({ key: "imagenes", state: "current" });
-    expect(done).toMatchObject({ nextStage: "imagenes", reason: "Siguiente: imágenes" });
-    expect(done.meter.slice(3, 5)).toEqual(["done", "current"]);
+    expect(done.stages[4]).toMatchObject({ state: "done", desc: "5 componentes en la página" });
+    expect(done.stages[5]).toMatchObject({ key: "publicar", state: "current" });
+    expect(done).toMatchObject({ nextStage: "publicar", reason: "Siguiente: publicar" });
+    expect(done.meter.slice(3, 6)).toEqual(["done", "done", "current"]);
   });
 
-  it("Publicar: se habilita con las imágenes y lleva a Publicados", () => {
+  it("Publicar: se habilita con la página lista y lleva a Publicados", () => {
     const page = { ...ready, copy: { run: { status: "succeeded" as const }, progress: progress({ listing: "approved", enabled: 5, complete: true }) } };
-    const images = { running: false, rendering: 0, options: 6, cover: true, gallery: 4 };
-    const locked = productPosition(page);
+    const locked = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ enabled: 3 }) } });
     expect(locked.stages[5]).toMatchObject({ key: "publicar", state: "locked" });
-    const ready2 = productPosition({ ...page, images });
-    expect(ready2.stages[5]).toMatchObject({ key: "publicar", state: "current", desc: "Instala el tema y publica el producto" });
-    expect(ready2).toMatchObject({ nextStage: "publicar", reason: "Siguiente: publicar" });
-    const publishing = productPosition({ ...page, images, publish: { status: "publishing" } });
+    const readyToPublish = productPosition(page);
+    expect(readyToPublish.stages[5]).toMatchObject({ key: "publicar", state: "current", desc: "Instala el tema y publica el producto" });
+    const publishing = productPosition({ ...page, publish: { status: "publishing" } });
     expect(publishing).toMatchObject({ status: "publicando", reason: "Publicando en tu tienda" });
-    const failed = productPosition({ ...page, images, publish: { status: "error", error: "Shopify rechazó una imagen" } });
+    const failed = productPosition({ ...page, publish: { status: "error", error: "Shopify rechazó una imagen" } });
     expect(failed.stages[5]).toMatchObject({ state: "error", desc: "Shopify rechazó una imagen" });
     expect(failed.filter).toBe("detenidos");
-    const done = productPosition({ ...page, images, publish: { status: "published" } });
+    const done = productPosition({ ...page, publish: { status: "published" } });
     expect(done).toMatchObject({ filter: "publicados", status: "publicado", nextStage: "anuncios" });
     expect(done.meter[5]).toBe("done");
   });
 });
+
 
 describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
   const ready = {

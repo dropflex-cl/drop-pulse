@@ -6,7 +6,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
 import type { ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { assertNoUserErrors, PublishError, stageUploads } from "./files";
-import { mergeAppEmbeds, planUpdate, readKit, type Kit, type RemoteFile } from "./kit";
+import { mergeAppEmbeds, missingFromTheme, planUpdate, readKit, type Kit, type RemoteFile } from "./kit";
 import { zip } from "./zip";
 
 export type ThemeStatus = "installing" | "preview" | "published" | "failed";
@@ -183,10 +183,14 @@ export async function installTheme(conn: ShopifyConnection, kit: Kit = readKit()
     if (!t.processing) break;
     if (Date.now() > deadline) return fail(conn, "Shopify tardó demasiado en procesar el tema. Revisa en unos minutos.");
   }
-  // Un archivo inválido se descarta en silencio y se lleva los templates que lo usan: se verifica.
+  // Un archivo inválido se descarta en silencio y se lleva los templates que lo usan (sin
+  // templates/product.json, todas las fichas dan 404): se verifica el kit completo.
   const files = new Set((await remoteFiles(conn, theme.id)).map((f) => f.path));
-  const lost = ["templates/index.json", "templates/product.json", "layout/theme.liquid"].filter((f) => !files.has(f));
-  if (lost.length) return fail(conn, `Shopify rechazó parte del tema (${lost.join(", ")}). Avísanos para revisarlo.`);
+  const lost = missingFromTheme(kit.files.map((f) => f.path), files);
+  if (lost.length) {
+    console.error("[theme/install] Shopify descartó", lost);
+    return fail(conn, `Shopify rechazó ${lost.length === 1 ? "un archivo" : `${lost.length} archivos`} del tema (${lost.slice(0, 4).join(", ")}${lost.length > 4 ? "…" : ""}). No lo publiques; avísanos para revisarlo.`);
+  }
 
   await saveInstallation(conn.user_id, { shop_domain: conn.shop_domain, status: "preview", error_message: null });
   return (await getThemeInstallation(conn.user_id))!;

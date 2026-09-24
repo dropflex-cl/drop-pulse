@@ -19,10 +19,10 @@ import { pageRenderRequest } from "@/lib/page-images/render";
 import { PAGE_IMAGES_PROMPT_VERSION, pagePlanSchema, pageQaSchema, pageQaVerdict, planProblems, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
 import {
   PAGE_MEDIA_BUCKET,
+  activeShots,
   getPageImageRow,
   getShotRow,
   isRecoverable,
-  pageCopy,
   purgeDiscardedPageImages,
   type PageImageRow,
   type PageImageRunRow,
@@ -75,7 +75,6 @@ type RunInput = {
   market: Market;
   avatar_id: string;
   briefs: Record<AngleRole, string>;
-  copy: { shortName?: string; howItWorks?: string; benefits: { id: string; text: string }[] };
 };
 
 /** Lo que el director necesita: sin esto la etapa no genera (sí deja elegir y subir). */
@@ -87,12 +86,17 @@ export async function generationBlocker(userId: string, productId: string): Prom
 }
 
 async function loadContext(userId: string, productId: string) {
-  const [brief, avatars, briefs, copy] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedBriefs(userId, productId), pageCopy(userId, productId)]);
+  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedBriefs(userId, productId)]);
   const avatar = avatars.get(productId);
   if (!avatar || avatar.status !== "approved" || !brief) throw new OptimizeError("Aprueba tu cliente ideal en Información base para generar imágenes.", 409);
   if (!briefs) throw new OptimizeError("Aprueba los 2 desarrollos de Ángulos para generar imágenes.", 409);
-  if (!copy.complete) throw new OptimizeError("Aprueba la página del producto para preparar sus imágenes.", 409);
-  return { brief, avatar, briefs, copy };
+  return { brief, avatar, briefs };
+}
+
+/** Los desarrollos aprobados hoy («primary,secondary»): si cambian, la galería quedó desactualizada. */
+export async function approvedBriefStamp(userId: string, productId: string): Promise<string | null> {
+  const briefs = await approvedBriefs(userId, productId);
+  return briefs ? `${briefs.primary.id},${briefs.secondary.id}` : null;
 }
 
 /** Crea la corrida del director (queued). Tocar dos veces no cobra dos veces. */
@@ -114,7 +118,6 @@ export async function startPageImages(userId: string, productId: string): Promis
     market,
     avatar_id: ctx.avatar.id,
     briefs: { primary: ctx.briefs.primary.id, secondary: ctx.briefs.secondary.id },
-    copy: { shortName: ctx.copy.shortName, howItWorks: ctx.copy.howItWorks, benefits: ctx.copy.benefits },
   };
   const { data, error } = await db.from("page_image_runs").insert({ product_id: productId, user_id: userId, status: "queued", input }).select("*").single();
   if (error?.code === "23505") {
@@ -157,7 +160,6 @@ export async function runPageImages(runId: string): Promise<void> {
       avatar: avatarRow.data.payload as CustomerAvatar,
       primary: { name: ANGLES[byRole.primary.angle].name, payload: byRole.primary.payload },
       secondary: { name: ANGLES[byRole.secondary.angle].name, payload: byRole.secondary.payload },
-      copy: { shortName: input.copy.shortName, howItWorks: input.copy.howItWorks, benefits: input.copy.benefits.map((b) => b.text) },
     };
     const blocks = await Promise.all(images.map((u) => imageBlock(u).catch(() => null)));
     const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);
@@ -173,7 +175,7 @@ export async function runPageImages(runId: string): Promise<void> {
         effort: "medium",
         maxTokens: 20000,
       });
-      problems = planProblems(result.data, input.copy.benefits.length);
+      problems = planProblems(result.data);
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: result.usage, error: problems.length ? "invalid_plan" : null });
       if (!problems.length) break;
       console.warn("[page-images] plan inválido", problems);
@@ -182,9 +184,9 @@ export async function runPageImages(runId: string): Promise<void> {
 
     const plan = result.data;
     const rows = plan.shots.map((s, i) => {
-      const benefit = s.slot === "benefit" && s.benefit ? input.copy.benefits[s.benefit - 1] : undefined;
+      const benefit = s.slot === "benefit" && s.benefit ? plan.benefits[s.benefit - 1] : undefined;
       const payload: StoredShot = { ...s, product_look: plan.product_look, kit: plan.kit, props_forbidden: plan.props_forbidden, pairs: benefit?.text };
-      return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, slot: s.slot === "benefit" ? benefitSlot(benefit!.id) : s.slot === "cover" ? COVER : GALLERY, position: i, payload };
+      return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, slot: s.slot === "benefit" ? benefitSlot(s.benefit!) : s.slot === "cover" ? COVER : GALLERY, position: i, payload };
     });
     const now = stamp();
     const inserted = await db.from("page_image_shots").insert(rows).select("id, product_id, user_id, run_id, slot, position, payload, created_at");
@@ -488,13 +490,13 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
 
 export type OptionAction = "choose" | "unchoose" | "discard" | "reopen" | "recover";
 
-/** El espacio existe en la página de hoy: Portada, Galería o un beneficio aprobado en Textos. */
+/** El espacio existe hoy: Portada, Galería o un beneficio de la galería vigente del director. */
 async function assertSlot(userId: string, productId: string, slot: string) {
   const kind = slotKind(slot);
   if (!kind) throw new ProductApiError("Ese espacio no existe.", 400, "slot");
   if (kind === "benefit") {
-    const copy = await pageCopy(userId, productId);
-    if (!copy.benefits.some((b) => benefitSlot(b.id) === slot)) throw new ProductApiError("Ese beneficio ya no está en la página. Actualiza.", 409, "slot");
+    const shots = await activeShots(userId, productId);
+    if (!shots.some((s) => s.slot === slot)) throw new ProductApiError("Ese beneficio ya no está en la galería. Actualiza.", 409, "slot");
   }
 }
 

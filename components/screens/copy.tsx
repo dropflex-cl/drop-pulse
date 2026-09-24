@@ -282,16 +282,29 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
 
   if (view === "locked") {
     body = (
-      <EmptyState
-        icon="lock"
-        title="Aprueba los 2 desarrollos de Ángulos"
-        body="La página sale del ángulo principal y del secundario."
-        action={
-          <Button size="sm" iconEnd="chevron-right" href={anglesHref}>
-            Ir a Ángulos
-          </Button>
-        }
-      />
+      state.locked === "images" ? (
+        <EmptyState
+          icon="lock"
+          title="Primero, las imágenes"
+          body="La página usa las imágenes que elijas: la portada y la galería van en la ficha, y los componentes toman sus fotos de ahí."
+          action={
+            <Button size="sm" iconEnd="chevron-right" href={productHref(product.id, "imagenes")}>
+              Ir a Imágenes
+            </Button>
+          }
+        />
+      ) : (
+        <EmptyState
+          icon="lock"
+          title="Aprueba los 2 desarrollos de Ángulos"
+          body="La página sale del ángulo principal y del secundario."
+          action={
+            <Button size="sm" iconEnd="chevron-right" href={anglesHref}>
+              Ir a Ángulos
+            </Button>
+          }
+        />
+      )
     );
   } else if (view === "start" || view === "failed") {
     const failed = view === "failed";
@@ -336,7 +349,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         {cards}
       </div>
     );
-    const nextLabel = desktop ? "Continuar: Imágenes" : "Imágenes";
+    const nextLabel = desktop ? "Continuar: Publicar" : "Publicar";
     footer = (
       <StickyActions
         variant="bar"
@@ -350,7 +363,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
           {desktop ? "Reescribir lo no aprobado" : "Reescribir"}
         </Button>
         {progress.complete ? (
-          <Button variant="primary" size="lg" iconEnd="chevron-right" href={imagesHref} className={actionClass}>
+          <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "publicar")} className={actionClass}>
             {nextLabel}
           </Button>
         ) : (

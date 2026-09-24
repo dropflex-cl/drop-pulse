@@ -232,246 +232,247 @@
     </div>
   </df-comparison-table>
 
-  {% stylesheet %}
-    df-comparison-table {
-      display: block;
-    }
+{%- endif -%}
 
+{% stylesheet %}
+  df-comparison-table {
+    display: block;
+  }
+
+  .df-comparison-table {
+    --df-ct-pad: 12px;
+    --df-ct-radius: var(--df-radius);
+    --df-ct-mark: 1.625rem;
+  }
+
+  .df-comparison-table__inner {
+    max-width: 1100px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+
+  .df-comparison-table__heading {
+    margin-bottom: 24px;
+    font-size: clamp(1.625rem, 5vw, 2.75rem);
+    text-align: center;
+  }
+
+  .df-comparison-table__heading--italic {
+    font-style: italic;
+  }
+
+  .df-comparison-table__scroll {
+    /* El borde superior del pilar sobresale: espacio para que no lo corte el overflow. */
+    padding-top: 2px;
+  }
+
+  .df-comparison-table__scroll--cols-2 {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .df-comparison-table__scroll:focus-visible {
+    outline: 2px solid var(--df-accent);
+    outline-offset: 4px;
+    border-radius: var(--df-radius-sm);
+  }
+
+  .df-comparison-table__table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+
+  .df-comparison-table__scroll--cols-1 .df-comparison-table__feature,
+  .df-comparison-table__scroll--cols-1 .df-comparison-table__corner {
+    width: 44%;
+  }
+
+  .df-comparison-table__scroll--cols-2 .df-comparison-table__table {
+    min-width: 540px;
+  }
+
+  .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+  .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+    width: 34%;
+  }
+
+  .df-comparison-table__table th,
+  .df-comparison-table__table td {
+    padding: var(--df-ct-pad) 8px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 400;
+  }
+
+  .df-comparison-table__row > * {
+    border-top: 1px solid var(--df-hairline);
+  }
+
+  .df-comparison-table__feature {
+    text-align: start !important;
+    font-weight: 600 !important;
+    text-wrap: balance;
+  }
+
+  /* Pilar: la columna nuestra es un bloque continuo del color de acento con cabecera y pie redondeados. */
+  .df-comparison-table__us {
+    background: var(--df-accent);
+    color: var(--df-on-accent);
+    border-top-color: color-mix(in srgb, var(--df-on-accent) 18%, transparent) !important;
+  }
+
+  .df-comparison-table__us--head {
+    border-radius: var(--df-ct-radius) var(--df-ct-radius) 0 0;
+    padding-block: 16px !important;
+    font-weight: 700 !important;
+    font-size: 0.9375rem;
+  }
+
+  .df-comparison-table__row:last-child .df-comparison-table__us {
+    border-radius: 0 0 var(--df-ct-radius) var(--df-ct-radius);
+    padding-bottom: calc(var(--df-ct-pad) + 14px);
+  }
+
+  .df-comparison-table__logo {
+    display: block;
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    max-height: 56px;
+    margin-inline: auto;
+    object-fit: contain;
+  }
+
+  .df-comparison-table__other--head {
+    color: var(--df-muted);
+    font-weight: 600 !important;
+    vertical-align: bottom !important;
+  }
+
+  .df-comparison-table__mark {
+    display: inline-grid;
+    place-items: center;
+    font-size: var(--df-ct-mark);
+    line-height: 0;
+  }
+
+  .df-comparison-table__mark .df-icon {
+    width: 1em;
+    height: 1em;
+  }
+
+  .df-comparison-table__other .df-comparison-table__mark--yes {
+    color: var(--df-fg);
+  }
+
+  .df-comparison-table__other .df-comparison-table__mark--no {
+    color: var(--df-muted);
+  }
+
+  .df-comparison-table--red-crosses .df-comparison-table__other .df-comparison-table__mark--no {
+    color: var(--df-negative);
+  }
+
+  /* Parcial: círculo con medio relleno, dibujado en CSS (no hay ícono en la base compartida). */
+  .df-comparison-table__mark--partial {
+    width: calc(var(--df-ct-mark) * 0.78);
+    height: calc(var(--df-ct-mark) * 0.78);
+    border: 1.75px solid currentColor;
+    border-radius: 50%;
+    background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+    color: var(--df-muted);
+  }
+
+  .df-comparison-table__us .df-comparison-table__mark--partial {
+    color: var(--df-on-accent);
+  }
+
+  .df-comparison-table__value {
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  .df-comparison-table__notes {
+    display: grid;
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .df-comparison-table__legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--df-muted);
+    --df-ct-mark: 1.125rem;
+  }
+
+  .df-comparison-table__footnote {
+    font-size: 0.8125rem;
+  }
+
+  /* Dos competidores en móvil: la columna de características queda fija al desplazar. */
+  .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+  .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--df-bg);
+    box-shadow: 6px 0 8px -8px color-mix(in srgb, var(--df-fg) 45%, transparent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .df-comparison-table--pulse.is-visible .df-comparison-table__us .df-comparison-table__mark {
+      animation: df-comparison-table-beat 0.9s var(--df-ease) 3;
+    }
+  }
+
+  @keyframes df-comparison-table-beat {
+    50% { transform: scale(1.15); }
+  }
+
+  @media (min-width: 750px) {
     .df-comparison-table {
-      --df-ct-pad: 12px;
-      --df-ct-radius: var(--df-radius);
-      --df-ct-mark: 1.625rem;
+      --df-ct-pad: 18px;
+      --df-ct-mark: 2rem;
     }
 
     .df-comparison-table__inner {
-      max-width: 1100px;
-      margin-inline: auto;
-      padding-inline: 16px;
+      padding-inline: 20px;
     }
 
     .df-comparison-table__heading {
-      margin-bottom: 24px;
-      font-size: clamp(1.625rem, 5vw, 2.75rem);
-      text-align: center;
-    }
-
-    .df-comparison-table__heading--italic {
-      font-style: italic;
-    }
-
-    .df-comparison-table__scroll {
-      /* El borde superior del pilar sobresale: espacio para que no lo corte el overflow. */
-      padding-top: 2px;
-    }
-
-    .df-comparison-table__scroll--cols-2 {
-      overflow-x: auto;
-      overscroll-behavior-x: contain;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .df-comparison-table__scroll:focus-visible {
-      outline: 2px solid var(--df-accent);
-      outline-offset: 4px;
-      border-radius: var(--df-radius-sm);
+      margin-bottom: 36px;
     }
 
     .df-comparison-table__table {
-      width: 100%;
-      table-layout: fixed;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 0.875rem;
-      line-height: 1.3;
-    }
-
-    .df-comparison-table__scroll--cols-1 .df-comparison-table__feature,
-    .df-comparison-table__scroll--cols-1 .df-comparison-table__corner {
-      width: 44%;
-    }
-
-    .df-comparison-table__scroll--cols-2 .df-comparison-table__table {
-      min-width: 540px;
-    }
-
-    .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
-    .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
-      width: 34%;
+      font-size: 1.0625rem;
     }
 
     .df-comparison-table__table th,
     .df-comparison-table__table td {
-      padding: var(--df-ct-pad) 8px;
-      text-align: center;
-      vertical-align: middle;
-      font-weight: 400;
+      padding-inline: 16px;
     }
 
-    .df-comparison-table__row > * {
-      border-top: 1px solid var(--df-hairline);
-    }
-
-    .df-comparison-table__feature {
-      text-align: start !important;
-      font-weight: 600 !important;
-      text-wrap: balance;
-    }
-
-    /* Pilar: la columna nuestra es un bloque continuo del color de acento con cabecera y pie redondeados. */
-    .df-comparison-table__us {
-      background: var(--df-accent);
-      color: var(--df-on-accent);
-      border-top-color: color-mix(in srgb, var(--df-on-accent) 18%, transparent) !important;
-    }
-
-    .df-comparison-table__us--head {
-      border-radius: var(--df-ct-radius) var(--df-ct-radius) 0 0;
-      padding-block: 16px !important;
-      font-weight: 700 !important;
-      font-size: 0.9375rem;
-    }
-
-    .df-comparison-table__row:last-child .df-comparison-table__us {
-      border-radius: 0 0 var(--df-ct-radius) var(--df-ct-radius);
-      padding-bottom: calc(var(--df-ct-pad) + 14px);
-    }
-
-    .df-comparison-table__logo {
-      display: block;
-      width: 100%;
-      max-width: 180px;
-      height: auto;
-      max-height: 56px;
-      margin-inline: auto;
-      object-fit: contain;
-    }
-
-    .df-comparison-table__other--head {
-      color: var(--df-muted);
-      font-weight: 600 !important;
-      vertical-align: bottom !important;
-    }
-
-    .df-comparison-table__mark {
-      display: inline-grid;
-      place-items: center;
-      font-size: var(--df-ct-mark);
-      line-height: 0;
-    }
-
-    .df-comparison-table__mark .df-icon {
-      width: 1em;
-      height: 1em;
-    }
-
-    .df-comparison-table__other .df-comparison-table__mark--yes {
-      color: var(--df-fg);
-    }
-
-    .df-comparison-table__other .df-comparison-table__mark--no {
-      color: var(--df-muted);
-    }
-
-    .df-comparison-table--red-crosses .df-comparison-table__other .df-comparison-table__mark--no {
-      color: var(--df-negative);
-    }
-
-    /* Parcial: círculo con medio relleno, dibujado en CSS (no hay ícono en la base compartida). */
-    .df-comparison-table__mark--partial {
-      width: calc(var(--df-ct-mark) * 0.78);
-      height: calc(var(--df-ct-mark) * 0.78);
-      border: 1.75px solid currentColor;
-      border-radius: 50%;
-      background: linear-gradient(90deg, currentColor 50%, transparent 50%);
-      color: var(--df-muted);
-    }
-
-    .df-comparison-table__us .df-comparison-table__mark--partial {
-      color: var(--df-on-accent);
-    }
-
-    .df-comparison-table__value {
-      font-weight: 600;
-      text-wrap: balance;
-    }
-
-    .df-comparison-table__notes {
-      display: grid;
-      gap: 6px;
-      margin-top: 16px;
-    }
-
-    .df-comparison-table__legend {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0;
-      font-size: 0.8125rem;
-      color: var(--df-muted);
-      --df-ct-mark: 1.125rem;
-    }
-
-    .df-comparison-table__footnote {
-      font-size: 0.8125rem;
-    }
-
-    /* Dos competidores en móvil: la columna de características queda fija al desplazar. */
+    .df-comparison-table__scroll--cols-1 .df-comparison-table__feature,
+    .df-comparison-table__scroll--cols-1 .df-comparison-table__corner,
     .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
     .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
-      position: sticky;
-      left: 0;
-      z-index: 1;
-      background: var(--df-bg);
-      box-shadow: 6px 0 8px -8px color-mix(in srgb, var(--df-fg) 45%, transparent);
+      width: 36%;
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-      .df-comparison-table--pulse.is-visible .df-comparison-table__us .df-comparison-table__mark {
-        animation: df-comparison-table-beat 0.9s var(--df-ease) 3;
-      }
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+      box-shadow: none;
     }
-
-    @keyframes df-comparison-table-beat {
-      50% { transform: scale(1.15); }
-    }
-
-    @media (min-width: 750px) {
-      .df-comparison-table {
-        --df-ct-pad: 18px;
-        --df-ct-mark: 2rem;
-      }
-
-      .df-comparison-table__inner {
-        padding-inline: 20px;
-      }
-
-      .df-comparison-table__heading {
-        margin-bottom: 36px;
-      }
-
-      .df-comparison-table__table {
-        font-size: 1.0625rem;
-      }
-
-      .df-comparison-table__table th,
-      .df-comparison-table__table td {
-        padding-inline: 16px;
-      }
-
-      .df-comparison-table__scroll--cols-1 .df-comparison-table__feature,
-      .df-comparison-table__scroll--cols-1 .df-comparison-table__corner,
-      .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
-      .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
-        width: 36%;
-      }
-
-      .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
-      .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
-        box-shadow: none;
-      }
-    }
-  {% endstylesheet %}
-{%- endif -%}
+  }
+{% endstylesheet %}
 
 {% schema %}
 {

@@ -98,6 +98,18 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
     }
   }
 
+  // «Continuar» dispara la escritura de la página (design-system/textos.md › start): la página usa
+  // estas imágenes. Si ya estaba escrita, solo lleva a ella.
+  const continueToCopy = async () => {
+    setBusy("copy");
+    try {
+      await productsApi.writeCopy(product.id);
+    } catch {
+      // Si no se pudo empezar (tope diario, conexión), la página lo dice y ofrece empezar desde ahí.
+    }
+    router.push(productHref(product.id, "textos"));
+  };
+
   const propose = () => act("propose", () => productsApi.proposePageImages(product.id), "No pudimos empezar. Intenta de nuevo.");
   const fill = () => act("fill", () => productsApi.fillPageImages(product.id), "No pudimos generar. Intenta de nuevo.", `Generando ${empty.length} ${empty.length === 1 ? "imagen" : "imágenes"}`);
 
@@ -110,11 +122,11 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
     body = (
       <EmptyState
         icon="lock"
-        title="Primero, la página del producto"
+        title="Primero, los ángulos de venta"
         body={state.locked}
         action={
-          <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "textos")}>
-            Ir a la página del producto
+          <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
+            Ir a Ángulos
           </Button>
         }
       />
@@ -215,15 +227,9 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
             {`Generar los vacíos · ${cost(empty.length)}`}
           </Button>
         ) : (
-          ready ? (
-            <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "publicar")} className={actionClass}>
-              Continuar: Publicar
-            </Button>
-          ) : (
-            <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={actionClass}>
-              Continuar: Publicar
-            </Button>
-          )
+          <Button variant="primary" size="lg" iconEnd="chevron-right" disabled={!ready} loading={busy === "copy"} onClick={continueToCopy} className={actionClass}>
+            {desktop ? "Continuar: Página del producto" : "Página del producto"}
+          </Button>
         )}
       </StickyActions>
     );

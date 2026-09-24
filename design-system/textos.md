@@ -6,12 +6,12 @@ La etapa escribe la página del producto en la tienda (no el texto del anuncio, 
 
 | Fase | Qué se ve | Componentes |
 |---|---|---|
-| `locked` | "Aprueba los 2 desarrollos de Ángulos" con enlace | `EmptyState` + `StageList` con el motivo |
-| `start` | "Escribe la página de tu producto" y "Escribir la página con IA" (el botón "Continuar" de Ángulos lo dispara directo) | `EmptyState` |
+| `locked` | "Aprueba los 2 desarrollos de Ángulos" o "Primero, las imágenes" (Imágenes va antes), con enlace | `EmptyState` + `StageList` con el motivo |
+| `start` | "Escribe la página de tu producto" y "Escribir la página con IA" (el botón "Continuar" de Imágenes lo dispara directo) | `EmptyState` |
 | `writing` | "La IA está escribiendo la página", con esqueletos; se puede salir y Hoy avisa | `EmptyState busy` |
 | `failed` | "No se pudo escribir la página" + el motivo + "Reintentar" | `EmptyState tone="error"` |
 | `review` | La ficha por aprobar y los componentes con su vista previa | Ficha + `ComponentCard` + `StageMeter` |
-| `done` | Ficha aprobada; "N componentes en la página"; "Continuar: Imágenes" | igual |
+| `done` | Ficha aprobada; "N componentes en la página"; "Continuar: Publicar" | igual |
 | desactualizado | "Cambiaste tus ángulos. Reescribe lo que no aprobaste." | `Notice` |
 
 Una reescritura en curso o con error no tapa lo escrito: va como `Notice` o alerta sobre la lista.
@@ -42,7 +42,7 @@ Agrupados en el orden de la página: "Junto al botón de compra" (bloques de la 
 
 ## Móvil y escritorio
 
-- **Móvil:** barra superior con `StageMeter` (la ficha y un segmento por componente en uso), ficha, color de la página, componentes; barra fija con "Reescribir" y "Imágenes".
+- **Móvil:** barra superior con `StageMeter` (la ficha y un segmento por componente en uso), ficha, color de la página, componentes; barra fija con "Reescribir" y "Publicar".
 - **Escritorio:** ruta a la izquierda, ficha y componentes al centro, y **"Tu página"** a la derecha: la página armada (ficha + componentes en uso, en orden) en un marco de tienda.
 
 ## Excepción de tokens

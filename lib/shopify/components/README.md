@@ -56,7 +56,8 @@ Las carpetas `sections/`, `blocks/`, `snippets/` y `assets/` replican las de un 
 9. **Variante:** los bloques que dependen de la variante escuchan `shopify:product:select` (evento estándar de Shopify) y, como respaldo, el `change` del formulario `/cart/add`. Datos por variante embebidos en `<script type="application/json">`. Nada de sondeo.
 10. **Accesibilidad (WCAG 2.1 AA):** listas semánticas, íconos `aria-hidden`, controles de 44 px, `prefers-reduced-motion` apaga toda animación, autoplay con pausa (hover, foco, fuera de pantalla, pestaña oculta), diálogos con `<dialog>` nativo, texto mínimo de 12 px, contraste 4.5:1.
 11. **Rendimiento:** imágenes con `image_url` + `image_tag` con `widths`/`sizes` y `loading: 'lazy'` salvo arriba del pliegue; videos con `preload="none"` y póster; JS con `defer`, sin dependencias.
-12. **Schema:** nombre de sección, preset y bloque ≤ 25 caracteres; **nunca `"default": ""`** (se omite); textos del editor en español neutro. Estas dos reglas dejaron en 404 todas las fichas en v1: las revisa el test de catálogo.
+12. **CSS y JS en el nivel superior:** `{% stylesheet %}`, `{% javascript %}` y `{% schema %}` nunca van dentro de un `{% if %}` o un `{% for %}`. Shopify descarta el archivo al importar y se lleva cada template que lo usa (todas las fichas en 404); `shopify theme check` no lo avisa. Lo revisa `lib/shopify/publish/template-rules.test.ts`.
+13. **Schema:** nombre de sección, preset y bloque ≤ 25 caracteres; **nunca `"default": ""`** (se omite); textos del editor en español neutro. Estas dos reglas dejaron en 404 todas las fichas en v1: las revisa el test de catálogo.
 
 ## Cómo agregar uno
 

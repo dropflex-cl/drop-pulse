@@ -1,6 +1,6 @@
 # Etapa Imágenes: las imágenes de la página del producto
 
-La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel de agencia: una galería que se ve como la de una marca premium, generada desde la foto real del producto. Se organiza **por espacios de la página**, en el mismo orden que Textos (design-system `imagenes.md`). Por ahora solo imágenes: el video UGC y los GIF quedan para después (§7).
+La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel de agencia: una galería que se ve como la de una marca premium, generada desde la foto real del producto. Se organiza **por espacios de la página** (design-system `imagenes.md`). **Va antes de la Página del producto** (cambio del 2026-09-24): la página usa estas imágenes en la ficha y en sus componentes. Por ahora solo imágenes: el video UGC y los GIF quedan para después (§7).
 
 ## 1. Espacios
 
@@ -8,9 +8,9 @@ La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel 
 |---|---|---|---|
 | Portada | 1:1 | Sí | Una toma `hero_clean` o `hero_mood`, sin textos |
 | Galería | 1:1, se eligen 4 a 6 y se ordenan | Sí (mínimo 4) | 5 tomas distintas: ambiente, infografía, comparativa, qué incluye (o detalle) y una de uso, escala o detalle |
-| Beneficio N | **3:4** | No | Una toma por cada beneficio **aprobado** en Textos (`benefit-<content_item_id>`) |
+| Beneficio N | **3:4** | No | 3 tomas, una por cada beneficio que el director propone desde la ficha y los ángulos (`benefit-1…3`, `BENEFIT_SHOTS`) |
 
-- La etapa se habilita con la página del producto aprobada (`copyProgress(...).complete`) y queda lista con portada y al menos 4 de galería (`lib/products/stages.ts › imagesStage`).
+- La etapa se habilita con los 2 desarrollos de Ángulos aprobados y queda lista con portada y al menos 4 de galería (`lib/products/stages.ts › imagesStage`). Si cambian los desarrollos, la galería queda desactualizada. La Página del producto se habilita recién con las imágenes listas.
 - **Por qué 3:4 y no 4:5:** Flare acepta 1:1, 3:2, 2:3, 4:3, 3:4, 16:9, 9:16 y 21:9 (medido: `4:5` responde 400). En el POC, recortar un 3:4 a 4:5 cortó un titular. 3:4 nativo se ve casi igual en la página y no se corta nada.
 - Cada espacio junta opciones de tres orígenes: **IA** (generadas), **Tu foto** (las en uso de Información base, sin copiarlas) y **Subida** (JPG, PNG o WebP de hasta 15 MB y al menos 600 px por lado).
 
@@ -72,7 +72,7 @@ La dirección de arte se validó en un POC con datos de prod de solo lectura (re
 
 **Reglas de texto:**
 - Sin precios, descuentos, packs ni regalos: la página ya los muestra y cambian.
-- Solo datos de la ficha o de Textos.
+- Solo datos de la ficha o de los ángulos (los beneficios los propone el director, con un dato de la ficha que los sostiene; `planProblems` revisa cantidad, largo y que no haya precios).
 - Titular de 2 a 6 palabras con mayúscula inicial.
 - Límites por rol iguales a Creativos.
 
@@ -92,7 +92,7 @@ La dirección de arte se validó en un POC con datos de prod de solo lectura (re
 - **Móvil:** vista general por espacios, agrupados en Galería y Por qué comprarlo. Cada espacio muestra su estado (vacío, generando, N opciones, elegida o con error). Al tocarlo se abre el espacio (`?espacio=`), con el texto que acompaña, las elegidas en orden, las opciones con su origen y su QA, «Generar otra» por toma, «Tus fotos» y «Subir imagen».
 - **Escritorio:** los espacios a la izquierda y el espacio elegido al centro.
 - **Sin Higgsfield o sin ángulos aprobados:** se puede elegir fotos y subir, pero no generar.
-- **«Continuar: Publicar»:** queda deshabilitado hasta que exista la etapa Publicar.
+- **«Continuar: Página del producto»:** con las imágenes listas, empieza a escribir la página y lleva a ella.
 
 ## 7. Pendiente
 

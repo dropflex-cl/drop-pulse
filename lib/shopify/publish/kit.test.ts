@@ -39,10 +39,10 @@ describe("kit del tema", () => {
     ];
     expect(planUpdate(local, remote)).toEqual({
       upsert: ["snippets/df-icon.liquid"],
-      restore: ["templates/index.json"],
+      restore: ["templates/index.json", "config/settings_data.json"],
       remove: ["blocks/df-viejo.liquid"],
       unchanged: 1,
-      skippedProtected: 2,
+      skippedProtected: 1,
     });
   });
 });

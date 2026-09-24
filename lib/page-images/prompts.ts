@@ -9,12 +9,13 @@ import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { HEADLINE_MAX_WORDS, ROLE_LIMITS } from "@/lib/creatives/catalog";
 import type { Market } from "@/lib/market";
-import { GALLERY_SHOTS } from "./catalog";
+import { BENEFIT_SHOTS, GALLERY_SHOTS } from "./catalog";
+import { BENEFIT_MAX } from "./schemas";
 import type { ShotText } from "./schemas";
 
 const RULES = [
   "REGLAS QUE NO SE NEGOCIAN",
-  "- Cada texto afirma solo datos de la FICHA o de TEXTOS DE LA PÁGINA. No inventes características (tapa hermética, materiales, certificaciones, medidas). Las partes del kit se nombran solo si están en kit.",
+  "- Cada texto y cada beneficio afirma solo datos de la FICHA o de los ÁNGULOS. No inventes características (tapa hermética, materiales, certificaciones, medidas). Las partes del kit se nombran solo si están en kit.",
   "- No prometas en la imagen una diferencia que la IMAGEN BASE no muestra (dos rodillos que se ven iguales no se presentan como «grueso» y «fino»).",
   "- Sin precios, montos, descuentos, packs, regalos ni plazos: cambian y la página ya los muestra. Unidades del producto sí («60 cápsulas»).",
   "- Salud y bienestar: «ayuda a», «apoya». Nunca «cura», «trata», «previene», enfermedades ni resultados garantizados. Respeta forbidden_claims.",
@@ -42,7 +43,8 @@ export function pageImagesSystem(market: Market): string {
     "  · comparison: el producto contra la alternativa que el comprador ya probó (ficha: alternatives_already_tried), con objetos reales de esa alternativa y una tabla ✓/✗ de 2 table_header y 3 table_row. Nunca una marca.",
     "  · in_the_box si kit no está vacío (el producto y las partes del kit ordenadas en flat lay, con callouts que nombran cada parte); si no, detail.",
     "  · una más entre in_use (manos usando el producto), scale (en la mano o junto a un objeto conocido) o detail (macro de la parte que hace el trabajo): la que más venda para este producto.",
-    "- 1 benefit (3:4) por cada beneficio de TEXTOS DE LA PÁGINA, con su número: la imagen que PRUEBA ese beneficio (se ve lo que dice), con un headline de 2 a 6 palabras que lo resume sin copiarlo y 0 a 2 badges o callouts. El texto largo va al lado en la página: no lo repitas entero.",
+    `- benefits: exactamente ${BENEFIT_SHOTS} beneficios distintos del producto, el más vendedor primero. Cada uno en una frase de hasta ${BENEFIT_MAX} caracteres, en el idioma del mercado, sostenida por un dato de la FICHA (qué hace, cómo funciona, key_facts) y alineada con el mensaje de los ÁNGULOS. Sin precios, ofertas ni promesas prohibidas. La página del producto se escribe después, con estas imágenes.`,
+    "- 1 benefit (3:4) por cada uno de tus benefits, con su número: la imagen que PRUEBA ese beneficio (se ve lo que dice), con un headline de 2 a 6 palabras que lo resume sin copiarlo y 0 a 2 badges o callouts.",
     "- Todas comparten brand_art (paleta y tipografía) para que la galería se vea de una misma marca.",
     "",
     "NIVEL DE AGENCIA (campaña editorial, no catálogo)",
@@ -81,8 +83,6 @@ export interface PageImagesContext {
   avatar: CustomerAvatar;
   primary: { name: string; payload: AngleBriefPayload };
   secondary: { name: string; payload: AngleBriefPayload };
-  /** Los textos aprobados de la página (Textos). */
-  copy: { shortName?: string; howItWorks?: string; benefits: string[] };
 }
 
 const angleForImages = (b: AngleBriefPayload) => ({
@@ -111,13 +111,8 @@ export function pageImagesUser(c: PageImagesContext, retry: string[] = []): stri
     `ÁNGULO SECUNDARIO: ${c.secondary.name} (aprobado)`,
     json(angleForImages(c.secondary.payload)),
     "",
-    "TEXTOS DE LA PÁGINA (aprobados)",
-    ...(c.copy.shortName ? [`Nombre corto: ${c.copy.shortName}`] : []),
-    ...(c.copy.howItWorks ? [`Cómo funciona: ${c.copy.howItWorks}`] : []),
-    ...c.copy.benefits.map((b, i) => `Beneficio ${i + 1}: ${b}`),
-    "",
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
-    `Entrega el set: 1 cover, ${GALLERY_SHOTS} gallery y ${c.copy.benefits.length} benefit.`,
+    `Entrega ${BENEFIT_SHOTS} benefits y el set: 1 cover, ${GALLERY_SHOTS} gallery y ${BENEFIT_SHOTS} benefit.`,
   ].join("\n");
 }
 

@@ -260,258 +260,259 @@
     {%- endif -%}
   </df-faq-and-text>
 
-  {% stylesheet %}
-    df-faq-and-text {
-      display: block;
-    }
+{%- endif -%}
 
-    .df-faq-and-text {
-      interpolate-size: allow-keywords;
-    }
+{% stylesheet %}
+  df-faq-and-text {
+    display: block;
+  }
 
+  .df-faq-and-text {
+    interpolate-size: allow-keywords;
+  }
+
+  .df-faq-and-text__inner {
+    display: grid;
+    gap: 24px;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+
+  .df-faq-and-text--card .df-faq-and-text__inner {
+    max-width: calc(1200px - 32px);
+    margin-inline: 16px;
+    padding: 28px 20px;
+    border-radius: var(--df-radius);
+    background: var(--df-surface);
+  }
+
+  .df-faq-and-text__intro {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .df-faq-and-text__heading {
+    font-size: clamp(1.75rem, 6vw, 2.5rem);
+  }
+
+  .df-faq-and-text__highlight {
+    color: var(--df-accent-ink);
+  }
+
+  .df-faq-and-text__body {
+    max-width: 48ch;
+  }
+
+  .df-faq-and-text__proof {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .df-faq-and-text__avatars {
+    display: flex;
+    margin: 0;
+    padding: 0 0 0 10px;
+    list-style: none;
+  }
+
+  .df-faq-and-text__avatars li {
+    margin-left: -10px;
+  }
+
+  .df-faq-and-text__avatar {
+    display: block;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--df-bg);
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .df-faq-and-text__proof-text {
+    display: grid;
+    gap: 4px;
+    justify-items: inherit;
+  }
+
+  .df-faq-and-text__proof-line {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .df-faq-and-text__source {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--df-muted);
+  }
+
+  .df-faq-and-text__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    margin-top: 8px;
+    padding: 12px 24px;
+    border-radius: var(--df-radius-pill);
+    background: var(--df-accent);
+    color: var(--df-on-accent);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s var(--df-ease);
+  }
+
+  .df-faq-and-text__cta:hover {
+    transform: translateY(-1px);
+  }
+
+  .df-faq-and-text__cta:focus-visible,
+  .df-faq-and-text__question:focus-visible {
+    outline: 2px solid var(--df-accent);
+    outline-offset: 2px;
+  }
+
+  .df-faq-and-text__list {
+    display: grid;
+    align-content: start;
+  }
+
+  .df-faq-and-text__question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 44px;
+    padding: 16px 0;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.35;
+    text-align: start;
+    cursor: pointer;
+    list-style: none;
+    border-radius: var(--df-radius-sm);
+  }
+
+  .df-faq-and-text__question::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Signo + que pasa a −: dos barras en CSS; la vertical gira y se esconde. */
+  .df-faq-and-text__sign {
+    position: relative;
+    flex: none;
+    width: 16px;
+    height: 16px;
+  }
+
+  .df-faq-and-text__sign::before,
+  .df-faq-and-text__sign::after {
+    content: '';
+    position: absolute;
+    inset: 7px 0 auto;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 0.3s var(--df-ease), opacity 0.3s var(--df-ease);
+  }
+
+  .df-faq-and-text__sign::after {
+    transform: rotate(90deg);
+  }
+
+  .df-faq-and-text__item[open] .df-faq-and-text__sign::after {
+    transform: rotate(180deg);
+    opacity: 0;
+  }
+
+  .df-faq-and-text__answer {
+    padding-bottom: 18px;
+  }
+
+  .df-faq-and-text__answer .df-text {
+    font-size: 0.9375rem;
+  }
+
+  /* Apertura animada donde el navegador lo permite (::details-content); si no, abre sin animar. */
+  .df-faq-and-text__item::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size 0.35s var(--df-ease), content-visibility 0.35s allow-discrete;
+  }
+
+  .df-faq-and-text__item[open]::details-content {
+    block-size: auto;
+  }
+
+  .df-faq-and-text--dividers .df-faq-and-text__item {
+    border-bottom: 1px solid var(--df-hairline);
+  }
+
+  .df-faq-and-text--cards .df-faq-and-text__list {
+    gap: 12px;
+  }
+
+  .df-faq-and-text--cards .df-faq-and-text__item {
+    border-radius: var(--df-radius-sm);
+    background: var(--df-surface);
+  }
+
+  .df-faq-and-text--cards.df-faq-and-text--card .df-faq-and-text__item {
+    background: var(--df-bg);
+  }
+
+  .df-faq-and-text--cards .df-faq-and-text__question {
+    padding-inline: 18px;
+  }
+
+  .df-faq-and-text--cards .df-faq-and-text__answer {
+    padding-inline: 18px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .df-faq-and-text__item::details-content {
+      transition: none;
+    }
+  }
+
+  @media (min-width: 990px) {
     .df-faq-and-text__inner {
-      display: grid;
-      gap: 24px;
-      max-width: 1200px;
-      margin-inline: auto;
-      padding-inline: 16px;
+      grid-template-columns: minmax(0, var(--df-faq-left, 40%)) minmax(0, 1fr);
+      gap: 56px;
+      padding-inline: 32px;
     }
 
     .df-faq-and-text--card .df-faq-and-text__inner {
-      max-width: calc(1200px - 32px);
-      margin-inline: 16px;
-      padding: 28px 20px;
-      border-radius: var(--df-radius);
-      background: var(--df-surface);
+      margin-inline: auto;
+      padding: 56px;
     }
 
     .df-faq-and-text__intro {
-      display: grid;
-      gap: 12px;
-      align-content: start;
-      justify-items: center;
-      text-align: center;
-    }
-
-    .df-faq-and-text__heading {
-      font-size: clamp(1.75rem, 6vw, 2.5rem);
-    }
-
-    .df-faq-and-text__highlight {
-      color: var(--df-accent-ink);
-    }
-
-    .df-faq-and-text__body {
-      max-width: 48ch;
+      position: sticky;
+      top: 24px;
+      justify-items: start;
+      text-align: start;
     }
 
     .df-faq-and-text__proof {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .df-faq-and-text__avatars {
-      display: flex;
-      margin: 0;
-      padding: 0 0 0 10px;
-      list-style: none;
-    }
-
-    .df-faq-and-text__avatars li {
-      margin-left: -10px;
-    }
-
-    .df-faq-and-text__avatar {
-      display: block;
-      width: 44px;
-      height: 44px;
-      border: 2px solid var(--df-bg);
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .df-faq-and-text__proof-text {
-      display: grid;
-      gap: 4px;
-      justify-items: inherit;
-    }
-
-    .df-faq-and-text__proof-line {
-      margin: 0;
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
-    .df-faq-and-text__source {
-      margin: 0;
-      font-size: 0.75rem;
-      color: var(--df-muted);
-    }
-
-    .df-faq-and-text__cta {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 48px;
-      margin-top: 8px;
-      padding: 12px 24px;
-      border-radius: var(--df-radius-pill);
-      background: var(--df-accent);
-      color: var(--df-on-accent);
-      font-weight: 600;
-      text-decoration: none;
-      transition: transform 0.2s var(--df-ease);
-    }
-
-    .df-faq-and-text__cta:hover {
-      transform: translateY(-1px);
-    }
-
-    .df-faq-and-text__cta:focus-visible,
-    .df-faq-and-text__question:focus-visible {
-      outline: 2px solid var(--df-accent);
-      outline-offset: 2px;
-    }
-
-    .df-faq-and-text__list {
-      display: grid;
-      align-content: start;
+      align-items: flex-start;
     }
 
     .df-faq-and-text__question {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      min-height: 44px;
-      padding: 16px 0;
-      font-weight: 600;
-      font-size: 1rem;
-      line-height: 1.35;
-      text-align: start;
-      cursor: pointer;
-      list-style: none;
-      border-radius: var(--df-radius-sm);
-    }
-
-    .df-faq-and-text__question::-webkit-details-marker {
-      display: none;
-    }
-
-    /* Signo + que pasa a −: dos barras en CSS; la vertical gira y se esconde. */
-    .df-faq-and-text__sign {
-      position: relative;
-      flex: none;
-      width: 16px;
-      height: 16px;
-    }
-
-    .df-faq-and-text__sign::before,
-    .df-faq-and-text__sign::after {
-      content: '';
-      position: absolute;
-      inset: 7px 0 auto;
-      height: 2px;
-      border-radius: 2px;
-      background: currentColor;
-      transition: transform 0.3s var(--df-ease), opacity 0.3s var(--df-ease);
-    }
-
-    .df-faq-and-text__sign::after {
-      transform: rotate(90deg);
-    }
-
-    .df-faq-and-text__item[open] .df-faq-and-text__sign::after {
-      transform: rotate(180deg);
-      opacity: 0;
-    }
-
-    .df-faq-and-text__answer {
-      padding-bottom: 18px;
+      font-size: 1.125rem;
     }
 
     .df-faq-and-text__answer .df-text {
-      font-size: 0.9375rem;
+      font-size: 1rem;
     }
-
-    /* Apertura animada donde el navegador lo permite (::details-content); si no, abre sin animar. */
-    .df-faq-and-text__item::details-content {
-      block-size: 0;
-      overflow: clip;
-      transition: block-size 0.35s var(--df-ease), content-visibility 0.35s allow-discrete;
-    }
-
-    .df-faq-and-text__item[open]::details-content {
-      block-size: auto;
-    }
-
-    .df-faq-and-text--dividers .df-faq-and-text__item {
-      border-bottom: 1px solid var(--df-hairline);
-    }
-
-    .df-faq-and-text--cards .df-faq-and-text__list {
-      gap: 12px;
-    }
-
-    .df-faq-and-text--cards .df-faq-and-text__item {
-      border-radius: var(--df-radius-sm);
-      background: var(--df-surface);
-    }
-
-    .df-faq-and-text--cards.df-faq-and-text--card .df-faq-and-text__item {
-      background: var(--df-bg);
-    }
-
-    .df-faq-and-text--cards .df-faq-and-text__question {
-      padding-inline: 18px;
-    }
-
-    .df-faq-and-text--cards .df-faq-and-text__answer {
-      padding-inline: 18px;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .df-faq-and-text__item::details-content {
-        transition: none;
-      }
-    }
-
-    @media (min-width: 990px) {
-      .df-faq-and-text__inner {
-        grid-template-columns: minmax(0, var(--df-faq-left, 40%)) minmax(0, 1fr);
-        gap: 56px;
-        padding-inline: 32px;
-      }
-
-      .df-faq-and-text--card .df-faq-and-text__inner {
-        margin-inline: auto;
-        padding: 56px;
-      }
-
-      .df-faq-and-text__intro {
-        position: sticky;
-        top: 24px;
-        justify-items: start;
-        text-align: start;
-      }
-
-      .df-faq-and-text__proof {
-        align-items: flex-start;
-      }
-
-      .df-faq-and-text__question {
-        font-size: 1.125rem;
-      }
-
-      .df-faq-and-text__answer .df-text {
-        font-size: 1rem;
-      }
-    }
-  {% endstylesheet %}
-{%- endif -%}
+  }
+{% endstylesheet %}
 
 {% schema %}
 {

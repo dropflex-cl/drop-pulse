@@ -30,6 +30,7 @@ const plan = (benefits = 2, over: Partial<PagePlan> = {}): PagePlan => ({
   brand_art: art,
   props_allowed: ["smooth matte grey river pebbles", "floating pink silk fabric"],
   props_forbidden: ["cream jars (suggests a moisturizer is included)", "ice cubes (suggests cooling)"],
+  benefits: Array.from({ length: benefits }, (_, i) => ({ text: `Lima la piel dura en minutos, beneficio ${i + 1}` })),
   shots: [
     shot({ slot: "cover", type: "hero_clean", name: "Portada", texts: [] }),
     shot({ type: "hero_mood", name: "Ambiente", texts: [] }),
@@ -53,6 +54,17 @@ describe("espacios", () => {
 describe("planProblems", () => {
   it("acepta un set completo", () => {
     expect(planProblems(plan(), 2)).toEqual([]);
+    expect(planProblems(plan(3))).toEqual([]);
+  });
+
+  it("el director propone sus beneficios: la cantidad justa, sin precios ni frases largas", () => {
+    expect(planProblems(plan(2))).toContain("Debe haber 3 benefits; hay 2.");
+    const p = plan(3);
+    p.benefits[1] = { text: "Lleva 2 y ahorra $9.990" };
+    p.benefits[2] = { text: "x".repeat(200) };
+    const problems = planProblems(p);
+    expect(problems).toContain("El beneficio 2 menciona un precio u oferta.");
+    expect(problems.some((m) => m.startsWith("El beneficio 3 pasa de"))).toBe(true);
   });
 
   it("exige una toma por beneficio aprobado y el tamaño de la galería", () => {

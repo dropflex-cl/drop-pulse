@@ -1,12 +1,9 @@
 import "server-only";
 import { fail } from "@/lib/angles/store";
-import { LISTING, type Listing } from "@/lib/copy/listing";
-import { copyProgress } from "@/lib/copy/progress";
-import { activeComponents, currentContent, toComponentViews } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 import type { PageImageOptionView, PageImageSlotView, RunStatus } from "@/lib/types";
-import { COVER, GALLERY, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, benefitSlot, slotKind } from "./catalog";
+import { COVER, GALLERY, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, slotKind } from "./catalog";
 import type { PageQaResult, ShotText, StoredShot } from "./schemas";
 
 // page_image_runs, page_image_shots y page_images: lecturas de la etapa Imágenes, limpieza de lo
@@ -72,38 +69,6 @@ export interface PageImageRow {
   submitted_at: string | null;
   updated_at: string;
   created_at: string;
-}
-
-/**
- * Lo aprobado de la página que usan las imágenes: la ficha y los beneficios del componente
- * «Foto y razones» (image-with-benefits), que definen un espacio de beneficio cada uno. El id de un
- * beneficio es «<id del componente>.<n>»: sigue igual mientras no se reescriba el componente.
- */
-export interface PageCopyFacts {
-  /** La página (la ficha) está aprobada: la etapa se habilita. */
-  complete: boolean;
-  shortName?: string;
-  /** Cómo funciona, en una frase: la descripción de «Hero y cifras» o la descripción corta de la ficha. */
-  howItWorks?: string;
-  benefits: { id: string; text: string }[];
-}
-
-export async function pageCopy(userId: string, productId: string): Promise<PageCopyFacts> {
-  const rows = (await activeComponents(userId, [productId])).get(productId) ?? [];
-  const progress = copyProgress(toComponentViews(rows));
-  const approved = (id: string) => rows.find((r) => r.component === id && r.status === "approved");
-  const listing = approved(LISTING);
-  const ficha = listing ? (currentContent(listing) as Listing) : undefined;
-  const stats = approved("stats-with-image");
-  const statsText = stats ? (currentContent(stats) as { description?: string }).description?.replaceAll("**", "") : undefined;
-  const iwb = rows.find((r) => r.component === "image-with-benefits" && r.status === "approved" && r.enabled);
-  const benefits = iwb ? ((currentContent(iwb) as { benefits?: { title: string; body: string }[] }).benefits ?? []) : [];
-  return {
-    complete: progress.complete,
-    shortName: ficha?.short_name,
-    howItWorks: statsText ?? ficha?.short_description,
-    benefits: benefits.map((b, i) => ({ id: `${iwb!.id}.${i + 1}`, text: `${b.title}: ${b.body}` })),
-  };
 }
 
 /** Cierra lo colgado: corridas del director e imágenes que nunca terminaron. */
@@ -278,7 +243,7 @@ export function toOptionView(r: PageImageRow, src?: string): PageImageOptionView
  * Los espacios de la página, en su orden: Portada, Galería y un Beneficio por cada beneficio
  * aprobado en Textos. Un intento que el QA rechazó se esconde cuando su reintento salió bien.
  */
-export function toSlotViews(copy: PageCopyFacts, shots: ShotRow[], rows: PageImageRow[], urls: Map<string, string>): PageImageSlotView[] {
+export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<string, string>): PageImageSlotView[] {
   const replaced = new Set(rows.filter((r) => r.retry_of && r.render_status === "succeeded").map((r) => r.retry_of!));
   // Una falla deja de mostrarse cuando su toma ya tiene otra imagen más nueva (se ve solo la última).
   const superseded = (r: PageImageRow) => r.render_status === "failed" && rows.some((o) => o.shot_id && o.shot_id === r.shot_id && o.created_at > r.created_at);
@@ -296,6 +261,9 @@ export function toSlotViews(copy: PageCopyFacts, shots: ShotRow[], rows: PageIma
   return [
     slot(COVER, "Portada"),
     slot(GALLERY, "Galería"),
-    ...copy.benefits.map((b, i) => slot(benefitSlot(b.id), `Beneficio ${i + 1}`, b.text)),
+    // Los beneficios de la galería vigente del director, en su orden (benefit-1, benefit-2…).
+    ...[...new Set(shots.filter((s) => slotKind(s.slot) === "benefit").map((s) => s.slot))]
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((key, i) => slot(key, `Beneficio ${i + 1}`, shots.find((s) => s.slot === key)?.payload.pairs)),
   ];
 }

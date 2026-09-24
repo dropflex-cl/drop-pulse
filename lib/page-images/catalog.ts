@@ -1,12 +1,18 @@
 // Los espacios de la página del producto y las tomas del director de galería (docs/spec-imagenes.md).
 // Puro: lo usan el prompt, el render, la pantalla y los tests.
 
-/** Portada, galería y un espacio por cada beneficio de «Foto y razones» en la página ('benefit-<id del componente>.<n>'). */
+/**
+ * Portada, galería y un espacio por cada beneficio que propone el director ('benefit-<n>'). Imágenes
+ * va antes de la Página del producto: los beneficios salen de la ficha y los ángulos, y la página
+ * después usa estas imágenes.
+ */
 export type SlotKind = "cover" | "gallery" | "benefit";
 
 export const COVER = "cover";
 export const GALLERY = "gallery";
-export const benefitSlot = (itemId: string) => `benefit-${itemId}`;
+export const benefitSlot = (n: number | string) => `benefit-${n}`;
+/** Beneficios que propone el director, cada uno con su imagen 3:4. */
+export const BENEFIT_SHOTS = 3;
 
 export function slotKind(slot: string): SlotKind | null {
   if (slot === COVER) return "cover";

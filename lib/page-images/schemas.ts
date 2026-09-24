@@ -3,10 +3,10 @@
 
 import * as z from "zod/v4";
 import { HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, type TextRole } from "@/lib/creatives/catalog";
-import { GALLERY_SHOTS, SHOT_TYPES } from "./catalog";
+import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES } from "./catalog";
 
 /** Sube cuando cambia el prompt del director (queda en page_image_runs.prompt_version). */
-export const PAGE_IMAGES_PROMPT_VERSION = 1;
+export const PAGE_IMAGES_PROMPT_VERSION = 2;
 
 const art = z.object({
   palette: z.string().describe("En inglés: 2 a 4 colores con nombre; la escena sale del color del producto y los textos van en un acento profundo del mismo tono."),
@@ -23,7 +23,7 @@ const text = z.object({
 
 const shot = z.object({
   slot: z.enum(["cover", "gallery", "benefit"]),
-  benefit: z.number().int().nullable().describe("Solo slot benefit: el número del beneficio (1, 2…) de TEXTOS DE LA PÁGINA. null en los demás."),
+  benefit: z.number().int().nullable().describe("Solo slot benefit: el número del beneficio (1, 2…) de benefits. null en los demás."),
   type: z.enum(SHOT_TYPES),
   name: z.string().describe("Nombre corto para el comerciante, en el idioma del mercado."),
   look: z.string().describe("Una frase para el comerciante: cómo se verá la imagen. En el idioma del mercado."),
@@ -42,6 +42,9 @@ export const pagePlanSchema = z.object({
   brand_art: art.describe("La línea visual común de toda la galería."),
   props_allowed: z.array(z.string()).describe("En inglés: props de ambiente que refuerzan la sensación del producto sin prometer nada, cada uno descrito con precisión visual."),
   props_forbidden: z.array(z.string()).describe("En inglés: props tentadores pero engañosos, cada uno con el motivo entre paréntesis."),
+  benefits: z
+    .array(z.object({ text: z.string().describe("El beneficio en una frase, en el idioma del mercado, con un dato de la FICHA que lo sostiene.") }))
+    .describe(`Exactamente ${BENEFIT_SHOTS} beneficios distintos del producto, el más vendedor primero.`),
   shots: z.array(shot),
 });
 
@@ -54,9 +57,12 @@ export type StoredShot = PlanShot & {
   product_look: string;
   kit: string[];
   props_forbidden: string[];
-  /** El beneficio que acompaña (texto aprobado en Textos), para la pantalla. */
+  /** El beneficio que prueba la toma (benefits del director), para la pantalla y la página. */
   pairs?: string;
 };
+
+/** Largo máximo de un beneficio propuesto (una frase que se lee de un vistazo). */
+export const BENEFIT_MAX = 110;
 
 /** Roles que pueden ir en 2 líneas (separadas por «\n»): el titular, y el badge o callout con su línea fina. */
 export const TWO_LINES = new Set<string>(["headline", "badge", "callout"]);
@@ -65,8 +71,14 @@ export const TWO_LINES = new Set<string>(["headline", "badge", "callout"]);
 const OFFER = /\$|US\$|\d+\s?%|\bgratis\b|\bregalo\b|\bdescuento\b|\boferta\b|\b\d\s?x\s?\d\b|\blleva\s+\d|\bpaga\s+\d/i;
 
 /** Lo que el modelo puede hacer mal y el código puede revisar. Frases para devolverle al director. */
-export function planProblems(p: PagePlan, benefits: number): string[] {
+export function planProblems(p: PagePlan, benefits: number = BENEFIT_SHOTS): string[] {
   const out: string[] = [];
+  if (p.benefits.length !== benefits) out.push(`Debe haber ${benefits} benefits; hay ${p.benefits.length}.`);
+  p.benefits.forEach((b, i) => {
+    if (!b.text.trim()) out.push(`El beneficio ${i + 1} está vacío.`);
+    else if (b.text.length > BENEFIT_MAX) out.push(`El beneficio ${i + 1} pasa de ${BENEFIT_MAX} caracteres.`);
+    if (OFFER.test(b.text)) out.push(`El beneficio ${i + 1} menciona un precio u oferta.`);
+  });
   const by = (s: PlanShot["slot"]) => p.shots.filter((x) => x.slot === s);
   if (by("cover").length !== 1) out.push(`Debe haber 1 cover; hay ${by("cover").length}.`);
   if (by("gallery").length !== GALLERY_SHOTS) out.push(`Debe haber ${GALLERY_SHOTS} gallery; hay ${by("gallery").length}.`);

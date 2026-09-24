@@ -1,4 +1,6 @@
 import "server-only";
+import { GALLERY_MIN } from "@/lib/page-images/catalog";
+import { pageImageCounts } from "@/lib/page-images/store";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
@@ -47,18 +49,22 @@ async function freeShipping(userId: string): Promise<boolean> {
 }
 
 async function loadContext(userId: string, productId: string) {
-  const [product, brief, avatars, pricing, labels, briefs] = await Promise.all([
+  const [product, brief, avatars, pricing, labels, briefs, counts] = await Promise.all([
     getProductRow(userId, productId),
     latestBrief(userId, productId),
     latestAvatars(userId, [productId]),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
     approvedBriefs(userId, productId),
+    pageImageCounts(userId, [productId]),
   ]);
   if (!product) throw new OptimizeError("No encontramos ese producto.", 404);
   const avatar = avatars.get(productId);
   if (!avatar || avatar.status !== "approved" || !brief || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y guarda el precio en Información base.", 409);
   if (!briefs) throw new OptimizeError("Aprueba los 2 desarrollos de Ángulos para escribir la página.", 409);
+  // Imágenes va antes: los componentes de la página usan las imágenes elegidas.
+  const images = counts(productId);
+  if (!images.cover || images.gallery < GALLERY_MIN) throw new OptimizeError(`Elige la portada y al menos ${GALLERY_MIN} imágenes de galería en Imágenes para escribir la página.`, 409);
   return { product, brief, avatar, pricing: pricing as PricingPlan, labels: labels?.status === "approved" ? labels.payload : undefined, briefs };
 }
 

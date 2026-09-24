@@ -321,6 +321,9 @@ Correcciones que v2 debe traer desde el inicio:
 | Todas las fichas en 404 | `name` de schema de 32 caracteres | Validador: tope 25 (§5.2) |
 | Todas las fichas en 404 | `"default": ""` en un setting | Validador: sin defaults vacíos |
 | Todas las fichas en 404 | Template referencia una sección inexistente | Validador: `sections/<type>.liquid` existe |
+| Todas las fichas en 404 (v2, 2026-09-24) | `{% stylesheet %}` dentro de un `{% if %}`: Shopify descarta el bloque o la sección, y con ella `product.json` | `liquidNestingProblems` (`lib/shopify/publish/template-rules.ts`): stylesheet, javascript y schema en el nivel superior |
+| Ajustes del tema perdidos (v2) | Un `select` guardado como número (`32` en vez de `"32"`) en `settings_data.json` | `settingProblem`: un select guarda texto; `template-rules.test.ts` revisa templates, grupos y `settings_data.json` contra los schemas |
+| Tema instalado a medias sin aviso | Solo se verificaban 3 archivos | Al instalar se compara el kit completo con el tema; si falta algo, queda `failed` con la lista. «Actualizar tema» repone lo que falte (también `settings_data.json` si no está) |
 | Home en 404 tras instalar | Template rechazado al importar | `assertHomeTemplateInstalled` → `failed` |
 | Template perdido para siempre | Updates no tocan templates | Reparación de huecos (`restored`) |
 | COD «desactivado» tras reinstalar | App embeds viven por tema en `settings_data` | Copia de bloques `shopify://apps/…` |

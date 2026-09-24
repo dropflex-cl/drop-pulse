@@ -67,6 +67,8 @@ export function fixture(state: string): ProductCopy {
     reviews: { pending: 0, approved: 6, total: 6 },
     angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief("primary", "aprobado"), brief("secondary", locked ? "revision" : "aprobado")] },
     copy: run ? { run: { status: run.status, error: run.error }, progress: copyProgress(list) } : null,
+    // Imágenes va antes de la página: con los ángulos listos, la galería ya está elegida.
+    images: locked ? null : { running: false, rendering: 0, options: 8, cover: true, gallery: 5 },
   });
   return {
     product: {
@@ -90,7 +92,7 @@ export function fixture(state: string): ProductCopy {
     },
     // Con la página lista, un color ya elegido (Esmeralda); en los demás, sin elegir.
     accent: state === "done" ? ACCENT_PALETTE[4].hex : null,
-    locked,
+    locked: locked ? "angles" : null,
     run,
     components: list,
     images: IMAGES,

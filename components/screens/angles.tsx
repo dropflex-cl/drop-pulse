@@ -27,7 +27,6 @@ import { useDesktop } from "@/components/shell/use-desktop";
 import { ANGLES, type AngleRole, type SalesAngle } from "@/lib/angles/catalog";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { money } from "@/lib/format";
-import { COPY_STAGE_TITLE } from "@/lib/products/stages";
 import { productHref } from "@/lib/routes";
 import type { AngleBriefView, AngleOption, AnglesState, ProductAngles, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -207,16 +206,6 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       setEditing(null);
       notifyUndo("Cambios guardados y desarrollo aprobado", () => decide(role, "reopen"));
     });
-  };
-
-  const continueToCopy = async () => {
-    setBusy({ what: "copy" });
-    try {
-      await productsApi.writeCopy(product.id);
-    } catch {
-      // Si no se pudo empezar (tope diario, conexión), la página lo dice y ofrece empezar desde ahí.
-    }
-    router.push(productHref(product.id, "textos"));
   };
 
   /** Pone un ángulo en un papel; si ya estaba en el otro, se intercambian. */
@@ -510,11 +499,15 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     };
     const done = approvedCount === 2;
     const nextClass = "max-lg:w-full lg:h-control lg:text-row";
-    // «Continuar» ya dispara la escritura de la página (design-system/textos.md › start); si ya
-    // estaba escrita, solo lleva a ella.
-    const next = (
-      <Button variant="primary" size="lg" iconEnd="chevron-right" disabled={!done} loading={busy?.what === "copy"} onClick={continueToCopy} className={nextClass}>
-        Continuar: {COPY_STAGE_TITLE}
+    // Imágenes va antes de la Página del producto (la página usa las imágenes elegidas). Generar
+    // cuesta créditos de Higgsfield: «Continuar» solo lleva, no genera.
+    const next = done ? (
+      <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "imagenes")} className={nextClass}>
+        Continuar: Imágenes
+      </Button>
+    ) : (
+      <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={nextClass}>
+        Continuar: Imágenes
       </Button>
     );
     const current = briefs[tab];

@@ -3,6 +3,7 @@
 // página del producto: copy_runs, page_components). Las imágenes generadas todavía no existen: esa
 // lectura devuelve vacío y la pantalla muestra su espera.
 import "server-only";
+import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { ANGLES } from "@/lib/angles/catalog";
@@ -20,8 +21,8 @@ import { expireStalePublications, getPublications, type PublicationRow } from "@
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { activeConcepts, assetsFor, creativeCounts, expireStaleCreatives, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
-import { activeShots, expireStalePageImages, latestPageImageRuns, pageCopy, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
-import { generationBlocker } from "@/lib/pipeline/page-images";
+import { activeShots, expireStalePageImages, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
+import { approvedBriefStamp, generationBlocker } from "@/lib/pipeline/page-images";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
@@ -46,6 +47,9 @@ import {
   type RunRow,
 } from "@/lib/products/store";
 import type { AnglesState, CopyState, CreativesState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews } from "@/lib/types";
+
+/** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
+const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -282,19 +286,21 @@ export const getProductCopy = cache(async (id: string): Promise<ProductCopy | nu
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
 export async function copyState(uid: string, productId: string): Promise<CopyState> {
-  const [runs, rows, rankings, images, facts] = await Promise.all([
+  const [runs, rows, rankings, images, facts, counts] = await Promise.all([
     latestCopyRuns(uid, [productId]),
     activeComponents(uid, [productId]),
     latestRankings(uid, [productId]),
     catalogImages(uid, productId),
     storeFacts(uid, productId),
+    pageImageCounts(uid, [productId]),
   ]);
   const run = runs.get(productId);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
   const approved = (["primary", "secondary"] as const).every((r) => briefs[r]?.generation === "succeeded" && briefs[r]?.status === "approved");
+  const chosen = counts(productId);
   return {
-    locked: !approved,
+    locked: !approved ? "angles" : imagesReady(chosen) ? null : "images",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
     images,
@@ -341,9 +347,9 @@ export const getProductPageImages = cache(async (id: string): Promise<ProductPag
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/page-images). */
 export async function pageImagesState(uid: string, productId: string): Promise<PageImagesState> {
-  const [conn, copy, runs, shots, rows, refs, blocker] = await Promise.all([
+  const [conn, briefStamp, runs, shots, rows, refs, blocker] = await Promise.all([
     getHiggsfieldConnection(uid),
-    pageCopy(uid, productId),
+    approvedBriefStamp(uid, productId),
     latestPageImageRuns(uid, [productId]),
     activeShots(uid, productId),
     pageImageRows(uid, [productId]),
@@ -355,17 +361,17 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   for (const [id, src] of refUrls) urls.set(`ref:${id}`, src);
   const run = runs.get(productId);
   const connected = conn?.status === "connected";
-  // Los beneficios con que se propuso la galería, contra los aprobados hoy.
-  const planned = ((run?.input as { copy?: { benefits?: { id: string }[] } } | undefined)?.copy?.benefits ?? []).map((b) => b.id).join();
+  // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
+  const planned = (run?.input as { briefs?: { primary: string; secondary: string } } | undefined)?.briefs;
   return {
-    locked: copy.complete ? null : "Aprueba la página del producto para preparar sus imágenes.",
+    locked: briefStamp ? null : "Aprueba los 2 desarrollos de Ángulos para preparar las imágenes.",
     connected,
     cannotGenerate: blocker ?? (connected ? null : (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar imágenes.")),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
-    slots: toSlotViews(copy, shots, rows, urls),
+    slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
     imageCostUsd: IMAGE_COST_USD,
-    stale: Boolean(run?.status === "succeeded" && shots.length && planned !== copy.benefits.map((b) => b.id).join()),
+    stale: Boolean(run?.status === "succeeded" && shots.length && planned && briefStamp && `${planned.primary},${planned.secondary}` !== briefStamp),
   };
 }
 
