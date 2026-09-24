@@ -102,7 +102,7 @@
 }
 
 /* El contenedor de todas las secciones: alineado con la ficha del producto. */
-.df-container {
+:where(.df-container) {
   width: 100%;
   max-width: calc(var(--df-container) + var(--df-gutter) * 2);
   margin-inline: auto;
@@ -110,16 +110,20 @@
 }
 
 /* Una tarjeta del ancho del contenedor (con su margen lateral en móvil). */
-.df-container-card {
+:where(.df-container-card) {
   width: calc(100% - var(--df-gutter) * 2);
   max-width: var(--df-container);
   margin-inline: auto;
   border-radius: var(--df-radius-lg);
 }
 
-.df-section-title {
+:where(.df-section-title) {
   font-size: var(--df-title-size);
 }
+
+/* Las clases base van con :where() (especificidad 0): en la tienda esta hoja se carga DESPUÉS del
+   CSS de cada componente, y con especificidad normal su `margin: 0` le ganaba a los márgenes de los
+   componentes (títulos pegados a su contenido). Así cualquier regla de un componente gana. */
 
 .df *,
 .df *::before,
@@ -127,7 +131,7 @@
   box-sizing: border-box;
 }
 
-.df-heading {
+:where(.df-heading) {
   margin: 0;
   font-family: var(--df-font-heading);
   font-weight: var(--df-font-heading-weight);
@@ -136,7 +140,7 @@
   text-wrap: balance;
 }
 
-.df-eyebrow {
+:where(.df-eyebrow) {
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -145,7 +149,7 @@
   color: var(--df-accent-ink);
 }
 
-.df-text {
+:where(.df-text) {
   margin: 0;
   color: var(--df-muted);
   line-height: 1.55;
@@ -163,7 +167,7 @@
   border: 0;
 }
 
-.df-icon {
+:where(.df-icon) {
   display: inline-block;
   flex: none;
   width: 1.25em;

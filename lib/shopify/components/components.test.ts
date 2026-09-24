@@ -44,6 +44,16 @@ describe("íconos", () => {
   });
 });
 
+describe("base compartida", () => {
+  it("las clases base van con :where() para no ganarle al CSS de los componentes", () => {
+    const css = readFileSync(join(ROOT, "_shared/assets/df-components.css"), "utf8");
+    for (const cls of ["df-heading", "df-eyebrow", "df-text", "df-icon", "df-container", "df-section-title"]) {
+      expect(css, cls).toMatch(new RegExp(`:where\\(\\.${cls}\\) \\{`));
+      expect(css, cls).not.toMatch(new RegExp(`\\n\\.${cls} \\{`));
+    }
+  });
+});
+
 describe("catálogo", () => {
   it("registra todas las carpetas, sin repetir", () => {
     expect(CATALOG.map((c) => c.id).sort()).toEqual([...ids].sort());

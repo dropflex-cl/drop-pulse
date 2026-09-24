@@ -64,7 +64,10 @@
             },
             "review_stars": {
               "type": "df-review-stars",
-              "settings": {}
+              "settings": {
+                "margin_top": 8,
+                "margin_bottom": -8
+              }
             },
             "title": {
               "type": "df-title",
