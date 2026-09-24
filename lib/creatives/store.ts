@@ -179,6 +179,14 @@ export async function signedUrls(paths: string[]): Promise<Map<string, string>> 
   return out;
 }
 
+/** Higgsfield dio su respuesta final (no generó o la rechazó): esas no se recuperan. */
+const HF_FINAL = ["failed", "nsfw", "canceled"];
+
+/** La pieza falló, pero Higgsfield la recibió y no dio una respuesta final: vale preguntar de nuevo. */
+export function isRecoverable(a: Pick<AssetRow, "render_status" | "hf_request_id" | "error_code">): boolean {
+  return a.render_status === "failed" && Boolean(a.hf_request_id) && !HF_FINAL.includes(a.error_code ?? "");
+}
+
 export function toAssetView(a: AssetRow, src?: string): CreativeAssetView {
   const waiting = a.render_status === "queued" && a.error_code === "busy";
   return {
@@ -193,6 +201,7 @@ export function toAssetView(a: AssetRow, src?: string): CreativeAssetView {
     qa: a.qa ? { pass: a.qa.pass, issues: a.qa.issues } : undefined,
     status: toUiStatus(a.status),
     inAds: Boolean(a.ad_media_id),
+    recoverable: isRecoverable(a) || undefined,
     createdAt: a.created_at,
   };
 }

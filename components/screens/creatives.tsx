@@ -32,10 +32,17 @@ const ROLE_LABEL: Record<string, string> = {
   note: "Nota",
 };
 
-/** La pieza que se muestra por proporción: la más reciente (el reintento sin preset reemplaza al primero). */
+/**
+ * La pieza que se muestra por proporción: la más reciente (el reintento sin preset reemplaza al
+ * primero), salvo que haya fallado y ya exista una lista: esa no se esconde.
+ */
 function latestByRatio(assets: CreativeAssetView[]): CreativeAssetView[] {
   const out = new Map<string, CreativeAssetView>();
-  for (const a of assets) out.set(a.ratio, a);
+  for (const a of assets) {
+    const prev = out.get(a.ratio);
+    if (a.render === "failed" && prev?.render === "succeeded") continue;
+    out.set(a.ratio, a);
+  }
   return [...out.values()].sort((a, b) => a.ratio.localeCompare(b.ratio));
 }
 
@@ -114,6 +121,9 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
       setBusy(null);
     }
   }
+
+  const recover = (a: CreativeAssetView) =>
+    run_(`recover-${a.id}`, () => productsApi.decideCreative(product.id, a.id, "recover"), "No pudimos recuperar la imagen. Intenta de nuevo.");
 
   async function decide(a: CreativeAssetView, action: "approve" | "reject") {
     setBusy(`decide-${a.id}`);
@@ -209,6 +219,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
                   costLabel={cost(1)}
                   onRender={(ratio) => render(c, ratio)}
                   onDecide={decide}
+                  onRecover={recover}
                   onSaved={setState}
                   onError={setError}
                 />
@@ -278,6 +289,7 @@ function ConceptCard({
   costLabel,
   onRender,
   onDecide,
+  onRecover,
   onSaved,
   onError,
 }: {
@@ -287,6 +299,7 @@ function ConceptCard({
   costLabel: string;
   onRender: (ratio: "1:1" | "9:16") => void;
   onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
+  onRecover: (a: CreativeAssetView) => void;
   onSaved: (s: CreativesState) => void;
   onError: (m: string) => void;
 }) {
@@ -372,7 +385,16 @@ function ConceptCard({
       {shown.length ? (
         <div className="grid grid-cols-2 gap-3">
           {shown.map((a) => (
-            <AssetTile key={a.id} asset={a} busy={busy === `decide-${a.id}`} onDecide={onDecide} onRetry={() => onRender(a.ratio)} />
+            <AssetTile
+              key={a.id}
+              asset={a}
+              busy={busy === `decide-${a.id}`}
+              recovering={busy === `recover-${a.id}`}
+              costLabel={costLabel}
+              onDecide={onDecide}
+              onRecover={() => onRecover(a)}
+              onRetry={() => onRender(a.ratio)}
+            />
           ))}
         </div>
       ) : null}
@@ -397,7 +419,23 @@ function ConceptCard({
 
 // ---------------------------------------------------------------- Pieza
 
-function AssetTile({ asset: a, busy, onDecide, onRetry }: { asset: CreativeAssetView; busy: boolean; onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void; onRetry: () => void }) {
+function AssetTile({
+  asset: a,
+  busy,
+  recovering,
+  costLabel,
+  onDecide,
+  onRecover,
+  onRetry,
+}: {
+  asset: CreativeAssetView;
+  busy: boolean;
+  recovering: boolean;
+  costLabel: string;
+  onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
+  onRecover: () => void;
+  onRetry: () => void;
+}) {
   const aspect = a.ratio === "9:16" ? "aspect-[9/16]" : "aspect-square";
   const label = a.ratio === "9:16" ? "Stories 9:16" : "Feed 1:1";
   if (rendering(a)) {
@@ -420,8 +458,16 @@ function AssetTile({ asset: a, busy, onDecide, onRetry }: { asset: CreativeAsset
           <div className="flex flex-col items-center gap-2">
             <StatusBadge status="error" size="sm" />
             <span className="text-caption text-destructive">{a.error ?? "No se pudo generar."}</span>
-            <Button size="sm" variant="ghost" onClick={onRetry}>
-              Generar de nuevo
+            {a.recoverable ? (
+              <>
+                <span className="text-caption text-muted-foreground">Higgsfield sí la recibió: recupérala sin volver a pagar.</span>
+                <Button size="sm" variant="secondary" icon="refresh" loading={recovering} onClick={onRecover}>
+                  Recuperar imagen
+                </Button>
+              </>
+            ) : null}
+            <Button size="sm" variant="ghost" disabled={recovering} onClick={onRetry}>
+              {`Generar de nuevo · ${costLabel}`}
             </Button>
           </div>
         </div>

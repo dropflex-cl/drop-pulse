@@ -37,11 +37,24 @@ function toError(status: number, body: string): HiggsfieldError {
   return new HiggsfieldError("bad_request", "Higgsfield no aceptó la solicitud. Intenta de nuevo; si vuelve a pasar, avísanos.", status);
 }
 
-async function call<T>(key: string, path: string, init: RequestInit = {}): Promise<T> {
+// Fallas de conexión en las que el pedido no llegó a procesarse (p. ej., una conexión reutilizada que
+// Higgsfield ya había cerrado). Un timeout no está aquí: el pedido pudo llegar.
+const NOT_SENT = /ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|UND_ERR_SOCKET|other side closed/i;
+
+function causeOf(e: unknown): string {
+  if (!(e instanceof Error)) return String(e);
+  const c = e.cause as (Error & { code?: string }) | undefined;
+  return `${e.name}: ${e.message}${c ? ` (${c.code ?? ""} ${c.message})` : ""}`;
+}
+
+/**
+ * `retry`: "read" reintenta cualquier falla de red (lecturas y pedidos gratis); "send" solo las de
+ * conexión en que el pedido no salió (un envío que cobra no se repite a ciegas).
+ */
+async function call<T>(key: string, path: string, init: RequestInit = {}, retry: "read" | "send" = (init.method ?? "GET") === "GET" ? "read" : "send"): Promise<T> {
   // `status_url` llega absoluta y en otro dominio (platform.higgsfield.ai): se usa tal cual.
   const url = /^https:\/\//.test(path) ? path : `${BASE}/${path.replace(/^\//, "")}`;
-  // Las lecturas se reintentan si la red falla; un envío no, porque Higgsfield pudo haberlo recibido y cobrado.
-  const tries = (init.method ?? "GET") === "GET" ? 3 : 1;
+  const tries = 3;
   let res: Response | null = null;
   for (let attempt = 1; !res; attempt++) {
     try {
@@ -52,9 +65,9 @@ async function call<T>(key: string, path: string, init: RequestInit = {}): Promi
         cache: "no-store",
       });
     } catch (e) {
-      const cause = e instanceof Error ? `${e.name}: ${e.message}${e.cause instanceof Error ? ` (${e.cause.message})` : ""}` : String(e);
+      const cause = causeOf(e);
       console.error(`[higgsfield] ${url.split("?")[0]} sin respuesta (intento ${attempt}/${tries}):`, cause);
-      if (attempt >= tries) throw new HiggsfieldError("network", "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento.");
+      if (attempt >= tries || (retry === "send" && !NOT_SENT.test(cause))) throw new HiggsfieldError("network", "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento.");
       await new Promise((r) => setTimeout(r, 1000 * attempt));
     }
   }
@@ -65,14 +78,18 @@ async function call<T>(key: string, path: string, init: RequestInit = {}): Promi
 
 /** Sube una imagen propia (p. ej., la foto base) y devuelve su URL pública para usarla como referencia. */
 export async function uploadImage(key: string, bytes: Buffer, contentType: "image/jpeg" | "image/png" | "image/webp"): Promise<string> {
-  const u = await call<{ upload_url: string; public_url: string; upload_headers: Record<string, string> }>(key, "files/generate-upload-url", {
-    method: "POST",
-    body: JSON.stringify({ content_type: contentType }),
-  });
+  // Pedir la URL de subida no cobra: se reintenta como una lectura.
+  const u = await call<{ upload_url: string; public_url: string; upload_headers: Record<string, string> }>(
+    key,
+    "files/generate-upload-url",
+    { method: "POST", body: JSON.stringify({ content_type: contentType }) },
+    "read",
+  );
   let put: Response;
   try {
     put = await fetch(u.upload_url, { method: "PUT", headers: u.upload_headers, body: new Uint8Array(bytes), signal: AbortSignal.timeout(TIMEOUT_MS) });
-  } catch {
+  } catch (e) {
+    console.error("[higgsfield] subir la foto sin respuesta:", causeOf(e));
     throw new HiggsfieldError("network", "No pudimos subir la foto del producto a Higgsfield. Intenta de nuevo.");
   }
   if (!put.ok) throw new HiggsfieldError("unavailable", "Higgsfield no aceptó la foto del producto. Intenta de nuevo.", put.status);

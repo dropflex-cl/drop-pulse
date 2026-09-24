@@ -536,6 +536,8 @@ export interface CreativeAssetView {
   status: ContentStatus;
   /** Ya está en Anuncios (se copió a los creativos del producto). */
   inAds: boolean;
+  /** Falló después de llegar a Higgsfield por un corte nuestro: se puede recuperar sin volver a cobrar. */
+  recoverable?: boolean;
   createdAt: string;
 }
 

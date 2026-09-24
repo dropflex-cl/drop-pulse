@@ -19,7 +19,7 @@ import {
   type ConceptPayload,
   type QaResult,
 } from "@/lib/creatives/schemas";
-import { CREATIVES_BUCKET, getAssetRow, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
+import { CREATIVES_BUCKET, getAssetRow, isRecoverable, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey, markHiggsfieldInvalid, presetsFor } from "@/lib/integrations/higgsfield/connection";
@@ -364,6 +364,22 @@ async function pollUntilDone(a: AssetRow, key: string, started: number): Promise
     await finishAsset(a, state, key, started);
     return;
   }
+}
+
+/**
+ * «Recuperar imagen»: una pieza que falló después de llegar a Higgsfield (un corte, un timeout) vuelve
+ * a «en curso» con el lease vencido, y el sondeo le pregunta a Higgsfield por el mismo pedido. No se
+ * genera ni se cobra de nuevo.
+ */
+export async function recoverAsset(userId: string, productId: string, assetId: string): Promise<void> {
+  const a = await getAssetRow(userId, assetId);
+  if (!a || a.product_id !== productId) throw new OptimizeError("No encontramos esa imagen.", 404);
+  if (!isRecoverable(a)) throw new OptimizeError("Esta imagen no llegó a generarse en Higgsfield. Toca Generar de nuevo.", 409);
+  await requireKey(userId);
+  const now = Date.now();
+  // Plazo nuevo para expireStaleCreatives y el lease ya vencido, para que el sondeo la tome.
+  const patch = { render_status: "running", error_code: null, error_message: null, finished_at: null, submitted_at: new Date(now).toISOString(), updated_at: new Date(now - LEASE_MS - 1000).toISOString() };
+  fail("Recuperar la pieza", (await adminClient().from("creative_assets").update(patch).eq("id", a.id).eq("render_status", "failed")).error);
 }
 
 /** El sondeo de la pantalla: termina las piezas que el proceso en segundo plano dejó esperando. */

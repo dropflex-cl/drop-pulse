@@ -83,7 +83,12 @@ function concepts(state: string): CreativeConceptView[] {
         { role: "table_row", text: "Respeta el pH natural" },
       ],
       edited: false,
-      assets: generated ? [asset("a5", { render: "failed", src: undefined, qa: undefined, error: "Higgsfield rechazó la imagen por sus reglas de contenido. Cambia los textos o la escena y genera de nuevo." })] : [],
+      assets: generated
+        ? [
+            asset("a5", { render: "failed", src: undefined, qa: undefined, error: "Higgsfield rechazó la imagen por sus reglas de contenido. Cambia los textos o la escena y genera de nuevo." }),
+            asset("a6", { ratio: "9:16", render: "failed", src: undefined, qa: undefined, recoverable: true, error: "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento." }),
+          ]
+        : [],
     },
     {
       id: "k4",
