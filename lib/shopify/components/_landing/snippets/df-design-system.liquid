@@ -99,11 +99,20 @@
       letter-spacing: -0.01em;
     }
 
-    /* Título de la ficha: 26px en móvil, 36px en escritorio (en móvil no puede empujar el precio fuera de la vista). */
-    .product-information .product-details :is(h1, h2, h3) {
-      font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.25rem);
-      line-height: 1.15;
-      letter-spacing: -0.02em;
+    /* Escritorio: la galería acompaña mientras la columna de datos (más alta) corre. */
+    @media screen and (min-width: 750px) {
+      .product-information__media {
+        position: sticky;
+        top: calc(var(--header-height, 64px) + 24px);
+        align-self: start;
+      }
+    }
+
+    /* En móvil la ficha empieza pegada a la galería: aire antes del primer bloque. */
+    @media screen and (max-width: 749px) {
+      .product-information .product-details {
+        padding-block-start: 20px;
+      }
     }
 
     /* Cifras: precios y cantidades alineadas (type-metric del design system). */

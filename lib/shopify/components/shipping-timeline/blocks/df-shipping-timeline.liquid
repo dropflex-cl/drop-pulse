@@ -76,7 +76,9 @@
   else
     assign days_word = 'días'
   endif
-  assign locale = request.locale.iso_code | default: 'es'
+  # Las fechas van en el idioma de los textos (el del mercado, que publica DropFlex en
+  # dropflex.policies.locale), aunque el idioma de Shopify sea otro.
+  assign locale = shop.metafields.dropflex.policies.value.locale | default: request.locale.iso_code | default: 'es'
   if localization.country.iso_code != blank and locale.size == 2
     assign locale = locale | append: '-' | append: localization.country.iso_code
   endif

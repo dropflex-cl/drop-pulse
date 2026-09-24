@@ -276,7 +276,7 @@ async function publishShopFacts(conn: ShopifyConnection): Promise<{ policies: bo
   if (!settings) return { policies: false, logistics: false };
   const shop = await shopifyQuery<{ shop: { id: string; metafields: { nodes: { key: string }[] } } }>(conn, SHOP_METAFIELDS);
   const logistics = logisticsMetafield(settings.policies, settings.timezone ?? conn.timezone);
-  const list = [{ namespace: "dropflex", key: "policies", type: "json", value: JSON.stringify(policiesMetafield(settings.policies)) }];
+  const list = [{ namespace: "dropflex", key: "policies", type: "json", value: JSON.stringify(policiesMetafield(settings.policies, settings.locale)) }];
   if (logistics) list.push({ namespace: "dropflex", key: "logistics", type: "json", value: JSON.stringify(logistics) });
   await setMetafields(conn, shop.shop.id, list);
   if (!logistics && shop.shop.metafields.nodes.some((n) => n.key === "logistics")) await deleteMetafields(conn, shop.shop.id, ["logistics"]);

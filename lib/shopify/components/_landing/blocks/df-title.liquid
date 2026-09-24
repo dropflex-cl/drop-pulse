@@ -1,0 +1,66 @@
+{%- doc -%}
+  DropFlex · Título (title). El nombre del producto como el <h1> de la ficha (el título del tema es
+  un <p role="heading" aria-level="3">: la página quedaba sin h1, mal para Google y para lectores
+  de pantalla). Escala del design system: 26px en móvil, 36px en escritorio.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product | default: product
+  assign s = block.settings
+-%}
+{%- if product != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <h1
+    class="df df-heading df-title"
+    style="margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {{- product.title | escape -}}
+  </h1>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-title {
+    font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.25rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Título",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "El nombre del producto, como el título principal de la página."
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Título"
+    }
+  ]
+}
+{% endschema %}

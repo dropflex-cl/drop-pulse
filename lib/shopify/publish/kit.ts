@@ -4,6 +4,10 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import KIT_HISTORY from "./kit-history.json";
+
+/** Huellas de las versiones anteriores de los archivos del comerciante (scripts/kit-history.ts). */
+export const kitHistory: Record<string, string[]> = KIT_HISTORY;
 
 export const KIT_THEME = "DropPulse";
 export const KIT_DIR = join(process.cwd(), "lib", "shopify", "themes", KIT_THEME);
@@ -75,15 +79,22 @@ export interface UpdatePlan {
   skippedProtected: number;
 }
 
-export function planUpdate(local: Pick<KitFile, "path" | "md5">[], remote: RemoteFile[]): UpdatePlan {
+/**
+ * `history`: las huellas de las versiones anteriores del kit de cada archivo del comerciante
+ * (kit-history.json, generado desde git). Un template igual a una versión nuestra anterior no lo
+ * editó nadie: se actualiza. Uno distinto lo cambió el comerciante en el editor: no se toca.
+ */
+export function planUpdate(local: Pick<KitFile, "path" | "md5">[], remote: RemoteFile[], history: Record<string, string[]> = {}): UpdatePlan {
   const theirs = new Map(remote.map((r) => [r.path, r.md5]));
   const ours = new Set(local.map((f) => f.path));
   const plan: UpdatePlan = { upsert: [], restore: [], remove: [], unchanged: 0, skippedProtected: 0 };
   for (const f of local) {
     const remoteMd5 = theirs.get(f.path);
     if (isProtected(f.path)) {
-      // Solo se repone lo que falta (Shopify lo descartó o lo borraron): lo presente nunca se pisa.
+      // Lo que falta se repone (Shopify lo descartó o lo borraron).
       if (!theirs.has(f.path)) plan.restore.push(f.path);
+      else if (remoteMd5 === f.md5) plan.unchanged++;
+      else if (remoteMd5 && history[f.path]?.includes(remoteMd5)) plan.upsert.push(f.path);
       else plan.skippedProtected++;
       continue;
     }

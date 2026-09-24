@@ -329,19 +329,17 @@ df-slider {
   align-items: center;
   gap: 12px;
   margin: 0 0 2px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.04em;
+  line-height: 1.35;
   text-align: center;
-  text-transform: uppercase;
   color: var(--df-fg);
 }
 
 .df-pack-offers__heading::before,
 .df-pack-offers__heading::after {
   content: '';
-  flex: 1 1 16px;
+  flex: 1 0 24px;
   height: 1px;
   background: var(--df-hairline);
 }
@@ -587,6 +585,14 @@ df-slider {
   line-height: 1.45;
   color: var(--df-muted);
   text-wrap: pretty;
+}
+
+/* _landing/blocks/df-title.liquid */
+.df-title {
+  font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 /* _landing/blocks/df-trust-note.liquid */

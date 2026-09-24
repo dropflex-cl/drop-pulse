@@ -72,10 +72,15 @@ export function policyProblems(p: StorePolicies): Partial<Record<PolicyField, st
 /** Solo dígitos: «+56 9 1234 5678» → «56912345678». */
 export const cleanWhatsapp = (raw: string) => raw.replace(/\D/g, "") || null;
 
-/** shop.metafields.dropflex.policies (json). El pago al recibir es la operación de DropFlex: siempre. */
-export function policiesMetafield(p: StorePolicies) {
+/**
+ * shop.metafields.dropflex.policies (json). El pago al recibir es la operación de DropFlex: siempre.
+ * `locale` es el idioma del mercado («es-CL»): las fechas de la tienda van en el idioma de los
+ * textos, aunque el idioma de Shopify sea otro.
+ */
+export function policiesMetafield(p: StorePolicies, locale?: string | null) {
   return {
     cod: true,
+    ...(locale ? { locale } : {}),
     free_shipping: p.freeShipping,
     ...(p.freeShipping && p.freeShippingThreshold ? { free_shipping_threshold: p.freeShippingThreshold } : {}),
     ...(p.returnDays ? { return_days: p.returnDays } : {}),
@@ -145,5 +150,9 @@ export function toRow(p: StorePolicies) {
   };
 }
 
+/** «es» + «CL» → «es-CL» (lo que entiende Intl.DateTimeFormat). */
+export const marketLocale = (language: string | null | undefined, country: string | null | undefined) =>
+  language ? (country ? `${language.trim()}-${country.trim().toUpperCase()}` : language.trim()) : null;
+
 export const POLICY_COLUMNS =
-  "free_shipping, free_shipping_threshold, return_days, warranty_months, whatsapp, handling_days, transit_days_min, transit_days_max, cutoff_hour, business_days_only, saturday_delivery, timezone, currency";
+  "language, country_code, free_shipping, free_shipping_threshold, return_days, warranty_months, whatsapp, handling_days, transit_days_min, transit_days_max, cutoff_hour, business_days_only, saturday_delivery, timezone, currency";

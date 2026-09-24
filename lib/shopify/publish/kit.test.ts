@@ -47,6 +47,21 @@ describe("kit del tema", () => {
   });
 });
 
+describe("templates sin editar", () => {
+  it("un template igual a una versión anterior del kit se actualiza; uno editado, no", () => {
+    const local = [{ path: "templates/product.json", md5: "nuevo" }];
+    const history = { "templates/product.json": ["v1", "v2"] };
+    expect(planUpdate(local, [{ path: "templates/product.json", md5: "v1" }], history).upsert).toEqual(["templates/product.json"]);
+    expect(planUpdate(local, [{ path: "templates/product.json", md5: "editado" }], history)).toMatchObject({ upsert: [], skippedProtected: 1 });
+    expect(planUpdate(local, [{ path: "templates/product.json", md5: "nuevo" }], history)).toMatchObject({ upsert: [], unchanged: 1 });
+  });
+
+  it("el historial conoce las versiones publicadas del template de la ficha", async () => {
+    const { kitHistory } = await import("./kit");
+    expect(kitHistory["templates/product.json"]?.length).toBeGreaterThan(0);
+  });
+});
+
 describe("app embeds", () => {
   it("copia los de apps del tema publicado sin pisar los del kit", async () => {
     const { mergeAppEmbeds, parseThemeJson } = await import("./kit");

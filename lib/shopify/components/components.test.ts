@@ -100,7 +100,7 @@ describe("_landing", () => {
 
   it("el tema usa los bloques de la landing en la ficha", () => {
     const template = readFileSync(join(ROOT, "../themes/DropPulse/templates/product.json"), "utf8");
-    for (const type of ["df-social-proof", "df-subtitle", "df-price", "df-pack-offers", "df-trust-note"]) {
+    for (const type of ["df-social-proof", "df-title", "df-subtitle", "df-price", "df-pack-offers", "df-trust-note"]) {
       expect(template).toContain(`"type": "${type}"`);
     }
   });

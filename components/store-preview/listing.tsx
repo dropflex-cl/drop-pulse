@@ -61,7 +61,7 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
       </div>
       <div className="flex flex-col gap-3 px-4">
         {slots?.top}
-        <h2 className="df-heading text-title">{content.title || facts.productName}</h2>
+        <p className="df df-heading df-title">{content.title || facts.productName}</p>
         {content.short_description ? <p className="df df-subtitle">{content.short_description}</p> : null}
         <hr className="m-0 border-0 border-t border-(--df-hairline)" />
         <div className="df df-price">

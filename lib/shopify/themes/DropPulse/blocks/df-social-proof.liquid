@@ -80,8 +80,10 @@
     endif
     assign template = s.label | default: '**{names}** y {others} personas más lo recomiendan'
     if template contains '{others}'
+      # Primero se parte por las marcas de negrita y después se ponen los nombres: los nombres
+      # enmascarados («F***m») traen asteriscos que romperían el ** del texto.
+      assign parts = template | escape | replace: '{others}', others_text | split: '**'
       assign safe_names = names | escape
-      assign parts = template | escape | replace: '{names}', safe_names | replace: '{others}', others_text | split: '**'
     else
       assign show = false
     endif
@@ -98,6 +100,7 @@
     <p class="df-social-proof__text">
       {%- for part in parts -%}
         {%- assign odd = forloop.index0 | modulo: 2 -%}
+        {%- assign part = part | replace: '{names}', safe_names -%}
         {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
         {%- if forloop.index0 == 1 and s.show_verified -%}
           <span class="df-social-proof__verified">{% render 'df-icon', name: 'check-circle' %}<span class="df-visually-hidden"> (reseñas revisadas por la tienda)</span></span>

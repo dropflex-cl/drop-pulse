@@ -52,7 +52,7 @@ export const SHARED_METAFIELDS = {
   /**
    * Tienda · json. Políticas reales (merchant_settings):
    * { cod: boolean, free_shipping: boolean, free_shipping_threshold?: number, return_days?: number,
-   *   warranty_months?: number, whatsapp?: string }
+   *   warranty_months?: number, whatsapp?: string, locale?: string («es-CL», el idioma del mercado) }
    * free_shipping_threshold va en unidades de la moneda (29990 = $29.990); el Liquid lo multiplica
    * por 100 para el filtro money, que siempre trabaja en centavos (también en CLP).
    * Un beneficio que menciona una política ausente o falsa no se publica.

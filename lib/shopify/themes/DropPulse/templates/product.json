@@ -59,7 +59,7 @@
             "height": "fit",
             "details_position": "flex-start",
             "gap": 16,
-            "sticky_details_desktop": true,
+            "sticky_details_desktop": false,
             "background_media": "none",
             "border": "none",
             "padding-block-start": 0,
@@ -77,13 +77,8 @@
               "settings": {}
             },
             "title": {
-              "type": "product-title",
-              "settings": {
-                "type_preset": "h3",
-                "width": "100%",
-                "padding-block-start": 0,
-                "padding-block-end": 0
-              }
+              "type": "df-title",
+              "settings": {}
             },
             "subtitle": {
               "type": "df-subtitle",
@@ -228,14 +223,6 @@
               "block_order": [
                 "row_description"
               ]
-            },
-            "trust_note_mobile": {
-              "type": "df-trust-note",
-              "settings": {
-                "policy": "cod",
-                "icon": "cash",
-                "visibility": "mobile"
-              }
             }
           },
           "block_order": [
@@ -250,7 +237,6 @@
             "pack_offers",
             "buy_buttons",
             "payment_icons",
-            "trust_note_mobile",
             "shipping_timeline",
             "benefit_double_box",
             "review_slider",

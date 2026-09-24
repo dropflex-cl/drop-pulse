@@ -41,6 +41,7 @@ Reglas de la redirección (spec del tema, §9.2):
 | Bloque | Dónde | Datos |
 |---|---|---|
 | `df-social-proof` | Arriba de todo | Fotos y nombres (enmascarados) de reseñas aprobadas con 4 o 5 estrellas, más la cantidad real de `dropflex.review_summary` |
+| `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
 | `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Se actualiza al cambiar de variante |
 | `df-pack-offers` | Sobre el botón | Una tarjeta por variante (los packs de 1, 2 y 3 unidades) con su precio real. Los textos salen de `dropflex.offer`, y sin ellos se usa el nombre de la variante. Si el producto tiene una sola variante, no se muestra |

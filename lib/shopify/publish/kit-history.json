@@ -1,0 +1,60 @@
+{
+  "config/settings_data.json": [
+    "80a70701e1ff8ff0f69dbc23a2000e56",
+    "89ff5944f0e42f08df0d67cd3cb19ab8",
+    "c0dca054c03a146eea499a1e40555f47"
+  ],
+  "sections/footer-group.json": [
+    "772f84b6442c88874c7f91d05c3af612",
+    "7e381f5d2554f2a102e6388c51fdc07a"
+  ],
+  "sections/header-group.json": [
+    "6fb33474c179afb9487a5fa33e5d8b0e",
+    "7a867763534a308574977d9c6baa7f68"
+  ],
+  "templates/404.json": [
+    "8bbc07d37d07c1acf752f0272fea5a48",
+    "ec5fb09945c247e677a01a1d8c4cf537"
+  ],
+  "templates/article.json": [
+    "8ea1744a6d88cd82ebcc5841e63e0116"
+  ],
+  "templates/blog.json": [
+    "e50052c61e8923055a7151269cc69a80"
+  ],
+  "templates/cart.json": [
+    "51ced9a704fe6684ed07ec27ac07779c",
+    "c4a4cf98a1a0124f11897a2bbf333869"
+  ],
+  "templates/collection.json": [
+    "7ad2480bd4ba24907900e0fddf2bfb2b"
+  ],
+  "templates/gift_card.liquid": [
+    "30660b7ce9c5473ac2e9297d07d50a8a"
+  ],
+  "templates/index.json": [
+    "3c78466d007032ec75b2bec3d4d1de4c",
+    "3dc32271e8f27dbf05759d6ee7fee712"
+  ],
+  "templates/list-collections.json": [
+    "216f5c4924294b8e49da643b1a3c906f"
+  ],
+  "templates/page.contact.json": [
+    "1ed1ba14340332379f8c55ff03205755"
+  ],
+  "templates/page.json": [
+    "c459939c2579c4d3d970060f806441f9"
+  ],
+  "templates/password.json": [
+    "7d1d1e3ea88030ce19c6290de27701fa"
+  ],
+  "templates/product.json": [
+    "1318da0fc9dfcef7fe00e791dbacb36d",
+    "4aa2ddaf5d70d3b939956698857b8c28",
+    "58a7a97c1d6442e9ae5a5ee3ed8247a8",
+    "623c99e22ac1f919100f48663c47c532"
+  ],
+  "templates/search.json": [
+    "042342557c1c5eddafe2228a5243f38e"
+  ]
+}

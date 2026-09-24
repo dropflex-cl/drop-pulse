@@ -6,7 +6,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
 import type { ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { assertNoUserErrors, PublishError, stageUploads } from "./files";
-import { mergeAppEmbeds, missingFromTheme, planUpdate, readKit, type Kit, type RemoteFile } from "./kit";
+import { isProtected, kitHistory, mergeAppEmbeds, missingFromTheme, planUpdate, readKit, type Kit, type RemoteFile } from "./kit";
 import { zip } from "./zip";
 
 export type ThemeStatus = "installing" | "preview" | "published" | "failed";
@@ -237,9 +237,11 @@ export interface ThemeUpdateResult {
 export async function updateTheme(conn: ShopifyConnection, kit: Kit = readKit()): Promise<ThemeUpdateResult> {
   const inst = await getThemeInstallation(conn.user_id);
   if (!inst?.theme_gid) throw new PublishError("Primero instala el tema de DropFlex.");
-  const plan = planUpdate(kit.files, await remoteFiles(conn, inst.theme_gid));
+  const plan = planUpdate(kit.files, await remoteFiles(conn, inst.theme_gid), kitHistory);
   const byPath = new Map(kit.files.map((f) => [f.path, f]));
-  const toSend = [...plan.upsert, ...plan.restore];
+  // Primero el código y al final los archivos del comerciante: un template nuevo puede usar un bloque
+  // que llega en esta misma actualización.
+  const toSend = [...plan.upsert, ...plan.restore].sort((a, b) => Number(isProtected(a)) - Number(isProtected(b)));
   for (let i = 0; i < toSend.length; i += 50) {
     const files = toSend.slice(i, i + 50).map((path) => {
       const f = byPath.get(path)!;

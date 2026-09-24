@@ -40,15 +40,15 @@ Se puede publicar el producto antes que el tema: el contenido espera en los meta
   1. Arma un ZIP en memoria con el kit (`lib/shopify/themes/DropPulse`) y lo sube con `stagedUploadsCreate` (FILE). No necesita URL pública ni bucket.
   2. `themeCreate` lo crea como UNPUBLISHED, con nombre `DropFlex <huella>`.
   3. Sondea `processing` cada 3 s durante 5 min como máximo.
-  4. Verifica `templates/index.json`, `templates/product.json` y `layout/theme.liquid`: Shopify descarta en silencio lo que no entiende.
+  4. Compara el kit completo con el tema: Shopify descarta en silencio lo que no entiende (y cada template que lo usa). Si falta algo, la instalación queda `failed` con la lista.
   - Corre en segundo plano (`after`).
 - **App embeds:** copia al `settings_data.json` del kit los bloques `shopify://apps/…` del tema publicado (EasySell, Loox, píxeles). Si ya existen en el kit, mandan los del kit. Es *best effort*: si falla, la instalación sigue.
 - **Biblioteca llena (20 temas):** borra solo temas de DropFlex sin publicar, nunca uno del comerciante.
 - **Actualizar:** `planUpdate` es una función pura con tests.
   - Compara MD5 contra el tema vivo y sube solo el código que cambió, de a 50 archivos (`themeFilesUpsert`).
-  - Repone lo del comerciante que falte, salvo `settings_data.json`.
+  - Repone lo del comerciante que falte (también `settings_data.json`: si no existe, no hay nada que pisar).
   - Borra los `df-*` que ya no existen.
-  - Nunca pisa `templates/**`, `sections/*.json` ni `config/settings_data.json`.
+  - Nunca pisa un `templates/**`, `sections/*.json` o `config/settings_data.json` **que el comerciante editó**. Si el archivo de la tienda es idéntico a una versión anterior del kit (huellas de `lib/shopify/publish/kit-history.json`, generado desde git por `npm run shopify:components`), nadie lo tocó y se actualiza. El código sube primero y los templates al final.
 - **Publicar:** `themePublish`, solo tras el segundo toque.
 - **Estado:** vive en `shopify_theme_installations`. `syncThemeState` corrige el registro si el comerciante borró el tema o publicó otro desde Shopify.
 

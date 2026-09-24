@@ -2,12 +2,14 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { ProductApiError } from "@/lib/products/http";
-import { fromRow, policyProblems, POLICY_COLUMNS, toRow, type StorePolicies } from "./policies";
+import { fromRow, marketLocale, policyProblems, POLICY_COLUMNS, toRow, type StorePolicies } from "./policies";
 
 export interface PolicySettings {
   policies: StorePolicies;
   currency: string;
   timezone: string | null;
+  /** Idioma del mercado para fechas de la tienda («es-CL»). */
+  locale: string | null;
 }
 
 export async function getStorePolicies(userId: string): Promise<PolicySettings | null> {
@@ -15,7 +17,12 @@ export async function getStorePolicies(userId: string): Promise<PolicySettings |
   if (error) throw new Error(`Leer envíos y políticas: ${error.message}`);
   if (!data) return null;
   const row = data as unknown as Record<string, unknown>;
-  return { policies: fromRow(row), currency: String(row.currency ?? "CLP").trim(), timezone: (row.timezone as string | null) ?? null };
+  return {
+    policies: fromRow(row),
+    currency: String(row.currency ?? "CLP").trim(),
+    timezone: (row.timezone as string | null) ?? null,
+    locale: marketLocale(row.language as string | null, row.country_code as string | null),
+  };
 }
 
 export async function saveStorePolicies(userId: string, policies: StorePolicies): Promise<StorePolicies> {
