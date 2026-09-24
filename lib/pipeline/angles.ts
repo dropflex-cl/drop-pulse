@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
@@ -36,6 +37,32 @@ import { OptimizeError } from "./optimize";
 /** Tope de evaluaciones y de desarrollos por comerciante en 24 h (cada uno es una llamada a Claude Opus). */
 const DAILY_RANKINGS = 20;
 const DAILY_BRIEFS = 60;
+
+/**
+ * Cortacircuito: si las últimas evaluaciones de un producto fallaron por respuestas que no se pueden
+ * puntuar (cada una ya cobró 2 intentos), otra más fallaría igual. Se frena por unas horas o hasta
+ * que cambie la versión del prompt o del esquema (ANGLE_ROUTER_PROMPT_VERSION), que es como se corrige.
+ */
+const BREAKER_FAILURES = 2;
+const BREAKER_WINDOW_MS = 6 * 60 * 60 * 1000;
+const UNSCORABLE = ["invalid_output", "invalid_scores"];
+
+async function breakerOpen(userId: string, productId: string): Promise<boolean> {
+  const { data, error } = await adminClient()
+    .from("angle_rankings")
+    .select("status, error_code, prompt_version, created_at")
+    .eq("user_id", userId)
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false })
+    .limit(BREAKER_FAILURES);
+  fail("Leer las evaluaciones", error);
+  const rows = (data ?? []) as { status: string; error_code: string | null; prompt_version: number | null; created_at: string }[];
+  const since = Date.now() - BREAKER_WINDOW_MS;
+  return (
+    rows.length === BREAKER_FAILURES &&
+    rows.every((r) => r.status === "failed" && UNSCORABLE.includes(r.error_code ?? "") && r.prompt_version === ANGLE_ROUTER_PROMPT_VERSION && Date.parse(r.created_at) > since)
+  );
+}
 
 
 async function dailyCount(table: "angle_rankings" | "angle_briefs", userId: string): Promise<number> {
@@ -76,6 +103,10 @@ export async function startRanking(userId: string, productId: string): Promise<{
   const active = await db.from("angle_rankings").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
   fail("Leer la evaluación", active.error);
   if (active.data) return { ranking: active.data as RankingRow, created: false };
+  if (await breakerOpen(userId, productId)) {
+    console.error(`[angles] cortacircuito: ${BREAKER_FAILURES} evaluaciones seguidas sin puntuar (producto ${productId}, prompt v${ANGLE_ROUTER_PROMPT_VERSION})`);
+    throw new OptimizeError("La IA no está pudiendo evaluar los ángulos de este producto y no queremos cobrarte más intentos. Ya quedó registrado para revisarlo; vuelve a intentarlo en unas horas.", 409);
+  }
   if ((await dailyCount("angle_rankings", userId)) >= DAILY_RANKINGS) {
     throw new OptimizeError(`Llegaste al máximo de ${DAILY_RANKINGS} evaluaciones de ángulos en 24 horas. Vuelve mañana.`, 429);
   }
@@ -115,6 +146,16 @@ async function contextFor(r: { user_id: string; product_id: string }, input: Rec
   ]);
   if (!product || !brief) throw new AiStepError("not_found", "El producto o su ficha ya no existen.");
   return { brief, avatar, pricing: input.pricing as PricingPlan, labels: (input.labels as PackLabel[] | null) ?? undefined, baseInfo: product.base_info };
+}
+
+/**
+ * Huella de lo que lee un agente de ángulo. Mismo valor = misma entrada: un desarrollo nuevo saldría
+ * de lo mismo. Los textos de la evaluación (por qué, riesgos) no entran: son la redacción del modelo
+ * sobre estas mismas entradas y cambian en cada evaluación aunque nada haya cambiado.
+ */
+function briefInputKey(ctx: AngleContext, market: unknown, angle: SalesAngle, role: AngleRole, partner: SalesAngle): string {
+  const input = { v: ANGLE_BRIEF_PROMPT_VERSION, market, angle, role, partner, ...ctx };
+  return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 
 function facts(brief: ProductBrief, avatar: CustomerAvatar, pricing: PricingPlan) {
@@ -196,6 +237,8 @@ export async function runRanking(rankingId: string): Promise<void> {
         status: "failed",
         error_code: known ? e.code : "unexpected",
         error_message: known ? e.message : "No pudimos terminar la evaluación. Toca Reintentar.",
+        // Con qué versión falló: el cortacircuito solo frena fallas de la versión vigente.
+        prompt_version: ANGLE_ROUTER_PROMPT_VERSION,
         finished_at: now,
         updated_at: now,
       })
@@ -228,6 +271,7 @@ export async function confirmSelection(userId: string, productId: string, primar
   const existing = (await currentBriefs(userId, [ranking.id])).get(ranking.id) ?? {};
   const wanted: Record<AngleRole, SalesAngle> = { primary, secondary };
   const toCreate: AngleRole[] = [];
+  let ctx: AngleContext | null = null;
   for (const role of ["primary", "secondary"] as AngleRole[]) {
     const b = existing[role];
     if (b && b.angle === wanted[role] && b.generation !== "failed") continue;
@@ -242,6 +286,30 @@ export async function confirmSelection(userId: string, productId: string, primar
             .eq("id", b.id)
         ).error,
       );
+    }
+    // Volver a evaluar sin que cambie nada: el desarrollo vigente del mismo ángulo, papel y compañero
+    // se conserva (con su aprobación) en vez de pagar otro que saldría de lo mismo.
+    ctx ??= await contextFor(ranking, ranking.input);
+    const partner = wanted[role === "primary" ? "secondary" : "primary"];
+    const key = briefInputKey(ctx, ranking.input.market, wanted[role], role, partner);
+    const { data: reusable, error: reuseError } = await db
+      .from("angle_briefs")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("product_id", productId)
+      .eq("role", role)
+      .eq("angle", wanted[role])
+      .eq("generation", "succeeded")
+      .neq("status", "rejected")
+      .neq("ranking_id", ranking.id)
+      .eq("input_key", key)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    fail("Buscar un desarrollo que sirva", reuseError);
+    if (reusable) {
+      fail("Conservar el desarrollo", (await db.from("angle_briefs").update({ ranking_id: ranking.id, updated_at: now }).eq("id", reusable.id)).error);
+      continue;
     }
     toCreate.push(role);
   }
@@ -278,6 +346,7 @@ export async function runBrief(briefId: string): Promise<void> {
     const ctx = await contextFor(r, r.input);
     const scored = (r.scores ?? []).find((s: ScoredAngle) => s.angle === b.angle);
     const partner = (b.role === "primary" ? r.secondary_angle : r.primary_angle) ?? SALES_ANGLES.find((a) => a !== b.angle)!;
+    const inputKey = briefInputKey(ctx, r.input.market, b.angle, b.role, partner);
     const pair = b.role === "primary" ? { primary: b.angle, secondary: partner } : { primary: partner, secondary: b.angle };
     const combo = r.payload?.combinations.find((c) => c.primary === pair.primary && c.secondary === pair.secondary)?.how;
     const { data, usage } = await generateStructured({
@@ -307,7 +376,7 @@ export async function runBrief(briefId: string): Promise<void> {
       (
         await db
           .from("angle_briefs")
-          .update({ generation: "succeeded", payload: data, status: "generated", prompt_version: ANGLE_BRIEF_PROMPT_VERSION, model: usage.model, finished_at: now, updated_at: now })
+          .update({ generation: "succeeded", payload: data, status: "generated", prompt_version: ANGLE_BRIEF_PROMPT_VERSION, model: usage.model, input_key: inputKey, finished_at: now, updated_at: now })
           .eq("id", b.id)
           .eq("generation", "running") // si se reemplazó mientras generaba, no se pisa
       ).error,

@@ -613,4 +613,6 @@ export interface ProductAiCost {
   /** Hay una generación en curso. */
   running: boolean;
   audience: "merchant" | "admin";
+  /** Costo estimado de una llamada por paso (AI_STEPS), en la moneda de la tienda: para avisar antes de gastar. */
+  estimates: Record<string, number>;
 }

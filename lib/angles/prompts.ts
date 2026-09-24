@@ -32,7 +32,7 @@ export function angleRouterSystem(market: Market): string {
     const d = ANGLES[a];
     return [
       `${a} — ${d.name}: ${d.gist}`,
-      ...modelCriteria(a).map((c, i) => `  ${i + 1}. ${c.key} (peso ${c.weight}): ${c.label}. ${c.guide}`),
+      ...modelCriteria(a).map((c, i) => `  c${i + 1}. ${c.key} (peso ${c.weight}): ${c.label}. ${c.guide}`),
       `  · Penalización (penalty_applies, −${d.penalty.points}): ${d.penalty.when}`,
     ].join("\n");
   });
@@ -46,7 +46,7 @@ export function angleRouterSystem(market: Market): string {
     "",
     "CÓMO EVALUAR",
     "1. Diagnóstico, campo por campo: nivel de consciencia (Schwartz; parte del del cliente ideal), sofisticación (1–5), si el resultado se ve en 3 segundos de video (result_visible), las pruebas reales que hay hoy en la ficha (available_proof) y, en diagnosis, el tipo de problema y qué permite la economía (PRECIO Y OFERTA: packs, ganancia, CPA máximo). Úsalo para puntuar: sin prueba real no hay 5 en los criterios que la piden.",
-    "2. En angles, un elemento por ángulo: scores lleva un número de 0 a 5 por criterio, EN EL ORDEN NUMERADO de arriba (3 números en cada ángulo), y penalty si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
+    "2. En angles, un elemento por ángulo: scores lleva un número de 0 a 5 por criterio, en c1, c2 y c3 según la numeración de arriba de ESE ángulo, y penalty si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
     "3. NO calcules puntajes totales ni ordenes los ángulos: el sistema calcula el puntaje con pesos fijos y comprueba por su cuenta si hay experto o reseñas reales, la sofisticación, la fecha comercial y el margen de los packs.",
     "4. why: una o dos frases para el comerciante, en tuteo, sobre SU producto y SU cliente («Tu cliente ideal ya siente el dolor al final de la jornada: el gancho nombra algo que vive a diario»). Si no encaja, di por qué sin rodeos.",
     "5. combinations: el principal define el gancho y el secundario refuerza el cuerpo. Combinaciones probadas: autoridad + mecanismo, historia + enemigo, identidad + oferta. La oferta rara vez es principal en un problema complejo: úsala como capa.",

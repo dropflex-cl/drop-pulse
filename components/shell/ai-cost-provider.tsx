@@ -108,3 +108,10 @@ export function AiCostSummary({ className }: { className?: string }) {
     />
   );
 }
+
+/** Costo estimado de una llamada del paso, en la moneda de la tienda; null fuera de un producto. */
+export function useAiEstimate(step: string): { amount: number; currency: string } | null {
+  const ctx = useContext(Ctx);
+  const amount = ctx?.cost.estimates[step];
+  return ctx && amount ? { amount, currency: ctx.cost.currency } : null;
+}

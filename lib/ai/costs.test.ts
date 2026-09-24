@@ -87,6 +87,22 @@ describe("summarizeAiCost", () => {
   });
 });
 
+describe("estimados por paso", () => {
+  it("usa el promedio pagado del producto y, sin historial, la referencia", () => {
+    const s = summarizeAiCost(
+      [
+        row({ step: "angle_ranking", cost_usd: 0.1 }),
+        row({ step: "angle_ranking", cost_usd: 0.2, created_at: "2026-09-24T13:01:00Z" }),
+        // Un fallo sin cobro no baja el promedio.
+        row({ step: "angle_ranking", status: "failed", error_code: "network", cost_usd: null, created_at: "2026-09-24T13:02:00Z" }),
+      ],
+      base,
+    );
+    expect(s.estimates.angle_ranking).toBeCloseTo(150);
+    expect(s.estimates.angle_brief).toBeCloseTo(300);
+  });
+});
+
 describe("capTone", () => {
   it("avisa desde el 80% y marca sobre el tope", () => {
     expect(capTone(387, 1500)).toBe("ok");

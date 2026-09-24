@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { AVATAR } from "@/app/dev/screens/base/fixture";
 import type { ProductBrief } from "@/lib/ai/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
-import { SALES_ANGLES } from "./catalog";
+import { modelCriteria, SALES_ANGLES } from "./catalog";
 import { angleRouterSystem, angleRouterUser, angleSystem, angleUser } from "./prompts";
 import { avatarStepSchema } from "@/lib/ai/schemas";
-import { angleBriefSchema, angleRouterSchema, evaluationsFrom, routerProblems } from "./schemas";
+import { angleBriefSchema, angleRouterSchema, evaluationsFrom, routerProblems, SCORE_KEYS } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 const pricing = buildPricingPlan(
@@ -18,8 +18,8 @@ describe("prompts de ángulos", () => {
   it("el orquestador lista los 6 ángulos con sus criterios y no calcula el total", () => {
     const sys = angleRouterSystem(CL);
     for (const a of SALES_ANGLES) expect(sys).toContain(`${a} — `);
-    expect(sys).toContain("3. real_expert (peso 3)");
-    expect(sys).toContain("EN EL ORDEN NUMERADO");
+    expect(sys).toContain("c3. real_expert (peso 3)");
+    expect(sys).toContain("en c1, c2 y c3");
     expect(sys).toContain("NO calcules puntajes totales");
     expect(sys).toContain("español neutro con tuteo");
   });
@@ -71,6 +71,15 @@ describe("esquemas de ángulos", () => {
     return n;
   }
 
+  it("todos los ángulos tienen tantos criterios del modelo como campos de scores", () => {
+    for (const a of SALES_ANGLES) expect(modelCriteria(a).length, a).toBe(SCORE_KEYS.length);
+  });
+
+  it("scores son campos fijos: la gramática impide mandar otra cantidad", async () => {
+    const { toJSONSchema } = await import("zod/v4");
+    expect(toJSONSchema(angleRouterSchema)).toHaveProperty("properties.angles.items.properties.scores.required", ["c1", "c2", "c3"]);
+  });
+
   it("se convierten a JSON schema (salida estructurada)", async () => {
     const { toJSONSchema } = await import("zod/v4");
     expect(toJSONSchema(angleRouterSchema)).toHaveProperty("properties.angles.items.properties.scores");
@@ -86,8 +95,8 @@ describe("esquemas de ángulos", () => {
     for (const a of SALES_ANGLES) expect(size(toJSONSchema(angleBriefSchema(a))), a).toBeLessThanOrEqual(limit);
   });
 
-  it("la lista del orquestador pasa a criterios por nombre, en el orden del catálogo", () => {
-    const evals = evaluationsFrom({ angles: [{ angle: "offer", scores: [5, 4, 3], penalty: true, why: "w", risks: [] }] });
+  it("c1, c2 y c3 pasan a criterios por nombre, en el orden del catálogo", () => {
+    const evals = evaluationsFrom({ angles: [{ angle: "offer", scores: { c1: 5, c2: 4, c3: 3 }, penalty: true, why: "w", risks: [] }] });
     // real_event lo decide el sistema con la ficha (lib/angles/score.ts), no el modelo.
     expect(evals.offer.criteria).toEqual({ low_ticket_bundle: 5, impulse_or_consumable: 4, obvious_result: 3 });
     expect(evals.offer.penalty_applies).toBe(true);
@@ -96,19 +105,17 @@ describe("esquemas de ángulos", () => {
   });
 
   const complete = () => [
-    { angle: "authority" as const, scores: [4, 3, 0], penalty: true, why: "", risks: [] },
-    { angle: "common_enemy" as const, scores: [3, 5, 3], penalty: false, why: "", risks: [] },
-    { angle: "unique_mechanism" as const, scores: [5, 4, 4], penalty: false, why: "", risks: [] },
-    { angle: "age_identity" as const, scores: [2, 2, 3], penalty: false, why: "", risks: [] },
-    { angle: "personal_story" as const, scores: [0, 4, 3], penalty: true, why: "", risks: [] },
-    { angle: "offer" as const, scores: [4, 3, 4], penalty: false, why: "", risks: [] },
+    { angle: "authority" as const, scores: { c1: 4, c2: 3, c3: 0 }, penalty: true, why: "", risks: [] },
+    { angle: "common_enemy" as const, scores: { c1: 3, c2: 5, c3: 3 }, penalty: false, why: "", risks: [] },
+    { angle: "unique_mechanism" as const, scores: { c1: 5, c2: 4, c3: 4 }, penalty: false, why: "", risks: [] },
+    { angle: "age_identity" as const, scores: { c1: 2, c2: 2, c3: 3 }, penalty: false, why: "", risks: [] },
+    { angle: "personal_story" as const, scores: { c1: 0, c2: 4, c3: 3 }, penalty: true, why: "", risks: [] },
+    { angle: "offer" as const, scores: { c1: 4, c2: 3, c3: 4 }, penalty: false, why: "", risks: [] },
   ];
 
-  it("acepta una lista completa y rechaza puntajes que no calzan con los criterios", () => {
+  it("acepta una lista completa y rechaza puntajes fuera de 0 a 5", () => {
     expect(routerProblems({ angles: complete() })).toEqual([]);
-    const short = complete().map((x) => (x.angle === "offer" ? { ...x, scores: [4, 3] } : x));
-    expect(routerProblems({ angles: short })).toEqual(["offer trae 2 puntajes y debe traer 3, uno por criterio en orden."]);
-    const range = complete().map((x) => (x.angle === "authority" ? { ...x, scores: [4, 7, 0] } : x));
+    const range = complete().map((x) => (x.angle === "authority" ? { ...x, scores: { c1: 4, c2: 7, c3: 0 } } : x));
     expect(routerProblems({ angles: range })).toEqual(["authority tiene puntajes fuera de 0 a 5."]);
   });
 

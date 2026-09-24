@@ -7,7 +7,7 @@ import { AWARENESS_LEVELS } from "@/lib/ai/schemas";
 import { modelCriteria, SALES_ANGLES, type SalesAngle } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. */
-export const ANGLE_ROUTER_PROMPT_VERSION = 4;
+export const ANGLE_ROUTER_PROMPT_VERSION = 5;
 /** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. */
 export const ANGLE_BRIEF_PROMPT_VERSION = 2;
 
@@ -17,11 +17,19 @@ const maybe = z.string().nullable();
 // ---------------------------------------------------------------- Orquestador
 // Esquema compacto a propósito: la salida estructurada compila el esquema a una gramática y la API
 // rechaza las demasiado grandes (400 «compiled grammar is too large»). Los 6 ángulos comparten una
-// forma y los criterios van como lista en el orden de lib/angles/catalog.ts (el prompt lo dice).
+// forma y los criterios van como c1, c2, c3 en el orden de lib/angles/catalog.ts (el prompt lo dice).
+// Campos fijos y no una lista: la gramática no fija el largo de una lista y un puntaje de más o de
+// menos se cobraba y se rechazaba después. Con campos, el modelo no puede mandar otra cantidad.
+
+/** Un puntaje por criterio del modelo; todos los ángulos tienen 3 (lo comprueba prompts.test.ts). */
+export const SCORE_KEYS = ["c1", "c2", "c3"] as const;
+const score = z.number().int();
 
 const angleItem = z.object({
   angle: z.enum(SALES_ANGLES),
-  scores: z.array(z.number().int()).describe("Un número de 0 a 5 por criterio, en el orden en que el sistema los lista para ese ángulo."),
+  scores: z
+    .object({ c1: score, c2: score, c3: score })
+    .describe("Un número de 0 a 5 por criterio: c1 es el criterio 1 de ese ángulo, c2 el 2 y c3 el 3, en el orden en que el sistema los lista."),
   penalty: z.boolean().describe("Si aplica la penalización del ángulo."),
   why: text.describe("Para el comerciante, una o dos frases en tuteo: por qué encaja o no con SU cliente ideal y SU producto."),
   risks: z.array(text).describe("0 a 3 riesgos concretos, en frases cortas. Sin repetir la penalización."),
@@ -68,9 +76,7 @@ export function routerProblems(output: Pick<AngleRouterOutput, "angles">): strin
       continue;
     }
     if (items.length > 1) problems.push(`El ángulo ${a} viene ${items.length} veces.`);
-    const expected = modelCriteria(a).length;
-    const scores = items[0].scores;
-    if (scores.length !== expected) problems.push(`${a} trae ${scores.length} puntajes y debe traer ${expected}, uno por criterio en orden.`);
+    const scores = SCORE_KEYS.slice(0, modelCriteria(a).length).map((k) => items[0].scores[k]);
     if (scores.some((n) => !Number.isInteger(n) || n < 0 || n > 5)) problems.push(`${a} tiene puntajes fuera de 0 a 5.`);
   }
   return problems;
@@ -81,7 +87,7 @@ export function evaluationsFrom(output: Pick<AngleRouterOutput, "angles">): Angl
   return Object.fromEntries(
     SALES_ANGLES.map((a) => {
       const item = output.angles.find((x) => x.angle === a);
-      const criteria = Object.fromEntries(modelCriteria(a).map((c, i) => [c.key, item?.scores[i] ?? 0]));
+      const criteria = Object.fromEntries(modelCriteria(a).map((c, i) => [c.key, item?.scores[SCORE_KEYS[i]] ?? 0]));
       return [a, { criteria, penalty_applies: item?.penalty ?? false, why: item?.why ?? "", risks: item?.risks ?? [] }];
     }),
   ) as AngleEvaluations;

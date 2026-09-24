@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { IconButton, StageList, StatusBadge, Thumb } from "@/components/df";
 import { AnglesScreen } from "@/components/screens/angles";
+import { AiCostProvider } from "@/components/shell/ai-cost-provider";
 import { AssistantProvider } from "@/components/shell/assistant-provider";
+import { summarizeAiCost } from "@/lib/ai/costs";
 import { fixture } from "./fixture";
 
 // Verificación visual de Ángulos con datos de ejemplo:
@@ -38,11 +40,14 @@ async function Screen({ searchParams }: { searchParams: Promise<{ state?: string
 export default function Page({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
   return (
     <AssistantProvider>
-      <main id="contenido" className="min-h-svh">
-        <Suspense fallback={null}>
-          <Screen searchParams={searchParams} />
-        </Suspense>
-      </main>
+      {/* Sin historial: los avisos de costo usan las referencias por paso, en CLP. */}
+      <AiCostProvider cost={summarizeAiCost([], { currency: "CLP", usdRate: 950, stages: [], now: new Date("2026-01-01T12:00:00Z") })}>
+        <main id="contenido" className="min-h-svh">
+          <Suspense fallback={null}>
+            <Screen searchParams={searchParams} />
+          </Suspense>
+        </main>
+      </AiCostProvider>
     </AssistantProvider>
   );
 }

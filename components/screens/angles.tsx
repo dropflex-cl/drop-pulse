@@ -21,11 +21,12 @@ import {
 } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { AiCostButton } from "@/components/shell/ai-cost-provider";
+import { AiCostButton, useAiEstimate } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ANGLES, type AngleRole, type SalesAngle } from "@/lib/angles/catalog";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
+import { money } from "@/lib/format";
 import { COPY_STAGE_TITLE } from "@/lib/products/stages";
 import { productHref } from "@/lib/routes";
 import type { AngleBriefView, AngleOption, AnglesState, ProductAngles, RunStatus } from "@/lib/types";
@@ -140,7 +141,18 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     }
   };
 
-  const evaluate = () => run("evaluate", () => productsApi.evaluateAngles(product.id), "No pudimos empezar la evaluación. Intenta de nuevo.").then((s) => s && setChoosing(false));
+  const runEvaluate = () =>
+    run("evaluate", () => productsApi.evaluateAngles(product.id), "No pudimos empezar la evaluación. Intenta de nuevo.").then((s) => {
+      setAskReeval(false);
+      if (s) setChoosing(false);
+    });
+  // Con desarrollos hechos, volver a evaluar puede costar también los desarrollos: avisa antes de gastar
+  // (design-system/arquitectura.md › 11, “Antes de gastar”).
+  const hasBriefs = ROLES.some((r) => briefs[r]);
+  const [askReeval, setAskReeval] = useState(false);
+  const rankingCost = useAiEstimate("angle_ranking");
+  const briefCost = useAiEstimate("angle_brief");
+  const evaluate = () => (hasBriefs ? setAskReeval(true) : runEvaluate());
 
   const confirm = async () => {
     if (!pick.primary || !pick.secondary) return;
@@ -395,6 +407,30 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         Confirmar y desarrollar
       </Button>
     );
+    const reevalConfirm = (where: "m" | "d") => (
+      <div role="group" aria-labelledby={`reeval-${where}`} className="flex w-full flex-col gap-2.5 rounded-lg border bg-card p-4 text-left">
+        <h3 id={`reeval-${where}`} className="text-heading">
+          ¿Volver a evaluar los ángulos?
+        </h3>
+        <p className="m-0 text-label font-normal text-muted-foreground">
+          {rankingCost ? (
+            <>
+              Cuesta cerca de <b className="font-medium text-foreground tabular-nums">{money(rankingCost.amount, rankingCost.currency)}</b>.{" "}
+            </>
+          ) : null}
+          Si nada cambió y eliges los mismos ángulos, conservas tus desarrollos. Si cambió algo (reseñas, cliente ideal o precio), se escriben de nuevo
+          {briefCost ? ` por cerca de ${money(briefCost.amount * 2, briefCost.currency)}` : ""}.
+        </p>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button size="sm" onClick={() => setAskReeval(false)}>
+            Cancelar
+          </Button>
+          <Button size="sm" variant="primary" icon="sparkle" loading={busy?.what === "evaluate"} onClick={runEvaluate}>
+            {rankingCost ? `Volver a evaluar por ~${money(rankingCost.amount, rankingCost.currency)}` : "Volver a evaluar"}
+          </Button>
+        </div>
+      </div>
+    );
     const confirmNote = !pick.primary || !pick.secondary ? "Elige un principal y un secundario." : "Se generan los 2 desarrollos en paralelo.";
     body = (
       <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(90)] lg:items-start lg:gap-8">
@@ -407,10 +443,14 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           {/* 2 columnas solo si cada tarjeta tiene al menos 300px (escritorio angosto: 1). */}
           <div className="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">{ranking.angles.map(card)}</div>
           <div className="flex flex-wrap gap-2 lg:hidden">
-            <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
-              Volver a evaluar
-            </Button>
-            {choosing ? (
+            {askReeval ? (
+              reevalConfirm("m")
+            ) : (
+              <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
+                Volver a evaluar
+              </Button>
+            )}
+            {choosing && !askReeval ? (
               <Button variant="ghost" onClick={() => setChoosing(false)}>
                 Cancelar
               </Button>
@@ -423,10 +463,14 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           {confirmButton}
           <p className="text-center text-label font-normal text-muted-foreground">{confirmNote}</p>
           <div className="flex justify-center gap-2">
-            <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
-              Volver a evaluar
-            </Button>
-            {choosing ? (
+            {askReeval ? (
+              reevalConfirm("d")
+            ) : (
+              <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
+                Volver a evaluar
+              </Button>
+            )}
+            {choosing && !askReeval ? (
               <Button variant="ghost" onClick={() => setChoosing(false)}>
                 Cancelar
               </Button>

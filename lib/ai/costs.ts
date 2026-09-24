@@ -18,6 +18,17 @@ export const AI_STEPS = {
 
 export type AiStep = keyof typeof AI_STEPS;
 
+/**
+ * USD por llamada cuando el producto todavía no tiene historial del paso. Promedios observados con
+ * Claude Opus 5 (evaluación ~US$0,15; desarrollo con effort high ~US$0,30).
+ */
+const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
+  angle_ranking: 0.15,
+  angle_brief: 0.3,
+  page_copy: 0.2,
+  creative_concepts: 0.2,
+};
+
 /** Etapas que gastan IA, en el orden de la ruta. */
 export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "creativos"];
 
@@ -131,6 +142,14 @@ export function summarizeAiCost(rows: GenerationRow[], o: SummarizeOptions): Pro
     };
   });
 
+  // Estimado por paso: el promedio de lo que ya costó en este producto o, si no hay, la referencia.
+  const estimates: Record<string, number> = {};
+  for (const step of Object.keys(AI_STEPS) as AiStep[]) {
+    const paid = sorted.filter((r) => r.step === step && rowUsd(r) > 0).map(rowUsd);
+    const usd = paid.length ? paid.reduce((a, b) => a + b, 0) / paid.length : DEFAULT_STEP_USD[step];
+    if (usd) estimates[step] = local(usd);
+  }
+
   const totalUsd = items.reduce((s, r) => s + r.usd, 0);
   const total = local(totalUsd);
   const context =
@@ -149,6 +168,7 @@ export function summarizeAiCost(rows: GenerationRow[], o: SummarizeOptions): Pro
     context,
     running: Boolean(o.running),
     audience: o.admin ? "admin" : "merchant",
+    estimates,
   };
 }
 
