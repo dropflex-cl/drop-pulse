@@ -15,6 +15,7 @@ import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations
 import { missingPublishScopes } from "@/lib/integrations/shopify/oauth";
 import { COVER, GALLERY, GALLERY_MIN, slotKind } from "@/lib/page-images/catalog";
 import { PAGE_MEDIA_BUCKET, pageImageRows } from "@/lib/page-images/store";
+import { labelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
@@ -170,7 +171,12 @@ export async function preparePublish(userId: string, productId: string): Promise
 
   // Packs: el plan de precios y las etiquetas aprobadas.
   if (!pricing) missing.push("Guarda el precio y los packs en Información base.");
-  const approvedLabels = labels?.status === "approved" ? labels.payload : [];
+  // Las tarjetas de packs de la tienda usan las etiquetas («Uno solo para ti»): si hay una propuesta
+  // sin decidir (o quedó vieja porque cambiaron los precios), se decide antes de publicar; si no, la
+  // tienda caería en «1 unidad», «2 unidades».
+  const labelsReady = labels?.status === "approved" && !labelsStale(labels.prices, pricing);
+  if (pricing && pricing.packs.length > 1 && labels && !labelsReady) missing.push("Acepta las etiquetas de los packs en Información base.");
+  const approvedLabels = labelsReady ? labels!.payload : [];
   const packs = (pricing?.packs ?? []).map((p) => {
     const l = approvedLabels.find((x) => x.units === p.units);
     return {

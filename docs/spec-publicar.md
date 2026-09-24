@@ -29,6 +29,7 @@ Se puede publicar el producto antes que el tema: el contenido espera en los meta
 - **La ficha aprobada.**
 - **La portada y al menos 4 imágenes de galería** (`GALLERY_MIN`).
 - **El precio guardado** en Precio y packs.
+- **Las etiquetas de los packs aceptadas** («Uno solo para ti»…), si hay una propuesta: son el nombre de cada tarjeta de packs en la tienda. Una propuesta sin decidir, o vieja porque cambiaron los precios, bloquea con «Acepta las etiquetas de los packs en Información base». Sin propuesta, las tarjetas usan «1 unidad», «2 unidades».
 - **Conexión y permisos:** Shopify conectado y con los permisos `read_themes`, `write_themes`, `read_files`, `write_files` y `write_inventory` (`PUBLISH_SCOPES`).
   - Una tienda conectada antes de esta etapa no los tiene. La pantalla muestra «Dar permisos», que reabre el OAuth. `markConnecting` no baja la conexión mientras tanto.
   - Los permisos nuevos tienen que estar en la configuración de la app en Shopify: `shopify app deploy` con `shopify.app.toml` o con `shopify.app.dev.toml`.

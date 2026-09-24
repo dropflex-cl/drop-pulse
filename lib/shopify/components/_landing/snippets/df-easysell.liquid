@@ -133,6 +133,22 @@
       transition: background-color 120ms ease;
     }
 
+    /* El botón de EasySell ocupa todo el ancho de la ficha. EasySell oculta el «Agregar al carrito»
+       del tema pero deja su contenedor, que en escritorio le quitaba media fila (el script marca ese
+       contenedor vacío con data-df-es-empty). */
+    .product-form-buttons > [data-df-es-empty] {
+      display: none !important;
+    }
+
+    .product-form-buttons > .accelerated-checkout-block:has(.es-popup-button) {
+      flex-basis: 100%;
+    }
+
+    .product-form-buttons .es-popup-button {
+      box-sizing: border-box;
+      width: 100%;
+    }
+
     /* Una sola barra fija de compra (html.df-es-cod, lo pone el script cuando EasySell está en la
        ficha): la del tema, con el texto del botón de EasySell y sin el ícono del carrito. La barra
        propia de EasySell se oculta; su display lo escribe la app inline con !important, por eso
@@ -324,6 +340,14 @@
       function syncStickyBar() {
         var trigger = codTrigger();
         document.documentElement.classList.toggle('df-es-cod', Boolean(trigger));
+        /* El contenedor del «Agregar al carrito» que EasySell ocultó (por su hoja, no inline): se
+           marca para que el CSS lo saque de la fila. Si el botón vuelve a verse, se desmarca. */
+        var atc = document.querySelector('.product-form-buttons [ref="addToCartButton"]');
+        var slot = atc ? atc.closest('.product-form-buttons > *') : null;
+        if (slot) {
+          var empty = Boolean(trigger) && window.getComputedStyle(atc).display === 'none';
+          if (slot.hasAttribute('data-df-es-empty') !== empty) slot.toggleAttribute('data-df-es-empty', empty);
+        }
         var label = document.querySelector(STICKY_BUTTON + ' ' + STICKY_LABEL);
         if (!label) return;
         var text = trigger ? codTitle(trigger) : '';
