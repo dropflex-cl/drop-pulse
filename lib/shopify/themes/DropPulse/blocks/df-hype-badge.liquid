@@ -1,0 +1,160 @@
+{%- doc -%}
+  DropFlex · Badge de novedad (hype-badge). Una etiqueta arriba de la ficha: «PRODUCTO VIRAL» y,
+  solo cuando es verdad, «STOCK BAJO».
+
+  REGLA: la escasez sale del inventario REAL (Ley 19.496: nada de escasez inventada). «Stock bajo»
+  se muestra solo si la variante de 1 unidad (la primera; los packs no llevan inventario propio)
+  sigue su inventario en Shopify y le quedan entre 1 y `low_stock_threshold` unidades. Sin
+  seguimiento de inventario, la etiqueta queda solo con su texto.
+
+  El texto lo escribe el comerciante en el editor (no es contenido de la IA). Color: el acento del
+  producto, con el contraste de df-accent-vars.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product | default: product
+  assign s = block.settings
+  assign text = s.text | strip
+
+  assign low = false
+  if product != blank and s.show_low_stock
+    assign unit = product.variants.first
+    assign qty = unit.inventory_quantity | default: 0
+    if unit.inventory_management == 'shopify' and qty > 0 and qty <= s.low_stock_threshold
+      assign low = true
+    endif
+  endif
+  assign low_text = s.low_stock_text | strip
+  if low_text == blank
+    assign low = false
+  endif
+-%}
+{%- if product != blank and text != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <p
+    class="df df-hype-badge df-hype-badge--{{ s.style | default: 'outline' }}"
+    style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    <span class="df-hype-badge__text">{{ text | escape }}</span>
+    {%- if low -%}
+      <span class="df-hype-badge__rule" aria-hidden="true"></span>
+      <span class="df-hype-badge__text">{{ low_text | escape }}</span>
+    {%- endif -%}
+  </p>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Badge de novedad: escribe su texto en los ajustes del bloque.
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-hype-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1.5px solid var(--df-accent-ink);
+    border-radius: var(--df-radius-sm);
+    color: var(--df-accent-ink);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .df-hype-badge--solid {
+    border-color: var(--df-accent);
+    background: var(--df-accent);
+    color: var(--df-on-accent);
+  }
+
+  .df-hype-badge__rule {
+    flex: none;
+    align-self: stretch;
+    width: 1.5px;
+    background: currentColor;
+    opacity: 0.5;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Novedad",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Una etiqueta arriba de la ficha. «Stock bajo» aparece solo cuando tu inventario real en Shopify está bajo."
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Texto",
+      "default": "Producto viral"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_low_stock",
+      "label": "Agregar «Stock bajo» cuando quede poco",
+      "info": "Solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas unidades. Nunca se muestra si no es verdad.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "low_stock_text",
+      "label": "Texto de stock bajo",
+      "default": "Stock bajo"
+    },
+    {
+      "type": "range",
+      "id": "low_stock_threshold",
+      "label": "Stock bajo desde",
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "unit": "u.",
+      "default": 10
+    },
+    {
+      "type": "select",
+      "id": "style",
+      "label": "Estilo",
+      "options": [
+        { "value": "outline", "label": "Borde" },
+        { "value": "solid", "label": "Relleno" }
+      ],
+      "default": "outline"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Novedad"
+    }
+  ]
+}
+{% endschema %}

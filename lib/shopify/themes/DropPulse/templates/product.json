@@ -58,6 +58,10 @@
             "padding-inline-end": 0
           },
           "blocks": {
+            "hype_badge": {
+              "type": "df-hype-badge",
+              "settings": {}
+            },
             "social_proof": {
               "type": "df-social-proof",
               "settings": {}
@@ -90,6 +94,12 @@
             "price": {
               "type": "df-price",
               "settings": {}
+            },
+            "social_badge": {
+              "type": "df-social-badge",
+              "settings": {
+                "margin_top": 4
+              }
             },
             "benefit_usps": {
               "type": "df-benefit-usps",
@@ -219,6 +229,7 @@
             }
           },
           "block_order": [
+            "hype_badge",
             "social_proof",
             "review_stars",
             "title",
@@ -226,6 +237,7 @@
             "divider",
             "price",
             "benefit_usps",
+            "social_badge",
             "inventory",
             "pack_offers",
             "buy_buttons",

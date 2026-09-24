@@ -1,0 +1,171 @@
+{%- doc -%}
+  DropFlex · Badge de redes (social-badge). Una píldora con el logo de TikTok (o un ícono) y una
+  cifra de redes: «Viral en TikTok: 2,3 M+ vistas».
+
+  REGLA: la cifra es un HECHO y la escribe el comerciante en el editor (ajuste `views`), nunca la
+  IA. El texto la usa con el token {views}; sin cifra, el badge no se muestra (no se afirma una
+  viralidad sin su dato). Un texto sin {views} se muestra tal cual.
+
+  El logo de TikTok va con sus colores: es la mención de otra plataforma, no un color de la tienda.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product | default: product
+  assign s = block.settings
+  assign views = s.views | strip
+  assign text = s.text | strip
+
+  assign ok = true
+  if text == blank
+    assign ok = false
+  elsif text contains '{views}'
+    if views == blank
+      assign ok = false
+    else
+      assign text = text | replace: '{views}', views
+    endif
+  endif
+-%}
+{%- if ok -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <p
+    class="df df-social-badge"
+    style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if s.platform == 'tiktok' -%}
+      {%- liquid
+        # Nota musical de TikTok (Simple Icons, CC0) en sus tres colores.
+        assign tiktok = 'M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'
+      -%}
+      <svg class="df-social-badge__logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="#25f4ee" transform="translate(-0.9 -0.9)" d="{{ tiktok }}"/>
+        <path fill="#fe2c55" transform="translate(0.9 0.9)" d="{{ tiktok }}"/>
+        <path fill="#15171c" d="{{ tiktok }}"/>
+      </svg>
+    {%- else -%}
+      <span class="df-social-badge__icon">{% render 'df-icon', name: s.icon %}</span>
+    {%- endif -%}
+    <span class="df-social-badge__text">{{ text | escape }}</span>
+  </p>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Badge de redes: escribe la cifra real de vistas en los ajustes del bloque para mostrarlo.
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-social-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 8px 16px 8px 12px;
+    border: 1px solid var(--df-hairline);
+    border-radius: var(--df-radius-pill);
+    background: var(--df-bg);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--df-fg) 8%, transparent);
+    color: var(--df-fg);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .df-social-badge__logo {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    overflow: visible;
+  }
+
+  .df-social-badge__icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--df-accent-ink);
+  }
+
+  .df-social-badge__icon .df-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .df-social-badge__text {
+    min-width: 0;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Redes",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Una cifra real de tus redes. Sin la cifra, el badge no se muestra."
+    },
+    {
+      "type": "select",
+      "id": "platform",
+      "label": "Logo",
+      "options": [
+        { "value": "tiktok", "label": "TikTok" },
+        { "value": "icon", "label": "Ícono" }
+      ],
+      "default": "tiktok"
+    },
+    {
+      "type": "select",
+      "id": "icon",
+      "label": "Ícono (sin logo)",
+      "options": [
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "users", "label": "Personas" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "star", "label": "Estrella" }
+      ],
+      "default": "fire"
+    },
+    {
+      "type": "text",
+      "id": "views",
+      "label": "Cifra real",
+      "info": "Por ejemplo 2,3 M+. Va donde el texto dice {views}."
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Texto",
+      "default": "Viral en TikTok: {views} vistas"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Redes"
+    }
+  ]
+}
+{% endschema %}

@@ -51,10 +51,12 @@ Reglas de la redirección (spec del tema, §9.2):
 
 | Bloque | Dónde | Datos |
 |---|---|---|
-| `df-social-proof` | Arriba de todo | Fotos y nombres (enmascarados) de reseñas aprobadas con 4 o 5 estrellas, más la cantidad real de `dropflex.review_summary` |
+| `df-hype-badge` | Arriba de todo | Etiqueta con el acento del producto («Producto viral»), texto del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
+| `df-social-proof` | Bajo el badge de novedad | Fotos y nombres (enmascarados) de reseñas aprobadas con 4 o 5 estrellas, más la cantidad real de `dropflex.review_summary` |
 | `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
 | `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Se actualiza al cambiar de variante |
+| `df-social-badge` | Bajo los beneficios | Píldora con el logo de TikTok (o un ícono) y una cifra de redes («Viral en TikTok: {views} vistas»). La cifra la escribe el comerciante en el editor (ajuste `views`), nunca la IA; sin cifra no se muestra |
 | `df-pack-offers` | Sobre el botón | Una tarjeta por variante (los packs de 1, 2 y 3 unidades) con su precio real. Los textos salen de `dropflex.offer`, y sin ellos se usa el nombre de la variante. Si el producto tiene una sola variante, no se muestra |
 | `df-trust-note` | Bajo la galería en computador y bajo el botón en teléfono (ajuste `visibility`) | Una política real de la tienda (pago al recibir, cambios, garantía). Si la política no está activa, no se muestra |
 
