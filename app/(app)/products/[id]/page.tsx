@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Button, StageList, StageMeter, TopBar } from "@/components/df";
-import { RetryPublishButton } from "@/components/screens/actions";
 import { StageNav } from "@/components/screens/stage-nav";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton, AiCostSummary } from "@/components/shell/ai-cost-provider";
@@ -21,24 +20,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 function NextAction({ product }: { product: Product }) {
   const stage = product.stages.find((s) => s.key === product.nextStage);
   const title = stage?.title ?? "";
-  if (product.nextStage === "angulos" || product.nextStage === "textos" || product.nextStage === "imagenes" || product.nextStage === "anuncios") {
+  if (product.nextStage === "angulos" || product.nextStage === "textos" || product.nextStage === "imagenes" || product.nextStage === "publicar" || product.nextStage === "anuncios") {
     return (
       <Button href={productHref(product.id, product.nextStage)} variant="primary" size="lg" iconEnd="chevron-right">
         Continuar: {title}
-      </Button>
-    );
-  }
-  if (product.nextStage === "publicar" && stage?.state === "error") {
-    return (
-      <RetryPublishButton variant="primary" size="lg" icon="undo">
-        Reintentar publicación
-      </RetryPublishButton>
-    );
-  }
-  if (product.nextStage === "publicar") {
-    return (
-      <Button variant="primary" size="lg" loading>
-        Publicándose
       </Button>
     );
   }

@@ -8,6 +8,7 @@ import { sessionUser } from "@/lib/integrations/session";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { getAiCostCap } from "@/lib/settings/ai-cost";
 import { getMarket } from "@/lib/settings/market";
+import { getStorePolicies } from "@/lib/settings/policies-store";
 import type { Assumptions } from "@/lib/types";
 
 export async function getAssumptions(): Promise<Assumptions> {
@@ -50,4 +51,11 @@ export async function getAiCostSettings() {
   const user = await sessionUser();
   if (!user) return null;
   return getAiCostCap(user.id);
+}
+
+/** Ajustes › Envíos y políticas; null sin mercado confirmado. */
+export async function getPolicySettings() {
+  const user = await sessionUser();
+  if (!user) return null;
+  return getStorePolicies(user.id);
 }

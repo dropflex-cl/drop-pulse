@@ -151,6 +151,24 @@ describe("página del producto (Textos)", () => {
     expect(done).toMatchObject({ nextStage: "imagenes", reason: "Siguiente: imágenes" });
     expect(done.meter.slice(3, 5)).toEqual(["done", "current"]);
   });
+
+  it("Publicar: se habilita con las imágenes y lleva a Publicados", () => {
+    const page = { ...ready, copy: { run: { status: "succeeded" as const }, progress: progress({ listing: "approved", enabled: 5, complete: true }) } };
+    const images = { running: false, rendering: 0, options: 6, cover: true, gallery: 4 };
+    const locked = productPosition(page);
+    expect(locked.stages[5]).toMatchObject({ key: "publicar", state: "locked" });
+    const ready2 = productPosition({ ...page, images });
+    expect(ready2.stages[5]).toMatchObject({ key: "publicar", state: "current", desc: "Instala el tema y publica el producto" });
+    expect(ready2).toMatchObject({ nextStage: "publicar", reason: "Siguiente: publicar" });
+    const publishing = productPosition({ ...page, images, publish: { status: "publishing" } });
+    expect(publishing).toMatchObject({ status: "publicando", reason: "Publicando en tu tienda" });
+    const failed = productPosition({ ...page, images, publish: { status: "error", error: "Shopify rechazó una imagen" } });
+    expect(failed.stages[5]).toMatchObject({ state: "error", desc: "Shopify rechazó una imagen" });
+    expect(failed.filter).toBe("detenidos");
+    const done = productPosition({ ...page, images, publish: { status: "published" } });
+    expect(done).toMatchObject({ filter: "publicados", status: "publicado", nextStage: "anuncios" });
+    expect(done.meter[5]).toBe("done");
+  });
 });
 
 describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {

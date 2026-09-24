@@ -695,3 +695,40 @@ export interface ProductAiCost {
   /** Costo estimado de una llamada por paso (AI_STEPS), en la moneda de la tienda: para avisar antes de gastar. */
   estimates: Record<string, number>;
 }
+
+/** Etapa Publicar (docs/spec-publicar.md): lo que la pantalla necesita saber. */
+export interface PublishState {
+  shop: string | null;
+  /** Por qué no se puede publicar por la conexión (sin Shopify, sin permisos); null si está bien. */
+  connection: string | null;
+  /** Faltan los permisos de temas y archivos: se piden de nuevo en Shopify. */
+  needsPermissions: boolean;
+  theme: {
+    status: "none" | "installing" | "preview" | "published" | "failed";
+    name?: string;
+    error?: string;
+    previewUrl?: string;
+    outdated: boolean;
+  };
+  /** Lo que falta en DropFlex para publicar (ficha, portada, galería, precio). */
+  missing: string[];
+  /** Lo que se va a publicar. */
+  plan: {
+    title: string;
+    components: string[];
+    images: number;
+    packs: { units: number; price: number; label?: string }[];
+    reviews: number;
+    accent: string | null;
+    policies: string[];
+  };
+  currency: string;
+  publication: {
+    status: "publishing" | "published" | "error";
+    error?: string;
+    publishedAt?: string;
+    productUrl?: string;
+    /** Lo aprobado cambió desde la última publicación. */
+    stale: boolean;
+  } | null;
+}

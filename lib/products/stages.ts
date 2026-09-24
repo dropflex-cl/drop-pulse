@@ -25,6 +25,11 @@ export interface CopyFacts {
   stale?: boolean;
 }
 
+export interface PublishFacts {
+  status: "publishing" | "published" | "error";
+  error?: string | null;
+}
+
 export interface ProductFacts {
   price: number;
   currency: string;
@@ -40,6 +45,8 @@ export interface ProductFacts {
   creatives?: CreativeFacts | null;
   /** Imágenes de la página: lo elegido por espacio y lo que se está generando. */
   images?: ImageFacts | null;
+  /** La última publicación en la tienda (etapa Publicar). */
+  publish?: PublishFacts | null;
 }
 
 export interface ImageFacts {
@@ -298,6 +305,16 @@ function imagesStage(pageDone: boolean, i: ImageFacts | null | undefined): { sta
   return { stage: { ...base, state: "current", desc: "Genera las imágenes de tu página" }, meter: "current", done };
 }
 
+/** Publicar: con la página y las imágenes listas (docs/spec-publicar.md). */
+function publishStage(imagesDone: boolean, p: PublishFacts | null | undefined): { stage: Stage; meter: MeterStage } {
+  const base = { key: "publicar", title: "Publicar en tu tienda" } as const;
+  if (!imagesDone) return { stage: { ...base, state: "locked", desc: "Necesita la página y las imágenes aprobadas" }, meter: "locked" };
+  if (p?.status === "publishing") return { stage: { ...base, state: "current", desc: "Publicando en tu tienda" }, meter: "current" };
+  if (p?.status === "error") return { stage: { ...base, state: "error", desc: p.error ?? "No se pudo publicar · reintenta" }, meter: "error" };
+  if (p?.status === "published") return { stage: { ...base, state: "done", desc: "Publicado en tu tienda" }, meter: "done" };
+  return { stage: { ...base, state: "current", desc: "Instala el tema y publica el producto" }, meter: "current" };
+}
+
 /** Reseñas: opcional, entre Información base y Ángulos (arquitectura.md › 9). */
 function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter: MeterStage } {
   const base = { key: "resenas", title: "Reseñas", optional: true } as const;
@@ -315,6 +332,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
   const reviews = reviewsStage(f.reviews);
   const creatives = creativesStage(angles === "done", f.creatives);
   const images = imagesStage(pageDone, f.images);
+  const publish = publishStage(images.done, f.publish);
   const stages: Stage[] = [
     {
       key: "importado",
@@ -328,12 +346,12 @@ export function productPosition(f: ProductFacts): ProductPosition {
     // El precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
     { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy) },
     images.stage,
-    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: images.done ? "Próximamente" : "Necesita la página y las imágenes aprobadas" },
+    publish.stage,
     // Creativos es opcional y alimenta Anuncios: nunca bloquea Publicar (spec-creativos §6.5).
     creatives.stage,
     adsStage(pageDone, f.ads),
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], images.meter, "locked", creatives.meter, "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], images.meter, publish.meter, creatives.meter, "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
   const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
 
@@ -373,7 +391,12 @@ export function productPosition(f: ProductFacts): ProductPosition {
     case "review":
       return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · página del producto", nextStage: "textos", summary: `Página por revisar${price}`, status: "revision" };
     case "done":
-      if (images.done) return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: publicar", nextStage: "publicar", summary: `Imágenes listas${price}`, status: "aprobado" };
+      if (images.done) {
+        if (f.publish?.status === "published") return { ...common, filter: "publicados", tone: "success", reason: "Publicado en tu tienda", nextStage: "anuncios", summary: `Publicado${price}`, status: "publicado" };
+        if (f.publish?.status === "publishing") return { ...common, filter: "avanzan", tone: "primary", reason: "Publicando en tu tienda", nextStage: "publicar", summary: `Publicando${price}`, status: "publicando" };
+        if (f.publish?.status === "error") return { ...common, filter: "detenidos", tone: "danger", reason: "No se pudo publicar · reintenta", nextStage: "publicar", summary: `Error al publicar${price}`, status: "error" };
+        return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: publicar", nextStage: "publicar", summary: `Imágenes listas${price}`, status: "aprobado" };
+      }
       if (images.stage.state === "review") return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · imágenes", nextStage: "imagenes", summary: `Imágenes por elegir${price}`, status: "revision" };
       return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: imágenes", nextStage: "imagenes", summary: `Página lista${price}`, status: "aprobado" };
     default:

@@ -1,7 +1,7 @@
 {%- doc -%}
   DropFlex · Nota de confianza (trust-note). Una tarjeta con un ícono y una frase: la política que
   más baja el riesgo de comprar (pago al recibir, cambios, garantía). En la ficha va bajo la
-  galería, en escritorio.
+  galería en escritorio y, en teléfono, bajo el botón (ajuste `visibility`).
 
   REGLA: la frase afirma una política REAL. El ajuste `policy` dice cuál; si esa política no está
   activa en shop.metafields.dropflex.policies, la tarjeta no se dibuja. {return_days} y
@@ -48,7 +48,7 @@
   {%- assign parts = text | escape | split: '**' -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <div
-    class="df df-trust-note"
+    class="df df-trust-note df-trust-note--{{ s.visibility | default: 'all' }}"
     style="{% render 'df-accent-vars', product: closest.product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
   >
@@ -76,6 +76,18 @@
     border: 1px solid var(--df-hairline);
     border-radius: var(--df-radius);
     background: var(--df-surface);
+  }
+
+  @media (max-width: 749px) {
+    .df-trust-note--desktop {
+      display: none;
+    }
+  }
+
+  @media (min-width: 750px) {
+    .df-trust-note--mobile {
+      display: none;
+    }
   }
 
   .df-trust-note__icon {
@@ -144,6 +156,17 @@
         { "value": "check-circle", "label": "Visto en círculo" }
       ],
       "default": "cash"
+    },
+    {
+      "type": "select",
+      "id": "visibility",
+      "label": "Dónde se ve",
+      "options": [
+        { "value": "all", "label": "Siempre" },
+        { "value": "desktop", "label": "Solo en computador" },
+        { "value": "mobile", "label": "Solo en teléfono" }
+      ],
+      "default": "all"
     },
     {
       "type": "text",

@@ -12,7 +12,7 @@ embedded = false
 [access_scopes]
 # Una sola lista: debe coincidir con SHOPIFY_SCOPES en lib/integrations/shopify/oauth.ts.
 # read_orders requiere la aprobación de "Protected customer data" (sin campos de cliente).
-scopes = "read_products,write_products,read_inventory,read_orders"
+scopes = "read_products,write_products,read_inventory,read_orders,read_themes,write_themes,read_files,write_files"
 use_legacy_install_flow = false
 
 [auth]

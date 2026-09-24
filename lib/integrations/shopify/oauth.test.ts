@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { authorizeUrl, isShopDomain, missingScopes, normalizeShop, verifyShopifyRequest } from "./oauth";
+import { authorizeUrl, isShopDomain, missingScopes,
+  missingPublishScopes, normalizeShop, verifyShopifyRequest } from "./oauth";
 
 function signed(params: Record<string, string>) {
   const p = new URLSearchParams(params);
@@ -55,9 +56,13 @@ describe("alcances", () => {
   it("detecta los que faltan", () => {
     expect(missingScopes(["read_products"])).toEqual(["write_products", "read_inventory", "read_orders"]);
   });
-  it("la URL de autorización pide los cuatro y vuelve al callback", () => {
+  it("publicar pide temas y archivos aparte", () => {
+    expect(missingPublishScopes(["write_products", "read_inventory", "read_orders"])).toEqual(["read_themes", "write_themes", "read_files", "write_files"]);
+    expect(missingPublishScopes(["write_themes", "write_files"])).toEqual([]);
+  });
+  it("la URL de autorización pide los de conectar y los de publicar, y vuelve al callback", () => {
     const u = new URL(authorizeUrl("mitienda.myshopify.com", "st"));
-    expect(u.searchParams.get("scope")).toBe("read_products,write_products,read_inventory,read_orders");
+    expect(u.searchParams.get("scope")).toBe("read_products,write_products,read_inventory,read_orders,read_themes,write_themes,read_files,write_files");
     expect(u.searchParams.get("redirect_uri")).toBe("https://app.dropflex.test/api/onboarding/shopify/callback");
     expect(u.searchParams.has("grant_options[]")).toBe(false);
   });

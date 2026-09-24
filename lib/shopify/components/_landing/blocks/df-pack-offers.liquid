@@ -69,6 +69,8 @@
             class="df-pack-offers__radio"
             name="df-pack-{{ block.id }}"
             value="{{ v.id }}"
+            data-price="{{ v.price | money | escape }}"
+            data-label="{{ label | escape }}"
             {% if v.id == selected.id %}checked{% endif %}
             {% unless v.available %}disabled{% endunless %}
           >

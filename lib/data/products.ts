@@ -15,7 +15,9 @@ import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type ReviewFacts } from "@/lib/products/stages";
+import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
+import { expireStalePublications, getPublications, type PublicationRow } from "@/lib/pipeline/publish";
+import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { activeConcepts, assetsFor, creativeCounts, expireStaleCreatives, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { activeShots, expireStalePageImages, latestPageImageRuns, pageCopy, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
@@ -91,6 +93,10 @@ async function creativeFacts(uid: string, ids: string[]): Promise<(productId: st
   return (productId) => ({ connected, ...counts(productId) });
 }
 
+function publicationFacts(p: PublicationRow | undefined): PublishFacts | null {
+  return p ? { status: p.status, error: p.error_message } : null;
+}
+
 function toProduct(
   row: ProductRow,
   image: string,
@@ -102,6 +108,7 @@ function toProduct(
   ads?: AdsFacts,
   creatives?: CreativeFacts,
   images?: ImageFacts,
+  publish?: PublishFacts | null,
 ): Product {
   const position = productPosition({
     price: Number(row.price),
@@ -114,6 +121,7 @@ function toProduct(
     ads,
     creatives,
     images,
+    publish,
   });
   return {
     id: row.id,
@@ -141,10 +149,10 @@ const allProducts = cache(async (): Promise<Product[]> => {
   const uid = await userId();
   // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
   await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid), expireStaleCreatives(uid), expireStalePageImages(uid)]);
+  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid), expireStaleCreatives(uid), expireStalePageImages(uid), expireStalePublications(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages] = await Promise.all([
+  const [images, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications] = await Promise.all([
     listImageRows(uid, ids),
     latestRuns(uid, ids),
     latestAvatars(uid, ids),
@@ -155,6 +163,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
     adsFacts(uid),
     creativeFacts(uid, ids),
     pageImageCounts(uid, ids),
+    getPublications(uid, ids),
   ]);
   const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
@@ -165,7 +174,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
     const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id));
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)));
   });
 });
 
@@ -359,3 +368,12 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     stale: Boolean(run?.status === "succeeded" && shots.length && planned !== copy.benefits.map((b) => b.id).join()),
   };
 }
+
+/** La etapa Publicar: el producto y el estado de su publicación (lib/data/publish.ts). */
+export const getProductPublish = cache(async (id: string) => {
+  const uid = await userId();
+  const product = await getProduct(id);
+  if (!product) return null;
+  await expireStalePublications(uid);
+  return { product, state: await publishState(uid, id) };
+});

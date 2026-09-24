@@ -566,6 +566,18 @@ df-slider {
   background: var(--df-surface);
 }
 
+@container store (max-width: 749px) {
+  .df-trust-note--desktop {
+    display: none;
+  }
+}
+
+@container store (min-width: 750px) {
+  .df-trust-note--mobile {
+    display: none;
+  }
+}
+
 .df-trust-note__icon {
   display: inline-flex;
   flex: none;

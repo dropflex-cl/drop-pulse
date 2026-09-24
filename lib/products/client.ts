@@ -3,7 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { SalesAngle } from "@/lib/angles/catalog";
-import type { AnglesState, AvatarProposal, CopyState, ImagePick, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, PublishState, CopyState, ImagePick, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -84,6 +84,8 @@ function signedUpload<T>(file: File, onProgress: (p: number) => void, flow: (put
 }
 
 export const productsApi = {
+  publishState: (id: string) => call<PublishState>(`/${id}/publish`),
+  publish: (id: string) => send<PublishState>("POST", `/${id}/publish`),
   creatives: (id: string) => call<CreativesState>(`/${id}/creatives`),
   proposeCreatives: (id: string) => send<CreativesState>("POST", `/${id}/creatives`),
   editConcept: (id: string, conceptId: string, texts: { role: string; text: string }[]) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { texts }),
@@ -144,4 +146,19 @@ export const higgsfieldApi = {
     const res = await fetch("/api/settings/higgsfield", { method: "DELETE", cache: "no-store" }).catch(() => null);
     if (!res?.ok) throw new ProductApiClientError("No pudimos desconectar Higgsfield. Intenta de nuevo.");
   },
+};
+
+async function post<T>(url: string, data: unknown, fallback: string): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data), cache: "no-store" }).catch(() => null);
+  if (!res) throw new ProductApiClientError("No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.");
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ProductApiClientError(body.error ?? fallback, body.field, res.status);
+  return body as T;
+}
+
+/** El tema de DropFlex en la tienda (etapa Publicar). */
+export const themeApi = {
+  act: (action: "install" | "update" | "publish") => post<PublishState["theme"]>("/api/shopify/theme", { action }, "No pudimos hacer el cambio en el tema. Intenta de nuevo."),
+  /** Vuelve a pedir permisos en Shopify (temas y archivos): responde con la URL de autorización. */
+  permissions: (shop: string) => post<{ authorizeUrl: string }>("/api/onboarding/shopify/connect", { shop }, "No pudimos abrir Shopify. Intenta de nuevo."),
 };

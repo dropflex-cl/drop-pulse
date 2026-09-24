@@ -3,7 +3,7 @@
 import type { ProductFilter, StageKey } from "./types";
 
 /** Segmento de URL de cada etapa con pantalla propia. */
-export const STAGE_SEGMENT: Partial<Record<StageKey, string>> = { importado: "base", resenas: "reviews", angulos: "angles", textos: "copy", imagenes: "images", creativos: "creatives", anuncios: "ads" };
+export const STAGE_SEGMENT: Partial<Record<StageKey, string>> = { importado: "base", resenas: "reviews", angulos: "angles", textos: "copy", imagenes: "images", publicar: "publish", creativos: "creatives", anuncios: "ads" };
 
 /** La etapa en su pantalla, o la ficha del producto si la etapa no tiene una. */
 export function productHref(id: string, stage?: StageKey): string {

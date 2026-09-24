@@ -12,7 +12,16 @@ import { safeEqual } from "../oauth-state";
 // - timeout en cada llamada (falla 10).
 
 /** Debe coincidir con [access_scopes] de shopify.app.toml y shopify.app.dev.toml. */
-export const SHOPIFY_SCOPES = ["read_products", "write_products", "read_inventory", "read_orders"] as const;
+/** Lo mínimo para conectar la tienda e importar el catálogo (sin estos el callback falla). */
+export const CONNECT_SCOPES = ["read_products", "write_products", "read_inventory", "read_orders"] as const;
+/**
+ * Lo que necesita «Publicar»: write_themes para instalar, actualizar y publicar el tema de DropFlex;
+ * write_files para subir las imágenes de la página a Shopify Files. Una tienda conectada antes no
+ * los tiene: Publicar lo detecta (`missingPublishScopes`) y pide volver a dar permisos.
+ */
+export const PUBLISH_SCOPES = ["read_themes", "write_themes", "read_files", "write_files"] as const;
+/** Todo lo que se pide al autorizar. Debe coincidir con shopify.app.toml y shopify.app.dev.toml. */
+export const SHOPIFY_SCOPES = [...CONNECT_SCOPES, ...PUBLISH_SCOPES] as const;
 
 const SHOP_RE = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/;
 const TIMESTAMP_WINDOW_S = 10 * 60;
@@ -133,8 +142,20 @@ export function refreshAccessToken(shop: string, refreshToken: string): Promise<
 }
 
 /** Alcances que faltan. Algunos implican otros (write_products ⊃ read_products). */
-export function missingScopes(granted: string[]): string[] {
+function grantedSet(granted: string[]) {
   const has = new Set(granted);
   for (const s of granted) if (s.startsWith("write_")) has.add(`read_${s.slice(6)}`);
-  return SHOPIFY_SCOPES.filter((s) => !has.has(s));
+  return has;
+}
+
+/** Los que faltan para conectar (el callback falla sin ellos). */
+export function missingScopes(granted: string[]): string[] {
+  const has = grantedSet(granted);
+  return CONNECT_SCOPES.filter((s) => !has.has(s));
+}
+
+/** Los que faltan para publicar (tema y archivos). */
+export function missingPublishScopes(granted: string[]): string[] {
+  const has = grantedSet(granted);
+  return PUBLISH_SCOPES.filter((s) => !has.has(s));
 }

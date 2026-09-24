@@ -81,11 +81,11 @@ describe("_landing", () => {
       for (const m of readFileSync(f, "utf8").matchAll(/render 'df-icon', name: '([a-z-]+)'/g)) {
         expect([...ICON_KEYS, ...UI_ICON_KEYS] as string[]).toContain(m[1]);
       }
-      for (const m of readFileSync(f, "utf8").matchAll(/"value": "([a-z-]+)", "label"/g)) {
-        if (f.includes("df-trust-note") && !["cod", "free_shipping", "returns", "warranty", "none"].includes(m[1])) {
-          expect([...ICON_KEYS] as string[]).toContain(m[1]);
-        }
-      }
+      const schema = f.endsWith(".liquid") ? schemaOf(readFileSync(f, "utf8")) : null;
+      walk(schema, (n) => {
+        if (n.id !== "icon" || !Array.isArray(n.options)) return;
+        for (const o of n.options as { value: string }[]) expect([...ICON_KEYS] as string[]).toContain(o.value);
+      });
     }
   });
 

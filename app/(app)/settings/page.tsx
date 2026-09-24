@@ -7,7 +7,8 @@ import { LogoutButton } from "@/components/logout-button";
 import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAiCostSettings, getAssumptions, getHiggsfieldSettings, getMarketSettings } from "@/lib/data/settings";
+import { getAdSettings, getAiCostSettings, getAssumptions, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
+import { PolicySettings } from "@/components/screens/policy-settings";
 import { AiCostSettings } from "@/components/screens/ai-cost-settings";
 import { HiggsfieldSettings } from "@/components/screens/higgsfield-settings";
 import { AdSettings } from "@/components/screens/ad-settings";
@@ -26,7 +27,7 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, higgsfield, aiCost] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings(), getHiggsfieldSettings(), getAiCostSettings()]);
+  const [assumptions, market, ads, higgsfield, aiCost, policies] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings(), getHiggsfieldSettings(), getAiCostSettings(), getPolicySettings()]);
   return (
     <>
       <PageHeader large title="Ajustes" subtitle="Supuestos, tienda y cuenta" back="Hoy" backHref="/today" />
@@ -41,6 +42,11 @@ export default async function AjustesPage() {
         {market ? (
           <Section id="mercado" title="Dónde vendes" description="La IA escribe en este idioma y calcula en esta moneda, con pago contra entrega.">
             <MarketSettings initial={market.value} confirmed={market.confirmed} />
+          </Section>
+        ) : null}
+        {policies ? (
+          <Section id="envios" title="Envíos y políticas" description="Lo que tu tienda promete en la página del producto. Lo que dejes vacío no aparece.">
+            <PolicySettings initial={policies.policies} currency={policies.currency} />
           </Section>
         ) : null}
         <Section id="conexiones" title="Conexiones" description="Tu tienda Shopify y tu cuenta de Meta Ads.">

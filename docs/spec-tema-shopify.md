@@ -1,6 +1,6 @@
 # Spec: integración con el tema de Shopify (etapa Publicar)
 
-> Estado: **por implementar**. Documento de principios y mecanismos, destilado de dropflex v1, donde esta integración funcionó en producción (kit Flux v1.0 → v1.34).
+> Estado: **implementado** en v2 (instalar, actualizar, publicar tema; publicar producto; modo landing): ver [`spec-publicar.md`](spec-publicar.md). Falta la prueba en tienda de desarrollo. Documento de principios y mecanismos, destilado de dropflex v1, donde esta integración funcionó en producción (kit Flux v1.0 → v1.34).
 > Fecha: 2026-09-24.
 > Depende de: Textos (bloques aprobados), Imágenes (portada, galería y beneficios elegidos), Reseñas (opcional), Precio y packs, `products.page_accent_color`.
 > Fuente v1 (repo hermano `../dropflex`): `lib/integrations/shopify/theme-kit/`, `lib/integrations/shopify/metafields/`, `lib/pdp-layout/`, `lib/shopify/themes/flux/` (tema, `kit.json`, `CHANGELOG.md`, `README.md`), `docs/specs/shopify-theme-deployer.md`, `docs/specs/shopify-landing-metafields.md`.

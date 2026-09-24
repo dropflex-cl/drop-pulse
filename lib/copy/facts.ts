@@ -1,32 +1,30 @@
 import "server-only";
-import { fail } from "@/lib/angles/store";
-import { adminClient } from "@/lib/integrations/admin";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
-import { baseImage, getProductRow, latestBrief, listImageRows, withDisplayUrls } from "@/lib/products/store";
+import { baseImage, getProductRow, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { reviewDate } from "@/lib/reviews/copy";
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { signPhotos } from "@/lib/reviews/store";
+import { deliveryDays } from "@/lib/settings/policies";
+import { getStorePolicies } from "@/lib/settings/policies-store";
 import { averageRating, packCompareAt, type StoreFacts } from "@/lib/store-preview/facts";
 
 // Los datos reales que llenan los componentes en la vista previa de la etapa Página del producto:
-// las reseñas aprobadas, el precio, cómo despacha la tienda y los días de garantía de la ficha. Lo
-// que todavía no existe (plazos de entrega, meses de garantía) se muestra con un ejemplo marcado.
+// las reseñas aprobadas, el precio y los packs, y los envíos y políticas de Ajustes. Lo que la tienda
+// todavía no tiene cargado se muestra con un ejemplo marcado.
 
 export async function storeFacts(userId: string, productId: string): Promise<StoreFacts> {
-  const [product, pricing, labels, brief, images, reviews, settings] = await Promise.all([
+  const [product, pricing, labels, images, reviews, settings] = await Promise.all([
     getProductRow(userId, productId),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
-    latestBrief(userId, productId),
     listImageRows(userId, [productId]),
     approvedReviewRows(userId, productId),
-    adminClient().from("merchant_settings").select("free_shipping").eq("user_id", userId).maybeSingle(),
+    getStorePolicies(userId),
   ]);
-  fail("Leer cómo despacha la tienda", settings.error);
   const cover = baseImage(images) ?? images[0];
   const [urls, photos] = await Promise.all([cover ? withDisplayUrls([cover]) : new Map<string, string>(), signPhotos(reviews)]);
-  const guarantee = brief?.proof.guarantee_days ?? 0;
+  const p = settings?.policies;
   // Solo las etiquetas aprobadas llegan a la tienda (igual que a los prompts).
   const approved = labels?.status === "approved" ? labels.payload : [];
   return {
@@ -57,11 +55,15 @@ export async function storeFacts(userId: string, productId: string): Promise<Sto
     })),
     rating: averageRating(reviews),
     count: reviews.length,
+    // Lo mismo que se publica en shop.metafields.dropflex.policies y .logistics (Ajustes › Envíos y políticas).
     policies: {
       cod: true,
-      free_shipping: (settings.data as { free_shipping: boolean } | null)?.free_shipping ?? true,
-      return_days: guarantee > 0 ? guarantee : undefined,
+      free_shipping: p?.freeShipping ?? true,
+      threshold: p?.freeShipping ? (p.freeShippingThreshold ?? undefined) : undefined,
+      return_days: p?.returnDays ?? undefined,
+      warranty_months: p?.warrantyMonths ?? undefined,
+      whatsapp: p?.whatsapp ?? undefined,
     },
-    logistics: null,
+    logistics: p ? deliveryDays(p) : null,
   };
 }

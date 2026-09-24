@@ -69,16 +69,28 @@ async function accessToken(conn: ShopifyConnection): Promise<string> {
   return job;
 }
 
-/**
- * Ejecuta una consulta de LECTURA. Para mutaciones habrá que agregar una variante sin reintentos
- * de transporte (la etapa de publicar, fuera del alcance del onboarding).
- */
+/** Ejecuta una consulta de LECTURA (se reintenta ante cortes de red y errores 5xx). */
 export async function shopifyQuery<T>(conn: ShopifyConnection, query: string, variables: Record<string, unknown> = {}): Promise<T> {
   return shopifyRequest<T>(conn.shop_domain, await accessToken(conn), query, variables);
 }
 
+/**
+ * Ejecuta una MUTACIÓN. Solo se reintenta cuando Shopify dice que no la aplicó (429 o THROTTLED);
+ * un corte de red o un 5xx puede haberla aplicado, así que se informa y quien llama decide (las
+ * de publicar son idempotentes: se pueden repetir desde la pantalla).
+ */
+export async function shopifyMutation<T>(conn: ShopifyConnection, query: string, variables: Record<string, unknown> = {}): Promise<T> {
+  return shopifyRequest<T>(conn.shop_domain, await accessToken(conn), query, variables, { mutation: true });
+}
+
 /** Lo mismo con un token en mano (el callback, antes de guardar la conexión). */
-export async function shopifyRequest<T>(shop: string, token: string, query: string, variables: Record<string, unknown> = {}): Promise<T> {
+export async function shopifyRequest<T>(
+  shop: string,
+  token: string,
+  query: string,
+  variables: Record<string, unknown> = {},
+  opts: { mutation?: boolean; timeoutMs?: number } = {},
+): Promise<T> {
   const { apiVersion } = shopifyEnv();
   const url = `https://${shop}/admin/api/${apiVersion}/graphql.json`;
 
@@ -89,17 +101,17 @@ export async function shopifyRequest<T>(shop: string, token: string, query: stri
         method: "POST",
         headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ query, variables }),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? TIMEOUT_MS),
       });
     } catch (e) {
-      if (attempt >= MAX_RETRIES) throw new ShopifyApiError(`Shopify no respondió: ${(e as Error).message}`);
+      if (opts.mutation || attempt >= MAX_RETRIES) throw new ShopifyApiError(`Shopify no respondió: ${(e as Error).message}`);
       await sleep(jitter(attempt));
       continue;
     }
 
     if (res.status === 401 || res.status === 403) throw new ShopifyAuthError(`Shopify respondió ${res.status}`);
     if (res.status === 429 || res.status >= 500) {
-      if (attempt >= MAX_RETRIES) throw new ShopifyApiError(`Shopify respondió ${res.status}`, res.status);
+      if (attempt >= MAX_RETRIES || (opts.mutation && res.status !== 429)) throw new ShopifyApiError(`Shopify respondió ${res.status}`, res.status);
       const retryAfter = Number(res.headers.get("Retry-After"));
       await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : jitter(attempt));
       continue;

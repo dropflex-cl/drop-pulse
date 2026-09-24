@@ -28,7 +28,7 @@ Reglas de la redirección (spec del tema, §9.2):
 
 `snippets/df-design-system.liquid` lleva a la tienda los tokens de DropFlex (`design-system/`). Lo controla el ajuste `df_design_system`, encendido por defecto.
 
-- **Tipografía:** Geist 400/500/600 desde Google Fonts, con cifras tabulares en precios.
+- **Tipografía:** Geist 400/500/600 servida desde el propio tema (`assets/df-geist-*.woff2`, licencia OFL en `GEIST-LICENSE.txt`), con cifras tabulares en precios.
 - **Foco:** el anillo de 2 px con separación de 2 px.
 - **Movimiento:** 0 ms con `prefers-reduced-motion`.
 - **Acento:** en la ficha, el botón principal toma el acento del producto (`dropflex.accent`). Sin acento, queda el cobalto de DropFlex.
@@ -44,7 +44,7 @@ Reglas de la redirección (spec del tema, §9.2):
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
 | `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Se actualiza al cambiar de variante |
 | `df-pack-offers` | Sobre el botón | Una tarjeta por variante (los packs de 1, 2 y 3 unidades) con su precio real. Los textos salen de `dropflex.offer`, y sin ellos se usa el nombre de la variante. Si el producto tiene una sola variante, no se muestra |
-| `df-trust-note` | Bajo la galería (escritorio) | Una política real de la tienda (pago al recibir, cambios, garantía). Si la política no está activa, no se muestra |
+| `df-trust-note` | Bajo la galería en computador y bajo el botón en teléfono (ajuste `visibility`) | Una política real de la tienda (pago al recibir, cambios, garantía). Si la política no está activa, no se muestra |
 
 **Packs = variantes.** Cada pack es una variante del producto («1 unidad», «2 unidades», «3 unidades»), con su precio y su precio tachado. Así el botón nativo, el carrito y cualquier app de pago contra entrega venden el pack correcto sin descuentos aparte.
 

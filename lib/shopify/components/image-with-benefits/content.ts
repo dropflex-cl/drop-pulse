@@ -24,7 +24,13 @@ export const imageWithBenefits = defineComponent({
   kind: "section",
   file: "sections/df-image-with-benefits.liquid",
   metafield: { namespace: "dropflex", key: "image_with_benefits", type: "json" },
-  media: [],
+  media: [
+    {
+      key: "image_with_benefits_image",
+      type: "file_reference",
+      source: "La «Foto central» elegida en la etapa Página del producto (Información base o Imágenes). Sin ella, la foto destacada del producto.",
+    },
+  ],
   imageSlots: [
     { key: "main", label: "Foto central", min: 0, max: 1, ratio: "1:1", hint: "El producto solo, idealmente sin fondo. Sin elegir, va la foto principal del producto." },
   ],

@@ -3,7 +3,8 @@
   producto al centro y 4 o 6 beneficios alrededor (mitad a cada lado en escritorio), como un
   diagrama que explica el producto.
 
-  REGLA: la foto es real (ajuste del editor o la foto destacada del producto). La IA escribe solo
+  REGLA: la foto es real: la elegida en DropFlex (metafield `dropflex.image_with_benefits_image`,
+  file_reference), el ajuste del editor o la foto destacada del producto. La IA escribe solo
   el título y los beneficios; los datos técnicos que mencione deben estar en la ficha.
 
   Contenido: metafield `dropflex.image_with_benefits` (json) → si falta, el título y los bloques
@@ -20,7 +21,8 @@
   assign s = section.settings
   assign content = product.metafields.dropflex.image_with_benefits.value
 
-  assign image = s.image
+  # La foto elegida en DropFlex (Publicar) → la del editor → la destacada del producto.
+  assign image = product.metafields.dropflex.image_with_benefits_image.value | default: s.image
   if image == blank and s.use_product_image
     assign image = product.featured_image
   endif

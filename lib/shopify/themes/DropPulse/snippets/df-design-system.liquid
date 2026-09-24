@@ -2,7 +2,8 @@
   DropFlex · el design system de DropFlex (design-system/) en la tienda. Va en el <head>, después
   de theme-styles-variables y color-palette, para ganarles con la misma especificidad.
 
-  - Tipografía: Geist 400/500/600 (Google Fonts) en cuerpo, títulos y subtítulos; cifras tabulares.
+  - Tipografía: Geist 400/500/600 servida desde el tema (assets/df-geist-*.woff2, licencia OFL en
+    _landing/GEIST-LICENSE.txt) en cuerpo, títulos y subtítulos; cifras tabulares.
   - Foco: 2px sólidos del anillo con 2px de separación (≥3:1).
   - Movimiento: 0ms con prefers-reduced-motion.
   - Acento: en la ficha, el botón principal toma el acento del producto (dropflex.accent), con el
@@ -30,10 +31,31 @@
       endif
     endif
   -%}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
+  {{ 'df-geist-400.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
+  {{ 'df-geist-600.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
   {% style %}
+    @font-face {
+      font-family: 'Geist';
+      src: url({{ 'df-geist-400.woff2' | asset_url }}) format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Geist';
+      src: url({{ 'df-geist-500.woff2' | asset_url }}) format('woff2');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Geist';
+      src: url({{ 'df-geist-600.woff2' | asset_url }}) format('woff2');
+      font-weight: 600 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root {
       --df-ds-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
       --df-ds-ring: #1f4bd8;

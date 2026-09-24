@@ -200,7 +200,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
         variant="bar"
         summary={
           <span className="max-lg:hidden">
-            {ready ? `Portada y ${galleryChosen} de galería elegidas. Publicar llega pronto.` : `Elige la portada y al menos ${GALLERY_MIN} imágenes de galería.`}
+            {ready ? `Portada y ${galleryChosen} de galería elegidas.` : `Elige la portada y al menos ${GALLERY_MIN} imágenes de galería.`}
           </span>
         }
         className="lg:px-8"
@@ -215,9 +215,15 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
             {`Generar los vacíos · ${cost(empty.length)}`}
           </Button>
         ) : (
-          <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={actionClass}>
-            Continuar: Publicar
-          </Button>
+          ready ? (
+            <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "publicar")} className={actionClass}>
+              Continuar: Publicar
+            </Button>
+          ) : (
+            <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={actionClass}>
+              Continuar: Publicar
+            </Button>
+          )
         )}
       </StickyActions>
     );
