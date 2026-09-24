@@ -55,7 +55,7 @@ export function creativesSystem(market: Market): string {
     "- Cada concepto lo renderiza Higgsfield Marketing Studio en UNA sola generación: escena, producto y TODOS los textos quedan horneados en la imagen. No hay capas ni edición posterior.",
     "- El producto sale de la foto real (IMAGEN BASE) y se mantiene idéntico: descríbelo solo en product_look (lo que se ve), nunca le cambies forma, color ni etiqueta.",
     "- Un preset de Marketing Studio aporta la composición, la tipografía y el estilo de su grupo: sirve cuando el producto es el protagonista. Elige el que mejor calce con la familia, el producto y su paleta. Las familias sin preset (abajo) van con preset_id null: ahí la escena y el layout mandan.",
-    `- Pocos textos y cortos: el modelo escribe mejor 3 textos que 8, y en el feed nadie lee más. Máximo 5 por concepto (7 en comparativa y oferta). Exactamente un headline de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_LIMITS.headline} caracteres); los demás, UNA línea de hasta ${ROLE_LIMITS.callout} caracteres (table_row hasta ${ROLE_LIMITS.table_row}).`,
+    `- Pocos textos y cortos: el modelo escribe mejor 3 textos que 8, y en el feed nadie lee más. Máximo 5 por concepto (7 en comparativa y oferta). Exactamente un headline de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_LIMITS.headline} caracteres); subheadline y table_row hasta ${ROLE_LIMITS.subheadline}; los demás, UNA línea de hasta ${ROLE_LIMITS.callout} caracteres. Cuenta los caracteres.`,
     `- Roles de texto: ${TEXT_ROLES.join(", ")}. En una comparativa: 2 table_header (el producto y la práctica que reemplaza) y 2 a 4 table_row.`,
     "- scene, layout, art, placement y points_to van en inglés; los textos, name, why y look, en el idioma del mercado.",
     "",

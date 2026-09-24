@@ -47,6 +47,8 @@ const DAILY_RUNS = 10;
 const DAILY_IMAGES = 120;
 /** Cuánto espera el proceso en segundo plano antes de dejarle la pieza al sondeo de la pantalla. */
 const POLL_BUDGET_MS = 200_000;
+/** Intentos del generador de conceptos; cada uno recibe lo que falló en el anterior. */
+const CONCEPT_ATTEMPTS = 3;
 /** Otro proceso no toma una pieza que se tocó hace menos de esto (lease sobre updated_at). */
 const LEASE_MS = 20_000;
 const AD_MEDIA_BUCKET = "ad-media";
@@ -188,7 +190,9 @@ export async function runCreatives(runId: string): Promise<void> {
     const facts = { presetIds: new Set(presets.map((p) => p.id)), pricing: input.pricing };
     let problems: string[] = [];
     let result: Awaited<ReturnType<typeof generateStructured<typeof creativeConceptsSchema>>> | null = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // Con la dirección de arte hay más reglas (largos por rol): un concepto fuera de medida no debería
+    // tumbar la propuesta, así que hay un tercer intento.
+    for (let attempt = 0; attempt < CONCEPT_ATTEMPTS; attempt++) {
       result = await generateStructured({
         system: creativesSystem(input.market),
         content: [...imageContent, { type: "text", text: creativesUser(ctx, problems) }],

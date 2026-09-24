@@ -118,8 +118,9 @@ export function renderRequest(concept: RenderableConcept, ratio: Ratio, language
       quality: RENDER.quality,
       aspect_ratio: ratio,
       moderation: "auto",
-      // Con preset, Higgsfield mejora el prompt (como en F0); sin preset, el layout va literal.
-      enhance_prompt: mode === "preset",
+      // Nunca se deja que Higgsfield reescriba el prompt: con la dirección de arte no aporta y es lo
+      // que traducía textos al inglés, agregaba palabras de fondo y omitía notas (spec §7.4).
+      enhance_prompt: false,
       ...(mode === "preset" ? { preset_id: concept.preset_id } : {}),
     },
   };

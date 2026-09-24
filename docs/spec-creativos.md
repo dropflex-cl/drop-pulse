@@ -399,9 +399,10 @@ Más el B-roll desde un keyframe 9:16. Es la ronda que decide si el texto se con
 
 **POC con datos de prod** (solo lectura, fuera del repo; mismo producto, misma foto base): de genérico a nivel agencia en 5 de 6; el QA cazó el sexto (inventó "ELECTRONIC PEDICURE TOOL" en el cuerpo, de ahí la regla nueva). Costo: ~US$0,50 de conceptos + 6 × ~US$0,10 de imágenes.
 
-**Validado con el código del repo:** el prompt de render es el de la POC más la regla nueva; 9:16 del explicativo sale igual de bien. En la oferta 9:16 con preset, Flare omitió las 3 notas del pie: el QA las marca como faltantes y el reintento automático va sin preset.
-
-**Pendiente:** correr el generador v2 con Claude sobre el producto de prod y sobre URO (`scratchpad/poc/validate.mts`); la cuenta de Anthropic se quedó sin crédito durante la validación.
+**Validación con Claude y el código del repo** (2026-09-24; el producto de prod y URO, 6 conceptos 1:1 + 2 en 9:16 cada uno; ~US$1 de Claude y ~US$1,80 de imágenes):
+- Conceptos: URO al primer intento; el de prod necesitó corregir un titular de 7 palabras, un monto calculado ($15.997 por unidad) y un subtítulo de 37 caracteres. Por eso el subtítulo sube a 40 y el generador tiene 3 intentos.
+- Sin preset pasaron el QA 7 de 7. Con preset y `enhance_prompt`, 4 de 9: tradujo la oferta al inglés, agregó «ODOR» de fondo, cambió «adentro» por «dentro», omitió notas del pie. La misma oferta con preset y sin `enhance_prompt`, y sin preset, pasaron las dos. Decisión: `enhance_prompt` siempre en false; el preset queda para las familias de producto protagonista.
+- El QA v2 cazó lo nuevo: «Cabezal grueso y cabezal fino» con un solo cabezal a la vista.
 
 ## 8. Decisiones
 

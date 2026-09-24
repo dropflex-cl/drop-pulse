@@ -35,10 +35,11 @@ export const TEXT_ROLES = ["headline", "subheadline", "callout", "badge", "table
 export type TextRole = (typeof TEXT_ROLES)[number];
 
 /**
- * Largo máximo por rol, en caracteres: el titular en 2 a 6 palabras y el resto en UNA línea. Más
+ * Largo máximo por rol, en caracteres: el titular en 2 a 6 palabras, el subtítulo y la fila de tabla
+ * en una frase corta, y el resto en UNA línea. Más
  * largo, el modelo lo corta mal («Luz LED que se enciende al / funcionar»).
  */
-export const ROLE_LIMITS: Record<TextRole, number> = { headline: 45, subheadline: 32, callout: 32, badge: 32, table_header: 32, table_row: 40, note: 32 };
+export const ROLE_LIMITS: Record<TextRole, number> = { headline: 45, subheadline: 40, callout: 32, badge: 32, table_header: 32, table_row: 40, note: 32 };
 export const HEADLINE_MAX_WORDS = 6;
 
 /** Máximo de textos por pieza: pocos se leen en el feed; la comparativa y la oferta necesitan más. */

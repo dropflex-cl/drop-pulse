@@ -18,7 +18,7 @@ export const MAX_TEXTS = 7;
 
 const bakedText = z.object({
   role: z.enum(TEXT_ROLES),
-  text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_LIMITS.headline} caracteres; table_row ≤ ${ROLE_LIMITS.table_row}; el resto ≤ ${ROLE_LIMITS.callout}.`),
+  text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_LIMITS.headline} caracteres; subheadline y table_row ≤ ${ROLE_LIMITS.subheadline}; el resto ≤ ${ROLE_LIMITS.callout}.`),
   placement: z.string().describe("En inglés: dónde va y cómo se ve (posición, cuántas líneas, peso, color y contenedor: pill, card, stamp, handwritten note, table cell)."),
   points_to: z.string().nullable().describe("Solo callouts: la parte VISIBLE del producto a la que llega su línea, en inglés («the grey roller head»). null si no apunta a nada."),
 });

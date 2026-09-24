@@ -79,10 +79,10 @@ describe("renderRequest", () => {
     expect(renderRequest(concept({ family: "offer", product_units: 3 }), "1:1", "Spanish").input.prompt as string).toContain("Show exactly 3 units of it, side by side.");
   });
 
-  it("con preset (producto protagonista): el preset y Higgsfield mejora el prompt", () => {
+  it("con preset (producto protagonista): el preset, sin que Higgsfield reescriba el prompt", () => {
     const r = renderRequest(concept(), "9:16", "Spanish");
     expect(r).toMatchObject({ mode: "preset", presetId: preset });
-    expect(r.input).toMatchObject({ enhance_prompt: true, preset_id: preset, aspect_ratio: "9:16" });
+    expect(r.input).toMatchObject({ enhance_prompt: false, preset_id: preset, aspect_ratio: "9:16" });
     expect(r.input.prompt as string).toMatch(/^Vertical 9:16 advertising image/);
   });
 
@@ -134,11 +134,15 @@ describe("textProblems", () => {
     const long = textProblems(
       [
         { role: "headline", text: "Dos rodillos" },
-        { role: "subheadline", text: "Luz LED que se enciende al funcionar" },
+        { role: "subheadline", text: "Luz LED que se enciende sola al funcionar" },
+        { role: "callout", text: "Diseñado para desgastar la piel dura" },
       ],
       pricing,
     );
-    expect(long[0]).toMatch(/32 caracteres \(subheadline\)/);
+    expect(long).toEqual([
+      "«Luz LED que se enciende sola al funcionar» pasa de 40 caracteres (subheadline).",
+      "«Diseñado para desgastar la piel dura» pasa de 32 caracteres (callout).",
+    ]);
   });
 
   it("máximo de textos según la familia: 5, y 7 en comparativa y oferta", () => {
