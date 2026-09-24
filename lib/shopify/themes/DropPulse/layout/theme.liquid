@@ -7,6 +7,9 @@
   dir="{{ request.locale.direction | default: 'ltr' }}"
 >
   <head>
+    {%- comment -%} DropFlex: modo landing. Antes de los estilos: la página que se deja no se pinta. {%- endcomment -%}
+    {%- render 'df-landing-redirect' -%}
+
     {%- if settings.favicon != blank -%}
       <link
         rel="icon"
@@ -24,6 +27,8 @@
     {%- render 'scripts' -%}
     {%- render 'theme-styles-variables' -%}
     {%- render 'color-palette' -%}
+    {%- comment -%} DropFlex: design system (Geist, foco, acento del producto). Después de la paleta para ganarle. {%- endcomment -%}
+    {%- render 'df-design-system' -%}
 
     {% if request.design_mode %}
       {%- render 'theme-editor' -%}

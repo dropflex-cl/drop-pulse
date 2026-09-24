@@ -55,6 +55,48 @@ describe("catálogo", () => {
   });
 });
 
+// La tienda como landing (README de _landing): no son del catálogo, pero van al mismo tema con las
+// mismas reglas de Shopify.
+describe("_landing", () => {
+  const landing = files("_landing");
+
+  it("todo archivo del tema empieza con df-", () => {
+    expect(landing.length).toBeGreaterThan(0);
+    for (const f of landing) expect(f.split("/").pop()).toMatch(/^df-/);
+  });
+
+  it("schema válido para Shopify: nombres ≤ 25 y sin defaults vacíos", () => {
+    for (const f of landing.filter((f) => f.endsWith(".liquid"))) {
+      const schema = schemaOf(readFileSync(f, "utf8"));
+      if (!schema) continue;
+      walk(schema, (n) => {
+        if (typeof n.name === "string" && !n.name.startsWith("t:")) expect(n.name.length, `${f}: ${n.name}`).toBeLessThanOrEqual(25);
+        if ("default" in n) expect(n.default, `${f}: ${String(n.id)}`).not.toBe("");
+      });
+    }
+  });
+
+  it("solo usa íconos que existen", () => {
+    for (const f of landing) {
+      for (const m of readFileSync(f, "utf8").matchAll(/render 'df-icon', name: '([a-z-]+)'/g)) {
+        expect([...ICON_KEYS, ...UI_ICON_KEYS] as string[]).toContain(m[1]);
+      }
+      for (const m of readFileSync(f, "utf8").matchAll(/"value": "([a-z-]+)", "label"/g)) {
+        if (f.includes("df-trust-note") && !["cod", "free_shipping", "returns", "warranty", "none"].includes(m[1])) {
+          expect([...ICON_KEYS] as string[]).toContain(m[1]);
+        }
+      }
+    }
+  });
+
+  it("el tema usa los bloques de la landing en la ficha", () => {
+    const template = readFileSync(join(ROOT, "../themes/DropPulse/templates/product.json"), "utf8");
+    for (const type of ["df-social-proof", "df-subtitle", "df-price", "df-pack-offers", "df-trust-note"]) {
+      expect(template).toContain(`"type": "${type}"`);
+    }
+  });
+});
+
 describe.each(ids)("%s", (id) => {
   const load = async (): Promise<ConversionComponent> => {
     const mod = await import(`./${id}/content.ts`);

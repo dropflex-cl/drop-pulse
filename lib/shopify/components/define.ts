@@ -58,6 +58,19 @@ export const SHARED_METAFIELDS = {
    * Un beneficio que menciona una política ausente o falsa no se publica.
    */
   policies: { owner: "shop", namespace: "dropflex", key: "policies", type: "json" },
+  /**
+   * Producto · single_line_text_field. La bajada bajo el título de la ficha: `short_description`
+   * de la ficha aprobada (lib/copy/listing.ts). Lo lee `df-subtitle` (_landing).
+   */
+  subtitle: { owner: "product", namespace: "dropflex", key: "subtitle", type: "single_line_text_field" },
+  /**
+   * Producto · json. La oferta de la ficha: `offer_line` de la ficha aprobada y las etiquetas
+   * aprobadas de los packs (pack_labels), en el orden de las variantes del producto:
+   * { offer_line?: string, packs: Array<{ units: number, label: string, support?: string, badge?: string }> }
+   * Cada pack es una VARIANTE del producto (1, 2 y 3 unidades) con su precio y su precio tachado
+   * reales; el metafield solo lleva textos. Lo lee `df-pack-offers` (_landing).
+   */
+  offer: { owner: "product", namespace: "dropflex", key: "offer", type: "json" },
 } as const;
 
 export type ComponentKind = "block" | "section";

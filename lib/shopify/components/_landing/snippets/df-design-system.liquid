@@ -1,0 +1,97 @@
+{%- doc -%}
+  DropFlex · el design system de DropFlex (design-system/) en la tienda. Va en el <head>, después
+  de theme-styles-variables y color-palette, para ganarles con la misma especificidad.
+
+  - Tipografía: Geist 400/500/600 (Google Fonts) en cuerpo, títulos y subtítulos; cifras tabulares.
+  - Foco: 2px sólidos del anillo con 2px de separación (≥3:1).
+  - Movimiento: 0ms con prefers-reduced-motion.
+  - Acento: en la ficha, el botón principal toma el acento del producto (dropflex.accent), con el
+    texto encima oscuro o blanco según su brillo. Sin acento queda el del tema (cobalto en la
+    paleta de DropFlex).
+  La paleta (blanco, tinta #15171c, bordes #e4e6eb) y los radios (6/10/14px) viven como valores del
+  tema en config/settings_data.json: el comerciante los sigue cambiando desde el editor.
+  Se apaga con el ajuste `df_design_system`.
+{%- enddoc -%}
+{%- unless settings.df_design_system == false -%}
+  {%- liquid
+    assign df_accent = blank
+    if request.page_type == 'product'
+      assign df_accent = product.metafields.dropflex.accent.value
+    endif
+    if df_accent != blank
+      assign df_accent_hex = df_accent | color_to_hex
+      assign df_brightness = df_accent | color_brightness
+      if df_brightness > 150
+        assign df_on_accent = '#15171c'
+        assign df_accent_hover = df_accent | color_darken: 6 | color_to_hex
+      else
+        assign df_on_accent = '#ffffff'
+        assign df_accent_hover = df_accent | color_darken: 8 | color_to_hex
+      endif
+    endif
+  -%}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
+  {% style %}
+    :root {
+      --df-ds-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --df-ds-ring: #1f4bd8;
+      --font-body--family: var(--df-ds-font);
+      --font-body--style: normal;
+      --font-body--weight: 400;
+      --font-subheading--family: var(--df-ds-font);
+      --font-subheading--style: normal;
+      --font-subheading--weight: 500;
+      --font-heading--family: var(--df-ds-font);
+      --font-heading--style: normal;
+      --font-heading--weight: 600;
+      --font-accent--family: var(--df-ds-font);
+      --font-accent--style: normal;
+      --font-accent--weight: 600;
+      --style-border-radius-sm: 6px;
+      --style-border-radius-md: 10px;
+      --style-border-radius-lg: 14px;
+      --focus-outline-width: 2px;
+      --focus-outline-offset: 2px;
+      {%- if df_accent != blank %}
+        --df-ds-ring: {{ df_accent_hex }};
+        --color-primary-button-background: {{ df_accent_hex }};
+        --color-primary-button-border: {{ df_accent_hex }};
+        --color-primary-button-text: {{ df_on_accent }};
+        --color-primary-button-hover-background: {{ df_accent_hover }};
+        --color-primary-button-hover-border: {{ df_accent_hover }};
+        --color-primary-button-hover-text: {{ df_on_accent }};
+        --color-primary-button-focus-outline: {{ df_accent_hex }};
+      {%- endif %}
+    }
+
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+      letter-spacing: -0.01em;
+    }
+
+    /* Cifras: precios y cantidades alineadas (type-metric del design system). */
+    .price, .compare-at-price, product-price, .df-price, .df-pack-offers, .cart-items, .cart-summary {
+      font-variant-numeric: tabular-nums;
+    }
+
+    *:focus-visible {
+      outline: 2px solid var(--df-ds-ring);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  {% endstyle %}
+{%- endunless -%}

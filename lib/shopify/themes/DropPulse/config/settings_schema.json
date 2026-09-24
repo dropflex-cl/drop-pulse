@@ -8,6 +8,39 @@
     "theme_support_url": "https://support.shopify.com/"
   },
   {
+    "name": "DropFlex",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Tienda de un producto"
+      },
+      {
+        "type": "checkbox",
+        "id": "df_landing_mode",
+        "label": "Solo la ficha del producto",
+        "info": "La home, las colecciones, la búsqueda y las páginas llevan al último producto visitado. Siguen abiertos el carrito, las políticas, la cuenta y las páginas de contacto, seguimiento y gracias.",
+        "default": true
+      },
+      {
+        "type": "product",
+        "id": "df_landing_product",
+        "label": "Producto de respaldo",
+        "info": "A dónde va quien entra sin haber visto un producto. Sin elegir, el primer producto disponible."
+      },
+      {
+        "type": "header",
+        "content": "Diseño"
+      },
+      {
+        "type": "checkbox",
+        "id": "df_design_system",
+        "label": "Design system de DropFlex",
+        "info": "Tipografía Geist, foco accesible y el color de cada producto en su botón de compra.",
+        "default": true
+      }
+    ]
+  },
+  {
     "name": "t:names.logo_and_favicon",
     "settings": [
       {

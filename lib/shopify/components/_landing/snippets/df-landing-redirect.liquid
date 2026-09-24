@@ -1,0 +1,96 @@
+{%- doc -%}
+  DropFlex · Redirección del modo landing. Va en el <head>, antes de los estilos, para que la
+  página que se deja no alcance a pintarse.
+
+  - En una ficha guarda { url, available } en localStorage['df:last-product'].
+  - En una página que no es parte del embudo (home, colecciones, búsqueda, blog, páginas) vuelve al
+    último producto disponible o, si no hay, al de respaldo: el ajuste `df_landing_product` o el
+    primer producto disponible de la tienda (resuelto aquí, en el servidor).
+  - En 404 borra lo guardado y rebota al respaldo una sola vez por sesión (sessionStorage
+    'df:bounced'): si todas las fichas dieran 404, no hay bucle.
+  - Conserva location.search y location.hash (utm_*, fbclid, gclid): la atribución de los
+    anuncios no se pierde.
+  - Nunca redirige: ficha, carrito, políticas, cuenta, password, gift card, captcha, las páginas
+    contact / contacto / seguimiento / gracias (o con template page.contact) ni en el editor.
+  Las páginas que redirige llevan noindex.
+{%- enddoc -%}
+{%- liquid
+  capture df_landing
+    render 'df-landing-mode'
+  endcapture
+  assign df_landing = df_landing | strip
+
+  assign df_mode = 'none'
+  if df_landing == 'true' and request.design_mode != true
+    assign df_mode = 'redirect'
+    assign df_page_type = request.page_type | append: ''
+    case df_page_type
+      when 'product'
+        assign df_mode = 'product'
+      when '404'
+        assign df_mode = '404'
+      when 'cart', 'password', 'gift_card', 'policy', 'captcha'
+        assign df_mode = 'none'
+      when 'page'
+        assign df_allowed = 'contact,contacto,seguimiento,gracias' | split: ','
+        if df_allowed contains page.handle or template.suffix contains 'contact'
+          assign df_mode = 'none'
+        endif
+    endcase
+    if df_page_type contains 'customers'
+      assign df_mode = 'none'
+    endif
+  endif
+
+  assign df_fallback = ''
+  if df_mode == 'redirect' or df_mode == '404'
+    if settings.df_landing_product != blank and settings.df_landing_product.available
+      assign df_fallback = settings.df_landing_product.url
+    else
+      for df_candidate in collections.all.products limit: 50
+        if df_candidate.available
+          assign df_fallback = df_candidate.url
+          break
+        endif
+      endfor
+    endif
+  endif
+-%}
+{%- if df_mode != 'none' -%}
+  {%- if df_mode == 'redirect' -%}
+    <meta name="robots" content="noindex">
+    {%- if df_fallback != blank -%}
+      <noscript><meta http-equiv="refresh" content="0;url={{ df_fallback }}"></noscript>
+    {%- endif -%}
+  {%- endif -%}
+  <script>
+    (function () {
+      var KEY = 'df:last-product';
+      var FUSE = 'df:bounced';
+      var mode = {{ df_mode | json }};
+      var fallback = {{ df_fallback | json }};
+      try {
+        if (mode === 'product') {
+          localStorage.setItem(KEY, JSON.stringify({ url: {{ product.url | json }}, available: {{ product.available | json }} }));
+          sessionStorage.removeItem(FUSE);
+          return;
+        }
+        var saved = null;
+        try {
+          saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+        } catch (e) {}
+        if (mode === '404') {
+          localStorage.removeItem(KEY);
+          if (sessionStorage.getItem(FUSE)) return;
+          sessionStorage.setItem(FUSE, '1');
+          saved = null;
+        }
+        // Solo rutas del mismo origen: «/products/…», nunca «//otro-sitio».
+        var own = saved && saved.available === true && typeof saved.url === 'string' && /^\/(?!\/)/.test(saved.url);
+        var target = own ? saved.url : fallback;
+        if (!target || target === location.pathname) return;
+        location.replace(target + location.search + location.hash);
+      } catch (e) {}
+    })();
+  </script>
+{%- endif -%}

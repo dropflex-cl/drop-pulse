@@ -1,0 +1,245 @@
+{%- doc -%}
+  DropFlex · Prueba social (social-proof). Bloque de la columna del producto, lo primero de la
+  ficha: una tarjeta con las fotos de quienes lo compraron y «M***a, J***n y 17 personas más lo
+  recomiendan».
+
+  REGLA: todo sale de las reseñas APROBADAS. Fotos y nombres (enmascarados) de reseñas con 4 o 5
+  estrellas; la cantidad es review_summary.count menos los nombres mostrados. Sin resumen, con
+  menos reseñas que el mínimo, con promedio bajo 4 o sin nadie más que los nombrados, no se dibuja.
+
+  Datos: product.metafields.dropflex.reviews (items), reviews_images (fotos, la primera de cada
+  reseña es su avatar) y review_summary ({ rating, count }).
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign reviews = product.metafields.dropflex.reviews.value.items
+  assign images = product.metafields.dropflex.reviews_images.value
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign rating = summary.rating | default: 0 | plus: 0
+  assign count = summary.count | default: 0 | plus: 0
+
+  assign names = ''
+  assign name_count = 0
+  assign avatar_count = 0
+-%}
+{%- capture avatars_html -%}
+  {%- for review in reviews -%}
+    {%- liquid
+      if avatar_count >= 3
+        break
+      endif
+      assign r_rating = review.rating | plus: 0
+      if r_rating < 4 or review.author == blank
+        continue
+      endif
+      assign avatar_count = avatar_count | plus: 1
+      if name_count < 2
+        if names != ''
+          assign names = names | append: ', '
+        endif
+        assign names = names | append: review.author
+        assign name_count = name_count | plus: 1
+      endif
+      assign photo = nil
+      assign image_count = review.image_count | plus: 0
+      if image_count > 0
+        assign from = review.image_from | plus: 0
+        for img in images
+          if forloop.index0 == from
+            assign photo = img
+            break
+          endif
+        endfor
+      endif
+    -%}
+    <span class="df-social-proof__avatar">
+      {%- if photo != blank -%}
+        {{ photo | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '40px', alt: '', loading: 'lazy' }}
+      {%- else -%}
+        {{ review.author | slice: 0 | upcase | escape }}
+      {%- endif -%}
+    </span>
+  {%- endfor -%}
+{%- endcapture -%}
+{%- liquid
+  assign others = count | minus: name_count
+  assign show = true
+  if product == blank or count < s.min_reviews or rating < 4 or name_count == 0 or others < 1
+    assign show = false
+  endif
+
+  if show
+    assign others_text = others | append: ''
+    if others >= 1000
+      assign thousands = others | divided_by: 1000
+      assign rest = others | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign others_text = thousands | append: '.' | append: rest
+    endif
+    assign template = s.label | default: '**{names}** y {others} personas más lo recomiendan'
+    if template contains '{others}'
+      assign safe_names = names | escape
+      assign parts = template | escape | replace: '{names}', safe_names | replace: '{others}', others_text | split: '**'
+    else
+      assign show = false
+    endif
+  endif
+-%}
+{%- if show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div
+    class="df df-social-proof"
+    style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    <span class="df-social-proof__avatars" aria-hidden="true">{{ avatars_html }}</span>
+    <p class="df-social-proof__text">
+      {%- for part in parts -%}
+        {%- assign odd = forloop.index0 | modulo: 2 -%}
+        {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+        {%- if forloop.index0 == 1 and s.show_verified -%}
+          <span class="df-social-proof__verified">{% render 'df-icon', name: 'check-circle' %}<span class="df-visually-hidden"> (reseñas revisadas por la tienda)</span></span>
+        {%- endif -%}
+      {%- endfor -%}
+    </p>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Prueba social: aparece con reseñas aprobadas en DropFlex (al menos {{ s.min_reviews }}, con promedio de 4 o más).
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-social-proof {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--df-hairline);
+    border-radius: var(--df-radius);
+    background: var(--df-surface);
+  }
+
+  .df-social-proof__avatars {
+    display: flex;
+    flex: none;
+  }
+
+  .df-social-proof__avatar {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border: 2px solid var(--df-bg);
+    border-radius: var(--df-radius-pill);
+    background: var(--df-accent-soft);
+    color: var(--df-accent-ink);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .df-social-proof__avatar + .df-social-proof__avatar {
+    margin-inline-start: -12px;
+  }
+
+  .df-social-proof__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .df-social-proof__text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--df-muted);
+    text-wrap: pretty;
+  }
+
+  .df-social-proof__text strong {
+    font-weight: 600;
+    color: var(--df-fg);
+  }
+
+  .df-social-proof__verified {
+    display: inline-flex;
+    margin-inline-start: 4px;
+    vertical-align: -0.2em;
+    color: var(--df-accent-ink);
+  }
+
+  .df-social-proof__verified .df-icon {
+    width: 1.1em;
+    height: 1.1em;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Prueba social",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Fotos, nombres y cantidad salen de las reseñas aprobadas en DropFlex. Sin reseñas suficientes no se muestra."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Texto",
+      "info": "{names} son los nombres y {others} cuántas personas más. **texto** va en negrita.",
+      "default": "**{names}** y {others} personas más lo recomiendan"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_verified",
+      "label": "Sello tras los nombres",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "min_reviews",
+      "label": "Mínimo de reseñas",
+      "min": 3,
+      "max": 20,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Prueba social"
+    }
+  ]
+}
+{% endschema %}

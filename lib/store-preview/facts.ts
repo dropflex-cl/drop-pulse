@@ -26,12 +26,29 @@ export interface StorePolicies {
   whatsapp?: string;
 }
 
+/**
+ * Un pack de «Precio y packs»: en la tienda es una variante del producto (df-pack-offers), con su
+ * precio y su tachado reales. Tachado = (tachado de 1 unidad, o su precio) × unidades, si es mayor.
+ * Los textos son las etiquetas de los packs aprobadas; sin ellas, la tienda usa el nombre de la
+ * variante.
+ */
+export interface StorePack {
+  units: number;
+  price: number;
+  compareAt?: number;
+  label?: string;
+  support?: string;
+  badge?: string;
+}
+
 export interface StoreFacts {
   productName: string;
   productImage?: string;
   price: number;
   compareAt?: number;
   currency: string;
+  /** Los packs (variantes) con precio guardado; vacío o ausente sin «Precio y packs». */
+  packs?: StorePack[];
   /** Las reseñas aprobadas, en su orden. */
   reviews: StoreReview[];
   /** Promedio de las aprobadas (1 decimal); null sin reseñas. */
@@ -40,6 +57,12 @@ export interface StoreFacts {
   policies: StorePolicies;
   /** Días hábiles de entrega; null si la tienda todavía no los tiene. */
   logistics: { min: number; max: number } | null;
+}
+
+/** El tachado de un pack: lo que costarían sus unidades al precio de referencia, si es mayor. */
+export function packCompareAt(units: number, price: number, unitPrice: number, unitCompareAt?: number | null): number | undefined {
+  const ref = (unitCompareAt ?? unitPrice) * units;
+  return ref > price ? ref : undefined;
 }
 
 /** Valores de ejemplo para lo que la tienda todavía no tiene (y lo que se simula: stock, reloj). */

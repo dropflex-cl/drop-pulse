@@ -1,6 +1,12 @@
 
 
 {% liquid
+  # DropFlex: en modo landing la tienda es solo la ficha. Sin menú, buscador, cuenta ni país/idioma.
+  capture df_landing
+    render 'df-landing-mode'
+  endcapture
+  assign df_landing = df_landing | strip
+
   assign order = 'logo,menu,localization,search,drawer_search,actions'
 
   if shop.customer_accounts_enabled
@@ -102,7 +108,7 @@
   endif
 
   capture actions
-    render 'header-actions', customer_account_menu: section.settings.customer_account_menu, display_style: section.settings.actions_display_style, section: section
+    render 'header-actions', customer_account_menu: section.settings.customer_account_menu, display_style: section.settings.actions_display_style, section: section, df_landing: df_landing
   endcapture
 
   if shop.customer_accounts_enabled
@@ -162,6 +168,18 @@
     assign show_country = false
   endif
 
+  if df_landing == 'true'
+    assign menu = ''
+    assign drawer_menu = ''
+    assign navigation_bar = ''
+    assign has_navigation_bar = false
+    assign search = ''
+    assign drawer_search = ''
+    assign search_style = 'none'
+    assign show_language = false
+    assign show_country = false
+  endif
+
   assign bottom_row_blocks = ''
 
   if section.settings.menu_row == 'bottom'
@@ -181,6 +199,9 @@
   endif
 
   assign bottom_row_blocks = bottom_row_blocks | split: ',' | compact
+  if df_landing == 'true'
+    assign bottom_row_blocks = '' | split: ','
+  endif
 
   assign has_second_row = false
   if bottom_row_blocks.size > 0

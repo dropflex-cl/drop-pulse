@@ -18,6 +18,11 @@ export const FIXTURE_FACTS: StoreFacts = {
   price: 24990,
   compareAt: 32990,
   currency: "CLP",
+  packs: [
+    { units: 1, price: 24990, compareAt: 32990, label: "1 unidad", support: "Para probarlo" },
+    { units: 2, price: 37990, compareAt: 65980, label: "2 unidades", support: "Uno para ti y otro para regalar", badge: "Más elegido" },
+    { units: 3, price: 49990, compareAt: 98970, label: "3 unidades", support: "Lleva 3, paga 2" },
+  ],
   reviews: REVIEW_TEXTS.map(([id, author, rating, body, country]) => ({ id, author, rating, body, country, date: "ago 2026", photos: [] })),
   rating: 4.7,
   count: REVIEW_TEXTS.length,

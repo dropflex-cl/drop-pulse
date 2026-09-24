@@ -7,11 +7,12 @@ import { AssistantButton, AssistantScope } from "@/components/shell/assistant-pr
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
+import { ListingPreview } from "@/components/store-preview/listing";
 import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { LISTING, type Listing } from "@/lib/copy/listing";
-import { PAGE_GROUPS, componentName, missingImages } from "@/lib/copy/page-ui";
+import { LISTING_SLOTS, PAGE_GROUPS, componentName, missingImages, type ListingSlot } from "@/lib/copy/page-ui";
 import { copyProgress, enabledLabel } from "@/lib/copy/progress";
 import { COPY_STAGE_TITLE } from "@/lib/products/stages";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
@@ -242,7 +243,22 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     );
   });
 
-  /** La página armada: la ficha y los componentes que van, en su orden (escritorio). */
+  /** La página armada como la tienda: los bloques en su lugar de la ficha y después las secciones (escritorio). */
+  const inPage = CATALOG.filter((c) => byId.get(c.id)?.enabled && !missingImages(c.id, byId.get(c.id)!.images).some((s) => s.min > 0));
+  const draw = (c: (typeof CATALOG)[number]) => {
+    const v = byId.get(c.id)!;
+    const Preview = PREVIEWS[c.id];
+    return (
+      <div key={c.id} className={c.kind === "section" ? undefined : "py-1"}>
+        <Preview content={v.content} facts={facts} images={imagesBySlot(v.images, images)} />
+      </div>
+    );
+  };
+  const slots: Partial<Record<ListingSlot, React.ReactNode>> = {};
+  for (const slot of ["top", "afterPrice", "afterButton"] as const) {
+    const here = inPage.filter((c) => c.kind === "block" && (LISTING_SLOTS[c.id] ?? "afterButton") === slot);
+    if (here.length) slots[slot] = here.map(draw);
+  }
   const pageColumn = (
     <aside aria-label="Tu página" className="hidden border-l bg-sidebar px-4 pt-6 pb-4 @5xl:block">
       <div className="sticky top-6 flex flex-col gap-3">
@@ -252,16 +268,8 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         </div>
         <div role="region" aria-label="Vista previa de tu página" tabIndex={0} className="max-h-[calc(100svh-var(--spacing)*24)] overflow-y-auto rounded-lg border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <StoreFrame accent={accent} scale={0.85}>
-            {listing ? <PREVIEWS.listing content={listing.content} facts={facts} images={{}} /> : null}
-            {CATALOG.filter((c) => byId.get(c.id)?.enabled && !missingImages(c.id, byId.get(c.id)!.images).some((s) => s.min > 0)).map((c) => {
-              const v = byId.get(c.id)!;
-              const Preview = PREVIEWS[c.id];
-              return (
-                <div key={c.id} className={c.kind === "block" ? "px-4 py-1" : undefined}>
-                  <Preview content={v.content} facts={facts} images={imagesBySlot(v.images, images)} />
-                </div>
-              );
-            })}
+            {listing ? <ListingPreview content={listing.content as Partial<Listing>} facts={facts} images={{}} slots={slots} /> : null}
+            {inPage.filter((c) => c.kind === "section").map(draw)}
           </StoreFrame>
         </div>
       </div>

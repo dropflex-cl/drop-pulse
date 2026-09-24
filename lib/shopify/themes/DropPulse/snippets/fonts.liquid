@@ -1,3 +1,5 @@
+{%- comment -%} DropFlex: con el design system la tienda usa Geist (df-design-system); no se precargan las fuentes del tema. {%- endcomment -%}
+{%- if settings.df_design_system == false -%}
 {%- unless settings.type_body_font.system? -%}
   {{ settings.type_body_font | font_url | preload_tag: as: 'font', type: 'font/woff2', fetchpriority: 'low' }}
 {%- endunless -%}
@@ -10,3 +12,4 @@
 {%- unless settings.type_accent_font.system? -%}
   {{ settings.type_accent_font | font_url | preload_tag: as: 'font', type: 'font/woff2', fetchpriority: 'low' }}
 {%- endunless -%}
+{%- endif -%}

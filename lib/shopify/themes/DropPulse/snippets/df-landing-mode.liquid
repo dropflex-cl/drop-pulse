@@ -1,0 +1,12 @@
+{%- doc -%}
+  DropFlex · ¿La tienda es solo la landing de un producto? Imprime `true` o `false`.
+
+  ÚNICA fuente de verdad del modo landing (header, pie y redirección la consultan). Encendido
+  salvo que el comerciante apague el ajuste `df_landing_mode`; un tema sin el ajuste también
+  queda encendido. En Liquid toda cadena es verdadera: el que la usa compara con 'true'.
+
+  @example
+  {%- capture df_landing -%}{% render 'df-landing-mode' %}{%- endcapture -%}
+  {%- if df_landing == 'true' -%} … {%- endif -%}
+{%- enddoc -%}
+{%- if settings.df_landing_mode == false -%}false{%- else -%}true{%- endif -%}

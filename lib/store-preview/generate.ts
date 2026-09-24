@@ -15,19 +15,29 @@ const COMPONENTS = join(ROOT, "lib", "shopify", "components");
 export const CSS_OUT = join(ROOT, "components", "store-preview", "store.generated.css");
 export const TS_OUT = join(ROOT, "lib", "store-preview", "theme.generated.ts");
 
-/** El marco de tienda: lo que el tema define y los componentes leen (--color-foreground…). Fijo: la tienda no tiene modo oscuro. */
+/**
+ * El marco de tienda: lo que el tema define y los componentes leen (--color-foreground…), con los
+ * valores del design system que la tienda aplica (config/settings_data.json y df-design-system:
+ * tinta #15171c, cobalto, Geist, radios 6/10/14). Fijo: la tienda no tiene modo oscuro.
+ */
 const FRAME = `.df-store {
-  --color-foreground: #16181d;
+  --color-foreground: #15171c;
   --color-background: #ffffff;
-  --color-primary-button-background: #16181d;
+  --color-primary-button-background: #1f4bd8;
   --color-primary-button-text: #ffffff;
-  --font-body--family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-heading--family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body--family: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading--family: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading--weight: 600;
+  --style-border-radius-sm: 6px;
+  --style-border-radius-md: 10px;
+  --style-border-radius-lg: 14px;
+  --style-border-radius-pills: 999px;
   container: store / inline-size;
   color-scheme: light;
   background: #ffffff;
-  color: #16181d;
+  color: #15171c;
   font-family: var(--font-body--family);
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;

@@ -1,0 +1,182 @@
+{%- doc -%}
+  DropFlex · Nota de confianza (trust-note). Una tarjeta con un ícono y una frase: la política que
+  más baja el riesgo de comprar (pago al recibir, cambios, garantía). En la ficha va bajo la
+  galería, en escritorio.
+
+  REGLA: la frase afirma una política REAL. El ajuste `policy` dice cuál; si esa política no está
+  activa en shop.metafields.dropflex.policies, la tarjeta no se dibuja. {return_days} y
+  {warranty_months} se llenan con el dato real; sin dato, no se muestra.
+{%- enddoc -%}
+{%- liquid
+  assign s = block.settings
+  assign policies = shop.metafields.dropflex.policies.value
+  assign return_days = policies.return_days | plus: 0
+  assign warranty_months = policies.warranty_months | plus: 0
+  assign text = s.text
+
+  assign ok = true
+  case s.policy
+    when 'cod'
+      unless policies.cod == true
+        assign ok = false
+      endunless
+    when 'free_shipping'
+      unless policies.free_shipping == true
+        assign ok = false
+      endunless
+    when 'returns'
+      if return_days <= 0
+        assign ok = false
+      endif
+    when 'warranty'
+      if warranty_months <= 0
+        assign ok = false
+      endif
+  endcase
+
+  if return_days > 0
+    assign text = text | replace: '{return_days}', return_days
+  endif
+  if warranty_months > 0
+    assign text = text | replace: '{warranty_months}', warranty_months
+  endif
+  if text == blank or text contains '{'
+    assign ok = false
+  endif
+-%}
+{%- if ok -%}
+  {%- assign parts = text | escape | split: '**' -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div
+    class="df df-trust-note"
+    style="{% render 'df-accent-vars', product: closest.product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    <span class="df-trust-note__icon">{% render 'df-icon', name: s.icon %}</span>
+    <p class="df-trust-note__text">
+      {%- for part in parts -%}
+        {%- assign odd = forloop.index0 | modulo: 2 -%}
+        {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+      {%- endfor -%}
+    </p>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Nota de confianza: se muestra cuando la política elegida está activa en tu tienda (Ajustes de DropFlex).
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-trust-note {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--df-hairline);
+    border-radius: var(--df-radius);
+    background: var(--df-surface);
+  }
+
+  .df-trust-note__icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--df-radius-pill);
+    background: var(--df-accent-soft);
+    color: var(--df-accent-ink);
+  }
+
+  .df-trust-note__icon .df-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .df-trust-note__text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.45;
+    text-wrap: pretty;
+  }
+
+  .df-trust-note__text strong {
+    font-weight: 600;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Confianza",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Una política real de tu tienda. Si la política elegida no está activa, la nota no se muestra."
+    },
+    {
+      "type": "select",
+      "id": "policy",
+      "label": "Política que afirma",
+      "options": [
+        { "value": "cod", "label": "Pago al recibir" },
+        { "value": "free_shipping", "label": "Envío gratis" },
+        { "value": "returns", "label": "Cambios y devoluciones" },
+        { "value": "warranty", "label": "Garantía" },
+        { "value": "none", "label": "Ninguna (texto libre)" }
+      ],
+      "default": "cod"
+    },
+    {
+      "type": "select",
+      "id": "icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "home", "label": "Casa" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "check-circle", "label": "Visto en círculo" }
+      ],
+      "default": "cash"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Texto",
+      "info": "**texto** va en negrita. Tokens: {return_days}, {warranty_months}.",
+      "default": "**Pagas al recibir.** No adelantas nada: pagas cuando el producto llega a tu puerta."
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Confianza"
+    }
+  ]
+}
+{% endschema %}

@@ -223,7 +223,8 @@ Namespace `dropflex` (de comerciante, no `$app:`; ver §12). Un `json` por bloqu
 
 | Origen v2 | Metafield | Tipo | Render |
 |---|---|---|---|
-| `offer_line` + precio y packs | `dropflex.offer` | `json` | Bloque `price` de `main-product` |
+| `offer_line` + etiquetas aprobadas de los packs | `dropflex.offer` | `json` `{ offer_line, packs: [{ units, label, support, badge }] }` | `df-pack-offers`: una tarjeta por variante (los packs son variantes con su precio y tachado reales) |
+| `short_description` de la ficha | `dropflex.subtitle` | `single_line_text_field` | `df-subtitle`, bajo el título |
 | `benefit` (3–5, con `kind`) | `dropflex.benefits` | `json` | Sección beneficios |
 | Imágenes slot `benefit` (3:4, una por beneficio) | `dropflex.benefits_images` | `list.file_reference` | Alineadas por índice |
 | `how_it_works` | `dropflex.how_it_works` | `json` | Sección |
@@ -287,6 +288,8 @@ Mecanismo para v2:
 ## 9. Modo landing y embudo de un producto
 
 Dos mecanismos distintos, con una sola fuente de verdad cada uno.
+
+> **Implementado** en el tema DropPulse (`lib/shopify/components/_landing`, ver su README): `df-landing-mode`, `df-landing-redirect` con las cinco correcciones de abajo, header sin menú/buscador/cuenta y pie solo con políticas. Diferencia con lo de abajo: el modo viene **encendido** en el tema de DropFlex (ajuste `df_landing_mode`), porque es un tema propio sin tiendas instaladas todavía.
 
 ### 9.1 Modo landing (quitar salidas)
 

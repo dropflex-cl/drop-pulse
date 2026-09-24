@@ -8,6 +8,22 @@ import type { ImagePick } from "@/lib/types";
 import { LISTING, LISTING_INFO } from "./listing";
 import { textsOf } from "./page-schema";
 
+/**
+ * Dónde va cada bloque dentro de la ficha, en el orden de templates/product.json del tema: sobre el
+ * título, entre el precio y los packs, o bajo el botón. «Tu página» lo usa para dibujar la ficha
+ * como la tienda. Las secciones van siempre después, en el orden del catálogo.
+ */
+export type ListingSlot = "top" | "afterPrice" | "afterButton";
+export const LISTING_SLOTS: Record<string, ListingSlot> = {
+  "review-stars": "top",
+  "benefit-usps": "afterPrice",
+  inventory: "afterPrice",
+  "shipping-timeline": "afterButton",
+  "benefit-double-box": "afterButton",
+  "review-slider": "afterButton",
+  "ugc-slider": "afterButton",
+};
+
 export const PAGE_GROUPS = [
   { kind: "block", title: "Junto al botón de compra", hint: "En la columna del producto, cerca del precio y del botón." },
   { kind: "section", title: "Cuerpo de la página", hint: "Secciones bajo la ficha, en este orden." },

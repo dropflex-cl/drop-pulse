@@ -22,6 +22,8 @@ Los patrones vienen del análisis funcional de una demo comercial (Sternify). **
 | `faq-and-text` | sección | antes del cierre | `dropflex.faq_and_text` | políticas (plazos, cobertura) |
 | `insta-story` | sección | cuerpo de la landing | `dropflex.insta_story` | imágenes y videos subidos |
 
+Fuera del catálogo, `_landing/` tiene lo que hace de la tienda la landing de un producto (modo landing, design system de DropFlex y los bloques de la ficha: prueba social, bajada, precio, packs y nota de confianza). No lleva contenido de la IA; ver su `README.md`.
+
 El detalle de cada uno (datos que necesita, comportamiento, psicología y reglas del copy) está en su `README.md`; lo que la app consume está en su `content.ts`.
 
 ## Estructura de un componente

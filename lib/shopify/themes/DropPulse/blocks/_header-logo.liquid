@@ -21,6 +21,15 @@
   endif
 
   assign alt_text_fallback = 'accessibility.home_logo_alt' | t: store_name: shop.name
+
+  # DropFlex: en modo landing el logo no lleva a la home (un <a> sin href no es un enlace).
+  capture df_landing
+    render 'df-landing-mode'
+  endcapture
+  assign df_landing = df_landing | strip
+  if df_landing == 'true'
+    assign alt_text_fallback = shop.name
+  endif
 %}
 
 {% comment %}
@@ -31,7 +40,9 @@
   {% if template.name == 'index' and block_settings.hide_logo_on_home_page %}
     data-hidden-on-home-page
   {% endif %}
-  href="{{ routes.root_url }}"
+  {% unless df_landing == 'true' %}
+    href="{{ routes.root_url }}"
+  {% endunless %}
   class="size-style spacing-style header-logo"
   style="
     {% render 'size-style', settings: block_settings %}

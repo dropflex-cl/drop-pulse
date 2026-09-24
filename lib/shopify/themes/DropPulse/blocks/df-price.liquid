@@ -1,0 +1,169 @@
+{%- doc -%}
+  DropFlex · Precio (price). Bloque de la columna del producto: el precio de la variante elegida,
+  el precio tachado y lo que ahorra el comprador («Ahorras $10.000»).
+
+  REGLA: todo sale de la variante real (price, compare_at_price). Sin precio tachado mayor que el
+  precio no hay tachado ni ahorro: nunca un descuento inventado.
+  Cambia con la variante (packs): los montos de cada variante van embebidos, ya formateados por la
+  tienda; df-price.js solo elige cuál mostrar (evento shopify:product:select o change del form).
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign variant = product.selected_or_first_available_variant
+-%}
+{%- if product != blank and variant != blank -%}
+  {%- capture variants_json -%}
+    {
+    {%- for v in product.variants -%}
+      {%- liquid
+        assign v_save = 0
+        assign v_percent = 0
+        if v.compare_at_price > v.price
+          assign v_save = v.compare_at_price | minus: v.price
+          assign v_percent = v_save | times: 100.0 | divided_by: v.compare_at_price | round
+        endif
+      -%}
+      "{{ v.id }}": {"p": {{ v.price | money | json }}, "c": {% if v_save > 0 %}{{ v.compare_at_price | money | json }}{% else %}null{% endif %}, "s": {% if v_save > 0 %}{{ v_save | money | json }}{% else %}null{% endif %}, "pc": {{ v_percent }}}{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+    }
+  {%- endcapture -%}
+  {%- liquid
+    assign save = 0
+    assign percent = 0
+    if variant.compare_at_price > variant.price
+      assign save = variant.compare_at_price | minus: variant.price
+      assign percent = save | times: 100.0 | divided_by: variant.compare_at_price | round
+    endif
+    assign badge_template = s.badge_label | default: 'Ahorras {amount}'
+    assign save_money = save | money
+    assign badge_text = badge_template | replace: '{amount}', save_money | replace: '{percent}', percent
+  -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-price.js' | asset_url }}" defer></script>
+  <df-price
+    class="df df-price"
+    data-badge="{{ badge_template | escape }}"
+    data-show-badge="{{ s.show_badge }}"
+    style="{% render 'df-accent-vars', product: product %} --df-price-size: {{ s.price_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    <script type="application/json" data-df-variants>{{ variants_json }}</script>
+    <span class="df-price__now" data-df-now>{{ variant.price | money }}</span>
+    <span class="df-price__was" data-df-was-wrap{% if save <= 0 %} hidden{% endif %}>
+      <span class="df-visually-hidden">Precio normal</span>
+      <s data-df-was>{%- if save > 0 -%}{{ variant.compare_at_price | money }}{%- endif -%}</s>
+    </span>
+    {%- if s.show_badge -%}
+      <span class="df-price__badge" data-df-badge{% if save <= 0 %} hidden{% endif %}>{{ badge_text | escape }}</span>
+    {%- endif -%}
+  </df-price>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  .df-price__now {
+    font-family: var(--df-font-heading);
+    font-size: var(--df-price-size, 28px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .df-price__was {
+    font-size: 15px;
+    color: var(--df-muted);
+  }
+
+  .df-price__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: var(--df-radius-pill);
+    background: color-mix(in srgb, var(--df-positive) 10%, var(--df-bg));
+    color: var(--df-positive);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .df-price [hidden] {
+    display: none;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Precio",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Precio y precio tachado de la variante elegida. El ahorro solo aparece si la variante tiene un precio de comparación mayor."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_badge",
+      "label": "Mostrar el ahorro",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "badge_label",
+      "label": "Texto del ahorro",
+      "info": "{amount} es el monto que ahorra y {percent} el porcentaje.",
+      "default": "Ahorras {amount}"
+    },
+    {
+      "type": "range",
+      "id": "price_size",
+      "label": "Tamaño del precio",
+      "min": 20,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Precio"
+    }
+  ]
+}
+{% endschema %}

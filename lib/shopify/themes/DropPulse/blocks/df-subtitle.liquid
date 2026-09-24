@@ -1,0 +1,97 @@
+{%- doc -%}
+  DropFlex · Bajada (subtitle). Bloque de la columna del producto, bajo el título: una frase que
+  dice qué es y para quién.
+
+  Contenido: metafield `dropflex.subtitle` (single_line_text_field, la descripción corta de la
+  ficha aprobada en DropFlex) → si falta, el texto del bloque → si tampoco, nada.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign text = product.metafields.dropflex.subtitle.value | default: s.text
+-%}
+{%- if text != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <p
+    class="df df-subtitle"
+    style="--df-subtitle-size: {{ s.text_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {{- text | escape -}}
+  </p>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Bajada: sale de la ficha aprobada en DropFlex, o escribe una aquí.
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-subtitle {
+    font-size: var(--df-subtitle-size, 15px);
+    line-height: 1.45;
+    color: var(--df-muted);
+    text-wrap: pretty;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Bajada",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "El texto sale del metafield dropflex.subtitle (la descripción corta de la ficha aprobada en DropFlex). Este es el respaldo."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Texto de respaldo"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "label": "Tamaño del texto",
+      "min": 13,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Bajada"
+    }
+  ]
+}
+{% endschema %}
