@@ -108,8 +108,13 @@
       }
     }
 
-    /* En móvil la ficha empieza pegada a la galería: aire antes del primer bloque. */
+    /* Móvil: la galería va de borde a borde pegada al header (sin la franja blanca del padding de
+       la sección, que sí sirve en escritorio) y la ficha toma aire antes del primer bloque. */
     @media screen and (max-width: 749px) {
+      .product-information.spacing-style {
+        --padding-block-start: 0px !important;
+      }
+
       .product-information .product-details {
         padding-block-start: 20px;
       }
