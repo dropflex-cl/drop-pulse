@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Button, EmptyState, Icon, IconButton, Notice, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
+import { Button, EmptyState, Icon, IconButton, ImageUploader, Notice, StateChip, StatusBadge, TopBar, notify, notifyUndo, type UploadItem, type UploaderMode } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
@@ -405,9 +405,9 @@ function SlotDetail({
     setUpload(0);
     try {
       onState(await uploadPageImage(productId, s.key, file, setUpload).done);
-      notify(gif ? "GIF agregado" : "Imagen agregada");
+      notify("Imagen agregada");
     } catch (e) {
-      onError(errorText(e, gif ? "No pudimos subir el GIF." : "No pudimos subir la imagen."));
+      onError(errorText(e, "No pudimos subir la imagen."));
     } finally {
       setUpload(null);
       if (fileRef.current) fileRef.current.value = "";
@@ -433,8 +433,16 @@ function SlotDetail({
       {gif ? (
         <div className="rounded-md bg-muted p-3">
           <p className="m-0 text-body">{`Sube hasta ${GIF_MAX} GIF del producto funcionando. La página ya trae ${GIF_MAX} textos, del más fuerte al más débil: el GIF 1 lleva el texto 1, el GIF 2 el texto 2 y así. Con 3 GIF se usan los 3 primeros textos.`}</p>
-          <p className="m-0 mt-1 text-caption text-muted-foreground">GIF, WebP animado o APNG de hasta 25 MB. Lo guardamos como WebP animado, más liviano para el teléfono del comprador.</p>
+          <p className="m-0 mt-1 text-caption text-muted-foreground">Lo guardamos como WebP animado, más liviano para el teléfono del comprador.</p>
         </div>
+      ) : null}
+
+      {gif ? (
+        full ? (
+          <p className="text-caption text-muted-foreground">{`Ya usas ${GIF_MAX} GIF: quita uno para agregar otro.`}</p>
+        ) : (
+          <GifAdder productId={productId} slot={s.key} room={GIF_MAX - chosen.length} onState={onState} />
+        )
       ) : null}
 
       {ordered ? (
@@ -537,19 +545,22 @@ function SlotDetail({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept={gif ? "image/gif,image/webp,image/png,image/apng" : "image/jpeg,image/png,image/webp"}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-          onChange={(e) => onFile(e.target.files?.[0])}
-        />
-        <Button variant={gif && !chosen.length ? "primary" : "secondary"} icon="upload" loading={upload !== null} disabled={!!busy || (gif && full)} onClick={() => fileRef.current?.click()}>
-          {upload !== null ? `Subiendo ${Math.round(upload * 100)}%` : gif ? "Subir GIF" : "Subir imagen"}
-        </Button>
-        {gif && full ? <span className="self-center text-caption text-muted-foreground">{`Ya usas ${GIF_MAX} GIF: quita uno para subir otro.`}</span> : null}
+        {gif ? null : (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => onFile(e.target.files?.[0])}
+            />
+            <Button variant="secondary" icon="upload" loading={upload !== null} disabled={!!busy} onClick={() => fileRef.current?.click()}>
+              {upload !== null ? `Subiendo ${Math.round(upload * 100)}%` : "Subir imagen"}
+            </Button>
+          </>
+        )}
         {onBack ? (
           <Button variant="ghost" icon="chevron-left" onClick={onBack}>
             Todos los espacios
@@ -557,6 +568,82 @@ function SlotDetail({
         ) : null}
       </div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------- Agregar GIF
+
+const GIF_TYPES = ["image/gif", "image/webp", "image/png", "image/apng"];
+
+/**
+ * Agregar GIF con el mismo ImageUploader de Información base: desde el equipo (varios a la vez, en
+ * el orden elegido, hasta llenar los 5) o desde un enlace, que descarga el servidor.
+ */
+function GifAdder({ productId, slot, room, onState }: { productId: string; slot: string; room: number; onState: (s: PageImagesState) => void }) {
+  const [mode, setMode] = useState<UploaderMode>("file");
+  const [url, setUrl] = useState("");
+  const [urlError, setUrlError] = useState<string>();
+  const [fetching, setFetching] = useState(false);
+  const [items, setItems] = useState<(UploadItem & { cancel?: () => void })[]>([]);
+  const patch = (id: string, p: Partial<UploadItem & { cancel?: () => void }>) => setItems((list) => list.map((it) => (it.id === id ? { ...it, ...p } : it)));
+
+  async function addFiles(files: File[]) {
+    // Uno tras otro: cada GIF entra al final de la fila, así el orden es el que se eligió.
+    for (const [i, file] of files.entries()) {
+      const id = `${Date.now()}-${i}-${file.name}`;
+      if (i >= room) {
+        setItems((list) => [...list, { id, name: file.name, state: "error", detail: `Ya hay ${GIF_MAX} GIF: quita uno para agregar este.` }]);
+        continue;
+      }
+      const upload = uploadPageImage(productId, slot, file, (p) => patch(id, { progress: p }));
+      setItems((list) => [...list, { id, name: file.name, state: "uploading", progress: 0, cancel: upload.cancel }]);
+      try {
+        onState(await upload.done);
+        patch(id, { state: "done", detail: "Agregado", cancel: undefined });
+      } catch (e) {
+        patch(id, { state: "error", detail: errorText(e, "No pudimos subir el GIF."), cancel: undefined });
+      }
+    }
+  }
+
+  async function fetchUrl() {
+    setFetching(true);
+    setUrlError(undefined);
+    try {
+      onState(await productsApi.importPageImageUrl(productId, slot, url.trim()));
+      setUrl("");
+      notify("GIF agregado");
+    } catch (e) {
+      setUrlError(errorText(e, "No pudimos traer el GIF. Intenta de nuevo o súbelo desde tu equipo."));
+    } finally {
+      setFetching(false);
+    }
+  }
+
+  return (
+    <ImageUploader
+      mode={mode}
+      onModeChange={setMode}
+      state={fetching ? "fetching" : "idle"}
+      items={items}
+      onFiles={addFiles}
+      onCancel={(id) => items.find((it) => it.id === id)?.cancel?.()}
+      url={url}
+      onUrlChange={(v) => {
+        setUrl(v);
+        setUrlError(undefined);
+      }}
+      urlError={urlError}
+      onFetchUrl={fetchUrl}
+      accept={GIF_TYPES}
+      noun="GIF"
+      dragLabel="Arrastra tus GIF aquí o "
+      pickLabel="elige desde tu equipo"
+      compactLabel="Elige tus GIF"
+      formats={`GIF, WebP animado o APNG · hasta 25 MB cada uno · máximo ${GIF_MAX}`}
+      urlLabel="Enlace del GIF"
+      urlHint="Pega el enlace directo al GIF (por ejemplo, desde Giphy o la página del proveedor)."
+    />
   );
 }
 

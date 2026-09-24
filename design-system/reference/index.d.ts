@@ -112,7 +112,7 @@ export interface ReferenceImageProps { src?: string; alt?: string; source?: 'sho
 export declare function ReferenceImage(props: ReferenceImageProps): React.ReactElement;
 
 export interface UploadItem { name: string; state: 'uploading' | 'done' | 'error'; progress?: number; detail?: string }
-export interface ImageUploaderProps { pickLabel?: string; dragLabel?: string; formats?: string; mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
+export interface ImageUploaderProps { pickLabel?: string; dragLabel?: string; compactLabel?: string; formats?: string; noun?: string; accept?: string[]; multiple?: boolean; urlLabel?: string; urlHint?: string; mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
 export declare function ImageUploader(props: ImageUploaderProps): React.ReactElement;
 
 export interface StarsProps { value: number; size?: 'lg' }

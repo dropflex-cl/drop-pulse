@@ -190,7 +190,25 @@ async function assertPublicUrl(raw: string): Promise<URL> {
   return url;
 }
 
-async function download(raw: string): Promise<{ bytes: Uint8Array; finalUrl: string }> {
+export interface DownloadOptions {
+  /** Tope de peso; por defecto el de las referencias (10 MB). */
+  maxBytes?: number;
+  /** Encabezado Accept; por defecto JPG, PNG y WEBP. */
+  accept?: string;
+  /** Cómo se nombra lo que se descarga en los errores («La imagen», «El GIF»). */
+  noun?: string;
+}
+
+/**
+ * Descarga desde un enlace del comerciante con los guardas de siempre: solo http(s) público (sin
+ * direcciones privadas, también en cada redirección), tiempo máximo, a lo más 3 redirecciones,
+ * nunca una página HTML y lectura con tope aunque el sitio no diga el tamaño. La usan las
+ * referencias (ImageUploader en Información base) y los GIF de Imágenes.
+ */
+export async function download(raw: string, opts: DownloadOptions = {}): Promise<{ bytes: Uint8Array; finalUrl: string }> {
+  const maxBytes = opts.maxBytes ?? MAX_BYTES;
+  const noun = opts.noun ?? "La imagen";
+  const tooBig = `${noun} pesa más de ${Math.round(maxBytes / 1024 / 1024)} MB. Usa ${noun === "La imagen" ? "una más liviana" : "uno más liviano"}.`;
   let url = await assertPublicUrl(raw);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res: Response;
@@ -198,7 +216,7 @@ async function download(raw: string): Promise<{ bytes: Uint8Array; finalUrl: str
       res = await fetch(url, {
         redirect: "manual",
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        headers: { Accept: "image/jpeg,image/png,image/webp,image/*;q=0.8" },
+        headers: { Accept: opts.accept ?? "image/jpeg,image/png,image/webp,image/*;q=0.8" },
       });
     } catch {
       throw new ProductApiError("El sitio no respondió. Intenta de nuevo o descarga la imagen y súbela desde tu equipo.", 502, "url");
@@ -213,7 +231,7 @@ async function download(raw: string): Promise<{ bytes: Uint8Array; finalUrl: str
       throw new ProductApiError("Ese enlace es una página, no una imagen. Abre la imagen y copia su dirección.", 400, "url");
     }
     const length = Number(res.headers.get("content-length"));
-    if (Number.isFinite(length) && length > MAX_BYTES) throw new ProductApiError("La imagen pesa más de 10 MB. Usa una más liviana.", 413, "url");
+    if (Number.isFinite(length) && length > maxBytes) throw new ProductApiError(tooBig, 413, "url");
 
     // Leer con tope: un servidor sin content-length no puede mandarnos gigas.
     const reader = res.body?.getReader();
@@ -224,9 +242,9 @@ async function download(raw: string): Promise<{ bytes: Uint8Array; finalUrl: str
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_BYTES) {
+      if (size > maxBytes) {
         await reader.cancel();
-        throw new ProductApiError("La imagen pesa más de 10 MB. Usa una más liviana.", 413, "url");
+        throw new ProductApiError(tooBig, 413, "url");
       }
       chunks.push(value);
     }

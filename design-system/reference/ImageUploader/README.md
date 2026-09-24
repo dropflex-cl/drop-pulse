@@ -8,3 +8,4 @@ Agrega imágenes de referencia desde el equipo o desde un enlace.
 - Cada archivo tiene su fila con progreso; un error no detiene a los demás; subir se puede cancelar.
 - En móvil vive en una hoja inferior que se abre desde el tile "Agregar"; en escritorio, fijo bajo la grilla de referencias.
 - Pegar una imagen con Ctrl/Cmd+V en la página también la sube.
+- **Otros usos:** los textos (`pickLabel`, `dragLabel`, `compactLabel`, `formats`, `noun`, `urlLabel`, `urlHint`) y los tipos aceptados (`accept`) se ajustan por props. En Imágenes › GIFs agrega animaciones: GIF, WebP animado o APNG, desde el equipo o desde un enlace.

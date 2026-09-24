@@ -36,14 +36,32 @@ export interface ImageUploaderProps {
   /** Texto corto en móvil. */
   compact?: boolean;
   hideModes?: boolean;
+  /** Tipos que acepta el selector de archivos; por defecto JPG, PNG y WEBP. */
+  accept?: string[];
+  /** Por defecto se pueden elegir varios. */
+  multiple?: boolean;
+  /** «elige desde tu equipo» (enlace subrayado). */
+  pickLabel?: string;
+  /** «Arrastra imágenes aquí o» (escritorio). */
+  dragLabel?: string;
+  /** Texto corto en móvil: «Elige imágenes». */
+  compactLabel?: string;
+  /** La línea de formatos y topes bajo la zona de arrastre. */
+  formats?: string;
+  /** Qué se agrega, para el nombre accesible y el selector de modo («imágenes», «GIF»). */
+  noun?: string;
+  urlLabel?: string;
+  urlHint?: string;
   className?: string;
 }
 
 export const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /**
- * Agrega imágenes de referencia desde el equipo o desde un enlace. Cada archivo tiene su fila con
- * avance; un error no detiene a los demás; subir se puede cancelar.
+ * Agrega imágenes desde el equipo o desde un enlace: las referencias de Información base y los GIF
+ * de Imágenes. Cada archivo tiene su fila con avance; un error no detiene a los demás; subir se
+ * puede cancelar. Los textos y los tipos aceptados se ajustan por props; por defecto, los de las
+ * referencias.
  */
 export function ImageUploader({
   mode = "file",
@@ -59,18 +77,27 @@ export function ImageUploader({
   onFetchUrl,
   compact,
   hideModes,
+  accept = ACCEPTED_TYPES,
+  multiple = true,
+  pickLabel = "elige desde tu equipo",
+  dragLabel = "Arrastra imágenes aquí o ",
+  compactLabel = "Elige imágenes",
+  formats = "JPG, PNG o WEBP · hasta 10 MB cada una · máximo 10",
+  noun = "imágenes",
+  urlLabel = "Enlace de la imagen",
+  urlHint = "Pega el enlace directo a la imagen (por ejemplo, desde la página del proveedor).",
   className,
 }: ImageUploaderProps) {
   const [over, setOver] = useState(false);
 
   return (
-    <section aria-label="Agregar imágenes" className={cn("flex flex-col gap-3", className)}>
+    <section aria-label={`Agregar ${noun}`} className={cn("flex flex-col gap-3", className)}>
       {hideModes ? null : (
         <SegmentedControl
           block
           value={mode}
           onChange={(v) => onModeChange?.(v as UploaderMode)}
-          label="Cómo agregar imágenes"
+          label={`Cómo agregar ${noun}`}
           options={[
             { value: "file", label: "Desde tu equipo" },
             { value: "url", label: "Desde un enlace" },
@@ -99,8 +126,8 @@ export function ImageUploader({
         >
           <input
             type="file"
-            accept={ACCEPTED_TYPES.join(",")}
-            multiple
+            accept={accept.join(",")}
+            multiple={multiple}
             className="sr-only"
             onChange={(e) => {
               const files = [...(e.target.files ?? [])];
@@ -115,15 +142,15 @@ export function ImageUploader({
             {over ? (
               "Suelta para subir"
             ) : compact ? (
-              "Elige imágenes"
+              compactLabel
             ) : (
               <>
-                <span className="[@media(hover:none)]:hidden">Arrastra imágenes aquí o </span>
-                <u className="text-primary underline-offset-3">elige desde tu equipo</u>
+                <span className="[@media(hover:none)]:hidden">{dragLabel}</span>
+                <u className="text-primary underline-offset-3">{pickLabel}</u>
               </>
             )}
           </span>
-          <span className="text-caption text-muted-foreground">JPG, PNG o WEBP · hasta 10 MB cada una · máximo 10</span>
+          <span className="text-caption text-muted-foreground">{formats}</span>
         </label>
       ) : (
         <form
@@ -134,7 +161,7 @@ export function ImageUploader({
           className="flex items-start gap-2"
         >
           <Field
-            label="Enlace de la imagen"
+            label={urlLabel}
             type="url"
             inputMode="url"
             autoComplete="off"
@@ -143,7 +170,7 @@ export function ImageUploader({
             value={url}
             onValueChange={onUrlChange}
             error={urlError}
-            hint="Pega el enlace directo a la imagen (por ejemplo, desde la página del proveedor)."
+            hint={urlHint}
             className="flex-1"
           />
           <Button type="submit" loading={state === "fetching"} disabled={!url.trim()} className="mt-6 shrink-0">

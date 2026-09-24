@@ -44,6 +44,7 @@ import {
   type ShotRow,
 } from "@/lib/page-images/store";
 import { ProductApiError } from "@/lib/products/http";
+import { download as downloadFromLink } from "@/lib/products/images";
 import { latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { approvedBriefs } from "./copy";
@@ -739,44 +740,63 @@ export async function confirmPageUpload(userId: string, productId: string, slot:
   fail("Agregar la imagen", error);
 }
 
-/**
- * Un GIF subido: se decodifica con todos sus cuadros, se rechaza si no se mueve (un solo cuadro; la
- * cabecera no lo prueba) y se guarda re-codificado como WebP animado, que pesa de 5 a 10 veces menos
- * que el GIF con mejor color. El original se borra. Entra ya elegido, al final de la fila: el GIF N
- * lleva el texto N de la página.
- */
+/** El GIF ya se subió con la URL firmada: se guarda (storeGif) y se borra lo subido. */
 async function confirmGifUpload(userId: string, productId: string, path: string): Promise<void> {
   const db = adminClient();
-  const drop = async (msg: string, status = 415) => {
-    await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
-    throw new ProductApiError(msg, status, "file");
-  };
   const file = await db.storage.from(PAGE_MEDIA_BUCKET).download(path);
   if (file.error || !file.data) throw new ProductApiError("No encontramos el GIF subido. Súbelo de nuevo.", 404, "path");
-  const count = await chosenCount(productId, GIFS);
-  if (count >= GIF_MAX) return drop(`Ya usas ${GIF_MAX} GIF. Quita uno para subir otro.`, 409);
+  try {
+    await storeGif(userId, productId, Buffer.from(await file.data.arrayBuffer()), {}, "file");
+  } finally {
+    await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
+  }
+}
 
-  const bytes = Buffer.from(await file.data.arrayBuffer());
+/**
+ * «Desde un enlace» en el espacio GIFs: el servidor lo descarga con los mismos guardas que las
+ * referencias de Información base (lib/products/images.ts › download), con el tope de los GIF.
+ */
+export async function importPageGif(userId: string, productId: string, raw: string): Promise<void> {
+  if ((await chosenCount(productId, GIFS)) >= GIF_MAX) throw new ProductApiError(`Ya usas ${GIF_MAX} GIF. Quita uno para agregar otro.`, 409, "url");
+  const { bytes, finalUrl } = await downloadFromLink(raw, { maxBytes: GIF_MAX_UPLOAD_BYTES, accept: "image/gif,image/webp,image/apng,image/png,image/*;q=0.8", noun: "El GIF" });
+  await storeGif(userId, productId, Buffer.from(bytes), { source_url: finalUrl }, "url");
+}
+
+/**
+ * Guarda un GIF (subido o traído por enlace): se decodifica con todos sus cuadros, se rechaza si no
+ * se mueve (un solo cuadro; la cabecera no lo prueba) y se guarda re-codificado como WebP animado,
+ * que pesa menos que el GIF con mejor color. Entra ya elegido, al final de la fila: el GIF N lleva
+ * el texto N de la página. `field` es el campo del error («file» o «url»).
+ */
+async function storeGif(userId: string, productId: string, bytes: Buffer, input: Record<string, unknown>, field: "file" | "url"): Promise<void> {
+  const db = adminClient();
+  const reject = (msg: string, status = 415): never => {
+    throw new ProductApiError(msg, status, field);
+  };
+  const count = await chosenCount(productId, GIFS);
+  if (count >= GIF_MAX) reject(`Ya usas ${GIF_MAX} GIF. Quita uno para agregar otro.`, 409);
+
   const meta = await sharp(bytes, { animated: true }).metadata().catch(() => null);
-  if (!meta?.width || !["gif", "webp", "png"].includes(meta.format ?? "")) return drop("No pudimos leer ese archivo. Sube un GIF animado.");
-  if ((meta.pages ?? 1) <= 1) return drop("Ese archivo no se mueve: sube un GIF animado.");
-  const frameHeight = meta.pageHeight ?? meta.height ?? 0;
-  if (Math.min(meta.width, frameHeight) < GIF_MIN_SIDE) return drop(`El GIF es muy chico: usa uno de al menos ${GIF_MIN_SIDE} px por lado.`);
+  if (!meta?.width || !["gif", "webp", "png"].includes(meta.format ?? "")) {
+    reject(field === "url" ? "Ese enlace no es un GIF. Abre el GIF y copia su dirección." : "No pudimos leer ese archivo. Sube un GIF animado.");
+  }
+  if ((meta!.pages ?? 1) <= 1) reject("Ese archivo no se mueve: usa un GIF animado.");
+  const frameHeight = meta!.pageHeight ?? meta!.height ?? 0;
+  if (Math.min(meta!.width!, frameHeight) < GIF_MIN_SIDE) reject(`El GIF es muy chico: usa uno de al menos ${GIF_MIN_SIDE} px por lado.`);
 
   // `animated: true` al leer y al escribir: sin eso sharp entrega el primer cuadro, sin ningún error.
   const out = await sharp(bytes, { animated: true })
-    .resize({ width: Math.min(meta.width, GIF_MAX_WIDTH), withoutEnlargement: true })
+    .resize({ width: Math.min(meta!.width!, GIF_MAX_WIDTH), withoutEnlargement: true })
     .webp({ quality: GIF_QUALITY, effort: 4 })
     .toBuffer()
     .catch(() => null);
-  if (!out) return drop("No pudimos convertir ese GIF. Prueba con otro archivo.");
+  if (!out) return reject("No pudimos convertir ese GIF. Prueba con otro.");
   const saved = await sharp(out, { animated: true }).metadata();
-  if ((saved.pages ?? 1) <= 1) return drop("Ese archivo no se mueve: sube un GIF animado.");
+  if ((saved.pages ?? 1) <= 1) reject("Ese archivo no se mueve: usa un GIF animado.");
 
   const stored = `${userId}/${productId}/gif-${randomUUID()}.webp`;
   const up = await db.storage.from(PAGE_MEDIA_BUCKET).upload(stored, out, { contentType: "image/webp", upsert: false });
-  if (up.error) return drop("No pudimos guardar el GIF. Intenta de nuevo.", 500);
-  await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
+  if (up.error) reject("No pudimos guardar el GIF. Intenta de nuevo.", 500);
 
   const now = stamp();
   const { error } = await db.from("page_images").insert({
@@ -784,7 +804,7 @@ async function confirmGifUpload(userId: string, productId: string, path: string)
     user_id: userId,
     slot: GIFS,
     source: "upload",
-    input: { frames: saved.pages, original_bytes: bytes.byteLength },
+    input: { ...input, frames: saved.pages, original_bytes: bytes.byteLength },
     render_status: "succeeded",
     storage_path: stored,
     width: saved.width,
