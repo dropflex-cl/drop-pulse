@@ -40,7 +40,7 @@ La etapa **Creativos** convierte los 2 desarrollos de ángulo aprobados en **anu
 
 ## 2. Catálogo de Higgsfield y para qué sirve cada modelo aquí
 
-API: `https://api.higgsfield.ai/{endpoint}`, `Authorization: Key KEY_ID:KEY_SECRET`, SDK `@higgsfield/client` (solo servidor). Todo es asíncrono (`queued → in_progress → completed | failed | nsfw | canceled`) y admite webhook (`?hf_webhook=`). Las URLs de salida duran ≥7 días, así que se copian a nuestro bucket. El límite es de **solicitudes concurrentes** por cuenta (ej. 4).
+API: `https://api.higgsfield.ai/{endpoint}`, `Authorization: Key KEY_ID:KEY_SECRET` (claves antiguas) o `Authorization: Bearer <API key>` (la consola actual da una sola clave), SDK `@higgsfield/client` (solo servidor). Todo es asíncrono (`queued → in_progress → completed | failed | nsfw | canceled`) y admite webhook (`?hf_webhook=`). Las URLs de salida duran ≥7 días, así que se copian a nuestro bucket. El límite es de **solicitudes concurrentes** por cuenta (ej. 4).
 
 ### 2.1 Imagen
 
@@ -246,7 +246,7 @@ Tope por defecto: **$20 por producto** (editable en Ajustes). Al llegar al 80%, 
 
 **Clave propia de cada comerciante** (decisión 1):
 
-- **Vault:** `TokenKind` (`lib/integrations/tokens.ts:9`) agrega `"higgsfield"`. Se guarda `KEY_ID:KEY_SECRET` como un solo secreto; nunca llega al navegador.
+- **Vault:** `TokenKind` (`lib/integrations/tokens.ts:9`) agrega `"higgsfield"`. Se guarda la clave (`KEY_ID:KEY_SECRET` o la API key única) como un solo secreto; nunca llega al navegador.
 - **Conexión:** tabla `higgsfield_connections` (`user_id`, `key_id_hint` con los últimos 4 caracteres, `status`, `concurrency_limit`, `checked_at`, `last_error`). Sigue el patrón de `meta_connections`.
 - **Ajustes:** `ConnectionCard` "Higgsfield" con un campo para la clave y un enlace a `console.higgsfield.ai`.
   - Al guardar, se valida con una llamada barata (`GET /marketing-studio/image/presets?size=1`): 401 → "La clave no es válida"; 404/423/503 → "Tu cuenta no tiene acceso a este modelo".

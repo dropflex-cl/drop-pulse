@@ -1,12 +1,17 @@
 import "server-only";
 
 // Cliente de la API de Higgsfield (docs/spec-creativos.md §2). Cada llamada usa la clave del
-// comerciante (KEY_ID:KEY_SECRET, en Vault). Todo es asíncrono: se envía, se consulta el estado y el
+// comerciante, en Vault (ver authHeader). Todo es asíncrono: se envía, se consulta el estado y el
 // resultado se copia a nuestro bucket (las URLs de salida duran ~7 días). Fetch directo: el SDK TS v2
 // solo expone `subscribe`, que espera bloqueando. Nunca se loguea la clave.
 
 const BASE = "https://api.higgsfield.ai";
 const TIMEOUT_MS = 30_000;
+
+/** Las claves antiguas son KEY_ID:KEY_SECRET (`Key …`); la consola actual da una sola clave (`Bearer …`). */
+export function authHeader(key: string): string {
+  return key.includes(":") ? `Key ${key}` : `Bearer ${key}`;
+}
 
 /** Qué pasó, con un código para el registro y un mensaje en español para la pantalla. */
 export class HiggsfieldError extends Error {
@@ -35,16 +40,23 @@ function toError(status: number, body: string): HiggsfieldError {
 async function call<T>(key: string, path: string, init: RequestInit = {}): Promise<T> {
   // `status_url` llega absoluta y en otro dominio (platform.higgsfield.ai): se usa tal cual.
   const url = /^https:\/\//.test(path) ? path : `${BASE}/${path.replace(/^\//, "")}`;
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      ...init,
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { Authorization: `Key ${key}`, "Content-Type": "application/json", Accept: "application/json", ...init.headers },
-      cache: "no-store",
-    });
-  } catch {
-    throw new HiggsfieldError("network", "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento.");
+  // Las lecturas se reintentan si la red falla; un envío no, porque Higgsfield pudo haberlo recibido y cobrado.
+  const tries = (init.method ?? "GET") === "GET" ? 3 : 1;
+  let res: Response | null = null;
+  for (let attempt = 1; !res; attempt++) {
+    try {
+      res = await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        headers: { Authorization: authHeader(key), "Content-Type": "application/json", Accept: "application/json", ...init.headers },
+        cache: "no-store",
+      });
+    } catch (e) {
+      const cause = e instanceof Error ? `${e.name}: ${e.message}${e.cause instanceof Error ? ` (${e.cause.message})` : ""}` : String(e);
+      console.error(`[higgsfield] ${url.split("?")[0]} sin respuesta (intento ${attempt}/${tries}):`, cause);
+      if (attempt >= tries) throw new HiggsfieldError("network", "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento.");
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+    }
   }
   const text = await res.text();
   if (!res.ok) throw toError(res.status, text);
@@ -91,6 +103,11 @@ export interface Preset {
   group: string;
   ratio: string | null;
   cover: string | null;
+}
+
+/** Valida la clave con la lectura más chica que hay (un preset): no cuesta créditos. */
+export async function checkKey(key: string): Promise<void> {
+  await call(key, "marketing-studio/image/presets?size=1");
 }
 
 /** El catálogo de presets de Marketing Studio visibles para la cuenta (spec §2.4). Cambia: nunca se hardcodea. */

@@ -316,6 +316,7 @@ export async function processAsset(assetId: string, force = false): Promise<void
   const a = await lease(assetId, ["queued"], force);
   if (!a) return;
   const started = Date.now();
+  let submitted = false;
   try {
     const key = await higgsfieldKey(a.user_id);
     if (!key) throw new HiggsfieldError("invalid_key", "Conecta tu cuenta de Higgsfield en Ajustes y genera de nuevo.");
@@ -326,12 +327,18 @@ export async function processAsset(assetId: string, force = false): Promise<void
     const reference = await uploadImage(key, await toJpeg(await download(base), 2048), "image/jpeg");
     const { requestId } = await submit(key, a.endpoint, { ...a.input, image_urls: [reference] });
     await patchAsset(a.id, { render_status: "running", hf_request_id: requestId, submitted_at: new Date().toISOString(), error_code: null, error_message: null });
+    submitted = true;
     await pollUntilDone({ ...a, hf_request_id: requestId, render_status: "running" }, key, started);
   } catch (e) {
     await onHiggsfieldError(a.user_id, e);
     if (e instanceof HiggsfieldError && e.code === "busy") {
       // Sin cupo en la cuenta: sigue en cola y el sondeo la vuelve a enviar.
       await patchAsset(a.id, { render_status: "queued", error_code: "busy", error_message: e.message });
+      return;
+    }
+    if (submitted && e instanceof HiggsfieldError && (e.code === "network" || e.code === "unavailable")) {
+      // Ya está en Higgsfield: queda en curso y el sondeo de la pantalla la termina.
+      console.error("[creatives] render: se sigue con el sondeo", e.message);
       return;
     }
     const message = e instanceof HiggsfieldError ? e.message : "No pudimos generar la imagen. Toca Generar de nuevo.";
@@ -346,10 +353,14 @@ async function pollUntilDone(a: AssetRow, key: string, started: number): Promise
   while (Date.now() - started < POLL_BUDGET_MS) {
     await sleep(wait);
     wait = Math.min(wait * 1.4, 8000);
-    const state = await requestStatus(key, a.hf_request_id!);
+    const state = await requestStatus(key, a.hf_request_id!).catch((e) => {
+      // Un corte al consultar no es una falla de la imagen: Higgsfield sigue (y la cobra). Se vuelve a preguntar.
+      if (e instanceof HiggsfieldError && (e.code === "network" || e.code === "unavailable")) return null;
+      throw e;
+    });
     // Mantener el lease: el sondeo no la toma mientras este proceso la espera.
     await patchAsset(a.id, {});
-    if (state.status === "queued" || state.status === "in_progress") continue;
+    if (!state || state.status === "queued" || state.status === "in_progress") continue;
     await finishAsset(a, state, key, started);
     return;
   }

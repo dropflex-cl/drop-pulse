@@ -1,7 +1,7 @@
 import "server-only";
 import { adminClient } from "../admin";
 import { deleteToken, getToken, setToken } from "../tokens";
-import { HiggsfieldError, listPresets, type Preset } from "./client";
+import { checkKey, HiggsfieldError, listPresets, type Preset } from "./client";
 
 // La clave de Higgsfield de cada comerciante (docs/spec-creativos.md §6.3, decisión 1): el secreto en
 // Vault y lo visible (últimos 4 caracteres, estado) en higgsfield_connections. Todo con service_role.
@@ -15,7 +15,8 @@ export interface HiggsfieldConnection {
 }
 
 const TABLE = "higgsfield_connections";
-const KEY_SHAPE = /^[A-Za-z0-9_-]{8,}:[A-Za-z0-9_-]{8,}$/;
+// KEY_ID:KEY_SECRET (claves antiguas) o una sola clave (consola actual).
+const KEY_SHAPE = /^(?:[A-Za-z0-9_-]{8,}:[A-Za-z0-9_-]{8,}|[A-Za-z0-9_.-]{20,})$/;
 
 function fail(what: string, error: { message: string } | null) {
   if (error) throw new Error(`${what}: ${error.message}`);
@@ -34,9 +35,9 @@ export async function higgsfieldKey(userId: string): Promise<string | null> {
   return getToken("higgsfield", userId);
 }
 
-/** El formato que da la consola de Higgsfield: KEY_ID:KEY_SECRET, sin espacios. */
+/** La clave tal como la da la consola de Higgsfield, sin espacios ni prefijo `Key`/`Bearer`. */
 export function normalizeKey(raw: string): string | null {
-  const key = raw.trim().replace(/^Key\s+/i, "");
+  const key = raw.trim().replace(/^(?:Key|Bearer)\s+/i, "");
   return KEY_SHAPE.test(key) ? key : null;
 }
 
@@ -46,8 +47,8 @@ export function normalizeKey(raw: string): string | null {
  */
 export async function connectHiggsfield(userId: string, raw: string): Promise<HiggsfieldConnection> {
   const key = normalizeKey(raw);
-  if (!key) throw new HiggsfieldError("invalid_key", "Pega la clave completa, con el formato KEY_ID:KEY_SECRET que da la consola de Higgsfield.");
-  await listPresets(key);
+  if (!key) throw new HiggsfieldError("invalid_key", "Pega la clave completa, tal como la copia el botón Copy API Key de Higgsfield.");
+  await checkKey(key);
   await setToken("higgsfield", userId, key);
   const now = new Date().toISOString();
   const row = { user_id: userId, key_hint: key.slice(-4), status: "connected", last_error: null, checked_at: now, updated_at: now };

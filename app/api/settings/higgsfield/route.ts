@@ -7,7 +7,7 @@ import { errorResponse, json } from "@/lib/products/http";
 // Ajustes › Conexiones › Higgsfield (docs/spec-creativos.md §6.3): la clave propia del comerciante.
 // Se valida contra Higgsfield antes de guardarla en Vault; nunca vuelve al navegador.
 
-/** Guardar o reemplazar la clave ({ key: "KEY_ID:KEY_SECRET" }). */
+/** Guardar o reemplazar la clave ({ key }: la API key de Higgsfield). */
 export async function PUT(req: Request) {
   try {
     const user = await requireUser();

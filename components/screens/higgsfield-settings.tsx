@@ -74,7 +74,7 @@ export function HiggsfieldSettings({ keyHint, status, error: savedError }: { key
               spellCheck={false}
               value={key}
               onValueChange={setKey}
-              placeholder="KEY_ID:KEY_SECRET"
+              placeholder="Pega tu API key de Higgsfield"
               hint="La encuentras en tu consola de Higgsfield, en API keys."
               error={error}
             />

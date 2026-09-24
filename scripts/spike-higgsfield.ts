@@ -10,8 +10,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 
 const BASE = "https://api.higgsfield.ai";
-const KEY = process.env.HIGGSFIELD_API_KEY;
-if (!KEY || !KEY.includes(":")) throw new Error("Falta HIGGSFIELD_API_KEY (KEY_ID:KEY_SECRET) en .env.local");
+const KEY = process.env.HIGGSFIELD_API_KEY ?? "";
+if (!KEY) throw new Error("Falta HIGGSFIELD_API_KEY en .env.local");
 
 type Job = { id: string; endpoint: string; input: Record<string, unknown> };
 
@@ -20,7 +20,7 @@ async function hf(path: string, init: RequestInit = {}): Promise<unknown> {
   const url = /^https?:\/\//.test(path) ? path : `${BASE}/${path.replace(/^\//, "")}`;
   const res = await fetch(url, {
     ...init,
-    headers: { Authorization: `Key ${KEY}`, "Content-Type": "application/json", ...init.headers },
+    headers: { Authorization: KEY.includes(":") ? `Key ${KEY}` : `Bearer ${KEY}`, "Content-Type": "application/json", ...init.headers },
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`${init.method ?? "GET"} ${path} → ${res.status}: ${text.slice(0, 500)}`);
