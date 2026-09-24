@@ -22,6 +22,13 @@
         "default": true
       },
       {
+        "type": "checkbox",
+        "id": "df_header_cart",
+        "label": "Carrito en el header",
+        "info": "Apagado: las compras entran por el formulario de pago contra entrega (EasySell), sin carrito.",
+        "default": false
+      },
+      {
         "type": "product",
         "id": "df_landing_product",
         "label": "Producto de respaldo",

@@ -10,7 +10,7 @@ La tienda es solo la ficha del producto. La home, las colecciones, la búsqueda,
 |---|---|
 | `snippets/df-landing-mode.liquid` | La única fuente de verdad: imprime `true` o `false` según el ajuste `df_landing_mode` (encendido por defecto). |
 | `snippets/df-landing-redirect.liquid` | Va en el `<head>`, antes de los estilos. En una ficha guarda el producto en `localStorage['df:last-product']`. En cualquier otra página, el navegador vuelve al último producto visitado, o al de respaldo si no hay uno. El respaldo es el ajuste `df_landing_product` o, si no está, el primer producto disponible de la tienda. |
-| Header (`sections/header.liquid`, `snippets/header-actions.liquid`, `blocks/_header-logo.liquid`) | Sin menú, buscador, cuenta ni selector de país e idioma. El logo va sin enlace. |
+| Header (`sections/header.liquid`, `snippets/header-actions.liquid`, `blocks/_header-logo.liquid`) | Sin menú, buscador, cuenta ni selector de país e idioma. El logo va sin enlace. Sin carrito: toda compra entra por el formulario de pago contra entrega (EasySell); el ajuste `df_header_cart` (apagado por defecto) lo vuelve a mostrar. |
 | Pie (`sections/footer-group.json`) | Solo el copyright y las políticas. |
 
 Reglas de la redirección (spec del tema, §9.2):

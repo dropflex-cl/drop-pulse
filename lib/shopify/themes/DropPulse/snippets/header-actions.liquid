@@ -8,6 +8,7 @@
   @param {string} [display_style] - Controls display mode for header actions: 'icon' or 'text'.
   @param {string} [customer_account_menu] - The menu handle passed to the shopify-account component.
   @param {string} [df_landing] - DropFlex: 'true' en modo landing (sin cuenta).
+  DropFlex: el carrito solo se muestra con el ajuste `df_header_cart` (apagado por defecto).
 
   @example
   {% render 'header-actions', section: section %}
@@ -114,6 +115,11 @@
     </div>
   {% endif %}
 
+  {%- comment -%}
+    DropFlex: sin carrito en el header. Toda compra entra por el formulario de pago contra entrega
+    (EasySell), así que un carrito vacío en el header solo distrae. Ajuste `df_header_cart`.
+  {%- endcomment -%}
+  {% if settings.df_header_cart %}
   {% if settings.cart_type == 'drawer' and template.name != 'cart' %}
     <button
       class="header-actions__action button-unstyled{% if display_style == 'text' %} header-actions__text-style{% endif %}"
@@ -136,6 +142,7 @@
     >
       {{ cart_icon }}
     </a>
+  {% endif %}
   {% endif %}
 
   <span
