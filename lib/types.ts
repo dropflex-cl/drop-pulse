@@ -423,4 +423,96 @@ export interface ProductAds {
   campaigns: AdCampaignSummary[];
   /** Los textos por defecto (de lo aprobado), para «Restablecer». */
   defaultTexts: { primary_texts: string[]; headlines: string[]; description: string };
+  /** CBO de ganadores: el nombre y el id de la campaña ABO de la que sale. */
+  source: string | null;
+  sourceId: string | null;
+}
+
+/** Lo que el motor decidió para una unidad, listo para DecisionRow. */
+export interface AdDecisionView {
+  id: string;
+  unitId: string;
+  level: "campaign" | "adset" | "ad";
+  /** wait · keep · pause · scale · winners, y si ya se aplicó. */
+  verdict: "wait" | "keep" | "pause" | "scale" | "winners";
+  disposition: "pending" | "applied" | "auto_applied" | "ignored" | "expired" | "undone" | "info";
+  reason: string;
+  rule: string | null;
+  progress: number | null;
+  suggestedBudget: number | null;
+  winners?: string[];
+  decidedAt: string | null;
+  lastSeenAt: string;
+}
+
+/** Un conjunto (ABO) o anuncio (CBO) de la campaña, con su decisión vigente. */
+export interface AdUnitView {
+  id: string;
+  level: "adset" | "ad";
+  name: string;
+  active: boolean;
+  budget: number | null;
+  image: string | null;
+  video: boolean;
+  spend: number;
+  purchases: number;
+  cpa: number | null;
+  decision: AdDecisionView | null;
+}
+
+export interface AdChangeView {
+  id: string;
+  unitName: string;
+  text: string;
+  actor: "merchant" | "engine" | "meta";
+  rule: string | null;
+  at: string;
+  undoable: boolean;
+  undone: boolean;
+}
+
+export interface AdSeriesPoint {
+  date: string;
+  spend: number;
+  purchases: number;
+  cpa: number | null;
+  ctr: number | null;
+  cpc: number | null;
+  cpm: number | null;
+  roas: number | null;
+}
+
+export interface AdHourPoint {
+  hour: number;
+  spend: number;
+  purchases: number;
+}
+
+/** El detalle de una campaña real (/campaigns/[id]). */
+export interface CampaignDetail {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  name: string;
+  structure: import("./ads/schemas").Structure;
+  status: "paused" | "active" | "archived";
+  currency: string;
+  timezone: string;
+  engine: import("./ads/schemas").EngineConfig;
+  dailyBudget: number | null;
+  dailyTotal: number;
+  launchedAt: string | null;
+  publishedAt: string | null;
+  lastSyncedAt: string | null;
+  syncError: string | null;
+  totals: { spend: number; purchases: number; cpa: number | null; roas: number | null; ctr: number | null };
+  units: AdUnitView[];
+  /** CBO: la decisión de escalar la campaña. ABO: la sugerencia de ganadores. */
+  campaignDecision: AdDecisionView | null;
+  changes: AdChangeView[];
+  /** Series diarias: la campaña (`campaign`) y cada unidad por su id. */
+  daily: Record<string, AdSeriesPoint[]>;
+  /** Acumulado de hoy y de ayer, hora a hora (campaña). */
+  hourly: { today: AdHourPoint[]; yesterday: AdHourPoint[] };
 }

@@ -30,10 +30,13 @@ export interface DraftBody {
   engine: EngineConfig;
 }
 
+/** La CBO de ganadores es un borrador aparte, ligado a su campaña de origen. */
+const q = (from: string | null) => (from ? `?from=${encodeURIComponent(from)}` : "");
+
 export const adsApi = {
-  state: (productId: string) => call<Omit<ProductAds, "product">>(`/api/products/${productId}/ads`),
-  saveDraft: (productId: string, draft: DraftBody) => call<{ id: string; updatedAt: string }>(`/api/products/${productId}/ads/draft`, "PUT", draft),
-  launch: (productId: string) => call<{ campaignId: string }>(`/api/products/${productId}/ads/launch`, "POST", {}),
+  state: (productId: string, from: string | null) => call<Omit<ProductAds, "product">>(`/api/products/${productId}/ads${q(from)}`),
+  saveDraft: (productId: string, draft: DraftBody, from: string | null) => call<{ id: string; updatedAt: string }>(`/api/products/${productId}/ads/draft${q(from)}`, "PUT", draft),
+  launch: (productId: string, from: string | null) => call<{ campaignId: string }>(`/api/products/${productId}/ads/launch${q(from)}`, "POST", {}),
   removeMedia: (productId: string, mediaId: string) => call<{ ok: true }>(`/api/products/${productId}/ads/media/${mediaId}`, "DELETE"),
   interests: (q: string) => call<{ options: { id: string; name: string; audienceSize: number | null }[] }>(`/api/ads/interests?q=${encodeURIComponent(q)}`),
   regions: (country: string) => call<{ options: { key: string; name: string }[] }>(`/api/ads/regions?country=${encodeURIComponent(country)}`),

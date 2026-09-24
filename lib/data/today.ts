@@ -1,13 +1,62 @@
-// Cola de decisiones de Hoy. Los productos salen de Supabase (lib/data/products.ts); las campañas
-// siguen siendo de ejemplo (lib/mock/today.ts) hasta conectar Meta Ads.
+// Cola de decisiones de Hoy. Los productos salen de Supabase (lib/data/products.ts) y las campañas de
+// lo que decidió el motor (lib/data/campaigns.ts › campaignAttention, docs/spec-anuncios.md §11).
 import "server-only";
+import { cache } from "react";
+import { campaignAttention } from "@/lib/data/campaigns";
 import { getProducts } from "@/lib/data/products";
-import { TODAY } from "@/lib/mock/today";
+import { sessionUser } from "@/lib/integrations/session";
+import { changeText } from "@/lib/pipeline/ads-engine";
+import { money } from "@/lib/format";
 import { productHref } from "@/lib/routes";
 import type { AttentionEntry, Product, TodaySummary } from "@/lib/types";
 
-/** Ítems de campaña de ejemplo (los de producto ya no aplican: sus productos no existen). */
-const CAMPAIGN_ITEMS = TODAY.filter((e) => e.kind === "ads" || e.kind === "ads-up");
+/** Decisiones pendientes del motor, campañas que no se pudieron leer y cambios automáticos del día. */
+const campaignEntries = cache(async (): Promise<AttentionEntry[]> => {
+  const user = await sessionUser();
+  if (!user) return [];
+  const { pending, failing, autoToday } = await campaignAttention(user.id);
+  const out: AttentionEntry[] = [];
+  for (const c of failing) {
+    out.push({
+      id: `campaign-error-${c.id}`,
+      group: "primero",
+      kind: "error",
+      title: "No pudimos leer una campaña en Meta",
+      product: c.name,
+      detail: c.sync_error ?? undefined,
+      actions: [{ label: "Ver campaña", href: `/campaigns/${c.id}`, variant: "primary" }],
+    });
+  }
+  for (const d of pending) {
+    const href = `/campaigns/${d.campaign_id}`;
+    if (d.verdict === "pause") {
+      out.push({ id: `decision-${d.id}`, group: "primero", kind: "ads", title: "Pausar lo que pierde dinero", product: d.campaign.name, detail: d.reason, actions: [{ label: "Revisar", href, variant: "primary", iconEnd: "chevron-right" }] });
+    } else if (d.verdict === "scale") {
+      out.push({
+        id: `decision-${d.id}`,
+        group: "primero",
+        kind: "ads-up",
+        title: `Subir a ${money(Number(d.suggested_budget), d.campaign.currency)}`,
+        product: d.campaign.name,
+        detail: d.reason,
+        actions: [{ label: "Revisar", href, variant: "primary", iconEnd: "chevron-right" }],
+      });
+    } else if (d.verdict === "winners") {
+      out.push({ id: `decision-${d.id}`, group: "revisar", kind: "ads-up", title: "Tienes ganadores para una CBO", product: d.campaign.name, detail: d.reason, actions: [{ label: "Ver campaña", href, iconEnd: "chevron-right" }] });
+    }
+  }
+  for (const ch of autoToday) {
+    out.push({
+      id: `auto-${ch.id}`,
+      group: "revisar",
+      kind: ch.action === "pause" ? "ads" : "ads-up",
+      title: `El motor hizo un cambio: ${changeText(ch, ch.campaign.currency).toLowerCase()}`,
+      product: ch.campaign.name,
+      actions: [{ label: "Ver y deshacer", href: `/campaigns/${ch.campaign_id}`, iconEnd: "chevron-right" }],
+    });
+  }
+  return out;
+});
 
 function productEntries(products: Product[]): AttentionEntry[] {
   const out: AttentionEntry[] = [];
@@ -118,9 +167,9 @@ function productEntries(products: Product[]): AttentionEntry[] {
 
 /** Decisiones pendientes, ya ordenadas por impacto: errores y dinero primero, revisión, lo detenido. */
 export async function getTodayQueue(): Promise<AttentionEntry[]> {
-  const entries = productEntries(await getProducts());
+  const [products, campaigns] = await Promise.all([getProducts(), campaignEntries()]);
   const rank = (e: AttentionEntry) => (e.kind === "error" ? 0 : e.kind === "ads" || e.kind === "ads-up" ? 1 : e.kind === "review" ? 2 : 3);
-  return [...entries, ...CAMPAIGN_ITEMS].sort((a, b) => rank(a) - rank(b));
+  return [...productEntries(products), ...campaigns].sort((a, b) => rank(a) - rank(b));
 }
 
 export async function getTodaySummary(): Promise<TodaySummary> {

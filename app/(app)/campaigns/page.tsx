@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { CampaignCard, Icon } from "@/components/df";
-import { CampaignActions, CampaignMenu } from "@/components/screens/actions";
+import { Button, CampaignCard, Icon, IconButton } from "@/components/df";
 import { UrlFilter } from "@/components/screens/filters";
 import { EmptyState, PageHeader } from "@/components/shell/page-header";
 import { Skeleton } from "@/components/shell/skeletons";
-import { getCampaignSummary, getCampaigns } from "@/lib/data/campaigns";
+import { getCampaignSummary, getCampaigns, type CampaignPeriod } from "@/lib/data/campaigns";
 import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Campañas" };
@@ -21,20 +20,15 @@ async function Period({ searchParams }: { searchParams: Promise<{ period?: strin
   return <UrlFilter param="period" value={period} options={PERIODS} label="Periodo" />;
 }
 
+const toPeriod = (p?: string): CampaignPeriod => (p === "today" || p === "30" ? p : "7");
+
 async function CampaignList({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
-  const { period = "7" } = await searchParams;
-  if (period !== "7") {
-    return (
-      <EmptyState icon={<Icon name="clock" />} title="Sin cifras para este periodo">
-        En esta versión de prueba solo hay datos de los últimos 7 días. Elige “7 días” para verlos.
-      </EmptyState>
-    );
-  }
-  const campaigns = await getCampaigns();
+  const period = toPeriod((await searchParams).period);
+  const campaigns = await getCampaigns(period);
   if (!campaigns.length) {
     return (
       <EmptyState icon={<Icon name="megaphone" />} title="Aún no tienes campañas">
-        Cuando publiques un producto, puedes crear sus anuncios desde su ruta.
+        Con la página del producto lista, lánzala desde la etapa Anuncios del producto.
       </EmptyState>
     );
   }
@@ -52,10 +46,18 @@ async function CampaignList({ searchParams }: { searchParams: Promise<{ period?:
             metrics={c.metrics}
             wide
             href={`/campaigns/${c.id}`}
-            menu={<CampaignMenu name={c.name} href={`/campaigns/${c.id}`} paused={c.paused} />}
+            menu={<IconButton icon="chevron-right" label={`Ver ${c.name}`} href={`/campaigns/${c.id}`} />}
             actions={
               c.verdict === "subir" || c.verdict === "apagar"
-                ? [<CampaignActions key="a" verdict={c.verdict} nextBudget={c.nextBudget} name={c.name} detailHref={`/campaigns/${c.id}`} />]
+                ? [
+                    <Button key="a" href={`/campaigns/${c.id}`}>
+                      Ver detalle
+                    </Button>,
+                    // La decisión se aplica en el detalle, con la regla y la cifra a la vista.
+                    <Button key="b" variant={c.verdict === "subir" ? "primary" : "destructive"} icon={c.verdict === "subir" ? "arrow-up" : "pause"} href={`/campaigns/${c.id}`}>
+                      {c.verdict === "subir" ? `Subir a ${c.nextBudget}` : "Pausar"}
+                    </Button>,
+                  ]
                 : null
             }
             className="h-full"
@@ -66,22 +68,33 @@ async function CampaignList({ searchParams }: { searchParams: Promise<{ period?:
   );
 }
 
-export default async function CampanasPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
-  const summary = await getCampaignSummary();
-  const subtitle = `Últimos 7 días · gasto ${money(summary.spend)}`;
+const PERIOD_LABEL: Record<CampaignPeriod, string> = { today: "Hoy", "7": "Últimos 7 días", "30": "Últimos 30 días" };
+
+async function Header({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+  const period = toPeriod((await searchParams).period);
+  const summary = await getCampaignSummary(period);
+  const subtitle = `${PERIOD_LABEL[period]} · gasto ${money(summary.spend, summary.currency)}`;
+  return (
+    <PageHeader
+      large
+      title="Campañas"
+      subtitle={subtitle}
+      desktopSubtitle={`${subtitle} · ${summary.confirmedSales === 1 ? "1 venta" : `${summary.confirmedSales} ventas`}`}
+      desktopActions={
+        <Suspense fallback={<Skeleton className="h-9.5 w-60" />}>
+          <Period searchParams={searchParams} />
+        </Suspense>
+      }
+    />
+  );
+}
+
+export default function CampanasPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
   return (
     <>
-      <PageHeader
-        large
-        title="Campañas"
-        subtitle={subtitle}
-        desktopSubtitle={`${subtitle} · ${summary.confirmedSales} ventas confirmadas`}
-        desktopActions={
-          <Suspense fallback={<Skeleton className="h-9.5 w-60" />}>
-            <Period searchParams={searchParams} />
-          </Suspense>
-        }
-      />
+      <Suspense fallback={<PageHeader large title="Campañas" />}>
+        <Header searchParams={searchParams} />
+      </Suspense>
       <div className="pb-6 lg:px-8 lg:py-6">
         <Suspense
           fallback={

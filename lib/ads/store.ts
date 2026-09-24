@@ -47,8 +47,10 @@ export interface CampaignRow {
   progress: { step: string; done: number; total: number } | null;
   error: string | null;
   launched_at: string | null;
+  starts_at: string | null;
   published_at: string | null;
   last_delivery_at: string | null;
+  last_changed_at: string | null;
   last_synced_at: string | null;
   sync_error: string | null;
   created_at: string;
@@ -204,9 +206,9 @@ function laxLaunch(raw: unknown): LaunchConfig {
   return raw as LaunchConfig;
 }
 
-export async function saveDraft(userId: string, product: ProductRow, input: DraftInput, ctx: AdsContext): Promise<CampaignRow> {
+export async function saveDraft(userId: string, product: ProductRow, input: DraftInput, ctx: AdsContext, sourceCampaignId: string | null = null): Promise<CampaignRow> {
   const db = adminClient();
-  const current = await getDraft(userId, product.id);
+  const current = await getDraft(userId, product.id, sourceCampaignId);
   if (current?.status === "launching") throw new ProductApiError("La campaña se está creando en Meta. Espera a que termine.", 409);
   const row = {
     user_id: userId,
@@ -225,7 +227,7 @@ export async function saveDraft(userId: string, product: ProductRow, input: Draf
   };
   const res = current
     ? await db.from("ad_campaigns").update(row).eq("id", current.id).select("*").single()
-    : await db.from("ad_campaigns").insert({ ...row, status: "draft" }).select("*").single();
+    : await db.from("ad_campaigns").insert({ ...row, status: "draft", source_campaign_id: sourceCampaignId }).select("*").single();
   fail("Guardar el borrador", res.error);
   return res.data as CampaignRow;
 }

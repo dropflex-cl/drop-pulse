@@ -10,9 +10,9 @@ export const metadata: Metadata = { title: "Anuncios" };
  * página del producto lista y Meta conectado, el configurador arma una campaña ABO o CBO desde una
  * plantilla editable y la crea en pausa.
  */
-export default async function AdsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const ads = await getProductAds(id);
+export default async function AdsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }> }) {
+  const [{ id }, { from }] = await Promise.all([params, searchParams]);
+  const ads = await getProductAds(id, from && /^[0-9a-f-]{36}$/.test(from) ? from : null);
   if (!ads) notFound();
   return <AdsScreen data={ads} />;
 }

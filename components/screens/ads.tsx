@@ -108,6 +108,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
   // Lo último guardado: solo se guarda si la configuración cambió (en desarrollo los efectos corren dos veces).
   const saved = useRef(JSON.stringify({ name: data.draft.name, structure: data.draft.structure, templateKey: data.draft.templateKey, templateId: data.draft.templateId, launch: data.draft.launch, engine: data.draft.engine }));
   const { currency, timezone } = data;
+  const from = data.sourceId;
   const sym = currencySymbol(currency);
 
   // ---------------------------------------------------------------- Plantilla y cambios
@@ -168,7 +169,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
       setSave("saving");
       const snapshot = JSON.stringify(c);
       try {
-        await adsApi.saveDraft(product.id, { name: c.name, structure: c.structure, template_key: c.templateKey, template_id: c.templateId, launch: c.launch, engine: c.engine });
+        await adsApi.saveDraft(product.id, { name: c.name, structure: c.structure, template_key: c.templateKey, template_id: c.templateId, launch: c.launch, engine: c.engine }, from);
         saved.current = snapshot;
         setSave("saved");
       } catch (e) {
@@ -176,7 +177,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
         setError(errorText(e, "No pudimos guardar el borrador."));
       }
     },
-    [product.id],
+    [product.id, from],
   );
   useEffect(() => {
     if (launching || JSON.stringify(cfg) === saved.current) return;
@@ -189,7 +190,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     if (!launching) return;
     const t = window.setInterval(async () => {
       try {
-        const s = await adsApi.state(product.id);
+        const s = await adsApi.state(product.id, from);
         setProgress(s.draft.progress);
         if (s.draft.status !== "launching") {
           setLaunching(false);
@@ -205,7 +206,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
       }
     }, POLL_MS);
     return () => window.clearInterval(t);
-  }, [launching, product.id, router]);
+  }, [launching, product.id, router, from]);
 
   // ---------------------------------------------------------------- Creativos
   const byId = new Map(media.map((m) => [m.id, m]));
@@ -329,7 +330,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     setLaunchError(null);
     try {
       await persist(cfg);
-      await adsApi.launch(product.id);
+      await adsApi.launch(product.id, from);
       setReviewOpen(false);
       setLaunching(true);
       setProgress({ step: "Creando la campaña", done: 0, total: 1 });
@@ -898,7 +899,10 @@ export function AdsScreen({ data }: { data: ProductAds }) {
               {launchError} No quedó nada creado en Meta: corrige y toca Revisar y lanzar otra vez.
             </div>
           ) : null}
-          {data.campaigns.length ? (
+          {data.source ? (
+            <Notice tone="info" icon="trend" title={`CBO con los ganadores de «${data.source}».`} body="Revisa los creativos y el presupuesto. Se crea aparte, en pausa, y la campaña de testeo sigue igual." />
+          ) : null}
+          {data.campaigns.length && !data.source ? (
             <Notice
               tone="info"
               icon="megaphone"

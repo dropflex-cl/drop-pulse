@@ -74,8 +74,10 @@ create table public.ad_campaigns (
   progress           jsonb,                      -- avance del lanzamiento, para la pantalla
   error              text,                       -- en español, para la pantalla
   launched_at        timestamptz,
+  starts_at          timestamptz,                -- inicio programado de los conjuntos (null: al publicar)
   published_at       timestamptz,
   last_delivery_at   timestamptz,
+  last_changed_at    timestamptz,                -- último cambio de presupuesto o estado (CBO: regla after_change)
   last_synced_at     timestamptz,
   sync_error         text,
   created_at         timestamptz not null default now(),

@@ -8,7 +8,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const { userId, product } = await ownedProduct(id);
     const input = parseDraft(await json<DraftInput>(req));
-    const row = await saveDraft(userId, product, input, await adsContext(userId, product));
+    const from = new URL(req.url).searchParams.get("from");
+    const row = await saveDraft(userId, product, input, await adsContext(userId, product), from && /^[0-9a-f-]{36}$/.test(from) ? from : null);
     return NextResponse.json({ id: row.id, updatedAt: row.updated_at });
   } catch (e) {
     return errorResponse(e, "No pudimos guardar el borrador. Intenta de nuevo.");

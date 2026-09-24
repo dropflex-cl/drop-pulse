@@ -43,10 +43,10 @@ async function update(id: string, patch: Partial<CampaignRow>) {
  * Valida el borrador y lo pasa a `launching` (una sola vez: si ya está en curso, 409). Devuelve la
  * campaña para correr `runLaunch` en segundo plano.
  */
-export async function startLaunch(userId: string, productId: string): Promise<CampaignRow> {
+export async function startLaunch(userId: string, productId: string, sourceCampaignId: string | null = null): Promise<CampaignRow> {
   const product = await getProductRow(userId, productId);
   if (!product) throw new ProductApiError("No encontramos ese producto.", 404);
-  const [ctx, draft, media] = await Promise.all([adsContext(userId, product), getDraft(userId, productId), listMediaRows(userId, productId)]);
+  const [ctx, draft, media] = await Promise.all([adsContext(userId, product), getDraft(userId, productId, sourceCampaignId), listMediaRows(userId, productId)]);
   if (!ctx.metaReady) throw new ProductApiError("Conecta Meta Ads y elige cuenta, página y píxel en Ajustes.", 409);
   if (!ctx.productUrl) throw new ProductApiError("No tenemos la URL del producto en tu tienda. Revisa la conexión con Shopify.", 409);
   if (!draft) throw new ProductApiError("No hay una campaña por lanzar. Recarga la página.", 404);
@@ -204,14 +204,16 @@ export async function runLaunch(campaignId: string): Promise<void> {
       );
     }
     const at = now();
-    await update(campaignId, { status: "paused", meta_campaign_id: metaCampaignId, meta_objects: objects, progress: null, error: null, launched_at: at, daily_budget: plan.campaignBudget });
+    await update(campaignId, { status: "paused", meta_campaign_id: metaCampaignId, meta_objects: objects, progress: null, error: null, launched_at: at, starts_at: startTime, daily_budget: plan.campaignBudget });
     fail("Anotar la creación", (await db.from("ad_changes").insert({ user_id: c.user_id, campaign_id: c.id, level: "campaign", unit_id: c.id, action: "create", after: { meta_campaign_id: metaCampaignId, adsets: setRows.length }, actor: "merchant" })).error);
   } catch (e) {
     console.error("[ads-launch]", campaignId, step, e);
     if (e instanceof MetaAuthError) await markMetaError(c.user_id, "expired").catch(() => {});
     const left = token ? await rollback(token, objects) : objects;
-    // Lo local que alcanzó a guardarse también se va: la campaña vuelve a ser borrador.
+    // Lo local que alcanzó a guardarse también se va: la campaña vuelve a ser borrador. Un video que
+    // quedó a medio procesar vuelve a estar listo (el archivo sigue en Storage; se sube de nuevo).
     await db.from("ad_sets").delete().eq("campaign_id", campaignId);
+    await db.from("ad_media").update({ status: "ready", meta_video_id: null, thumbnail_hash: null }).eq("product_id", c.product_id).eq("status", "processing");
     const reason = `${step}: ${metaReason(e)}`;
     await update(campaignId, {
       status: "draft",

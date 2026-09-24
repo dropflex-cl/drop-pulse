@@ -79,5 +79,7 @@ export function fixture(state: string): ProductAds {
     templates: [],
     campaigns: [],
     defaultTexts: TEXTS,
+    source: null,
+    sourceId: null,
   };
 }
