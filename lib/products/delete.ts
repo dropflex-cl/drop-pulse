@@ -1,6 +1,11 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
+import { setStatus } from "@/lib/ads/meta/adapter";
+import { MetaApiError } from "@/lib/integrations/meta/client";
+import { metaToken } from "@/lib/integrations/meta/connection";
 import { REFERENCES_BUCKET } from "./store";
+
+const AD_MEDIA_BUCKET = "ad-media";
 
 // Borrado completo de un producto (CLAUDE.md › Datos › Productos eliminados en Shopify): archivos en
 // Storage, filas propias y en cascada (imágenes de referencia, corridas, fichas, clientes ideales,
@@ -14,8 +19,8 @@ const LIST_PAGE = 1000;
 const REMOVE_BATCH = 100;
 
 /** Todas las rutas bajo <user_id>/<product_id>/ (incluye subidas firmadas que nunca se confirmaron). */
-async function storedPaths(userId: string, productId: string): Promise<string[]> {
-  const bucket = adminClient().storage.from(REFERENCES_BUCKET);
+async function storedPaths(userId: string, productId: string, bucketId = REFERENCES_BUCKET): Promise<string[]> {
+  const bucket = adminClient().storage.from(bucketId);
   const prefix = `${userId}/${productId}`;
   const paths: string[] = [];
   for (let offset = 0; ; offset += LIST_PAGE) {
@@ -44,6 +49,35 @@ async function removeFiles(userId: string, productId: string) {
     const { error: rmError } = await db.storage.from(REFERENCES_BUCKET).remove(paths.slice(i, i + REMOVE_BATCH));
     if (rmError) throw new Error(`Borrar archivos de ${productId}: ${rmError.message}`);
   }
+  // Creativos de anuncios (bucket ad-media, docs/spec-anuncios.md §8).
+  const { data: media, error: mediaError } = await db.from("ad_media").select("storage_path").eq("user_id", userId).eq("product_id", productId);
+  if (mediaError) throw new Error(`Leer creativos de ${productId}: ${mediaError.message}`);
+  const adPaths = [...new Set([...(await storedPaths(userId, productId, AD_MEDIA_BUCKET)), ...(media ?? []).map((m) => m.storage_path as string)])];
+  for (let i = 0; i < adPaths.length; i += REMOVE_BATCH) {
+    const { error: rmError } = await db.storage.from(AD_MEDIA_BUCKET).remove(adPaths.slice(i, i + REMOVE_BATCH));
+    if (rmError) throw new Error(`Borrar creativos de ${productId}: ${rmError.message}`);
+  }
+}
+
+/**
+ * Las campañas del producto en Meta se PAUSAN (no se borran: el historial queda en Ads Manager). Un
+ * producto que ya no existe en la tienda no puede seguir recibiendo tráfico pagado. Si Meta falla, no
+ * se borra nada: la próxima sincronización lo reintenta.
+ */
+async function pauseCampaigns(userId: string, productId: string) {
+  const { data, error } = await adminClient().from("ad_campaigns").select("meta_campaign_id").eq("user_id", userId).eq("product_id", productId).in("status", ["active", "paused", "launching"]).not("meta_campaign_id", "is", null);
+  if (error) throw new Error(`Leer campañas de ${productId}: ${error.message}`);
+  if (!data?.length) return;
+  const token = await metaToken(userId);
+  if (!token) throw new Error(`Sin token de Meta para pausar las campañas de ${productId}`);
+  for (const c of data) {
+    try {
+      await setStatus(token, c.meta_campaign_id as string, "PAUSED");
+    } catch (e) {
+      // Ya borrada en Ads Manager (código 100: el objeto no existe): no hay nada que pausar.
+      if (!(e instanceof MetaApiError && e.code === 100)) throw e;
+    }
+  }
 }
 
 /**
@@ -55,12 +89,14 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
   let deleted = 0;
   for (const id of productIds) {
     try {
+      await pauseCampaigns(userId, id);
       await removeFiles(userId, id);
       // ai_generations tiene "on delete set null": se borra antes para no dejar filas sueltas.
       const gen = await db.from("ai_generations").delete().eq("user_id", userId).eq("product_id", id);
       if (gen.error) throw new Error(`Borrar generaciones de ${id}: ${gen.error.message}`);
       // La cascada se lleva product_reference_images, pipeline_runs, product_briefs, customer_avatars,
-      // product_pricing, pack_labels, review_sources, review_imports y product_reviews.
+      // product_pricing, pack_labels, review_sources, review_imports, product_reviews y todo lo de
+      // anuncios (ad_media, ad_campaigns → ad_sets, ads, métricas, decisiones y cambios).
       const { data, error } = await db.from("products").delete().eq("user_id", userId).eq("id", id).select("shopify_product_id");
       if (error) throw new Error(`Borrar el producto ${id}: ${error.message}`);
       const shopifyId = data?.[0]?.shopify_product_id as string | undefined;

@@ -5,6 +5,7 @@ import { cache } from "react";
 import { adsContext, getDraft, listCampaignRows, listMediaRows, listTemplates, presetFor, toAdMedia, type AdsContext, type CampaignRow } from "@/lib/ads/store";
 import { DEFAULT_PRESET } from "@/lib/ads/presets";
 import { sessionUser } from "@/lib/integrations/session";
+import { expireStaleLaunches } from "@/lib/pipeline/ads-launch";
 import { getProductRow, type ProductRow } from "@/lib/products/store";
 import type { AdCampaignSummary, AdDraft, ProductAds } from "@/lib/types";
 import { getProduct } from "./products";
@@ -50,6 +51,7 @@ const toSummary = (r: CampaignRow): AdCampaignSummary => ({ id: r.id, name: r.na
 
 /** Todo lo de la etapa sin el producto: lo que devuelve GET /api/products/[id]/ads. */
 export async function adsState(uid: string, row: ProductRow, copyDone: boolean): Promise<Omit<ProductAds, "product">> {
+  await expireStaleLaunches(uid);
   const ctx = await adsContext(uid, row);
   const [draft, media, templates, campaigns] = await Promise.all([getDraft(uid, row.id), listMediaRows(uid, row.id), listTemplates(uid), listCampaignRows(uid, row.id)]);
   return {

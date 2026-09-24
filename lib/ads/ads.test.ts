@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fromClp, fromMinorUnits, roundBudget, toMinorUnits } from "./currency";
 import { derive, initiatedCheckoutsOf, sumMetrics, toInsightRow } from "./meta/insights";
 import { buildTargeting, dynamicCreative, needsDynamicCreative, singleCreative, URL_TAGS } from "./meta/payloads";
+import { planLaunch, planSteps } from "./plan";
 import { buildPreset, countChanges, SYSTEM_PRESETS } from "./presets";
 import { addDays, localDate, nextMorning, startLabel } from "./schedule";
 import { adsetCount, dailyTotal, engineSchema, launchSchema } from "./schemas";
@@ -133,5 +134,43 @@ describe("plantillas", () => {
     edited.engine.rules = edited.engine.rules.map((r) => (r.id === "pause-no-sales" ? { ...r, spend_x: 1.5 } : r));
     edited.launch.creatives = [];
     expect(countChanges(base, edited)).toBe(3);
+  });
+});
+
+describe("plan de lanzamiento", () => {
+  const media = [
+    { id: "a", name: "ugc-espalda.mp4" },
+    { id: "b", name: "antes-despues.jpg" },
+  ];
+  const base = buildPreset("impulso", { country: "CL", currency: "CLP", cpaLimit: 6000, creatives: ["a", "b"], texts: { primary_texts: ["T1", "T2"], headlines: ["H1"], description: "D" } }).launch;
+
+  it("ABO: un conjunto por creativo, con su presupuesto y un texto distinto cada uno", () => {
+    const plan = planLaunch("abo", base, media);
+    expect(plan.campaignBudget).toBeNull();
+    expect(plan.adsets.map((s) => s.name)).toEqual(["Conjunto 1 · ugc-espalda", "Conjunto 2 · antes-despues"]);
+    expect(plan.adsets.map((s) => s.dailyBudget)).toEqual([5000, 5000]);
+    expect(plan.adsets.map((s) => s.ads[0].primaryTexts)).toEqual([["T1"], ["T2"]]);
+    expect(plan.adsets.every((s) => s.ads.length === 1 && s.ads[0].mediaIds.length === 1)).toBe(true);
+    expect(planSteps(plan, 2)).toBe(1 + 2 + 2 * 3);
+  });
+
+  it("ABO con 2 públicos cruza cada creativo con cada público", () => {
+    const plan = planLaunch("abo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media);
+    expect(plan.adsets).toHaveLength(4);
+    expect(plan.adsets[1].name).toBe("Conjunto 2 · ugc-espalda · intereses");
+  });
+
+  it("CBO: el presupuesto en la campaña y los creativos como anuncios de cada conjunto", () => {
+    const plan = planLaunch("cbo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media);
+    expect(plan.campaignBudget).toBe(5000);
+    expect(plan.adsets.map((s) => [s.dailyBudget, s.ads.length])).toEqual([
+      [null, 2],
+      [null, 2],
+    ]);
+  });
+
+  it("CBO dinámico: un anuncio con todos los medios y textos", () => {
+    const plan = planLaunch("cbo", { ...base, cbo_ads: "dco" }, media);
+    expect(plan.adsets[0].ads).toEqual([{ name: "Dinámico · 2 creativos", mediaIds: ["a", "b"], primaryTexts: ["T1", "T2"], headlines: ["H1"] }]);
   });
 });
