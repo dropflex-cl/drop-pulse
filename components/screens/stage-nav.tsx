@@ -7,7 +7,6 @@ import type { Stage, StageKey } from "@/lib/types";
 
 export function stageHref(productId: string, key: StageKey, state: Stage["state"]): string | undefined {
   if (state === "locked") return undefined;
-  if (key === "anuncios") return "/campaigns";
   return productHref(productId, key);
 }
 

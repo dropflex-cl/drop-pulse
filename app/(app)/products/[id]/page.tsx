@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 function NextAction({ product }: { product: Product }) {
   const stage = product.stages.find((s) => s.key === product.nextStage);
   const title = stage?.title ?? "";
-  if (product.nextStage === "angulos" || product.nextStage === "textos" || product.nextStage === "imagenes") {
+  if (product.nextStage === "angulos" || product.nextStage === "textos" || product.nextStage === "imagenes" || product.nextStage === "anuncios") {
     return (
       <Button href={productHref(product.id, product.nextStage)} variant="primary" size="lg" iconEnd="chevron-right">
         Continuar: {title}
@@ -39,13 +39,6 @@ function NextAction({ product }: { product: Product }) {
     return (
       <Button variant="primary" size="lg" loading>
         Publicándose
-      </Button>
-    );
-  }
-  if (product.nextStage === "anuncios") {
-    return (
-      <Button href="/campaigns" variant="primary" size="lg" iconEnd="chevron-right">
-        Ver campañas
       </Button>
     );
   }
