@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { isProtected, planUpdate, readKit } from "./kit";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { EASYSELL_EMBED, isProtected, KIT_DIR, mergeAppEmbeds, parseThemeJson, planUpdate, readKit, withEasySellOn } from "./kit";
 
 describe("kit del tema", () => {
   it("lee el tema del repo con los archivos que Shopify exige", () => {
@@ -63,15 +65,37 @@ describe("templates sin editar", () => {
 });
 
 describe("app embeds", () => {
-  it("copia los de apps del tema publicado sin pisar los del kit", async () => {
-    const { mergeAppEmbeds, parseThemeJson } = await import("./kit");
+  it("copia los de apps del tema publicado sin pisar los del kit", () => {
     const kit = JSON.stringify({ current: { df_landing_mode: true, blocks: { mine: { type: "shopify://apps/x/blocks/y/1", disabled: false } } } });
     const live = `/* comentario del editor */ ${JSON.stringify({ current: { blocks: { cod: { type: "shopify://apps/easysell/blocks/form/abc", disabled: false }, mine: { type: "shopify://apps/x/blocks/y/1", disabled: true }, other: { type: "text" } } } })}`;
     const merged = parseThemeJson(mergeAppEmbeds(kit, live));
-    expect(Object.keys(merged.current.blocks).sort()).toEqual(["cod", "mine"]);
+    expect(Object.keys(merged.current.blocks).sort()).toEqual([EASYSELL_EMBED.id, "cod", "mine"].sort());
     expect(merged.current.blocks.mine.disabled).toBe(false);
     expect(merged.current.df_landing_mode).toBe(true);
-    expect(mergeAppEmbeds(kit, "no es json")).toBe(kit);
-    expect(mergeAppEmbeds(kit, null)).toBe(kit);
+    expect(parseThemeJson(mergeAppEmbeds(kit, "no es json")).current.blocks[EASYSELL_EMBED.id]).toMatchObject({ type: EASYSELL_EMBED.type, disabled: false });
+  });
+
+  it("EasySell queda siempre encendido: reusa el del tema, lo enciende y no lo duplica", () => {
+    const easysell = (disabled: boolean) => ({ type: "shopify://apps/easysell-cod-form/blocks/app-embed/otro", disabled, settings: { a: 1 } });
+    const on = (s: string | null) => Object.values(parseThemeJson(s!).current.blocks as Record<string, { type: string; disabled?: boolean }>).filter((b) => b.type.startsWith("shopify://apps/easysell-cod-form/"));
+
+    const off = JSON.stringify({ current: { blocks: { live: easysell(true), loox: { type: "shopify://apps/loox/blocks/x/1" } } } });
+    const fixed = withEasySellOn(off);
+    expect(on(fixed)).toEqual([{ ...easysell(false) }]);
+    expect(Object.keys(parseThemeJson(fixed!).current.blocks)).toEqual(["live", "loox"]);
+
+    expect(on(withEasySellOn(JSON.stringify({ current: {} })))).toEqual([{ type: EASYSELL_EMBED.type, disabled: false, settings: {} }]);
+    expect(withEasySellOn(JSON.stringify({ current: { blocks: { live: easysell(false) } } }))).toBeNull();
+    expect(withEasySellOn("no es json")).toBeNull();
+
+    // El kit trae el suyo y el tema publicado otro: queda uno, el del tema publicado, encendido.
+    const kit = readFileSync(join(KIT_DIR, "config/settings_data.json"), "utf8");
+    expect(on(mergeAppEmbeds(kit, off))).toEqual([{ ...easysell(false) }]);
+  });
+
+  it("el settings_data del kit trae EasySell encendido", () => {
+    const kit = parseThemeJson(readFileSync(join(KIT_DIR, "config/settings_data.json"), "utf8"));
+    expect(kit.current.blocks[EASYSELL_EMBED.id]).toEqual({ type: EASYSELL_EMBED.type, disabled: false, settings: {} });
+    expect(withEasySellOn(JSON.stringify(kit))).toBeNull();
   });
 });

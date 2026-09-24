@@ -43,6 +43,10 @@ Se puede publicar el producto antes que el tema: el contenido espera en los meta
   4. Compara el kit completo con el tema: Shopify descarta en silencio lo que no entiende (y cada template que lo usa). Si falta algo, la instalación queda `failed` con la lista.
   - Corre en segundo plano (`after`).
 - **App embeds:** copia al `settings_data.json` del kit los bloques `shopify://apps/…` del tema publicado (EasySell, Loox, píxeles). Si ya existen en el kit, mandan los del kit. Es *best effort*: si falla, la instalación sigue.
+- **EasySell COD Form siempre encendido** (como en v1, `EASYSELL_EMBED` y `withEasySellOn` en `kit.ts`):
+  - El `settings_data.json` del kit trae su app embed encendido.
+  - Al instalar, si el tema publicado ya tenía uno, queda ese (encendido y sin duplicados).
+  - Cada «Actualizar tema» lo vuelve a encender, aunque el `settings_data.json` sea del comerciante. Ese archivo va aparte y al final; si toca subir el del kit, conserva los app embeds del tema.
 - **Biblioteca llena (20 temas):** borra solo temas de DropFlex sin publicar, nunca uno del comerciante.
 - **Actualizar:** `planUpdate` es una función pura con tests.
   - Compara MD5 contra el tema vivo y sube solo el código que cambió, de a 50 archivos (`themeFilesUpsert`).

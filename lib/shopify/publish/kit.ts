@@ -112,23 +112,63 @@ export function planUpdate(local: Pick<KitFile, "path" | "md5">[], remote: Remot
 export const parseThemeJson = (text: string) => JSON.parse(text.replace(/^\s*\/\*[\s\S]*?\*\/\s*/, ""));
 
 /**
+ * EasySell COD Form (el formulario de pago contra entrega): su app embed queda SIEMPRE encendido en
+ * el tema de DropFlex, como en v1. Shopify guarda los app embeds por tema (settings_data ›
+ * current.blocks): el kit lo trae encendido, la instalación lo normaliza y cada «Actualizar tema»
+ * lo vuelve a encender. El uuid es el de la extensión de la app, el mismo en toda tienda.
+ */
+export const EASYSELL_EMBED = {
+  id: "17754088914158789468",
+  type: "shopify://apps/easysell-cod-form/blocks/app-embed/7bfd0a95-6839-4f02-b2ee-896832dbe67e",
+} as const;
+const isEasySell = (type: unknown) => typeof type === "string" && type.startsWith("shopify://apps/easysell-cod-form/");
+
+/**
+ * El settings_data con EasySell encendido: reusa el bloque que ya exista (el primero; los repetidos
+ * se quitan) o agrega el del kit. Devuelve null si ya estaba encendido y solo, o si no es JSON.
+ */
+export function withEasySellOn(settings: string): string | null {
+  try {
+    const data = parseThemeJson(settings);
+    if (!data || typeof data.current !== "object" || data.current === null) return null;
+    const blocks: Record<string, { type?: string; disabled?: boolean }> = { ...(data.current.blocks ?? {}) };
+    const ids = Object.keys(blocks).filter((id) => isEasySell(blocks[id]?.type));
+    if (ids.length === 1 && blocks[ids[0]].disabled !== true) return null;
+    if (ids.length) {
+      blocks[ids[0]] = { ...blocks[ids[0]], disabled: false };
+      for (const id of ids.slice(1)) delete blocks[id];
+    } else {
+      blocks[EASYSELL_EMBED.id] = { type: EASYSELL_EMBED.type, disabled: false, settings: {} } as { type: string; disabled: boolean };
+    }
+    data.current.blocks = blocks;
+    return JSON.stringify(data);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Copia los app embeds (EasySell, Loox, píxeles…) del tema publicado al settings_data del kit: viven
- * por tema, y sin esto el formulario de pago contra entrega queda apagado en el tema nuevo. Los del
- * kit mandan si ya existen. Best effort: si falla, se instala igual.
+ * por tema, y sin esto quedan apagados en el tema nuevo. Los del kit mandan si ya existen, y
+ * EasySell queda encendido (el del tema publicado, si lo tenía). Best effort: si falla, se instala igual.
  */
 export function mergeAppEmbeds(kitSettings: string, liveSettings: string | null): string {
-  if (!liveSettings) return kitSettings;
-  try {
-    const kit = parseThemeJson(kitSettings);
-    const live = parseThemeJson(liveSettings);
-    const blocks = (live?.current?.blocks ?? {}) as Record<string, { type?: string }>;
-    const embeds = Object.entries(blocks).filter(([, b]) => typeof b?.type === "string" && b.type.startsWith("shopify://apps/"));
-    if (!embeds.length || typeof kit.current !== "object") return kitSettings;
-    kit.current.blocks = { ...Object.fromEntries(embeds), ...(kit.current.blocks ?? {}) };
-    return JSON.stringify(kit);
-  } catch {
-    return kitSettings;
+  let merged = kitSettings;
+  if (liveSettings) {
+    try {
+      const kit = parseThemeJson(kitSettings);
+      const live = parseThemeJson(liveSettings);
+      const blocks = (live?.current?.blocks ?? {}) as Record<string, { type?: string }>;
+      const embeds = Object.entries(blocks).filter(([, b]) => typeof b?.type === "string" && b.type.startsWith("shopify://apps/"));
+      if (embeds.length && typeof kit.current === "object") {
+        kit.current.blocks = { ...Object.fromEntries(embeds), ...(kit.current.blocks ?? {}) };
+        merged = JSON.stringify(kit);
+      }
+    } catch {
+      merged = kitSettings;
+    }
   }
+  return withEasySellOn(merged) ?? merged;
 }
 
 /** Los archivos del kit que no llegaron al tema (Shopify los descartó al importar). */

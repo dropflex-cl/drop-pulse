@@ -6,7 +6,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
 import type { ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { assertNoUserErrors, PublishError, stageUploads } from "./files";
-import { isProtected, kitHistory, mergeAppEmbeds, missingFromTheme, planUpdate, readKit, type Kit, type RemoteFile } from "./kit";
+import { isProtected, kitHistory, mergeAppEmbeds, missingFromTheme, planUpdate, readKit, withEasySellOn, type Kit, type RemoteFile } from "./kit";
 import { zip } from "./zip";
 
 export type ThemeStatus = "installing" | "preview" | "published" | "failed";
@@ -233,6 +233,31 @@ export interface ThemeUpdateResult {
   removed: number;
 }
 
+const SETTINGS = "config/settings_data.json";
+
+/**
+ * settings_data va aparte y al final: si toca subir el del kit, conserva los app embeds del tema
+ * (EasySell, Loox, píxeles); y en cada actualización EasySell queda encendido (kit.ts ›
+ * withEasySellOn), aunque el archivo sea del comerciante. Encender EasySell es best effort.
+ */
+async function updateSettings(conn: ShopifyConnection, themeGid: string, kitSettings: string | null) {
+  const remote = await readThemeFile(conn, themeGid, SETTINGS).catch(() => null);
+  const base = kitSettings ? mergeAppEmbeds(kitSettings, remote) : remote;
+  if (!base) return;
+  const body = withEasySellOn(base) ?? base;
+  if (body === remote) return;
+  try {
+    const res = await shopifyMutation<{ themeFilesUpsert: { userErrors: { message: string }[] } }>(conn, FILES_UPSERT, {
+      id: themeGid,
+      files: [{ filename: SETTINGS, body: { type: "TEXT", value: body } }],
+    });
+    assertNoUserErrors("Actualizar la configuración del tema", res.themeFilesUpsert.userErrors);
+  } catch (e) {
+    if (kitSettings) throw e;
+    console.error("[theme/update] no se pudo encender EasySell", e);
+  }
+}
+
 /** Sube solo el código que cambió (y repone lo del comerciante que falte), de a 50 archivos. */
 export async function updateTheme(conn: ShopifyConnection, kit: Kit = readKit()): Promise<ThemeUpdateResult> {
   const inst = await getThemeInstallation(conn.user_id);
@@ -241,7 +266,7 @@ export async function updateTheme(conn: ShopifyConnection, kit: Kit = readKit())
   const byPath = new Map(kit.files.map((f) => [f.path, f]));
   // Primero el código y al final los archivos del comerciante: un template nuevo puede usar un bloque
   // que llega en esta misma actualización.
-  const toSend = [...plan.upsert, ...plan.restore].sort((a, b) => Number(isProtected(a)) - Number(isProtected(b)));
+  const toSend = [...plan.upsert, ...plan.restore].filter((p) => p !== SETTINGS).sort((a, b) => Number(isProtected(a)) - Number(isProtected(b)));
   for (let i = 0; i < toSend.length; i += 50) {
     const files = toSend.slice(i, i + 50).map((path) => {
       const f = byPath.get(path)!;
@@ -250,6 +275,7 @@ export async function updateTheme(conn: ShopifyConnection, kit: Kit = readKit())
     const res = await shopifyMutation<{ themeFilesUpsert: { userErrors: { message: string }[] } }>(conn, FILES_UPSERT, { id: inst.theme_gid, files });
     assertNoUserErrors("Actualizar el tema", res.themeFilesUpsert.userErrors);
   }
+  await updateSettings(conn, inst.theme_gid, [...plan.upsert, ...plan.restore].includes(SETTINGS) ? byPath.get(SETTINGS)?.data.toString("utf8") ?? null : null);
   if (plan.remove.length) {
     const res = await shopifyMutation<{ themeFilesDelete: { userErrors: { message: string }[] } }>(conn, FILES_DELETE, { id: inst.theme_gid, files: plan.remove });
     assertNoUserErrors("Quitar archivos viejos del tema", res.themeFilesDelete.userErrors);
