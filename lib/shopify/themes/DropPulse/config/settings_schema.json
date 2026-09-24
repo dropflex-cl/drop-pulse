@@ -23,6 +23,23 @@
       },
       {
         "type": "checkbox",
+        "id": "df_brand_logo",
+        "label": "Logo Datazo con el color del producto",
+        "info": "Reemplaza el logo del header por la marca Datazo dibujada en código, teñida con el color de cada producto (rosa en las demás páginas).",
+        "default": false
+      },
+      {
+        "type": "range",
+        "id": "df_brand_logo_height",
+        "label": "Alto del logo Datazo",
+        "min": 32,
+        "max": 72,
+        "step": 2,
+        "unit": "px",
+        "default": 52
+      },
+      {
+        "type": "checkbox",
         "id": "df_header_cart",
         "label": "Carrito en el header",
         "info": "Apagado: las compras entran por el formulario de pago contra entrega (EasySell), sin carrito.",

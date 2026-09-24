@@ -24,6 +24,17 @@ Reglas de la redirección (spec del tema, §9.2):
 - **En 404:** borra el producto guardado y redirige al respaldo una sola vez por sesión (`sessionStorage['df:bounced']`), para no crear un bucle.
 - Las páginas que redirige llevan `noindex`, para que Google no las indexe.
 
+## Logo de la marca
+
+`snippets/df-brand-logo.liquid` es el logo de Datazo dibujado en código (portado de v1, flux › `dropflex-brand-logo`), con el mismo criterio:
+
+- Toma el acento del producto (`dropflex.accent`); sin acento, el rosa de la marca.
+- Todos los tonos salen de ese color con `color_modify: 'lightness'` (conserva el tono): tinte del domo (L85), ola (L38), orbes con 3:1 contra la tinta y el texto de la etiqueta con 4.5:1 sobre la tinta.
+- El contorno de tinta es fijo y envuelve cada relleno: cualquier acento se lee sobre el header.
+- Letras Fredoka Bold (SIL OFL 1.1) convertidas a trazos: no depende de ninguna fuente.
+
+El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` cuando está encendido el ajuste `df_brand_logo` (alto con `df_brand_logo_height`, 80 % en móvil). **Apagado por defecto**: es la marca de Datazo y el tema se instala en la tienda de cada comerciante.
+
 ## Design system
 
 `snippets/df-design-system.liquid` lleva a la tienda los tokens de DropFlex (`design-system/`). Lo controla el ajuste `df_design_system`, encendido por defecto.
