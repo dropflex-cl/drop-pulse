@@ -370,6 +370,10 @@ function SlotDetail({
   const decide = (o: PageImageOptionView, action: "choose" | "unchoose" | "recover") =>
     onAct(`${action}-${o.id}`, () => productsApi.decidePageImage(productId, o.id, action), action === "recover" ? "No pudimos recuperar la imagen." : "No pudimos guardar tu elección.");
 
+  // «Usar de portada»: si estaba elegida en la galería, sale de ella (la tienda no la repite).
+  const makeCover = (o: PageImageOptionView) =>
+    onAct(`cover-${o.id}`, () => productsApi.decidePageImage(productId, o.id, "cover"), "No pudimos cambiar la portada.", o.chosen ? "Es tu portada: la quitamos de la galería" : "Es tu portada");
+
   async function discard(o: PageImageOptionView) {
     await onAct(`discard-${o.id}`, () => productsApi.decidePageImage(productId, o.id, "discard"), "No pudimos descartarla.");
     if (o.source !== "reference")
@@ -466,6 +470,7 @@ function SlotDetail({
                   onUnchoose={() => decide(o, "unchoose")}
                   onDiscard={() => discard(o)}
                   onRecover={() => decide(o, "recover")}
+                  onCover={s.kind === "gallery" ? () => makeCover(o) : undefined}
                   onRetry={o.shotId ? () => onAct(`shot-${o.shotId}`, () => productsApi.renderShot(productId, o.shotId!), "No pudimos generar otra.") : undefined}
                 />
               </li>
@@ -547,6 +552,7 @@ function OptionTile({
   onDiscard,
   onRecover,
   onRetry,
+  onCover,
 }: {
   option: PageImageOptionView;
   aspect: string;
@@ -560,6 +566,8 @@ function OptionTile({
   onDiscard: () => void;
   onRecover: () => void;
   onRetry?: () => void;
+  /** Solo en la galería: la pasa a ser la portada. */
+  onCover?: () => void;
 }) {
   if (rendering(o)) {
     return (
@@ -614,6 +622,7 @@ function OptionTile({
           <img src={o.src} alt={`Opción ${SOURCE[o.source]}`} className="size-full object-cover" loading="lazy" />
         ) : null}
         <span className="absolute bottom-1 left-1 rounded-sm bg-background/90 px-1.5 text-micro font-medium">{SOURCE[o.source]}</span>
+        {o.cover ? <span className="absolute top-1 left-1 rounded-sm bg-primary px-1.5 text-micro font-semibold text-primary-foreground">Portada</span> : null}
         {o.chosen ? (
           <span className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-primary text-micro font-semibold text-primary-foreground">
             {gallery && o.order ? o.order : <Icon name="check" size="sm" />}
@@ -644,6 +653,11 @@ function OptionTile({
             Elegir
           </Button>
         )}
+        {onCover && !o.cover ? (
+          <Button size="sm" variant="secondary" icon="star" loading={busy === `cover-${o.id}`} disabled={!!busy} onClick={onCover} aria-label="Usar esta imagen de portada">
+            Portada
+          </Button>
+        ) : null}
         {!o.chosen ? (
           <Button size="sm" variant="ghost" icon="x" disabled={!!busy} onClick={onDiscard} aria-label="Descartar esta opción">
             Descartar

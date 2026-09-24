@@ -3,14 +3,15 @@ import { pageImagesState } from "@/lib/data/products";
 import { decideOption, syncPageImages, type OptionAction } from "@/lib/pipeline/page-images";
 import { ProductApiError, errorResponse, json, ownedProduct } from "@/lib/products/http";
 
-const ACTIONS: OptionAction[] = ["choose", "unchoose", "discard", "reopen", "recover"];
+const ACTIONS: OptionAction[] = ["choose", "unchoose", "discard", "reopen", "recover", "cover"];
 
 // Recuperar descarga la imagen y corre el QA después de responder (after).
 export const maxDuration = 300;
 
 /**
  * Elegir una opción para su espacio, quitarla, descartarla (se borra pasado el plazo de Deshacer),
- * deshacer el descarte o recuperar una que falló después de llegar a Higgsfield (sin volver a cobrar).
+ * deshacer el descarte, recuperar una que falló después de llegar a Higgsfield (sin volver a cobrar) o
+ * usar una de la galería como portada.
  */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string; optionId: string }> }) {
   try {

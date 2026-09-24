@@ -249,7 +249,7 @@ async function insertImage(shot: ShotRow, attempt: number, market?: Market, retr
 
 async function checkDailyImages(userId: string, adding: number) {
   const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("source", "ai").gte("created_at", since);
+  const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("source", "ai").is("input->>copied_from", null).gte("created_at", since);
   fail("Contar las imágenes", error);
   if ((count ?? 0) + adding > DAILY_IMAGES) throw new OptimizeError(`Llegaste al máximo de ${DAILY_IMAGES} imágenes en 24 horas. Vuelve mañana.`, 429);
 }
@@ -488,7 +488,7 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
 
 // ---------------------------------------------------------------- Elegir
 
-export type OptionAction = "choose" | "unchoose" | "discard" | "reopen" | "recover";
+export type OptionAction = "choose" | "unchoose" | "discard" | "reopen" | "recover" | "cover";
 
 /** El espacio existe hoy: Portada, Galería o un beneficio de la galería vigente del director. */
 async function assertSlot(userId: string, productId: string, slot: string) {
@@ -553,6 +553,60 @@ export async function decideOption(userId: string, productId: string, imageId: s
       return;
     case "recover":
       return recoverImage(a);
+    case "cover":
+      return coverFrom(a);
+  }
+}
+
+/**
+ * «Usar de portada»: una imagen de la galería (las dos son 1:1) pasa a ser la portada. La portada
+ * recibe su propia copia (fila y archivo, marcada con `input.copied_from`): así la galería conserva
+ * su opción, «Proponer otra galería» no se lleva la portada y descartar una no borra la otra. Si la
+ * imagen estaba elegida en la galería, sale de ella: la tienda no la mostraría dos veces.
+ */
+async function coverFrom(a: PageImageRow) {
+  if (a.slot !== GALLERY) throw new OptimizeError("Solo una imagen de la galería puede pasar a ser la portada.", 400);
+  if (a.render_status !== "succeeded" || a.status === "rejected") throw new OptimizeError("Esa imagen todavía no está lista.", 409);
+  if (a.source === "reference") {
+    await chooseReference(a.user_id, a.product_id, COVER, a.reference_image_id!);
+  } else {
+    if (!a.storage_path) throw new OptimizeError("Esa imagen ya no tiene archivo. Actualiza la página.", 409);
+    const db = adminClient();
+    const existing = await db.from("page_images").select("*").eq("product_id", a.product_id).eq("slot", COVER).eq("input->>copied_from", a.id).neq("status", "rejected").limit(1).maybeSingle();
+    fail("Leer la portada", existing.error);
+    let row = existing.data as PageImageRow | null;
+    if (!row) {
+      const path = `${a.user_id}/${a.product_id}/cover-${randomUUID()}.${a.storage_path.split(".").pop() ?? "jpg"}`;
+      const copy = await db.storage.from(PAGE_MEDIA_BUCKET).copy(a.storage_path, path);
+      if (copy.error) throw new Error(`Copiar la portada: ${copy.error.message}`);
+      const { data, error } = await db
+        .from("page_images")
+        .insert({
+          product_id: a.product_id,
+          user_id: a.user_id,
+          slot: COVER,
+          source: a.source,
+          input: { copied_from: a.id },
+          baked_texts: a.baked_texts,
+          qa: a.qa,
+          render_status: "succeeded",
+          storage_path: path,
+          width: a.width,
+          height: a.height,
+          size_bytes: a.size_bytes,
+          finished_at: stamp(),
+        })
+        .select("*")
+        .single();
+      if (error) await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
+      fail("Crear la portada", error);
+      row = data as PageImageRow;
+    }
+    await choose(row);
+  }
+  if (a.status === "approved") {
+    fail("Quitar de la galería", (await adminClient().from("page_images").update({ status: "generated", position: null, decided_at: null, updated_at: stamp() }).eq("id", a.id)).error);
+    await compactGallery(a.user_id, a.product_id);
   }
 }
 

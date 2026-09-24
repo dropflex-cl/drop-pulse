@@ -607,6 +607,8 @@ export interface PageImageOptionView {
   discarded: boolean;
   /** Orden en la galería (1 = la primera después de la portada). */
   order?: number;
+  /** De la galería: es la portada elegida («Usar de portada»). */
+  cover?: boolean;
   recoverable?: boolean;
   createdAt: string;
 }

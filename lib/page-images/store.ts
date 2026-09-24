@@ -217,7 +217,7 @@ export function isRecoverable(a: Pick<PageImageRow, "render_status" | "hf_reques
   return a.render_status === "failed" && Boolean(a.hf_request_id) && !HF_FINAL.includes(a.error_code ?? "");
 }
 
-export function toOptionView(r: PageImageRow, src?: string): PageImageOptionView {
+export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow): PageImageOptionView {
   const waiting = r.render_status === "queued" && r.error_code === "busy";
   return {
     id: r.id,
@@ -234,6 +234,8 @@ export function toOptionView(r: PageImageRow, src?: string): PageImageOptionView
     chosen: r.status === "approved",
     discarded: r.status === "rejected",
     order: r.status === "approved" && r.slot === GALLERY ? (r.position ?? undefined) : undefined,
+    cover:
+      (r.slot === GALLERY && cover && (cover.input?.copied_from === r.id || (r.reference_image_id !== null && cover.reference_image_id === r.reference_image_id))) || undefined,
     recoverable: isRecoverable(r) || undefined,
     createdAt: r.created_at,
   };
@@ -248,11 +250,12 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
   // Una falla deja de mostrarse cuando su toma ya tiene otra imagen más nueva (se ve solo la última).
   const superseded = (r: PageImageRow) => r.render_status === "failed" && rows.some((o) => o.shot_id && o.shot_id === r.shot_id && o.created_at > r.created_at);
   const rank = (r: PageImageRow) => (r.render_status === "failed" ? 1 : 0);
+  const cover = rows.find((r) => r.slot === COVER && r.status === "approved");
   const optionsOf = (slot: string) =>
     rows
       .filter((r) => r.slot === slot && !replaced.has(r.id) && !superseded(r))
       .sort((a, b) => rank(a) - rank(b))
-      .map((r) => toOptionView(r, r.storage_path ? urls.get(r.storage_path) : r.reference_image_id ? urls.get(`ref:${r.reference_image_id}`) : undefined));
+      .map((r) => toOptionView(r, r.storage_path ? urls.get(r.storage_path) : r.reference_image_id ? urls.get(`ref:${r.reference_image_id}`) : undefined, cover));
   const shotsOf = (slot: string) => shots.filter((s) => s.slot === slot).map((s) => ({ id: s.id, name: s.payload.name, type: SHOT_NAMES[s.payload.type] ?? s.payload.type, look: s.payload.look }));
   const slot = (key: string, title: string, pairs?: string): PageImageSlotView => {
     const kind = slotKind(key)!;
