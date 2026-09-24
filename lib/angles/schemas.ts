@@ -4,10 +4,10 @@
 
 import * as z from "zod/v4";
 import { AWARENESS_LEVELS } from "@/lib/ai/schemas";
-import { ANGLES, SALES_ANGLES, type SalesAngle } from "./catalog";
+import { modelCriteria, SALES_ANGLES, type SalesAngle } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. */
-export const ANGLE_ROUTER_PROMPT_VERSION = 3;
+export const ANGLE_ROUTER_PROMPT_VERSION = 4;
 /** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. */
 export const ANGLE_BRIEF_PROMPT_VERSION = 2;
 
@@ -68,7 +68,7 @@ export function routerProblems(output: Pick<AngleRouterOutput, "angles">): strin
       continue;
     }
     if (items.length > 1) problems.push(`El ángulo ${a} viene ${items.length} veces.`);
-    const expected = ANGLES[a].criteria.length;
+    const expected = modelCriteria(a).length;
     const scores = items[0].scores;
     if (scores.length !== expected) problems.push(`${a} trae ${scores.length} puntajes y debe traer ${expected}, uno por criterio en orden.`);
     if (scores.some((n) => !Number.isInteger(n) || n < 0 || n > 5)) problems.push(`${a} tiene puntajes fuera de 0 a 5.`);
@@ -76,12 +76,12 @@ export function routerProblems(output: Pick<AngleRouterOutput, "angles">): strin
   return problems;
 }
 
-/** De la lista del modelo (ya validada con routerProblems) a un mapa por ángulo. */
+/** De la lista del modelo (ya validada con routerProblems) a un mapa por ángulo. Los criterios del sistema los pone lib/angles/score.ts. */
 export function evaluationsFrom(output: Pick<AngleRouterOutput, "angles">): AngleEvaluations {
   return Object.fromEntries(
     SALES_ANGLES.map((a) => {
       const item = output.angles.find((x) => x.angle === a);
-      const criteria = Object.fromEntries(ANGLES[a].criteria.map((c, i) => [c.key, item?.scores[i] ?? 0]));
+      const criteria = Object.fromEntries(modelCriteria(a).map((c, i) => [c.key, item?.scores[i] ?? 0]));
       return [a, { criteria, penalty_applies: item?.penalty ?? false, why: item?.why ?? "", risks: item?.risks ?? [] }];
     }),
   ) as AngleEvaluations;

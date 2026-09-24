@@ -14,6 +14,8 @@ export interface Criterion {
   weight: number;
   /** Qué significa 0 y 5, para el prompt del orquestador. */
   guide: string;
+  /** Lo decide el sistema con un dato de la ficha, no el modelo (no va en el prompt ni en scores). */
+  bySystem?: boolean;
 }
 
 export interface AnglePenalty {
@@ -99,12 +101,15 @@ export const ANGLES: Record<SalesAngle, AngleDef> = {
       { key: "low_ticket_bundle", label: "Precio bajo para su mercado y pack posible", weight: 3, guide: "5: ticket bajo para el país y el pack gana más que 1 unidad; 0: ticket alto sin pack." },
       { key: "impulse_or_consumable", label: "Impulso, consumible o con variantes", weight: 2, guide: "5: se compra por impulso, se gasta o se regala; 0: compra única y meditada." },
       { key: "obvious_result", label: "Se entiende sin explicación", weight: 2, guide: "5: se entiende en 1 segundo; 0: necesita educar." },
-      { key: "real_event", label: "Hay una fecha comercial real", weight: 1, guide: "5: la ficha menciona una fecha real (CyberDay, Día de la Madre); 0: no hay." },
+      { key: "real_event", label: "Hay una fecha comercial real", weight: 1, guide: "5: la ficha menciona una fecha real (CyberDay, Día de la Madre); 0: no hay.", bySystem: true },
     ],
     penalty: { key: "thin_margin", label: "El margen no alcanza para empujar el pack", points: 20, when: "Ningún pack gana más que 1 unidad o la ganancia no aguanta el descuento." },
   },
 };
 
 export const angleName = (a: SalesAngle) => ANGLES[a].name;
+
+/** Los criterios que puntúa el modelo, en el orden de scores. */
+export const modelCriteria = (a: SalesAngle) => ANGLES[a].criteria.filter((c) => !c.bySystem);
 
 export const ROLE_LABEL: Record<AngleRole, string> = { primary: "principal", secondary: "secundario" };

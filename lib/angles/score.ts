@@ -69,7 +69,7 @@ function grounded(angle: SalesAngle, ev: AngleEvaluation, f: AngleFacts): { crit
       penalty = !f.hasRealReviews;
       break;
     case "offer":
-      if (!f.hasRealEvent) criteria.real_event = 0;
+      criteria.real_event = f.hasRealEvent ? 5 : 0;
       penalty = penalty || !f.packEarnsMore;
       break;
   }

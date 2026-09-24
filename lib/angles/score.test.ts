@@ -83,6 +83,13 @@ describe("ranking del orquestador", () => {
     expect(r.suggested).toEqual({ primary: "unique_mechanism", secondary: "offer" });
   });
 
+  it("la fecha comercial la decide la ficha, no el modelo", () => {
+    const out = evaluation({ offer: { criteria: { low_ticket_bundle: 5, impulse_or_consumable: 5, obvious_result: 5 } } });
+    const offer = (f: AngleFacts) => rankAngles(out, f).angles.find((a) => a.angle === "offer")!.score;
+    expect(offer({ ...FACTS, hasRealEvent: true })).toBe(100);
+    expect(offer({ ...FACTS, hasRealEvent: false })).toBe(88);
+  });
+
   it("principal y secundario nunca son el mismo", () => {
     const r = rankAngles(evaluation(), FACTS);
     expect(r.suggested.primary).not.toBe(r.suggested.secondary);
