@@ -571,6 +571,71 @@ export interface ProductCreatives extends CreativesState {
   product: Product;
 }
 
+// ---------------------------------------------------------------- Imágenes de la página (docs/spec-imagenes.md)
+
+/** Una opción para un espacio de la página: generada, subida o una foto de Información base. */
+export interface PageImageOptionView {
+  id: string;
+  source: "ai" | "upload" | "reference";
+  shotId?: string;
+  referenceId?: string;
+  render: "queued" | "running" | "succeeded" | "failed";
+  /** 2: el reintento automático después de que el QA rechazó el primero. */
+  attempt: number;
+  /** Por qué falló, o por qué sigue en cola. */
+  error?: string;
+  /** URL firmada de la imagen (1 h). */
+  src?: string;
+  width?: number;
+  height?: number;
+  qa?: { pass: boolean; issues: string[] };
+  /** Elegida para la página. */
+  chosen: boolean;
+  /** Descartada: se borra pasado el plazo de Deshacer. */
+  discarded: boolean;
+  /** Orden en la galería (1 = la primera después de la portada). */
+  order?: number;
+  recoverable?: boolean;
+  createdAt: string;
+}
+
+/** Un espacio de la página del producto (MediaSlot): Portada, Galería o un Beneficio. */
+export interface PageImageSlotView {
+  key: string;
+  kind: import("./page-images/catalog").SlotKind;
+  title: string;
+  required: boolean;
+  /** «1:1 · imagen». */
+  format: string;
+  ratio: "1:1" | "3:4";
+  /** El texto aprobado en Textos que acompaña a este espacio (beneficios). */
+  pairs?: string;
+  /** Las tomas que propuso el director para este espacio (Generar otra). */
+  shots: { id: string; name: string; type: string; look: string }[];
+  options: PageImageOptionView[];
+}
+
+export interface PageImagesState {
+  /** Por qué la etapa no se puede usar todavía (la página del producto sin aprobar). */
+  locked: string | null;
+  /** Higgsfield conectado: sin él se puede elegir y subir, pero no generar. */
+  connected: boolean;
+  /** Por qué no se puede generar (sin Higgsfield, sin ángulos aprobados). */
+  cannotGenerate: string | null;
+  run?: { id: string; status: RunStatus; error?: string; createdAt: string };
+  slots: PageImageSlotView[];
+  /** Las fotos en uso de Información base: se pueden elegir en cualquier espacio. */
+  references: { id: string; src: string; alt: string }[];
+  /** Cota de USD por imagen para mostrar antes de generar. */
+  imageCostUsd: number;
+  /** Los beneficios aprobados cambiaron después de proponer la galería. */
+  stale: boolean;
+}
+
+export interface ProductPageImages extends PageImagesState {
+  product: Product;
+}
+
 // ---------------------------------------------------------------- Costo de IA (arquitectura.md › 11)
 
 /** Una etapa en el desglose de AiCostCard. */

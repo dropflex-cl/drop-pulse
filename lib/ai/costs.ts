@@ -11,6 +11,9 @@ export const AI_STEPS = {
   angle_ranking: { stage: "angulos", label: "Ranking de ángulos" },
   angle_brief: { stage: "angulos", label: "Desarrollo" },
   page_copy: { stage: "textos", label: "Página del producto" },
+  page_plan: { stage: "imagenes", label: "Ideas de imágenes" },
+  page_render: { stage: "imagenes", label: "Imagen de la página" },
+  page_qa: { stage: "imagenes", label: "Revisión de imagen" },
   creative_concepts: { stage: "creativos", label: "Ideas de anuncios" },
   creative_render: { stage: "creativos", label: "Imagen de anuncio" },
   creative_qa: { stage: "creativos", label: "Revisión de imagen" },
@@ -27,10 +30,11 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   angle_brief: 0.3,
   page_copy: 0.2,
   creative_concepts: 0.2,
+  page_plan: 0.25,
 };
 
 /** Etapas que gastan IA, en el orden de la ruta. */
-export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "creativos"];
+export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "imagenes", "creativos"];
 
 export interface GenerationRow {
   step: string;

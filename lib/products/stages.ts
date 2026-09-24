@@ -7,6 +7,7 @@ import type { MeterStage } from "@/components/df/stage-meter";
 import type { AngleRole } from "@/lib/angles/catalog";
 import type { CopyProgress } from "@/lib/copy/progress";
 import { money } from "@/lib/format";
+import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import type { ContentStatus, ProductFilter, RunStatus, Stage, StageKey } from "@/lib/types";
 
 export interface AngleFacts {
@@ -37,6 +38,21 @@ export interface ProductFacts {
   ads?: AdsFacts | null;
   /** Creativos (etapa opcional): la clave de Higgsfield y las piezas generadas. */
   creatives?: CreativeFacts | null;
+  /** Imágenes de la página: lo elegido por espacio y lo que se está generando. */
+  images?: ImageFacts | null;
+}
+
+export interface ImageFacts {
+  /** El director de galería está proponiendo las tomas. */
+  running: boolean;
+  /** Imágenes en cola o generándose en Higgsfield. */
+  rendering: number;
+  /** Opciones listas para elegir (generadas, subidas o fotos). */
+  options: number;
+  /** Hay portada elegida. */
+  cover: boolean;
+  /** Imágenes elegidas para la galería. */
+  gallery: number;
 }
 
 export interface CreativeFacts {
@@ -264,6 +280,24 @@ function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined
   return optional("available", "Anuncios de imagen terminados con IA");
 }
 
+/**
+ * Imágenes (docs/spec-imagenes.md): se habilita con la página del producto aprobada y queda lista con
+ * la portada y al menos GALLERY_MIN imágenes de galería elegidas.
+ */
+function imagesStage(pageDone: boolean, i: ImageFacts | null | undefined): { stage: Stage; meter: MeterStage; done: boolean } {
+  const base = { key: "imagenes", title: "Imágenes" } as const;
+  if (!pageDone) return { stage: { ...base, state: "locked", desc: "Después de la página del producto" }, meter: "locked", done: false };
+  const done = Boolean(i?.cover) && (i?.gallery ?? 0) >= GALLERY_MIN;
+  if (done) return { stage: { ...base, state: "done", desc: `Portada y ${i!.gallery} de galería` }, meter: "done", done };
+  if (i?.running) return { stage: { ...base, state: "current", desc: "La IA está pensando tu galería" }, meter: "current", done };
+  if (i?.rendering) return { stage: { ...base, state: "current", desc: i.rendering === 1 ? "Generando 1 imagen" : `Generando ${i.rendering} imágenes` }, meter: "current", done };
+  if (i?.options) {
+    const missing = [i.cover ? null : "la portada", (i.gallery ?? 0) < GALLERY_MIN ? `${GALLERY_MIN - (i.gallery ?? 0)} de galería` : null].filter(Boolean).join(" y ");
+    return { stage: { ...base, state: "review", desc: `Elige ${missing}` }, meter: "review", done };
+  }
+  return { stage: { ...base, state: "current", desc: "Genera las imágenes de tu página" }, meter: "current", done };
+}
+
 /** Reseñas: opcional, entre Información base y Ángulos (arquitectura.md › 9). */
 function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter: MeterStage } {
   const base = { key: "resenas", title: "Reseñas", optional: true } as const;
@@ -280,6 +314,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
   const pageDone = copy === "done";
   const reviews = reviewsStage(f.reviews);
   const creatives = creativesStage(angles === "done", f.creatives);
+  const images = imagesStage(pageDone, f.images);
   const stages: Stage[] = [
     {
       key: "importado",
@@ -292,13 +327,13 @@ export function productPosition(f: ProductFacts): ProductPosition {
     { key: "angulos", title: "Ángulos", state: ANGLES_STATE[angles], desc: anglesDesc(angles, f.angles) },
     // El precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
     { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy) },
-    { key: "imagenes", title: "Imágenes", state: pageDone ? "current" : "locked", desc: pageDone ? "Elige las imágenes de tu tienda" : "Después de la página del producto" },
-    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita la página y las imágenes aprobadas" },
+    images.stage,
+    { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: images.done ? "Próximamente" : "Necesita la página y las imágenes aprobadas" },
     // Creativos es opcional y alimenta Anuncios: nunca bloquea Publicar (spec-creativos §6.5).
     creatives.stage,
     adsStage(pageDone, f.ads),
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], pageDone ? "current" : "locked", "locked", creatives.meter, "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], images.meter, "locked", creatives.meter, "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
   const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
 
@@ -338,6 +373,8 @@ export function productPosition(f: ProductFacts): ProductPosition {
     case "review":
       return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · página del producto", nextStage: "textos", summary: `Página por revisar${price}`, status: "revision" };
     case "done":
+      if (images.done) return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: publicar", nextStage: "publicar", summary: `Imágenes listas${price}`, status: "aprobado" };
+      if (images.stage.state === "review") return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · imágenes", nextStage: "imagenes", summary: `Imágenes por elegir${price}`, status: "revision" };
       return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: imágenes", nextStage: "imagenes", summary: `Página lista${price}`, status: "aprobado" };
     default:
       return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: página del producto", nextStage: "textos", summary: `Ángulos listos${price}`, status: "aprobado" };

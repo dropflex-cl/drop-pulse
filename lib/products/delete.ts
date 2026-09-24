@@ -7,6 +7,7 @@ import { REFERENCES_BUCKET } from "./store";
 
 const AD_MEDIA_BUCKET = "ad-media";
 const CREATIVES_BUCKET = "creative-media";
+const PAGE_MEDIA_BUCKET = "page-media";
 
 // Borrado completo de un producto (CLAUDE.md › Datos › Productos eliminados en Shopify): archivos en
 // Storage, filas propias y en cascada (imágenes de referencia, corridas, fichas, clientes ideales,
@@ -65,6 +66,14 @@ async function removeFiles(userId: string, productId: string) {
   for (let i = 0; i < piecePaths.length; i += REMOVE_BATCH) {
     const { error: rmError } = await db.storage.from(CREATIVES_BUCKET).remove(piecePaths.slice(i, i + REMOVE_BATCH));
     if (rmError) throw new Error(`Borrar piezas generadas de ${productId}: ${rmError.message}`);
+  }
+  // Imágenes de la página, generadas y subidas (bucket page-media, docs/spec-imagenes.md).
+  const { data: pageImages, error: pageError } = await db.from("page_images").select("storage_path").eq("user_id", userId).eq("product_id", productId).not("storage_path", "is", null);
+  if (pageError) throw new Error(`Leer imágenes de la página de ${productId}: ${pageError.message}`);
+  const pagePaths = [...new Set([...(await storedPaths(userId, productId, PAGE_MEDIA_BUCKET)), ...(pageImages ?? []).map((p) => p.storage_path as string)])];
+  for (let i = 0; i < pagePaths.length; i += REMOVE_BATCH) {
+    const { error: rmError } = await db.storage.from(PAGE_MEDIA_BUCKET).remove(pagePaths.slice(i, i + REMOVE_BATCH));
+    if (rmError) throw new Error(`Borrar imágenes de la página de ${productId}: ${rmError.message}`);
   }
 }
 

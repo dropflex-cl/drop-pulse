@@ -10,7 +10,7 @@ import { getPricingPlan } from "@/lib/pricing/store";
 import type { ProductAiCost } from "@/lib/types";
 import { getProduct } from "./products";
 
-const RUN_TABLES = ["pipeline_runs", "angle_rankings", "copy_runs", "creative_runs"] as const;
+const RUN_TABLES = ["pipeline_runs", "angle_rankings", "copy_runs", "creative_runs", "page_image_runs"] as const;
 
 /** Alguna corrida de IA del producto sigue en cola o generando. */
 async function running(userId: string, productId: string): Promise<boolean> {

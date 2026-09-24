@@ -20,6 +20,7 @@ const stages = [
   { key: "importado" as const, title: "Información base" },
   { key: "angulos" as const, title: "Ángulos" },
   { key: "textos" as const, title: "Página del producto" },
+  { key: "imagenes" as const, title: "Imágenes" },
   { key: "creativos" as const, title: "Creativos", note: "Necesita los 2 desarrollos aprobados" },
 ];
 const now = new Date("2026-09-24T18:00:00Z");
@@ -59,7 +60,8 @@ describe("summarizeAiCost", () => {
     expect(s.totalUsd).toBeCloseTo(0.12);
     expect(s.total).toBeCloseTo(120);
     expect(s.generations).toBe(4);
-    const [info, angles, copy, creatives] = s.stages;
+    const [info, angles, copy, images, creatives] = s.stages;
+    expect(images).toMatchObject({ label: "Imágenes", runs: 0 });
     expect(info).toMatchObject({ label: "Información base", runs: 2 });
     expect(info.cost).toBeCloseTo(50);
     expect(copy).toMatchObject({ runs: 2, retries: 1 });

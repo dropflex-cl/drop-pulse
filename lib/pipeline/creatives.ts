@@ -78,14 +78,14 @@ async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: n
   });
 }
 
-async function requireKey(userId: string): Promise<string> {
+export async function requireKey(userId: string, message = "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios."): Promise<string> {
   const key = await higgsfieldKey(userId);
-  if (!key) throw new OptimizeError("Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.", 409);
+  if (!key) throw new OptimizeError(message, 409);
   return key;
 }
 
 /** Higgsfield rechazó la clave: se marca para que la etapa pida reconectar. */
-async function onHiggsfieldError(userId: string, e: unknown) {
+export async function onHiggsfieldError(userId: string, e: unknown) {
   if (e instanceof HiggsfieldError && e.code === "invalid_key") await markHiggsfieldInvalid(userId, e.message);
 }
 
@@ -140,7 +140,7 @@ export async function startCreatives(userId: string, productId: string): Promise
 }
 
 /** Las imágenes en uso del producto, la base primero, como URLs que se pueden descargar. */
-async function productImageUrls(userId: string, productId: string, max: number): Promise<string[]> {
+export async function productImageUrls(userId: string, productId: string, max: number): Promise<string[]> {
   const rows = imagesForGeneration(await listImageRows(userId, [productId])).slice(0, max);
   const urls = await withDisplayUrls(rows);
   return rows.map((r) => urls.get(r.id)).filter((u): u is string => Boolean(u));

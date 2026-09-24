@@ -3,7 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { SalesAngle } from "@/lib/angles/catalog";
-import type { AnglesState, AvatarProposal, CopyState, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, CopyState, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -35,6 +35,23 @@ const send = <T>(method: string, path: string, data?: unknown) =>
  * informa el progreso de subida) y confirma. Devuelve la promesa y cómo cancelarla.
  */
 export function uploadImage(productId: string, file: File, onProgress: (p: number) => void): { done: Promise<ReferenceImage>; cancel: () => void } {
+  return signedUpload(file, onProgress, async (put) => {
+    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/images/upload-url`, { type: file.type, size: file.size });
+    await put(uploadUrl);
+    return (await send<{ image: ReferenceImage }>("POST", `/${productId}/images`, { path, name: file.name })).image;
+  });
+}
+
+/** Sube una imagen a un espacio de la página (etapa Imágenes) y devuelve el estado de la etapa. */
+export function uploadPageImage(productId: string, slot: string, file: File, onProgress: (p: number) => void): { done: Promise<PageImagesState>; cancel: () => void } {
+  return signedUpload(file, onProgress, async (put) => {
+    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/page-images/upload-url`, { type: file.type, size: file.size });
+    await put(uploadUrl);
+    return send<PageImagesState>("POST", `/${productId}/page-images/uploads`, { slot, path });
+  });
+}
+
+function signedUpload<T>(file: File, onProgress: (p: number) => void, flow: (put: (url: string) => Promise<void>) => Promise<T>): { done: Promise<T>; cancel: () => void } {
   const xhr = new XMLHttpRequest();
   let cancelled = false;
   const put = (url: string) =>
@@ -52,13 +69,11 @@ export function uploadImage(productId: string, file: File, onProgress: (p: numbe
       form.append("", file);
       xhr.send(form);
     });
-  const done = (async () => {
-    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/images/upload-url`, { type: file.type, size: file.size });
+  const done = flow(async (url) => {
     if (cancelled) throw new ProductApiClientError("Subida cancelada.", "abort");
-    await put(uploadUrl);
+    await put(url);
     onProgress(1);
-    return (await send<{ image: ReferenceImage }>("POST", `/${productId}/images`, { path, name: file.name })).image;
-  })();
+  });
   return {
     done,
     cancel: () => {
@@ -74,6 +89,14 @@ export const productsApi = {
   editConcept: (id: string, conceptId: string, texts: { role: string; text: string }[]) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { texts }),
   renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16") => send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, { ratio }),
   decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen" | "recover") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
+  // Etapa Imágenes (la página del producto): cada acción devuelve el estado completo de la etapa.
+  pageImages: (id: string) => call<PageImagesState>(`/${id}/page-images`),
+  proposePageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images`),
+  fillPageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images/fill`),
+  renderShot: (id: string, shotId: string) => send<PageImagesState>("POST", `/${id}/page-images/shots/${shotId}`),
+  decidePageImage: (id: string, optionId: string, action: "choose" | "unchoose" | "discard" | "reopen" | "recover") => send<PageImagesState>("PATCH", `/${id}/page-images/options/${optionId}`, { action }),
+  chooseReference: (id: string, slot: string, referenceId: string) => send<PageImagesState>("POST", `/${id}/page-images/references`, { slot, referenceId }),
+  orderGallery: (id: string, ids: string[]) => send<PageImagesState>("PUT", `/${id}/page-images/order`, { ids }),
   decidePackLabels: (id: string, action: "approve" | "reopen") => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action }),
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
   regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
