@@ -148,14 +148,12 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_bottom": 0
   },
   "review-slider": {
-    "source_label": "Reseñas de compradores del mismo producto en AliExpress",
     "min_reviews": 3,
     "max_items": 5,
     "min_rating": 4,
     "only_with_photo": false,
     "anchor_id": "resenas",
     "style": "photo",
-    "autoplay": true,
     "autoplay_delay": 5,
     "text_lines": 2,
     "show_country": true,
@@ -166,7 +164,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
   "review-stars": {
     "show_text": true,
     "label": "{rating} · {count} reseñas",
-    "show_source": true,
     "min_reviews": 3,
     "anchor": "resenas",
     "scroll_offset": 80,

@@ -1,6 +1,6 @@
 {%- doc -%}
   DropFlex · Estrellas de reseñas (review-stars). Bloque de la columna del producto, sobre el
-  título: 5 estrellas con relleno parcial + «4,6 · 19 reseñas» + el origen de las reseñas. Es un
+  título: 5 estrellas con relleno parcial + «4,6 · 19 reseñas». Es un
   enlace a las reseñas completas (ancla del ajuste `anchor`).
 
   REGLA: la calificación y la cantidad salen SOLO de las reseñas aprobadas (metafield de la app
@@ -10,7 +10,7 @@
 
   Contenido (texto): metafield `dropflex.review_stars` (json) → si falta, el texto del bloque.
     { label } con los tokens {count} (obligatorio) y {rating}.
-  Datos reales: product.metafields.dropflex.review_summary = { rating, count, source_label }.
+  Datos reales: product.metafields.dropflex.review_summary = { rating, count }.
 {%- enddoc -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
@@ -22,7 +22,6 @@
 
   assign rating = summary.rating | default: 0 | plus: 0 | at_least: 0 | at_most: 5
   assign count = summary.count | default: 0 | plus: 0
-  assign source_label = summary.source_label
 
   assign show = true
   if product == blank or rating <= 0 or count < s.min_reviews
@@ -88,9 +87,6 @@
     {%- else -%}
       </p>
     {%- endif -%}
-    {%- if s.show_source and source_label != blank -%}
-      <p class="df-review-stars__source">{{ source_label | escape }}</p>
-    {%- endif -%}
   </df-review-stars>
 
 {%- elsif request.design_mode -%}
@@ -144,13 +140,6 @@
   .df-review-stars__label {
     font-weight: 500;
   }
-
-  .df-review-stars__source {
-    margin: 0;
-    font-size: 0.75rem;
-    line-height: 1.35;
-    color: var(--df-muted);
-  }
 {% endstylesheet %}
 
 {% schema %}
@@ -178,13 +167,6 @@
       "label": "Texto junto a las estrellas",
       "info": "Respaldo del metafield dropflex.review_stars. {count} es obligatorio; {rating} es opcional.",
       "default": "{rating} · {count} reseñas"
-    },
-    {
-      "type": "checkbox",
-      "id": "show_source",
-      "label": "Mostrar origen",
-      "info": "Ej.: «Reseñas de compradores del mismo producto en AliExpress».",
-      "default": true
     },
     {
       "type": "header",

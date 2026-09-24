@@ -8,7 +8,6 @@
   @param {string} section_id - Unique section ID
   @param {object} settings - Section settings object
   @param {string} media_gallery - Captured HTML for the product media gallery block
-  @param {string} [media_note] - DropFlex: HTML bajo la galería (nota de confianza), solo en escritorio
   @param {string} product_details - Captured HTML for the product details block
   @param {string} additional_blocks - Captured HTML for additional section blocks
 
@@ -109,9 +108,6 @@
         data-testid="product-information-media"
       >
         {{ media_gallery }}
-        {%- if media_note != blank -%}
-          <div class="product-information__media-note">{{ media_note }}</div>
-        {%- endif -%}
       </div>
     {% endcapture %}
 
@@ -142,17 +138,6 @@
   /* Default column positions */
   .product-details {
     order: 1;
-  }
-
-  /* DropFlex: la nota bajo la galería (en móvil, la de la columna del producto la reemplaza). */
-  .product-information__media-note {
-    margin-top: var(--gap-md, 16px);
-  }
-
-  .product-information__media-note:has(.df-trust-note--desktop) {
-    @media screen and (max-width: 749px) {
-      display: none;
-    }
   }
 
   .product-information__media {

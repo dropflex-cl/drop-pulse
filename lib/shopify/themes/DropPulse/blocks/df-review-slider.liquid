@@ -23,7 +23,6 @@
   assign images = product.metafields.dropflex.reviews_images.value
 
   assign count = summary.count | default: reviews.size | default: 0 | plus: 0
-  assign source_label = summary.source_label | default: s.source_label
 
   # Pares «índice de reseña:índice del ítem de la IA» ('x' = sin ítem: texto completo).
   assign picked = ''
@@ -86,8 +85,10 @@
     endif
     assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
 
+    # Rotan solas siempre (sin flechas ni pausa); se detienen con el puntero, el foco, fuera de
+    # pantalla y con prefers-reduced-motion (df-slider.js). También se pueden deslizar.
     assign autoplay = 0
-    if s.autoplay and total > 1
+    if total > 1
       assign autoplay = s.autoplay_delay | times: 1000
     endif
     assign anchor = s.anchor_id | remove: '#' | strip | handleize
@@ -193,34 +194,7 @@
           </div>
         {%- endfor -%}
       </div>
-
-      {%- if total > 1 -%}
-        <div class="df-slider__controls">
-          {%- if s.style == 'photo' -%}
-            <button type="button" class="df-slider__arrow" data-df-prev aria-label="Reseña anterior">
-              {% render 'df-icon', name: 'chevron-left' %}
-            </button>
-          {%- else -%}
-            <div class="df-slider__dots" data-df-dots></div>
-          {%- endif -%}
-          {%- if autoplay > 0 -%}
-            <button type="button" class="df-slider__arrow df-review-slider__pause" data-df-pause aria-pressed="false" aria-label="Pausar la rotación">
-              {% render 'df-icon', name: 'pause', class: 'df-review-slider__icon-pause' %}
-              {% render 'df-icon', name: 'play', class: 'df-review-slider__icon-play' %}
-            </button>
-          {%- endif -%}
-          {%- if s.style == 'photo' -%}
-            <button type="button" class="df-slider__arrow" data-df-next aria-label="Reseña siguiente">
-              {% render 'df-icon', name: 'chevron-right' %}
-            </button>
-          {%- endif -%}
-        </div>
-      {%- endif -%}
     </df-slider>
-
-    {%- if source_label != blank -%}
-      <p class="df-review-slider__source">{{ source_label | escape }}</p>
-    {%- endif -%}
   </df-review-slider>
 
 {%- elsif request.design_mode -%}
@@ -239,9 +213,11 @@
     --df-slide-gap: 12px;
   }
 
+  /* Título del bloque: el mismo aire que separa los bloques de la ficha. */
   .df-review-slider__heading {
-    margin-bottom: 12px;
-    font-size: 1.125rem;
+    margin-bottom: 16px;
+    font-size: 1.25rem;
+    line-height: 1.25;
   }
 
   .df-review-slider .df-slider__track > .df-review-slider__card {
@@ -349,26 +325,6 @@
     line-height: 1.45;
   }
 
-  .df-review-slider .df-slider__controls {
-    margin-top: 8px;
-  }
-
-  .df-review-slider__pause .df-review-slider__icon-play,
-  .df-review-slider__pause[aria-pressed='true'] .df-review-slider__icon-pause {
-    display: none;
-  }
-
-  .df-review-slider__pause[aria-pressed='true'] .df-review-slider__icon-play {
-    display: block;
-  }
-
-  .df-review-slider__source {
-    margin: 8px 0 0;
-    color: var(--df-muted);
-    font-size: 0.75rem;
-    line-height: 1.35;
-    text-align: center;
-  }
 
   @media (min-width: 750px) {
     .df-review-slider__avatar {
@@ -401,13 +357,6 @@
       "id": "heading",
       "label": "Título",
       "info": "Opcional. Puedes usar {count} y {rating} (datos reales)."
-    },
-    {
-      "type": "text",
-      "id": "source_label",
-      "label": "Origen (respaldo)",
-      "info": "Se usa si DropFlex no publicó el origen. Siempre visible.",
-      "default": "Reseñas de compradores del mismo producto en AliExpress"
     },
     {
       "type": "header",
@@ -469,13 +418,6 @@
         { "value": "compact", "label": "Compacto con puntos" }
       ],
       "default": "photo"
-    },
-    {
-      "type": "checkbox",
-      "id": "autoplay",
-      "label": "Rotar solas",
-      "info": "Se pausa al pasar el puntero, con el foco o al tocar un control.",
-      "default": true
     },
     {
       "type": "range",

@@ -130,18 +130,6 @@
         </div>
       </div>
 
-      {%- unless is_static -%}
-        <button
-          type="button"
-          class="df-scrolling-benefits__pause"
-          aria-pressed="false"
-          aria-label="Pausar el movimiento de la cinta"
-          data-df-pause
-        >
-          {% render 'df-icon', name: 'pause', class: 'df-scrolling-benefits__pause-icon' %}
-          {% render 'df-icon', name: 'play', class: 'df-scrolling-benefits__play-icon' %}
-        </button>
-      {%- endunless -%}
     </div>
   </df-scrolling-benefits>
 {%- elsif request.design_mode -%}
@@ -243,39 +231,6 @@
     height: 1em;
   }
 
-  .df-scrolling-benefits__pause {
-    display: inline-grid;
-    place-items: center;
-    flex: none;
-    width: 44px;
-    height: 44px;
-    margin-inline: 4px 8px;
-    padding: 0;
-    border: 1px solid var(--df-hairline);
-    border-radius: 50%;
-    background: var(--df-bg);
-    color: var(--df-fg);
-    cursor: pointer;
-  }
-
-  .df-scrolling-benefits__pause:focus-visible {
-    outline: 2px solid var(--df-accent-ink);
-    outline-offset: 2px;
-  }
-
-  .df-scrolling-benefits__pause svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .df-scrolling-benefits__play-icon,
-  .df-scrolling-benefits__pause[aria-pressed='true'] .df-scrolling-benefits__pause-icon {
-    display: none;
-  }
-
-  .df-scrolling-benefits__pause[aria-pressed='true'] .df-scrolling-benefits__play-icon {
-    display: block;
-  }
 
   @media (min-width: 750px) {
     .df-scrolling-benefits--fade .df-scrolling-benefits__viewport {
@@ -327,8 +282,7 @@
       padding-inline: 16px;
     }
 
-    .df-scrolling-benefits__set[aria-hidden='true'],
-    .df-scrolling-benefits__pause {
+    .df-scrolling-benefits__set[aria-hidden='true'] {
       display: none;
     }
   }

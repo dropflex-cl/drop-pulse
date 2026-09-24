@@ -40,16 +40,6 @@
           },
           "blocks": {}
         },
-        "media-note": {
-          "type": "df-trust-note",
-          "static": true,
-          "settings": {
-            "policy": "cod",
-            "icon": "cash",
-            "visibility": "desktop"
-          },
-          "blocks": {}
-        },
         "product-details": {
           "type": "_product-details",
           "static": true,

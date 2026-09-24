@@ -100,8 +100,9 @@
     <p class="df-social-proof__text">
       {%- for part in parts -%}
         {%- assign odd = forloop.index0 | modulo: 2 -%}
-        {%- assign part = part | replace: '{names}', safe_names -%}
-        {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+        {%- comment -%} Variable nueva: en Liquid la del for no se puede reasignar. {%- endcomment -%}
+        {%- assign piece = part | replace: '{names}', safe_names -%}
+        {%- if odd == 1 -%}<strong>{{ piece }}</strong>{%- else -%}{{ piece }}{%- endif -%}
         {%- if forloop.index0 == 1 and s.show_verified -%}
           <span class="df-social-proof__verified">{% render 'df-icon', name: 'check-circle' %}<span class="df-visually-hidden"> (reseñas revisadas por la tienda)</span></span>
         {%- endif -%}

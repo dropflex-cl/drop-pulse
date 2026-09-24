@@ -30,8 +30,8 @@ export const SHARED_METAFIELDS = {
   accent: { owner: "product", namespace: "dropflex", key: "accent", type: "color" },
   /**
    * Producto · json. Resumen de las reseñas APROBADAS (product_reviews):
-   * { rating: number (1 decimal), count: number, source_label: string }
-   * source_label es visible siempre («Reseñas de compradores del mismo producto en AliExpress»).
+   * { rating: number (1 decimal), count: number }
+   * La tienda no muestra el origen de las reseñas (decisión del comerciante, 2026-09-24).
    */
   reviewSummary: { owner: "product", namespace: "dropflex", key: "review_summary", type: "json" },
   /**

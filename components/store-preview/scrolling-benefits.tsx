@@ -95,12 +95,6 @@ export function ScrollingBenefitsPreview({ content, facts }: PreviewProps<Conten
             )}
           </div>
         </div>
-        {!isStatic && (
-          <button type="button" className="df-scrolling-benefits__pause" aria-pressed="false" data-df-pause="">
-            <DfIcon name="pause" className="df-scrolling-benefits__pause-icon" />
-            <DfIcon name="play" className="df-scrolling-benefits__play-icon" />
-          </button>
-        )}
       </div>
     </df-scrolling-benefits>
   );

@@ -87,6 +87,8 @@
   --df-gutter: var(--page-margin, 16px);
   --df-space: 0.67;
   --df-title-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.5rem);
+  /* Del título de una sección a su contenido: 48px en escritorio, 32px en móvil. */
+  --df-title-gap: calc(48px * var(--df-space));
   --df-radius-lg: var(--style-border-radius-lg, 14px);
 
   color: var(--df-fg);
@@ -812,7 +814,7 @@ df-comparison-table {
 }
 
 .df-comparison-table__heading {
-  margin-bottom: 32px;
+  margin-bottom: var(--df-title-gap);
   font-size: var(--df-title-size);
   text-align: center;
 }
@@ -1003,14 +1005,6 @@ df-comparison-table {
     --df-ct-mark: 2rem;
   }
 
-  .df-comparison-table__inner {
-    padding-inline: 20px;
-  }
-
-  .df-comparison-table__heading {
-    margin-bottom: 36px;
-  }
-
   .df-comparison-table__table {
     font-size: 1.0625rem;
   }
@@ -1119,11 +1113,6 @@ df-faq-and-text {
   font-weight: 600;
 }
 
-.df-faq-and-text__source {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--df-muted);
-}
 
 .df-faq-and-text__cta {
   display: inline-flex;
@@ -1297,7 +1286,7 @@ df-faq-and-text {
 }
 
 .df-image-with-benefits__heading {
-  margin-bottom: 32px;
+  margin-bottom: var(--df-title-gap);
   font-size: min(var(--df-title-size), var(--df-iwb-heading, 40px));
   text-align: center;
 }
@@ -1493,7 +1482,7 @@ df-insta-story {
 .df-insta-story__header {
   display: grid;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: var(--df-title-gap);
   padding-inline: var(--df-gutter);
   text-align: center;
 }
@@ -1919,9 +1908,11 @@ df-insta-story {
   --df-slide-gap: 12px;
 }
 
+/* Título del bloque: el mismo aire que separa los bloques de la ficha. */
 .df-review-slider__heading {
-  margin-bottom: 12px;
-  font-size: 1.125rem;
+  margin-bottom: 16px;
+  font-size: 1.25rem;
+  line-height: 1.25;
 }
 
 .df-review-slider .df-slider__track > .df-review-slider__card {
@@ -2029,26 +2020,6 @@ df-insta-story {
   line-height: 1.45;
 }
 
-.df-review-slider .df-slider__controls {
-  margin-top: 8px;
-}
-
-.df-review-slider__pause .df-review-slider__icon-play,
-.df-review-slider__pause[aria-pressed='true'] .df-review-slider__icon-pause {
-  display: none;
-}
-
-.df-review-slider__pause[aria-pressed='true'] .df-review-slider__icon-play {
-  display: block;
-}
-
-.df-review-slider__source {
-  margin: 8px 0 0;
-  color: var(--df-muted);
-  font-size: 0.75rem;
-  line-height: 1.35;
-  text-align: center;
-}
 
 @container store (min-width: 750px) {
   .df-review-slider__avatar {
@@ -2105,13 +2076,6 @@ a.df-review-stars__row:focus-visible {
 
 .df-review-stars__label {
   font-weight: 500;
-}
-
-.df-review-stars__source {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  color: var(--df-muted);
 }
 
 /* scrolling-benefits/sections/df-scrolling-benefits.liquid */
@@ -2204,39 +2168,6 @@ a.df-review-stars__row:focus-visible {
   height: 1em;
 }
 
-.df-scrolling-benefits__pause {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  margin-inline: 4px 8px;
-  padding: 0;
-  border: 1px solid var(--df-hairline);
-  border-radius: 50%;
-  background: var(--df-bg);
-  color: var(--df-fg);
-  cursor: pointer;
-}
-
-.df-scrolling-benefits__pause:focus-visible {
-  outline: 2px solid var(--df-accent-ink);
-  outline-offset: 2px;
-}
-
-.df-scrolling-benefits__pause svg {
-  width: 18px;
-  height: 18px;
-}
-
-.df-scrolling-benefits__play-icon,
-.df-scrolling-benefits__pause[aria-pressed='true'] .df-scrolling-benefits__pause-icon {
-  display: none;
-}
-
-.df-scrolling-benefits__pause[aria-pressed='true'] .df-scrolling-benefits__play-icon {
-  display: block;
-}
 
 @container store (min-width: 750px) {
   .df-scrolling-benefits--fade .df-scrolling-benefits__viewport {
@@ -2288,8 +2219,7 @@ a.df-review-stars__row:focus-visible {
     padding-inline: 16px;
   }
 
-  .df-scrolling-benefits__set[aria-hidden='true'],
-  .df-scrolling-benefits__pause {
+  .df-scrolling-benefits__set[aria-hidden='true'] {
     display: none;
   }
 }
@@ -2504,11 +2434,6 @@ a.df-review-stars__row:focus-visible {
   font-weight: 500;
 }
 
-.df-stats-with-image__source {
-  margin: -8px 0 0;
-  color: var(--df-muted);
-  font-size: 0.75rem;
-}
 
 .df-stats-with-image__heading {
   font-size: var(--df-title-size);
@@ -2629,10 +2554,6 @@ a.df-review-stars__row:focus-visible {
   font-weight: 600;
 }
 
-.df-stats-with-image__review-meta .df-stats-with-image__source {
-  flex-basis: 100%;
-  margin: 0;
-}
 
 .df-stats-with-image__cta-wrap {
   display: block;
@@ -2781,7 +2702,6 @@ a.df-review-stars__row:focus-visible {
   font-weight: 500;
 }
 
-.df-ugc-slider__source,
 .df-ugc-slider__note {
   margin: 0;
   color: var(--df-muted);

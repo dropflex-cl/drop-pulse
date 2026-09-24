@@ -1,6 +1,6 @@
 import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
-import { DfIcon, DfStars } from "./primitives";
+import { DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
 
 // blocks/df-review-slider.liquid en su primer estado: la primera reseña a la vista, sin rotar (el
@@ -57,9 +57,8 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   let heading = content.heading || String(s.heading ?? "");
   if (heading.includes("{rating}") && !facts.rating) heading = String(s.heading ?? "");
   heading = fill(heading, facts);
-  const autoplay = Boolean(s.autoplay) && total > 1;
+  const autoplay = total > 1;
   const photoStyle = s.style === "photo";
-  const sourceLabel = String(s.source_label ?? "");
 
   return (
     <df-review-slider
@@ -110,37 +109,7 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
             );
           })}
         </div>
-
-        {total > 1 && (
-          <div className="df-slider__controls">
-            {photoStyle ? (
-              <button type="button" className="df-slider__arrow" data-df-prev="">
-                <DfIcon name="chevron-left" />
-              </button>
-            ) : (
-              // Los puntos los crea df-slider.js al cargar: uno por reseña, el primero activo.
-              <div className="df-slider__dots" data-df-dots="">
-                {picks.map((_, i) => (
-                  <button key={i} type="button" className="df-slider__dot" aria-current={i === 0 ? "true" : "false"} />
-                ))}
-              </div>
-            )}
-            {autoplay && (
-              <button type="button" className="df-slider__arrow df-review-slider__pause" data-df-pause="" aria-pressed="false">
-                <DfIcon name="pause" className="df-review-slider__icon-pause" />
-                <DfIcon name="play" className="df-review-slider__icon-play" />
-              </button>
-            )}
-            {photoStyle && (
-              <button type="button" className="df-slider__arrow" data-df-next="">
-                <DfIcon name="chevron-right" />
-              </button>
-            )}
-          </div>
-        )}
       </df-slider>
-
-      {sourceLabel && <p className="df-review-slider__source">{sourceLabel}</p>}
     </df-review-slider>
   );
 }

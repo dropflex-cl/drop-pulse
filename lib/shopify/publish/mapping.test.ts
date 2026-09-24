@@ -115,7 +115,7 @@ describe("metafields", () => {
     const reviews = JSON.parse(by.get("reviews")!.value);
     expect(reviews.items[0]).toMatchObject({ id: "r1", image_from: 0, image_count: 2, date: "2026-08-01" });
     expect(reviews.items[1]).toMatchObject({ id: "r2", image_from: 2, image_count: 0 });
-    expect(JSON.parse(by.get("review_summary")!.value)).toEqual({ rating: 4.5, count: 2, source_label: "Reseñas de compradores del mismo producto en AliExpress" });
+    expect(JSON.parse(by.get("review_summary")!.value)).toEqual({ rating: 4.5, count: 2 });
     expect(JSON.parse(by.get("reviews_images")!.value)).toHaveLength(2);
   });
 

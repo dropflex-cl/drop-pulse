@@ -268,9 +268,6 @@
             <span aria-hidden="true">{% render 'df-stars', rating: summary.rating, size: '1.125rem' %}</span>
             <p class="df-stats-with-image__rating-text">{{ rating_line }}</p>
           </div>
-          {%- if summary.source_label != blank -%}
-            <p class="df-stats-with-image__source">{{ summary.source_label | escape }}</p>
-          {%- endif -%}
         {%- endif -%}
 
         <h2 class="df-heading df-stats-with-image__heading">{{ heading_html }}</h2>
@@ -301,9 +298,6 @@
               <figcaption class="df-stats-with-image__review-meta">
                 {% render 'df-stars', rating: review.rating, size: '0.875rem' %}
                 <span class="df-stats-with-image__author">{{ review_author }}{% if review_country != blank %} · {{ review_country }}{% endif %}</span>
-                {%- if show_rating == false and summary.source_label != blank -%}
-                  <span class="df-stats-with-image__source">{{ summary.source_label | escape }}</span>
-                {%- endif -%}
               </figcaption>
             </div>
           </figure>
@@ -411,11 +405,6 @@
     font-weight: 500;
   }
 
-  .df-stats-with-image__source {
-    margin: -8px 0 0;
-    color: var(--df-muted);
-    font-size: 0.75rem;
-  }
 
   .df-stats-with-image__heading {
     font-size: var(--df-title-size);
@@ -536,10 +525,6 @@
     font-weight: 600;
   }
 
-  .df-stats-with-image__review-meta .df-stats-with-image__source {
-    flex-basis: 100%;
-    margin: 0;
-  }
 
   .df-stats-with-image__cta-wrap {
     display: block;

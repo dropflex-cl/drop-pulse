@@ -8,7 +8,6 @@ import type { Listing } from "@/lib/copy/listing";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import { SHARED_METAFIELDS } from "@/lib/shopify/components/define";
 
-export const REVIEWS_SOURCE_LABEL = "Reseñas de compradores del mismo producto en AliExpress";
 /** Nombre de la opción de los packs en Shopify (lo ve el comprador en el carrito). */
 export const PACK_OPTION = "Pack";
 /** Tope de reseñas publicadas (las mismas que ve la IA, lib/copy/prompts.ts › REVIEWS_MAX). */
@@ -202,7 +201,8 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
     });
     const rating = Math.round((reviews.reduce((n, r) => n + r.rating, 0) / reviews.length) * 10) / 10;
     set.push(mf(SHARED_METAFIELDS.reviews.key, "json", { items }));
-    set.push(mf(SHARED_METAFIELDS.reviewSummary.key, "json", { rating, count: input.reviews.length, source_label: REVIEWS_SOURCE_LABEL }));
+    // Sin origen visible: por decisión del comerciante la tienda no nombra la plataforma de las reseñas.
+    set.push(mf(SHARED_METAFIELDS.reviewSummary.key, "json", { rating, count: input.reviews.length }));
     if (photos.length) set.push(mf(SHARED_METAFIELDS.reviewsImages.key, "list.file_reference", photos));
   }
 

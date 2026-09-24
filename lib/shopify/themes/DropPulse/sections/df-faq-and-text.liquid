@@ -234,9 +234,6 @@
                     {% render 'df-stars', rating: summary.rating, size: '0.875rem' %}
                   {%- endif -%}
                   <p class="df-faq-and-text__proof-line">{{ social_html }}</p>
-                  {%- if summary.source_label != blank -%}
-                    <p class="df-faq-and-text__source">{{ summary.source_label | escape }}</p>
-                  {%- endif -%}
                 </div>
               {%- endif -%}
             </div>
@@ -348,11 +345,6 @@
     font-weight: 600;
   }
 
-  .df-faq-and-text__source {
-    margin: 0;
-    font-size: 0.75rem;
-    color: var(--df-muted);
-  }
 
   .df-faq-and-text__cta {
     display: inline-flex;

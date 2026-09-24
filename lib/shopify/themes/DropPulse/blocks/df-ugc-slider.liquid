@@ -117,9 +117,6 @@
             {%- render 'df-stars', rating: rating, size: '1rem', label: rating_label -%}
             <span aria-hidden="true">{{ rating_text }} · {{ count_text }} reseñas</span>
           </p>
-          {%- if summary.source_label != blank -%}
-            <p class="df-ugc-slider__source">{{ summary.source_label | escape }}</p>
-          {%- endif -%}
         {%- endif -%}
       </div>
     {%- endif -%}
@@ -286,7 +283,6 @@
     font-weight: 500;
   }
 
-  .df-ugc-slider__source,
   .df-ugc-slider__note {
     margin: 0;
     color: var(--df-muted);

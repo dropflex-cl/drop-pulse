@@ -43,6 +43,8 @@
   --df-gutter: var(--page-margin, 16px);
   --df-space: 0.67;
   --df-title-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.5rem);
+  /* Del título de una sección a su contenido: 48px en escritorio, 32px en móvil. */
+  --df-title-gap: calc(48px * var(--df-space));
   --df-radius-lg: var(--style-border-radius-lg, 14px);
 
   color: var(--df-fg);
