@@ -99,6 +99,17 @@
       letter-spacing: -0.01em;
     }
 
+    /* Un solo radio para las fotos del producto: el «Radio de las imágenes» de la galería
+       (--gallery-media-border-radius) manda también en las miniaturas, la foto de la barra fija
+       y las de los componentes (--df-radius-media en df-components.css). */
+    .product-information .slideshow-control {
+      --thumbnail-radius: var(--gallery-media-border-radius, 12px);
+    }
+
+    .sticky-add-to-cart__image {
+      border-radius: var(--gallery-media-border-radius, 12px);
+    }
+
     /* Escritorio: la galería acompaña mientras la columna de datos (más alta) corre. */
     @media screen and (min-width: 750px) {
       .product-information__media {

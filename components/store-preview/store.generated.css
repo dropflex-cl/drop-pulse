@@ -90,6 +90,10 @@
   /* Del título de una sección a su contenido: 48px en escritorio, 32px en móvil. */
   --df-title-gap: calc(48px * var(--df-space));
   --df-radius-lg: var(--style-border-radius-lg, 14px);
+  /* Un solo radio para toda foto o video del producto (galería, miniaturas, packs, reseñas, UGC,
+     historias, collage): el «Radio de las imágenes» de la galería de la ficha
+     (--gallery-media-border-radius, que el tema publica en :root). Fuera de la ficha, 12px. */
+  --df-radius-media: var(--gallery-media-border-radius, 12px);
 
   color: var(--df-fg);
   font-family: var(--df-font-body);
@@ -425,7 +429,7 @@ df-slider {
   width: 56px;
   height: 56px;
   overflow: hidden;
-  border-radius: var(--df-radius-sm);
+  border-radius: var(--df-radius-media);
   background: var(--df-surface);
 }
 
@@ -1317,7 +1321,7 @@ df-faq-and-text {
 
 .df-image-with-benefits--shape-card .df-image-with-benefits__media {
   overflow: hidden;
-  border-radius: var(--df-radius);
+  border-radius: var(--df-radius-media);
   background: var(--df-surface);
 }
 
@@ -1328,6 +1332,7 @@ df-faq-and-text {
   height: auto;
   aspect-ratio: 1;
   object-fit: contain;
+  border-radius: var(--df-radius-media);
 }
 
 .df-image-with-benefits__list {
@@ -1841,7 +1846,7 @@ df-insta-story {
     width: auto;
     height: min(92dvh, 960px);
     aspect-ratio: 9 / 16;
-    border-radius: var(--df-radius);
+    border-radius: var(--df-radius-media);
   }
 
   .df-insta-story__nav--prev {
@@ -1940,7 +1945,7 @@ df-insta-story {
   width: 50px;
   height: 50px;
   overflow: hidden;
-  border-radius: var(--df-radius-sm);
+  border-radius: var(--df-radius-media);
   background: var(--df-accent-soft);
   color: var(--df-accent-ink);
   font-weight: 700;
@@ -2387,7 +2392,7 @@ a.df-review-stars__row:focus-visible {
 
 .df-stats-with-image__photo {
   overflow: hidden;
-  border-radius: var(--df-radius-sm);
+  border-radius: var(--df-radius-media);
   background: var(--df-hairline);
   aspect-ratio: 1;
 }
@@ -2727,7 +2732,7 @@ a.df-review-stars__row:focus-visible {
   overflow: hidden;
   aspect-ratio: 3 / 5;
   border: 0;
-  border-radius: var(--df-ugc-radius, 10px);
+  border-radius: var(--df-radius-media);
   background: var(--df-surface);
   color: #ffffff;
   font: inherit;
@@ -2967,7 +2972,7 @@ df-ugc-slider[data-fits] .df-ugc-slider__controls {
     width: min(420px, 90vw);
     height: min(700px, 90vh);
     margin: auto;
-    border-radius: 14px;
+    border-radius: var(--df-radius-media);
   }
 
   .df-ugc-slider__video {
@@ -2982,7 +2987,7 @@ df-ugc-slider[data-fits] .df-ugc-slider__controls {
   z-index: 2147483000;
   width: min(340px, calc(100vw - 40px));
   height: min(567px, calc(100vh - 40px));
-  border-radius: 14px;
+  border-radius: var(--df-radius-media);
   box-shadow: 0 16px 48px color-mix(in srgb, #000000 35%, transparent);
 }
 

@@ -46,6 +46,10 @@
   /* Del título de una sección a su contenido: 48px en escritorio, 32px en móvil. */
   --df-title-gap: calc(48px * var(--df-space));
   --df-radius-lg: var(--style-border-radius-lg, 14px);
+  /* Un solo radio para toda foto o video del producto (galería, miniaturas, packs, reseñas, UGC,
+     historias, collage): el «Radio de las imágenes» de la galería de la ficha
+     (--gallery-media-border-radius, que el tema publica en :root). Fuera de la ficha, 12px. */
+  --df-radius-media: var(--gallery-media-border-radius, 12px);
 
   color: var(--df-fg);
   font-family: var(--df-font-body);

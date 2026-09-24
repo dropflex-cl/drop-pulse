@@ -49,7 +49,6 @@ export function UgcSliderPreview({ content, facts }: PreviewProps<Content>) {
       style={
         {
           "--df-ugc-per-view": perView,
-          "--df-ugc-radius": px(s.radius),
           marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}`,
         } as React.CSSProperties
       }

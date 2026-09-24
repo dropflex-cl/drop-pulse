@@ -97,7 +97,7 @@
     class="df df-ugc-slider df-ugc-slider--{{ s.shape }} df-ugc-slider--play-{{ s.play_style }}{% if s.boxed %} df-ugc-slider--boxed{% endif %}"
     data-player="{{ s.player }}"
     data-preview-motion="{{ s.preview_motion }}"
-    style="{{ accent_vars }} --df-ugc-per-view: {{ per_view }}; --df-ugc-radius: {{ s.radius }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    style="{{ accent_vars }} --df-ugc-per-view: {{ per_view }}; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
   >
     {%- if heading != blank or s.show_rating and has_reviews -%}
@@ -304,7 +304,7 @@
     overflow: hidden;
     aspect-ratio: 3 / 5;
     border: 0;
-    border-radius: var(--df-ugc-radius, 10px);
+    border-radius: var(--df-radius-media);
     background: var(--df-surface);
     color: #ffffff;
     font: inherit;
@@ -544,7 +544,7 @@
       width: min(420px, 90vw);
       height: min(700px, 90vh);
       margin: auto;
-      border-radius: 14px;
+      border-radius: var(--df-radius-media);
     }
 
     .df-ugc-slider__video {
@@ -559,7 +559,7 @@
     z-index: 2147483000;
     width: min(340px, calc(100vw - 40px));
     height: min(567px, calc(100vh - 40px));
-    border-radius: 14px;
+    border-radius: var(--df-radius-media);
     box-shadow: 0 16px 48px color-mix(in srgb, #000000 35%, transparent);
   }
 
@@ -672,16 +672,6 @@
         { "value": "4", "label": "4" }
       ],
       "default": "3"
-    },
-    {
-      "type": "range",
-      "id": "radius",
-      "label": "Radio de las tarjetas",
-      "min": 0,
-      "max": 20,
-      "step": 1,
-      "unit": "px",
-      "default": 10
     },
     {
       "type": "select",

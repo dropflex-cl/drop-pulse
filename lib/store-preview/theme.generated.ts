@@ -232,7 +232,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "sponsored": false,
     "shape": "reel",
     "cards_visible": "3",
-    "radius": 10,
     "play_style": "glass",
     "preview_motion": false,
     "pagination": "bar",
