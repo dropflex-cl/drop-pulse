@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anglesPhase, basePhase, copyPhase, productPosition, type AngleFacts, type CopyFacts } from "./stages";
+import { anglesPhase, basePhase, copyPhase, productPosition, type AngleFacts, type CopyFacts, type CreativeFacts } from "./stages";
 
 const base = { price: 24990, currency: "CLP" };
 
@@ -8,7 +8,7 @@ describe("productPosition", () => {
     const p = productPosition(base);
     expect(p.phase).toBe("new");
     expect(p.nextStage).toBe("importado");
-    expect(p.stages.map((s) => s.state)).toEqual(["current", "available", "locked", "locked", "locked", "locked", "locked"]);
+    expect(p.stages.map((s) => s.state)).toEqual(["current", "available", "locked", "locked", "locked", "locked", "locked", "locked"]);
     expect(p.stages.find((s) => s.key === "angulos")).toMatchObject({ desc: "Se habilita al aprobar tu cliente ideal" });
     expect(p.summary).toBe("Importado de Shopify · sin optimizar · $24.990");
     expect(p.status).toBeUndefined();
@@ -50,7 +50,7 @@ describe("productPosition", () => {
     expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current" });
     expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
     expect(p.stages.map((s) => s.key)).not.toContain("precio");
-    expect(p.meter).toHaveLength(7);
+    expect(p.meter).toHaveLength(8);
   });
 
   it("Reseñas es opcional, va después de Información base y dice cuántas esperan", () => {
@@ -154,5 +154,49 @@ describe("página del producto (Textos)", () => {
     expect(done.stages[4]).toMatchObject({ key: "imagenes", state: "current" });
     expect(done).toMatchObject({ nextStage: "imagenes", reason: "Siguiente: imágenes" });
     expect(done.meter.slice(3, 5)).toEqual(["done", "current"]);
+  });
+});
+
+describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
+  const ready = {
+    ...base,
+    avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" },
+    angles: {
+      ranking: { status: "succeeded" as const, confirmed: true },
+      briefs: [
+        { role: "primary" as const, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
+        { role: "secondary" as const, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
+      ],
+    },
+  };
+  const facts = (c: Partial<CreativeFacts> = {}): CreativeFacts => ({ connected: true, running: false, concepts: 0, rendering: 0, pending: 0, approved: 0, ...c });
+  const stage = (f: Parameters<typeof productPosition>[0]) => {
+    const p = productPosition(f);
+    const i = p.stages.findIndex((s) => s.key === "creativos");
+    return { ...p.stages[i], meter: p.meter[i], position: p };
+  };
+
+  it("va entre Publicar y Anuncios y es opcional", () => {
+    const keys = productPosition(base).stages.map((s) => s.key);
+    expect(keys.slice(-3)).toEqual(["publicar", "creativos", "anuncios"]);
+    expect(stage(base)).toMatchObject({ optional: true, state: "locked", desc: "Después de aprobar los ángulos", meter: "optional" });
+  });
+
+  it("con los ángulos aprobados pide la clave de Higgsfield, y después se habilita", () => {
+    expect(stage({ ...ready, creatives: facts({ connected: false }) })).toMatchObject({ state: "locked", desc: "Conecta Higgsfield en Ajustes" });
+    expect(stage({ ...ready, creatives: facts() })).toMatchObject({ state: "available", desc: "Anuncios de imagen terminados con IA" });
+  });
+
+  it("dice qué está pasando y cuántas piezas esperan tu decisión", () => {
+    expect(stage({ ...ready, creatives: facts({ running: true }) })).toMatchObject({ state: "current", desc: "La IA está pensando tus anuncios" });
+    expect(stage({ ...ready, creatives: facts({ concepts: 6, rendering: 3 }) })).toMatchObject({ state: "current", desc: "Generando 3 imágenes" });
+    expect(stage({ ...ready, creatives: facts({ concepts: 6, pending: 2, approved: 1 }) })).toMatchObject({ state: "review", desc: "2 por revisar", meter: "review" });
+    expect(stage({ ...ready, creatives: facts({ concepts: 6, approved: 1 }) })).toMatchObject({ state: "done", desc: "1 anuncio aprobado", meter: "done" });
+  });
+
+  it("nunca cambia la siguiente etapa: Publicar no depende de ella", () => {
+    const withCreatives = stage({ ...ready, creatives: facts({ concepts: 6, pending: 4 }) }).position;
+    expect(withCreatives.nextStage).toBe(productPosition(ready).nextStage);
+    expect(withCreatives.filter).toBe(productPosition(ready).filter);
   });
 });

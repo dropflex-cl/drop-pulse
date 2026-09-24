@@ -35,6 +35,21 @@ export interface ProductFacts {
   reviews?: ReviewFacts | null;
   /** Anuncios (etapa opcional): Meta con cuenta, página y píxel, y las campañas del producto. */
   ads?: AdsFacts | null;
+  /** Creativos (etapa opcional): la clave de Higgsfield y las piezas generadas. */
+  creatives?: CreativeFacts | null;
+}
+
+export interface CreativeFacts {
+  /** El comerciante conectó su clave de Higgsfield y sigue válida. */
+  connected: boolean;
+  /** El generador está proponiendo conceptos. */
+  running: boolean;
+  concepts: number;
+  /** Piezas en cola o generándose en Higgsfield. */
+  rendering: number;
+  /** Piezas listas que esperan la decisión del comerciante. */
+  pending: number;
+  approved: number;
 }
 
 export interface AdsFacts {
@@ -231,6 +246,24 @@ function adsStage(pageDone: boolean, a: AdsFacts | null | undefined): Stage {
   return { ...base, state: "available", desc: "Lanza una campaña de testeo" };
 }
 
+/**
+ * Creativos: opcional, entre Publicar y Anuncios (docs/spec-creativos.md §6.5). Se habilita con los 2
+ * desarrollos de Ángulos aprobados y la clave de Higgsfield del comerciante; nunca bloquea Publicar.
+ */
+function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined): { stage: Stage; meter: MeterStage } {
+  const base = { key: "creativos", title: "Creativos", optional: true } as const;
+  const optional = (state: Stage["state"], desc: string) => ({ stage: { ...base, state, desc }, meter: "optional" as MeterStage });
+  // Como Anuncios: bloqueada, su rayita sigue siendo «opcional» (no cuenta como pendiente).
+  if (!anglesDone) return optional("locked", "Después de aprobar los ángulos");
+  if (!c?.connected) return optional("locked", "Conecta Higgsfield en Ajustes");
+  if (c.running) return optional("current", "La IA está pensando tus anuncios");
+  if (c.rendering) return optional("current", c.rendering === 1 ? "Generando 1 imagen" : `Generando ${c.rendering} imágenes`);
+  if (c.pending) return { stage: { ...base, state: "review", desc: `${c.pending} por revisar` }, meter: "review" };
+  if (c.approved) return { stage: { ...base, state: "done", desc: c.approved === 1 ? "1 anuncio aprobado" : `${c.approved} anuncios aprobados` }, meter: "done" };
+  if (c.concepts) return optional("available", "Genera las imágenes de tus conceptos");
+  return optional("available", "Anuncios de imagen terminados con IA");
+}
+
 /** Reseñas: opcional, entre Información base y Ángulos (arquitectura.md › 9). */
 function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter: MeterStage } {
   const base = { key: "resenas", title: "Reseñas", optional: true } as const;
@@ -246,6 +279,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
   const copy = copyPhase(f, angles);
   const pageDone = copy === "done";
   const reviews = reviewsStage(f.reviews);
+  const creatives = creativesStage(angles === "done", f.creatives);
   const stages: Stage[] = [
     {
       key: "importado",
@@ -260,9 +294,11 @@ export function productPosition(f: ProductFacts): ProductPosition {
     { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy) },
     { key: "imagenes", title: "Imágenes", state: pageDone ? "current" : "locked", desc: pageDone ? "Elige las imágenes de tu tienda" : "Después de la página del producto" },
     { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita la página y las imágenes aprobadas" },
+    // Creativos es opcional y alimenta Anuncios: nunca bloquea Publicar (spec-creativos §6.5).
+    creatives.stage,
     adsStage(pageDone, f.ads),
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], pageDone ? "current" : "locked", "locked", "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], pageDone ? "current" : "locked", "locked", creatives.meter, "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
   const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
 

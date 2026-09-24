@@ -10,6 +10,8 @@ import { chromium } from "@playwright/test";
 import { ROUTES, VIEWPORTS } from "./capturas";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+/** ONLY=creativos: solo las rutas cuyo nombre empieza así. */
+const ONLY = process.env.ONLY;
 const EXTRA = [
   { name: "tokens", path: "/dev/tokens" },
   { name: "componentes", path: "/dev/components" },
@@ -27,6 +29,10 @@ const EXTRA = [
     },
   },
   { name: "anuncios-vacio", path: "/dev/screens/ads?state=empty" },
+  // Creativos (docs/spec-creativos.md): conceptos con piezas en todos sus estados, y sin clave.
+  { name: "creativos", path: "/dev/screens/creatives?state=rendering" },
+  { name: "creativos-listos", path: "/dev/screens/creatives?state=done" },
+  { name: "creativos-sin-clave", path: "/dev/screens/creatives?state=key" },
 ];
 
 async function main() {
@@ -41,7 +47,7 @@ async function main() {
         colorScheme: scheme,
       });
       const page = await ctx.newPage();
-      for (const r of [...ROUTES, ...EXTRA] as typeof ROUTES) {
+      for (const r of ([...ROUTES, ...EXTRA] as typeof ROUTES).filter((x) => !ONLY || x.name.startsWith(ONLY))) {
         await page.goto(BASE + r.path, { waitUntil: "networkidle" });
         if (r.after) await r.after(page);
         await page.waitForTimeout(300);

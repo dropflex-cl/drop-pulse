@@ -1,6 +1,6 @@
 # Spec: Creativos con Higgsfield (etapa opcional)
 
-> Estado: **propuesta**, sin implementar.
+> Estado: **F1 implementada** (estáticos), 2026-09-24. Pendiente: verificar el generador de conceptos y el QA con Claude (§7.3). F2–F4 sin empezar.
 > Fecha: 2026-09-23.
 > Fuentes:
 > - Agentes: `agentes-creativos/*.md` (README, angle-router, 6 `angulo-*`, `generador-estaticos`, `guionista-ugc`, `productor-clips`, `copywriter`). No están en el repo; los prompts viven en TS (`lib/angles/prompts.ts`, `lib/copy/prompts.ts`).
@@ -18,7 +18,7 @@ La etapa **Creativos** convierte los 2 desarrollos de ángulo aprobados en **anu
    - Cada variante de titular o de proporción es **otra generación** con su costo, no una capa editable.
 4. **El producto nunca se genera solo desde texto.** Toda imagen con producto usa la foto real como referencia (`imagesForGeneration`, imagen base primero). Si una toma altera el producto, se descarta.
 5. **La IA propone, tú decides.** Cada pieza llega `generated`, con el ícono ✨. Solo las `approved` pasan a Anuncios.
-6. **Costo visible antes de gastar.** Cada lote muestra la estimación de `POST /estimate/{endpoint}` y respeta un tope por producto.
+6. **Costo visible antes de gastar.** Cada lote muestra una estimación y respeta un tope por producto. Kling usa `POST /estimate/{endpoint}`. Flare cobra por tokens y no tiene estimación, así que se usa el último costo real por (modo, calidad, proporción) (§7.2).
 
 **Primer corte propuesto:** estáticos (familias 1–8) y B-roll de video. Los clips hablados quedan para después de una prueba técnica, porque Higgsfield **no tiene lip-sync ni TTS** (§2.3).
 
@@ -46,7 +46,7 @@ API: `https://api.higgsfield.ai/{endpoint}`, `Authorization: Key KEY_ID:KEY_SECR
 
 | Modelo | Endpoint | Modos | Desde | Uso en DropFlex |
 |---|---|---|---|---|
-| **Marketing Studio Image** 2.0 Alpha / 2.5 Flare / 2.5 Sunburst | `marketing-studio/image[/flare\|/sunburst]` | Texto→imagen · edición con hasta 16 referencias · **preset** (`enhance_prompt` + `preset_id` + producto + modelo opcional) | Ver §4: con preset, 2k y calidad alta, **$0.32/img** | **Motor único de estáticos.** Es el único que acepta referencias del producto y tiene presets publicitarios que entregan la pieza terminada con texto. Proporciones nativas: 1:1, 3:4, 9:16 (sin 4:5)\* |
+| **Marketing Studio Image** 2.0 Alpha / 2.5 Flare / 2.5 Sunburst | `marketing-studio/image[/flare\|/sunburst]` | Texto→imagen · edición con hasta 16 referencias · **preset** (`enhance_prompt` + `preset_id` + producto + modelo opcional) | Medido en F0: 2.0 con preset, 1k = $0.257; **Flare, alta = $0.10**; por defecto se usa Flare `low` (§7.2) | **Motor único de estáticos.** Es el único que acepta referencias del producto y tiene presets publicitarios que entregan la pieza terminada con texto. Proporciones nativas: 1:1, 3:4, 9:16 (sin 4:5)\* |
 | Workflows **Product shots / Graphic ads / Marketplace design** | el mismo endpoint con un preset por defecto | Atajos de la web a 3 de los 75 presets | igual | Se usa el catálogo completo (§2.4); Marketplace design sirve para la etapa Imágenes, fuera de esta spec |
 | **Soul 2** | `higgsfield-ai/soul/v2/standard` | Texto→imagen, `style_id`, lote de 4, seed, `custom_reference_id` | $0.0032/img | Personaje de IA (ficha de `productor-clips`) y escenas sin producto |
 | **Soul ID** | `POST /v1/custom-references` | Personaje consistente desde 1–100 fotos | $2.50 | Fija la identidad del narrador o demostrador en todos los keyframes |
@@ -185,21 +185,21 @@ Son cambios pequeños en los prompts (sube `*_PROMPT_VERSION`):
 
 | Llamada | USD por unidad |
 |---|---|
-| Marketing Studio 2.0 **con preset**, 2k, alta (el preset fuerza calidad alta) | **$0.320** |
-| Marketing Studio 2.0 con preset, 1k | $0.171 |
-| Marketing Studio 2.0 sin preset, 2k, media | $0.089 |
-| Marketing Studio 2.0 sin preset, 2k, baja | $0.030 |
+| Marketing Studio 2.0 **con preset**, 1k, 1:1 (el preset fuerza calidad alta) | **$0.222** |
+| Marketing Studio 2.0 con preset, 2k (referencia; no se usa) | $0.320 |
+| Marketing Studio 2.0 sin preset, 2k, media / baja (referencia) | $0.089 / $0.030 |
 | Marketing Studio 2.5 Flare / Sunburst | Por tokens (imagen de salida $30/1M); `/estimate` no da monto |
 | Kling 3.0 std image→video, 5 s | $0.357 ($0.071/s) |
 
 | Lote | Cálculo | USD aprox. |
 |---|---|---|
-| Estáticos: 2 ángulos × 5 conceptos × 2 proporciones × 2 tomas, preset 2k | 40 × $0.32 | **~$12.80** |
-| Lo mismo, pero probando en 1k y subiendo a 2k solo lo aprobado | 40 × $0.171 + 10 × $0.32 | **~$10.00** |
+| Estáticos: 2 ángulos × 5 conceptos × 2 proporciones × 2 tomas, preset 1k | 40 × $0.222 | **~$8.90** |
 | Personaje: Soul 2 (4) + Soul ID | $0.013 + $2.50 | ~$2.51 |
 | Video de 30 s con B-roll: 8 keyframes × 2 tomas + 8 clips × 4 s × 2 tomas en Kling std i2v | 16 × $0.089 + 64 s × $0.071 | **~$6.00** |
 
-Tope por defecto: **$25 por producto** (editable en Ajustes). Al llegar al 80%, se avisa antes de lanzar el lote. Recomendación: generar el primer lote en **1k** y re-generar en 2k solo los conceptos aprobados. Eso es otra generación, no un reescalado, y el QA vuelve a correr.
+Tope por defecto: **$20 por producto** (editable en Ajustes). Al llegar al 80%, se avisa antes de lanzar el lote.
+
+**Resolución: siempre 1k** (decisión 4). Meta muestra el feed a 1080 px y 1k (1024 px) basta; 2k cuesta un 45% más sin diferencia visible en el anuncio. El precio de 1k en 1:1 con preset, medido en F0, es de **$0.222** por imagen.
 
 ---
 
@@ -311,6 +311,80 @@ Tope por defecto: **$25 por producto** (editable en Ajustes). Al llegar al 80%, 
 
 ---
 
+### 7.1 Resultado de F0, ronda 1 (2026-09-23)
+
+URO Vaginal Probiotic, foto del proveedor como referencia, 1k, 1:1. Script: `scripts/spike-higgsfield.ts`.
+
+| Pieza | Modelo / preset | Tiempo | Producto | Texto pedido (es-CL) | Resultado |
+|---|---|---|---|---|---|
+| S1 Explicativo | 2.0 + Callout Fan | 104 s | ✅ idéntico, etiqueta legible | ❌ **lo tradujo al inglés** ("INSIDE EVERY CAPSULE") | Composición excelente, idioma equivocado |
+| S2 Hero | 2.0 + Capsule Ring | 124 s | ✅ | ⚠️ en español, pero agregó "PROBIÓTICO VAGINAL" y "FLORA VAGINAL" | Agregó **frutas** que sugieren un ingrediente que no existe |
+| S2 Hero | **2.5 Flare** + Capsule Ring | **19 s** | ✅ | ⚠️ en español, agregó "CUIDADO ÍNTIMO" | Mejor terminación; mismas frutas |
+| S3 Comparativa | 2.0 + Problem → Solution | 113 s | ✅ (4 frascos) | ❌ ignoró la tabla; inventó "WHY SWITCH TO URO?" y "SWIPE TO SEE WHY." en inglés | El preset pesó más que el prompt |
+| V1 B-roll | Kling 3.0 std i2v, 5 s | 30 s | ✅ | — | ⚠️ salió en **868×1060**, no 9:16: toma la proporción de la imagen de entrada. Movimiento mínimo |
+
+**Conclusiones:**
+
+1. **La fidelidad del producto está resuelta.** 5 de 5 piezas con la etiqueta legible e idéntica.
+2. **Con `enhance_prompt: true`, el preset reescribe el prompt.** Traduce, agrega textos y agrega elementos de escena. Eso choca con "texto exacto": el QA de §3.3 es obligatorio y, con esta configuración, rechazaría 4 de 4 estáticos.
+3. **Flare es ~6 veces más rápido** y respetó mejor el idioma.
+4. **El video necesita un primer cuadro ya en 9:16**, por ejemplo un keyframe de Marketing Studio en 9:16 sin texto. Kling no reencuadra.
+
+**Costo real de la ronda 1** (panel de uso de Higgsfield): 3 imágenes en 2.0 = $0.77 (**$0.257 c/u**, un 16% más que `/estimate`), 1 imagen en **Flare con calidad alta = $0.10**, y Kling 3.0 std de 5 s = $0.36.
+
+### 7.2 Resultado de F0, ronda 2 (2026-09-23)
+
+Todo en **Flare, 1k**, con una regla de texto al final de cada prompt: "write every text exactly as given, in Spanish… do not translate… do not add any word that is not listed; the product label is the only other text allowed". Las frutas se permiten (decisión 6).
+
+| Pieza | Modo | Calidad | Tiempo | Texto | Nota |
+|---|---|---|---|---|---|
+| S1 Explicativo | Preset Callout Fan | low | 31 s | ✅ exacto, en español, 4/4 callouts | 3 frascos, igual que la portada del preset |
+| S1 Explicativo | Preset Callout Fan | medium | 41 s | ❌ agregó "Positiv Health" abajo | Sin mejora visible frente a low |
+| S1 Explicativo | Edición directa | low | 20 s | ✅ exacto | Un frasco, más limpio |
+| S3 Comparativa | Preset Problem → Solution | low | 31 s | ✅ exacto, tabla completa | Agregó una copa con cápsulas (aceptable) |
+| S3 Comparativa | Edición directa | low | 20 s | ✅ exacto | La tabla es la más legible |
+| S2 Hero | Preset Capsule Ring | low | 41 s | ⚠️ agregó "VAGINAL PROBIOTIC" arriba (en inglés) | El preset tiene un sobretítulo; hay que darle el texto explícito |
+| K1 Keyframe 9:16 | Edición directa | low | 13 s | ✅ sin texto | 752×1344; frutas y salpicadura, sirve para galería |
+| V1 B-roll | Kling 3.0 std desde K1 | — | 83 s | — | ✅ 716×1280 (9:16); frutas y salpicadura se mueven; $0.357 |
+| V2 B-roll | Kling 2.5 Turbo std desde K1 | — | 41 s | — | ✅ 9:16; menos movimiento; $0.179 (la mitad) |
+
+**Conclusiones:**
+
+1. **La regla de texto funciona.** 5 de 7 imágenes salieron exactas, contra 0 de 4 en la ronda 1. Los 2 fallos agregaron un sobretítulo o una firma de marca. Se corrige dando ese texto en el prompt ("small top label: …") o dejándolo explícitamente vacío ("no top label").
+2. **`quality: low` basta.** A 1024 px no hay diferencia visible con medium, y low es la más rápida y barata. Queda como valor por defecto. Flare no permite bajar de 1k.
+3. **Con preset o sin él, los dos sirven.** El preset aporta composición (varios frascos, props, estilo de la portada). La edición directa da más control y tarda la mitad. El enrutador usa el preset por defecto y pasa a edición directa si el QA rechaza el texto 2 veces.
+4. **Video: primero un keyframe 9:16 con Flare, después Kling.** Kling 2.5 Turbo cuesta la mitad y alcanza para B-roll de producto. Kling 3.0 queda para cuando haga falta más movimiento.
+5. **Flare no tiene `/estimate`.** Cobra por tokens. Para mostrar el costo antes de generar se usa el último costo real por (modo, calidad, proporción), guardado en `ai_generations`.
+
+**La ronda 2 venía así (ya ejecutada):** los mismos 3 conceptos en Flare, en dos variantes:
+- (a) preset, con el prompt reforzado: "all text in Spanish, do not translate, do not add any other text, no fruits or ingredients";
+- (b) edición directa (`enhance_prompt: false`) con el layout descrito en el prompt.
+
+Más el B-roll desde un keyframe 9:16. Es la ronda que decide si el texto se controla con el preset o sin él.
+
+### 7.3 F1 implementada (2026-09-24)
+
+| Pieza | Dónde |
+|---|---|
+| Migración | `supabase/migrations/20261004000000_creatives.sql`: `higgsfield_connections`, `creative_runs`, `creative_concepts`, `creative_assets`, bucket `creative-media`, `ai_generations.provider`, Vault `higgsfield` |
+| Cliente y clave | `lib/integrations/higgsfield/{client,connection}.ts`; Ajustes › Anuncios con IA (`components/screens/higgsfield-settings.tsx`, `PUT/DELETE /api/settings/higgsfield`) |
+| Lógica pura | `lib/creatives/{catalog,render,schemas,prompts}.ts`, tests en `creatives.test.ts` y `lib/products/stages.test.ts` |
+| Pipeline | `lib/pipeline/creatives.ts`: conceptos, render, QA, reintento sin preset, sondeo con lease, aprobar → `ad_media` |
+| API | `/api/products/[id]/creatives` (GET sondeo, POST proponer), `…/concepts/[conceptId]` (PATCH textos), `…/concepts/[conceptId]/render` (POST 1:1 o 9:16), `…/assets/[assetId]` (PATCH aprobar, descartar, deshacer) |
+| Pantalla | `/products/[id]/creatives` (`components/screens/creatives.tsx`); fixture `/dev/screens/creatives?state=locked|key|start|proposing|failed|concepts|rendering|review|done` |
+
+**Diferencias con lo planeado:**
+- Sin webhook: el proceso en segundo plano espera hasta ~200 s y el sondeo de la pantalla termina lo demás.
+- Sin estimación por llamada: Flare no tiene `/estimate` y la API no devuelve el costo. La pantalla muestra US$0,10 por imagen como cota.
+- "Generados" en Anuncios no es una pestaña nueva: aprobar crea la fila en `ad_media` y la pieza aparece junto a las subidas a mano.
+
+**Verificado:**
+- Tests, typecheck, lint, build y valores sueltos.
+- axe en la pantalla: 390 y 1280 px, claro y oscuro.
+- Contra la base local, sin Claude: la clave en Vault, la pieza generada en Higgsfield (21 s) y guardada en el bucket, y aprobar y deshacer en `ad_media`.
+
+**Falta verificar:** el generador de conceptos y el QA con Claude. `.env.local` no tiene `ANTHROPIC_API_KEY`; la prueba está en `scripts/e2e-creatives.ts`.
+
 ## 8. Decisiones
 
 **Tomadas (2026-09-23):**
@@ -318,9 +392,13 @@ Tope por defecto: **$25 por producto** (editable en Ajustes). Al llegar al 80%, 
 1. **Cuenta de Higgsfield:** clave propia de cada comerciante (§6.3). El costo de generación lo paga su cuenta; DropFlex no revende créditos.
 2. **Posición de la etapa:** entre Publicar y Anuncios (§6.5), porque alimenta Anuncios.
 3. **La imagen sale completa del modelo:** preset + foto del producto + textos exactos en el prompt. Sin composición, re-renders ni texto incrustado después (§0.3, §2.4). Proporciones nativas 1:1 y 9:16.
+4. **Resolución:** siempre 1k; nunca 2k ni 4k (§4).
+5. **Modelo y calidad de estáticos:** Marketing Studio **2.5 Flare**, `quality: "low"`, 1k (§7.2). Más rápido y más barato que 2.0, y respeta mejor el idioma.
+6. **Elementos de escena libres:** el modelo puede agregar props (frutas, agua, flores) que no son el producto. Estas piezas sirven también para la **galería de la página del producto** (etapa Imágenes). Solo se rechaza el texto de más.
+7. **Video:** keyframe 9:16 en Flare sin texto, después Kling 2.5 Turbo std (5 s, $0.179). Kling 3.0 std queda como opción de más movimiento.
 
 **Abiertas:**
 
-4. **Voz para F3:** proveedor de TTS (ElevenLabs u otro), con voces de catálogo, nunca clonadas de terceros.
-5. **Tope de costo por producto:** $25 por defecto (§4).
-6. **Resolución del primer lote:** 1k para elegir y 2k solo para lo aprobado (propuesta), o 2k directo.
+8. **Voz para F3:** proveedor de TTS (ElevenLabs u otro), con voces de catálogo, nunca clonadas de terceros.
+9. **Tope de costo por producto:** $20 por defecto (§4).
+

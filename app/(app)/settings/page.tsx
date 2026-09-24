@@ -7,7 +7,8 @@ import { LogoutButton } from "@/components/logout-button";
 import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAssumptions, getMarketSettings } from "@/lib/data/settings";
+import { getAdSettings, getAssumptions, getHiggsfieldSettings, getMarketSettings } from "@/lib/data/settings";
+import { HiggsfieldSettings } from "@/components/screens/higgsfield-settings";
 import { AdSettings } from "@/components/screens/ad-settings";
 import { MarketSettings } from "@/components/screens/market-settings";
 
@@ -24,7 +25,7 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings()]);
+  const [assumptions, market, ads, higgsfield] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings(), getHiggsfieldSettings()]);
   return (
     <>
       <PageHeader large title="Ajustes" subtitle="Supuestos, tienda y cuenta" back="Hoy" backHref="/today" />
@@ -49,6 +50,11 @@ export default async function AjustesPage() {
             </div>
           </Suspense>
         </Section>
+        {higgsfield ? (
+          <Section id="creativos" title="Anuncios con IA" description="Tu cuenta de Higgsfield: genera tus anuncios de imagen con tu clave y tus créditos.">
+            <HiggsfieldSettings keyHint={higgsfield.keyHint} status={higgsfield.status} error={higgsfield.error} />
+          </Section>
+        ) : null}
         {ads ? (
           <Section id="campanas" title="Campañas" description="El tope que ninguna campaña supera y tus plantillas propias.">
             <AdSettings spendCap={ads.spendCap} currency={ads.currency} templates={ads.templates} />

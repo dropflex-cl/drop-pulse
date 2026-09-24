@@ -13,7 +13,10 @@ import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type ReviewFacts } from "@/lib/products/stages";
+import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ReviewFacts } from "@/lib/products/stages";
+import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
+import { activeConcepts, assetsFor, creativeCounts, expireStaleCreatives, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
+import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { customerReviews, expireStaleImports, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
@@ -36,7 +39,7 @@ import {
   type ProductRow,
   type RunRow,
 } from "@/lib/products/store";
-import type { AnglesState, CopyState, ImageOption, Product, ProductAngles, ProductBase, ProductCopy, ProductFilter, ProductReviews } from "@/lib/types";
+import type { AnglesState, CopyState, CreativesState, ImageOption, Product, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews } from "@/lib/types";
 
 const userId = cache(async () => {
   const user = await sessionUser();
@@ -78,7 +81,24 @@ async function adsFacts(uid: string): Promise<(productId: string) => AdsFacts> {
   };
 }
 
-function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts, angles?: AngleFacts | null, copy?: CopyFacts | null, ads?: AdsFacts): Product {
+/** La clave de Higgsfield y las piezas de cada producto (etapa Creativos). */
+async function creativeFacts(uid: string, ids: string[]): Promise<(productId: string) => CreativeFacts> {
+  const [conn, counts] = await Promise.all([getHiggsfieldConnection(uid), creativeCounts(uid, ids)]);
+  const connected = conn?.status === "connected";
+  return (productId) => ({ connected, ...counts(productId) });
+}
+
+function toProduct(
+  row: ProductRow,
+  image: string,
+  run?: RunRow,
+  avatar?: AvatarRow,
+  reviews?: ReviewFacts,
+  angles?: AngleFacts | null,
+  copy?: CopyFacts | null,
+  ads?: AdsFacts,
+  creatives?: CreativeFacts,
+): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
@@ -88,6 +108,7 @@ function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: Avatar
     angles,
     copy,
     ads,
+    creatives,
   });
   return {
     id: row.id,
@@ -115,10 +136,10 @@ const allProducts = cache(async (): Promise<Product[]> => {
   const uid = await userId();
   // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
   await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid)]);
+  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid), expireStaleCreatives(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars, reviews, rankings, copyRuns, copyItems, ads] = await Promise.all([
+  const [images, runs, avatars, reviews, rankings, copyRuns, copyItems, ads, creatives] = await Promise.all([
     listImageRows(uid, ids),
     latestRuns(uid, ids),
     latestAvatars(uid, ids),
@@ -127,6 +148,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
     latestCopyRuns(uid, ids),
     activeItems(uid, ids),
     adsFacts(uid),
+    creativeFacts(uid, ids),
   ]);
   const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
@@ -137,7 +159,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
     const copy = copyFacts(copyRuns.get(r.id), copyItems.get(r.id), chosen);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id));
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id));
   });
 });
 
@@ -256,6 +278,34 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
     items: toCopyItems(items.get(productId) ?? []),
     stale: approved && isStale(run, briefs),
     noGuarantee: !((brief?.proof.guarantee_days ?? 0) > 0),
+  };
+}
+
+/** La etapa Creativos: los conceptos del generador y sus piezas generadas con Higgsfield. */
+export const getProductCreatives = cache(async (id: string): Promise<ProductCreatives | null> => {
+  const uid = await userId();
+  const product = await getProduct(id);
+  if (!product) return null;
+  return { product, ...(await creativesState(uid, id)) };
+});
+
+/** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/creatives). */
+export async function creativesState(uid: string, productId: string): Promise<CreativesState> {
+  const [conn, runs, concepts, rankings] = await Promise.all([getHiggsfieldConnection(uid), latestCreativeRuns(uid, [productId]), activeConcepts(uid, [productId]), latestRankings(uid, [productId])]);
+  const ranking = rankings.get(productId);
+  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
+  const anglesDone = (["primary", "secondary"] as const).every((r) => briefs[r]?.generation === "succeeded" && briefs[r]?.status === "approved");
+  const connected = conn?.status === "connected";
+  const rows = concepts.get(productId) ?? [];
+  const assets = await assetsFor(uid, rows.map((c) => c.id));
+  const urls = await signedUrls(assets.map((a) => a.storage_path).filter((p): p is string => Boolean(p)));
+  const run = runs.get(productId);
+  return {
+    locked: !anglesDone ? "Aprueba los 2 desarrollos de Ángulos para crear anuncios." : !connected ? (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.") : null,
+    connected,
+    run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
+    concepts: rows.map((c) => toConceptView(c, assets, urls)),
+    imageCostUsd: IMAGE_COST_USD,
   };
 }
 

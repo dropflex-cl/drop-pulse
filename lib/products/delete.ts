@@ -6,6 +6,7 @@ import { metaToken } from "@/lib/integrations/meta/connection";
 import { REFERENCES_BUCKET } from "./store";
 
 const AD_MEDIA_BUCKET = "ad-media";
+const CREATIVES_BUCKET = "creative-media";
 
 // Borrado completo de un producto (CLAUDE.md › Datos › Productos eliminados en Shopify): archivos en
 // Storage, filas propias y en cascada (imágenes de referencia, corridas, fichas, clientes ideales,
@@ -57,6 +58,14 @@ async function removeFiles(userId: string, productId: string) {
     const { error: rmError } = await db.storage.from(AD_MEDIA_BUCKET).remove(adPaths.slice(i, i + REMOVE_BATCH));
     if (rmError) throw new Error(`Borrar creativos de ${productId}: ${rmError.message}`);
   }
+  // Piezas generadas con Higgsfield (bucket creative-media, docs/spec-creativos.md §6.1).
+  const { data: pieces, error: piecesError } = await db.from("creative_assets").select("storage_path").eq("user_id", userId).eq("product_id", productId).not("storage_path", "is", null);
+  if (piecesError) throw new Error(`Leer piezas generadas de ${productId}: ${piecesError.message}`);
+  const piecePaths = [...new Set([...(await storedPaths(userId, productId, CREATIVES_BUCKET)), ...(pieces ?? []).map((p) => p.storage_path as string)])];
+  for (let i = 0; i < piecePaths.length; i += REMOVE_BATCH) {
+    const { error: rmError } = await db.storage.from(CREATIVES_BUCKET).remove(piecePaths.slice(i, i + REMOVE_BATCH));
+    if (rmError) throw new Error(`Borrar piezas generadas de ${productId}: ${rmError.message}`);
+  }
 }
 
 /**
@@ -96,7 +105,8 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
       if (gen.error) throw new Error(`Borrar generaciones de ${id}: ${gen.error.message}`);
       // La cascada se lleva product_reference_images, pipeline_runs, product_briefs, customer_avatars,
       // product_pricing, pack_labels, review_sources, review_imports, product_reviews y todo lo de
-      // anuncios (ad_media, ad_campaigns → ad_sets, ads, métricas, decisiones y cambios).
+      // anuncios (ad_media, ad_campaigns → ad_sets, ads, métricas, decisiones y cambios) y los de
+      // Creativos (creative_runs → creative_concepts → creative_assets).
       const { data, error } = await db.from("products").delete().eq("user_id", userId).eq("id", id).select("shopify_product_id");
       if (error) throw new Error(`Borrar el producto ${id}: ${error.message}`);
       const shopifyId = data?.[0]?.shopify_product_id as string | undefined;

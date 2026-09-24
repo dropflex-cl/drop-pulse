@@ -14,7 +14,7 @@ import type { AngleRole, SalesAngle } from "@/lib/angles/catalog";
 export type { ContentStatus, Verdict };
 
 /** Etapas de la ruta de un producto, en orden. */
-export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "anuncios";
+export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "creativos" | "anuncios";
 
 export interface Stage {
   key: StageKey;
@@ -515,4 +515,54 @@ export interface CampaignDetail {
   daily: Record<string, AdSeriesPoint[]>;
   /** Acumulado de hoy y de ayer, hora a hora (campaña). */
   hourly: { today: AdHourPoint[]; yesterday: AdHourPoint[] };
+}
+
+// ---------------------------------------------------------------- Creativos (docs/spec-creativos.md)
+
+/** Una pieza generada con Higgsfield: su generación, el QA y la decisión del comerciante. */
+export interface CreativeAssetView {
+  id: string;
+  ratio: "1:1" | "9:16";
+  /** 1: con el preset; 2: edición directa, después de que el QA rechazó el primero. */
+  attempt: number;
+  render: "queued" | "running" | "succeeded" | "failed";
+  /** Por qué falló, o por qué sigue en cola. */
+  error?: string;
+  /** URL firmada de la imagen (1 h). */
+  src?: string;
+  width?: number;
+  height?: number;
+  qa?: { pass: boolean; issues: string[] };
+  status: ContentStatus;
+  /** Ya está en Anuncios (se copió a los creativos del producto). */
+  inAds: boolean;
+  createdAt: string;
+}
+
+export interface CreativeConceptView {
+  id: string;
+  angle: AngleRole;
+  angleName: string;
+  family: import("./creatives/catalog").Family;
+  familyName: string;
+  name: string;
+  why: string;
+  preset?: { id: string; name: string; group: string; cover?: string };
+  texts: { role: import("./creatives/catalog").TextRole; text: string }[];
+  edited: boolean;
+  assets: CreativeAssetView[];
+}
+
+export interface CreativesState {
+  /** Por qué no se puede usar todavía (ángulos sin aprobar, Higgsfield sin conectar). */
+  locked: string | null;
+  connected: boolean;
+  run?: { id: string; status: RunStatus; error?: string; createdAt: string };
+  concepts: CreativeConceptView[];
+  /** Cota de USD por imagen para mostrar antes de generar. */
+  imageCostUsd: number;
+}
+
+export interface ProductCreatives extends CreativesState {
+  product: Product;
 }

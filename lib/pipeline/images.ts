@@ -13,7 +13,7 @@ const MAX_SIDE = 1568;
 
 export class ImageLoadError extends Error {}
 
-async function download(url: string): Promise<Buffer> {
+export async function download(url: string): Promise<Buffer> {
   let res: Response;
   try {
     res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), headers: { Accept: "image/jpeg,image/png,image/webp,image/*" } });
@@ -26,19 +26,27 @@ async function download(url: string): Promise<Buffer> {
   return bytes;
 }
 
-/** Una imagen lista para el modelo. Lanza ImageLoadError si no se puede descargar o no es una imagen. */
-export async function imageBlock(url: string): Promise<Anthropic.Beta.BetaImageBlockParam> {
-  const bytes = await download(url);
-  let jpeg: Buffer;
+/** JPEG de hasta `maxSide` px. Lanza ImageLoadError si los bytes no son una imagen legible. */
+export async function toJpeg(bytes: Buffer, maxSide = MAX_SIDE): Promise<Buffer> {
   try {
-    jpeg = await sharp(bytes, { failOn: "error" })
+    return await sharp(bytes, { failOn: "error" })
       .rotate() // respeta la orientación EXIF de las fotos de teléfono
-      .resize(MAX_SIDE, MAX_SIDE, { fit: "inside", withoutEnlargement: true })
+      .resize(maxSide, maxSide, { fit: "inside", withoutEnlargement: true })
       .flatten({ background: "#ffffff" }) // PNG con transparencia → fondo blanco
       .jpeg({ quality: 85 })
       .toBuffer();
   } catch (e) {
     throw new ImageLoadError(`no es una imagen legible (${(e as Error).message})`);
   }
+}
+
+/** Bytes de imagen → bloque para el modelo. */
+export async function imageBlockFromBytes(bytes: Buffer): Promise<Anthropic.Beta.BetaImageBlockParam> {
+  const jpeg = await toJpeg(bytes);
   return { type: "image", source: { type: "base64", media_type: "image/jpeg", data: jpeg.toString("base64") } };
+}
+
+/** Una imagen lista para el modelo. Lanza ImageLoadError si no se puede descargar o no es una imagen. */
+export async function imageBlock(url: string): Promise<Anthropic.Beta.BetaImageBlockParam> {
+  return imageBlockFromBytes(await download(url));
 }

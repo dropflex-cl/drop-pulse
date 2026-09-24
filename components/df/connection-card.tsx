@@ -2,13 +2,14 @@ import { Icon, type IconName } from "./icon";
 import { StateChip } from "./state-chip";
 import { cn } from "@/lib/utils";
 
-export type Provider = "shopify" | "meta";
+export type Provider = "shopify" | "meta" | "higgsfield";
 
 // ProviderMark es genérico: en producción se reemplaza por el logo oficial de cada proveedor,
 // según sus guías de marca. Este sistema no dibuja marcas de terceros.
 const PROVIDERS: Record<Provider, { name: string; icon: IconName; what: string }> = {
   shopify: { name: "Shopify", icon: "store", what: "Tu tienda" },
   meta: { name: "Meta Ads", icon: "megaphone", what: "Tus anuncios" },
+  higgsfield: { name: "Higgsfield", icon: "image", what: "Tus anuncios de imagen con IA" },
 };
 
 export function ProviderMark({ provider, size }: { provider: Provider; size?: "lg" }) {

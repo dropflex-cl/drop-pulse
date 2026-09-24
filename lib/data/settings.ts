@@ -2,6 +2,7 @@
 import "server-only";
 import { listTemplates } from "@/lib/ads/store";
 import { adminClient } from "@/lib/integrations/admin";
+import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { sessionUser } from "@/lib/integrations/session";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -33,4 +34,12 @@ export async function getAdSettings() {
   ]);
   const row = data as { ad_daily_spend_cap: number | string | null; currency: string } | null;
   return { spendCap: row?.ad_daily_spend_cap == null ? null : Number(row.ad_daily_spend_cap), currency: meta?.ad_account_currency?.trim() || row?.currency || "CLP", templates };
+}
+
+/** Ajustes › Higgsfield: la clave propia del comerciante (solo lo visible; la clave vive en Vault). */
+export async function getHiggsfieldSettings() {
+  const user = await sessionUser();
+  if (!user) return null;
+  const conn = await getHiggsfieldConnection(user.id);
+  return conn ? { keyHint: conn.key_hint, status: conn.status, error: conn.last_error } : { keyHint: null, status: null, error: null };
 }

@@ -3,7 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { SalesAngle } from "@/lib/angles/catalog";
-import type { AnglesState, AvatarProposal, CopyState, CustomerReview, OptimizationRun, PackLabelsProposal, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, CopyState, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -69,6 +69,11 @@ export function uploadImage(productId: string, file: File, onProgress: (p: numbe
 }
 
 export const productsApi = {
+  creatives: (id: string) => call<CreativesState>(`/${id}/creatives`),
+  proposeCreatives: (id: string) => send<CreativesState>("POST", `/${id}/creatives`),
+  editConcept: (id: string, conceptId: string, texts: { role: string; text: string }[]) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { texts }),
+  renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16") => send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, { ratio }),
+  decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
   decidePackLabels: (id: string, action: "approve" | "reopen") => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action }),
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
   regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
@@ -101,4 +106,19 @@ export const productsApi = {
   decideCopyItem: (id: string, itemId: string, action: "approve" | "reject" | "reopen", text?: string) =>
     send<CopyState>("PATCH", `/${id}/copy/items/${itemId}`, { action, text }),
   saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),
+};
+
+/** Ajustes › Conexiones › Higgsfield. Mismo contrato de errores que /api/products. */
+export const higgsfieldApi = {
+  connect: async (key: string) => {
+    const res = await fetch("/api/settings/higgsfield", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }), cache: "no-store" }).catch(() => null);
+    if (!res) throw new ProductApiClientError("No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ProductApiClientError(data.error ?? "No pudimos guardar la clave. Intenta de nuevo.", data.field, res.status);
+    return data as { keyHint: string; status: "connected" | "invalid" };
+  },
+  disconnect: async () => {
+    const res = await fetch("/api/settings/higgsfield", { method: "DELETE", cache: "no-store" }).catch(() => null);
+    if (!res?.ok) throw new ProductApiClientError("No pudimos desconectar Higgsfield. Intenta de nuevo.");
+  },
 };
