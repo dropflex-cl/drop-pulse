@@ -7,6 +7,8 @@
   - Botones: el que abre el formulario, la barra fija de la app, el de enviar y el del downsell
     toman el botón principal del tema: el acento del producto (df-design-system), su texto, su
     hover y su radio. Planos, sin el degradado ni la sombra de la app.
+  - Una sola barra fija de compra: la del tema, con el texto del botón de EasySell; al tocarla hace
+    clic en el propio botón de EasySell (sus eventos de píxel quedan iguales). La de la app se oculta.
 
   POR QUÉ HAY SCRIPT: EasySell escribe color, fondo, borde, radio y sombra de sus botones y de la
   tarjeta del formulario como estilos INLINE con !important, que le ganan a cualquier hoja de
@@ -130,6 +132,52 @@
       letter-spacing: -0.01em;
       transition: background-color 120ms ease;
     }
+
+    /* Una sola barra fija de compra (html.df-es-cod, lo pone el script cuando EasySell está en la
+       ficha): la del tema, con el texto del botón de EasySell y sin el ícono del carrito. La barra
+       propia de EasySell se oculta; su display lo escribe la app inline con !important, por eso
+       visibility. */
+    .df-es-cod #es-sticky {
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    .df-es-cod .sticky-add-to-cart__button .svg-wrapper {
+      display: none;
+    }
+
+    .df-es-cod .sticky-add-to-cart__button {
+      font-family: var(--df-ds-font, inherit);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    @media screen and (max-width: 749px) {
+      /* Móvil: foto, precio y el botón con su texto (el tema solo muestra el ícono). El nombre del
+         producto sale de la barra para dejarle el ancho al botón. */
+      .df-es-cod .sticky-add-to-cart__bar .add-to-cart-text__content {
+        display: inline;
+      }
+
+      .df-es-cod .sticky-add-to-cart__title,
+      .df-es-cod .sticky-add-to-cart__variant {
+        display: none !important;
+      }
+
+      .df-es-cod .sticky-add-to-cart__info {
+        flex: none;
+        padding-inline-start: 0;
+      }
+
+      .df-es-cod .sticky-add-to-cart__button {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 8px 14px;
+        font-size: 14px;
+        line-height: 1.2;
+        text-wrap: balance;
+      }
+    }
   {% endstyle %}
 
   <script>
@@ -243,11 +291,73 @@
       function paintAll() {
         var nodes = document.querySelectorAll(BUTTONS + ', ' + BADGE + ', ' + CARD);
         for (var i = 0; i < nodes.length; i++) paint(nodes[i]);
+        syncStickyBar();
       }
+
+      /* ---- Una sola barra fija: la del tema abre el formulario de EasySell ----
+         En móvil se apilaban la barra del tema (agrega al carrito) y la de EasySell (abre el
+         formulario). Queda la del tema, con el texto del botón de EasySell, y al tocarla hace clic
+         en el PROPIO botón de EasySell: así corre su código tal cual (abre el formulario y manda
+         InitiateCheckout al píxel de Meta y a los demás con su eventID), igual que si el comprador
+         tocara el botón de la app. Nunca se llama a una función interna de la app ni se dispara un
+         evento del píxel a mano. Sin EasySell (o con su botón desactivado) la barra agrega al
+         carrito, como siempre. */
+      var TRIGGERS = ['#es-popup-button', '.es-popup-button', '#es-sticky'];
+      var STICKY_BUTTON = '.sticky-add-to-cart__button';
+      var STICKY_LABEL = '.add-to-cart-text__content > span:first-child';
+
+      function codTrigger() {
+        for (var i = 0; i < TRIGGERS.length; i++) {
+          var el = document.querySelector(TRIGGERS[i]);
+          if (el && el.disabled !== true && el.getAttribute('aria-disabled') !== 'true') return el;
+        }
+        return null;
+      }
+
+      function codTitle(trigger) {
+        var title = trigger.querySelector('.es-button-title') || document.querySelector('#es-popup-button .es-button-title');
+        return title ? title.textContent.trim() : '';
+      }
+
+      /* El texto del botón del tema sigue al de EasySell (el tema lo reescribe al cambiar de
+         variante: el observador global vuelve a pasar por aquí). */
+      function syncStickyBar() {
+        var trigger = codTrigger();
+        document.documentElement.classList.toggle('df-es-cod', Boolean(trigger));
+        var label = document.querySelector(STICKY_BUTTON + ' ' + STICKY_LABEL);
+        if (!label) return;
+        var text = trigger ? codTitle(trigger) : '';
+        if (text) {
+          if (!('dfEsOriginal' in label.dataset)) label.dataset.dfEsOriginal = label.textContent;
+          if (label.textContent !== text) label.textContent = text;
+        } else if ('dfEsOriginal' in label.dataset && label.textContent !== label.dataset.dfEsOriginal) {
+          label.textContent = label.dataset.dfEsOriginal;
+        }
+      }
+
+      /* En captura sobre window: corre antes que el delegado del tema (on:click, captura en
+         document), así la barra no agrega al carrito ni dispara el AddToCart de ese clic. */
+      window.addEventListener(
+        'click',
+        function (event) {
+          var button = event.target instanceof Element ? event.target.closest(STICKY_BUTTON) : null;
+          if (!button || button.disabled) return;
+          var trigger = codTrigger();
+          if (!trigger) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          trigger.click();
+        },
+        true
+      );
 
       function start() {
         tokens = readTokens();
-        if (!tokens) return;
+        syncStickyBar();
+        if (!tokens) {
+          new MutationObserver(syncStickyBar).observe(document.documentElement, { childList: true, subtree: true });
+          return;
+        }
         paintAll();
         /* La app monta sus nodos después y los vuelve a montar al actualizar el carrito. Solo
            childList: una clase que cambia (la animación) nunca cambia el color. */
