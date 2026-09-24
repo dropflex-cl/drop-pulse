@@ -427,10 +427,18 @@ Componentes nuevos en `components/df`, portados de `design-system/reference` al 
 
 ---
 
-## 13. Decisiones abiertas
+## 13. Decisiones
 
-1. **CPA límite de la campaña:** ¿el `max_cpa` del producto (el equilibrio de la planilla, como Impulso) o `purchase_cost_limit` (el CPA objetivo que escribe el comerciante)? Propuesta: `max_cpa`, y `purchase_cost_limit` si no hay.
-2. **Tope de gasto diario de la cuenta:** ¿valor obligatorio antes del primer lanzamiento (propuesta) o sin tope?
-3. **Cuenta de prueba:** ¿hay una cuenta publicitaria de prueba o una tienda de desarrollo con pixel para F4–F8?
-4. **Imágenes:** la etapa Imágenes no existe. Por ahora los creativos se suben en el configurador. ¿Te sirve así hasta que exista?
-5. **Catálogo Advantage:** Impulso lo prende con catálogo grande; TFL y GEM lo apagan. Propuesta: apagado y fuera de la UI en el primer corte.
+**Tomadas (2026-09-23):**
+
+1. **CPA límite de la campaña:** el `max_cpa` del producto (el equilibrio de la planilla de costeo, como Impulso); si no hay, `purchase_cost_limit`. Se copia en la campaña y se puede editar ahí.
+2. **Tope de gasto diario de la cuenta:** es obligatorio. Se pide antes del primer lanzamiento.
+3. **No hay cuenta de prueba:** se prueba en la cuenta real de producción.
+   - Todo se crea en pausa, y una campaña en pausa no gasta.
+   - La reversión se prueba borrando lo creado.
+   - Publicar y el modo automático se prueban con el presupuesto mínimo y con autorización explícita en cada prueba.
+
+**Abiertas:**
+
+4. **Creativos:** el diseño los sube en el configurador (§7.2). Falta definir si más adelante también salen de la etapa Imágenes o de un generador de estáticos o videos.
+5. **Catálogo Advantage:** propuesta: apagado y fuera de la UI en el primer corte.
