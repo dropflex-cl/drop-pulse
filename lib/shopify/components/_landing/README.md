@@ -33,7 +33,7 @@ Reglas de la redirección (spec del tema, §9.2):
 - El contorno de tinta es fijo y envuelve cada relleno: cualquier acento se lee sobre el header.
 - Letras Fredoka Bold (SIL OFL 1.1) convertidas a trazos: no depende de ninguna fuente.
 
-El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` cuando está encendido el ajuste `df_brand_logo` (alto con `df_brand_logo_height`, 80 % en móvil). **Apagado por defecto**: es la marca de Datazo y el tema se instala en la tienda de cada comerciante.
+El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` con el ajuste `df_brand_logo`, **encendido por defecto** (alto con `df_brand_logo_height`, 80 % en móvil). Apagándolo en el editor vuelve el logo subido.
 
 ## Design system
 

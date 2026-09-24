@@ -26,7 +26,7 @@
         "id": "df_brand_logo",
         "label": "Logo Datazo con el color del producto",
         "info": "Reemplaza el logo del header por la marca Datazo dibujada en código, teñida con el color de cada producto (rosa en las demás páginas).",
-        "default": false
+        "default": true
       },
       {
         "type": "range",
