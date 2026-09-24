@@ -101,6 +101,45 @@ export async function currentBriefs(userId: string, rankingIds: string[]): Promi
   return map;
 }
 
+/** Lo que la ruta de etapas mira de una evaluación y de un desarrollo (sin payload). */
+export type RankingState = Pick<RankingRow, "id" | "product_id" | "status" | "error_message" | "confirmed_at" | "created_at">;
+export type BriefState = Pick<BriefRow, "id" | "ranking_id" | "angle" | "role" | "generation" | "error_message" | "status" | "edited_at">;
+
+/** Como latestRankings, sin la evaluación: solo para la posición en la ruta. */
+export async function latestRankingStates(userId: string, productIds: string[]): Promise<Map<string, RankingState>> {
+  if (!productIds.length) return new Map();
+  const { data, error } = await adminClient()
+    .from("angle_rankings")
+    .select("id, product_id, status, error_message, confirmed_at, created_at")
+    .eq("user_id", userId)
+    .in("product_id", productIds)
+    .order("created_at", { ascending: false });
+  fail("Leer los ángulos", error);
+  const map = new Map<string, RankingState>();
+  for (const r of (data ?? []) as RankingState[]) if (!map.has(r.product_id)) map.set(r.product_id, r);
+  return map;
+}
+
+/** Como currentBriefs, sin el desarrollo: solo para la posición en la ruta. */
+export async function currentBriefStates(userId: string, rankingIds: string[]): Promise<Map<string, Partial<Record<AngleRole, BriefState>>>> {
+  if (!rankingIds.length) return new Map();
+  const { data, error } = await adminClient()
+    .from("angle_briefs")
+    .select("id, ranking_id, angle, role, generation, error_message, status, edited_at")
+    .eq("user_id", userId)
+    .in("ranking_id", rankingIds)
+    .neq("status", "rejected")
+    .order("created_at", { ascending: false });
+  fail("Leer los desarrollos", error);
+  const map = new Map<string, Partial<Record<AngleRole, BriefState>>>();
+  for (const r of (data ?? []) as BriefState[]) {
+    const byRole = map.get(r.ranking_id) ?? {};
+    if (!byRole[r.role]) byRole[r.role] = r;
+    map.set(r.ranking_id, byRole);
+  }
+  return map;
+}
+
 export async function getBriefRow(userId: string, productId: string, briefId: string): Promise<BriefRow | null> {
   const { data, error } = await adminClient().from("angle_briefs").select("*").eq("user_id", userId).eq("product_id", productId).eq("id", briefId).maybeSingle();
   fail("Leer el desarrollo", error);

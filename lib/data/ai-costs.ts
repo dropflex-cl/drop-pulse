@@ -25,10 +25,10 @@ async function running(userId: string, productId: string): Promise<boolean> {
 export const getProductAiCost = cache(async (productId: string): Promise<ProductAiCost | null> => {
   const user = await sessionUser();
   if (!user) return null;
-  const product = await getProduct(productId);
-  if (!product) return null;
   const db = adminClient();
-  const [{ data: rows, error }, { data: settings }, pricing, isRunning] = await Promise.all([
+  // Las lecturas no esperan al producto (filtran por dueño): todo va a la vez.
+  const [product, { data: rows, error }, { data: settings }, pricing, isRunning] = await Promise.all([
+    getProduct(productId),
     db
       .from("ai_generations")
       .select("step, detail, model, status, error_code, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_usd, created_at")
@@ -39,6 +39,7 @@ export const getProductAiCost = cache(async (productId: string): Promise<Product
     getPricingPlan(user.id, productId).catch(() => null),
     running(user.id, productId),
   ]);
+  if (!product) return null;
   if (error) throw new Error(`Leer el costo de IA: ${error.message}`);
   const s = settings as { currency: string; timezone: string | null; ai_cost_cap: number | string | null } | null;
   const currency = product.currency || s?.currency || "CLP";

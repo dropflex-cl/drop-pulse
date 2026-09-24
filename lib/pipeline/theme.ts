@@ -3,7 +3,7 @@
 // shopify_theme_installations y la pantalla lo sondea.
 import "server-only";
 import { after } from "next/server";
-import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
+import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { ProductApiError } from "@/lib/products/http";
 import { PublishError } from "@/lib/shopify/publish/files";
 import { readKit } from "@/lib/shopify/publish/kit";
@@ -60,11 +60,25 @@ export interface ThemeView {
   outdated: boolean;
 }
 
-/** El tema para la pantalla, corrigiendo el registro si el comerciante lo borró o publicó otro. */
+const SYNC_EVERY_MS = 60_000;
+const lastSync = new Map<string, number>();
+
+/**
+ * Si el comerciante publicó o borró el tema desde Shopify, se corrige después de responder (a lo más
+ * una vez por minuto por instancia): la siguiente lectura o sondeo ya lo muestra, y Shopify no frena
+ * la pantalla. Instalar, actualizar y publicar desde DropFlex guardan su estado ellos mismos.
+ */
+function scheduleThemeSync(conn: ShopifyConnection) {
+  const now = Date.now();
+  if (now - (lastSync.get(conn.user_id) ?? 0) < SYNC_EVERY_MS) return;
+  lastSync.set(conn.user_id, now);
+  after(() => syncThemeState(conn).then(() => undefined, (e) => console.error("[theme] sincronizar el estado", e)));
+}
+
+/** El tema para la pantalla, tal como está registrado (lo cambiado en Shopify se corrige en segundo plano). */
 export async function themeView(userId: string): Promise<ThemeView> {
-  const conn = await getShopifyConnection(userId);
-  let inst = await getThemeInstallation(userId);
-  if (conn && !connectionProblem(conn) && inst) inst = await syncThemeState(conn).catch(() => inst);
+  const [conn, inst] = await Promise.all([getShopifyConnection(userId), getThemeInstallation(userId)]);
+  if (conn && !connectionProblem(conn) && inst) scheduleThemeSync(conn);
   if (!inst || (conn && inst.shop_domain !== conn.shop_domain)) return { status: "none", outdated: false };
   return {
     status: inst.status,

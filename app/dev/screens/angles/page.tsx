@@ -41,7 +41,7 @@ export default function Page({ searchParams }: { searchParams: Promise<{ state?:
   return (
     <AssistantProvider>
       {/* Sin historial: los avisos de costo usan las referencias por paso, en CLP. */}
-      <AiCostProvider cost={summarizeAiCost([], { currency: "CLP", usdRate: 950, stages: [], now: new Date("2026-01-01T12:00:00Z") })}>
+      <AiCostProvider cost={Promise.resolve(summarizeAiCost([], { currency: "CLP", usdRate: 950, stages: [], now: new Date("2026-01-01T12:00:00Z") }))}>
         <main id="contenido" className="min-h-svh">
           <Suspense fallback={null}>
             <Screen searchParams={searchParams} />

@@ -13,13 +13,13 @@ import { money } from "@/lib/format";
 import type { PublishState } from "@/lib/types";
 
 export async function publishState(userId: string, productId: string): Promise<PublishState> {
-  const [conn, prepared, publications, settings] = await Promise.all([
+  const [conn, prepared, publications, settings, theme] = await Promise.all([
     getShopifyConnection(userId),
     preparePublish(userId, productId),
     getPublications(userId, [productId]),
     getStorePolicies(userId),
+    themeView(userId),
   ]);
-  const theme = await themeView(userId);
   const pub = publications.get(productId);
   const { input, missing } = prepared;
   const currency = settings?.currency ?? "CLP";

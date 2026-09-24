@@ -242,6 +242,46 @@ export async function latestAvatars(userId: string, productIds: string[]): Promi
   return map;
 }
 
+// ---------------------------------------------------------------- Estado para la ruta (liviano)
+
+/** Lo que la ruta de etapas mira de una corrida o propuesta (sin payload ni input). */
+export type RunState = Pick<RunRow, "product_id" | "status" | "error_message" | "created_at">;
+export type AvatarState = Pick<AvatarRow, "product_id" | "status" | "created_at">;
+
+/** La fila más reciente de cada producto (las filas vienen ordenadas de la más nueva a la más vieja). */
+export function newestByProduct<T extends { product_id: string }>(rows: T[]): Map<string, T> {
+  const map = new Map<string, T>();
+  for (const r of rows) if (!map.has(r.product_id)) map.set(r.product_id, r);
+  return map;
+}
+
+/** Como latestRuns, sin input: solo para la posición en la ruta. */
+export async function latestRunStates(userId: string, productIds: string[]): Promise<Map<string, RunState>> {
+  if (!productIds.length) return new Map();
+  const { data, error } = await adminClient()
+    .from("pipeline_runs")
+    .select("product_id, status, error_message, created_at")
+    .eq("user_id", userId)
+    .in("product_id", productIds)
+    .order("created_at", { ascending: false });
+  fail("Leer las optimizaciones", error);
+  return newestByProduct((data ?? []) as RunState[]);
+}
+
+/** Como latestAvatars, sin el cliente ideal: solo para la posición en la ruta. */
+export async function latestAvatarStates(userId: string, productIds: string[]): Promise<Map<string, AvatarState>> {
+  if (!productIds.length) return new Map();
+  const { data, error } = await adminClient()
+    .from("customer_avatars")
+    .select("product_id, status, created_at")
+    .eq("user_id", userId)
+    .in("product_id", productIds)
+    .neq("status", "rejected")
+    .order("created_at", { ascending: false });
+  fail("Leer los clientes ideales", error);
+  return newestByProduct((data ?? []) as AvatarState[]);
+}
+
 export async function latestBrief(userId: string, productId: string): Promise<ProductBrief | null> {
   const { data, error } = await adminClient()
     .from("product_briefs")

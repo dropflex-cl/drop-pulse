@@ -239,17 +239,31 @@ export async function getAssetRow(userId: string, assetId: string): Promise<Asse
   return (data as AssetRow | null) ?? null;
 }
 
-/** Lo que necesita la ruta del producto (lib/products/stages.ts › CreativeFacts). */
+/** Lo que necesita la ruta del producto (lib/products/stages.ts › CreativeFacts). Solo las columnas que cuentan. */
 export async function creativeCounts(userId: string, productIds: string[]) {
-  const [runs, concepts] = await Promise.all([latestCreativeRuns(userId, productIds), activeConcepts(userId, productIds)]);
-  const all = [...concepts.values()].flat();
-  const assets = await assetsFor(userId, all.map((c) => c.id));
+  if (!productIds.length) return () => ({ running: false, concepts: 0, rendering: 0, pending: 0, approved: 0 });
+  const db = adminClient();
+  const [runRes, conceptRes] = await Promise.all([
+    db.from("creative_runs").select("product_id, status").eq("user_id", userId).in("product_id", productIds).order("created_at", { ascending: false }),
+    db.from("creative_concepts").select("id, product_id").eq("user_id", userId).in("product_id", productIds).is("superseded_at", null),
+  ]);
+  fail("Leer las corridas de Creativos", runRes.error);
+  fail("Leer los conceptos", conceptRes.error);
+  const runs = new Map<string, Pick<CreativeRunRow, "status">>();
+  for (const r of (runRes.data ?? []) as Pick<CreativeRunRow, "product_id" | "status">[]) if (!runs.has(r.product_id)) runs.set(r.product_id, r);
+  const concepts = (conceptRes.data ?? []) as { id: string; product_id: string }[];
+  let assets: Pick<AssetRow, "product_id" | "render_status" | "status">[] = [];
+  if (concepts.length) {
+    const { data, error } = await db.from("creative_assets").select("product_id, render_status, status").eq("user_id", userId).in("concept_id", concepts.map((c) => c.id));
+    fail("Leer las piezas", error);
+    assets = (data ?? []) as typeof assets;
+  }
   return (productId: string) => {
     const mine = assets.filter((a) => a.product_id === productId);
     const run = runs.get(productId);
     return {
       running: run?.status === "queued" || run?.status === "running",
-      concepts: concepts.get(productId)?.length ?? 0,
+      concepts: concepts.filter((c) => c.product_id === productId).length,
       rendering: mine.filter((a) => a.render_status === "queued" || a.render_status === "running").length,
       pending: mine.filter((a) => a.render_status === "succeeded" && (a.status === "generated" || a.status === "in_review")).length,
       approved: mine.filter((a) => a.status === "approved").length,

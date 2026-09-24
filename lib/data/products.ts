@@ -7,33 +7,34 @@ import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { ANGLES } from "@/lib/angles/catalog";
-import { currentBriefs, expireStaleAngles, latestRankings, toBriefView, toRankingView, type BriefRow, type RankingRow } from "@/lib/angles/store";
+import { currentBriefs, currentBriefStates, latestRankings, latestRankingStates, toBriefView, toRankingView, type BriefState, type RankingState } from "@/lib/angles/store";
 import { copyProgress } from "@/lib/copy/progress";
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
-import { activeComponents, expireStaleCopy, isStale, latestCopyRuns, toComponentViews, type CopyRunRow, type PageComponentRow } from "@/lib/copy/store";
+import { activeComponents, activeComponentStates, isStale, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
 import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
-import { syncSelectedProducts } from "@/lib/products/sync";
+import { scheduleHousekeeping } from "@/lib/products/housekeeping";
 import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
-import { expireStalePublications, getPublications, type PublicationRow } from "@/lib/pipeline/publish";
+import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
-import { activeConcepts, assetsFor, creativeCounts, expireStaleCreatives, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
-import { activeShots, expireStalePageImages, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
+import { activeConcepts, assetsFor, creativeCounts, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
+import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, generationBlocker } from "@/lib/pipeline/page-images";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
-import { customerReviews, expireStaleImports, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
+import { customerReviews, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
 import {
   baseImage,
-  expireStaleRuns,
   getProductRow,
   latestAvatars,
+  latestAvatarStates,
   latestBrief,
   latestRuns,
+  latestRunStates,
   listImageRows,
   listProductRows,
   toProposal,
@@ -41,28 +42,37 @@ import {
   toUiStatus,
   toRun,
   withDisplayUrls,
-  type AvatarRow,
+  type AvatarState,
   type ImageRow,
   type ProductRow,
-  type RunRow,
+  type RunState,
 } from "@/lib/products/store";
 import type { AnglesState, CopyState, CreativesState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews } from "@/lib/types";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
 const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const userId = cache(async () => {
   const user = await sessionUser();
   if (!user) redirect("/auth/login");
+  // Cerrar lo colgado y traer los elegidos del onboarding, después de responder (lib/products/housekeeping.ts).
+  scheduleHousekeeping(user.id);
   return user.id;
 });
+
+/** La fila del producto, una vez por petición (la piden el producto y la etapa). Un id que no es uuid no existe. */
+export const productRow = cache(async (uid: string, id: string): Promise<ProductRow | null> => (UUID.test(id) ? getProductRow(uid, id) : null));
 
 /** La miniatura del producto es su imagen base (o, si todas están excluidas, la primera). */
 function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-function angleFacts(ranking: RankingRow | undefined, briefs: Partial<Record<"primary" | "secondary", BriefRow>> | undefined): AngleFacts | null {
+type Briefs = Partial<Record<"primary" | "secondary", BriefState>>;
+
+function angleFacts(ranking: RankingState | undefined, briefs: Briefs | undefined): AngleFacts | null {
   if (!ranking) return null;
   return {
     ranking: { status: ranking.status, error: ranking.error_message, confirmed: Boolean(ranking.confirmed_at) },
@@ -70,18 +80,21 @@ function angleFacts(ranking: RankingRow | undefined, briefs: Partial<Record<"pri
   };
 }
 
-function copyFacts(run: CopyRunRow | undefined, rows: PageComponentRow[] | undefined, briefs: Partial<Record<"primary" | "secondary", BriefRow>> | undefined): CopyFacts | null {
+function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined, briefs: Briefs | undefined): CopyFacts | null {
   if (!run && !rows?.length) return null;
   return {
     run: run ? { status: run.status, error: run.error_message } : null,
-    progress: copyProgress(toComponentViews(rows ?? [])),
+    progress: copyProgress((rows ?? []).map((r) => ({ component: r.component, status: toUiStatus(r.status), enabled: r.enabled }))),
     stale: isStale(run, briefs ?? {}),
   };
 }
 
 /** Meta listo y las campañas de cada producto (etapa Anuncios). */
-async function adsFacts(uid: string): Promise<(productId: string) => AdsFacts> {
-  const [meta, { data }] = await Promise.all([getMetaConnection(uid), adminClient().from("ad_campaigns").select("product_id, status").eq("user_id", uid).in("status", ["launching", "paused", "active"])]);
+async function adsFacts(uid: string, ids: string[]): Promise<(productId: string) => AdsFacts> {
+  const [meta, { data }] = await Promise.all([
+    getMetaConnection(uid),
+    adminClient().from("ad_campaigns").select("product_id, status").eq("user_id", uid).in("product_id", ids).in("status", ["launching", "paused", "active"]),
+  ]);
   const metaReady = Boolean(meta?.status === "connected" && meta.ad_account_id && meta.page_id && meta.pixel_id);
   const rows = (data ?? []) as { product_id: string; status: string }[];
   return (productId) => {
@@ -104,8 +117,8 @@ function publicationFacts(p: PublicationRow | undefined): PublishFacts | null {
 function toProduct(
   row: ProductRow,
   image: string,
-  run?: RunRow,
-  avatar?: AvatarRow,
+  run?: RunState,
+  avatar?: AvatarState,
   reviews?: ReviewFacts,
   angles?: AngleFacts | null,
   copy?: CopyFacts | null,
@@ -118,7 +131,7 @@ function toProduct(
     price: Number(row.price),
     currency: row.currency,
     run: run ? { status: run.status, error: run.error_message, createdAt: run.created_at } : null,
-    avatar: avatar ? { status: toProposal(avatar).status, createdAt: avatar.created_at } : null,
+    avatar: avatar ? { status: toUiStatus(avatar.status), createdAt: avatar.created_at } : null,
     reviews,
     angles,
     copy,
@@ -148,30 +161,32 @@ function toProduct(
   };
 }
 
-/** Todos los productos del comerciante, con su posición en la ruta. Una sola ida por tabla. */
-const allProducts = cache(async (): Promise<Product[]> => {
-  const uid = await userId();
-  // Los elegidos en el onboarding que aún no se crearon (p. ej., antes de esta versión).
-  await syncSelectedProducts(uid).catch((e) => console.error("[data/products] sincronizar", e));
-  await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid), expireStaleCreatives(uid), expireStalePageImages(uid), expireStalePublications(uid)]);
-  const rows = await listProductRows(uid);
+/**
+ * Los productos dados con su posición en la ruta: una ida por tabla, solo con las columnas que la
+ * calculan (sin payloads), filtrada a esos productos. Sin cookies ni `after`: la usa también el
+ * número de Hoy en caché (lib/data/today.ts). `images: false` salta la miniatura (no firma URLs).
+ */
+export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
+  if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications] = await Promise.all([
-    listImageRows(uid, ids),
-    latestRuns(uid, ids),
-    latestAvatars(uid, ids),
+  const [imageRows, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications] = await Promise.all([
+    images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
+    latestRunStates(uid, ids),
+    latestAvatarStates(uid, ids),
     reviewFacts(uid, ids),
-    latestRankings(uid, ids),
-    latestCopyRuns(uid, ids),
-    activeComponents(uid, ids),
-    adsFacts(uid),
+    latestRankingStates(uid, ids),
+    latestCopyRunStates(uid, ids),
+    activeComponentStates(uid, ids),
+    adsFacts(uid, ids),
     creativeFacts(uid, ids),
     pageImageCounts(uid, ids),
     getPublications(uid, ids),
   ]);
-  const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
-  const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
-  const urls = await withDisplayUrls(covers);
+  const covers = rows.map((r) => cover(imageRows.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
+  const [briefs, urls] = await Promise.all([
+    currentBriefStates(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id)),
+    withDisplayUrls(covers),
+  ]);
   return rows.map((r) => {
     const c = covers.find((i) => i.product_id === r.id);
     const ranking = rankings.get(r.id);
@@ -180,6 +195,12 @@ const allProducts = cache(async (): Promise<Product[]> => {
     const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen);
     return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)));
   });
+}
+
+/** Todos los productos del comerciante, con su posición en la ruta (la lista y Hoy). */
+const allProducts = cache(async (): Promise<Product[]> => {
+  const uid = await userId();
+  return productsWithPositions(uid, await listProductRows(uid));
 });
 
 export async function getProducts(filter?: ProductFilter): Promise<Product[]> {
@@ -193,24 +214,51 @@ export async function getProductCounts(): Promise<Record<ProductFilter, number> 
   return { avanzan: count("avanzan"), detenidos: count("detenidos"), publicados: count("publicados"), total: all.length };
 }
 
+/** Un producto con su posición en la ruta. Solo lee ese producto (no el catálogo entero). */
 export const getProduct = cache(async (id: string): Promise<Product | null> => {
-  return (await allProducts()).find((p) => p.id === id) ?? null;
+  const uid = await userId();
+  const row = await productRow(uid, id);
+  if (!row) return null;
+  return (await productsWithPositions(uid, [row]))[0] ?? null;
 });
+
+/**
+ * El producto y el estado de su etapa a la vez: la etapa no espera a la ruta del producto (son
+ * independientes). Si el producto no existe, null aunque la etapa haya fallado.
+ */
+async function withProduct<T>(id: string, state: (uid: string) => Promise<T>): Promise<{ product: Product; state: T } | null> {
+  if (!UUID.test(id)) return null;
+  const uid = await userId();
+  const [product, result] = await Promise.all([
+    getProduct(id),
+    state(uid).then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    ),
+  ]);
+  if (!product) return null;
+  if (!result.ok) throw result.error;
+  return { product, state: result.value };
+}
 
 /** La etapa Información base: texto, imágenes de referencia, la optimización y el cliente ideal. */
 export const getProductBase = cache(async (id: string): Promise<ProductBase | null> => {
+  if (!UUID.test(id)) return null;
   const uid = await userId();
-  const [product, row] = await Promise.all([getProduct(id), getProductRow(uid, id)]);
-  if (!product || !row) return null;
-  const [images, runs, avatars, brief, pricing, pricingDefaultsValue, packLabels] = await Promise.all([
+  // Todo a la vez: la etapa no espera a la ruta del producto; solo los valores por defecto del precio esperan la fila.
+  const row$ = productRow(uid, id);
+  const [product, row, images, runs, avatars, brief, pricing, pricingDefaultsValue, packLabels] = await Promise.all([
+    getProduct(id),
+    row$,
     listImageRows(uid, [id]),
     latestRuns(uid, [id]),
     latestAvatars(uid, [id]),
     latestBrief(uid, id),
     getPricingPlan(uid, id),
-    pricingDefaults(uid, row),
+    row$.then((r) => (r ? pricingDefaults(uid, r) : null)),
     latestPackLabels(uid, id),
   ]);
+  if (!product || !row || !pricingDefaultsValue) return null;
   const urls = await withDisplayUrls(images);
   const run = runs.get(id);
   const avatar = avatars.get(id);
@@ -231,10 +279,12 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
 
 /** La etapa Reseñas: las reseñas importadas, su listado de AliExpress y la última importación. */
 export const getProductReviews = cache(async (id: string): Promise<ProductReviews | null> => {
-  const uid = await userId();
-  const product = await getProduct(id);
-  if (!product) return null;
-  const [reviews, source, job] = await Promise.all([customerReviews(uid, id), latestSource(uid, id), latestImport(uid, id)]);
+  const found = await withProduct(id, (uid) => Promise.all([customerReviews(uid, id), latestSource(uid, id), latestImport(uid, id)]));
+  if (!found) return null;
+  const {
+    product,
+    state: [reviews, source, job],
+  } = found;
   return {
     product,
     reviews,
@@ -247,10 +297,8 @@ export const getProductReviews = cache(async (id: string): Promise<ProductReview
 
 /** La etapa Ángulos: el cliente ideal que la alimenta, la evaluación del orquestador y los 2 desarrollos. */
 export const getProductAngles = cache(async (id: string): Promise<ProductAngles | null> => {
-  const uid = await userId();
-  const product = await getProduct(id);
-  if (!product) return null;
-  return { product, ...(await anglesState(uid, id)) };
+  const found = await withProduct(id, (uid) => anglesState(uid, id));
+  return found && { product: found.product, ...found.state };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/angles). */
@@ -278,10 +326,11 @@ export async function anglesState(uid: string, productId: string): Promise<Angle
 
 /** La etapa Página del producto: la ficha y los componentes de conversión. */
 export const getProductCopy = cache(async (id: string): Promise<ProductCopy | null> => {
-  const uid = await userId();
-  const [product, row] = await Promise.all([getProduct(id), getProductRow(uid, id)]);
-  if (!product || !row) return null;
-  return { product, accent: row.page_accent_color ?? null, ...(await copyState(uid, id)) };
+  const found = await withProduct(id, (uid) => Promise.all([productRow(uid, id), copyState(uid, id)]));
+  if (!found) return null;
+  const [row, state] = found.state;
+  if (!row) return null;
+  return { product: found.product, accent: row.page_accent_color ?? null, ...state };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
@@ -311,10 +360,8 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
 
 /** La etapa Creativos: los conceptos del generador y sus piezas generadas con Higgsfield. */
 export const getProductCreatives = cache(async (id: string): Promise<ProductCreatives | null> => {
-  const uid = await userId();
-  const product = await getProduct(id);
-  if (!product) return null;
-  return { product, ...(await creativesState(uid, id)) };
+  const found = await withProduct(id, (uid) => creativesState(uid, id));
+  return found && { product: found.product, ...found.state };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/creatives). */
@@ -339,10 +386,8 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
 
 /** La etapa Imágenes: los espacios de la página con sus opciones (generadas, subidas y fotos). */
 export const getProductPageImages = cache(async (id: string): Promise<ProductPageImages | null> => {
-  const uid = await userId();
-  const product = await getProduct(id);
-  if (!product) return null;
-  return { product, ...(await pageImagesState(uid, id)) };
+  const found = await withProduct(id, (uid) => pageImagesState(uid, id));
+  return found && { product: found.product, ...found.state };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/page-images). */
@@ -377,9 +422,5 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
 
 /** La etapa Publicar: el producto y el estado de su publicación (lib/data/publish.ts). */
 export const getProductPublish = cache(async (id: string) => {
-  const uid = await userId();
-  const product = await getProduct(id);
-  if (!product) return null;
-  await expireStalePublications(uid);
-  return { product, state: await publishState(uid, id) };
+  return withProduct(id, (uid) => publishState(uid, id));
 });

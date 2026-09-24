@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AiCostCard, AiCostChip, AiRunList, IconButton, linkClasses } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { count } from "@/lib/format";
@@ -8,18 +8,31 @@ import type { ProductAiCost } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDesktop } from "./use-desktop";
 
-// Costo de IA del producto (design-system/arquitectura.md › 11): el layout del producto lo lee una vez
-// y cada pantalla de etapa lo muestra en su barra superior (AiCostChip). El detalle (tarjeta completa e
+// Costo de IA del producto (design-system/arquitectura.md › 11): el layout del producto lo pide sin
+// esperarlo (llega por streaming y no frena la pantalla) y cada pantalla de etapa lo muestra en su barra
+// superior (AiCostChip) cuando llega. El detalle (tarjeta completa e
 // historial) se abre como hoja inferior en móvil y como panel derecho en escritorio.
 
 interface AiCostState {
-  cost: ProductAiCost;
+  cost: ProductAiCost | null;
   openDetail: () => void;
 }
 
 const Ctx = createContext<AiCostState | null>(null);
 
-export function AiCostProvider({ cost, children }: { cost: ProductAiCost; children: React.ReactNode }) {
+export function AiCostProvider({ cost: pending, children }: { cost: Promise<ProductAiCost | null>; children: React.ReactNode }) {
+  // Mientras llega (o si no se pudo leer) no se dibuja; al refrescar se mantiene el anterior hasta el nuevo.
+  const [cost, setCost] = useState<ProductAiCost | null>(null);
+  useEffect(() => {
+    let live = true;
+    pending.then(
+      (c) => live && setCost(c),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [pending]);
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
   const desktop = useDesktop();
@@ -44,7 +57,7 @@ export function AiCostProvider({ cost, children }: { cost: ProductAiCost; childr
             !desktop && "h-11/12 data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-none",
           )}
         >
-          <AiCostDetail cost={cost} onClose={close} />
+          {cost ? <AiCostDetail cost={cost} onClose={close} /> : null}
         </DrawerContent>
       </Drawer>
     </Ctx.Provider>
@@ -85,7 +98,7 @@ function AiCostDetail({ cost, onClose }: { cost: ProductAiCost; onClose: () => v
 /** El indicador de la barra superior. Fuera de un producto no dibuja nada. */
 export function AiCostButton({ className }: { className?: string }) {
   const ctx = useContext(Ctx);
-  if (!ctx) return null;
+  if (!ctx?.cost) return null;
   const { cost, openDetail } = ctx;
   return <AiCostChip total={cost.total} cap={cost.cap} running={cost.running} currency={cost.currency} onClick={openDetail} className={className} />;
 }
@@ -93,7 +106,7 @@ export function AiCostButton({ className }: { className?: string }) {
 /** Tarjeta resumida bajo la ruta de etapas, con “Ver detalle”. */
 export function AiCostSummary({ className }: { className?: string }) {
   const ctx = useContext(Ctx);
-  if (!ctx) return null;
+  if (!ctx?.cost) return null;
   const { cost, openDetail } = ctx;
   return (
     <AiCostCard
@@ -112,6 +125,6 @@ export function AiCostSummary({ className }: { className?: string }) {
 /** Costo estimado de una llamada del paso, en la moneda de la tienda; null fuera de un producto. */
 export function useAiEstimate(step: string): { amount: number; currency: string } | null {
   const ctx = useContext(Ctx);
-  const amount = ctx?.cost.estimates[step];
-  return ctx && amount ? { amount, currency: ctx.cost.currency } : null;
+  const amount = ctx?.cost?.estimates[step];
+  return ctx?.cost && amount ? { amount, currency: ctx.cost.currency } : null;
 }

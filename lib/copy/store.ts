@@ -73,6 +73,43 @@ export async function latestCopyRuns(userId: string, productIds: string[]): Prom
   return map;
 }
 
+/** Lo que la ruta de etapas mira de una escritura y de un componente (sin el texto). */
+export type CopyRunState = Pick<CopyRunRow, "product_id" | "status" | "error_message" | "input">;
+export type ComponentState = Pick<PageComponentRow, "product_id" | "component" | "status" | "enabled">;
+
+/** Como latestCopyRuns, con solo los desarrollos usados de `input`: para la posición en la ruta. */
+export async function latestCopyRunStates(userId: string, productIds: string[]): Promise<Map<string, CopyRunState>> {
+  if (!productIds.length) return new Map();
+  const { data, error } = await adminClient()
+    .from("copy_runs")
+    .select("product_id, status, error_message, briefs:input->briefs")
+    .eq("user_id", userId)
+    .in("product_id", productIds)
+    .order("created_at", { ascending: false });
+  fail("Leer las escrituras", error);
+  const map = new Map<string, CopyRunState>();
+  for (const r of (data ?? []) as (Omit<CopyRunState, "input"> & { briefs: BriefStamp | null })[]) {
+    if (!map.has(r.product_id)) map.set(r.product_id, { product_id: r.product_id, status: r.status, error_message: r.error_message, input: r.briefs ? { briefs: r.briefs } : {} });
+  }
+  return map;
+}
+
+/** Como activeComponents, sin el texto: para la posición en la ruta. */
+export async function activeComponentStates(userId: string, productIds: string[]): Promise<Map<string, ComponentState[]>> {
+  if (!productIds.length) return new Map();
+  const { data, error } = await adminClient()
+    .from("page_components")
+    .select("product_id, component, status, enabled")
+    .eq("user_id", userId)
+    .in("product_id", productIds)
+    .is("superseded_at", null)
+    .order("position", { ascending: true });
+  fail("Leer la página", error);
+  const map = new Map<string, ComponentState[]>();
+  for (const r of (data ?? []) as ComponentState[]) map.set(r.product_id, [...(map.get(r.product_id) ?? []), r]);
+  return map;
+}
+
 /** La ficha y los componentes vigentes (no reemplazados) de cada producto, en el orden de la página. */
 export async function activeComponents(userId: string, productIds: string[]): Promise<Map<string, PageComponentRow[]>> {
   if (!productIds.length) return new Map();
@@ -106,7 +143,7 @@ export async function getComponentRow(userId: string, productId: string, compone
 export const currentContent = (r: Pick<PageComponentRow, "content" | "proposal">): unknown => r.content ?? r.proposal;
 
 /** Los desarrollos cambiaron (otro, o editado) después de escribir la página. */
-export function isStale(run: CopyRunRow | undefined, briefs: Partial<Record<AngleRole, BriefRow>>): boolean {
+export function isStale(run: Pick<CopyRunRow, "input"> | undefined, briefs: Partial<Record<AngleRole, Pick<BriefRow, "id" | "edited_at">>>): boolean {
   const used = run?.input.briefs;
   if (!used) return false;
   return (["primary", "secondary"] as AngleRole[]).some((r) => {

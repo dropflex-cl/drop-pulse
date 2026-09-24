@@ -13,15 +13,14 @@ import { getProduct } from "@/lib/data/products";
  */
 export default async function ProductLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [product, cost] = await Promise.all([
-    getProduct(id),
-    // El costo de IA nunca bloquea el producto: si no se puede leer, la pantalla sigue sin él.
-    getProductAiCost(id).catch((e) => {
-      console.error("[ai] costo del producto", e);
-      return null;
-    }),
-  ]);
+  const product = await getProduct(id);
   if (!product) notFound();
+  // El costo de IA no frena el producto: se pide sin esperarlo y llega por streaming. Si no se puede
+  // leer, la pantalla sigue sin él.
+  const cost = getProductAiCost(id).catch((e) => {
+    console.error("[ai] costo del producto", e);
+    return null;
+  });
 
   const content = (
     <>
@@ -48,5 +47,5 @@ export default async function ProductLayout({ children, params }: { children: Re
       </div>
     </>
   );
-  return cost ? <AiCostProvider cost={cost}>{content}</AiCostProvider> : content;
+  return <AiCostProvider cost={cost}>{content}</AiCostProvider>;
 }

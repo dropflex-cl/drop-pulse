@@ -1,9 +1,11 @@
 // Cola de decisiones de Hoy. Los productos salen de Supabase (lib/data/products.ts) y las campañas de
 // lo que decidió el motor (lib/data/campaigns.ts › campaignAttention, docs/spec-anuncios.md §11).
 import "server-only";
+import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import { campaignAttention } from "@/lib/data/campaigns";
-import { getProducts } from "@/lib/data/products";
+import { getProducts, productsWithPositions } from "@/lib/data/products";
+import { listProductRows } from "@/lib/products/store";
 import { sessionUser } from "@/lib/integrations/session";
 import { changeText } from "@/lib/pipeline/ads-engine";
 import { money } from "@/lib/format";
@@ -11,10 +13,8 @@ import { productHref } from "@/lib/routes";
 import type { AttentionEntry, Product, TodaySummary } from "@/lib/types";
 
 /** Decisiones pendientes del motor, campañas que no se pudieron leer y cambios automáticos del día. */
-const campaignEntries = cache(async (): Promise<AttentionEntry[]> => {
-  const user = await sessionUser();
-  if (!user) return [];
-  const { pending, failing, autoToday } = await campaignAttention(user.id);
+const campaignEntries = cache(async (uid: string): Promise<AttentionEntry[]> => {
+  const { pending, failing, autoToday } = await campaignAttention(uid);
   const out: AttentionEntry[] = [];
   for (const c of failing) {
     out.push({
@@ -167,7 +167,8 @@ function productEntries(products: Product[]): AttentionEntry[] {
 
 /** Decisiones pendientes, ya ordenadas por impacto: errores y dinero primero, revisión, lo detenido. */
 export async function getTodayQueue(): Promise<AttentionEntry[]> {
-  const [products, campaigns] = await Promise.all([getProducts(), campaignEntries()]);
+  const user = await sessionUser();
+  const [products, campaigns] = await Promise.all([getProducts(), user ? campaignEntries(user.id) : []]);
   const rank = (e: AttentionEntry) => (e.kind === "error" ? 0 : e.kind === "ads" || e.kind === "ads-up" ? 1 : e.kind === "review" ? 2 : 3);
   return [...productEntries(products), ...campaigns].sort((a, b) => rank(a) - rank(b));
 }
@@ -182,7 +183,21 @@ export async function getTodaySummary(): Promise<TodaySummary> {
   };
 }
 
+/**
+ * Cuántas decisiones tiene Hoy, en caché por comerciante: la navegación lo muestra en todas las
+ * pantallas y no vale recalcular el catálogo entero en cada una. Puede ir hasta 30 s atrasado
+ * (Hoy mismo siempre lee la cola al día). Sin cookies: recibe el usuario.
+ */
+async function todayCount(uid: string): Promise<number> {
+  "use cache";
+  cacheLife({ stale: 30, revalidate: 30, expire: 300 });
+  cacheTag(`today:${uid}`);
+  const [products, campaigns] = await Promise.all([listProductRows(uid).then((rows) => productsWithPositions(uid, rows, { images: false })), campaignEntries(uid)]);
+  return productEntries(products).length + campaigns.length;
+}
+
 /** Número de la pestaña Hoy. */
 export async function getNavBadges(): Promise<{ hoy: number }> {
-  return { hoy: (await getTodayQueue()).length };
+  const user = await sessionUser();
+  return { hoy: user ? await todayCount(user.id) : 0 };
 }

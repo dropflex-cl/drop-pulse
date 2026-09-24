@@ -183,7 +183,18 @@ export async function getPageImageRow(userId: string, imageId: string): Promise<
 
 /** Lo que necesita la ruta del producto (lib/products/stages.ts › ImageFacts). */
 export async function pageImageCounts(userId: string, productIds: string[]) {
-  const [runs, rows] = await Promise.all([latestPageImageRuns(userId, productIds), pageImageRows(userId, productIds)]);
+  if (!productIds.length) return () => ({ running: false, rendering: 0, options: 0, cover: false, gallery: 0 });
+  // Solo las columnas que cuentan (sin input, textos ni QA de cada imagen).
+  const db = adminClient();
+  const [runRes, rowRes] = await Promise.all([
+    db.from("page_image_runs").select("product_id, status").eq("user_id", userId).in("product_id", productIds).order("created_at", { ascending: false }),
+    db.from("page_images").select("product_id, slot, status, render_status").eq("user_id", userId).in("product_id", productIds),
+  ]);
+  fail("Leer las corridas de Imágenes", runRes.error);
+  fail("Leer las imágenes de la página", rowRes.error);
+  const runs = new Map<string, Pick<PageImageRunRow, "status">>();
+  for (const r of (runRes.data ?? []) as Pick<PageImageRunRow, "product_id" | "status">[]) if (!runs.has(r.product_id)) runs.set(r.product_id, r);
+  const rows = (rowRes.data ?? []) as Pick<PageImageRow, "product_id" | "slot" | "status" | "render_status">[];
   return (productId: string) => {
     const mine = rows.filter((r) => r.product_id === productId);
     const run = runs.get(productId);

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingError } from "@/lib/onboarding/types";
 
@@ -9,15 +10,18 @@ export interface SessionUser {
   admin?: boolean;
 }
 
-/** Usuario de la sesión de Supabase, o `null`. Solo lee los claims: no toca la lógica de auth. */
-export async function sessionUser(): Promise<SessionUser | null> {
+/**
+ * Usuario de la sesión de Supabase, o `null`. Solo lee los claims: no toca la lógica de auth.
+ * Una vez por petición (cache): layouts, página y loaders la piden varias veces en el mismo render.
+ */
+export const sessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;
   const appMeta = claims.app_metadata as { role?: unknown } | undefined;
   return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : undefined, admin: appMeta?.role === "admin" };
-}
+});
 
 /** Igual que `sessionUser`, pero sin sesión responde 401 con un mensaje que dice qué hacer. */
 export async function requireUser(): Promise<SessionUser> {
