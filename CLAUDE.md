@@ -9,6 +9,7 @@ Herramienta para comerciantes de dropshipping con pago contra entrega: la IA gen
 - shadcn/ui (new-york) en `components/ui/`, sobre `radix-ui`, `vaul` (drawer) y `sonner` (toast).
 - Supabase Auth con `@supabase/ssr`. Íconos con `lucide-react`. Tema con `next-themes` (`attribute="class"`, `defaultTheme="system"`).
 - Fuentes Geist y Geist Mono con `next/font/google` (`--font-geist-sans` / `--font-geist-mono` → `font-sans` / `font-mono`).
+- Vercel (`drop-pulse.vercel.app`): las funciones corren en `gru1` (São Paulo, `vercel.json › regions`), junto a Supabase (`sa-east-1`). No cambiar una sin la otra: cada pantalla hace varias idas a la base, y entre regiones cada una cuesta ~120 ms. Se comprueba con el header `x-vercel-id` (`gru1::gru1::…`, no `gru1::iad1::…`).
 
 ## Fuente de verdad: `design-system/`
 
