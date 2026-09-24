@@ -195,6 +195,17 @@ export declare function PageOutline(props: PageOutlineProps): React.ReactElement
 export interface CopySummaryProps { sections: { title: string; items: { label: string; text?: string; tag?: 'edited' | 'kept' | 'omitted' | 'missing' }[] }[] }
 export declare function CopySummary(props: CopySummaryProps): React.ReactElement;
 
+export interface AiCostChipProps { total: number; cap?: number; running?: boolean }
+export declare function AiCostChip(props: AiCostChipProps): React.ReactElement;
+
+export interface AiStageCost { label: string; cost: number; runs?: number; retries?: number; note?: string; tokens?: string }
+export interface AiCostCardProps { total: number; totalUsd: number; generations: number; cap?: number; stages?: AiStageCost[]; context?: string | null; compact?: boolean; audience?: 'merchant' | 'admin'; action?: React.ReactNode }
+export declare function AiCostCard(props: AiCostCardProps): React.ReactElement;
+
+export interface AiRun { kind: 'gen' | 'regen' | 'retry' | 'fail'; what: string; stage: string; when: string; cost?: number; model?: string; tokens?: string }
+export interface AiRunListProps { runs: AiRun[]; audience?: 'merchant' | 'admin' }
+export declare function AiRunList(props: AiRunListProps): React.ReactElement;
+
 declare global {
   interface Window {
     DropFlex: {
@@ -210,6 +221,7 @@ declare global {
       ScoreBar: typeof ScoreBar; RoleChip: typeof RoleChip; AngleCard: typeof AngleCard; AngleSuggestion: typeof AngleSuggestion; IcpSummary: typeof IcpSummary; AngleDevelopment: typeof AngleDevelopment;
       StructurePicker: typeof StructurePicker; PresetSelect: typeof PresetSelect; ConfigSection: typeof ConfigSection; ChipInput: typeof ChipInput; RuleRow: typeof RuleRow; RuleGroup: typeof RuleGroup; CreativeSlot: typeof CreativeSlot; CampaignTree: typeof CampaignTree; DecisionRow: typeof DecisionRow;
       CharCount: typeof CharCount; EmptyState: typeof EmptyState; Notice: typeof Notice; PageOutline: typeof PageOutline; CopySummary: typeof CopySummary;
+      AiCostChip: typeof AiCostChip; AiCostCard: typeof AiCostCard; AiRunList: typeof AiRunList;
     };
   }
 }

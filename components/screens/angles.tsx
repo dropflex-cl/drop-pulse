@@ -21,6 +21,7 @@ import {
 } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ANGLES, type AngleRole, type SalesAngle } from "@/lib/angles/catalog";
@@ -605,7 +606,12 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     // Escritorio: el pie con la acción queda abajo aunque el contenido sea corto (como Información base).
     <div className="flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Ángulos" stageKey="angulos" image={product.image} />
-      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Ángulos" subtitle={subtitle} actions={<AssistantButton />} className="sticky top-0 z-sticky lg:hidden" />
+      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Ángulos" subtitle={subtitle} actions={
+          <>
+            <AiCostButton />
+            <AssistantButton />
+          </>
+        } className="sticky top-0 z-sticky lg:hidden" />
 
       <div className={cn("flex flex-col gap-4 px-4 pt-2 pb-4 lg:flex-1 lg:px-8 lg:pt-6")}>
         <p className="hidden text-body text-muted-foreground lg:block">{desktopLead(view, approvedCount)}</p>

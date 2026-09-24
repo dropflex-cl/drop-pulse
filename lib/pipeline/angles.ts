@@ -1,5 +1,6 @@
 import "server-only";
-import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import { ANGLES, type AngleRole, type SalesAngle, SALES_ANGLES } from "@/lib/angles/catalog";
 import { angleRouterSystem, angleRouterUser, angleSystem, angleUser, type AngleContext } from "@/lib/angles/prompts";
@@ -36,25 +37,6 @@ import { OptimizeError } from "./optimize";
 const DAILY_RANKINGS = 20;
 const DAILY_BRIEFS = 60;
 
-async function logGeneration(userId: string, productId: string, step: "angle_ranking" | "angle_brief", usage: AiUsage | undefined, error?: string) {
-  const { error: dbError } = await adminClient()
-    .from("ai_generations")
-    .insert({
-      user_id: userId,
-      product_id: productId,
-      step,
-      model: usage?.model ?? AI_MODEL,
-      status: error ? "failed" : "succeeded",
-      error_code: error ?? null,
-      input_tokens: usage?.inputTokens ?? null,
-      output_tokens: usage?.outputTokens ?? null,
-      cache_read_tokens: usage?.cacheReadTokens ?? null,
-      cache_write_tokens: usage?.cacheWriteTokens ?? null,
-      cost_usd: usage?.costUsd ?? null,
-      latency_ms: usage?.latencyMs ?? null,
-    });
-  if (dbError) console.error("[angles] registrar la generación", dbError.message);
-}
 
 async function dailyCount(table: "angle_rankings" | "angle_briefs", userId: string): Promise<number> {
   const since = new Date(Date.now() - 86_400_000).toISOString();
@@ -173,11 +155,11 @@ export async function runRanking(rankingId: string): Promise<void> {
     for (let attempt = 0; attempt < 2; attempt++) {
       result = await evaluate(problems);
       problems = routerProblems(result.data);
-      await logGeneration(r.user_id, r.product_id, "angle_ranking", result.usage, problems.length ? "invalid_scores" : undefined);
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: result.usage, error: problems.length ? "invalid_scores" : null });
       if (!problems.length) break;
       console.warn("[angles] puntajes inválidos", problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA respondió con puntajes incompletos. Toca Reintentar.");
+    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA respondió con puntajes incompletos. Toca Reintentar.", undefined, true);
     const { data, usage } = result;
     const evals = evaluationsFrom(data);
     const ranking = rankAngles(evals, facts(ctx.brief, ctx.avatar, ctx.pricing));
@@ -206,7 +188,7 @@ export async function runRanking(rankingId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[angles] evaluar", e);
-    if (known) await logGeneration(r.user_id, r.product_id, "angle_ranking", e.usage, e.code);
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: e.usage, error: e.code });
     const now = new Date().toISOString();
     const { error } = await db
       .from("angle_rankings")
@@ -318,7 +300,7 @@ export async function runBrief(briefId: string): Promise<void> {
       effort: "high",
       maxTokens: 20000,
     });
-    await logGeneration(b.user_id, b.product_id, "angle_brief", usage);
+    await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: ANGLES[b.angle].name, usage });
     const now = new Date().toISOString();
     fail(
       "Guardar el desarrollo",
@@ -333,7 +315,7 @@ export async function runBrief(briefId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[angles] desarrollar", e);
-    if (known) await logGeneration(b.user_id, b.product_id, "angle_brief", e.usage, e.code);
+    if (known) await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: ANGLES[b.angle].name, usage: e.usage, error: e.code });
     const now = new Date().toISOString();
     const { error } = await db
       .from("angle_briefs")

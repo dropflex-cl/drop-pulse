@@ -21,6 +21,7 @@ import {
 } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { PageAccent } from "./page-accent";
 import { useDesktop } from "@/components/shell/use-desktop";
@@ -450,6 +451,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
                 {progress.approved}/{progress.total}
               </Button>
             ) : null}
+            <AiCostButton />
             <AssistantButton />
           </>
         }

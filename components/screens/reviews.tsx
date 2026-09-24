@@ -18,6 +18,7 @@ import {
   type MinStars,
 } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { isAliExpressInput } from "@/lib/reviews/aliexpress";
@@ -414,6 +415,7 @@ export function ReviewsScreen({ data }: { data: ProductReviews }) {
             {hasReviews && !importing ? (
               <IconButton icon="arrow-down" label={showImporter ? "Ocultar importar" : "Importar más"} onClick={() => setShowImporter((v) => !v)} />
             ) : null}
+            <AiCostButton />
             <AssistantButton />
           </>
         }

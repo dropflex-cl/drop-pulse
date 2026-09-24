@@ -97,6 +97,14 @@ Ajustes ──────── supuestos (tasa de entrega, CPA máximo), Conex
 - **Dos desarrollos en paralelo:** al confirmar, cada ángulo muestra su propio estado (`AngleDevelopment`); se puede revisar el primero mientras el segundo sigue generándose. Cada uno se aprueba, edita o regenera por separado.
 - **Cambiar de ángulos después** de desarrollar pide confirmación, porque descarta los desarrollos que dependen de la elección anterior.
 
+### 11. Costo de IA por producto
+
+- **Dónde:** un indicador compacto (`AiCostChip`) en la barra superior de cada pantalla del producto; una tarjeta resumida (`AiCostCard compact`) bajo la ruta de etapas; y el detalle (tarjeta completa + `AiRunList`) en una hoja inferior en móvil o en un panel en escritorio.
+- **Qué responde:** cuánto costó en IA llevar este producto hasta donde está, en qué etapa se fue y si hubo reintentos. Se muestra en la moneda de la tienda con el equivalente en dólares, y comparado con la ganancia de una venta para que la cifra tenga sentido.
+- **Tope por producto (opcional):** aviso desde el 80%; sobre el tope, cada nueva generación muestra su costo estimado y pide confirmación. Lo ya hecho nunca se bloquea.
+- **Antes de gastar:** las acciones que generan (Regenerar, Rehacer descartados, Volver a evaluar) muestran el costo estimado cuando el producto está cerca del tope.
+- **Administrador:** la misma tarjeta con tokens por etapa y modelo por llamada, solo para el equipo.
+
 ## De móvil a escritorio
 
 | Móvil (< 1024px) | Escritorio (≥ 1024px) |

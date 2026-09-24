@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"Icon"}]} */
+/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"AiCostChip"},{"name":"AiCostCard"},{"name":"AiRunList"},{"name":"Icon"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -980,6 +980,65 @@
   }
 
   /* =========================================================
+     Costo de IA por producto
+     ========================================================= */
+  function usd(n) { return 'US$' + n.toFixed(2).replace('.', ','); }
+
+  /* AiCostChip: indicador compacto en la barra del producto */
+  function AiCostChip(props) {
+    var pct = props.cap ? props.total / props.cap : 0;
+    var tone = pct >= 1 ? 'is-over' : pct >= 0.8 ? 'is-warn' : '';
+    return h('button', { type: 'button', className: cx('df-aichip', tone, props.running && 'is-run'), 'aria-label': 'Costo de IA de este producto: ' + money(props.total) + (props.cap ? ', ' + Math.round(pct * 100) + '% del tope' : '') + '. Ver detalle' },
+      h(Icon, { name: props.running ? 'loader' : 'sparkle', size: 'sm', className: props.running ? 'df-spin' : undefined }),
+      h('span', { className: 'df-aichip-v' }, money(props.total)),
+      props.cap ? h('span', { className: 'df-aichip-bar', 'aria-hidden': 'true' }, h('span', { style: { width: Math.min(100, pct * 100) + '%' } })) : null);
+  }
+
+  /* AiCostCard: total, por etapa, tope y contexto */
+  function AiCostCard(props) {
+    var stages = props.stages || [];
+    var max = Math.max.apply(null, stages.map(function (s) { return s.cost; }).concat([1]));
+    var pct = props.cap ? props.total / props.cap : 0;
+    var tone = pct >= 1 ? 'over' : pct >= 0.8 ? 'warn' : 'ok';
+    var admin = props.audience === 'admin';
+    return h('section', { className: cx('df-card df-aicost', props.compact && 'is-compact'), 'aria-label': 'Costo de IA del producto' },
+      h('div', { className: 'df-aicost-h' },
+        h('div', null,
+          h('div', { className: 'df-metric-l' }, h(Icon, { name: 'sparkle', size: 'sm' }), ' Costo de IA de este producto'),
+          h('div', { className: 'df-aicost-v' }, money(props.total), h('small', null, '≈ ' + usd(props.totalUsd)))),
+        h('div', { className: 'df-aicost-n' }, h('b', null, props.generations), h('small', null, 'generaciones'))),
+      props.cap ? h('div', { className: cx('df-aicost-cap', 't-' + tone) },
+        h('div', { className: 'df-conn-track' }, h('span', { style: { width: Math.min(100, pct * 100) + '%' } })),
+        h('div', { className: 'df-aicost-capl' },
+          tone === 'over' ? h(Icon, { name: 'alert', size: 'sm', strokeWidth: 2 }) : tone === 'warn' ? h(Icon, { name: 'clock', size: 'sm', strokeWidth: 2 }) : null,
+          h('span', null, Math.round(pct * 100) + '% del tope de ' + money(props.cap)),
+          tone === 'over' ? h('span', null, ' · regenerar pide confirmación') : tone === 'warn' ? h('span', null, ' · quedan ' + money(props.cap - props.total)) : null)) : null,
+      props.compact ? null : h('ul', { className: 'df-aicost-st', 'aria-label': 'Costo por etapa' }, stages.map(function (s, i) {
+        return h('li', { key: i, className: s.cost ? '' : 'is-zero' },
+          h('span', { className: 'df-aicost-sl' }, s.label, h('small', null, s.cost ? s.runs + (s.runs === 1 ? ' generación' : ' generaciones') + (s.retries ? ' · ' + s.retries + ' reintento' + (s.retries > 1 ? 's' : '') : '') : s.note || 'Sin uso aún')),
+          h('span', { className: 'df-aicost-sb', 'aria-hidden': 'true' }, h('span', { style: { width: (s.cost / max * 100) + '%' } })),
+          h('span', { className: 'df-aicost-sv' }, s.cost ? money(s.cost) : '—'),
+          admin && s.tokens ? h('span', { className: 'df-aicost-tk' }, s.tokens) : null);
+      })),
+      props.context && !props.compact ? h('p', { className: 'df-aicost-ctx' }, props.context) : null,
+      props.action ? h('div', { style: { display: 'flex', justifyContent: 'flex-end' } }, props.action) : null);
+  }
+
+  /* AiRunList: cada llamada a la IA, con acción, hora y costo */
+  var RUN_KIND = { gen: 'Generó', regen: 'Regeneró', retry: 'Reintento', fail: 'Falló' };
+  function AiRunList(props) {
+    var admin = props.audience === 'admin';
+    return h('ol', { className: 'df-airuns', 'aria-label': 'Historial de generaciones' }, (props.runs || []).map(function (r, i) {
+      return h('li', { key: i, className: 'k-' + r.kind },
+        h('span', { className: 'df-airuns-dot', 'aria-hidden': 'true' }, h(Icon, { name: r.kind === 'fail' ? 'alert' : r.kind === 'retry' ? 'undo' : 'sparkle', size: 'sm', strokeWidth: 2 })),
+        h('span', { className: 'df-airuns-b' },
+          h('span', { className: 'df-airuns-t' }, RUN_KIND[r.kind], ' · ', r.what),
+          h('span', { className: 'df-pick-meta' }, r.stage, ' · ', r.when, admin && r.model ? ' · ' + r.model + ' · ' + r.tokens : '')),
+        h('span', { className: 'df-airuns-c' }, r.cost ? money(r.cost) : '$0'));
+    }));
+  }
+
+  /* =========================================================
      Pantallas de ejemplo (no son componentes: composiciones)
      ========================================================= */
   function Phone(props) {
@@ -1866,6 +1925,82 @@
             h(PageOutline, { groups: TX_OUTLINE })))));
   }
 
+  /* ---------- Pantallas: costo de IA ---------- */
+  var AI = { total: 387, totalUsd: 0.41, generations: 9, cap: 1500,
+    stages: [
+      { label: 'Información base', cost: 96, runs: 2 },
+      { label: 'Reseñas', cost: 31, runs: 1 },
+      { label: 'Ángulos', cost: 142, runs: 3 },
+      { label: 'Textos', cost: 118, runs: 3, retries: 1 },
+      { label: 'Imágenes', cost: 0, note: 'Se genera después de Textos' }],
+    context: 'Equivale al 4,5% de lo que ganas en una venta ($8.590).' };
+  var AI_ADMIN_STAGES = AI.stages.map(function (s, i) { return Object.assign({}, s, { tokens: ['18,2k tok', '6,1k tok', '27,4k tok', '22,9k tok', ''][i] }); });
+  var AI_RUNS = [
+    { kind: 'retry', what: 'Textos (no cumplía las reglas)', stage: 'Textos', when: 'hoy 10:42', cost: 38, model: 'sonnet', tokens: '7,3k tok' },
+    { kind: 'fail', what: 'Textos', stage: 'Textos', when: 'hoy 10:41', cost: 41, model: 'sonnet', tokens: '7,9k tok' },
+    { kind: 'gen', what: 'Desarrollo · Transformación', stage: 'Ángulos', when: 'ayer 18:05', cost: 44, model: 'sonnet', tokens: '8,4k tok' },
+    { kind: 'gen', what: 'Desarrollo · Problema → solución', stage: 'Ángulos', when: 'ayer 18:05', cost: 47, model: 'sonnet', tokens: '9,0k tok' },
+    { kind: 'gen', what: 'Ranking de 6 ángulos', stage: 'Ángulos', when: 'ayer 18:02', cost: 51, model: 'sonnet', tokens: '10,0k tok' },
+    { kind: 'regen', what: 'Cliente ideal', stage: 'Información base', when: 'ayer 17:40', cost: 49, model: 'sonnet', tokens: '9,3k tok' }
+  ];
+
+  function AiProduct() {
+    return h(Phone, { label: 'C1 · Indicador en la barra y tarjeta en la ruta' },
+      h(TopBar, { back: 'Productos', title: 'Corrector de postura', subtitle: '4 de 7 etapas', actions: [h(AiCostChip, { key: 1, total: AI.total, cap: AI.cap }), h(IconButton, { key: 2, icon: 'sparkle', label: 'Abrir asistente' })] }),
+      h('div', { className: 'df-scroll', style: { overflow: 'hidden' } },
+        h(StageList, { stages: TX_STAGES({ title: 'Textos', state: 'current', desc: '8 de 14 aceptados' }).slice(0, 4) }),
+        h('div', { style: { padding: '8px 16px' } }, h(AiCostCard, Object.assign({ compact: true, action: h('button', { type: 'button', className: 'df-rev-link' }, 'Ver detalle') }, AI)))),
+      h(Navigation, { active: 'productos', badges: { hoy: 6 } }));
+  }
+
+  function AiSheet() {
+    return h(Phone, { label: 'C2 · Detalle: por etapa, contexto e historial' },
+      h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } },
+        h(TopBar, { back: 'Productos', title: 'Corrector de postura', subtitle: '4 de 7 etapas' }),
+        h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+        h('div', { className: 'df-sheet', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '88%' } },
+          h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+          h('div', { className: 'df-sheet-head' }, h('strong', null, 'Costo de IA'), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+          h('div', { style: { padding: '0 16px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 } },
+            h(AiCostCard, AI),
+            h('div', { className: 'df-section-t', style: { padding: '4px 0 0' } }, 'Historial', h('span', { style: { fontWeight: 400 } }, '9 generaciones')),
+            h(AiRunList, { runs: AI_RUNS.slice(0, 4) })))));
+  }
+
+  function AiWarn() {
+    return h(Phone, { label: 'C3 · Cerca del tope: regenerar avisa antes' },
+      h(TopBar, { back: 'Productos', title: 'Corrector de postura', subtitle: 'Textos · 8 de 14 aceptados', actions: h(AiCostChip, { total: 1290, cap: 1500 }) }),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(AiCostCard, Object.assign({}, AI, { total: 1290, totalUsd: 1.37, generations: 21, compact: true })),
+        h('div', { className: 'df-card df-card-pad', style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+          h('div', { className: 'type-heading', style: { fontSize: 15 } }, '¿Rehacer los descartados?'),
+          h('p', { className: 'df-att-detail', style: { margin: 0 } }, 'Cuesta cerca de ', h('b', { style: { color: 'var(--foreground)' } }, '$120'), '. Quedarías en $1.410 de $1.500.'),
+          h('div', { className: 'df-camp-actions' }, h(Button, { variant: 'secondary', size: 'sm' }, 'Cancelar'), h(Button, { variant: 'primary', size: 'sm', icon: 'sparkle' }, 'Rehacer por ~$120'))),
+        h(AiCostChip, { total: 1620, cap: 1500 }),
+        h('p', { className: 'df-ob-fine', style: { textAlign: 'left', margin: 0 } }, 'Sobre el tope, el indicador pasa a rojo y cada generación pide confirmación. Nunca se bloquea el trabajo ya hecho.')));
+  }
+
+  function AiDesk() {
+    return h(DeskFrame, { label: 'Escritorio · Tarjeta bajo la ruta; vista de administrador con tokens y modelo' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Textos · 8 de 14 aceptados')),
+          h(AiCostChip, { total: AI.total, cap: AI.cap })),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr) minmax(0, 1fr)', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h(StageList, { stages: TX_STAGES({ title: 'Textos', state: 'current', desc: '8 de 14 aceptados' }).slice(0, 5) }),
+            h('div', { style: { padding: '0 16px' } }, h(AiCostCard, Object.assign({ compact: true, action: h('button', { type: 'button', className: 'df-rev-link' }, 'Ver detalle') }, AI)))),
+          h('div', { style: { padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Vista del comerciante'), null),
+            h(AiCostCard, AI)),
+          h('div', { style: { padding: '20px 28px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Vista de administrador'), h('span', { className: 'df-rev-tag' }, 'Solo equipo')),
+            h(AiCostCard, Object.assign({}, AI, { audience: 'admin', stages: AI_ADMIN_STAGES, context: null })),
+            h(AiRunList, { audience: 'admin', runs: AI_RUNS.slice(0, 3) })))));
+  }
+
   var Screens = {
     Movil1: function () { return h('div', { className: 'df-screens' }, h(ScreenHoy), h(ScreenProductos), h(ScreenProducto)); },
     Movil2: function () { return h('div', { className: 'df-screens' }, h(ScreenRevision), h(ScreenImagenes), h(ScreenPrecio)); },
@@ -1891,7 +2026,9 @@
     AnunciosEscritorio2: function () { return h('div', { className: 'df-screens' }, h(AdDeskEngine)); },
     Textos1: function () { return h('div', { className: 'df-screens' }, h(TxStates), h(TxReview), h(TxEdit)); },
     Textos2: function () { return h('div', { className: 'df-screens' }, h(TxFaqFail), h(TxDone)); },
-    TextosEscritorio: function () { return h('div', { className: 'df-screens' }, h(TxDeskReview)); }
+    TextosEscritorio: function () { return h('div', { className: 'df-screens' }, h(TxDeskReview)); },
+    CostoIA: function () { return h('div', { className: 'df-screens' }, h(AiProduct), h(AiSheet), h(AiWarn)); },
+    CostoIAEscritorio: function () { return h('div', { className: 'df-screens' }, h(AiDesk)); }
   };
 
   window.DropFlex = Object.assign(window.DropFlex || {}, {
@@ -1905,6 +2042,7 @@
     Stars: Stars, ReviewImporter: ReviewImporter, ReviewSummary: ReviewSummary, ReviewItem: ReviewItem,
     ScoreBar: ScoreBar, RoleChip: RoleChip, AngleCard: AngleCard, AngleSuggestion: AngleSuggestion, IcpSummary: IcpSummary, AngleDevelopment: AngleDevelopment,
     StructurePicker: StructurePicker, PresetSelect: PresetSelect, ConfigSection: ConfigSection, ChipInput: ChipInput, RuleRow: RuleRow, RuleGroup: RuleGroup, CreativeSlot: CreativeSlot, CampaignTree: CampaignTree, DecisionRow: DecisionRow,
-    CharCount: CharCount, EmptyState: EmptyState, Notice: Notice, PageOutline: PageOutline, CopySummary: CopySummary, productImage: productImage, money: money, Screens: Screens
+    CharCount: CharCount, EmptyState: EmptyState, Notice: Notice, PageOutline: PageOutline, CopySummary: CopySummary,
+    AiCostChip: AiCostChip, AiCostCard: AiCostCard, AiRunList: AiRunList, productImage: productImage, money: money, Screens: Screens
   });
 })();

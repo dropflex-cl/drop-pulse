@@ -70,3 +70,7 @@ export { RuleGroup, type RuleGroupKind, type RuleGroupProps } from "./rule-group
 export { CreativeSlot, type CreativeSlotProps, type CreativeState } from "./creative-slot";
 export { CampaignTree, type CampaignTreeProps, type TreeAd, type TreeAdset } from "./campaign-tree";
 export { DecisionRow, type DecisionKind, type DecisionRowProps } from "./decision-row";
+// Costo de IA por producto (design-system/arquitectura.md › 11)
+export { AiCostChip, type AiCostChipProps } from "./ai-cost-chip";
+export { AiCostCard, type AiCostCardProps } from "./ai-cost-card";
+export { AiRunList, type AiRunListProps } from "./ai-run-list";

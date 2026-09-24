@@ -1,10 +1,11 @@
 import "server-only";
 import sharp from "sharp";
-import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { ANGLES, type AngleRole } from "@/lib/angles/catalog";
 import { fail } from "@/lib/angles/store";
-import { CONCEPTS_PER_RUN, type Ratio } from "@/lib/creatives/catalog";
+import { CONCEPTS_PER_RUN, IMAGE_COST_USD, type Ratio } from "@/lib/creatives/catalog";
 import { QA_SYSTEM, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
 import { languageName, renderRequest } from "@/lib/creatives/render";
 import {
@@ -50,32 +51,30 @@ const POLL_BUDGET_MS = 200_000;
 const LEASE_MS = 20_000;
 const AD_MEDIA_BUCKET = "ad-media";
 
-async function logGeneration(userId: string, productId: string, step: string, usage: AiUsage | undefined, error?: string) {
-  const { error: dbError } = await adminClient()
-    .from("ai_generations")
-    .insert({
-      user_id: userId,
-      product_id: productId,
-      step,
-      model: usage?.model ?? AI_MODEL,
-      status: error ? "failed" : "succeeded",
-      error_code: error ?? null,
-      input_tokens: usage?.inputTokens ?? null,
-      output_tokens: usage?.outputTokens ?? null,
-      cache_read_tokens: usage?.cacheReadTokens ?? null,
-      cache_write_tokens: usage?.cacheWriteTokens ?? null,
-      cost_usd: usage?.costUsd ?? null,
-      latency_ms: usage?.latencyMs ?? null,
-    });
-  if (dbError) console.error("[creatives] registrar la generación", dbError.message);
+
+/** Qué pieza es, para el historial: “Antes y después · 9:16”. */
+async function assetDetail(a: AssetRow): Promise<string> {
+  const { data } = await adminClient().from("creative_concepts").select("payload").eq("id", a.concept_id).maybeSingle();
+  const name = (data as { payload: StoredConcept } | null)?.payload?.name;
+  return [name, a.ratio].filter(Boolean).join(" · ");
 }
 
-/** Cada imagen de Higgsfield queda registrada; la API no informa el costo (Flare cobra por tokens). */
+/**
+ * Cada imagen de Higgsfield queda registrada. La API no informa el costo (Flare cobra por tokens):
+ * una imagen lograda se anota con la cota de IMAGE_COST_USD, marcada como estimada.
+ */
 async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: number) {
-  const { error: dbError } = await adminClient()
-    .from("ai_generations")
-    .insert({ user_id: a.user_id, product_id: a.product_id, step: "creative_render", provider: "higgsfield", model: a.endpoint, status: ok ? "succeeded" : "failed", error_code: error ?? null, latency_ms: latencyMs ?? null });
-  if (dbError) console.error("[creatives] registrar la imagen", dbError.message);
+  await recordAiGeneration({
+    userId: a.user_id,
+    productId: a.product_id,
+    step: "creative_render",
+    detail: await assetDetail(a),
+    provider: "higgsfield",
+    model: a.endpoint,
+    error: ok ? null : (error ?? "failed"),
+    estimatedCostUsd: ok ? IMAGE_COST_USD : null,
+    latencyMs,
+  });
 }
 
 async function requireKey(userId: string): Promise<string> {
@@ -198,11 +197,11 @@ export async function runCreatives(runId: string): Promise<void> {
         maxTokens: 12000,
       });
       problems = conceptProblems(result.data, facts);
-      await logGeneration(r.user_id, r.product_id, "creative_concepts", result.usage, problems.length ? "invalid_concepts" : undefined);
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage: result.usage, error: problems.length ? "invalid_concepts" : null });
       if (!problems.length) break;
       console.warn("[creatives] conceptos inválidos", problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA propuso anuncios que no cumplen las reglas. Toca Reintentar.");
+    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA propuso anuncios que no cumplen las reglas. Toca Reintentar.", undefined, true);
 
     const presetById = new Map(presets.map((p) => [p.id, p]));
     const rows = result.data.concepts.slice(0, CONCEPTS_PER_RUN).map((c, i) => {
@@ -221,7 +220,7 @@ export async function runCreatives(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[creatives] conceptos", e);
-    if (known) await logGeneration(r.user_id, r.product_id, "creative_concepts", e.usage, e.code);
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage: e.usage, error: e.code });
     await onHiggsfieldError(r.user_id, e);
     const message = known ? e.message : e instanceof HiggsfieldError ? e.message : "No pudimos proponer los anuncios. Toca Reintentar.";
     const now = stamp();
@@ -426,20 +425,28 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
   const [base] = await productImageUrls(a.user_id, a.product_id, 1);
   if (!base) throw new Error("sin imagen base");
   const texts = a.baked_texts as ConceptPayload["texts"];
-  const { data, usage } = await generateStructured({
-    system: QA_SYSTEM,
-    content: [
-      { type: "text", text: "Foto real del producto:" },
-      await imageBlock(base),
-      { type: "text", text: "Anuncio generado:" },
-      await imageBlockFromBytes(generated),
-      { type: "text", text: qaUser(texts) },
-    ],
-    schema: qaSchema,
-    effort: "low",
-    maxTokens: 4000,
-  });
-  await logGeneration(a.user_id, a.product_id, "creative_qa", usage);
+  const detail = await assetDetail(a);
+  let result;
+  try {
+    result = await generateStructured({
+      system: QA_SYSTEM,
+      content: [
+        { type: "text", text: "Foto real del producto:" },
+        await imageBlock(base),
+        { type: "text", text: "Anuncio generado:" },
+        await imageBlockFromBytes(generated),
+        { type: "text", text: qaUser(texts) },
+      ],
+      schema: qaSchema,
+      effort: "low",
+      maxTokens: 4000,
+    });
+  } catch (e) {
+    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, usage: e.usage, error: e.code });
+    throw e;
+  }
+  const { data, usage } = result;
+  await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, usage });
   return qaVerdict(data);
 }
 

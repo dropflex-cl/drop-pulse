@@ -23,6 +23,7 @@ import {
 } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { AdsApiError, adsApi, uploadCreative } from "@/lib/ads/client";
@@ -883,7 +884,12 @@ export function AdsScreen({ data }: { data: ProductAds }) {
   return (
     <div className="@container flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Anuncios" stageKey="anuncios" image={product.image} />
-      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Lanzar campaña" subtitle={subtitle} actions={<AssistantButton />} className="sticky top-0 z-sticky lg:hidden" />
+      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Lanzar campaña" subtitle={subtitle} actions={
+          <>
+            <AiCostButton />
+            <AssistantButton />
+          </>
+        } className="sticky top-0 z-sticky lg:hidden" />
 
       <div className="flex flex-1 flex-col @4xl:grid @4xl:grid-cols-[minmax(0,1fr)_--spacing(95)]">
         <div className="flex min-w-0 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">

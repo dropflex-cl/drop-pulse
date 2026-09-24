@@ -5,6 +5,7 @@ import { Button, StageList, StageMeter, TopBar } from "@/components/df";
 import { RetryPublishButton } from "@/components/screens/actions";
 import { StageNav } from "@/components/screens/stage-nav";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton, AiCostSummary } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { getProduct } from "@/lib/data/products";
 import { money } from "@/lib/format";
@@ -71,7 +72,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         backHref="/products"
         title={product.name}
         subtitle={product.summary}
-        actions={<AssistantButton />}
+        actions={
+          <>
+            <AiCostButton />
+            <AssistantButton />
+          </>
+        }
         className="sticky top-0 z-sticky lg:hidden"
       />
 
@@ -83,6 +89,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <Suspense fallback={<StageList stages={product.stages.map(({ title, state, desc, optional }) => ({ title, state, desc, optional }))} />}>
           <StageNav productId={product.id} stages={product.stages} />
         </Suspense>
+        <AiCostSummary className="mx-4 mt-2 mb-4" />
       </div>
 
       {/* Escritorio: la ruta está a la izquierda; al centro, lo siguiente y los datos del producto. */}

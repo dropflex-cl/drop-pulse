@@ -566,3 +566,49 @@ export interface CreativesState {
 export interface ProductCreatives extends CreativesState {
   product: Product;
 }
+
+// ---------------------------------------------------------------- Costo de IA (arquitectura.md › 11)
+
+/** Una etapa en el desglose de AiCostCard. */
+export interface AiStageCost {
+  label: string;
+  /** En la moneda de la tienda. */
+  cost: number;
+  runs?: number;
+  retries?: number;
+  /** Por qué no tiene costo (“Sin uso aún” por defecto). */
+  note?: string;
+  /** Solo administrador: “18,2k tok”. */
+  tokens?: string;
+}
+
+/** Una llamada a la IA en AiRunList. */
+export interface AiRun {
+  kind: "gen" | "regen" | "retry" | "fail";
+  what: string;
+  stage: string;
+  /** “hoy 10:42”, “ayer 18:02”, “12 sep 18:02”. */
+  when: string;
+  cost?: number;
+  /** Solo administrador. */
+  model?: string;
+  tokens?: string;
+}
+
+/** Cuánto costó en IA llevar un producto hasta donde está. */
+export interface ProductAiCost {
+  currency: string;
+  total: number;
+  totalUsd: number;
+  generations: number;
+  /** Tope por producto en la moneda de la tienda (Ajustes). */
+  cap?: number;
+  stages: AiStageCost[];
+  /** Más reciente primero. */
+  runs: AiRun[];
+  /** “Equivale al 4,5% de lo que ganas en una venta ($8.590).” Solo con precio definido. */
+  context: string | null;
+  /** Hay una generación en curso. */
+  running: boolean;
+  audience: "merchant" | "admin";
+}

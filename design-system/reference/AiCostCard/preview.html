@@ -1,0 +1,16 @@
+<!-- @dsCard group="Costo de IA" height=440 -->
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>AiCostCard</title></head>
+<body>
+<div id="root"></div>
+<script>
+  var D = window.DropFlex, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:16, padding:16, alignItems:'start'}},
+  h(D.AiCostCard,{total:387, totalUsd:0.41, generations:9, cap:1500, stages:[{label:'Información base', cost:96, runs:2},{label:'Reseñas', cost:31, runs:1},{label:'Ángulos', cost:142, runs:3},{label:'Textos', cost:118, runs:3, retries:1},{label:'Imágenes', cost:0, note:'Se genera después de Textos'}], context:'Equivale al 4,5% de lo que ganas en una venta ($8.590).'}),
+  h('div',{style:{display:'flex', flexDirection:'column', gap:16}},
+    h(D.AiCostCard,{compact:true, total:1290, totalUsd:1.37, generations:21, cap:1500}),
+    h(D.AiCostCard,{compact:true, total:1620, totalUsd:1.72, generations:26, cap:1500}))));
+</script>
+</body>
+</html>

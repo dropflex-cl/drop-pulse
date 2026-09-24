@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Button, Icon, TopBar } from "@/components/df";
 import { ImagePicker } from "@/components/screens/image-picker";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { EmptyState } from "@/components/shell/page-header";
 import { getProduct, getProductImages } from "@/lib/data/products";
 
@@ -22,7 +23,12 @@ export default async function ImagenesPage({ params }: { params: Promise<{ id: s
         backHref={`/products/${product.id}`}
         title="Imágenes"
         subtitle={chosen ? `${chosen} elegidas · la 1 es la portada` : "Elige y ordena 4 a 6"}
-        actions={<AssistantButton />}
+        actions={
+          <>
+            <AiCostButton />
+            <AssistantButton />
+          </>
+        }
         className="sticky top-0 z-sticky lg:hidden"
       />
       {images.length ? (

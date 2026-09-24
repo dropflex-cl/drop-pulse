@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AiChip, Button, EmptyState, Field, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { money } from "@/lib/format";
@@ -248,7 +249,12 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
   return (
     <div className="@container flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Creativos" stageKey="creativos" image={product.image} />
-      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Creativos" subtitle={subtitle} actions={<AssistantButton />} className="sticky top-0 z-sticky lg:hidden" />
+      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Creativos" subtitle={subtitle} actions={
+          <>
+            <AiCostButton />
+            <AssistantButton />
+          </>
+        } className="sticky top-0 z-sticky lg:hidden" />
       <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
         <p className="hidden text-body text-muted-foreground lg:block">Creativos · {subtitle}</p>
         <div>{body}</div>

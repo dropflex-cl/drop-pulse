@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import {
+  AiCostCard,
+  AiCostChip,
+  AiRunList,
   AssistantSheet,
   AttentionItem,
   Button,
@@ -29,6 +32,21 @@ import { OnboardingDemos } from "./onboarding";
 import { Section } from "./section";
 
 export const metadata: Metadata = { title: "Componentes" };
+
+// Cifras de design-system/reference/bundle.js › Pantallas: costo de IA.
+const AI_COST = {
+  total: 387,
+  totalUsd: 0.41,
+  generations: 9,
+  cap: 1500,
+  stages: [
+    { label: "Información base", cost: 127, runs: 3 },
+    { label: "Ángulos", cost: 142, runs: 3 },
+    { label: "Página del producto", cost: 118, runs: 3, retries: 1 },
+    { label: "Creativos", cost: 0, note: "Necesita los 2 desarrollos aprobados" },
+  ],
+  context: "Equivale al 4,5% de lo que ganas en una venta ($8.590).",
+};
 
 const STATUSES: ContentStatus[] = ["generado", "revision", "aprobado", "rechazado", "publicando", "publicado", "error"];
 const ICONS: IconName[] = [
@@ -267,6 +285,33 @@ export default function ComponentesPage() {
               suggestions={["Más corto", "Tono más cercano"]}
             />
           </div>
+        </div>
+      </Section>
+
+      <Section id="costo-ia" title="Costo de IA (AiCostChip, AiCostCard, AiRunList)">
+        <div className="flex flex-wrap items-center gap-2">
+          <AiCostChip total={387} cap={1500} />
+          <AiCostChip total={1290} cap={1500} />
+          <AiCostChip total={1620} cap={1500} />
+          <AiCostChip total={412} running />
+          <AiCostChip total={387} />
+        </div>
+        <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+          <AiCostCard {...AI_COST} />
+          <div className="flex flex-col gap-4">
+            <AiCostCard compact total={1290} totalUsd={1.37} generations={21} cap={1500} />
+            <AiCostCard compact total={1620} totalUsd={1.72} generations={26} cap={1500} />
+          </div>
+          <AiCostCard {...AI_COST} audience="admin" context={null} stages={AI_COST.stages.map((st, i) => ({ ...st, tokens: ["18,2k tok", "27,4k tok", "22,9k tok", ""][i] }))} />
+          <AiRunList
+            audience="admin"
+            runs={[
+              { kind: "retry", what: "Página del producto", stage: "Página del producto", when: "hoy 10:42", cost: 38, model: "opus-5", tokens: "7,3k tok" },
+              { kind: "fail", what: "Página del producto (no cumplía las reglas)", stage: "Página del producto", when: "hoy 10:41", cost: 41, model: "opus-5", tokens: "7,9k tok" },
+              { kind: "gen", what: "Ranking de ángulos", stage: "Ángulos", when: "ayer 18:02", cost: 51, model: "opus-5", tokens: "10,0k tok" },
+              { kind: "regen", what: "Cliente ideal", stage: "Información base", when: "ayer 17:40", cost: 49, model: "opus-5", tokens: "9,3k tok" },
+            ]}
+          />
         </div>
       </Section>
 

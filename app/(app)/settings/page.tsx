@@ -7,7 +7,8 @@ import { LogoutButton } from "@/components/logout-button";
 import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAssumptions, getHiggsfieldSettings, getMarketSettings } from "@/lib/data/settings";
+import { getAdSettings, getAiCostSettings, getAssumptions, getHiggsfieldSettings, getMarketSettings } from "@/lib/data/settings";
+import { AiCostSettings } from "@/components/screens/ai-cost-settings";
 import { HiggsfieldSettings } from "@/components/screens/higgsfield-settings";
 import { AdSettings } from "@/components/screens/ad-settings";
 import { MarketSettings } from "@/components/screens/market-settings";
@@ -25,7 +26,7 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, higgsfield] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings(), getHiggsfieldSettings()]);
+  const [assumptions, market, ads, higgsfield, aiCost] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings(), getHiggsfieldSettings(), getAiCostSettings()]);
   return (
     <>
       <PageHeader large title="Ajustes" subtitle="Supuestos, tienda y cuenta" back="Hoy" backHref="/today" />
@@ -58,6 +59,11 @@ export default async function AjustesPage() {
         {ads ? (
           <Section id="campanas" title="Campañas" description="El tope que ninguna campaña supera y tus plantillas propias.">
             <AdSettings spendCap={ads.spendCap} currency={ads.currency} templates={ads.templates} />
+          </Section>
+        ) : null}
+        {aiCost ? (
+          <Section id="costo-ia" title="Costo de IA" description="Cuánto puede gastar la IA en cada producto. Lo ya generado nunca se bloquea.">
+            <AiCostSettings cap={aiCost.cap} currency={aiCost.currency} />
           </Section>
         ) : null}
         <Section id="apariencia" title="Apariencia" description="Claro, oscuro o el mismo del teléfono.">

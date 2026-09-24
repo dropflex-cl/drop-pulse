@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { IconButton, StageList, StatusBadge, Thumb } from "@/components/df";
 import { StageNav } from "@/components/screens/stage-nav";
+import { AiCostButton, AiCostProvider, AiCostSummary } from "@/components/shell/ai-cost-provider";
 import { AssistantButton } from "@/components/shell/assistant-provider";
+import { getProductAiCost } from "@/lib/data/ai-costs";
 import { getProduct } from "@/lib/data/products";
 
 /**
@@ -11,10 +13,17 @@ import { getProduct } from "@/lib/data/products";
  */
 export default async function ProductLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = await getProduct(id);
+  const [product, cost] = await Promise.all([
+    getProduct(id),
+    // El costo de IA nunca bloquea el producto: si no se puede leer, la pantalla sigue sin él.
+    getProductAiCost(id).catch((e) => {
+      console.error("[ai] costo del producto", e);
+      return null;
+    }),
+  ]);
   if (!product) notFound();
 
-  return (
+  const content = (
     <>
       <header className="hidden items-center gap-3 border-b px-8 pt-5 pb-4 lg:flex">
         <IconButton icon="chevron-left" label="Productos" href="/products" />
@@ -24,6 +33,7 @@ export default async function ProductLayout({ children, params }: { children: Re
           <p className="text-caption text-muted-foreground">{product.summary}</p>
         </div>
         {product.status ? <StatusBadge status={product.status} /> : null}
+        <AiCostButton />
         <AssistantButton />
       </header>
       <div className="lg:flex">
@@ -32,9 +42,11 @@ export default async function ProductLayout({ children, params }: { children: Re
           <Suspense fallback={<StageList stages={product.stages.map(({ title, state, desc, optional }) => ({ title, state, desc, optional }))} />}>
             <StageNav productId={product.id} stages={product.stages} />
           </Suspense>
+          <AiCostSummary className="mx-4 mt-3 mb-4" />
         </nav>
         <div className="min-w-0 flex-1">{children}</div>
       </div>
     </>
   );
+  return cost ? <AiCostProvider cost={cost}>{content}</AiCostProvider> : content;
 }

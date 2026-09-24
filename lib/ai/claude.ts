@@ -33,6 +33,8 @@ export class AiStepError extends Error {
     public code: string,
     message: string,
     public usage?: AiUsage,
+    /** El intento ya quedó en ai_generations (lib/ai/track.ts): no se registra dos veces. */
+    public logged = false,
   ) {
     super(message);
   }

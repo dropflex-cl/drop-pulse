@@ -21,6 +21,7 @@ import {
 } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
@@ -495,7 +496,12 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
         backHref="/products"
         title={product.name}
         subtitle={product.summary}
-        actions={<AssistantButton />}
+        actions={
+          <>
+            <AiCostButton />
+            <AssistantButton />
+          </>
+        }
         className="sticky top-0 z-sticky lg:hidden"
       />
       <div className="px-4 pb-2 lg:hidden">

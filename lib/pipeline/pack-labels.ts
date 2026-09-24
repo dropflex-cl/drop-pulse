@@ -1,5 +1,6 @@
 import "server-only";
-import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { recordAiGeneration } from "@/lib/ai/track";
 import { packLabelsSystem, packLabelsUser } from "@/lib/ai/prompts";
 import { PACK_LABELS_PROMPT_VERSION, packLabelsOnlySchema } from "@/lib/ai/schemas";
 import { adminClient } from "@/lib/integrations/admin";
@@ -16,25 +17,6 @@ import { OptimizeError } from "./optimize";
 /** Tope de “Otras etiquetas” por comerciante en 24 h. */
 const DAILY_LIMIT = 40;
 
-async function log(userId: string, productId: string, usage: AiUsage | undefined, error?: string) {
-  const { error: dbError } = await adminClient()
-    .from("ai_generations")
-    .insert({
-      user_id: userId,
-      product_id: productId,
-      step: "pack_labels",
-      model: usage?.model ?? AI_MODEL,
-      status: error ? "failed" : "succeeded",
-      error_code: error ?? null,
-      input_tokens: usage?.inputTokens ?? null,
-      output_tokens: usage?.outputTokens ?? null,
-      cache_read_tokens: usage?.cacheReadTokens ?? null,
-      cache_write_tokens: usage?.cacheWriteTokens ?? null,
-      cost_usd: usage?.costUsd ?? null,
-      latency_ms: usage?.latencyMs ?? null,
-    });
-  if (dbError) console.error("[pack-labels] registrar la generación", dbError.message);
-}
 
 export async function regeneratePackLabels(userId: string, productId: string) {
   const [brief, pricing, avatars, previous] = await Promise.all([
@@ -73,12 +55,12 @@ export async function regeneratePackLabels(userId: string, productId: string) {
     });
   } catch (e) {
     if (e instanceof AiStepError) {
-      await log(userId, productId, e.usage, e.code);
+      await recordAiGeneration({ userId, productId, step: "pack_labels", usage: e.usage, error: e.code });
       throw new OptimizeError(e.message, 502);
     }
     throw e;
   }
-  await log(userId, productId, result.usage);
+  await recordAiGeneration({ userId, productId, step: "pack_labels", usage: result.usage });
   await saveGeneratedPackLabels({ id: null, user_id: userId, product_id: productId }, result.data.pack_labels, pricing, {
     promptVersion: PACK_LABELS_PROMPT_VERSION,
     model: result.usage.model,

@@ -1,5 +1,6 @@
 import "server-only";
-import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { ANGLES, type AngleRole } from "@/lib/angles/catalog";
 import { currentBriefs, fail, latestRankings, type BriefRow } from "@/lib/angles/store";
@@ -24,25 +25,6 @@ import { OptimizeError } from "./optimize";
 /** Tope de escrituras por comerciante en 24 h (cada una es una llamada a Claude Opus). */
 const DAILY_RUNS = 20;
 
-async function logGeneration(userId: string, productId: string, usage: AiUsage | undefined, error?: string) {
-  const { error: dbError } = await adminClient()
-    .from("ai_generations")
-    .insert({
-      user_id: userId,
-      product_id: productId,
-      step: "page_copy",
-      model: usage?.model ?? AI_MODEL,
-      status: error ? "failed" : "succeeded",
-      error_code: error ?? null,
-      input_tokens: usage?.inputTokens ?? null,
-      output_tokens: usage?.outputTokens ?? null,
-      cache_read_tokens: usage?.cacheReadTokens ?? null,
-      cache_write_tokens: usage?.cacheWriteTokens ?? null,
-      cost_usd: usage?.costUsd ?? null,
-      latency_ms: usage?.latencyMs ?? null,
-    });
-  if (dbError) console.error("[copy] registrar la generación", dbError.message);
-}
 
 /** Los 2 desarrollos aprobados de la elección confirmada, o null si todavía no están. */
 export async function approvedBriefs(userId: string, productId: string): Promise<Record<AngleRole, BriefRow> | null> {
@@ -186,11 +168,11 @@ export async function runCopy(runId: string): Promise<void> {
     for (let attempt = 0; attempt < 2; attempt++) {
       result = await write(problems);
       problems = copyProblems(result.data, facts);
-      await logGeneration(r.user_id, r.product_id, result.usage, problems.length ? "invalid_copy" : undefined);
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: result.usage, error: problems.length ? "invalid_copy" : null });
       if (!problems.length) break;
       console.warn("[copy] textos inválidos", problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA escribió textos que no cumplen las reglas. Toca Reintentar.");
+    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA escribió textos que no cumplen las reglas. Toca Reintentar.", undefined, true);
     const { data, usage } = result;
 
     // Posición = orden del bloque en la página × 10 + su número; lo aprobado conserva la suya.
@@ -233,7 +215,7 @@ export async function runCopy(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[copy] escribir", e);
-    if (known) await logGeneration(r.user_id, r.product_id, e.usage, e.code);
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: e.usage, error: e.code });
     const now = new Date().toISOString();
     const { error } = await db
       .from("copy_runs")

@@ -1,6 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
-import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { recordAiGeneration } from "@/lib/ai/track";
 import { customerAvatarSystem, customerAvatarUser, productBriefSystem, productBriefUser } from "@/lib/ai/prompts";
 import {
   CUSTOMER_AVATAR_PROMPT_VERSION,
@@ -45,26 +46,6 @@ function fail(what: string, error: { message: string } | null) {
   if (error) throw new Error(`${what}: ${error.message}`);
 }
 
-async function logGeneration(run: RunRow, step: string, usage: AiUsage | undefined, error?: string) {
-  const { error: dbError } = await adminClient()
-    .from("ai_generations")
-    .insert({
-      user_id: run.user_id,
-      product_id: run.product_id,
-      run_id: run.id,
-      step,
-      model: usage?.model ?? AI_MODEL,
-      status: error ? "failed" : "succeeded",
-      error_code: error ?? null,
-      input_tokens: usage?.inputTokens ?? null,
-      output_tokens: usage?.outputTokens ?? null,
-      cache_read_tokens: usage?.cacheReadTokens ?? null,
-      cache_write_tokens: usage?.cacheWriteTokens ?? null,
-      cost_usd: usage?.costUsd ?? null,
-      latency_ms: usage?.latencyMs ?? null,
-    });
-  if (dbError) console.error("[pipeline] registrar la generación", dbError.message);
-}
 
 async function setRun(id: string, patch: Record<string, unknown>) {
   fail("Guardar la corrida", (await adminClient().from("pipeline_runs").update(patch).eq("id", id)).error);
@@ -175,7 +156,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
   ];
 
   const { data, usage } = await generateStructured({ system: productBriefSystem(market), content, schema: productBriefSchema, effort: "medium" });
-  await logGeneration(run, "product_brief", usage);
+  await recordAiGeneration({ userId: run.user_id, productId: run.product_id, runId: run.id, step: "product_brief", usage });
   const { data: saved, error } = await adminClient()
     .from("product_briefs")
     .insert({
@@ -200,7 +181,7 @@ async function avatarStep(run: RunRow, market: Market, brief: ProductBrief, brie
     schema: avatarStepSchema,
     effort: "high",
   });
-  await logGeneration(run, "customer_avatar", usage);
+  await recordAiGeneration({ userId: run.user_id, productId: run.product_id, runId: run.id, step: "customer_avatar", usage });
   const db = adminClient();
   // La propuesta nueva reemplaza a la anterior que nadie aprobó (queda como rechazada, recuperable).
   fail(
@@ -251,7 +232,7 @@ export async function runOptimization(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[pipeline] optimizar", e);
-    if (known) await logGeneration(run, step, e.usage, e.code);
+    if (known) await recordAiGeneration({ userId: run.user_id, productId: run.product_id, runId: run.id, step, usage: e.usage, error: e.code });
     await setRun(run.id, {
       status: "failed",
       error_code: known ? e.code : "unexpected",

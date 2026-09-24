@@ -6,6 +6,7 @@ import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connectio
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { sessionUser } from "@/lib/integrations/session";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
+import { getAiCostCap } from "@/lib/settings/ai-cost";
 import { getMarket } from "@/lib/settings/market";
 import type { Assumptions } from "@/lib/types";
 
@@ -42,4 +43,11 @@ export async function getHiggsfieldSettings() {
   if (!user) return null;
   const conn = await getHiggsfieldConnection(user.id);
   return conn ? { keyHint: conn.key_hint, status: conn.status, error: conn.last_error } : { keyHint: null, status: null, error: null };
+}
+
+/** Ajustes › Costo de IA: el tope opcional por producto; null sin mercado confirmado. */
+export async function getAiCostSettings() {
+  const user = await sessionUser();
+  if (!user) return null;
+  return getAiCostCap(user.id);
 }

@@ -242,6 +242,9 @@
   /* 22/28 · 600: .df-ob-title (título de cada paso del onboarding en móvil). */
   --text-onboarding: 22px; --text-onboarding--line-height: 28px; --text-onboarding--font-weight: 600; --text-onboarding--letter-spacing: -0.01em;
 
+  /* 24/30 · 600: .df-aicost-v (total de AiCostCard). */
+  --text-cost: 24px; --text-cost--line-height: 30px; --text-cost--font-weight: 600;
+
   /* .df-rail-brand: nombre en el riel. */
   --tracking-brand: -0.01em;
 
