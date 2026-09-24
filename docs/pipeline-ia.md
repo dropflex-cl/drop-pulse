@@ -203,9 +203,29 @@ Los 2 desarrollos aprobados + ficha + cliente ideal + precio (y etiquetas aproba
 
 Tope: 20 escrituras por comerciante cada 24 horas. `/dev/screens/copy?state=locked|start|writing|failed|fresh|review|stale|done|complete` muestra la etapa con datos de ejemplo.
 
+## Anuncios y motor de decisión
+
+Spec: `docs/spec-anuncios.md`. Diseño: `design-system/anuncios.md` (PantallasAnuncios1/2 y AnunciosEscritorio1/2). Esta etapa no llama a la IA: los textos del anuncio por defecto salen de lo aprobado (`lib/ads/texts.ts`). Cada texto principal es el gancho recomendado de un desarrollo más la frase de la oferta; los títulos, el nombre corto y la oferta; la descripción, "Envío gratis · Paga al recibir".
+
+| Pieza | Dónde |
+|---|---|
+| Configuración (zod), plantillas, plan, motor puro, validación | `lib/ads/schemas.ts`, `presets.ts`, `plan.ts`, `engine.ts`, `validate.ts` (con tests) |
+| Meta: payloads puros, insights, adapter (escritura y lectura) | `lib/ads/meta/payloads.ts`, `insights.ts`, `adapter.ts`; `graphPost` en `lib/integrations/meta/client.ts` |
+| Lanzar en pausa con reversión, Publicar | `lib/pipeline/ads-launch.ts` |
+| Lectura horaria e historial | `lib/pipeline/ads-sync.ts` (`/api/cron/ads-sync`, job `ads-sync-hourly` de pg_cron) |
+| Decisiones, cambios, Deshacer, automático | `lib/pipeline/ads-engine.ts` |
+| CBO de ganadores | `lib/pipeline/ads-winners.ts` |
+
+**Puesta en marcha en producción:**
+- `supabase db push` de `20261003000000_ads.sql`;
+- en el SQL editor, `select vault.create_secret('https://<dominio>', 'app_base_url');` y `select vault.create_secret('<CRON_SECRET>', 'cron_secret');`.
+
+`/dev/screens/ads?state=locked|meta|empty|ready|launching|failed` muestra el configurador con datos de ejemplo.
+
 ## Pendiente
 
-- **Siguiente iteración:** Imágenes; después, estáticos, guiones y el copywriter de anuncios (`agentes-creativos 4/copywriter.md`, con cierre COD).
+- **Siguiente iteración:** Imágenes; después, estáticos, guiones y el copywriter de anuncios (`agentes-creativos 4/copywriter.md`, con cierre COD). Los creativos generados entrarían a la sección Creativos del configurador como creativos listos, y el copywriter a Textos del anuncio.
+- **Anuncios contra Meta:** falta probar la lectura, la creación en pausa, Publicar y el modo automático en la cuenta real, con autorización (spec de Anuncios, §14).
 - **Datos de la tienda:** plazo real de entrega, WhatsApp y garantía de la tienda (la página y el copywriter los necesitan); hoy solo se guarda `free_shipping`, sin pantalla para cambiarlo.
 - **Publicar la página:** plantilla HTML con los bloques aprobados y `productUpdate` (título, descripción, SEO) en la etapa Publicar.
 - **Imágenes generadas:** `getProductImages` devuelve vacío.

@@ -18,6 +18,15 @@ const EXTRA = [
   { name: "nueva-clave", path: "/auth/update-password" },
   { name: "confirma", path: "/auth/sign-up-success" },
   { name: "error-auth", path: "/auth/error?error=otp_expired" },
+  // Anuncios: el configurador con sus 5 secciones abiertas, y vacío (datos de ejemplo).
+  {
+    name: "anuncios",
+    path: "/dev/screens/ads?state=ready",
+    after: async (page: import("@playwright/test").Page) => {
+      for (const k of ["creatives", "audience", "budget", "copy", "engine"]) await page.click(`#cfg-${k} h3 button`);
+    },
+  },
+  { name: "anuncios-vacio", path: "/dev/screens/ads?state=empty" },
 ];
 
 async function main() {

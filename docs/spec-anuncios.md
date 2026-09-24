@@ -1,6 +1,6 @@
 # Spec: Anuncios en Meta y motor de decisión (v2)
 
-> Estado: **propuesta**, sin implementar.
+> Estado: **implementado (F0–F9)**, sin probar todavía contra Meta: ver §14.
 > Fecha: 2026-09-23.
 > Fuentes de negocio:
 > - `dropflex/docs/analisis-unificacion-abo-cbo.md`: dos bases, ABO y CBO, con presets.
@@ -442,3 +442,36 @@ Componentes nuevos en `components/df`, portados de `design-system/reference` al 
 
 4. **Creativos:** el diseño los sube en el configurador (§7.2). Falta definir si más adelante también salen de la etapa Imágenes o de un generador de estáticos o videos.
 5. **Catálogo Advantage:** propuesta: apagado y fuera de la UI en el primer corte.
+
+---
+
+## 14. Implementación (2026-09-23)
+
+Commits: `feb48eb` (F0–F2), `fcaed13` (F3), `aa25182` (F4), `13403ca` (F5–F8) y el de F9.
+
+**Decisiones al construir:**
+
+1. **Públicos como lista** (`launch.audiences`). En ABO cada creativo se cruza con cada público: un conjunto por par. En CBO cada público es un conjunto. Así, GEM ("2 abiertos + 2 con intereses") son 2 creativos × (abierto + intereses), y TFL son 3 públicos en la campaña.
+2. **Regiones de Pancho:** las `key` de Meta no son ISO. Al aplicar la plantilla, el configurador busca Arica, Aysén y Magallanes en el catálogo de regiones de la cuenta y las excluye.
+3. **Espera de TFL:** las reglas se miden en múltiplos del CPA, así que "US$10 de gasto" queda como "1× el CPA o 48 h".
+4. **Un lanzamiento que falla vuelve a borrador** con el motivo; el estado `failed` no se usa para campañas.
+5. **Columnas extra en `ad_campaigns`:**
+   - `last_changed_at`: la espera tras un cambio, en CBO;
+   - `starts_at`: las ventanas cuentan desde que la campaña puede entregar;
+   - `meta_objects` y `progress`: la reversión y el avance del lanzamiento.
+6. **Creativos:** JPG, PNG, MP4 o MOV, como dice el diseño. No se acepta WebP. El peso máximo real es el menor entre el del bucket (1 GB) y el del proyecto de Supabase.
+7. **Estado reflejado desde Meta:** el configurado (`status`), no el efectivo. El efectivo mezcla "en revisión" o "campaña pausada".
+8. **Catálogo Advantage:** apagado y fuera de la UI, como proponía la decisión 5.
+9. **Hoy** muestra:
+   - las decisiones pendientes de pausar o escalar;
+   - las campañas que no se pudieron leer;
+   - los cambios automáticos de las últimas 24 h.
+10. **Lo que gasta dinero pide un segundo toque:** Publicar y Subir presupuesto.
+
+**Pendiente, con autorización del comerciante en cada paso:**
+
+- **`supabase db push`:** migración `20261003000000_ads.sql`, con `pg_cron` y `pg_net`.
+- **Secretos en Vault de producción:** cargar `app_base_url` y `cron_secret`.
+- **F1:** una lectura real (cuenta, zona horaria e insights) en la cuenta conectada.
+- **F4:** crear una campaña en pausa y probar la reversión forzada, borrando lo creado.
+- **F6:** publicar con el presupuesto mínimo, y probar un escalado automático y su Deshacer.
