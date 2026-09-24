@@ -14,10 +14,11 @@ export async function AuthGate() {
   return null;
 }
 
-/** `/`: con sesión va a Hoy; sin sesión, a iniciar sesión. */
-export async function RootRedirect(): Promise<never> {
-  if (!hasEnvVars) redirect("/today");
+/** `/`: con sesión va a Hoy; sin sesión no hace nada y se ve la landing. Va dentro de <Suspense>. */
+export async function SignedInRedirect() {
+  if (!hasEnvVars) return null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  redirect(data?.claims ? "/today" : "/auth/login");
+  if (data?.claims) redirect("/today");
+  return null;
 }

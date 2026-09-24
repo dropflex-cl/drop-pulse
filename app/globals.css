@@ -189,6 +189,11 @@
   --text-code: 12px;     --text-code--line-height: 16px;
   --text-metric: 18px;   --text-metric--line-height: 24px;   --text-metric--font-weight: 600;
   --text-metric-lg: 28px; --text-metric-lg--line-height: 32px; --text-metric-lg--font-weight: 600; --text-metric-lg--letter-spacing: -0.02em;
+  /* Marketing (tokens.json › type › Marketing): solo la landing, nunca dentro de la app. */
+  --text-hero: 56px;     --text-hero--line-height: 60px;     --text-hero--font-weight: 600;     --text-hero--letter-spacing: -0.035em;
+  --text-hero-sm: 36px;  --text-hero-sm--line-height: 40px;  --text-hero-sm--font-weight: 600;  --text-hero-sm--letter-spacing: -0.03em;
+  --text-section: 32px;  --text-section--line-height: 38px;  --text-section--font-weight: 600;  --text-section--letter-spacing: -0.02em;
+  --text-lead: 18px;     --text-lead--line-height: 28px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
 
@@ -247,6 +252,18 @@
 
   /* .df-rail-brand: nombre en el riel. */
   --tracking-brand: -0.01em;
+
+  /* Landing (design-system/landing.md, reglas .df-lp-* en design-system/reference/landing.css). */
+  /* .df-lp-h2 en móvil: 24/30 (type-section es la medida de escritorio). */
+  --text-section-sm: 24px; --text-section-sm--line-height: 30px; --text-section-sm--font-weight: 600; --text-section-sm--letter-spacing: -0.02em;
+  /* .df-lp-lead en móvil: 16/24 (type-lead es la medida de escritorio). */
+  --text-lead-sm: 16px;  --text-lead-sm--line-height: 24px;
+  /* .df-lp-frame.is-desk: el ancho de la maqueta de escritorio; la página no crece más. */
+  --container-landing: 1440px;
+  /* .df-lp-faqs: ancho de lectura de las preguntas. */
+  --container-faq: 800px;
+  /* .df-lp-phone: el teléfono del hero, 32px de radio. */
+  --radius-device: 32px;
 
   /* .df-spin (0,9s) y .df-tile.is-generating::after (df-shimmer 1,4s). */
   --animate-df-spin: spin 0.9s linear infinite;
