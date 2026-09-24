@@ -1,0 +1,788 @@
+{%- doc -%}
+  DropFlex · Videos de clientes (ugc-slider). Bloque de la columna del producto, bajo el botón:
+  pista de videos verticales (o círculos tipo historias) que abre un reproductor.
+
+  Liviano: la pista solo carga pósters. Hay un único <video> (en el modal) con preload="none"
+  que toma la URL al abrir; la vista previa en movimiento es opcional, solo para las tarjetas
+  visibles y nunca con movimiento reducido o ahorro de datos. El sonido solo arranca por un
+  toque del comprador.
+
+  REGLA: los videos los sube el comerciante (metafield de la app `dropflex.ugc_videos`,
+  list.file_reference); los ajustes de video del bloque son el respaldo. La IA no aporta
+  archivos ni cifras: solo escribe el título y los textos cortos de cada video.
+
+  Contenido: metafield `dropflex.ugc_slider` (json) → si falta, los textos del bloque.
+    { heading? (tokens {count} {rating}, **resaltado**), captions?: string[] (por índice) }
+  Encabezado con calificación: product.metafields.dropflex.review_summary (real).
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.ugc_slider.value
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign mf_videos = product.metafields.dropflex.ugc_videos.value
+
+  # Videos: los del metafield; si no hay, los del bloque (hasta 6).
+  assign total = 0
+  for v in mf_videos
+    if v.sources.size > 0
+      assign total = total | plus: 1
+    endif
+  endfor
+  assign from_metafield = true
+  if total == 0
+    assign from_metafield = false
+    for i in (1..6)
+      assign key = 'video_' | append: i
+      if s[key].sources.size > 0
+        assign total = total | plus: 1
+      endif
+    endfor
+  endif
+
+  assign show = true
+  if product == blank or total == 0
+    assign show = false
+  endif
+
+  if show
+    # Datos reales de reseñas para {count}, {rating} y la fila de estrellas.
+    assign rating = summary.rating | default: 0 | plus: 0
+    assign count = summary.count | default: 0 | plus: 0
+    assign has_reviews = false
+    if rating > 0 and count >= s.min_reviews
+      assign has_reviews = true
+    endif
+    assign r10 = rating | times: 10 | round
+    assign r_int = r10 | divided_by: 10
+    assign r_dec = r10 | modulo: 10
+    assign rating_text = r_int | append: ',' | append: r_dec
+    assign count_text = count | append: ''
+    if count >= 1000
+      assign thousands = count | divided_by: 1000
+      assign rest = count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    endif
+
+    assign heading = content.heading | default: s.heading
+    if heading contains '{count}' or heading contains '{rating}'
+      if has_reviews
+        assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
+      else
+        # Sin dato real, un título con cifra no se muestra.
+        assign heading = ''
+      endif
+    endif
+
+    assign per_view = s.cards_visible | default: '3'
+    assign show_controls = false
+    if total > 1
+      if s.show_arrows or s.pagination != 'none'
+        assign show_controls = true
+      endif
+    endif
+  endif
+-%}
+
+{%- if show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-slider.js' | asset_url }}" defer></script>
+  <script src="{{ 'df-ugc-slider.js' | asset_url }}" defer></script>
+
+  {%- capture accent_vars -%}{% render 'df-accent-vars', product: product %}{%- endcapture -%}
+
+  <df-ugc-slider
+    class="df df-ugc-slider df-ugc-slider--{{ s.shape }} df-ugc-slider--play-{{ s.play_style }}{% if s.boxed %} df-ugc-slider--boxed{% endif %}"
+    data-player="{{ s.player }}"
+    data-preview-motion="{{ s.preview_motion }}"
+    style="{{ accent_vars }} --df-ugc-per-view: {{ per_view }}; --df-ugc-radius: {{ s.radius }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if heading != blank or s.show_rating and has_reviews -%}
+      <div class="df-ugc-slider__header">
+        {%- if heading != blank -%}
+          {%- assign parts = heading | escape | split: '**' -%}
+          <p class="df-heading df-ugc-slider__heading">
+            {%- for part in parts -%}
+              {%- assign odd = forloop.index0 | modulo: 2 -%}
+              {%- if odd == 1 -%}<strong class="df-ugc-slider__highlight">{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+            {%- endfor -%}
+          </p>
+        {%- endif -%}
+        {%- if s.show_rating and has_reviews -%}
+          {%- assign rating_label = 'Calificación ' | append: rating_text | append: ' de 5, ' | append: count_text | append: ' reseñas' -%}
+          <p class="df-ugc-slider__rating">
+            {%- render 'df-stars', rating: rating, size: '1rem', label: rating_label -%}
+            <span aria-hidden="true">{{ rating_text }} · {{ count_text }} reseñas</span>
+          </p>
+          {%- if summary.source_label != blank -%}
+            <p class="df-ugc-slider__source">{{ summary.source_label | escape }}</p>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <df-slider
+      data-dot-label="Ir al video"
+      role="region"
+      aria-roledescription="carrusel"
+      aria-label="Videos de clientes"
+    >
+      <div class="df-slider__track" data-df-track>
+        {%- if from_metafield -%}
+          {%- assign n = 0 -%}
+          {%- for video in mf_videos -%}
+            {%- if video.sources.size > 0 -%}
+              {%- liquid
+                assign caption = content.captions[n]
+                assign n = n | plus: 1
+              -%}
+              {%- render 'df-ugc-slider-card', video: video, n: n, total: total, caption: caption, shape: s.shape -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- assign n = 0 -%}
+          {%- for i in (1..6) -%}
+            {%- liquid
+              assign key = 'video_' | append: i
+              assign caption_key = 'caption_' | append: i
+              assign video = s[key]
+            -%}
+            {%- if video.sources.size > 0 -%}
+              {%- liquid
+                assign caption = content.captions[n] | default: s[caption_key]
+                assign n = n | plus: 1
+              -%}
+              {%- render 'df-ugc-slider-card', video: video, n: n, total: total, caption: caption, shape: s.shape -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+
+      {%- if show_controls -%}
+        <div class="df-slider__controls df-ugc-slider__controls">
+          {%- if s.show_arrows -%}
+            <button type="button" class="df-slider__arrow" data-df-prev aria-label="Videos anteriores">
+              {% render 'df-icon', name: 'chevron-left' %}
+            </button>
+          {%- endif -%}
+          {%- case s.pagination -%}
+            {%- when 'dots' -%}
+              <div class="df-slider__dots" data-df-dots></div>
+            {%- when 'bar' -%}
+              <div class="df-ugc-slider__bar" data-df-ugc-bar aria-hidden="true"><span></span></div>
+          {%- endcase -%}
+          {%- if s.show_arrows -%}
+            <button type="button" class="df-slider__arrow" data-df-next aria-label="Videos siguientes">
+              {% render 'df-icon', name: 'chevron-right' %}
+            </button>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </df-slider>
+
+    {%- if s.sponsored -%}
+      <p class="df-ugc-slider__note">Incluye contenido patrocinado</p>
+    {%- endif -%}
+
+    <dialog
+      class="df df-ugc-slider__dialog"
+      data-df-ugc-dialog
+      aria-label="Videos de clientes"
+      style="{{ accent_vars }}"
+    >
+      <div class="df-ugc-slider__stage" data-df-ugc-stage>
+        <video class="df-ugc-slider__video" playsinline loop preload="none" data-df-ugc-video></video>
+        {%- if s.show_progress -%}
+          <span class="df-ugc-slider__progress" aria-hidden="true"><span data-df-ugc-progress></span></span>
+        {%- endif -%}
+
+        <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--sound" data-df-ugc-sound aria-pressed="false" aria-label="Silenciar">
+          {% render 'df-icon', name: 'volume', class: 'df-ugc-slider__icon-on' %}
+          {% render 'df-icon', name: 'volume-off', class: 'df-ugc-slider__icon-off' %}
+        </button>
+        <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--close" data-df-ugc-close aria-label="Cerrar video">
+          {% render 'df-icon', name: 'x' %}
+        </button>
+        <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--toggle" data-df-ugc-toggle aria-pressed="false" aria-label="Pausar video">
+          {% render 'df-icon', name: 'pause', class: 'df-ugc-slider__icon-pause' %}
+          {% render 'df-icon', name: 'play', class: 'df-ugc-slider__icon-play' %}
+        </button>
+        {%- if total > 1 -%}
+          <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--prev" data-df-ugc-prev aria-label="Video anterior">
+            {% render 'df-icon', name: 'chevron-left' %}
+          </button>
+          <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--next" data-df-ugc-next aria-label="Video siguiente">
+            {% render 'df-icon', name: 'chevron-right' %}
+          </button>
+        {%- endif -%}
+
+        <div class="df-ugc-slider__info">
+          <p class="df-ugc-slider__dialog-caption" data-df-ugc-caption></p>
+          <p class="df-ugc-slider__counter" data-df-ugc-counter aria-live="polite"></p>
+        </div>
+      </div>
+    </dialog>
+  </df-ugc-slider>
+
+  {% stylesheet %}
+    .df-ugc-slider {
+      display: block;
+      min-width: 0;
+      --df-slide-gap: 10px;
+      --df-slide-width: calc((100% - (var(--df-ugc-per-view, 3) - 1) * var(--df-slide-gap)) / var(--df-ugc-per-view, 3));
+    }
+
+    .df-ugc-slider--boxed {
+      padding: 20px 16px 16px;
+      border-radius: var(--df-radius);
+      background: var(--df-surface);
+      --df-slide-gap: 12px;
+    }
+
+    .df-ugc-slider--circle {
+      --df-slide-width: 88px;
+      --df-slide-gap: 6px;
+    }
+
+    .df-ugc-slider--circle .df-slider__track {
+      justify-content: safe center;
+      padding-block: 4px;
+    }
+
+    .df-ugc-slider__header {
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .df-ugc-slider__heading {
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .df-ugc-slider__highlight {
+      color: var(--df-accent-ink);
+      font-weight: 700;
+    }
+
+    .df-ugc-slider__rating {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .df-ugc-slider__source,
+    .df-ugc-slider__note {
+      margin: 0;
+      color: var(--df-muted);
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+
+    .df-ugc-slider__note {
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .df-ugc-slider__card {
+      position: relative;
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      aspect-ratio: 3 / 5;
+      border: 0;
+      border-radius: var(--df-ugc-radius, 10px);
+      background: var(--df-surface);
+      color: #ffffff;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .df-ugc-slider--circle .df-ugc-slider__card {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 4px solid var(--df-bg);
+      outline: 2px solid var(--df-hairline);
+      outline-offset: 0;
+    }
+
+    .df-ugc-slider__card:focus-visible {
+      outline: 2px solid var(--df-accent);
+      outline-offset: 2px;
+    }
+
+    .df-ugc-slider__media,
+    .df-ugc-slider__media img,
+    .df-ugc-slider__media video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .df-ugc-slider__play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: color-mix(in srgb, #000000 28%, transparent);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transform: translate(-50%, -50%);
+      transition: transform 0.2s var(--df-ease);
+    }
+
+    .df-ugc-slider__play svg {
+      width: 20px;
+      height: 20px;
+      margin-left: 2px;
+    }
+
+    .df-ugc-slider--circle .df-ugc-slider__play {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #ffffff;
+    }
+
+    .df-ugc-slider--circle .df-ugc-slider__play svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .df-ugc-slider--play-accent .df-ugc-slider__play {
+      background: var(--df-accent);
+      color: var(--df-on-accent);
+      backdrop-filter: none;
+    }
+
+    .df-ugc-slider__card:hover .df-ugc-slider__play {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .df-ugc-slider__card.is-previewing .df-ugc-slider__play {
+      opacity: 0;
+    }
+
+    .df-ugc-slider__caption {
+      position: absolute;
+      inset: auto 0 0;
+      padding: 24px 8px 8px;
+      background: linear-gradient(to top, color-mix(in srgb, #000000 65%, transparent), transparent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1.25;
+      text-wrap: balance;
+    }
+
+    .df-ugc-slider__controls {
+      margin-top: 8px;
+    }
+
+    df-ugc-slider[data-fits] .df-ugc-slider__controls {
+      display: none;
+    }
+
+    .df-ugc-slider__bar {
+      position: relative;
+      flex: 1;
+      max-width: 160px;
+      height: 5px;
+      overflow: hidden;
+      border-radius: var(--df-radius-pill);
+      background: var(--df-hairline);
+    }
+
+    .df-ugc-slider__bar span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: calc(var(--df-ugc-thumb, 0.4) * 100%);
+      border-radius: inherit;
+      background: var(--df-fg);
+      transform: translateX(calc(var(--df-ugc-scroll, 0) * (1 / var(--df-ugc-thumb, 0.4) - 1) * 100%));
+    }
+
+    /* Reproductor. Pantalla completa (modal) por defecto; flotante en escritorio. Doble clase
+       para ganarle a .df (df-components.css se carga después del bundle de estilos). */
+    .df.df-ugc-slider__dialog {
+      width: 100%;
+      max-width: none;
+      height: 100%;
+      max-height: none;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: #000000;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    .df-ugc-slider__dialog::backdrop {
+      background: color-mix(in srgb, #000000 70%, transparent);
+    }
+
+    .df-ugc-slider__stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .df-ugc-slider__video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000000;
+    }
+
+    .df-ugc-slider__progress {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: color-mix(in srgb, #ffffff 28%, transparent);
+    }
+
+    .df-ugc-slider__progress span {
+      display: block;
+      height: 100%;
+      background: color-mix(in srgb, #ffffff 90%, transparent);
+      transform-origin: left;
+      transform: scaleX(var(--df-ugc-progress, 0));
+    }
+
+    .df-ugc-slider__btn {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: color-mix(in srgb, #000000 45%, transparent);
+      color: #ffffff;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .df-ugc-slider__btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .df-ugc-slider__btn:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+
+    .df-ugc-slider__btn--sound { top: 12px; left: 12px; }
+    .df-ugc-slider__btn--close { top: 12px; right: 12px; }
+    .df-ugc-slider__btn--toggle { top: 12px; right: 64px; }
+    .df-ugc-slider__btn--prev { top: 50%; left: 8px; transform: translateY(-50%); }
+    .df-ugc-slider__btn--next { top: 50%; right: 8px; transform: translateY(-50%); }
+
+    .df-ugc-slider__icon-off,
+    .df-ugc-slider__btn--sound[aria-pressed='true'] .df-ugc-slider__icon-on,
+    .df-ugc-slider__icon-play,
+    .df-ugc-slider__btn--toggle[aria-pressed='true'] .df-ugc-slider__icon-pause {
+      display: none;
+    }
+
+    .df-ugc-slider__btn--sound[aria-pressed='true'] .df-ugc-slider__icon-off,
+    .df-ugc-slider__btn--toggle[aria-pressed='true'] .df-ugc-slider__icon-play {
+      display: block;
+    }
+
+    .df-ugc-slider__info {
+      position: absolute;
+      inset: auto 0 0;
+      padding: 40px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(to top, color-mix(in srgb, #000000 70%, transparent), transparent);
+      pointer-events: none;
+    }
+
+    .df-ugc-slider__dialog-caption {
+      margin: 0 0 4px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    .df-ugc-slider__dialog-caption:empty {
+      display: none;
+    }
+
+    .df-ugc-slider__counter {
+      margin: 0;
+      font-size: 0.75rem;
+      opacity: 0.85;
+    }
+
+    @media (min-width: 750px) {
+      .df-ugc-slider__dialog:modal {
+        width: min(420px, 90vw);
+        height: min(700px, 90vh);
+        margin: auto;
+        border-radius: 14px;
+      }
+
+      .df-ugc-slider__video {
+        object-fit: cover;
+      }
+    }
+
+    /* Flotante: sin fondo oscuro, no bloquea la página (se puede seguir comprando). */
+    .df-ugc-slider__dialog.is-floating {
+      position: fixed;
+      inset: auto 20px 20px auto;
+      z-index: 2147483000;
+      width: min(340px, calc(100vw - 40px));
+      height: min(567px, calc(100vh - 40px));
+      border-radius: 14px;
+      box-shadow: 0 16px 48px color-mix(in srgb, #000000 35%, transparent);
+    }
+
+    .df-ugc-slider__dialog.is-floating .df-ugc-slider__video {
+      object-fit: cover;
+    }
+
+    .df-ugc-slider__dialog.is-floating .df-ugc-slider__btn--prev {
+      top: calc(50% - 26px);
+      right: 8px;
+      left: auto;
+      transform: translateY(-50%) rotate(90deg);
+    }
+
+    .df-ugc-slider__dialog.is-floating .df-ugc-slider__btn--next {
+      top: calc(50% + 26px);
+      transform: translateY(-50%) rotate(90deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .df-ugc-slider__card:hover .df-ugc-slider__play {
+        transform: translate(-50%, -50%);
+      }
+    }
+  {% endstylesheet %}
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Videos de clientes: sube videos en DropFlex o elige hasta 6 videos en los ajustes de este bloque.
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "DropFlex · Videos UGC",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Muestra los videos que subiste en DropFlex. Si no hay, usa los videos de este bloque. Solo videos con permiso de uso."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Encabezado"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "info": "Opcional. {count} y {rating} son datos reales de reseñas; **texto** lo resalta."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Mostrar calificación",
+      "info": "Estrellas y origen de las reseñas aprobadas.",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "min_reviews",
+      "label": "Mínimo de reseñas",
+      "info": "Con menos, no se muestran la calificación ni las cifras del título.",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "checkbox",
+      "id": "sponsored",
+      "label": "Hay contenido patrocinado",
+      "info": "Si algún video es de un creador pagado o con producto regalado. Muestra un aviso.",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Videos (respaldo)"
+    },
+    { "type": "video", "id": "video_1", "label": "Video 1" },
+    { "type": "text", "id": "caption_1", "label": "Texto del video 1" },
+    { "type": "video", "id": "video_2", "label": "Video 2" },
+    { "type": "text", "id": "caption_2", "label": "Texto del video 2" },
+    { "type": "video", "id": "video_3", "label": "Video 3" },
+    { "type": "text", "id": "caption_3", "label": "Texto del video 3" },
+    { "type": "video", "id": "video_4", "label": "Video 4" },
+    { "type": "text", "id": "caption_4", "label": "Texto del video 4" },
+    { "type": "video", "id": "video_5", "label": "Video 5" },
+    { "type": "text", "id": "caption_5", "label": "Texto del video 5" },
+    { "type": "video", "id": "video_6", "label": "Video 6" },
+    { "type": "text", "id": "caption_6", "label": "Texto del video 6" },
+    {
+      "type": "header",
+      "content": "Pista"
+    },
+    {
+      "type": "select",
+      "id": "shape",
+      "label": "Forma",
+      "options": [
+        { "value": "reel", "label": "Vertical (reel)" },
+        { "value": "circle", "label": "Círculo (historias)" }
+      ],
+      "default": "reel"
+    },
+    {
+      "type": "select",
+      "id": "cards_visible",
+      "label": "Videos visibles",
+      "info": "Solo vertical. Con 2,5 o 3,5 se nota que hay más.",
+      "options": [
+        { "value": "2", "label": "2" },
+        { "value": "2.5", "label": "2,5" },
+        { "value": "3", "label": "3" },
+        { "value": "3.5", "label": "3,5" },
+        { "value": "4", "label": "4" }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "range",
+      "id": "radius",
+      "label": "Radio de las tarjetas",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "select",
+      "id": "play_style",
+      "label": "Botón de play",
+      "options": [
+        { "value": "glass", "label": "Translúcido" },
+        { "value": "accent", "label": "Color de acento" }
+      ],
+      "default": "glass"
+    },
+    {
+      "type": "checkbox",
+      "id": "preview_motion",
+      "label": "Vista previa en movimiento",
+      "info": "Reproduce sin sonido solo los videos visibles. Gasta más datos móviles.",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "pagination",
+      "label": "Paginación",
+      "options": [
+        { "value": "bar", "label": "Barra" },
+        { "value": "dots", "label": "Puntos" },
+        { "value": "none", "label": "Ninguna" }
+      ],
+      "default": "bar"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows",
+      "label": "Mostrar flechas",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "boxed",
+      "label": "Fondo de bloque",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Reproductor"
+    },
+    {
+      "type": "select",
+      "id": "player",
+      "label": "Modo",
+      "options": [
+        { "value": "auto", "label": "Automático" },
+        { "value": "fullscreen", "label": "Pantalla completa" },
+        { "value": "floating", "label": "Flotante" }
+      ],
+      "info": "Automático: pantalla completa en móvil y flotante en escritorio.",
+      "default": "auto"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress",
+      "label": "Barra de progreso",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Espaciado"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Videos UGC"
+    }
+  ]
+}
+{% endschema %}

@@ -1,7 +1,7 @@
 // Los espacios de la página del producto y las tomas del director de galería (docs/spec-imagenes.md).
 // Puro: lo usan el prompt, el render, la pantalla y los tests.
 
-/** Portada, galería y un espacio por cada beneficio aprobado en Textos ('benefit-<content_item_id>'). */
+/** Portada, galería y un espacio por cada beneficio de «Foto y razones» en la página ('benefit-<id del componente>.<n>'). */
 export type SlotKind = "cover" | "gallery" | "benefit";
 
 export const COVER = "cover";

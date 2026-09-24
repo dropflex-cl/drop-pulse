@@ -1,7 +1,8 @@
 import "server-only";
 import { fail } from "@/lib/angles/store";
-import { activeItems, toCopyItems } from "@/lib/copy/store";
+import { LISTING, type Listing } from "@/lib/copy/listing";
 import { copyProgress } from "@/lib/copy/progress";
+import { activeComponents, currentContent, toComponentViews } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 import type { PageImageOptionView, PageImageSlotView, RunStatus } from "@/lib/types";
@@ -73,27 +74,35 @@ export interface PageImageRow {
   created_at: string;
 }
 
-/** Los textos aprobados de la página que usan las imágenes: los beneficios definen sus espacios. */
+/**
+ * Lo aprobado de la página que usan las imágenes: la ficha y los beneficios del componente
+ * «Foto y razones» (image-with-benefits), que definen un espacio de beneficio cada uno. El id de un
+ * beneficio es «<id del componente>.<n>»: sigue igual mientras no se reescriba el componente.
+ */
 export interface PageCopyFacts {
-  /** La página (Textos) está completa: la etapa se habilita. */
+  /** La página (la ficha) está aprobada: la etapa se habilita. */
   complete: boolean;
   shortName?: string;
+  /** Cómo funciona, en una frase: la descripción de «Hero y cifras» o la descripción corta de la ficha. */
   howItWorks?: string;
   benefits: { id: string; text: string }[];
 }
 
 export async function pageCopy(userId: string, productId: string): Promise<PageCopyFacts> {
-  const rows = (await activeItems(userId, [productId])).get(productId) ?? [];
-  const views = toCopyItems(rows);
-  const progress = copyProgress(views.map((v) => ({ key: v.key, status: v.status, edited: v.edited, original: v.original })));
-  const approved = rows.filter((r) => r.status === "approved");
-  const text = (r: (typeof rows)[number]) => (r.edited_text ?? r.proposal).trim();
-  const first = (key: string) => approved.find((r) => r.key === key);
+  const rows = (await activeComponents(userId, [productId])).get(productId) ?? [];
+  const progress = copyProgress(toComponentViews(rows));
+  const approved = (id: string) => rows.find((r) => r.component === id && r.status === "approved");
+  const listing = approved(LISTING);
+  const ficha = listing ? (currentContent(listing) as Listing) : undefined;
+  const stats = approved("stats-with-image");
+  const statsText = stats ? (currentContent(stats) as { description?: string }).description?.replaceAll("**", "") : undefined;
+  const iwb = rows.find((r) => r.component === "image-with-benefits" && r.status === "approved" && r.enabled);
+  const benefits = iwb ? ((currentContent(iwb) as { benefits?: { title: string; body: string }[] }).benefits ?? []) : [];
   return {
     complete: progress.complete,
-    shortName: first("short_name") ? text(first("short_name")!) : undefined,
-    howItWorks: first("how_it_works") ? text(first("how_it_works")!) : undefined,
-    benefits: approved.filter((r) => r.key === "benefit").map((r) => ({ id: r.id, text: text(r) })),
+    shortName: ficha?.short_name,
+    howItWorks: statsText ?? ficha?.short_description,
+    benefits: benefits.map((b, i) => ({ id: `${iwb!.id}.${i + 1}`, text: `${b.title}: ${b.body}` })),
   };
 }
 

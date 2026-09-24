@@ -4,7 +4,8 @@ import { approvedBriefs } from "@/lib/pipeline/copy";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection, type MetaConnection } from "@/lib/integrations/meta/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
-import { activeItems } from "@/lib/copy/store";
+import { LISTING, type Listing } from "@/lib/copy/listing";
+import { activeComponents, currentContent } from "@/lib/copy/store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
 import { getMarket } from "@/lib/settings/market";
@@ -104,10 +105,6 @@ async function merchantSettings(userId: string): Promise<{ ad_daily_spend_cap: n
   return { ad_daily_spend_cap: row?.ad_daily_spend_cap == null ? null : Number(row.ad_daily_spend_cap), free_shipping: row?.free_shipping ?? true };
 }
 
-const approvedText = (rows: { key: string; status: string; proposal: string; edited_text: string | null }[], key: string) => {
-  const r = rows.find((i) => i.key === key && i.status === "approved");
-  return r ? (r.edited_text ?? r.proposal) : null;
-};
 
 export async function adsContext(userId: string, product: ProductRow): Promise<AdsContext> {
   const [meta, shop, pricing, settings, briefs, items] = await Promise.all([
@@ -116,10 +113,11 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
     getPricingPlan(userId, product.id),
     merchantSettings(userId),
     approvedBriefs(userId, product.id),
-    activeItems(userId, [product.id]),
+    activeComponents(userId, [product.id]),
   ]);
   const { market } = await getMarket(userId, shop);
-  const rows = items.get(product.id) ?? [];
+  const listingRow = (items.get(product.id) ?? []).find((r) => r.component === LISTING && r.status === "approved");
+  const listing = listingRow ? (currentContent(listingRow) as Listing) : null;
   const hooks = briefs ? (["primary", "secondary"] as const).map((r) => briefs[r].payload?.hooks[briefs[r].payload?.recommended_hook ?? 0]?.text ?? "") : [];
   const cpaLimit = pricing?.maxCpa && pricing.maxCpa > 0 ? pricing.maxCpa : pricing?.purchaseCostLimit && pricing.purchaseCostLimit > 0 ? pricing.purchaseCostLimit : null;
   return {
@@ -132,7 +130,7 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
     spendCap: settings.ad_daily_spend_cap,
     freeShipping: settings.free_shipping,
     productUrl: shop?.shop_domain && product.handle ? `https://${shop.shop_domain}/products/${product.handle}` : null,
-    texts: defaultTexts({ hooks, offerLine: approvedText(rows, "offer_line"), shortName: approvedText(rows, "short_name"), title: product.title, freeShipping: settings.free_shipping }),
+    texts: defaultTexts({ hooks, offerLine: listing?.offer_line ?? null, shortName: listing?.short_name ?? null, title: product.title, freeShipping: settings.free_shipping }),
   };
 }
 

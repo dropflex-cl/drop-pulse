@@ -13,7 +13,10 @@
     "capturas": "tsx scripts/capturas.ts && tsx scripts/comparar-pantallas.ts",
     "capturas:componentes": "tsx scripts/componentes.ts && tsx scripts/comparar.ts componentes",
     "capturas:referencia": "tsx scripts/referencia/capturar.ts",
-    "check:onboarding": "tsx scripts/onboarding.ts"
+    "check:onboarding": "tsx scripts/onboarding.ts",
+    "shopify:components": "tsx scripts/shopify-components.ts && tsx scripts/store-preview.ts",
+    "store-preview": "tsx scripts/store-preview.ts",
+    "check:shopify": "tsx scripts/shopify-components.ts --check && tsx scripts/store-preview.ts --check && shopify theme check --path lib/shopify/themes/DropPulse --fail-level error"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

@@ -1,0 +1,56 @@
+{%- doc -%}
+  DropFlex · variables del acento por producto, listas para un atributo style.
+
+  ÚNICA fuente de los tonos derivados del acento (en v1 la escalera de contraste estaba copiada
+  en cuatro lugares con umbrales distintos). Lee `dropflex.accent` (tipo color) del producto y
+  emite:
+    --df-product-accent      el acento tal cual (fondos de botón, píldoras)
+    --df-product-on-accent   texto sobre el acento (oscuro o blanco, según brillo)
+    --df-product-accent-ink  el acento como TEXTO sobre el fondo: se oscurece (o aclara, sobre
+                             fondo oscuro) con color_modify 'lightness' hasta pasar 4.5:1. El
+                             tono se conserva; solo se mueve la luminosidad.
+  Sin producto o sin acento no emite nada y el componente usa el botón del tema.
+
+  @param {product} [product] - Producto del que leer el acento
+  @param {string} [background] - Fondo contra el que se mide el texto (por defecto blanco)
+
+  @example
+  <div class="df" style="{% render 'df-accent-vars', product: closest.product %}">
+{%- enddoc -%}
+{%- liquid
+  assign df_acc = product.metafields.dropflex.accent.value
+  if df_acc != blank
+    assign df_bg = background | default: '#ffffff'
+    assign df_bg_brightness = df_bg | color_brightness
+
+    if df_bg_brightness > 128
+      assign df_ladder = '44, 38, 32, 26, 20, 14' | split: ', '
+    else
+      assign df_ladder = '62, 70, 78, 86, 92, 96' | split: ', '
+    endif
+
+    assign df_ink = df_acc
+    for df_step in df_ladder
+      assign df_ratio = df_ink | color_contrast: df_bg
+      if df_ratio >= 4.5
+        break
+      endif
+      assign df_ink = df_acc | color_modify: 'lightness', df_step
+    endfor
+
+    assign df_acc_brightness = df_acc | color_brightness
+    if df_acc_brightness > 150
+      assign df_on = '#16181d'
+    else
+      assign df_on = '#ffffff'
+    endif
+
+    echo '--df-product-accent: '
+    echo df_acc | color_to_hex
+    echo '; --df-product-on-accent: '
+    echo df_on
+    echo '; --df-product-accent-ink: '
+    echo df_ink | color_to_hex
+    echo ';'
+  endif
+-%}

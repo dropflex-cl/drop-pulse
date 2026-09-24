@@ -1,0 +1,734 @@
+{%- comment -%}
+  DropFlex · Preguntas frecuentes con texto (faq-and-text). Sección del tercio inferior de la
+  landing, antes del último llamado: a la izquierda un texto (antetítulo, título con una palabra
+  en acento, bajada, prueba social real y botón opcional); a la derecha un acordeón de preguntas
+  con <details>/<summary> nativos.
+
+  Dos ejes de diseño (las 3 variantes de la referencia): tarjeta alrededor de la sección sí/no y
+  estilo de ítem divisores/tarjetas.
+
+  REGLA: los datos de política dentro de las respuestas son tokens que se llenan con datos reales:
+  {min} {max} días hábiles (logística) · {return_days} · {warranty_months} (políticas). Una
+  pregunta con un token sin dato NO se muestra. La prueba social usa {count} y {rating} del
+  resumen real de reseñas; sin resumen, se oculta.
+
+  Contenido: metafield `dropflex.faq_and_text` (json) → si falta, los ajustes y bloques «Pregunta».
+    { eyebrow?, heading, heading_highlight?, body?, cta_label?, social_proof_text?,
+      items[{ question, answer, topic }] }
+{%- endcomment -%}
+{%- liquid
+  assign s = section.settings
+  if product == blank
+    assign product = s.product
+  endif
+  assign content = product.metafields.dropflex.faq_and_text.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+  assign policies = shop.metafields.dropflex.policies.value
+  assign summary = product.metafields.dropflex.review_summary.value
+
+  # Datos reales para los tokens.
+  assign days_min = nil
+  assign days_max = nil
+  if logistics.transit_days_min != blank
+    assign handling = logistics.handling_days | default: 0 | plus: 0
+    assign days_min = logistics.transit_days_min | plus: handling
+    assign days_max = logistics.transit_days_max | default: logistics.transit_days_min | plus: handling
+    if days_max < days_min
+      assign days_max = days_min
+    endif
+  endif
+  assign return_days = policies.return_days
+  assign warranty_months = policies.warranty_months
+
+  if content.items.size > 0
+    assign items = content.items
+    assign eyebrow = content.eyebrow
+    assign heading = content.heading | default: s.heading
+    assign highlight = content.heading_highlight
+    assign body = content.body
+    assign cta_label = content.cta_label
+    assign social_text = content.social_proof_text
+  else
+    assign items = section.blocks
+    assign eyebrow = s.eyebrow
+    assign heading = s.heading
+    assign highlight = s.heading_highlight
+    assign body = s.body
+    assign cta_label = s.cta_label
+    assign social_text = s.social_proof_text
+  endif
+
+  # Título con la palabra en acento: se escapa primero y se envuelve solo la primera aparición.
+  assign heading_html = heading | escape
+  if highlight != blank and heading contains highlight
+    assign highlight_esc = highlight | escape
+    capture highlight_html
+      echo '<span class="df-faq-and-text__highlight">'
+      echo highlight_esc
+      echo '</span>'
+    endcapture
+    assign heading_html = heading_html | replace_first: highlight_esc, highlight_html
+  endif
+
+  # Prueba social: solo con el resumen real de reseñas. Un token sin dato oculta el texto.
+  assign social_html = nil
+  if s.show_social_proof and social_text != blank
+    if summary.count > 0
+      assign rating_text = summary.rating | round: 1 | append: '' | replace: '.', ','
+      assign social_text = social_text | replace: '{count}', summary.count | replace: '{rating}', rating_text
+    endif
+    unless social_text contains '{'
+      assign social_html = social_text | escape
+    endunless
+  endif
+
+  assign cta_href = s.cta_link
+  if cta_href == blank and product != blank
+    assign cta_href = product.url
+  endif
+
+  assign bg = s.background
+  assign bg_hex = nil
+  assign dark_bg = false
+  if bg != blank and bg.alpha != 0
+    assign bg_hex = bg | color_to_hex
+    assign bg_brightness = bg | color_brightness
+    if bg_brightness < 128
+      assign dark_bg = true
+    endif
+  endif
+
+  assign sep = '~|~'
+  assign group_name = 'df-faq-' | append: section.id
+  assign rendered = 0
+  assign ld_items = ''
+-%}
+
+{%- capture items_html -%}
+  {%- for item in items limit: 8 -%}
+    {%- liquid
+      # Un bloque del editor trae settings; un ítem del metafield trae las claves directas.
+      if item.settings != blank
+        assign question = item.settings.question
+        assign answer = item.settings.answer
+        assign item_attrs = item.shopify_attributes
+      else
+        assign question = item.question
+        assign answer = item.answer
+        assign item_attrs = ''
+      endif
+      if question == blank or answer == blank
+        continue
+      endif
+
+      assign joined = question | append: sep | append: answer
+      if days_min != blank
+        assign joined = joined | replace: '{min}', days_min | replace: '{max}', days_max
+      endif
+      if return_days != blank
+        assign joined = joined | replace: '{return_days}', return_days
+      endif
+      if warranty_months != blank
+        assign joined = joined | replace: '{warranty_months}', warranty_months
+      endif
+      if joined contains '{'
+        continue
+      endif
+      assign parts = joined | split: sep
+      assign question = parts[0]
+      assign answer = parts[1]
+
+      assign rendered = rendered | plus: 1
+      capture ld_item
+        echo '{"@type":"Question","name":'
+        echo question | json
+        echo ',"acceptedAnswer":{"@type":"Answer","text":'
+        echo answer | json
+        echo '}}'
+      endcapture
+      if ld_items != ''
+        assign ld_items = ld_items | append: ','
+      endif
+      assign ld_items = ld_items | append: ld_item
+    -%}
+    <details
+      class="df-faq-and-text__item"
+      {% if s.exclusive %}name="{{ group_name }}"{% endif %}
+      {% if s.open_first and rendered == 1 %}open{% endif %}
+      {{ item_attrs }}
+    >
+      <summary class="df-faq-and-text__question">
+        <span>{{ question | escape }}</span>
+        <span class="df-faq-and-text__sign" aria-hidden="true"></span>
+      </summary>
+      <div class="df-faq-and-text__answer">
+        <p class="df-text">{{ answer | escape | newline_to_br }}</p>
+      </div>
+    </details>
+  {%- endfor -%}
+{%- endcapture -%}
+
+{%- if rendered > 0 or request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  {%- if s.exclusive -%}
+    <script src="{{ 'df-faq-and-text.js' | asset_url }}" defer></script>
+  {%- endif -%}
+
+  <df-faq-and-text
+    class="df df-faq-and-text df-faq-and-text--{{ s.item_style }}{% if s.card %} df-faq-and-text--card{% endif %}"
+    style="{% render 'df-accent-vars', product: product, background: bg_hex %} padding-block: {{ s.padding_top }}px {{ s.padding_bottom }}px; --df-faq-left: {{ s.left_width }}%;{% if bg_hex != blank %} --df-bg: {{ bg_hex }}; background: {{ bg_hex }};{% endif %}{% if dark_bg %} --df-fg: #ffffff;{% endif %}"
+    {% if s.exclusive %}data-exclusive{% endif %}
+  >
+    <div class="df-faq-and-text__inner">
+      {%- if rendered == 0 -%}
+        <p class="df-placeholder">
+          Preguntas frecuentes: agrega preguntas o publica el contenido desde DropFlex. Las respuestas con un dato de política que falta ({return_days}, {min}, {max}) no se muestran.
+        </p>
+      {%- else -%}
+        <div class="df-faq-and-text__intro">
+          {%- if eyebrow != blank -%}
+            <p class="df-eyebrow">{{ eyebrow | escape }}</p>
+          {%- endif -%}
+          {%- if heading != blank -%}
+            <h2 class="df-heading df-faq-and-text__heading">{{ heading_html }}</h2>
+          {%- endif -%}
+          {%- if body != blank -%}
+            <p class="df-text df-faq-and-text__body">{{ body | escape | newline_to_br }}</p>
+          {%- endif -%}
+
+          {%- liquid
+            assign avatar_count = 0
+            if s.show_social_proof
+              if s.avatar_1 != blank
+                assign avatar_count = avatar_count | plus: 1
+              endif
+              if s.avatar_2 != blank
+                assign avatar_count = avatar_count | plus: 1
+              endif
+              if s.avatar_3 != blank
+                assign avatar_count = avatar_count | plus: 1
+              endif
+            endif
+          -%}
+          {%- if social_html != blank or avatar_count > 0 -%}
+            <div class="df-faq-and-text__proof">
+              {%- if avatar_count > 0 -%}
+                <ul class="df-faq-and-text__avatars" role="list">
+                  {%- for n in (1..3) -%}
+                    {%- assign key = 'avatar_' | append: n -%}
+                    {%- if s[key] != blank -%}
+                      <li>
+                        {{
+                          s[key]
+                          | image_url: width: 132, height: 132, crop: 'center'
+                          | image_tag: widths: '44, 88, 132', sizes: '44px', alt: '', loading: 'lazy', class: 'df-faq-and-text__avatar'
+                        }}
+                      </li>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+              {%- if social_html != blank -%}
+                <div class="df-faq-and-text__proof-text">
+                  {%- if summary.count > 0 -%}
+                    {% render 'df-stars', rating: summary.rating, size: '0.875rem' %}
+                  {%- endif -%}
+                  <p class="df-faq-and-text__proof-line">{{ social_html }}</p>
+                  {%- if summary.source_label != blank -%}
+                    <p class="df-faq-and-text__source">{{ summary.source_label | escape }}</p>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+
+          {%- if cta_label != blank and cta_href != blank -%}
+            <a class="df-faq-and-text__cta" href="{{ cta_href }}">{{ cta_label | escape }}</a>
+          {%- endif -%}
+        </div>
+
+        <div class="df-faq-and-text__list">
+          {{ items_html }}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- if s.emit_schema and rendered > 0 -%}
+      <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{{ ld_items }}]}
+      </script>
+    {%- endif -%}
+  </df-faq-and-text>
+
+  {% stylesheet %}
+    df-faq-and-text {
+      display: block;
+    }
+
+    .df-faq-and-text {
+      interpolate-size: allow-keywords;
+    }
+
+    .df-faq-and-text__inner {
+      display: grid;
+      gap: 24px;
+      max-width: 1200px;
+      margin-inline: auto;
+      padding-inline: 16px;
+    }
+
+    .df-faq-and-text--card .df-faq-and-text__inner {
+      max-width: calc(1200px - 32px);
+      margin-inline: 16px;
+      padding: 28px 20px;
+      border-radius: var(--df-radius);
+      background: var(--df-surface);
+    }
+
+    .df-faq-and-text__intro {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .df-faq-and-text__heading {
+      font-size: clamp(1.75rem, 6vw, 2.5rem);
+    }
+
+    .df-faq-and-text__highlight {
+      color: var(--df-accent-ink);
+    }
+
+    .df-faq-and-text__body {
+      max-width: 48ch;
+    }
+
+    .df-faq-and-text__proof {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .df-faq-and-text__avatars {
+      display: flex;
+      margin: 0;
+      padding: 0 0 0 10px;
+      list-style: none;
+    }
+
+    .df-faq-and-text__avatars li {
+      margin-left: -10px;
+    }
+
+    .df-faq-and-text__avatar {
+      display: block;
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--df-bg);
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .df-faq-and-text__proof-text {
+      display: grid;
+      gap: 4px;
+      justify-items: inherit;
+    }
+
+    .df-faq-and-text__proof-line {
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .df-faq-and-text__source {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--df-muted);
+    }
+
+    .df-faq-and-text__cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      margin-top: 8px;
+      padding: 12px 24px;
+      border-radius: var(--df-radius-pill);
+      background: var(--df-accent);
+      color: var(--df-on-accent);
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.2s var(--df-ease);
+    }
+
+    .df-faq-and-text__cta:hover {
+      transform: translateY(-1px);
+    }
+
+    .df-faq-and-text__cta:focus-visible,
+    .df-faq-and-text__question:focus-visible {
+      outline: 2px solid var(--df-accent);
+      outline-offset: 2px;
+    }
+
+    .df-faq-and-text__list {
+      display: grid;
+      align-content: start;
+    }
+
+    .df-faq-and-text__question {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 44px;
+      padding: 16px 0;
+      font-weight: 600;
+      font-size: 1rem;
+      line-height: 1.35;
+      text-align: start;
+      cursor: pointer;
+      list-style: none;
+      border-radius: var(--df-radius-sm);
+    }
+
+    .df-faq-and-text__question::-webkit-details-marker {
+      display: none;
+    }
+
+    /* Signo + que pasa a −: dos barras en CSS; la vertical gira y se esconde. */
+    .df-faq-and-text__sign {
+      position: relative;
+      flex: none;
+      width: 16px;
+      height: 16px;
+    }
+
+    .df-faq-and-text__sign::before,
+    .df-faq-and-text__sign::after {
+      content: '';
+      position: absolute;
+      inset: 7px 0 auto;
+      height: 2px;
+      border-radius: 2px;
+      background: currentColor;
+      transition: transform 0.3s var(--df-ease), opacity 0.3s var(--df-ease);
+    }
+
+    .df-faq-and-text__sign::after {
+      transform: rotate(90deg);
+    }
+
+    .df-faq-and-text__item[open] .df-faq-and-text__sign::after {
+      transform: rotate(180deg);
+      opacity: 0;
+    }
+
+    .df-faq-and-text__answer {
+      padding-bottom: 18px;
+    }
+
+    .df-faq-and-text__answer .df-text {
+      font-size: 0.9375rem;
+    }
+
+    /* Apertura animada donde el navegador lo permite (::details-content); si no, abre sin animar. */
+    .df-faq-and-text__item::details-content {
+      block-size: 0;
+      overflow: clip;
+      transition: block-size 0.35s var(--df-ease), content-visibility 0.35s allow-discrete;
+    }
+
+    .df-faq-and-text__item[open]::details-content {
+      block-size: auto;
+    }
+
+    .df-faq-and-text--dividers .df-faq-and-text__item {
+      border-bottom: 1px solid var(--df-hairline);
+    }
+
+    .df-faq-and-text--cards .df-faq-and-text__list {
+      gap: 12px;
+    }
+
+    .df-faq-and-text--cards .df-faq-and-text__item {
+      border-radius: var(--df-radius-sm);
+      background: var(--df-surface);
+    }
+
+    .df-faq-and-text--cards.df-faq-and-text--card .df-faq-and-text__item {
+      background: var(--df-bg);
+    }
+
+    .df-faq-and-text--cards .df-faq-and-text__question {
+      padding-inline: 18px;
+    }
+
+    .df-faq-and-text--cards .df-faq-and-text__answer {
+      padding-inline: 18px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .df-faq-and-text__item::details-content {
+        transition: none;
+      }
+    }
+
+    @media (min-width: 990px) {
+      .df-faq-and-text__inner {
+        grid-template-columns: minmax(0, var(--df-faq-left, 40%)) minmax(0, 1fr);
+        gap: 56px;
+        padding-inline: 32px;
+      }
+
+      .df-faq-and-text--card .df-faq-and-text__inner {
+        margin-inline: auto;
+        padding: 56px;
+      }
+
+      .df-faq-and-text__intro {
+        position: sticky;
+        top: 24px;
+        justify-items: start;
+        text-align: start;
+      }
+
+      .df-faq-and-text__proof {
+        align-items: flex-start;
+      }
+
+      .df-faq-and-text__question {
+        font-size: 1.125rem;
+      }
+
+      .df-faq-and-text__answer .df-text {
+        font-size: 1rem;
+      }
+    }
+  {% endstylesheet %}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "DropFlex · FAQ con texto",
+  "tag": "section",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Los textos vienen del metafield dropflex.faq_and_text; estos ajustes y las preguntas son el respaldo. Usa {return_days}, {min} y {max} para plazos: se llenan con tus políticas y logística."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Texto"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Antetítulo",
+      "default": "Preguntas frecuentes"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "default": "Resolvemos tus dudas antes de pedir"
+    },
+    {
+      "type": "text",
+      "id": "heading_highlight",
+      "label": "Palabras en acento",
+      "info": "Deben aparecer tal cual en el título.",
+      "default": "tus dudas"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Bajada"
+    },
+    {
+      "type": "text",
+      "id": "cta_label",
+      "label": "Texto del botón"
+    },
+    {
+      "type": "url",
+      "id": "cta_link",
+      "label": "Enlace del botón",
+      "info": "Vacío = página del producto."
+    },
+    {
+      "type": "header",
+      "content": "Prueba social"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_social_proof",
+      "label": "Mostrar prueba social",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "social_proof_text",
+      "label": "Texto",
+      "info": "{count} y {rating} salen de tus reseñas aprobadas. Sin reseñas, no se muestra.",
+      "default": "{rating} de 5 según {count} reseñas"
+    },
+    {
+      "type": "image_picker",
+      "id": "avatar_1",
+      "label": "Avatar 1",
+      "info": "Solo clientes reales con permiso, o ilustraciones que no se hagan pasar por clientes."
+    },
+    {
+      "type": "image_picker",
+      "id": "avatar_2",
+      "label": "Avatar 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "avatar_3",
+      "label": "Avatar 3"
+    },
+    {
+      "type": "header",
+      "content": "Acordeón"
+    },
+    {
+      "type": "checkbox",
+      "id": "exclusive",
+      "label": "Una abierta a la vez",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "open_first",
+      "label": "Primera abierta",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "emit_schema",
+      "label": "Datos estructurados FAQ",
+      "info": "Agrega JSON-LD FAQPage. Desactívalo si otra app ya lo agrega en esta página.",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "checkbox",
+      "id": "card",
+      "label": "Tarjeta alrededor",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "item_style",
+      "label": "Estilo de preguntas",
+      "options": [
+        { "value": "dividers", "label": "Divisores" },
+        { "value": "cards", "label": "Tarjetas" }
+      ],
+      "default": "dividers"
+    },
+    {
+      "type": "range",
+      "id": "left_width",
+      "label": "Ancho del texto",
+      "info": "En escritorio.",
+      "min": 30,
+      "max": 50,
+      "step": 5,
+      "unit": "%",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Fondo"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Espacio superior",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Espacio inferior",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "blocks": [
+    {
+      "type": "faq",
+      "name": "Pregunta",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Pregunta",
+          "info": "Como la pensaría el comprador, en primera persona.",
+          "default": "¿Pago cuando me llegue?"
+        },
+        {
+          "type": "textarea",
+          "id": "answer",
+          "label": "Respuesta",
+          "info": "Primera frase responde directo. Plazos con {min}, {max}, {return_days}.",
+          "default": "Sí. Pagas al recibir tu pedido en la puerta de tu casa, sin adelantar nada."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · FAQ con texto",
+      "blocks": [
+        {
+          "type": "faq",
+          "settings": {
+            "question": "¿Pago cuando me llegue?",
+            "answer": "Sí. Pagas al recibir tu pedido en la puerta de tu casa, sin adelantar nada."
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "¿Cuánto demora en llegar?",
+            "answer": "Entre {min} y {max} días hábiles. Te avisamos cuando tu pedido salga a reparto."
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "¿Y si no me queda o no me gusta?",
+            "answer": "Tienes {return_days} días para pedir el cambio. Escríbenos y te guiamos paso a paso."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

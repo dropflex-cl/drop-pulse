@@ -1,0 +1,287 @@
+{%- doc -%}
+  DropFlex · Estrellas de reseñas (review-stars). Bloque de la columna del producto, sobre el
+  título: 5 estrellas con relleno parcial + «4,6 · 19 reseñas» + el origen de las reseñas. Es un
+  enlace a las reseñas completas (ancla del ajuste `anchor`).
+
+  REGLA: la calificación y la cantidad salen SOLO de las reseñas aprobadas (metafield de la app
+  `dropflex.review_summary`). No hay modo manual: sin resumen, o con menos reseñas que el mínimo
+  del bloque, no se dibuja nada (nunca «0 reseñas»). 4,6 se dibuja como 4,6 (relleno al 92 %),
+  nunca redondeado a 5.
+
+  Contenido (texto): metafield `dropflex.review_stars` (json) → si falta, el texto del bloque.
+    { label } con los tokens {count} (obligatorio) y {rating}.
+  Datos reales: product.metafields.dropflex.review_summary = { rating, count, source_label }.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.review_stars.value
+  assign summary = product.metafields.dropflex.review_summary.value
+
+  assign rating = summary.rating | default: 0 | plus: 0 | at_least: 0 | at_most: 5
+  assign count = summary.count | default: 0 | plus: 0
+  assign source_label = summary.source_label
+
+  assign show = true
+  if product == blank or rating <= 0 or count < s.min_reviews
+    assign show = false
+  endif
+
+  if show
+    # 4.6 → «4,6»; 5 → «5,0». Siempre un decimal, con coma.
+    assign r10 = rating | times: 10 | round
+    assign r_int = r10 | divided_by: 10
+    assign r_dec = r10 | modulo: 10
+    assign rating_text = r_int | append: ',' | append: r_dec
+
+    # 1234 → «1.234».
+    assign count_text = count | append: ''
+    if count >= 1000
+      assign thousands = count | divided_by: 1000
+      assign rest = count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    endif
+
+    assign label = content.label | default: s.label
+    if label contains '{count}'
+      assign label = label | replace: '{count}', count_text | replace: '{rating}', rating_text
+    else
+      # Una plantilla sin {count} escribiría la cantidad a mano: se descarta.
+      assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas'
+    endif
+
+    assign aria = 'Calificación ' | append: rating_text | append: ' de 5, basada en ' | append: count_text | append: ' reseñas'
+    assign anchor = s.anchor | remove: '#' | strip | handleize
+    if anchor != blank
+      assign aria = aria | append: '. Ir a las reseñas'
+    endif
+    assign star_size = s.star_size | append: 'px'
+  endif
+-%}
+
+{%- if show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  {%- if anchor != blank -%}
+    <script src="{{ 'df-review-stars.js' | asset_url }}" defer></script>
+  {%- endif -%}
+
+  <df-review-stars
+    class="df df-review-stars df-review-stars--{{ s.alignment }}"
+    style="{% render 'df-accent-vars', product: product %} --df-review-stars-text: {{ s.text_size }}px; --df-review-stars-offset: {{ s.scroll_offset }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if anchor != blank -%}
+      <a class="df-review-stars__row" href="#{{ anchor }}" aria-label="{{ aria | escape }}" data-df-review-stars-link>
+    {%- else -%}
+      <p class="df-review-stars__row" role="img" aria-label="{{ aria | escape }}">
+    {%- endif -%}
+      <span aria-hidden="true" class="df-review-stars__stars">
+        {%- render 'df-stars', rating: rating, size: star_size, label: aria -%}
+      </span>
+      {%- if s.show_text -%}
+        <span class="df-review-stars__label" aria-hidden="true">{{ label | escape }}</span>
+      {%- endif -%}
+    {%- if anchor != blank -%}
+      </a>
+    {%- else -%}
+      </p>
+    {%- endif -%}
+    {%- if s.show_source and source_label != blank -%}
+      <p class="df-review-stars__source">{{ source_label | escape }}</p>
+    {%- endif -%}
+  </df-review-stars>
+
+  {% stylesheet %}
+    .df-review-stars {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .df-review-stars--center { align-items: center; text-align: center; }
+    .df-review-stars--right { align-items: flex-end; text-align: right; }
+    .df-review-stars--left { align-items: flex-start; }
+
+    .df-review-stars__row {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+      min-height: 44px;
+      color: var(--df-fg);
+      font-size: var(--df-review-stars-text, 14px);
+      line-height: 1.2;
+      text-decoration: none;
+    }
+
+    a.df-review-stars__row:hover .df-review-stars__label {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a.df-review-stars__row:focus-visible {
+      outline: 2px solid var(--df-accent);
+      outline-offset: 2px;
+      border-radius: var(--df-radius-sm);
+    }
+
+    .df-review-stars__stars {
+      display: inline-flex;
+      line-height: 0;
+    }
+
+    .df-review-stars__label {
+      font-weight: 500;
+    }
+
+    .df-review-stars__source {
+      margin: 0;
+      font-size: 0.75rem;
+      line-height: 1.35;
+      color: var(--df-muted);
+    }
+  {% endstylesheet %}
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Estrellas de reseñas: se muestran cuando el producto tiene al menos {{ s.min_reviews }} reseñas aprobadas en DropFlex.
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "DropFlex · Estrellas",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "La calificación y la cantidad salen de las reseñas aprobadas en DropFlex. No se pueden escribir a mano."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Texto"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_text",
+      "label": "Mostrar texto",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Texto junto a las estrellas",
+      "info": "Respaldo del metafield dropflex.review_stars. {count} es obligatorio; {rating} es opcional.",
+      "default": "{rating} · {count} reseñas"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_source",
+      "label": "Mostrar origen",
+      "info": "Ej.: «Reseñas de compradores del mismo producto en AliExpress».",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Reglas"
+    },
+    {
+      "type": "range",
+      "id": "min_reviews",
+      "label": "Mínimo de reseñas",
+      "info": "Con menos reseñas aprobadas, el bloque no se muestra.",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "text",
+      "id": "anchor",
+      "label": "Ancla de las reseñas",
+      "info": "Id del bloque de reseñas al que lleva el clic (sin #). Vacío: no es enlace.",
+      "default": "resenas"
+    },
+    {
+      "type": "range",
+      "id": "scroll_offset",
+      "label": "Compensar encabezado",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "unit": "px",
+      "default": 80
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alineación",
+      "options": [
+        { "value": "left", "label": "Izquierda" },
+        { "value": "center", "label": "Centro" },
+        { "value": "right", "label": "Derecha" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "star_size",
+      "label": "Tamaño de estrellas",
+      "min": 14,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "label": "Tamaño del texto",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Estrellas"
+    }
+  ]
+}
+{% endschema %}

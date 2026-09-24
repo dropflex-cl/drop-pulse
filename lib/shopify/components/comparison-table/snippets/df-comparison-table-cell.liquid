@@ -1,0 +1,32 @@
+{%- doc -%}
+  DropFlex · valor de una celda de la tabla comparativa.
+
+  Sí / No / Parcial se dibujan con un ícono y SIEMPRE llevan el texto oculto para lectores de
+  pantalla: el ícono solo nunca es la información. Un valor de texto se imprime escapado; un
+  "text" sin texto o un valor desconocido cae a "Parcial" (nunca a un "Sí" que no está escrito).
+
+  @param {string} value - yes | no | partial | text
+  @param {string} [text] - Texto corto ya con los tokens reemplazados (solo para value: text)
+
+  @example
+  {% render 'df-comparison-table-cell', value: 'yes' %}
+{%- enddoc -%}
+{%- liquid
+  assign df_value = value
+  if df_value == 'text' and text == blank
+    assign df_value = 'partial'
+  endif
+-%}
+{%- case df_value -%}
+  {%- when 'yes' -%}
+    <span class="df-comparison-table__mark df-comparison-table__mark--yes">{% render 'df-icon', name: 'check-circle' %}</span>
+    <span class="df-visually-hidden">Sí</span>
+  {%- when 'no' -%}
+    <span class="df-comparison-table__mark df-comparison-table__mark--no">{% render 'df-icon', name: 'x-circle' %}</span>
+    <span class="df-visually-hidden">No</span>
+  {%- when 'text' -%}
+    <span class="df-comparison-table__value">{{ text | escape }}</span>
+  {%- else -%}
+    <span class="df-comparison-table__mark df-comparison-table__mark--partial" aria-hidden="true"></span>
+    <span class="df-visually-hidden">Parcial</span>
+{%- endcase -%}

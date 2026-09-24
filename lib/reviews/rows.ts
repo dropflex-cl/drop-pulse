@@ -72,3 +72,9 @@ export async function reviewsForPrompt(userId: string, productId: string): Promi
     .slice(0, PROMPT_MAX)
     .map((r) => ({ rating: r.rating, text: displayText(r), country: r.country ?? undefined, approved: rank(r) === 0 }));
 }
+
+/** Las reseñas aprobadas (o ya publicadas) con texto, en su orden: las únicas que la página puede citar. */
+export async function approvedReviewRows(userId: string, productId: string): Promise<ReviewRow[]> {
+  const rows = await listReviewRows(userId, productId);
+  return rows.filter((r) => (r.status === "approved" || r.status === "published") && displayText(r).trim().length > 0);
+}

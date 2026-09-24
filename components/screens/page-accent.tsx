@@ -12,7 +12,18 @@ import { cn } from "@/lib/utils";
 
 const ratio = (n: number) => `${n.toLocaleString("es-CL", { maximumFractionDigits: 1, minimumFractionDigits: 1 })}:1`;
 
-export function PageAccent({ productId, initial, className }: { productId: string; initial: string | null; className?: string }) {
+export function PageAccent({
+  productId,
+  initial,
+  onSaved,
+  className,
+}: {
+  productId: string;
+  initial: string | null;
+  /** El color quedó guardado (la vista previa de la página lo usa). */
+  onSaved?: (hex: string) => void;
+  className?: string;
+}) {
   const [saved, setSaved] = useState<string | null>(initial);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string>();
@@ -33,6 +44,7 @@ export function PageAccent({ productId, initial, className }: { productId: strin
     try {
       const { accent } = await productsApi.saveAccent(productId, hex);
       setSaved(accent);
+      onSaved?.(accent);
       notify(`Color de la página: ${name(accent)}`);
     } catch (e) {
       setError(e instanceof ProductApiClientError ? e.message : "No pudimos guardar el color. Intenta de nuevo.");

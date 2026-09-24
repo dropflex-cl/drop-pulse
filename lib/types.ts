@@ -9,6 +9,7 @@ import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
+import type { StoreFacts } from "@/lib/store-preview/facts";
 import type { AngleRole, SalesAngle } from "@/lib/angles/catalog";
 
 export type { ContentStatus, Verdict };
@@ -200,39 +201,50 @@ export interface ProductAngles extends AnglesState {
   product: Product;
 }
 
-/** Un bloque de la página del producto (ReviewCard en la etapa Textos). */
-export interface CopyItem {
+/** Una foto elegida para un espacio de imagen de un componente (ImageSlot en su content.ts). */
+export interface ImagePick {
+  slot: string;
+  source: "reference" | "page_image";
   id: string;
-  /** lib/copy/blocks.ts › PAGE_BLOCKS o "faq". */
-  key: string;
-  /** «Beneficio 2», «Pregunta frecuente 1». */
-  label: string;
-  section: string;
-  /** Lo que hay hoy en Shopify (título; en «Cómo funciona», la descripción como referencia). */
-  original?: string;
-  /** El texto vigente: tu versión si la editaste, si no la propuesta. Preguntas: «pregunta\nrespuesta». */
-  text: string;
-  edited: boolean;
-  angle?: AngleRole;
-  note?: string;
-  /** Dato que la IA no tiene («el plazo de entrega y tu WhatsApp»). */
-  missing?: string;
-  status: ContentStatus;
-  required: boolean;
-  limit: number;
-  unit: "caracteres" | "palabras";
 }
 
-/** El estado de la etapa Textos (lo que devuelve el sondeo). */
+/** Una imagen del catálogo del producto, para elegir en los componentes que llevan fotos. */
+export interface CatalogImage {
+  source: ImagePick["source"];
+  id: string;
+  src: string;
+  /** De dónde viene, en la pantalla. */
+  origin: "Información base" | "Generada" | "Subida";
+  alt?: string;
+}
+
+/** La ficha o un componente de la página (lib/shopify/components/catalog.ts), en la etapa Página del producto. */
+export interface PageComponentView {
+  id: string;
+  /** "listing" (la ficha) o el id del catálogo. */
+  component: string;
+  /** La versión vigente: la tuya si la editaste, si no la propuesta de la IA. */
+  content: unknown;
+  edited: boolean;
+  /** «Usar en la página». La ficha siempre va. */
+  enabled: boolean;
+  status: ContentStatus;
+  images: ImagePick[];
+}
+
+/** El estado de la etapa Página del producto (lo que devuelve el sondeo). */
 export interface CopyState {
   /** Se habilita con los 2 desarrollos de Ángulos aprobados. */
   locked: boolean;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
-  items: CopyItem[];
+  /** La ficha y los componentes escritos, en el orden de la página. */
+  components: PageComponentView[];
+  /** Las imágenes del producto que se pueden elegir. */
+  images: CatalogImage[];
+  /** Los datos reales que llenan los componentes en la tienda (y en la vista previa). */
+  facts: StoreFacts;
   /** Los ángulos cambiaron después de escribir la página. */
   stale: boolean;
-  /** La ficha no trae días de garantía: el bloque no se incluye a propósito. */
-  noGuarantee: boolean;
 }
 
 export interface ProductCopy extends CopyState {

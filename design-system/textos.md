@@ -1,38 +1,54 @@
-# Textos: la página del producto
+# Página del producto: la ficha y los componentes
 
-La etapa escribe la página del producto en la tienda (no el texto del anuncio, que va en Anuncios). La UI reutiliza el flujo de revisión existente —una propuesta a la vez, con Deshacer y atajos A/D/E— y le agrega lo que la página necesita: de qué ángulo sale cada bloque, su límite, qué pasa si se descarta y los estados de la etapa.
+La etapa escribe la página del producto en la tienda (no el texto del anuncio, que va en Anuncios). En vez de revisar textos sueltos, el comerciante ve **cómo se verá la página**: la ficha (campos nativos de Shopify) y los componentes de conversión del tema (`lib/shopify/components`), cada uno como vista previa fiel con el color del producto. Una sola escritura de la IA propone todo; el comerciante elige qué componentes van, los edita y los aprueba. Contrato técnico: `docs/spec-pagina-componentes.md`.
 
 ## Estados de la etapa
 
 | Fase | Qué se ve | Componentes |
 |---|---|---|
 | `locked` | "Aprueba los 2 desarrollos de Ángulos" con enlace | `EmptyState` + `StageList` con el motivo |
-| `start` | "Escribe la página de tu producto" y "Escribir textos con IA" (el botón "Continuar: Textos" de Ángulos lo dispara directo) | `EmptyState` |
-| `writing` | "La IA está escribiendo los textos", con esqueletos; se puede salir y Hoy avisa | `EmptyState busy` |
-| `failed` | "No se pudieron escribir los textos" + el motivo + "Reintentar" | `EmptyState tone="error"` |
-| `review` | Un bloque a la vez; contador "8 de 14 aceptados" en la barra y en la ruta | `ReviewCard` + `StageMeter` + `PageOutline` (escritorio) |
-| `done` | Lo aprobado por sección, "Rehacer descartados" y "Continuar: Imágenes" | `CopySummary` |
-| desactualizado | Aviso sobre la lista: "Cambiaste tus ángulos. Reescribe los textos que no aprobaste." | `Notice` |
+| `start` | "Escribe la página de tu producto" y "Escribir la página con IA" (el botón "Continuar" de Ángulos lo dispara directo) | `EmptyState` |
+| `writing` | "La IA está escribiendo la página", con esqueletos; se puede salir y Hoy avisa | `EmptyState busy` |
+| `failed` | "No se pudo escribir la página" + el motivo + "Reintentar" | `EmptyState tone="error"` |
+| `review` | La ficha por aprobar y los componentes con su vista previa | Ficha + `ComponentCard` + `StageMeter` |
+| `done` | Ficha aprobada; "N componentes en la página"; "Continuar: Imágenes" | igual |
+| desactualizado | "Cambiaste tus ángulos. Reescribe lo que no aprobaste." | `Notice` |
 
-## La tarjeta de cada bloque
+Una reescritura en curso o con error no tapa lo escrito: va como `Notice` o alerta sobre la lista.
 
-- **Encabezado:** sección de la página · nombre del bloque · "Obligatorio" si corresponde · posición ("9 de 14").
-- **Original:** "Hoy en Shopify" solo en los bloques que lo tienen (título y SEO; en "Cómo funciona", la descripción actual como referencia).
-- **Propuesta:** con el `RoleChip` del ángulo del que sale (principal o secundario). Las preguntas frecuentes muestran pregunta y respuesta juntas.
-- **Contador** contra el límite del bloque; pasado el límite no se puede guardar.
-- **Nota de la IA:** por qué lo propone, en una frase.
-- **Qué pasa si descartas**, antes de decidir: "se mantiene el título actual de Shopify" o "este bloque no va en la página".
-- **Datos que faltan** (`missing_inputs`): un `Notice` sobre el bloque ("Completa el plazo de entrega y tu WhatsApp") para completarlos al editar.
+## La ficha
 
-## Obligatorios
+Tarjeta con la vista del comprador (`OfferPreview`: título, precio, tachado), la frase de la oferta, la descripción corta y "En Google" (título y descripción). Estado con `StatusBadge` ("Por aprobar" / "Aprobada"). Acciones: "Revisar ficha" (abre la hoja con sus 6 campos) y "Aprobar ficha". **Es lo único obligatorio**: la etapa termina con la ficha aprobada.
 
-Título, nombre corto, descripción corta, frase de la oferta, cómo funciona, envío y pago, y los dos de Google. Los que no tienen original de Shopify (descripción corta, oferta, envío y pago) no pueden quedar vacíos: si se descartan, quedan como "Falta aprobar" en `PageOutline` y `CopySummary`, y "Continuar: Imágenes" sigue deshabilitado hasta aprobar una versión (propia o reescrita).
+## La tarjeta de cada componente (`ComponentCard`)
 
-## Lo que no se incluye a propósito
+- **Encabezado:** nombre ("Disponibilidad"), estado ("Propuesta de la IA", "Aprobado", "Tu versión") y la duda que responde, en una línea.
+- **Vista previa:** el componente como en la tienda, en miniatura (`StoreFrame` con `scale`), recortada con un degradado si es larga. Tocarla abre la edición. Es decorativa (`aria-hidden`); al lado va lo que dice, en texto, para lectores de pantalla.
+- **Avisos:** "Con datos de ejemplo" cuando un token ({count}, {min}…) todavía no tiene dato real; "Falta imagen" cuando está en uso y le faltan fotos.
+- **"Editar"** y el interruptor **"Usar en la página"** (`Switch`, nombre accesible "Usar Disponibilidad en la página"). Activarlo aprueba; desactivarlo conserva el contenido.
+- **Sin escribir:** los que necesitan reseñas aprobadas dicen cuántas y llevan a Reseñas.
 
-La garantía solo aparece si la ficha trae días de garantía. Si no, `PageOutline` y `CopySummary` la muestran como "No se incluye · Tu ficha no tiene días de garantía", para que no parezca un olvido.
+Agrupados en el orden de la página: "Junto al botón de compra" (bloques de la columna del producto) y "Cuerpo de la página" (secciones).
+
+## La hoja de edición
+
+`Drawer` abajo en móvil y a la derecha en escritorio:
+
+- Vista previa arriba, fija, que cambia mientras se escribe.
+- Los campos se arman desde el esquema del componente (`lib/copy/form.ts`): texto con `CharCount` contra su límite, selector de ícono, opciones (política, tema), reseña aprobada, celda de comparativa, listas con agregar y quitar dentro de su mínimo y máximo.
+- Los errores van bajo cada campo, en frases simples ("Pasa de 40 caracteres."). "Guardar" queda deshabilitado mientras haya alguno.
+- **Fotos** (si el componente las lleva): el catálogo completo del producto (Información base e Imágenes) con su origen; tocar agrega en orden, tocar otra vez quita.
+- "Guardar y usar" (componente) o "Guardar y aprobar" (ficha).
 
 ## Móvil y escritorio
 
-- **Móvil:** un bloque a la vez con las acciones en la barra fija; el contador de la barra superior abre `PageOutline` como hoja.
-- **Escritorio:** ruta a la izquierda, bloque al centro con atajos, y la página completa como índice a la derecha para saltar entre bloques.
+- **Móvil:** barra superior con `StageMeter` (la ficha y un segmento por componente en uso), ficha, color de la página, componentes; barra fija con "Reescribir" y "Imágenes".
+- **Escritorio:** ruta a la izquierda, ficha y componentes al centro, y **"Tu página"** a la derecha: la página armada (ficha + componentes en uso, en orden) en un marco de tienda.
+
+## Excepción de tokens
+
+La vista previa es otra superficie (la tienda): su CSS sale del tema (`components/store-preview/store.generated.css`, generado desde los `{% stylesheet %}`), con colores de tienda fijos que no cambian con el modo oscuro de DropFlex. Está documentada en `scripts/valores-sueltos.sh`, igual que `OfferPreview`.
+
+## Retirados
+
+`PageOutline` y `CopySummary` (índice y resumen de bloques) ya no se usan: la vista previa de la página los reemplaza. Siguen en `reference/` como historia del diseño.

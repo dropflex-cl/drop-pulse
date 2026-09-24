@@ -1,0 +1,35 @@
+{%- doc -%}
+  DropFlex · fila de 5 estrellas con relleno parcial (4.6 → 92 %).
+
+  El valor visible va en texto para lectores de pantalla; las estrellas son decorativas.
+
+  @param {number} rating - Calificación de 0 a 5 (acepta decimales)
+  @param {string} [size] - Tamaño CSS de cada estrella (por defecto 1rem)
+  @param {string} [label] - Texto accesible (por defecto "4,6 de 5 estrellas")
+
+  @example
+  {% render 'df-stars', rating: 4.6, size: '1.125rem' %}
+{%- enddoc -%}
+{%- liquid
+  assign df_rating = rating | default: 0 | at_least: 0 | at_most: 5
+  assign df_fill = df_rating | times: 20
+  assign df_label = label
+  if df_label == blank
+    assign df_label = df_rating | round: 1 | append: ' de 5 estrellas' | replace: '.', ','
+  endif
+  capture df_star
+    echo '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10 1.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L1.4 7.8l6-.8z"/></svg>'
+  endcapture
+-%}
+<span
+  class="df-stars"
+  style="--df-stars-fill: {{ df_fill }}%;{% if size != blank %} --df-stars-size: {{ size }};{% endif %}"
+>
+  <span class="df-stars__row df-stars__row--empty">
+    {%- for i in (1..5) -%}{{ df_star }}{%- endfor -%}
+  </span>
+  <span class="df-stars__row df-stars__row--full">
+    {%- for i in (1..5) -%}{{ df_star }}{%- endfor -%}
+  </span>
+  <span class="df-visually-hidden">{{ df_label }}</span>
+</span>

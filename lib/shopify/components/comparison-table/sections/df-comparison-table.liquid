@@ -1,0 +1,659 @@
+{%- comment -%}
+  DropFlex · Tabla comparativa (comparison-table). Sección de la landing, después de beneficios y
+  antes de reseñas o FAQ: «[Producto] vs. [categoría genérica]» con la columna nuestra destacada
+  como un pilar de color de acento que atraviesa la tabla.
+
+  REGLA: la competencia es SIEMPRE una categoría genérica («Genéricos», «Tiendas internacionales»),
+  nunca una marca. El metafield solo existe después de que el comerciante aprobó la tabla en la
+  app (approved_by_merchant): la sección no vuelve a validar eso, solo lo dibuja.
+
+  Contenido: metafield `dropflex.comparison_table` (json) → si falta, los ajustes y bloques «Fila».
+    { heading, us_label, other_labels[1..2], rows[{ feature, us, others[], basis }], footnote? }
+    valor de celda: "yes" | "no" | "partial" | { text }
+  Tokens en textos: {min} {max} días hábiles (logística) · {return_days} · {warranty_months}
+  (políticas). Una fila con un token sin dato real no se muestra.
+
+  Tabla semántica: <table> con <th scope="col"> y <th scope="row">; cada ícono lleva su texto
+  oculto (Sí / No / Parcial). Con dos competidores, en móvil la tabla se desplaza en horizontal con
+  la primera columna fija.
+{%- endcomment -%}
+{%- liquid
+  assign s = section.settings
+  if product == blank
+    assign product = s.product
+  endif
+  assign content = product.metafields.dropflex.comparison_table.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+  assign policies = shop.metafields.dropflex.policies.value
+
+  # Datos reales para los tokens. Sin logística no hay {min}/{max}: esas filas se omiten.
+  assign days_min = nil
+  assign days_max = nil
+  if logistics.transit_days_min != blank
+    assign handling = logistics.handling_days | default: 0 | plus: 0
+    assign days_min = logistics.transit_days_min | plus: handling
+    assign days_max = logistics.transit_days_max | default: logistics.transit_days_min | plus: handling
+    if days_max < days_min
+      assign days_max = days_min
+    endif
+  endif
+  assign return_days = policies.return_days
+  assign warranty_months = policies.warranty_months
+
+  if content.rows.size > 0
+    assign rows = content.rows
+    assign heading = content.heading | default: s.heading
+    assign us_label = content.us_label | default: s.us_label
+    assign o1_label = content.other_labels[0]
+    assign o2_label = content.other_labels[1]
+    assign footnote = content.footnote
+  else
+    assign rows = section.blocks
+    assign heading = s.heading
+    assign us_label = s.us_label
+    assign o1_label = s.other_label_1
+    assign o2_label = s.other_label_2
+    assign footnote = s.footnote
+  endif
+  assign us_label = us_label | default: shop.name
+
+  assign cols = 1
+  if o2_label != blank
+    assign cols = 2
+  endif
+
+  assign bg = s.background
+  assign bg_hex = nil
+  assign dark_bg = false
+  if bg != blank and bg.alpha != 0
+    assign bg_hex = bg | color_to_hex
+    assign bg_brightness = bg | color_brightness
+    if bg_brightness < 128
+      assign dark_bg = true
+    endif
+  endif
+
+  assign sep = '~|~'
+  assign heading_id = 'DfComparisonHeading-' | append: section.id
+-%}
+
+{%- capture rows_html -%}
+  {%- if o1_label != blank -%}
+    {%- for row in rows limit: 8 -%}
+      {%- liquid
+        # Un bloque del editor trae settings; un ítem del metafield trae las claves directas.
+        if row.settings != blank
+          assign feature = row.settings.feature
+          assign us_val = row.settings.us
+          assign us_text = row.settings.us_text
+          assign o1_val = row.settings.other_1
+          assign o1_text = row.settings.other_1_text
+          assign o2_val = row.settings.other_2
+          assign o2_text = row.settings.other_2_text
+          assign row_attrs = row.shopify_attributes
+        else
+          assign feature = row.feature
+          assign us_text = row.us.text
+          assign us_val = row.us
+          if us_text != blank
+            assign us_val = 'text'
+          endif
+          assign o1_cell = row.others[0]
+          assign o1_text = o1_cell.text
+          assign o1_val = o1_cell
+          if o1_text != blank
+            assign o1_val = 'text'
+          endif
+          assign o2_cell = row.others[1]
+          assign o2_text = o2_cell.text
+          assign o2_val = o2_cell
+          if o2_text != blank
+            assign o2_val = 'text'
+          endif
+          assign row_attrs = ''
+        endif
+
+        if feature == blank
+          continue
+        endif
+
+        # Los cuatro textos de la fila pasan juntos por los tokens: si queda uno sin dato, la fila se omite.
+        assign joined = feature | append: sep | append: us_text | append: sep | append: o1_text | append: sep | append: o2_text
+        if days_min != blank
+          assign joined = joined | replace: '{min}', days_min | replace: '{max}', days_max
+        endif
+        if return_days != blank
+          assign joined = joined | replace: '{return_days}', return_days
+        endif
+        if warranty_months != blank
+          assign joined = joined | replace: '{warranty_months}', warranty_months
+        endif
+        if joined contains '{'
+          continue
+        endif
+        assign parts = joined | split: sep
+        assign feature = parts[0]
+        assign us_text = parts[1]
+        assign o1_text = parts[2]
+        assign o2_text = parts[3]
+      -%}
+      <tr class="df-comparison-table__row" {{ row_attrs }}>
+        <th scope="row" class="df-comparison-table__feature">{{ feature | escape }}</th>
+        <td class="df-comparison-table__us">{% render 'df-comparison-table-cell', value: us_val, text: us_text %}</td>
+        <td class="df-comparison-table__other">{% render 'df-comparison-table-cell', value: o1_val, text: o1_text %}</td>
+        {%- if cols == 2 -%}
+          <td class="df-comparison-table__other">{% render 'df-comparison-table-cell', value: o2_val, text: o2_text %}</td>
+        {%- endif -%}
+      </tr>
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- assign rows_html = rows_html | strip -%}
+
+{%- if rows_html != blank or request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  {%- if s.pulse -%}
+    <script src="{{ 'df-comparison-table.js' | asset_url }}" defer></script>
+  {%- endif -%}
+
+  <df-comparison-table
+    class="df df-comparison-table{% if s.red_crosses %} df-comparison-table--red-crosses{% endif %}{% if s.pulse %} df-comparison-table--pulse{% endif %}"
+    style="{% render 'df-accent-vars', product: product, background: bg_hex %} padding-block: {{ s.padding_top }}px {{ s.padding_bottom }}px;{% if bg_hex != blank %} --df-bg: {{ bg_hex }}; background: {{ bg_hex }};{% endif %}{% if dark_bg %} --df-fg: #ffffff;{% endif %}"
+  >
+    <div class="df-comparison-table__inner">
+      {%- if rows_html == blank -%}
+        <p class="df-placeholder">
+          Tabla comparativa: agrega filas o publica el contenido aprobado desde DropFlex. Sin filas no se muestra en la tienda.
+        </p>
+      {%- else -%}
+        {%- if heading != blank -%}
+          <h2 id="{{ heading_id }}" class="df-heading df-comparison-table__heading{% if s.heading_italic %} df-comparison-table__heading--italic{% endif %}">
+            {{- heading | escape -}}
+          </h2>
+        {%- endif -%}
+
+        <div
+          class="df-comparison-table__scroll df-comparison-table__scroll--cols-{{ cols }}"
+          {% if cols == 2 %}
+            tabindex="0" role="region"
+            {% if heading != blank %}aria-labelledby="{{ heading_id }}"{% else %}aria-label="Tabla comparativa"{% endif %}
+          {% endif %}
+        >
+          <table
+            class="df-comparison-table__table"
+            {% if heading != blank %}aria-labelledby="{{ heading_id }}"{% else %}aria-label="Tabla comparativa"{% endif %}
+          >
+            <thead>
+              <tr>
+                <td class="df-comparison-table__corner"><span class="df-visually-hidden">Característica</span></td>
+                <th scope="col" class="df-comparison-table__us df-comparison-table__us--head">
+                  {%- if s.us_logo != blank -%}
+                    {{
+                      s.us_logo
+                      | image_url: width: 360
+                      | image_tag:
+                        widths: '120, 180, 270, 360',
+                        sizes: '(min-width: 750px) 180px, 28vw',
+                        alt: us_label,
+                        loading: 'lazy',
+                        class: 'df-comparison-table__logo'
+                    }}
+                  {%- else -%}
+                    {{ us_label | escape }}
+                  {%- endif -%}
+                </th>
+                <th scope="col" class="df-comparison-table__other df-comparison-table__other--head">{{ o1_label | escape }}</th>
+                {%- if cols == 2 -%}
+                  <th scope="col" class="df-comparison-table__other df-comparison-table__other--head">{{ o2_label | escape }}</th>
+                {%- endif -%}
+              </tr>
+            </thead>
+            <tbody>
+              {{ rows_html }}
+            </tbody>
+          </table>
+        </div>
+
+        {%- if rows_html contains 'mark--partial' or footnote != blank -%}
+          <div class="df-comparison-table__notes">
+            {%- if rows_html contains 'mark--partial' -%}
+              <p class="df-comparison-table__legend">
+                <span class="df-comparison-table__mark df-comparison-table__mark--partial" aria-hidden="true"></span>
+                Parcial: solo en algunos casos o modelos.
+              </p>
+            {%- endif -%}
+            {%- if footnote != blank -%}
+              <p class="df-text df-comparison-table__footnote">{{ footnote | escape }}</p>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  </df-comparison-table>
+
+  {% stylesheet %}
+    df-comparison-table {
+      display: block;
+    }
+
+    .df-comparison-table {
+      --df-ct-pad: 12px;
+      --df-ct-radius: var(--df-radius);
+      --df-ct-mark: 1.625rem;
+    }
+
+    .df-comparison-table__inner {
+      max-width: 1100px;
+      margin-inline: auto;
+      padding-inline: 16px;
+    }
+
+    .df-comparison-table__heading {
+      margin-bottom: 24px;
+      font-size: clamp(1.625rem, 5vw, 2.75rem);
+      text-align: center;
+    }
+
+    .df-comparison-table__heading--italic {
+      font-style: italic;
+    }
+
+    .df-comparison-table__scroll {
+      /* El borde superior del pilar sobresale: espacio para que no lo corte el overflow. */
+      padding-top: 2px;
+    }
+
+    .df-comparison-table__scroll--cols-2 {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .df-comparison-table__scroll:focus-visible {
+      outline: 2px solid var(--df-accent);
+      outline-offset: 4px;
+      border-radius: var(--df-radius-sm);
+    }
+
+    .df-comparison-table__table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.875rem;
+      line-height: 1.3;
+    }
+
+    .df-comparison-table__scroll--cols-1 .df-comparison-table__feature,
+    .df-comparison-table__scroll--cols-1 .df-comparison-table__corner {
+      width: 44%;
+    }
+
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__table {
+      min-width: 540px;
+    }
+
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+      width: 34%;
+    }
+
+    .df-comparison-table__table th,
+    .df-comparison-table__table td {
+      padding: var(--df-ct-pad) 8px;
+      text-align: center;
+      vertical-align: middle;
+      font-weight: 400;
+    }
+
+    .df-comparison-table__row > * {
+      border-top: 1px solid var(--df-hairline);
+    }
+
+    .df-comparison-table__feature {
+      text-align: start !important;
+      font-weight: 600 !important;
+      text-wrap: balance;
+    }
+
+    /* Pilar: la columna nuestra es un bloque continuo del color de acento con cabecera y pie redondeados. */
+    .df-comparison-table__us {
+      background: var(--df-accent);
+      color: var(--df-on-accent);
+      border-top-color: color-mix(in srgb, var(--df-on-accent) 18%, transparent) !important;
+    }
+
+    .df-comparison-table__us--head {
+      border-radius: var(--df-ct-radius) var(--df-ct-radius) 0 0;
+      padding-block: 16px !important;
+      font-weight: 700 !important;
+      font-size: 0.9375rem;
+    }
+
+    .df-comparison-table__row:last-child .df-comparison-table__us {
+      border-radius: 0 0 var(--df-ct-radius) var(--df-ct-radius);
+      padding-bottom: calc(var(--df-ct-pad) + 14px);
+    }
+
+    .df-comparison-table__logo {
+      display: block;
+      width: 100%;
+      max-width: 180px;
+      height: auto;
+      max-height: 56px;
+      margin-inline: auto;
+      object-fit: contain;
+    }
+
+    .df-comparison-table__other--head {
+      color: var(--df-muted);
+      font-weight: 600 !important;
+      vertical-align: bottom !important;
+    }
+
+    .df-comparison-table__mark {
+      display: inline-grid;
+      place-items: center;
+      font-size: var(--df-ct-mark);
+      line-height: 0;
+    }
+
+    .df-comparison-table__mark .df-icon {
+      width: 1em;
+      height: 1em;
+    }
+
+    .df-comparison-table__other .df-comparison-table__mark--yes {
+      color: var(--df-fg);
+    }
+
+    .df-comparison-table__other .df-comparison-table__mark--no {
+      color: var(--df-muted);
+    }
+
+    .df-comparison-table--red-crosses .df-comparison-table__other .df-comparison-table__mark--no {
+      color: var(--df-negative);
+    }
+
+    /* Parcial: círculo con medio relleno, dibujado en CSS (no hay ícono en la base compartida). */
+    .df-comparison-table__mark--partial {
+      width: calc(var(--df-ct-mark) * 0.78);
+      height: calc(var(--df-ct-mark) * 0.78);
+      border: 1.75px solid currentColor;
+      border-radius: 50%;
+      background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+      color: var(--df-muted);
+    }
+
+    .df-comparison-table__us .df-comparison-table__mark--partial {
+      color: var(--df-on-accent);
+    }
+
+    .df-comparison-table__value {
+      font-weight: 600;
+      text-wrap: balance;
+    }
+
+    .df-comparison-table__notes {
+      display: grid;
+      gap: 6px;
+      margin-top: 16px;
+    }
+
+    .df-comparison-table__legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--df-muted);
+      --df-ct-mark: 1.125rem;
+    }
+
+    .df-comparison-table__footnote {
+      font-size: 0.8125rem;
+    }
+
+    /* Dos competidores en móvil: la columna de características queda fija al desplazar. */
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+    .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--df-bg);
+      box-shadow: 6px 0 8px -8px color-mix(in srgb, var(--df-fg) 45%, transparent);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .df-comparison-table--pulse.is-visible .df-comparison-table__us .df-comparison-table__mark {
+        animation: df-comparison-table-beat 0.9s var(--df-ease) 3;
+      }
+    }
+
+    @keyframes df-comparison-table-beat {
+      50% { transform: scale(1.15); }
+    }
+
+    @media (min-width: 750px) {
+      .df-comparison-table {
+        --df-ct-pad: 18px;
+        --df-ct-mark: 2rem;
+      }
+
+      .df-comparison-table__inner {
+        padding-inline: 20px;
+      }
+
+      .df-comparison-table__heading {
+        margin-bottom: 36px;
+      }
+
+      .df-comparison-table__table {
+        font-size: 1.0625rem;
+      }
+
+      .df-comparison-table__table th,
+      .df-comparison-table__table td {
+        padding-inline: 16px;
+      }
+
+      .df-comparison-table__scroll--cols-1 .df-comparison-table__feature,
+      .df-comparison-table__scroll--cols-1 .df-comparison-table__corner,
+      .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+      .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+        width: 36%;
+      }
+
+      .df-comparison-table__scroll--cols-2 .df-comparison-table__feature,
+      .df-comparison-table__scroll--cols-2 .df-comparison-table__corner {
+        box-shadow: none;
+      }
+    }
+  {% endstylesheet %}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "DropFlex · Comparativa",
+  "tag": "section",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Los textos vienen del metafield dropflex.comparison_table, que la app publica solo con tu aprobación. Estos ajustes y las filas son el respaldo. Compárate con categorías genéricas, nunca con una marca."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Textos"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "default": "Nosotros vs. genéricos"
+    },
+    {
+      "type": "text",
+      "id": "us_label",
+      "label": "Nuestra columna",
+      "info": "Vacío = nombre de la tienda. Se usa como texto alternativo del logo."
+    },
+    {
+      "type": "image_picker",
+      "id": "us_logo",
+      "label": "Logo de nuestra columna"
+    },
+    {
+      "type": "text",
+      "id": "other_label_1",
+      "label": "Competidor 1",
+      "info": "Una categoría genérica, nunca una marca.",
+      "default": "Genéricos"
+    },
+    {
+      "type": "text",
+      "id": "other_label_2",
+      "label": "Competidor 2 (opcional)",
+      "info": "Ej.: Tiendas internacionales. En móvil la tabla se desplaza."
+    },
+    {
+      "type": "text",
+      "id": "footnote",
+      "label": "Nota al pie",
+      "info": "Aclara con qué comparas. Ej.: correctores genéricos sin tallas."
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "checkbox",
+      "id": "heading_italic",
+      "label": "Título en cursiva",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "red_crosses",
+      "label": "Cruces en rojo",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "pulse",
+      "label": "Latido al aparecer",
+      "info": "Tres latidos al entrar en pantalla. Nunca con movimiento reducido.",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Fondo"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Espacio superior",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Espacio inferior",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "blocks": [
+    {
+      "type": "row",
+      "name": "Fila",
+      "settings": [
+        {
+          "type": "text",
+          "id": "feature",
+          "label": "Característica",
+          "info": "En positivo, 2 a 5 palabras. Puedes usar {min}, {max}, {return_days}, {warranty_months}.",
+          "default": "Pago al recibir"
+        },
+        {
+          "type": "select",
+          "id": "us",
+          "label": "Nosotros",
+          "options": [
+            { "value": "yes", "label": "Sí" },
+            { "value": "no", "label": "No" },
+            { "value": "partial", "label": "Parcial" },
+            { "value": "text", "label": "Texto" }
+          ],
+          "default": "yes"
+        },
+        {
+          "type": "text",
+          "id": "us_text",
+          "label": "Nosotros: texto",
+          "info": "Solo con «Texto». Plazos con {min} y {max}."
+        },
+        {
+          "type": "select",
+          "id": "other_1",
+          "label": "Competidor 1",
+          "options": [
+            { "value": "yes", "label": "Sí" },
+            { "value": "no", "label": "No" },
+            { "value": "partial", "label": "Parcial" },
+            { "value": "text", "label": "Texto" }
+          ],
+          "default": "no"
+        },
+        {
+          "type": "text",
+          "id": "other_1_text",
+          "label": "Competidor 1: texto"
+        },
+        {
+          "type": "select",
+          "id": "other_2",
+          "label": "Competidor 2",
+          "options": [
+            { "value": "yes", "label": "Sí" },
+            { "value": "no", "label": "No" },
+            { "value": "partial", "label": "Parcial" },
+            { "value": "text", "label": "Texto" }
+          ],
+          "default": "no"
+        },
+        {
+          "type": "text",
+          "id": "other_2_text",
+          "label": "Competidor 2: texto"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Comparativa",
+      "blocks": [
+        { "type": "row", "settings": { "feature": "Correas ajustables", "us": "yes", "other_1": "partial" } },
+        { "type": "row", "settings": { "feature": "Varias tallas", "us": "yes", "other_1": "no" } },
+        { "type": "row", "settings": { "feature": "Pago al recibir", "us": "yes", "other_1": "no" } },
+        { "type": "row", "settings": { "feature": "Atención en español", "us": "yes", "other_1": "no" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -4,11 +4,11 @@ import { copyState } from "@/lib/data/products";
 import { runCopy, startCopy } from "@/lib/pipeline/copy";
 import { errorResponse, json, ownedProduct } from "@/lib/products/http";
 
-// Etapa Textos: la página del producto. La escritura sigue después de responder (after): una llamada
-// a Claude, ~30–60 s.
+// Etapa Página del producto: la ficha y los componentes. La escritura sigue después de responder
+// (after): una llamada a Claude, ~1–2 min.
 export const maxDuration = 300;
 
-/** Sondeo de la pantalla: la escritura y los bloques vigentes. */
+/** Sondeo de la pantalla: la escritura, la ficha y los componentes vigentes. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -21,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 /**
- * «Escribir textos con IA» y «Reintentar» ({}), y «Rehacer descartados» o «Reescribir» ({ redo: true }):
+ * «Escribir la página con IA» y «Reintentar» ({}), y «Reescribir lo no aprobado» ({ redo: true }):
  * crea la escritura y la ejecuta en segundo plano. Lo aprobado nunca se reescribe.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

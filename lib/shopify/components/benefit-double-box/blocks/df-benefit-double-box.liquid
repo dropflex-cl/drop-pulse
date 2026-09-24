@@ -1,0 +1,479 @@
+{%- doc -%}
+  DropFlex · Doble tarjeta (benefit-double-box). Bloque de la columna del producto, bajo el botón:
+  dos tarjetas gemelas que responden las dos objeciones del momento del clic: cómo pago y qué
+  pasa si no me sirve.
+
+  REGLA: el medio de pago y el plazo de cambio o garantía son políticas REALES de la tienda. Cada
+  tarjeta del metafield declara qué política afirma (`policy`) y se oculta si no está activa en
+  shop.metafields.dropflex.policies. Las cifras son tokens; si el dato falta, la tarjeta no se
+  muestra. Con una sola tarjeta válida, ocupa todo el ancho.
+
+  Contenido: metafield `dropflex.benefit_double_box` (json) → si falta, las 2 tarjetas del bloque.
+    { cards: [{ icon (IconKey), title (≤ 24), body (≤ 48), policy }] (exactamente 2) }
+  Tokens: {return_days} · {warranty_months} · {threshold} (políticas) · {min} {max} (logística).
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product
+  if product == blank
+    assign product = block.settings.product
+  endif
+  assign s = block.settings
+  assign content = product.metafields.dropflex.benefit_double_box.value
+  assign policies = shop.metafields.dropflex.policies.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+  assign known_icons = 'check,check-circle,x-circle,truck,package,home,cart,cash,shield,lock,return,clock,calendar,star,heart,sparkles,bolt,leaf,droplet,sun,moon,battery,feather,ruler,target,thumbs-up,users,chat,gift,fire,eye,hand,globe,award,phone,headset,flag' | split: ','
+
+  assign use_content = false
+  if content.cards != blank
+    assign use_content = true
+  endif
+
+  # Datos reales para los tokens (0 = falta el dato → la tarjeta que lo usa no se muestra).
+  assign days_min = 0
+  assign days_max = 0
+  if logistics != blank
+    assign handling = logistics.handling_days | plus: 0
+    assign days_min = logistics.transit_days_min | plus: handling
+    assign days_max = logistics.transit_days_max | plus: handling
+    if days_max < days_min
+      assign days_max = days_min
+    endif
+  endif
+  assign return_days = policies.return_days | plus: 0
+  assign warranty_months = policies.warranty_months | plus: 0
+  assign threshold_cents = policies.free_shipping_threshold | times: 100
+  assign threshold = threshold_cents | money_without_trailing_zeros
+-%}
+
+{%- capture cards_html -%}
+  {%- for i in (1..2) -%}
+    {%- liquid
+      assign idx = i | minus: 1
+      assign image = nil
+      if use_content
+        assign card = content.cards[idx]
+        assign title = card.title
+        assign body = card.body
+        assign icon = card.icon
+        assign policy = card.policy
+      else
+        assign key = 'card_' | append: i
+        assign k_title = key | append: '_title'
+        assign k_body = key | append: '_body'
+        assign k_icon = key | append: '_icon'
+        assign k_image = key | append: '_image'
+        assign title = s[k_title]
+        assign body = s[k_body]
+        assign icon = s[k_icon]
+        assign image = s[k_image]
+        assign policy = 'none'
+      endif
+      if title == blank
+        continue
+      endif
+
+      # Filtro de verdad: una tarjeta del metafield que afirma una política ausente no se publica.
+      assign ok = true
+      case policy
+        when 'cod'
+          unless policies.cod == true
+            assign ok = false
+          endunless
+        when 'free_shipping'
+          unless policies.free_shipping == true
+            assign ok = false
+          endunless
+        when 'returns'
+          if return_days <= 0
+            assign ok = false
+          endif
+        when 'warranty'
+          if warranty_months <= 0
+            assign ok = false
+          endif
+        when 'whatsapp'
+          if policies.whatsapp == blank
+            assign ok = false
+          endif
+        when 'shipping_time'
+          if days_max <= 0
+            assign ok = false
+          endif
+      endcase
+      unless ok
+        continue
+      endunless
+
+      assign text = title | append: '§' | append: body
+      if days_max > 0
+        assign text = text | replace: '{min}', days_min | replace: '{max}', days_max
+      endif
+      if return_days > 0
+        assign text = text | replace: '{return_days}', return_days
+      endif
+      if warranty_months > 0
+        assign text = text | replace: '{warranty_months}', warranty_months
+      endif
+      if threshold_cents > 0
+        assign text = text | replace: '{threshold}', threshold
+      endif
+      if text contains '{'
+        continue
+      endif
+      assign title = text | split: '§' | first
+      assign body = text | split: '§' | last
+      if body == title
+        assign body = ''
+      endif
+
+      unless known_icons contains icon
+        assign icon = 'check'
+      endunless
+      assign image_alt = ''
+      if image != blank and image.alt != blank
+        assign image_alt = image.alt
+      endif
+    -%}
+    <li class="df-benefit-double-box__card">
+      <span class="df-benefit-double-box__media">
+        {%- if image != blank -%}
+          {{ image | image_url: width: 320 | image_tag: widths: '160, 320', sizes: '160px', alt: image_alt, class: 'df-benefit-double-box__img' }}
+        {%- else -%}
+          {% render 'df-icon', name: icon %}
+        {%- endif -%}
+      </span>
+      <p class="df-benefit-double-box__title"><strong>{{ title | escape }}</strong></p>
+      {%- if body != blank -%}
+        <p class="df-benefit-double-box__body">{{ body | escape }}</p>
+      {%- endif -%}
+    </li>
+  {%- endfor -%}
+{%- endcapture -%}
+
+{%- if cards_html != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <ul
+    class="df df-benefit-double-box{% if s.border %} df-benefit-double-box--border{% endif %}{% if s.stack_on_mobile %} df-benefit-double-box--stack{% endif %}"
+    style="{% render 'df-accent-vars', product: product %} --df-dbox-radius: {{ s.card_radius }}px; --df-dbox-padding: {{ s.card_padding }}px; --df-dbox-icon: {{ s.icon_height }}px; --df-dbox-title: {{ s.title_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    lang="{{ request.locale.iso_code | default: 'es' }}"
+    role="list"
+    {{ block.shopify_attributes }}
+  >
+    {{ cards_html }}
+  </ul>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Doble tarjeta: escribe el título de al menos una tarjeta o genera el contenido con DropFlex. Las tarjetas con datos que tu tienda no tiene cargados no se muestran.
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-benefit-double-box {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (max-width: 479px) {
+    .df-benefit-double-box--stack {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .df-benefit-double-box__card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: var(--df-dbox-padding, 16px);
+    border-radius: var(--df-dbox-radius, 16px);
+    background: var(--df-surface);
+  }
+
+  /* Una sola tarjeta válida: todo el ancho. */
+  .df-benefit-double-box__card:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .df-benefit-double-box--border .df-benefit-double-box__card {
+    border: 1px solid var(--df-hairline);
+    background: transparent;
+  }
+
+  .df-benefit-double-box__media {
+    display: flex;
+    align-items: center;
+    height: var(--df-dbox-icon, 24px);
+    color: var(--df-accent-ink);
+  }
+
+  .df-benefit-double-box__media .df-icon {
+    width: var(--df-dbox-icon, 24px);
+    height: var(--df-dbox-icon, 24px);
+  }
+
+  /* Logos anchos (medios de pago): alto fijo, ancho libre, alineados a la izquierda. */
+  .df-benefit-double-box__img {
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .df-benefit-double-box__title,
+  .df-benefit-double-box__body {
+    margin: 0;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    text-wrap: pretty;
+  }
+
+  .df-benefit-double-box__title {
+    font-size: var(--df-dbox-title, 14px);
+    line-height: 1.3;
+  }
+
+  .df-benefit-double-box__body {
+    font-size: max(12px, calc(var(--df-dbox-title, 14px) - 1.5px));
+    line-height: 1.45;
+    color: var(--df-muted);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Doble tarjeta",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Los textos vienen del metafield dropflex.benefit_double_box; estas tarjetas son el respaldo. Pago y garantía deben ser reales."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Tarjeta 1"
+    },
+    {
+      "type": "select",
+      "id": "card_1_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "cash"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Imagen (reemplaza al ícono)",
+      "info": "Por ejemplo, logos de tus medios de pago activos. Escribe su texto alternativo en Archivos."
+    },
+    {
+      "type": "text",
+      "id": "card_1_title",
+      "label": "Título",
+      "default": "Pagas al recibir",
+      "info": "Hasta 24 caracteres. Tokens: {return_days}, {warranty_months}, {min}, {max}, {threshold}."
+    },
+    {
+      "type": "text",
+      "id": "card_1_body",
+      "label": "Descripción",
+      "default": "Nada por adelantado: pagas cuando llega"
+    },
+    {
+      "type": "header",
+      "content": "Tarjeta 2"
+    },
+    {
+      "type": "select",
+      "id": "card_2_icon",
+      "label": "Ícono",
+      "options": [
+        { "value": "check", "label": "Visto" },
+        { "value": "check-circle", "label": "Visto en círculo" },
+        { "value": "x-circle", "label": "Equis" },
+        { "value": "truck", "label": "Camión" },
+        { "value": "package", "label": "Paquete" },
+        { "value": "home", "label": "Casa" },
+        { "value": "cart", "label": "Carro" },
+        { "value": "cash", "label": "Efectivo" },
+        { "value": "shield", "label": "Escudo" },
+        { "value": "lock", "label": "Candado" },
+        { "value": "return", "label": "Devolución" },
+        { "value": "clock", "label": "Reloj" },
+        { "value": "calendar", "label": "Calendario" },
+        { "value": "star", "label": "Estrella" },
+        { "value": "heart", "label": "Corazón" },
+        { "value": "sparkles", "label": "Destellos" },
+        { "value": "bolt", "label": "Rayo" },
+        { "value": "leaf", "label": "Hoja" },
+        { "value": "droplet", "label": "Gota" },
+        { "value": "sun", "label": "Sol" },
+        { "value": "moon", "label": "Luna" },
+        { "value": "battery", "label": "Batería" },
+        { "value": "feather", "label": "Pluma" },
+        { "value": "ruler", "label": "Regla" },
+        { "value": "target", "label": "Diana" },
+        { "value": "thumbs-up", "label": "Pulgar arriba" },
+        { "value": "users", "label": "Personas" },
+        { "value": "chat", "label": "Mensaje" },
+        { "value": "gift", "label": "Regalo" },
+        { "value": "fire", "label": "Fuego" },
+        { "value": "eye", "label": "Ojo" },
+        { "value": "hand", "label": "Mano" },
+        { "value": "globe", "label": "Mundo" },
+        { "value": "award", "label": "Premio" },
+        { "value": "phone", "label": "Teléfono" },
+        { "value": "headset", "label": "Soporte" },
+        { "value": "flag", "label": "Bandera" }
+      ],
+      "default": "return"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Imagen (reemplaza al ícono)"
+    },
+    {
+      "type": "text",
+      "id": "card_2_title",
+      "label": "Título",
+      "default": "{return_days} días para cambiarlo"
+    },
+    {
+      "type": "text",
+      "id": "card_2_body",
+      "label": "Descripción",
+      "default": "Si no te queda bien, lo cambiamos sin costo"
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "checkbox",
+      "id": "border",
+      "label": "Borde en vez de fondo",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "stack_on_mobile",
+      "label": "Apilar en móvil",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "card_radius",
+      "label": "Radio",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "label": "Relleno",
+      "min": 12,
+      "max": 28,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "icon_height",
+      "label": "Alto del ícono",
+      "min": 16,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Tamaño del título",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Doble tarjeta"
+    }
+  ]
+}
+{% endschema %}

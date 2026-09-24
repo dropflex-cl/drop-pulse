@@ -58,8 +58,6 @@ export { ReviewItem, type ReviewItemProps, type ReviewItemState } from "./review
 export { CharCount, type CharCountProps } from "./char-count";
 export { Notice, type NoticeProps } from "./notice";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
-export { PageOutline, type BlockState, type OutlineItem, type PageOutlineProps } from "./page-outline";
-export { CopySummary, type CopySummaryProps, type SummaryTag } from "./copy-summary";
 // Anuncios y motor de decisión (design-system/anuncios.md)
 export { StructurePicker, type Structure, type StructurePickerProps } from "./structure-picker";
 export { PresetSelect, type PresetOption, type PresetSelectProps } from "./preset-select";

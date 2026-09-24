@@ -5,7 +5,7 @@
 
 import type { MeterStage } from "@/components/df/stage-meter";
 import type { AngleRole } from "@/lib/angles/catalog";
-import type { CopyProgress } from "@/lib/copy/progress";
+import { enabledLabel, type CopyProgress } from "@/lib/copy/progress";
 import { money } from "@/lib/format";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import type { ContentStatus, ProductFilter, RunStatus, Stage, StageKey } from "@/lib/types";
@@ -135,7 +135,7 @@ export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): An
 }
 
 /**
- * La página se habilita con los 2 desarrollos aprobados. Una reescritura que falla con bloques ya
+ * La página se habilita con los 2 desarrollos aprobados. Una reescritura que falla con la página ya
  * escritos no tapa la revisión: la pantalla muestra el error sobre la lista.
  */
 export function copyPhase(f: ProductFacts, angles: AnglesPhase): CopyPhase {
@@ -143,7 +143,7 @@ export function copyPhase(f: ProductFacts, angles: AnglesPhase): CopyPhase {
   const c = f.copy;
   if (!c) return "new";
   if (active(c.run?.status)) return "writing";
-  if (!c.progress.total) return c.run?.status === "failed" ? "failed" : "new";
+  if (c.progress.listing === "missing") return c.run?.status === "failed" ? "failed" : "new";
   return c.progress.complete ? "done" : "review";
 }
 
@@ -171,15 +171,15 @@ function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined): string {
     case "locked":
       return "Se habilita al aprobar los 2 desarrollos";
     case "new":
-      return "Título, beneficios, preguntas y SEO con tus ángulos";
+      return "La ficha y los componentes de la página con tus ángulos";
     case "writing":
       return "La IA está escribiendo la página";
     case "failed":
       return c?.run?.error ?? "No se pudo escribir la página";
     case "review":
-      return p?.pending ? `${p.approved} de ${p.total} aceptados` : `Falta aprobar ${p?.missing[0] ?? "un obligatorio"}`;
+      return "Falta aprobar la ficha del producto";
     case "done":
-      return `${p?.approved ?? 0} de ${p?.total ?? 0} aceptados`;
+      return enabledLabel(p?.enabled ?? 0);
   }
 }
 

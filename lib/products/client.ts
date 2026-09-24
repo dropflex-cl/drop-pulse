@@ -3,7 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { SalesAngle } from "@/lib/angles/catalog";
-import type { AnglesState, AvatarProposal, CopyState, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, CopyState, ImagePick, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -126,8 +126,8 @@ export const productsApi = {
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
   writeCopy: (id: string, redo = false) => send<CopyState>("POST", `/${id}/copy`, { redo }),
-  decideCopyItem: (id: string, itemId: string, action: "approve" | "reject" | "reopen", text?: string) =>
-    send<CopyState>("PATCH", `/${id}/copy/items/${itemId}`, { action, text }),
+  updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean }) =>
+    send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, patch),
   saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),
 };
 

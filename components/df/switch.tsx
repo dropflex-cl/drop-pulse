@@ -9,11 +9,13 @@ export interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  /** Nombre accesible cuando la etiqueta visible se repite en la pantalla («Usar Disponibilidad en la página»). */
+  ariaLabel?: string;
   className?: string;
 }
 
 /** Interruptor con su etiqueta (reference/bundle.css → .df-switch). Toda la fila es el área táctil. */
-export function Switch({ label, hint, checked, onChange, disabled, className }: SwitchProps) {
+export function Switch({ label, hint, checked, onChange, disabled, ariaLabel, className }: SwitchProps) {
   return (
     <label className={cn("relative grid min-h-12 cursor-pointer grid-cols-[1fr_--spacing(10)] items-center gap-3 text-small", disabled && "cursor-default opacity-60", className)}>
       <input
@@ -21,6 +23,7 @@ export function Switch({ label, hint, checked, onChange, disabled, className }: 
         role="switch"
         checked={checked}
         disabled={disabled}
+        aria-label={ariaLabel}
         onChange={(e) => onChange(e.target.checked)}
         className="peer absolute size-px opacity-0"
       />

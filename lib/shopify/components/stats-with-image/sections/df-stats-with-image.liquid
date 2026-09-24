@@ -1,0 +1,903 @@
+{%- comment -%}
+  DropFlex · Hero y cifras (stats-with-image). Sección de dos columnas: un collage de 1 a 4
+  fotos y una columna de texto que arma un mini embudo completo: calificación real → título con
+  palabra destacada → descripción → 3 razones → cifras reales → testimonio real → botón.
+
+  REGLA: la IA escribe palabras, nunca hechos. La calificación y la cantidad de reseñas salen de
+  `dropflex.review_summary`; el testimonio es una reseña aprobada de `dropflex.reviews`, elegida
+  por id y mostrada tal cual; las cifras salen de las reseñas, las políticas y la logística reales
+  (o las escribe el comerciante en el editor). Sin dato, la pieza no se muestra.
+
+  Contenido: metafield `dropflex.stats_with_image` (json) → si falta, los ajustes de la sección.
+    { heading (**destacado**), description, bullets[], cta_label, rating_label ({rating} {count}),
+      review_id?, stats?: [{ fact, label }] }
+  Fotos: ajustes image_1..4 → metafield `dropflex.stats_with_image_images` (list.file_reference)
+  → imágenes del producto (la destacada primero).
+{%- endcomment -%}
+{%- liquid
+  if product == blank
+    assign product = section.settings.product
+  endif
+  assign s = section.settings
+  assign content = product.metafields.dropflex.stats_with_image.value
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign policies = shop.metafields.dropflex.policies.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign heading = content.heading | default: s.heading
+  assign description = content.description | default: s.description
+  assign cta_label = content.cta_label | default: s.button_label
+  assign rating_label = content.rating_label | default: s.rating_label
+  assign review_id = content.review_id | default: s.review_id
+
+  # ── Calificación real (solo con suficientes reseñas) ──
+  assign has_rating = false
+  assign review_count = summary.count | plus: 0
+  if summary.rating > 0 and review_count >= s.min_reviews
+    assign has_rating = true
+    assign rating_text = summary.rating | round: 1 | append: '' | replace: '.', ','
+    if review_count >= 1000
+      assign thousands = review_count | divided_by: 1000
+      assign rest = review_count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    else
+      assign count_text = review_count | append: ''
+    endif
+  endif
+  assign show_rating = false
+  if s.show_rating and has_rating and rating_label != blank
+    assign show_rating = true
+  endif
+
+  # ── Testimonio real, elegido por id ──
+  assign review = blank
+  if s.show_testimonial and review_id != blank
+    assign reviews = product.metafields.dropflex.reviews.value
+    for r in reviews.items
+      assign rid = r.id | append: ''
+      if rid == review_id
+        assign review = r
+        break
+      endif
+    endfor
+  endif
+
+  # ── Fotos: editor → metafield del componente → producto ──
+  assign media_files = product.metafields.dropflex.stats_with_image_images.value
+  assign image_source = blank
+  assign image_count = 0
+  for i in (1..4)
+    assign key = 'image_' | append: i
+    if s[key] != blank
+      assign image_count = image_count | plus: 1
+    endif
+  endfor
+  if image_count > 0
+    assign image_source = 'editor'
+  else
+    for f in media_files limit: 4
+      if f.media_type == 'image'
+        assign image_count = image_count | plus: 1
+      endif
+    endfor
+    if image_count > 0
+      assign image_source = 'metafield'
+    elsif product.images.size > 0
+      assign image_source = 'product'
+      assign image_count = product.images.size | at_most: s.max_images
+    endif
+  endif
+
+  assign eager = false
+  if section.index != blank and section.index <= 2
+    assign eager = true
+  endif
+
+  # ── Días de entrega (para la cifra delivery_days_max) ──
+  assign days_max = blank
+  if logistics != blank
+    assign tmin = logistics.transit_days_min | plus: 0
+    assign tmax = logistics.transit_days_max | plus: 0
+    if tmax < tmin
+      assign tmax = tmin
+    endif
+    assign days_max = logistics.handling_days | plus: tmax
+  endif
+-%}
+
+{%- capture bullets_html -%}
+  {%- if content.bullets.size > 0 -%}
+    {%- for bullet in content.bullets limit: 4 -%}
+      {%- assign text = bullet | strip | escape -%}
+      {%- if text != blank -%}
+        <li class="df-stats-with-image__bullet">{% render 'df-icon', name: 'check-circle' %}<span>{{ text }}</span></li>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%- for i in (1..4) -%}
+      {%- assign key = 'bullet_' | append: i -%}
+      {%- assign text = s[key] | strip | escape -%}
+      {%- if text != blank -%}
+        <li class="df-stats-with-image__bullet">{% render 'df-icon', name: 'check-circle' %}<span>{{ text }}</span></li>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture stats_html -%}
+  {%- if s.show_stats -%}
+    {%- if content.stats.size > 0 -%}
+      {%- for stat in content.stats limit: 3 -%}
+        {%- liquid
+          assign value = blank
+          case stat.fact
+            when 'rating'
+              if has_rating
+                assign value = rating_text | append: '/5'
+              endif
+            when 'review_count'
+              if has_rating
+                assign value = count_text
+              endif
+            when 'return_days'
+              if policies.return_days > 0
+                assign value = policies.return_days
+              endif
+            when 'warranty_months'
+              if policies.warranty_months > 0
+                assign value = policies.warranty_months
+              endif
+            when 'delivery_days_max'
+              assign value = days_max
+          endcase
+          assign label = stat.label | escape
+        -%}
+        {%- if value != blank and label != blank -%}
+          <li class="df-stats-with-image__stat">
+            <span class="df-stats-with-image__stat-value">{{ value | escape }}</span>
+            <span class="df-stats-with-image__stat-label">{{ label }}</span>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- else -%}
+      {%- for i in (1..3) -%}
+        {%- liquid
+          assign vkey = 'stat_' | append: i | append: '_value'
+          assign lkey = 'stat_' | append: i | append: '_label'
+          assign value = s[vkey] | strip | escape
+          assign label = s[lkey] | strip | escape
+        -%}
+        {%- if value != blank and label != blank -%}
+          <li class="df-stats-with-image__stat">
+            <span class="df-stats-with-image__stat-value">{{ value }}</span>
+            <span class="df-stats-with-image__stat-label">{{ label }}</span>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- liquid
+  # **palabra** → destacado (título) y <strong> (descripción), después de escapar.
+  assign parts = heading | escape | split: '**'
+  capture heading_html
+    for part in parts
+      if forloop.index0 == 1
+        echo '<span class="df-stats-with-image__hl">' | append: part | append: '</span>'
+      else
+        echo part
+      endif
+    endfor
+  endcapture
+
+  assign parts = description | escape | split: '**'
+  capture description_html
+    for part in parts
+      if forloop.index0 == 1
+        echo '<strong>' | append: part | append: '</strong>'
+      else
+        echo part
+      endif
+    endfor
+  endcapture
+
+  # Sin enlace propio, en la ficha el botón baja al formulario de compra (df-stats-with-image.js);
+  # el href a la ficha es el respaldo sin JS y fuera de la ficha.
+  assign scroll_to_form = false
+  if s.button_link == blank and request.page_type == 'product'
+    assign scroll_to_form = true
+  endif
+  if s.button_link != blank
+    assign cta_href = s.button_link
+  elsif product != blank
+    assign cta_href = product.url
+  else
+    assign cta_href = routes.all_products_collection_url
+  endif
+-%}
+
+{%- if heading != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  {%- if scroll_to_form and cta_label != blank -%}
+    <script src="{{ 'df-stats-with-image.js' | asset_url }}" defer></script>
+  {%- endif -%}
+
+  {%- capture color_style -%}
+    {%- if s.background_color != blank -%}--df-bg: {{ s.background_color }}; --df-swi-bg: {{ s.background_color }};{%- endif -%}
+    {%- if s.text_color != blank -%} --df-fg: {{ s.text_color }};{%- endif -%}
+  {%- endcapture -%}
+
+  <div
+    class="df df-stats-with-image{% if image_count > 0 %} df-stats-with-image--media{% endif %}{% if s.image_position == 'right' %} df-stats-with-image--reverse{% endif %}{% unless s.mobile_image_first %} df-stats-with-image--media-last{% endunless %}"
+    style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ color_style }} --df-swi-pt: {{ s.padding_top }}px; --df-swi-pb: {{ s.padding_bottom }}px; --df-swi-radius: {{ s.card_radius }}px;"
+  >
+    <div class="df-stats-with-image__card">
+      {%- if image_count > 0 -%}
+        <div class="df-stats-with-image__collage df-stats-with-image__collage--{{ image_count }}">
+          {%- case image_source -%}
+            {%- when 'editor' -%}
+              {%- assign position = 0 -%}
+              {%- for i in (1..4) -%}
+                {%- assign key = 'image_' | append: i -%}
+                {%- if s[key] != blank -%}
+                  {%- assign position = position | plus: 1 -%}
+                  {%- render 'df-stats-with-image-image', image: s[key], position: position, count: image_count, eager: eager -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- when 'metafield' -%}
+              {%- assign position = 0 -%}
+              {%- for f in media_files limit: 4 -%}
+                {%- if f.media_type == 'image' -%}
+                  {%- assign position = position | plus: 1 -%}
+                  {%- render 'df-stats-with-image-image', image: f.preview_image, position: position, count: image_count, eager: eager -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- when 'product' -%}
+              {%- for img in product.images limit: image_count -%}
+                {%- render 'df-stats-with-image-image', image: img, position: forloop.index, count: image_count, eager: eager -%}
+              {%- endfor -%}
+          {%- endcase -%}
+        </div>
+      {%- endif -%}
+
+      <div class="df-stats-with-image__body">
+        {%- if show_rating -%}
+          {%- assign rating_line = rating_label | escape | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
+          <div class="df-stats-with-image__rating">
+            <span aria-hidden="true">{% render 'df-stars', rating: summary.rating, size: '1.125rem' %}</span>
+            <p class="df-stats-with-image__rating-text">{{ rating_line }}</p>
+          </div>
+          {%- if summary.source_label != blank -%}
+            <p class="df-stats-with-image__source">{{ summary.source_label | escape }}</p>
+          {%- endif -%}
+        {%- endif -%}
+
+        <h2 class="df-heading df-stats-with-image__heading">{{ heading_html }}</h2>
+
+        {%- if description != blank -%}
+          <p class="df-text df-stats-with-image__description">{{ description_html }}</p>
+        {%- endif -%}
+
+        {%- if bullets_html != blank -%}
+          <ul class="df-stats-with-image__bullets" role="list">{{ bullets_html }}</ul>
+        {%- endif -%}
+
+        {%- if stats_html != blank -%}
+          <ul class="df-stats-with-image__stats" role="list">{{ stats_html }}</ul>
+        {%- endif -%}
+
+        {%- if review != blank and review.body != blank -%}
+          {%- liquid
+            assign review_body = review.body | strip | truncate: 240 | escape
+            assign review_author = review.author | escape
+            assign review_country = review.country | escape
+            assign initial = review.author | strip | slice: 0 | upcase | escape
+          -%}
+          <figure class="df-stats-with-image__review">
+            <span class="df-stats-with-image__avatar" aria-hidden="true">{{ initial }}</span>
+            <div class="df-stats-with-image__review-body">
+              <blockquote class="df-stats-with-image__quote"><p>«{{ review_body }}»</p></blockquote>
+              <figcaption class="df-stats-with-image__review-meta">
+                {% render 'df-stars', rating: review.rating, size: '0.875rem' %}
+                <span class="df-stats-with-image__author">{{ review_author }}{% if review_country != blank %} · {{ review_country }}{% endif %}</span>
+                {%- if show_rating == false and summary.source_label != blank -%}
+                  <span class="df-stats-with-image__source">{{ summary.source_label | escape }}</span>
+                {%- endif -%}
+              </figcaption>
+            </div>
+          </figure>
+        {%- endif -%}
+
+        {%- if cta_label != blank -%}
+          {%- capture cta -%}
+            <a class="df-stats-with-image__cta" href="{{ cta_href }}">
+              <span>{{ cta_label | escape }}</span>
+              {% render 'df-icon', name: 'arrow-right' %}
+            </a>
+          {%- endcapture -%}
+          {%- if scroll_to_form -%}
+            <df-buy-link class="df-stats-with-image__cta-wrap">{{ cta }}</df-buy-link>
+          {%- else -%}
+            <div class="df-stats-with-image__cta-wrap">{{ cta }}</div>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-stats-with-image" style="--df-swi-pt: {{ s.padding_top }}px; --df-swi-pb: {{ s.padding_bottom }}px;">
+    <p class="df-placeholder">
+      Hero y cifras: escribe un título en los ajustes o genera el contenido desde DropFlex.
+    </p>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-stats-with-image {
+    padding-block: var(--df-swi-pt, 32px) var(--df-swi-pb, 32px);
+  }
+
+  .df-stats-with-image__card {
+    display: grid;
+    max-width: 1400px;
+    margin-inline: auto;
+    background: var(--df-swi-bg, var(--df-surface));
+  }
+
+  .df-stats-with-image__collage {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 16px 16px 0;
+  }
+
+  .df-stats-with-image--media-last .df-stats-with-image__collage {
+    order: 2;
+    padding: 0 16px 24px;
+  }
+
+  .df-stats-with-image__photo {
+    overflow: hidden;
+    border-radius: var(--df-radius-sm);
+    background: var(--df-hairline);
+    aspect-ratio: 1;
+  }
+
+  .df-stats-with-image__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .df-stats-with-image__collage--1 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .df-stats-with-image__collage--2 .df-stats-with-image__photo {
+    aspect-ratio: 3 / 4;
+  }
+
+  /* Tres fotos: la primera en vertical a la izquierda, dos cuadradas apiladas a la derecha. */
+  .df-stats-with-image__collage--3 {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .df-stats-with-image__collage--3 .df-stats-with-image__photo:first-child {
+    grid-row: 1 / span 2;
+    aspect-ratio: auto;
+  }
+
+  .df-stats-with-image__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 24px 16px 32px;
+  }
+
+  .df-stats-with-image__rating {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .df-stats-with-image__rating-text {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .df-stats-with-image__source {
+    margin: -8px 0 0;
+    color: var(--df-muted);
+    font-size: 0.75rem;
+  }
+
+  .df-stats-with-image__heading {
+    font-size: clamp(1.5rem, 5.5vw, 2.25rem);
+  }
+
+  .df-stats-with-image__hl {
+    color: var(--df-accent-ink);
+  }
+
+  .df-stats-with-image__description {
+    font-size: 0.9375rem;
+  }
+
+  .df-stats-with-image__description strong {
+    color: var(--df-fg);
+  }
+
+  .df-stats-with-image__bullets,
+  .df-stats-with-image__stats {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .df-stats-with-image__bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  .df-stats-with-image__bullet .df-icon {
+    margin-top: 0.05em;
+    color: var(--df-accent-ink);
+  }
+
+  .df-stats-with-image__stats {
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 12px;
+    width: 100%;
+    padding-block: 4px;
+  }
+
+  .df-stats-with-image__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-inline-start: 12px;
+    border-inline-start: 2px solid var(--df-accent);
+  }
+
+  .df-stats-with-image__stat-value {
+    font-family: var(--df-font-heading);
+    font-weight: var(--df-font-heading-weight);
+    font-size: 1.5rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .df-stats-with-image__stat-label {
+    color: var(--df-muted);
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .df-stats-with-image__review {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 600px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--df-hairline);
+    border-radius: var(--df-radius-sm);
+    background: var(--df-bg);
+  }
+
+  .df-stats-with-image__avatar {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--df-accent-soft);
+    color: var(--df-accent-ink);
+    font-weight: 600;
+  }
+
+  .df-stats-with-image__review-body {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .df-stats-with-image__quote {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .df-stats-with-image__quote p {
+    margin: 0;
+  }
+
+  .df-stats-with-image__review-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 0.8125rem;
+  }
+
+  .df-stats-with-image__author {
+    font-weight: 600;
+  }
+
+  .df-stats-with-image__review-meta .df-stats-with-image__source {
+    flex-basis: 100%;
+    margin: 0;
+  }
+
+  .df-stats-with-image__cta-wrap {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    margin-inline: auto;
+  }
+
+  .df-stats-with-image__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 24px;
+    border-radius: var(--df-radius-sm);
+    background: var(--df-accent);
+    color: var(--df-on-accent);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s var(--df-ease);
+  }
+
+  .df-stats-with-image__cta svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s var(--df-ease);
+  }
+
+  .df-stats-with-image__cta:hover svg {
+    transform: translateX(4px);
+  }
+
+  .df-stats-with-image__cta:focus-visible {
+    outline: 2px solid var(--df-accent-ink);
+    outline-offset: 3px;
+  }
+
+  @media (min-width: 990px) {
+    .df-stats-with-image {
+      padding-inline: 16px;
+    }
+
+    .df-stats-with-image__card {
+      border-radius: var(--df-swi-radius, 12px);
+      overflow: hidden;
+    }
+
+    .df-stats-with-image--media .df-stats-with-image__card {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: center;
+    }
+
+    .df-stats-with-image__collage,
+    .df-stats-with-image--media-last .df-stats-with-image__collage {
+      order: 0;
+      gap: 14px;
+      padding: 40px;
+    }
+
+    .df-stats-with-image--reverse .df-stats-with-image__collage {
+      order: 2;
+    }
+
+    .df-stats-with-image__collage--3 {
+      aspect-ratio: 1;
+    }
+
+    .df-stats-with-image__collage--3 .df-stats-with-image__photo {
+      aspect-ratio: auto;
+    }
+
+    .df-stats-with-image__body {
+      gap: 18px;
+      padding: 40px;
+    }
+
+    .df-stats-with-image__description {
+      font-size: 1.0625rem;
+    }
+
+    .df-stats-with-image__bullet {
+      font-size: 1rem;
+    }
+
+    .df-stats-with-image__cta-wrap {
+      width: auto;
+      margin-inline: 0;
+    }
+
+    .df-stats-with-image__cta {
+      width: auto;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Hero y cifras",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Los textos vienen del metafield dropflex.stats_with_image; estos son el respaldo. La calificación, el testimonio y las cifras salen de datos reales."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "header",
+      "content": "Fotos"
+    },
+    {
+      "type": "paragraph",
+      "content": "Sin fotos aquí se usan las del metafield dropflex.stats_with_image_images y, si no, las del producto."
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Foto 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Foto 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Foto 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Foto 4"
+    },
+    {
+      "type": "range",
+      "id": "max_images",
+      "label": "Fotos del producto",
+      "info": "Cuántas usar cuando vienen del producto.",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Fotos en escritorio",
+      "options": [
+        { "value": "left", "label": "A la izquierda" },
+        { "value": "right", "label": "A la derecha" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_image_first",
+      "label": "Fotos arriba en móvil",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Textos"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Mostrar calificación",
+      "info": "Solo aparece con reseñas reales suficientes.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "rating_label",
+      "label": "Texto de la calificación",
+      "info": "{rating} y {count} los llena la tienda.",
+      "default": "{rating} de 5 según {count} reseñas"
+    },
+    {
+      "type": "range",
+      "id": "min_reviews",
+      "label": "Reseñas mínimas",
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "info": "Encierra una palabra entre ** para destacarla.",
+      "default": "Descubre por qué **les encanta**"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Descripción",
+      "info": "Una o dos oraciones. Puedes marcar una frase con **…**."
+    },
+    {
+      "type": "text",
+      "id": "bullet_1",
+      "label": "Razón 1",
+      "default": "Diseño que se adapta a ti"
+    },
+    {
+      "type": "text",
+      "id": "bullet_2",
+      "label": "Razón 2",
+      "default": "Materiales para uso diario"
+    },
+    {
+      "type": "text",
+      "id": "bullet_3",
+      "label": "Razón 3",
+      "default": "Pagas al recibirlo"
+    },
+    {
+      "type": "text",
+      "id": "bullet_4",
+      "label": "Razón 4"
+    },
+    {
+      "type": "header",
+      "content": "Testimonio"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_testimonial",
+      "label": "Mostrar testimonio",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "review_id",
+      "label": "Id de la reseña",
+      "info": "Una reseña aprobada de dropflex.reviews. Se muestra tal cual; sin reseña no aparece."
+    },
+    {
+      "type": "header",
+      "content": "Cifras"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_stats",
+      "label": "Mostrar cifras",
+      "default": false
+    },
+    {
+      "type": "paragraph",
+      "content": "Con el metafield, las cifras salen de reseñas, políticas y logística reales. Estas son el respaldo: escribe solo cifras comprobables."
+    },
+    {
+      "type": "text",
+      "id": "stat_1_value",
+      "label": "Cifra 1"
+    },
+    {
+      "type": "text",
+      "id": "stat_1_label",
+      "label": "Texto de la cifra 1"
+    },
+    {
+      "type": "text",
+      "id": "stat_2_value",
+      "label": "Cifra 2"
+    },
+    {
+      "type": "text",
+      "id": "stat_2_label",
+      "label": "Texto de la cifra 2"
+    },
+    {
+      "type": "text",
+      "id": "stat_3_value",
+      "label": "Cifra 3"
+    },
+    {
+      "type": "text",
+      "id": "stat_3_label",
+      "label": "Texto de la cifra 3"
+    },
+    {
+      "type": "header",
+      "content": "Botón"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Texto del botón",
+      "default": "Pídelo y paga al recibir"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Enlace",
+      "info": "Vacío: lleva al formulario de compra de la página o a la ficha del producto."
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Fondo",
+      "info": "Vacío: un gris suave derivado del tema."
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Texto",
+      "info": "Vacío: el color de texto del tema."
+    },
+    {
+      "type": "range",
+      "id": "card_radius",
+      "label": "Radio en escritorio",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Relleno superior",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Relleno inferior",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Hero y cifras"
+    }
+  ]
+}
+{% endschema %}

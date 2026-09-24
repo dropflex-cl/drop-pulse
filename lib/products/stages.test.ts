@@ -121,7 +121,7 @@ describe("página del producto (Textos)", () => {
       ],
     },
   };
-  const progress = (p: Partial<CopyFacts["progress"]>) => ({ total: 14, approved: 0, pending: 14, missing: [], complete: false, ...p });
+  const progress = (p: Partial<CopyFacts["progress"]>): CopyFacts["progress"] => ({ total: 13, enabled: 0, listing: "pending", complete: false, ...p });
 
   it("bloqueada hasta aprobar los 2 desarrollos; después, por escribir", () => {
     const locked = productPosition({ ...ready, angles: { ...ready.angles, briefs: [ready.angles.briefs[0]] } });
@@ -132,25 +132,21 @@ describe("página del producto (Textos)", () => {
   });
 
   it("escribiendo, con error y por revisar", () => {
-    expect(copyPhase({ ...ready, copy: { run: { status: "running" }, progress: progress({ total: 0, pending: 0 }) } }, "done")).toBe("writing");
-    const failed = productPosition({ ...ready, copy: { run: { status: "failed", error: "La IA no respondió." }, progress: progress({ total: 0, pending: 0 }) } });
+    const none = progress({ total: 0, listing: "missing" });
+    expect(copyPhase({ ...ready, copy: { run: { status: "running" }, progress: none } }, "done")).toBe("writing");
+    const failed = productPosition({ ...ready, copy: { run: { status: "failed", error: "La IA no respondió." }, progress: none } });
     expect(failed.stages[3]).toMatchObject({ state: "error", desc: "La IA no respondió." });
     expect(failed.filter).toBe("detenidos");
-    const review = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ approved: 8, pending: 6 }) } });
-    expect(review.stages[3]).toMatchObject({ state: "review", desc: "8 de 14 aceptados" });
+    const review = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ enabled: 3 }) } });
+    expect(review.stages[3]).toMatchObject({ state: "review", desc: "Falta aprobar la ficha del producto" });
     expect(review.reason).toBe("Espera tu revisión · página del producto");
-    // Una reescritura que falla con bloques escritos no tapa la revisión.
-    expect(copyPhase({ ...ready, copy: { run: { status: "failed" }, progress: progress({ approved: 8, pending: 6 }) } }, "done")).toBe("review");
+    // Una reescritura que falla con la página escrita no tapa la revisión.
+    expect(copyPhase({ ...ready, copy: { run: { status: "failed" }, progress: progress({}) } }, "done")).toBe("review");
   });
 
-  it("sin pendientes pero con un obligatorio por aprobar, sigue en revisión", () => {
-    const p = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ approved: 13, pending: 0, missing: ["Envío y pago"] }) } });
-    expect(p.stages[3]).toMatchObject({ state: "review", desc: "Falta aprobar Envío y pago" });
-  });
-
-  it("lista: habilita Imágenes", () => {
-    const done = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ approved: 13, pending: 0, complete: true }) } });
-    expect(done.stages[3]).toMatchObject({ state: "done", desc: "13 de 14 aceptados" });
+  it("lista con la ficha aprobada: habilita Imágenes", () => {
+    const done = productPosition({ ...ready, copy: { run: { status: "succeeded" }, progress: progress({ listing: "approved", enabled: 5, complete: true }) } });
+    expect(done.stages[3]).toMatchObject({ state: "done", desc: "5 componentes en la página" });
     expect(done.stages[4]).toMatchObject({ key: "imagenes", state: "current" });
     expect(done).toMatchObject({ nextStage: "imagenes", reason: "Siguiente: imágenes" });
     expect(done.meter.slice(3, 5)).toEqual(["done", "current"]);

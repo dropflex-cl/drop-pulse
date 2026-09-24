@@ -1,0 +1,89 @@
+{%- doc -%}
+  DropFlex · un ítem de la cinta de beneficios (scrolling-benefits), o nada.
+
+  Aquí se decide si un beneficio es VERDADERO para esta tienda antes de dibujarlo:
+  - `requires` ata el ítem a una política real (pago contra entrega, envío gratis, cambios,
+    garantía, WhatsApp, plazo de entrega). Si la política falta o es falsa, el ítem no sale.
+  - Cada token del texto necesita su dato: {min} {max} (días hábiles, logística), {return_days},
+    {warranty_months}, {threshold} (monto del envío gratis). Un token sin dato oculta el ítem, nunca
+    se imprime vacío ni con un número inventado.
+  El texto se escapa antes de reemplazar los tokens (los valores son números de la tienda).
+
+  @param {string} icon - Clave de ICON_KEYS
+  @param {string} text - Texto del beneficio, con tokens
+  @param {string} [requires] - cod | free_shipping | returns | warranty | whatsapp | delivery
+  @param {object} [policies] - shop.metafields.dropflex.policies.value
+  @param {number} [days_min] - Días hábiles mínimos (vacío si no hay logística)
+  @param {number} [days_max] - Días hábiles máximos (vacío si no hay logística)
+  @param {string} [attributes] - block.shopify_attributes (solo ítems del editor)
+
+  @example
+  {% render 'df-scrolling-benefits-item', icon: 'truck', text: 'Llega en {min} a {max} días hábiles', policies: policies, days_min: 3, days_max: 6 %}
+{%- enddoc -%}
+{%- liquid
+  assign df_ok = true
+  assign df_text = text | strip | escape
+
+  case requires
+    when 'cod'
+      unless policies.cod == true
+        assign df_ok = false
+      endunless
+    when 'free_shipping'
+      unless policies.free_shipping == true
+        assign df_ok = false
+      endunless
+    when 'returns'
+      unless policies.return_days > 0
+        assign df_ok = false
+      endunless
+    when 'warranty'
+      unless policies.warranty_months > 0
+        assign df_ok = false
+      endunless
+    when 'whatsapp'
+      if policies.whatsapp == blank
+        assign df_ok = false
+      endif
+    when 'delivery'
+      if days_max == blank
+        assign df_ok = false
+      endif
+  endcase
+
+  if df_text contains '{min}' or df_text contains '{max}'
+    if days_max == blank
+      assign df_ok = false
+    endif
+  endif
+  if df_text contains '{return_days}'
+    unless policies.return_days > 0
+      assign df_ok = false
+    endunless
+  endif
+  if df_text contains '{warranty_months}'
+    unless policies.warranty_months > 0
+      assign df_ok = false
+    endunless
+  endif
+  if df_text contains '{threshold}'
+    if policies.free_shipping_threshold > 0
+      assign df_threshold = policies.free_shipping_threshold | times: 100 | money_without_trailing_zeros | strip_html
+    else
+      assign df_ok = false
+    endif
+  endif
+
+  if df_ok
+    assign df_text = df_text | replace: '{min}', days_min | replace: '{max}', days_max
+    assign df_text = df_text | replace: '{return_days}', policies.return_days
+    assign df_text = df_text | replace: '{warranty_months}', policies.warranty_months
+    assign df_text = df_text | replace: '{threshold}', df_threshold
+  endif
+-%}
+{%- if df_ok and df_text != blank -%}
+  <li class="df-scrolling-benefits__item" {{ attributes }}>
+    <span class="df-scrolling-benefits__icon">{% render 'df-icon', name: icon %}</span>
+    <span class="df-scrolling-benefits__text">{{ df_text }}</span>
+  </li>
+{%- endif -%}

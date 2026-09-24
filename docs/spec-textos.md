@@ -1,3 +1,5 @@
+> **Histórico.** Reemplazado por `docs/spec-pagina-componentes.md` (2026-09-24): la etapa ya no escribe bloques de texto sueltos (`content_items`) sino la ficha y los componentes de conversión (`page_components`).
+
 # Spec: etapa Textos (la página del producto)
 
 > Estado: **implementado el 2026-09-23** con el diseño PantallasTextos1/2 y PantallasTextosEscritorio (`design-system/textos.md`). Falta la prueba con la IA real (F6). El detalle de lo construido está en `docs/pipeline-ia.md` › Página del producto.

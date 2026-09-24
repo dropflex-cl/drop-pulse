@@ -8,8 +8,10 @@ export default defineConfig({
       "server-only": fileURLToPath(new URL("./test/empty-module.ts", import.meta.url)),
     },
   },
+  // Los tests de la vista previa renderizan React en el servidor (react-dom/server).
+  esbuild: { jsx: "automatic" },
   test: {
-    include: ["lib/**/*.test.ts"],
+    include: ["lib/**/*.test.ts", "components/**/*.test.tsx"],
     environment: "node",
     env: {
       APP_URL: "https://app.dropflex.test",

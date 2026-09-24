@@ -1,53 +1,40 @@
-// En qué quedó cada bloque de la página y si la etapa está completa (design-system/textos.md ›
-// Obligatorios). Puro: lo usan la pantalla, la ruta del producto y los tests.
+// En qué quedó la página del producto y si la etapa está completa (docs/spec-pagina-componentes.md).
+// La etapa termina con la ficha aprobada; los componentes son opcionales: los que se usan en la
+// página cuentan en el resumen. Puro: lo usan la pantalla, la ruta del producto y los tests.
 
 import type { ContentStatus } from "@/lib/types";
-import { BLOCKS, blockDef } from "./blocks";
-
-/**
- * - accepted / edited: aprobado (con el texto de la IA o con el tuyo);
- * - kept: descartado con original: se mantiene lo de Shopify;
- * - discarded: descartado sin original: no va en la página;
- * - missing: obligatorio descartado sin original: falta aprobar una versión;
- * - pending: por revisar.
- */
-export type ItemState = "accepted" | "edited" | "kept" | "discarded" | "missing" | "pending";
+import { LISTING } from "./listing";
 
 export interface ProgressItem {
-  key: string;
+  component: string;
   status: ContentStatus;
-  edited?: boolean;
-  original?: string | null;
-}
-
-export function itemState(i: ProgressItem): ItemState {
-  if (i.status === "aprobado") return i.edited ? "edited" : "accepted";
-  if (i.status === "rechazado") {
-    if (i.original?.trim()) return "kept";
-    return blockDef(i.key)?.required ? "missing" : "discarded";
-  }
-  return "pending";
+  enabled: boolean;
 }
 
 export interface CopyProgress {
+  /** Componentes escritos (sin la ficha). */
   total: number;
-  approved: number;
-  pending: number;
-  /** Obligatorios sin versión aprobada (descartados sin original, o que no llegaron). */
-  missing: string[];
+  /** Componentes que van en la página. */
+  enabled: number;
+  /** La ficha: sin escribir, por aprobar o aprobada. */
+  listing: "missing" | "pending" | "approved";
   complete: boolean;
 }
 
 export function copyProgress(items: ProgressItem[]): CopyProgress {
-  const states = items.map(itemState);
-  const settled = (key: string) => items.some((i, n) => i.key === key && ["accepted", "edited", "kept"].includes(states[n]));
-  const missing = BLOCKS.filter((b) => b.required && !settled(b.key) && !items.some((i, n) => i.key === b.key && states[n] === "pending")).map((b) => b.label);
-  const pending = states.filter((s) => s === "pending").length;
+  const listing = items.find((i) => i.component === LISTING);
+  const components = items.filter((i) => i.component !== LISTING);
+  const state = !listing ? "missing" : listing.status === "aprobado" ? "approved" : "pending";
   return {
-    total: items.length,
-    approved: states.filter((s) => s === "accepted" || s === "edited").length,
-    pending,
-    missing,
-    complete: items.length > 0 && pending === 0 && missing.length === 0,
+    total: components.length,
+    enabled: components.filter((i) => i.enabled).length,
+    listing: state,
+    complete: state === "approved",
   };
+}
+
+/** «3 componentes en la página». */
+export function enabledLabel(n: number): string {
+  if (!n) return "Sin componentes en la página";
+  return n === 1 ? "1 componente en la página" : `${n} componentes en la página`;
 }
