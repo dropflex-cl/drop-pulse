@@ -404,6 +404,15 @@ Más el B-roll desde un keyframe 9:16. Es la ronda que decide si el texto se con
 - Sin preset pasaron el QA 7 de 7. Con preset y `enhance_prompt`, 4 de 9: tradujo la oferta al inglés, agregó «ODOR» de fondo, cambió «adentro» por «dentro», omitió notas del pie. La misma oferta con preset y sin `enhance_prompt`, y sin preset, pasaron las dos. Decisión: `enhance_prompt` siempre en false; el preset queda para las familias de producto protagonista.
 - El QA v2 cazó lo nuevo: «Cabezal grueso y cabezal fino» con un solo cabezal a la vista.
 
+### 7.5 Lo descartado se borra (2026-09-24)
+
+`purgeDiscardedCreatives` (`lib/creatives/store.ts`) borra primero el archivo de `creative-media` y después la fila de `creative_assets`. Corre con la limpieza de `expireStaleCreatives` (al abrir el producto y en el sondeo de la pantalla) y al terminar una propuesta. Borra:
+- **Una pieza descartada**, pasados 2 minutos (el plazo de Deshacer del toast). La copia en Anuncios se saca al descartar, salvo que ya esté subida a Meta (ahí `ad_media` conserva su propio archivo).
+- **Al «Proponer otros»**, todas las piezas de los conceptos reemplazados, también las aprobadas, salvo las que siguen generándose (se borran cuando terminan; si no, Higgsfield dejaría un archivo sin fila). Después, los conceptos reemplazados que quedan sin piezas.
+- **La copia en Anuncios** de una pieza aprobada (`removeAdCopies`) sale con ella (archivo de `ad-media` y fila de `ad_media`), salvo que ya esté subida a Meta o la use un anuncio, aunque sea un borrador: `ads.media_id` no borra en cascada, y esa copia tiene su propio archivo. Lo mismo al descartar una pieza aprobada.
+
+El costo sigue en `ai_generations`. Verificado contra la base local con todos los casos: descartada vieja y reciente; de una propuesta anterior, aprobada con copia libre, en Meta y usada por un anuncio, pendiente, fallida y generándose; concepto vigente.
+
 ## 8. Decisiones
 
 **Tomadas (2026-09-23):**

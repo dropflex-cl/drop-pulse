@@ -12,6 +12,8 @@ import type { ConceptPayload, QaResult, StoredText } from "./schemas";
 // pantalla. Siempre con service_role filtrando por el dueño (como lib/copy/store.ts).
 
 export const CREATIVES_BUCKET = "creative-media";
+/** Donde vive la copia de una pieza aprobada, junto a los creativos subidos a mano (Anuncios). */
+export const AD_MEDIA_BUCKET = "ad-media";
 
 const RUN_RUNNING_STALE_MS = 10 * 60 * 1000;
 const RUN_QUEUED_STALE_MS = 3 * 60 * 1000;
@@ -19,6 +21,8 @@ const RUN_QUEUED_STALE_MS = 3 * 60 * 1000;
 const ASSET_QUEUED_STALE_MS = 30 * 60 * 1000;
 const ASSET_RUNNING_STALE_MS = 20 * 60 * 1000;
 const SIGNED_URL_TTL_S = 60 * 60;
+/** Lo descartado se borra pasado este plazo: deja tiempo para Deshacer. */
+export const REJECTED_PURGE_MS = 2 * 60 * 1000;
 
 export interface CreativeRunRow {
   id: string;
@@ -103,6 +107,81 @@ export async function expireStaleCreatives(userId: string): Promise<void> {
     db.from("creative_assets").update(assetPatch).eq("user_id", userId).eq("render_status", "queued").lt("created_at", before(ASSET_QUEUED_STALE_MS)),
   ]);
   for (const r of results) fail("Cerrar lo colgado de Creativos", r.error);
+  await purgeDiscardedCreatives(userId);
+}
+
+/**
+ * Saca de Anuncios las copias (ad_media) de piezas generadas: archivo de ad-media y fila. Se quedan
+ * las que ya se subieron a Meta o que usa un anuncio (ads.media_id no se borra en cascada): tienen
+ * su propio archivo y no dependen de la pieza. Devuelve los ids que se borraron.
+ */
+export async function removeAdCopies(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const db = adminClient();
+  const [media, used] = await Promise.all([
+    db.from("ad_media").select("id, storage_path, meta_image_hash").in("id", ids),
+    db.from("ads").select("media_id").in("media_id", ids),
+  ]);
+  fail("Leer los creativos de Anuncios", media.error);
+  fail("Leer los anuncios", used.error);
+  const inUse = new Set((used.data ?? []).map((a) => a.media_id as string));
+  const removable = ((media.data ?? []) as { id: string; storage_path: string; meta_image_hash: string | null }[]).filter((m) => !m.meta_image_hash && !inUse.has(m.id));
+  if (!removable.length) return new Set();
+  fail("Borrar el creativo", (await db.storage.from(AD_MEDIA_BUCKET).remove(removable.map((m) => m.storage_path))).error);
+  fail("Borrar el creativo", (await db.from("ad_media").delete().in("id", removable.map((m) => m.id))).error);
+  return new Set(removable.map((m) => m.id));
+}
+
+/**
+ * Lo descartado se borra de verdad (archivo de creative-media y fila):
+ * - una pieza descartada, pasado el plazo de Deshacer;
+ * - al proponer otros, todas las piezas de los conceptos reemplazados, también las aprobadas (con su
+ *   copia en Anuncios, ver removeAdCopies), salvo las que siguen generándose: se borran cuando
+ *   terminan (si no, Higgsfield dejaría un archivo sin fila). Después, los conceptos reemplazados
+ *   que quedan sin piezas.
+ * Primero Storage y después la base: si Storage falla, la fila queda y se reintenta en la próxima
+ * lectura. El costo queda en ai_generations.
+ */
+export async function purgeDiscardedCreatives(userId: string): Promise<void> {
+  const db = adminClient();
+  const [rejected, superseded] = await Promise.all([
+    db
+      .from("creative_assets")
+      .select("id, storage_path")
+      .eq("user_id", userId)
+      .eq("status", "rejected")
+      .lt("decided_at", new Date(Date.now() - REJECTED_PURGE_MS).toISOString()),
+    db.from("creative_concepts").select("id").eq("user_id", userId).not("superseded_at", "is", null),
+  ]);
+  fail("Leer lo descartado", rejected.error);
+  fail("Leer los conceptos reemplazados", superseded.error);
+  const oldConcepts = (superseded.data ?? []).map((c) => c.id as string);
+  let orphans: { id: string; storage_path: string | null }[] = [];
+  if (oldConcepts.length) {
+    const r = await db
+      .from("creative_assets")
+      .select("id, storage_path, ad_media_id")
+      .eq("user_id", userId)
+      .in("concept_id", oldConcepts)
+      .in("render_status", ["succeeded", "failed"]);
+    fail("Leer las piezas reemplazadas", r.error);
+    const found = (r.data ?? []) as (typeof orphans[number] & { ad_media_id: string | null })[];
+    await removeAdCopies(found.map((a) => a.ad_media_id).filter((id): id is string => Boolean(id)));
+    orphans = found;
+  }
+  const rows = [...((rejected.data ?? []) as typeof orphans), ...orphans];
+  if (rows.length) {
+    const paths = [...new Set(rows.map((r) => r.storage_path).filter((p): p is string => Boolean(p)))];
+    if (paths.length) fail("Borrar las imágenes descartadas", (await db.storage.from(CREATIVES_BUCKET).remove(paths)).error);
+    fail("Borrar las piezas descartadas", (await db.from("creative_assets").delete().eq("user_id", userId).in("id", [...new Set(rows.map((r) => r.id))])).error);
+  }
+  if (oldConcepts.length) {
+    const left = await db.from("creative_assets").select("concept_id").eq("user_id", userId).in("concept_id", oldConcepts);
+    fail("Leer las piezas que quedan", left.error);
+    const keep = new Set((left.data ?? []).map((a) => a.concept_id as string));
+    const empty = oldConcepts.filter((id) => !keep.has(id));
+    if (empty.length) fail("Borrar los conceptos reemplazados", (await db.from("creative_concepts").delete().eq("user_id", userId).in("id", empty)).error);
+  }
 }
 
 export async function latestCreativeRuns(userId: string, productIds: string[]): Promise<Map<string, CreativeRunRow>> {

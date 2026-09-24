@@ -19,7 +19,7 @@ import {
   TEXT_LIMIT,
   type QaResult,
 } from "@/lib/creatives/schemas";
-import { CREATIVES_BUCKET, getAssetRow, isRecoverable, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
+import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey, markHiggsfieldInvalid, presetsFor } from "@/lib/integrations/higgsfield/connection";
@@ -51,7 +51,6 @@ const POLL_BUDGET_MS = 200_000;
 const CONCEPT_ATTEMPTS = 3;
 /** Otro proceso no toma una pieza que se tocó hace menos de esto (lease sobre updated_at). */
 const LEASE_MS = 20_000;
-const AD_MEDIA_BUCKET = "ad-media";
 
 
 /** Qué pieza es, para el historial: “Antes y después · 9:16”. */
@@ -223,6 +222,8 @@ export async function runCreatives(runId: string): Promise<void> {
     fail("Guardar los conceptos", (await db.from("creative_concepts").insert(rows)).error);
     // Los conceptos anteriores quedan fuera de la pantalla; sus piezas aprobadas siguen en Anuncios.
     fail("Reemplazar los conceptos anteriores", (await db.from("creative_concepts").update({ superseded_at: now, updated_at: now }).eq("product_id", r.product_id).is("superseded_at", null).neq("run_id", r.id)).error);
+    // Lo reemplazado que no se aprobó se borra (archivo y fila); lo que sigue generándose, al terminar.
+    await purgeDiscardedCreatives(r.user_id).catch((e) => console.error("[creatives] borrar lo reemplazado", e));
     fail(
       "Guardar la corrida",
       (await db.from("creative_runs").update({ status: "succeeded", payload: result.data, prompt_version: CREATIVES_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error,
@@ -509,17 +510,9 @@ export async function decideAsset(userId: string, productId: string, assetId: st
     fail("Guardar tu decisión", (await db.from("creative_assets").update({ status: "approved", decided_at: now, ad_media_id: adMediaId, updated_at: now }).eq("id", a.id)).error);
     return;
   }
+  // Sale de Anuncios, salvo que ya esté en Meta o la use un anuncio (ahí queda con su propio archivo).
   let adMediaId = a.ad_media_id;
-  if (adMediaId) {
-    const media = await db.from("ad_media").select("id, storage_path, meta_image_hash").eq("id", adMediaId).maybeSingle();
-    fail("Leer el creativo", media.error);
-    if (media.data && !media.data.meta_image_hash) {
-      const rm = await db.storage.from(AD_MEDIA_BUCKET).remove([media.data.storage_path as string]);
-      fail("Borrar el creativo", rm.error);
-      fail("Borrar el creativo", (await db.from("ad_media").delete().eq("id", adMediaId)).error);
-      adMediaId = null;
-    }
-  }
+  if (adMediaId && (await removeAdCopies([adMediaId])).has(adMediaId)) adMediaId = null;
   const status = action === "reject" ? "rejected" : "in_review";
   fail("Guardar tu decisión", (await db.from("creative_assets").update({ status, decided_at: action === "reject" ? now : null, ad_media_id: adMediaId, updated_at: now }).eq("id", a.id)).error);
 }
