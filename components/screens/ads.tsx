@@ -73,6 +73,36 @@ interface Upload {
 }
 
 const errorText = (e: unknown, fallback: string) => (e instanceof AdsApiError ? e.message : fallback);
+
+/** Edad mínima: se escribe libre y se ajusta a 18–65 al salir del campo (ajustar en cada tecla no deja borrar ni escribir). */
+function AgeField({ value, onChange }: { value: number; onChange: (age: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  const [prev, setPrev] = useState(value);
+  if (value !== prev) {
+    setPrev(value);
+    setDraft(String(value));
+  }
+  const commit = () => {
+    const age = Math.min(65, Math.max(18, Number(draft) || 18));
+    setDraft(String(age));
+    if (age !== value) onChange(age);
+  };
+  return (
+    <Field
+      label="Edad mínima"
+      value={draft}
+      suffix="años"
+      inputMode="numeric"
+      maxLength={2}
+      hint="De 18 a 65"
+      onValueChange={(v) => setDraft(v.replace(/\D/g, ""))}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+      }}
+    />
+  );
+}
 const norm = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
 export function AdsScreen({ data }: { data: ProductAds }) {
@@ -603,7 +633,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
         </Button>
       ) : null}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Edad mínima" value={String(cfg.launch.min_age)} suffix="años" inputMode="numeric" onValueChange={(v) => setLaunch({ min_age: Math.min(65, Math.max(18, Number(v.replace(/\D/g, "")) || 18)) })} />
+        <AgeField value={cfg.launch.min_age} onChange={(min_age) => setLaunch({ min_age })} />
         <div className="flex flex-col gap-1.5">
           <label htmlFor="ad-loc" className="text-label">
             Ubicación
@@ -624,7 +654,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
 
   const budgetBody = (
     <>
-      <div className="grid gap-3 @xl:grid-cols-3">
+      <div className="grid gap-3 @xl:grid-cols-[1fr_1fr_1.5fr]">
         <Field
           label={cfg.structure === "abo" ? "Presupuesto por conjunto" : "Presupuesto de la campaña"}
           prefix={sym}
@@ -638,16 +668,16 @@ export function AdsScreen({ data }: { data: ProductAds }) {
           hint={cfg.structure === "abo" ? "ABO: se fija en cada conjunto" : "CBO: Meta lo reparte entre los conjuntos"}
         />
         <Field label="Puja" value="Menor costo" readOnly hint="Sin tope de costo" />
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <label htmlFor="ad-start" className="text-label">
             Empieza
           </label>
-          <div className="flex gap-2">
+          <div className="flex min-w-0 gap-2">
             <select
               id="ad-start"
               value={cfg.launch.start}
               onChange={(e) => setLaunch({ start: e.target.value as LaunchConfig["start"] })}
-              className="h-control flex-1 cursor-pointer rounded-md border border-input bg-background px-3 text-body"
+              className="h-control min-w-0 flex-1 cursor-pointer rounded-md border border-input bg-background px-3 text-body"
             >
               <option value="tomorrow">Mañana</option>
               <option value="now">Al publicar</option>
@@ -657,7 +687,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
                 aria-label="Hora de inicio"
                 value={cfg.launch.start_hour}
                 onChange={(e) => setLaunch({ start_hour: Number(e.target.value) })}
-                className="h-control w-24 cursor-pointer rounded-md border border-input bg-background px-3 text-body tabular-nums"
+                className="h-control w-24 shrink-0 cursor-pointer rounded-md border border-input bg-background px-3 text-body tabular-nums"
               >
                 {HOURS.map((h) => (
                   <option key={h} value={h}>
