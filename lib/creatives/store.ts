@@ -6,7 +6,7 @@ import type { Preset } from "@/lib/integrations/higgsfield/client";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { CreativeAssetView, CreativeConceptView, RunStatus } from "@/lib/types";
 import { FAMILY_DEFS, type Family, type Ratio } from "./catalog";
-import type { ConceptPayload, QaResult } from "./schemas";
+import type { ConceptPayload, QaResult, StoredText } from "./schemas";
 
 // creative_runs, creative_concepts y creative_assets: lecturas de la etapa Creativos y su paso a la
 // pantalla. Siempre con service_role filtrando por el dueño (como lib/copy/store.ts).
@@ -31,12 +31,22 @@ export interface CreativeRunRow {
   created_at: string;
 }
 
-/** Lo que se guarda de un concepto: lo del generador + el preset elegido, con su nombre y portada. */
-export interface StoredConcept extends ConceptPayload {
-  preset: Pick<Preset, "id" | "name" | "group" | "cover"> | null;
-  /** El ángulo de venta del desarrollo del que sale. */
-  sales_angle: SalesAngle;
-}
+/** Lo que agregó la dirección de arte (prompt v2): los conceptos v1 no lo traen. */
+type ArtFields = "look" | "art" | "layout" | "product_units" | "kit_parts";
+
+/**
+ * Lo que se guarda de un concepto: lo del generador, el preset elegido (nombre y portada) y, de la
+ * corrida, cómo se ve el producto y el kit de la foto base (el render los necesita en cada pieza).
+ */
+export type StoredConcept = Omit<ConceptPayload, ArtFields | "texts"> &
+  Partial<Pick<ConceptPayload, ArtFields>> & {
+    texts: StoredText[];
+    product_look?: string;
+    kit?: string[];
+    preset: Pick<Preset, "id" | "name" | "group" | "cover"> | null;
+    /** El ángulo de venta del desarrollo del que sale. */
+    sales_angle: SalesAngle;
+  };
 
 export interface ConceptRow {
   id: string;
@@ -61,7 +71,7 @@ export interface AssetRow {
   endpoint: string;
   preset_id: string | null;
   input: Record<string, unknown>;
-  baked_texts: ConceptPayload["texts"];
+  baked_texts: StoredText[];
   render_status: "queued" | "running" | "succeeded" | "failed";
   hf_request_id: string | null;
   error_code: string | null;
@@ -216,8 +226,9 @@ export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<strin
     familyName: FAMILY_DEFS[c.family]?.name ?? c.family,
     name: p.name,
     why: p.why,
+    look: p.look,
     preset: p.preset ? { id: p.preset.id, name: p.preset.name, group: p.preset.group, cover: p.preset.cover ?? undefined } : undefined,
-    texts: p.texts,
+    texts: p.texts.map((t) => ({ role: t.role, text: t.text })),
     edited: c.edited_at != null,
     assets: assets.filter((a) => a.concept_id === c.id).map((a) => toAssetView(a, a.storage_path ? urls.get(a.storage_path) : undefined)),
   };

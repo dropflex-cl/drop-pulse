@@ -33,6 +33,7 @@ function concepts(state: string): CreativeConceptView[] {
       familyName: "Explicativo",
       name: "Dentro de cada cápsula",
       why: "Explica por qué funciona desde adentro: quien probó soluciones por fuera entiende la diferencia.",
+      look: "El frasco al centro sobre crema, con cuatro callouts finos en azul marino que apuntan a la etiqueta.",
       preset: { id: "00f991c0-2b75-5f44-ac8c-821b51f64193", name: "Callout Fan", group: "Proof & Specs" },
       texts: [
         { role: "headline", text: "DENTRO DE CADA CÁPSULA" },
@@ -74,6 +75,7 @@ function concepts(state: string): CreativeConceptView[] {
       familyName: "Comparativa",
       name: "¿Por qué cambiarse?",
       why: "Contrasta con la práctica que ya probó, sin nombrar marcas.",
+      look: "A la izquierda el frasco con dos cápsulas; a la derecha una tarjeta blanca con la tabla ✓/✗, sobre rosado y menta.",
       preset: { id: "bea538c0-cb41-4cc3-a435-71d65990a938", name: "Problem → Solution", group: "Problem Solved" },
       texts: [
         { role: "headline", text: "¿Por qué cambiarse a URO?" },

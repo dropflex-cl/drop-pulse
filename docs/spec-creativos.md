@@ -126,8 +126,8 @@ Es un mapeo desde los campos que ya entregan los agentes. No hace falta cambiar 
 | Familia (`generador-estaticos`) | Modo | Grupo de presets (§2.4) |
 |---|---|---|
 | 1 Oferta y bundle | Preset | Hero Spotlight (packs: Giant Pack Stage) |
-| 2 Antes/después | Preset | Problem Solved. Sin personas: estados del problema o del producto |
-| 3 Explicativo | Preset | Proof & Specs |
+| 2 Antes/después | Edición directa (§7.4) | — (antes: Problem Solved). Sin personas: los dos estados, con objetos reales de la alternativa |
+| 3 Explicativo | Edición directa (§7.4) | — (antes: Proof & Specs). Callouts que llegan a partes visibles |
 | 4 Titular de identidad o garantía | Preset | Hero Spotlight (Headline Wedge, Stacked Shout, Ghost Word) |
 | 5 Foto nativa | Edición directa | — (escena casera, sin personas identificables) |
 | 6 Carta o nota | Edición directa | — (papel o nota, producto al costado) |
@@ -384,6 +384,24 @@ Más el B-roll desde un keyframe 9:16. Es la ronda que decide si el texto se con
 - Contra la base local, sin Claude: la clave en Vault, la pieza generada en Higgsfield (21 s) y guardada en el bucket, y aprobar y deshacer en `ad_media`.
 
 **Falta verificar:** el generador de conceptos y el QA con Claude. `.env.local` no tiene `ANTHROPIC_API_KEY`; la prueba está en `scripts/e2e-creatives.ts`.
+
+### 7.4 Dirección de arte en los conceptos (2026-09-24, prompt v2)
+
+**Problema.** En prod (Removedor de callos eléctrico), las piezas salieron correctas pero genéricas: una copa con 3 cajas en el problema → solución, fondo azul frío para un producto rosado, callouts que apuntan al aire, el rodillo de repuesto usado como "lima manual". En F0 (URO) los prompts los había escrito a mano un director de arte; en la app el generador tenía prohibido describir el producto, los textos iban como lista plana y el preset decidía la composición.
+
+**Cambio** (`lib/creatives/{schemas,prompts,render,catalog}.ts`, `CREATIVES_PROMPT_VERSION` 2, `QA_PROMPT_VERSION` 2):
+- La corrida trae `product_look` (cómo se ve el producto en la foto base) y `kit` (lo demás de la foto: caja, repuestos, cables). Se copian en cada concepto guardado.
+- Cada concepto trae `look` (para el comerciante, en su idioma), `art` (paleta, tipografía, tono), `layout`, `product_units` y `kit_parts`; cada texto, `placement` y, si es callout, `points_to` (una parte visible).
+- `renderRequest` arma un brief de diagramación: nombra el producto, fija unidades y partes del kit ("no conviertas un objeto de la foto en otro"), ubica cada texto y fija el estilo. Regla nueva para todos: nada impreso en el producto que no esté en la foto. Los conceptos v1 (sin `layout`) siguen con el prompt anterior.
+- Problema → solución y Explicativo pasan a edición directa (sin preset): con preset, Flare se queda con la composición del preset y no con la idea.
+- Largos por rol (`ROLE_LIMITS`): titular ≤ 6 palabras y 45 caracteres; el resto, una línea de ≤ 32 (fila de tabla ≤ 40). Máximo 5 textos (7 en comparativa y oferta). Editar cambia las palabras y conserva la ubicación.
+- El QA cuenta como texto de más lo impreso en el producto que la foto no tiene, y agrega `mismatches`: textos que la imagen contradice ("parches" y se ven calcetines).
+
+**POC con datos de prod** (solo lectura, fuera del repo; mismo producto, misma foto base): de genérico a nivel agencia en 5 de 6; el QA cazó el sexto (inventó "ELECTRONIC PEDICURE TOOL" en el cuerpo, de ahí la regla nueva). Costo: ~US$0,50 de conceptos + 6 × ~US$0,10 de imágenes.
+
+**Validado con el código del repo:** el prompt de render es el de la POC más la regla nueva; 9:16 del explicativo sale igual de bien. En la oferta 9:16 con preset, Flare omitió las 3 notas del pie: el QA las marca como faltantes y el reintento automático va sin preset.
+
+**Pendiente:** correr el generador v2 con Claude sobre el producto de prod y sobre URO (`scratchpad/poc/validate.mts`); la cuenta de Anthropic se quedó sin crédito durante la validación.
 
 ## 8. Decisiones
 

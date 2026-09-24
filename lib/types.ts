@@ -549,6 +549,8 @@ export interface CreativeConceptView {
   familyName: string;
   name: string;
   why: string;
+  /** Cómo se va a ver la pieza, para decidir antes de pagarla (conceptos con dirección de arte). */
+  look?: string;
   preset?: { id: string; name: string; group: string; cover?: string };
   texts: { role: import("./creatives/catalog").TextRole; text: string }[];
   edited: boolean;

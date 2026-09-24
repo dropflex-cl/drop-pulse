@@ -7,6 +7,7 @@ import { AssistantButton, AssistantScope } from "@/components/shell/assistant-pr
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
+import { ROLE_LIMITS } from "@/lib/creatives/catalog";
 import { money } from "@/lib/format";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
@@ -334,6 +335,7 @@ function ConceptCard({
           {c.name}
         </h3>
         <p className="mt-0.5 text-label font-normal text-muted-foreground">{c.why}</p>
+        {c.look ? <p className="mt-1 text-caption text-muted-foreground">Cómo se verá: {c.look}</p> : null}
       </div>
 
       {editing ? (
@@ -343,7 +345,8 @@ function ConceptCard({
               key={i}
               label={ROLE_LABEL[t.role] ?? t.role}
               value={t.text}
-              maxLength={60}
+              maxLength={ROLE_LIMITS[t.role]}
+              hint={`${t.text.length} de ${ROLE_LIMITS[t.role]} caracteres`}
               onValueChange={(v) => setTexts((l) => l.map((x, j) => (j === i ? { ...x, text: v } : x)))}
             />
           ))}

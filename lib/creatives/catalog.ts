@@ -11,14 +11,18 @@ export interface FamilyDef {
   name: string;
   /** Qué es y qué palanca usa (prompt). */
   gist: string;
-  /** Grupos de presets de Marketing Studio que le calzan; vacío = edición directa, sin preset. */
+  /**
+   * Grupos de presets de Marketing Studio que le calzan; vacío = edición directa, sin preset. Las
+   * familias que dependen de la escena van sin preset: con uno, Flare se queda con la composición
+   * del preset y no con la idea (spec §7.4).
+   */
   presetGroups: string[];
 }
 
 export const FAMILY_DEFS: Record<Family, FamilyDef> = {
   offer: { key: "offer", name: "Oferta y pack", gist: "El pack o el precio es el mensaje (aversión a la pérdida, ancla). Retargeting.", presetGroups: ["Hero Spotlight"] },
-  before_after: { key: "before_after", name: "Problema → solución", gist: "Dos estados, el problema y el producto resolviéndolo. Sin cuerpos ni personas.", presetGroups: ["Problem Solved"] },
-  explainer: { key: "explainer", name: "Explicativo", gist: "El producto con callouts que explican por qué funciona (fluidez causal).", presetGroups: ["Proof & Specs"] },
+  before_after: { key: "before_after", name: "Problema → solución", gist: "Dos estados que se ven: la alternativa que no alcanza y el producto resolviéndolo. Sin cuerpos ni personas.", presetGroups: [] },
+  explainer: { key: "explainer", name: "Explicativo", gist: "El producto con callouts que apuntan a sus partes visibles y explican por qué funciona (fluidez causal).", presetGroups: [] },
   headline: { key: "headline", name: "Titular", gist: "Tipografía grande que filtra al grupo o elimina el riesgo (efecto cóctel).", presetGroups: ["Hero Spotlight"] },
   native: { key: "native", name: "Foto nativa", gist: "Escena casera y cotidiana, sin diseño; parece un post, no un anuncio.", presetGroups: [] },
   letter: { key: "letter", name: "Nota", gist: "Una nota o carta breve junto al producto; se lee entera.", presetGroups: [] },
@@ -29,6 +33,18 @@ export const FAMILY_DEFS: Record<Family, FamilyDef> = {
 /** Rol de cada texto horneado en la pieza. */
 export const TEXT_ROLES = ["headline", "subheadline", "callout", "badge", "table_header", "table_row", "note"] as const;
 export type TextRole = (typeof TEXT_ROLES)[number];
+
+/**
+ * Largo máximo por rol, en caracteres: el titular en 2 a 6 palabras y el resto en UNA línea. Más
+ * largo, el modelo lo corta mal («Luz LED que se enciende al / funcionar»).
+ */
+export const ROLE_LIMITS: Record<TextRole, number> = { headline: 45, subheadline: 32, callout: 32, badge: 32, table_header: 32, table_row: 40, note: 32 };
+export const HEADLINE_MAX_WORDS = 6;
+
+/** Máximo de textos por pieza: pocos se leen en el feed; la comparativa y la oferta necesitan más. */
+export function maxTexts(family: Family): number {
+  return family === "proof" || family === "offer" ? 7 : 5;
+}
 
 export const RATIOS = ["1:1", "9:16"] as const;
 export type Ratio = (typeof RATIOS)[number];

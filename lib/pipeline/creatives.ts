@@ -16,7 +16,7 @@ import {
   qaSchema,
   qaVerdict,
   textProblems,
-  type ConceptPayload,
+  TEXT_LIMIT,
   type QaResult,
 } from "@/lib/creatives/schemas";
 import { CREATIVES_BUCKET, getAssetRow, isRecoverable, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
@@ -194,7 +194,7 @@ export async function runCreatives(runId: string): Promise<void> {
         content: [...imageContent, { type: "text", text: creativesUser(ctx, problems) }],
         schema: creativeConceptsSchema,
         effort: "medium",
-        maxTokens: 12000,
+        maxTokens: 16000,
       });
       problems = conceptProblems(result.data, facts);
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage: result.usage, error: problems.length ? "invalid_concepts" : null });
@@ -206,7 +206,13 @@ export async function runCreatives(runId: string): Promise<void> {
     const presetById = new Map(presets.map((p) => [p.id, p]));
     const rows = result.data.concepts.slice(0, CONCEPTS_PER_RUN).map((c, i) => {
       const p = c.preset_id ? presetById.get(c.preset_id) : undefined;
-      const payload: StoredConcept = { ...c, preset: p ? { id: p.id, name: p.name, group: p.group, cover: p.cover } : null, sales_angle: byRole[c.angle].angle };
+      const payload: StoredConcept = {
+        ...c,
+        product_look: result.data.product_look,
+        kit: result.data.kit,
+        preset: p ? { id: p.id, name: p.name, group: p.group, cover: p.cover } : null,
+        sales_angle: byRole[c.angle].angle,
+      };
       return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, position: i, angle_role: c.angle, family: c.family, payload };
     });
     const now = stamp();
@@ -235,14 +241,17 @@ export async function runCreatives(runId: string): Promise<void> {
 /** Cambia los textos (o el preset) de un concepto antes de generarlo. */
 export async function editConcept(userId: string, productId: string, conceptId: string, body: unknown): Promise<void> {
   const parsed = conceptEditSchema.safeParse(body);
-  if (!parsed.success) throw new OptimizeError("Revisa los textos: cada uno entre 1 y 60 caracteres, y un solo titular.", 400);
+  if (!parsed.success) throw new OptimizeError(`Revisa los textos: cada uno entre 1 y ${TEXT_LIMIT} caracteres, y un solo titular.`, 400);
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
   const pricing = await getPricingPlan(userId, productId);
   if (!pricing) throw new OptimizeError("Guarda el precio en Información base.", 409);
-  const problems = textProblems(parsed.data.texts, pricing as PricingPlan);
+  // Se cambian las palabras; la ubicación de cada texto (dirección de arte) se conserva por posición.
+  const before = concept.payload.texts;
+  const texts = parsed.data.texts.map((t, i) => (before[i]?.role === t.role ? { ...before[i], text: t.text } : t));
+  const problems = textProblems(texts, pricing as PricingPlan, "", concept.family);
   if (problems.length) throw new OptimizeError(problems[0].replace(/^./, (c) => c.toUpperCase()), 400);
-  const payload: StoredConcept = { ...concept.payload, texts: parsed.data.texts };
+  const payload: StoredConcept = { ...concept.payload, texts };
   const now = new Date().toISOString();
   fail("Guardar el concepto", (await adminClient().from("creative_concepts").update({ payload, edited_at: now, updated_at: now }).eq("id", conceptId)).error);
 }
@@ -451,7 +460,7 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
 async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
   const [base] = await productImageUrls(a.user_id, a.product_id, 1);
   if (!base) throw new Error("sin imagen base");
-  const texts = a.baked_texts as ConceptPayload["texts"];
+  const texts = a.baked_texts;
   const detail = await assetDetail(a);
   let result;
   try {
