@@ -11,23 +11,33 @@ const MAX_RETRIES = 4;
 const BASE_DELAY_MS = 500;
 const TIMEOUT_MS = 15_000;
 const MAX_PAGES = 20;
+/** Subir un video por URL o crear un creativo puede tardar más que una lectura. */
+const POST_TIMEOUT_MS = 60_000;
+/** Espera extra ante throttling en escrituras: Meta pide bajar el ritmo, no reintentar al tiro. */
+const THROTTLE_PAUSE_MS = 2_000;
 
 const AUTH_CODES = new Set([190, 102, 463, 467]);
 const PERMISSION_CODES = new Set([10, 200, 272, 294, 299]);
-const THROTTLE_CODES = new Set([4, 17, 32, 341, 613]);
+const THROTTLE_CODES = new Set([4, 17, 32, 341, 613, 80004]);
 
 /** Token inválido, vencido o revocado: hay que volver a conectar. */
 export class MetaAuthError extends Error {}
 /** Falta un permiso para esa llamada. */
 export class MetaPermissionError extends Error {}
 export class MetaApiError extends Error {
-  constructor(message: string, public status?: number, public code?: number) {
+  constructor(
+    message: string,
+    public status?: number,
+    public code?: number,
+    /** Lo que Meta quiere mostrarle a la persona (error_user_msg), si lo manda. */
+    public userMessage?: string,
+  ) {
     super(message);
   }
 }
 
 interface MetaError {
-  error?: { message?: string; code?: number; is_transient?: boolean };
+  error?: { message?: string; code?: number; error_subcode?: number; error_user_title?: string; error_user_msg?: string; is_transient?: boolean; fbtrace_id?: string };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -48,7 +58,7 @@ function mapError(status: number, body: MetaError): Error {
   if (code != null && PERMISSION_CODES.has(code)) return new MetaPermissionError(msg);
   if (status === 401) return new MetaAuthError(msg);
   if (status === 403) return new MetaPermissionError(msg);
-  return new MetaApiError(msg, status, code);
+  return new MetaApiError(msg, status, code, body.error?.error_user_msg ?? body.error?.error_user_title);
 }
 
 export async function graphGet<T>(token: string, path: string, params: Record<string, string> = {}): Promise<T> {
@@ -91,4 +101,40 @@ export async function graphList<T>(token: string, path: string, params: Record<s
     page = await graphGet(token, next);
   }
   return out;
+}
+
+/**
+ * Una escritura (crear, pausar, cambiar presupuesto). Solo se reintenta el throttling de Meta, que
+ * garantiza que no se aplicó: un 5xx o un corte de red pudo haber creado el objeto, y reintentarlo
+ * dejaría un duplicado (la reversión del lanzamiento se encarga de lo que quede a medias).
+ */
+export async function graphPost<T>(token: string, path: string, params: Record<string, string>): Promise<T> {
+  const url = graphUrl(path);
+  const form = new URLSearchParams(params);
+  form.set("access_token", token);
+  form.set("appsecret_proof", appSecretProof(token));
+
+  for (let attempt = 0; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form.toString(),
+        signal: AbortSignal.timeout(POST_TIMEOUT_MS),
+      });
+    } catch (e) {
+      throw new MetaApiError(`Meta no respondió: ${(e as Error).message}`);
+    }
+    const body = (await res.json().catch(() => ({}))) as T & MetaError;
+    if (res.ok && body.error == null) return body;
+    const code = body.error?.code;
+    if ((res.status === 429 || (code != null && THROTTLE_CODES.has(code))) && attempt < MAX_RETRIES) {
+      await sleep(jitter(attempt) + THROTTLE_PAUSE_MS);
+      continue;
+    }
+    const e = body.error ?? {};
+    console.error(`[meta] POST ${path} → ${res.status} | code=${e.code ?? "?"} subcode=${e.error_subcode ?? "?"} trace=${e.fbtrace_id ?? "?"} | ${e.message ?? "(sin mensaje)"}`);
+    throw mapError(res.status, body);
+  }
 }
