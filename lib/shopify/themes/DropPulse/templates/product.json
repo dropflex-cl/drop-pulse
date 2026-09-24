@@ -58,20 +58,42 @@
             "padding-inline-end": 0
           },
           "blocks": {
-            "hype_badge": {
-              "type": "df-hype-badge",
-              "settings": {}
-            },
             "social_proof": {
               "type": "df-social-proof",
               "settings": {}
             },
-            "review_stars": {
-              "type": "df-review-stars",
+            "stars_row": {
+              "type": "group",
               "settings": {
-                "margin_top": 8,
-                "margin_bottom": -8
-              }
+                "content_direction": "row",
+                "vertical_on_mobile": false,
+                "horizontal_alignment": "flex-start",
+                "vertical_alignment": "center",
+                "gap": 12,
+                "width": "fill",
+                "width_mobile": "fill",
+                "height": "fit"
+              },
+              "blocks": {
+                "review_stars": {
+                  "type": "df-review-stars",
+                  "settings": {
+                    "margin_top": 8,
+                    "margin_bottom": -8
+                  }
+                },
+                "hype_badge": {
+                  "type": "df-hype-badge",
+                  "settings": {
+                    "margin_top": 8,
+                    "margin_bottom": -8
+                  }
+                }
+              },
+              "block_order": [
+                "review_stars",
+                "hype_badge"
+              ]
             },
             "title": {
               "type": "df-title",
@@ -233,9 +255,8 @@
             }
           },
           "block_order": [
-            "hype_badge",
             "social_proof",
-            "review_stars",
+            "stars_row",
             "title",
             "subtitle",
             "divider",

@@ -110,9 +110,17 @@
 </a>
 
 {% stylesheet %}
+  /* El dibujo llega a sus bordes: sin aire, el domo y la etiqueta tocan el borde del header. */
   .header-logo__df-brand {
     display: flex;
     align-items: center;
+    padding-block: 10px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .header-logo__df-brand {
+      padding-block: 8px;
+    }
   }
 
   @media screen and (max-width: 749px) {

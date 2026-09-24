@@ -1,6 +1,7 @@
 {%- doc -%}
-  DropFlex · Badge de novedad (hype-badge). Una etiqueta arriba de la ficha: «PRODUCTO VIRAL» y,
-  solo cuando es verdad, «STOCK BAJO».
+  DropFlex · Badge de novedad (hype-badge). Una etiqueta chica al lado de las estrellas de reseñas
+  (en la ficha van juntas en un group en fila): «PRODUCTO VIRAL» y, solo cuando es verdad,
+  «STOCK BAJO». Por defecto con el fondo del acento del producto y su texto encima.
 
   REGLA: la escasez sale del inventario REAL (Ley 19.496: nada de escasez inventada). «Stock bajo»
   se muestra solo si la variante de 1 unidad (la primera; los packs no llevan inventario propio)
@@ -31,7 +32,7 @@
 {%- if product != blank and text != blank -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <p
-    class="df df-hype-badge df-hype-badge--{{ s.style | default: 'outline' }}"
+    class="df df-hype-badge df-hype-badge--{{ s.style | default: 'solid' }}"
     style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
   >
@@ -52,19 +53,20 @@
   .df-hype-badge {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     width: fit-content;
     max-width: 100%;
     margin: 0;
-    padding: 6px 12px;
-    border: 1.5px solid var(--df-accent-ink);
+    padding: 3px 8px;
+    border: 1px solid var(--df-accent-ink);
     border-radius: var(--df-radius-sm);
     color: var(--df-accent-ink);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0.06em;
+    line-height: 1.3;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .df-hype-badge--solid {
@@ -76,7 +78,7 @@
   .df-hype-badge__rule {
     flex: none;
     align-self: stretch;
-    width: 1.5px;
+    width: 1px;
     background: currentColor;
     opacity: 0.5;
   }
@@ -125,16 +127,16 @@
       "id": "style",
       "label": "Estilo",
       "options": [
-        { "value": "outline", "label": "Borde" },
-        { "value": "solid", "label": "Relleno" }
+        { "value": "solid", "label": "Relleno" },
+        { "value": "outline", "label": "Borde" }
       ],
-      "default": "outline"
+      "default": "solid"
     },
     {
       "type": "range",
       "id": "margin_top",
       "label": "Margen superior",
-      "min": 0,
+      "min": -16,
       "max": 40,
       "step": 2,
       "unit": "px",
@@ -144,7 +146,7 @@
       "type": "range",
       "id": "margin_bottom",
       "label": "Margen inferior",
-      "min": 0,
+      "min": -16,
       "max": 40,
       "step": 2,
       "unit": "px",
