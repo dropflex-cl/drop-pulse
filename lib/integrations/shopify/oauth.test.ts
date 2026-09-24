@@ -56,13 +56,14 @@ describe("alcances", () => {
   it("detecta los que faltan", () => {
     expect(missingScopes(["read_products"])).toEqual(["write_products", "read_inventory", "read_orders"]);
   });
-  it("publicar pide temas y archivos aparte", () => {
-    expect(missingPublishScopes(["write_products", "read_inventory", "read_orders"])).toEqual(["read_themes", "write_themes", "read_files", "write_files"]);
-    expect(missingPublishScopes(["write_themes", "write_files"])).toEqual([]);
+  it("publicar pide temas, archivos e inventario aparte", () => {
+    expect(missingPublishScopes(["write_products", "read_inventory", "read_orders"])).toEqual(["read_themes", "write_themes", "read_files", "write_files", "write_inventory"]);
+    expect(missingPublishScopes(["write_themes", "write_files"])).toEqual(["write_inventory"]);
+    expect(missingPublishScopes(["write_themes", "write_files", "write_inventory"])).toEqual([]);
   });
   it("la URL de autorización pide los de conectar y los de publicar, y vuelve al callback", () => {
     const u = new URL(authorizeUrl("mitienda.myshopify.com", "st"));
-    expect(u.searchParams.get("scope")).toBe("read_products,write_products,read_inventory,read_orders,read_themes,write_themes,read_files,write_files");
+    expect(u.searchParams.get("scope")).toBe("read_products,write_products,read_inventory,read_orders,read_themes,write_themes,read_files,write_files,write_inventory");
     expect(u.searchParams.get("redirect_uri")).toBe("https://app.dropflex.test/api/onboarding/shopify/callback");
     expect(u.searchParams.has("grant_options[]")).toBe(false);
   });

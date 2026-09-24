@@ -59,16 +59,16 @@ const gids = new Map(
 const SIMPLE: ExistingProduct = {
   id: "gid://shopify/Product/1",
   options: [{ name: "Title", values: ["Default Title"] }],
-  variants: [{ id: "gid://shopify/ProductVariant/10", sku: "CP-01", title: "Default Title", inventoryPolicy: "DENY", tracked: true, option: "Default Title" }],
+  variants: [{ id: "gid://shopify/ProductVariant/10", sku: "CP-01", title: "Default Title", option: "Default Title" }],
 };
 
 describe("productSet", () => {
   it("publica los packs como variantes y conserva la variante de siempre", () => {
     const p = productSetInput(input(), SIMPLE, gids);
     expect(p.productOptions).toEqual([{ name: PACK_OPTION, values: [{ name: "1 unidad" }, { name: "2 unidades" }, { name: "3 unidades" }] }]);
-    expect(p.variants[0]).toMatchObject({ id: "gid://shopify/ProductVariant/10", price: "24990.00", compareAtPrice: "32990.00", inventoryItem: { tracked: true, sku: "CP-01" } });
+    expect(p.variants[0]).toMatchObject({ id: "gid://shopify/ProductVariant/10", price: "24990.00", compareAtPrice: "32990.00", inventoryItem: { sku: "CP-01" } });
     expect(p.variants[1]).not.toHaveProperty("id");
-    expect(p.variants[1]).toMatchObject({ price: "37990.00", inventoryItem: { tracked: false, sku: "CP-01-2x" } });
+    expect(p.variants[1]).toMatchObject({ price: "37990.00", inventoryItem: { sku: "CP-01-2x" } });
     expect(p.files).toEqual([{ id: "gid://shopify/MediaImage/7" }, { id: "gid://shopify/MediaImage/8" }]);
     expect(p.seo).toEqual({ title: LISTING.seo_title, description: LISTING.seo_description });
   });
@@ -77,14 +77,24 @@ describe("productSet", () => {
     const again: ExistingProduct = {
       ...SIMPLE,
       options: [{ name: PACK_OPTION, values: ["1 unidad", "2 unidades", "3 unidades"] }],
-      variants: ["1 unidad", "2 unidades", "3 unidades"].map((o, i) => ({ id: `v${i}`, sku: i ? `CP-01-${i + 1}x` : "CP-01", title: o, inventoryPolicy: "DENY" as const, tracked: i === 0, option: o })),
+      variants: ["1 unidad", "2 unidades", "3 unidades"].map((o, i) => ({ id: `v${i}`, sku: i ? `CP-01-${i + 1}x` : "CP-01", title: o, option: o })),
     };
     expect(productSetInput(input(), again, gids).variants.map((v) => ("id" in v ? v.id : null))).toEqual(["v0", "v1", "v2"]);
   });
 
   it("sin packs deja una sola variante con el precio de 1 unidad", () => {
     const p = productSetInput(input({ packs: [{ units: 1, price: 24990 }] }), SIMPLE, gids);
-    expect(p.variants).toEqual([{ id: "gid://shopify/ProductVariant/10", optionValues: [{ optionName: "Title", name: "Default Title" }], price: "24990.00", compareAtPrice: null }]);
+    expect(p.variants).toEqual([
+      { id: "gid://shopify/ProductVariant/10", optionValues: [{ optionName: "Title", name: "Default Title" }], price: "24990.00", compareAtPrice: null, inventoryPolicy: "CONTINUE", inventoryItem: { tracked: false } },
+    ]);
+  });
+
+  it("toda variante queda a la venta sin inventario, también la de 1 unidad", () => {
+    for (const packs of [input().packs, [{ units: 1, price: 24990 }], []]) {
+      for (const v of productSetInput(input({ packs }), SIMPLE, gids).variants) {
+        expect(v).toMatchObject({ inventoryPolicy: "CONTINUE", inventoryItem: { tracked: false } });
+      }
+    }
   });
 
   it("no toca un producto con variantes propias", () => {

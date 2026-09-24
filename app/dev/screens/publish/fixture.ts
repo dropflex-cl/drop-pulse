@@ -39,7 +39,7 @@ export function fixture(state: string): { product: Product; data: PublishState }
           : null;
   const data: PublishState = {
     shop: "tutienda.myshopify.com",
-    connection: state === "permissions" ? "Dale permiso a DropFlex para instalar el tema y subir imágenes." : null,
+    connection: state === "permissions" ? "Dale permiso a DropFlex para instalar el tema, subir imágenes y dejar tus productos a la venta." : null,
     needsPermissions: state === "permissions",
     theme,
     missing: state === "locked" ? ["Elige la portada en Imágenes.", "Guarda el precio y los packs en Información base."] : [],

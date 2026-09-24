@@ -67,12 +67,20 @@ export interface PublishInput {
   gallery: PublishImage[];
 }
 
-/** Lo que ya tiene el producto en Shopify (para conservar ids de variantes, SKU e inventario). */
+/** Lo que ya tiene el producto en Shopify (para conservar ids de variantes y SKU). */
 export interface ExistingProduct {
   id: string;
   options: { name: string; values: string[] }[];
-  variants: { id: string; sku: string | null; title: string; inventoryPolicy: "DENY" | "CONTINUE"; tracked: boolean; option: string | null }[];
+  variants: { id: string; sku: string | null; title: string; option: string | null }[];
 }
+
+/**
+ * Toda variante publicada queda a la venta: sin seguimiento de inventario y con venta sin stock.
+ * En dropshipping el stock lo tiene el proveedor; una variante con seguimiento y 0 unidades (lo
+ * normal al importar) sale «Agotado» con el botón apagado. `tracked` exige write_inventory
+ * (PUBLISH_SCOPES); `CONTINUE` es el respaldo si el seguimiento vuelve a encenderse. Igual que v1.
+ */
+export const SELLABLE = { inventoryPolicy: "CONTINUE" as const, tracked: false } as const;
 
 export class MappingError extends Error {}
 
@@ -94,7 +102,8 @@ const money = (n: number) => n.toFixed(2);
 
 /**
  * El productSet: packs como variantes de una opción «Pack» (1, 2, 3 unidades), con precio y tachado.
- * La primera conserva la variante que ya existía (SKU, inventario, historial de pedidos). Un producto
+ * La primera conserva la variante que ya existía (SKU, historial de pedidos). Todas quedan a la
+ * venta sin inventario (SELLABLE). Un producto
  * con variantes propias (Color, Talla) no se toca: sus packs quedarían mezclados.
  */
 export function productSetInput(input: PublishInput, existing: ExistingProduct, gids: Map<string, string>) {
@@ -119,10 +128,9 @@ export function productSetInput(input: PublishInput, existing: ExistingProduct, 
         optionValues: [{ optionName: PACK_OPTION, name: packValue(p.units) }],
         price: money(p.price),
         compareAtPrice: p.compareAt ? money(p.compareAt) : null,
-        inventoryPolicy: base.inventoryPolicy,
+        inventoryPolicy: SELLABLE.inventoryPolicy,
         position: i + 1,
-        // Solo la de 1 unidad sigue el inventario real: las de packs no tienen stock propio.
-        inventoryItem: { tracked: p.units === 1 ? base.tracked : false, ...(sku ? { sku } : {}) },
+        inventoryItem: { tracked: SELLABLE.tracked, ...(sku ? { sku } : {}) },
       };
     });
   } else {
@@ -133,6 +141,8 @@ export function productSetInput(input: PublishInput, existing: ExistingProduct, 
         id: base.id,
         optionValues: [{ optionName: "Title", name: "Default Title" }],
         ...(p ? { price: money(p.price), compareAtPrice: p.compareAt ? money(p.compareAt) : null } : {}),
+        inventoryPolicy: SELLABLE.inventoryPolicy,
+        inventoryItem: { tracked: SELLABLE.tracked },
       },
     ];
   }

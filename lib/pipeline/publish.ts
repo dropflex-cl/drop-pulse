@@ -203,7 +203,7 @@ const PRODUCT = /* GraphQL */ `
       handle
       onlineStoreUrl
       options { name optionValues { name } }
-      variants(first: 50) { nodes { id sku title inventoryPolicy selectedOptions { name value } inventoryItem { tracked } } }
+      variants(first: 50) { nodes { id sku title selectedOptions { name value } } }
       metafields(first: 100, namespace: "dropflex") { nodes { key } }
     }
   }
@@ -215,7 +215,7 @@ interface ProductQuery {
     handle: string;
     onlineStoreUrl: string | null;
     options: { name: string; optionValues: { name: string }[] }[];
-    variants: { nodes: { id: string; sku: string | null; title: string; inventoryPolicy: "DENY" | "CONTINUE"; selectedOptions: { name: string; value: string }[]; inventoryItem: { tracked: boolean } }[] };
+    variants: { nodes: { id: string; sku: string | null; title: string; selectedOptions: { name: string; value: string }[] }[] };
     metafields: { nodes: { key: string }[] };
   } | null;
 }
@@ -293,7 +293,7 @@ async function savePublication(userId: string, productId: string, shop: string, 
 /** Por qué no se puede publicar ahora (conexión y permisos), o null. */
 export function connectionProblem(conn: ShopifyConnection | null): string | null {
   if (!conn || conn.status !== "connected") return "Conecta tu tienda Shopify en Ajustes.";
-  if (missingPublishScopes(conn.scopes).length) return "Dale permiso a DropFlex para instalar el tema y subir imágenes.";
+  if (missingPublishScopes(conn.scopes).length) return "Dale permiso a DropFlex para instalar el tema, subir imágenes y dejar tus productos a la venta.";
   return null;
 }
 
@@ -340,8 +340,6 @@ export async function runPublish(userId: string, productId: string): Promise<voi
         id: v.id,
         sku: v.sku,
         title: v.title,
-        inventoryPolicy: v.inventoryPolicy,
-        tracked: v.inventoryItem.tracked,
         option: v.selectedOptions.find((o) => o.name === PACK_OPTION || o.name === "Title")?.value ?? null,
       })),
     };

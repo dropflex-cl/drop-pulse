@@ -18,8 +18,10 @@ export const CONNECT_SCOPES = ["read_products", "write_products", "read_inventor
  * Lo que necesita «Publicar»: write_themes para instalar, actualizar y publicar el tema de DropFlex;
  * write_files para subir las imágenes de la página a Shopify Files. Una tienda conectada antes no
  * los tiene: Publicar lo detecta (`missingPublishScopes`) y pide volver a dar permisos.
+ * write_inventory apaga el seguimiento de inventario de las variantes publicadas (SELLABLE en
+ * lib/shopify/publish/mapping.ts): sin él Shopify rechaza el productSet entero.
  */
-export const PUBLISH_SCOPES = ["read_themes", "write_themes", "read_files", "write_files"] as const;
+export const PUBLISH_SCOPES = ["read_themes", "write_themes", "read_files", "write_files", "write_inventory"] as const;
 /** Todo lo que se pide al autorizar. Debe coincidir con shopify.app.toml y shopify.app.dev.toml. */
 export const SHOPIFY_SCOPES = [...CONNECT_SCOPES, ...PUBLISH_SCOPES] as const;
 

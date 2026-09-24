@@ -29,7 +29,7 @@ Se puede publicar el producto antes que el tema: el contenido espera en los meta
 - **La ficha aprobada.**
 - **La portada y al menos 4 imágenes de galería** (`GALLERY_MIN`).
 - **El precio guardado** en Precio y packs.
-- **Conexión y permisos:** Shopify conectado y con los permisos `read_themes`, `write_themes`, `read_files` y `write_files` (`PUBLISH_SCOPES`).
+- **Conexión y permisos:** Shopify conectado y con los permisos `read_themes`, `write_themes`, `read_files`, `write_files` y `write_inventory` (`PUBLISH_SCOPES`).
   - Una tienda conectada antes de esta etapa no los tiene. La pantalla muestra «Dar permisos», que reabre el OAuth. `markConnecting` no baja la conexión mientras tanto.
   - Los permisos nuevos tienen que estar en la configuración de la app en Shopify: `shopify app deploy` con `shopify.app.toml` o con `shopify.app.dev.toml`.
   - Para conectar siguen bastando los cuatro de siempre (`CONNECT_SCOPES`).
@@ -60,8 +60,9 @@ Se puede publicar el producto antes que el tema: el contenido espera en los meta
   - **Packs = variantes** de una opción `Pack` («1 unidad», «2 unidades», «3 unidades»):
     - El precio sale del plan de precios.
     - El precio tachado es (tachado de 1 unidad, o su precio) × unidades, si es mayor.
-    - La variante de 1 unidad conserva la que ya existía (SKU, inventario, pedidos).
-    - Las de packs van sin inventario propio y con SKU `-2x`/`-3x`.
+    - La variante de 1 unidad conserva la que ya existía (SKU, pedidos).
+    - Las de packs llevan SKU `-2x`/`-3x`.
+    - **Todas quedan a la venta** (`SELLABLE`, como en v1): `inventoryItem.tracked: false` y `inventoryPolicy: CONTINUE`, también la de 1 unidad y el producto sin packs. El stock lo tiene el proveedor; una variante importada con seguimiento y 0 unidades salía «Agotado». Apagar el seguimiento exige `write_inventory`: sin él Shopify rechaza el `productSet` entero, por eso Publicar lo exige.
     - Al volver a publicar se reusa cada variante por su nombre.
   - Un producto con variantes propias (Color, Talla) no se toca: da un error claro.
   - La galería son la portada, la galería y los beneficios elegidos en Imágenes, en ese orden, como archivos de Shopify Files.
@@ -114,6 +115,7 @@ Migración `20261010000000_publish.sql`. Toda escritura es con `service_role`; e
 - [ ] `shopify app deploy` con los permisos nuevos y volver a dar permisos desde Publicar.
 - [ ] Instalar el tema y revisar la vista previa: redirecciones, header, pie, Geist, el acento en el botón, 375 px y el editor de temas.
 - [ ] Publicar un producto sin variantes. Revisar:
+  - que todas las variantes queden sin seguimiento y a la venta (nada de «Agotado»);
   - las variantes de packs, los precios tachados y que la tarjeta cambie el carrito;
   - la galería, los metafields (componentes, reseñas, bajada, oferta) y las políticas y plazos.
 - [ ] Publicar de nuevo tras cambiar un componente y verificar que el retirado desaparece.

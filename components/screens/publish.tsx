@@ -138,7 +138,7 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
   const connection = state.connection ? (
     <Notice
       title={state.needsPermissions ? "Faltan permisos de Shopify" : state.connection}
-      body={state.needsPermissions ? "Para instalar el tema y subir las imágenes. Tus productos no cambian." : undefined}
+      body={state.needsPermissions ? "Para instalar el tema, subir las imágenes y vender sin stock en Shopify. Tus productos no cambian." : undefined}
       action={
         state.needsPermissions ? (
           <Button size="sm" variant="primary" loading={busy === "permissions"} onClick={permissions}>
