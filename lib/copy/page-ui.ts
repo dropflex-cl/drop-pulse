@@ -20,6 +20,7 @@ export const LISTING_SLOTS: Record<string, ListingSlot> = {
   inventory: "afterPrice",
   "shipping-timeline": "afterButton",
   "benefit-double-box": "afterButton",
+  "gif-strip": "afterButton",
   "review-slider": "afterButton",
   "ugc-slider": "afterButton",
 };
@@ -45,6 +46,7 @@ const PITCH: Record<string, string> = {
   inventory: "¿Lo tienen y cuándo llega? El stock real y el plazo.",
   "shipping-timeline": "¿Cuándo me llega? Las fechas de despacho y entrega.",
   "benefit-double-box": "¿Cómo pago y qué pasa si no me sirve? Dos tarjetas bajo el botón.",
+  "gif-strip": "¿De verdad hace eso? Tus GIF del producto funcionando, cada uno con su texto.",
   "review-slider": "¿Llega bien? ¿Es como en las fotos? Reseñas reales bajo el botón.",
   "ugc-slider": "¿Se ve igual en la vida real? Videos de uso.",
   "stats-with-image": "¿Esto funciona? El resultado con fotos, calificación y un testimonio.",
@@ -57,6 +59,11 @@ const PITCH: Record<string, string> = {
 
 export function componentPitch(c: ConversionComponent): string {
   return PITCH[c.id] ?? `${c.objection.split(/(?<=[?.])\s/)[0]}`;
+}
+
+/** gif-strip sin GIF subidos en Imágenes: en la tienda no se dibuja. */
+export function missingGifs(id: string, gifs: string[] | undefined): boolean {
+  return id === "gif-strip" && !gifs?.length;
 }
 
 /** Los espacios de imagen con menos fotos que su mínimo. */

@@ -20,6 +20,8 @@ export const SLOT_METAFIELD: Record<string, Record<string, { key: string; type: 
   "stats-with-image": { collage: { key: "stats_with_image_images", type: "list.file_reference" } },
   "insta-story": { stories: { key: "insta_story_media", type: "list.file_reference" } },
   "image-with-benefits": { main: { key: "image_with_benefits_image", type: "file_reference" } },
+  // Los GIF no se eligen en la página: son los del espacio GIFs de Imágenes, en su orden.
+  "gif-strip": { gifs: { key: "gif_strip_media", type: "list.file_reference" } },
 };
 
 export interface PublishReview {

@@ -1,5 +1,7 @@
 import "server-only";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
+import { GIFS } from "@/lib/page-images/catalog";
+import { pageImageRows, signedPageUrls } from "@/lib/page-images/store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { baseImage, getProductRow, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { reviewDate } from "@/lib/reviews/copy";
@@ -10,20 +12,30 @@ import { getStorePolicies } from "@/lib/settings/policies-store";
 import { averageRating, packCompareAt, type StoreFacts } from "@/lib/store-preview/facts";
 
 // Los datos reales que llenan los componentes en la vista previa de la etapa Página del producto:
-// las reseñas aprobadas, el precio y los packs, y los envíos y políticas de Ajustes. Lo que la tienda
-// todavía no tiene cargado se muestra con un ejemplo marcado.
+// las reseñas aprobadas, el precio y los packs, los envíos y políticas de Ajustes y los GIF de
+// Imágenes. Lo que la tienda todavía no tiene cargado se muestra con un ejemplo marcado.
 
 export async function storeFacts(userId: string, productId: string): Promise<StoreFacts> {
-  const [product, pricing, labels, images, reviews, settings] = await Promise.all([
+  const [product, pricing, labels, images, reviews, settings, pageRows] = await Promise.all([
     getProductRow(userId, productId),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
     listImageRows(userId, [productId]),
     approvedReviewRows(userId, productId),
     getStorePolicies(userId),
+    pageImageRows(userId, [productId]),
   ]);
   const cover = baseImage(images) ?? images[0];
-  const [urls, photos] = await Promise.all([cover ? withDisplayUrls([cover]) : new Map<string, string>(), signPhotos(reviews)]);
+  // Los GIF en uso, en su orden (los mismos que publica gif-strip).
+  const gifPaths = pageRows
+    .filter((r) => r.slot === GIFS && r.status === "approved" && r.storage_path)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((r) => r.storage_path!);
+  const [urls, photos, gifUrls] = await Promise.all([
+    cover ? withDisplayUrls([cover]) : new Map<string, string>(),
+    signPhotos(reviews),
+    signedPageUrls(gifPaths),
+  ]);
   const p = settings?.policies;
   // Solo las etiquetas aprobadas llegan a la tienda (igual que a los prompts).
   const approved = labels?.status === "approved" ? labels.payload : [];
@@ -65,5 +77,6 @@ export async function storeFacts(userId: string, productId: string): Promise<Sto
       whatsapp: p?.whatsapp ?? undefined,
     },
     logistics: p ? deliveryDays(p) : null,
+    gifs: gifPaths.map((path) => gifUrls.get(path)).filter((u): u is string => Boolean(u)),
   };
 }

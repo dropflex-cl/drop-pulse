@@ -5,7 +5,7 @@ import { currencySymbol, parseAmount } from "@/lib/format";
 import type { PricingPlan } from "@/lib/pricing/plan";
 
 /** Bump cuando cambie el prompt o el esquema del redactor de página. */
-export const COPY_PROMPT_VERSION = 3;
+export const COPY_PROMPT_VERSION = 4;
 
 /** Palabras de trabajo que no pueden llegar a la tienda («según la ficha», «el ángulo principal»). */
 export const INTERNAL = /(?<![\p{L}])(la ficha|ficha de producto|precio y oferta|cliente ideal|[áa]ngulo (principal|secundario))(?![\p{L}])/iu;

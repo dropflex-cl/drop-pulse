@@ -9,7 +9,7 @@
 La etapa «Página del producto» deja de ser una fila de tarjetas de texto y pasa a mostrar **cómo se verá la página en la tienda**:
 
 1. **Ficha** (campos nativos de Shopify): título, nombre corto, descripción corta, frase de la oferta, título y descripción para Google. Obligatoria.
-2. **Componentes**: los 13 de `lib/shopify/components/catalog.ts`, cada uno como **mini preview en React** fiel al Liquid, con el color del producto. Cada uno tiene un interruptor **«Usar en la página»**: lo marcado es lo que Publicar habilitará en la landing.
+2. **Componentes**: los 14 de `lib/shopify/components/catalog.ts` (13 originales + `gif-strip`, los textos de los GIF), cada uno como **mini preview en React** fiel al Liquid, con el color del producto. Cada uno tiene un interruptor **«Usar en la página»**: lo marcado es lo que Publicar habilitará en la landing.
 
 **Una sola llamada a Claude** devuelve la ficha y el contenido de todos los componentes. Tocar un componente abre sus campos (formulario armado desde su esquema zod) y, si lleva imágenes, un selector con **todas las imágenes del producto**.
 

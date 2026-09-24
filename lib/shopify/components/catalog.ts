@@ -7,6 +7,7 @@ import { benefitDoubleBox } from "./benefit-double-box/content";
 import { benefitUsps } from "./benefit-usps/content";
 import { comparisonTable } from "./comparison-table/content";
 import { faqAndText } from "./faq-and-text/content";
+import { gifStrip } from "./gif-strip/content";
 import { imageWithBenefits } from "./image-with-benefits/content";
 import { instaStory } from "./insta-story/content";
 import { inventory } from "./inventory/content";
@@ -24,6 +25,7 @@ export const CATALOG: ConversionComponent[] = [
   inventory,
   shippingTimeline,
   benefitDoubleBox,
+  gifStrip,
   reviewSlider,
   ugcSlider,
   // Secciones de la landing

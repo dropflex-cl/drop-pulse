@@ -45,7 +45,7 @@ export function uploadImage(productId: string, file: File, onProgress: (p: numbe
 /** Sube una imagen a un espacio de la página (etapa Imágenes) y devuelve el estado de la etapa. */
 export function uploadPageImage(productId: string, slot: string, file: File, onProgress: (p: number) => void): { done: Promise<PageImagesState>; cancel: () => void } {
   return signedUpload(file, onProgress, async (put) => {
-    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/page-images/upload-url`, { type: file.type, size: file.size });
+    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/page-images/upload-url`, { type: file.type, size: file.size, slot });
     await put(uploadUrl);
     return send<PageImagesState>("POST", `/${productId}/page-images/uploads`, { slot, path });
   });
@@ -98,7 +98,7 @@ export const productsApi = {
   renderShot: (id: string, shotId: string) => send<PageImagesState>("POST", `/${id}/page-images/shots/${shotId}`),
   decidePageImage: (id: string, optionId: string, action: "choose" | "unchoose" | "discard" | "reopen" | "recover" | "cover") => send<PageImagesState>("PATCH", `/${id}/page-images/options/${optionId}`, { action }),
   chooseReference: (id: string, slot: string, referenceId: string) => send<PageImagesState>("POST", `/${id}/page-images/references`, { slot, referenceId }),
-  orderGallery: (id: string, ids: string[]) => send<PageImagesState>("PUT", `/${id}/page-images/order`, { ids }),
+  orderGallery: (id: string, ids: string[], slot?: string) => send<PageImagesState>("PUT", `/${id}/page-images/order`, { ids, slot }),
   decidePackLabels: (id: string, action: "approve" | "reopen") => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action }),
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
   regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),

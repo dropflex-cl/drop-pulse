@@ -3,7 +3,7 @@ import { fail } from "@/lib/angles/store";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 import type { PageImageOptionView, PageImageSlotView, RunStatus } from "@/lib/types";
-import { COVER, GALLERY, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, slotKind } from "./catalog";
+import { COVER, GALLERY, GIFS, ORDERED, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, slotKind } from "./catalog";
 import type { PageQaResult, ShotText, StoredShot } from "./schemas";
 
 // page_image_runs, page_image_shots y page_images: lecturas de la etapa Imágenes, limpieza de lo
@@ -244,7 +244,7 @@ export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow
     qa: r.qa ? { pass: r.qa.pass, issues: r.qa.issues } : undefined,
     chosen: r.status === "approved",
     discarded: r.status === "rejected",
-    order: r.status === "approved" && r.slot === GALLERY ? (r.position ?? undefined) : undefined,
+    order: r.status === "approved" && ORDERED.has(slotKind(r.slot)!) ? (r.position ?? undefined) : undefined,
     cover:
       (r.slot === GALLERY && cover && (cover.input?.copied_from === r.id || (r.reference_image_id !== null && cover.reference_image_id === r.reference_image_id))) || undefined,
     recoverable: isRecoverable(r) || undefined,
@@ -253,8 +253,9 @@ export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow
 }
 
 /**
- * Los espacios de la página, en su orden: Portada, Galería y un Beneficio por cada beneficio
- * aprobado en Textos. Un intento que el QA rechazó se esconde cuando su reintento salió bien.
+ * Los espacios de la página, en su orden: Portada, Galería, un Beneficio por cada beneficio que
+ * propuso el director y los GIF. Un intento que el QA rechazó se esconde cuando su reintento salió
+ * bien.
  */
 export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<string, string>): PageImageSlotView[] {
   const replaced = new Set(rows.filter((r) => r.retry_of && r.render_status === "succeeded").map((r) => r.retry_of!));
@@ -270,7 +271,7 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
   const shotsOf = (slot: string) => shots.filter((s) => s.slot === slot).map((s) => ({ id: s.id, name: s.payload.name, type: SHOT_NAMES[s.payload.type] ?? s.payload.type, look: s.payload.look }));
   const slot = (key: string, title: string, pairs?: string): PageImageSlotView => {
     const kind = slotKind(key)!;
-    return { key, kind, title, required: kind !== "benefit", format: SLOT_FORMAT[kind], ratio: SLOT_RATIO[kind], pairs, shots: shotsOf(key), options: optionsOf(key) };
+    return { key, kind, title, required: kind === "cover" || kind === "gallery", format: SLOT_FORMAT[kind], ratio: SLOT_RATIO[kind], pairs, shots: shotsOf(key), options: optionsOf(key) };
   };
   return [
     slot(COVER, "Portada"),
@@ -279,5 +280,6 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
     ...[...new Set(shots.filter((s) => slotKind(s.slot) === "benefit").map((s) => s.slot))]
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
       .map((key, i) => slot(key, `Beneficio ${i + 1}`, shots.find((s) => s.slot === key)?.payload.pairs)),
+    slot(GIFS, "GIFs"),
   ];
 }

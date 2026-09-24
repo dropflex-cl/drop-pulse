@@ -191,6 +191,10 @@
               "type": "df-benefit-double-box",
               "settings": {}
             },
+            "gif_strip": {
+              "type": "df-gif-strip",
+              "settings": {}
+            },
             "review_slider": {
               "type": "df-review-slider",
               "settings": {}
@@ -244,6 +248,7 @@
             "payment_icons",
             "shipping_timeline",
             "benefit_double_box",
+            "gif_strip",
             "review_slider",
             "ugc_slider",
             "details_accordion"

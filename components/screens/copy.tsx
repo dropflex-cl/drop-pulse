@@ -316,7 +316,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         body={
           failed
             ? (run?.error ?? "Toca Reintentar.")
-            : "La ficha (título, oferta y Google) y 13 componentes que responden las dudas del comprador: beneficios, envío, reseñas, preguntas y más. Tú eliges cuáles van."
+            : `La ficha (título, oferta y Google) y ${CATALOG.length} componentes que responden las dudas del comprador: beneficios, envío, reseñas, GIFs, preguntas y más. Tú eliges cuáles van.`
         }
         action={
           <Button variant="primary" icon="sparkle" loading={busy === "write"} onClick={() => write(false)}>

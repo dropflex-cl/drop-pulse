@@ -317,6 +317,39 @@ df-slider {
   }
 }
 
+/* _landing/blocks/df-hype-badge.liquid */
+.df-hype-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1.5px solid var(--df-accent-ink);
+  border-radius: var(--df-radius-sm);
+  color: var(--df-accent-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.df-hype-badge--solid {
+  border-color: var(--df-accent);
+  background: var(--df-accent);
+  color: var(--df-on-accent);
+}
+
+.df-hype-badge__rule {
+  flex: none;
+  align-self: stretch;
+  width: 1.5px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
 /* _landing/blocks/df-pack-offers.liquid */
 /* Con packs, la cantidad la elige la tarjeta: el selector de cantidad del tema sobra. */
 .product-details:has(df-pack-offers) .quantity-selector-wrapper {
@@ -524,6 +557,48 @@ df-slider {
   display: none;
 }
 
+/* _landing/blocks/df-social-badge.liquid */
+.df-social-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 16px 8px 12px;
+  border: 1px solid var(--df-hairline);
+  border-radius: var(--df-radius-pill);
+  background: var(--df-bg);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--df-fg) 8%, transparent);
+  color: var(--df-fg);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.df-social-badge__logo {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+
+.df-social-badge__icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--df-accent-ink);
+}
+
+.df-social-badge__icon .df-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.df-social-badge__text {
+  min-width: 0;
+}
+
 /* _landing/blocks/df-social-proof.liquid */
 .df-social-proof {
   display: flex;
@@ -654,6 +729,58 @@ df-slider {
 
 .df-trust-note__text strong {
   font-weight: 600;
+}
+
+/* _landing/snippets/df-brand-logo.liquid */
+/* Cada tono sale de las variables que el snippet calcula en Liquid desde el acento del producto;
+   esto solo las asigna a las partes del dibujo. */
+.df-brand-logo {
+  display: block;
+  width: auto;
+  height: var(--df-brand-logo-height, 52px);
+  max-width: 100%;
+  overflow: visible;
+}
+
+.df-brand-logo__ink {
+  fill: var(--df-logo-ink);
+}
+
+.df-brand-logo__ink-line {
+  fill: none;
+  stroke: var(--df-logo-ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.df-brand-logo__tint {
+  fill: var(--df-logo-tint);
+}
+
+.df-brand-logo__shade {
+  fill: var(--df-logo-shade);
+}
+
+.df-brand-logo__orb {
+  fill: var(--df-logo-orb);
+}
+
+.df-brand-logo__glint {
+  fill: #ffffff;
+  opacity: 0.75;
+}
+
+.df-brand-logo__tag {
+  fill: var(--df-logo-tag);
+}
+
+/* El contorno de sticker es el propio trazo de las letras, pintado bajo su relleno. */
+.df-brand-logo__word {
+  fill: #ffffff;
+  stroke: var(--df-logo-ink);
+  stroke-width: 22;
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
 
 /* benefit-double-box/blocks/df-benefit-double-box.liquid */
@@ -1279,6 +1406,88 @@ df-faq-and-text {
   .df-faq-and-text__answer .df-text {
     font-size: 1rem;
   }
+}
+
+/* gif-strip/blocks/df-gif-strip.liquid */
+.df-gif-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.df-gif-strip__heading {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.df-gif-strip__list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.df-gif-strip__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.df-gif-strip__lead {
+  margin: 0;
+  font-family: var(--df-font-heading);
+  font-weight: var(--df-font-heading-weight);
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.df-gif-strip__frame {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--df-gif-radius, 12px);
+  background: var(--df-surface);
+}
+
+.df-gif-strip__frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.df-gif-strip__caption {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--df-muted);
+  text-wrap: pretty;
+}
+
+.df-gif-strip__bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.df-gif-strip__bullet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--df-fg);
+}
+
+.df-gif-strip__bullet .df-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--df-accent-ink);
 }
 
 /* image-with-benefits/sections/df-image-with-benefits.liquid */

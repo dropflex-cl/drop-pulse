@@ -44,6 +44,7 @@ export const FIELD_LABELS: Record<string, string> = {
   excerpt: "Extracto",
   excerpt_mode: "Cómo se citó",
   captions: "Textos de los videos",
+  gifs: "Textos de los GIF",
   description: "Descripción",
   bullets: "Razones",
   cta_label: "Botón",

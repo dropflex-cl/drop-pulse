@@ -49,7 +49,7 @@ export function copySystem(market: Market): string {
     "",
     "CÓMO ESCRIBIR",
     "- El ángulo PRINCIPAL manda en la ficha (título, descripción corta) y en los títulos de las secciones. El SECUNDARIO aporta al menos un beneficio y una pregunta.",
-    "- Reparte las objeciones, una en cada lugar: los beneficios sobre el botón (benefit-usps) = pago, envío, cambios, origen, soporte; la doble tarjeta bajo el botón (benefit-double-box) = pago y cambio o garantía; la cinta (scrolling-benefits) = el servicio en frases cortas; la foto con razones (image-with-benefits) = el producto (función, comodidad, material); la comparativa = por qué aquí y no un genérico; las preguntas (faq-and-text) = lo que queda. El pago al recibir sí se repite: es el cierre de confianza.",
+    "- Reparte las objeciones, una en cada lugar: los beneficios sobre el botón (benefit-usps) = pago, envío, cambios, origen, soporte; la doble tarjeta bajo el botón (benefit-double-box) = pago y cambio o garantía; la cinta (scrolling-benefits) = el servicio en frases cortas; la foto con razones (image-with-benefits) = el producto (función, comodidad, material); los GIF (gif-strip) = el producto funcionando, en 5 momentos distintos, el más fuerte primero; la comparativa = por qué aquí y no un genérico; las preguntas (faq-and-text) = lo que queda. El pago al recibir sí se repite: es el cierre de confianza.",
     "- Beneficio = lo que gana el comprador + el dato que lo prueba. Nunca una especificación sola ni un adjetivo suelto.",
     "- Cada dato de la ficha va en UN lugar. No repitas una frase entre componentes.",
     "- Escribe para el comprador: nunca nombres «la ficha», los ángulos, «precio y oferta» ni el cliente ideal.",

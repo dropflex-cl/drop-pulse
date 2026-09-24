@@ -150,6 +150,20 @@ describe("metafields", () => {
     expect(new Set(productKeys()).size).toBe(productKeys().length);
   });
 
+  it("gif-strip publica sus textos y los GIF de Imágenes en su orden", () => {
+    const gifGids = new Map([...gids, ["page-media/gif-2.webp", "gid://shopify/MediaImage/92"], ["page-media/gif-1.webp", "gid://shopify/MediaImage/91"]]);
+    const gif = { id: "gif-strip", content: example("gif-strip"), images: { gifs: ["page-media/gif-2.webp", "page-media/gif-1.webp"] } };
+    const { set, remove } = productMetafields(input({ components: [gif] }), gifGids);
+    expect(JSON.parse(set.find((m) => m.key === "gif_strip")!.value)).toEqual(example("gif-strip"));
+    const media = set.find((m) => m.key === "gif_strip_media")!;
+    expect(media.type).toBe("list.file_reference");
+    expect(JSON.parse(media.value)).toEqual(["gid://shopify/MediaImage/92", "gid://shopify/MediaImage/91"]);
+    // Sin el componente en uso, sus dos metafields se bajan de la tienda.
+    const off = productMetafields(input({ components: [] }), gifGids);
+    expect(off.remove).toEqual(expect.arrayContaining(["gif_strip", "gif_strip_media"]));
+    expect(remove).not.toContain("gif_strip_media");
+  });
+
   it("la huella cambia con lo aprobado", () => {
     expect(fingerprint(input())).toBe(fingerprint(input()));
     expect(fingerprint(input())).not.toBe(fingerprint(input({ accent: "#000000" })));

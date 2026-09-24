@@ -58,3 +58,28 @@ describe("vistas previas de los componentes", () => {
     });
   }
 });
+
+describe("gif-strip: el GIF N lleva el texto N", () => {
+  const Preview = PREVIEWS["gif-strip"];
+  const example = CATALOG.find((c) => c.id === "gif-strip")!.examples[0] as { gifs: { heading: string }[] };
+  const gifs = ["https://example.test/1.webp", "https://example.test/2.webp", "https://example.test/3.webp"];
+
+  it("con 3 GIF se ven los 3 primeros textos, en orden", () => {
+    const html = renderToStaticMarkup(<Preview content={example} facts={{ ...FIXTURE_FACTS, gifs }} images={{}} />);
+    expect(html.match(/df-gif-strip__item/g)).toHaveLength(3);
+    // Cada GIF va bajo su título y antes del título siguiente.
+    const at = (t: string) => html.indexOf(escape(t));
+    gifs.forEach((src, i) => {
+      expect(at(example.gifs[i].heading)).toBeGreaterThan(-1);
+      expect(html.indexOf(src)).toBeGreaterThan(at(example.gifs[i].heading));
+      if (i < gifs.length - 1) expect(html.indexOf(src)).toBeLessThan(at(example.gifs[i + 1].heading));
+    });
+    for (const t of example.gifs.slice(3)) expect(html).not.toContain(escape(t.heading));
+  });
+
+  it("sin GIF muestra los 5 textos para revisarlos", () => {
+    const html = renderToStaticMarkup(<Preview content={example} facts={FIXTURE_FACTS} images={{}} />);
+    expect(html.match(/df-gif-strip__item/g)).toHaveLength(5);
+    expect(html).not.toContain("<img");
+  });
+});

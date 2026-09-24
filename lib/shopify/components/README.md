@@ -13,6 +13,7 @@ Los patrones vienen del análisis funcional de una demo comercial (Sternify). **
 | `benefit-usps` | bloque | entre precio y botón | `dropflex.benefit_usps` | políticas reales de la tienda |
 | `benefit-double-box` | bloque | bajo el botón | `dropflex.benefit_double_box` | medios de pago y garantía reales |
 | `review-stars` | bloque | sobre el título | `dropflex.review_stars` | promedio y cantidad de reseñas |
+| `gif-strip` | bloque | bajo el botón | `dropflex.gif_strip` | GIFs subidos en Imágenes |
 | `review-slider` | bloque | bajo el botón | `dropflex.review_slider` | reseñas aprobadas |
 | `ugc-slider` | bloque | bajo el botón | `dropflex.ugc_slider` | videos subidos |
 | `scrolling-benefits` | sección | franja entre secciones | `dropflex.scrolling_benefits` | políticas reales |

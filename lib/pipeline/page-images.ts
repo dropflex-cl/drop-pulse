@@ -13,7 +13,22 @@ import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState 
 import { higgsfieldKey } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
-import { COVER, DAILY_IMAGES, DAILY_RUNS, GALLERY, GALLERY_MAX, MAX_OPTIONS_PER_SLOT, benefitSlot, slotKind } from "@/lib/page-images/catalog";
+import {
+  COVER,
+  DAILY_IMAGES,
+  DAILY_RUNS,
+  GALLERY,
+  GALLERY_MAX,
+  GIF_MAX,
+  GIF_MAX_UPLOAD_BYTES,
+  GIF_MAX_WIDTH,
+  GIF_MIN_SIDE,
+  GIFS,
+  MAX_OPTIONS_PER_SLOT,
+  ORDERED,
+  benefitSlot,
+  slotKind,
+} from "@/lib/page-images/catalog";
 import { PAGE_QA_SYSTEM, pageImagesSystem, pageImagesUser, pageQaUser, type PageImagesContext } from "@/lib/page-images/prompts";
 import { pageRenderRequest } from "@/lib/page-images/render";
 import { PAGE_IMAGES_PROMPT_VERSION, pagePlanSchema, pageQaSchema, pageQaVerdict, planProblems, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
@@ -56,6 +71,10 @@ const NO_KEY = "Conecta tu cuenta de Higgsfield en Ajustes para generar imágene
 
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 const UPLOAD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+/** Lo que se acepta en el espacio GIFs. Giphy y Tenor entregan WebP; un APNG llega como image/png. */
+const GIF_UPLOAD_TYPES: Record<string, string> = { "image/gif": "gif", "image/webp": "webp", "image/png": "png", "image/apng": "png" };
+/** Calidad del WebP animado: la más baja de la app, porque cada píxel se paga una vez por cuadro. */
+const GIF_QUALITY = 72;
 
 const stamp = () => new Date().toISOString();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -501,24 +520,30 @@ async function assertSlot(userId: string, productId: string, slot: string) {
   }
 }
 
-/** Las elegidas de la galería quedan numeradas 1…n, sin huecos, en el orden que tenían. */
-async function compactGallery(userId: string, productId: string) {
+/** Las elegidas de la galería (o de los GIF) quedan numeradas 1…n, sin huecos, en el orden que tenían. */
+async function compactSlot(userId: string, productId: string, slot: string) {
   const db = adminClient();
-  const { data, error } = await db.from("page_images").select("id, position, created_at").eq("user_id", userId).eq("product_id", productId).eq("slot", GALLERY).eq("status", "approved");
-  fail("Leer la galería", error);
+  const { data, error } = await db.from("page_images").select("id, position, created_at").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
+  fail("Leer las elegidas", error);
   const sorted = ((data ?? []) as { id: string; position: number | null; created_at: string }[]).sort((x, y) => (x.position ?? 99) - (y.position ?? 99) || x.created_at.localeCompare(y.created_at));
   await Promise.all(sorted.map((r, i) => (r.position === i + 1 ? null : db.from("page_images").update({ position: i + 1, updated_at: stamp() }).eq("id", r.id))));
 }
+
+/** Galería y GIF: varias elegidas, numeradas en orden. */
+const ordered = (slot: string) => ORDERED.has(slotKind(slot)!);
 
 async function choose(a: PageImageRow) {
   if (a.render_status !== "succeeded") throw new OptimizeError("Esa imagen todavía no está lista.", 409);
   const db = adminClient();
   const now = stamp();
-  if (a.slot === GALLERY) {
+  if (ordered(a.slot)) {
     if (a.status === "approved") return;
-    const { count, error } = await db.from("page_images").select("id", { count: "exact", head: true }).eq("product_id", a.product_id).eq("slot", GALLERY).eq("status", "approved");
-    fail("Contar la galería", error);
-    if ((count ?? 0) >= GALLERY_MAX) throw new OptimizeError(`La galería ya tiene ${GALLERY_MAX} imágenes. Quita una para agregar otra.`, 409);
+    const max = a.slot === GIFS ? GIF_MAX : GALLERY_MAX;
+    const { count, error } = await db.from("page_images").select("id", { count: "exact", head: true }).eq("product_id", a.product_id).eq("slot", a.slot).eq("status", "approved");
+    fail("Contar las elegidas", error);
+    if ((count ?? 0) >= max) {
+      throw new OptimizeError(a.slot === GIFS ? `Ya usas ${GIF_MAX} GIF. Quita uno para agregar otro.` : `La galería ya tiene ${GALLERY_MAX} imágenes. Quita una para agregar otra.`, 409);
+    }
     fail("Elegir la imagen", (await db.from("page_images").update({ status: "approved", position: (count ?? 0) + 1, decided_at: now, updated_at: now }).eq("id", a.id)).error);
     return;
   }
@@ -537,7 +562,7 @@ export async function decideOption(userId: string, productId: string, imageId: s
       return choose(a);
     case "unchoose":
       fail("Quitar la imagen", (await db.from("page_images").update({ status: "generated", position: null, decided_at: null, updated_at: now }).eq("id", a.id)).error);
-      if (a.slot === GALLERY) await compactGallery(userId, productId);
+      if (ordered(a.slot)) await compactSlot(userId, productId, a.slot);
       return;
     case "discard":
       // Una foto de Información base no tiene archivo propio: se quita al tiro.
@@ -547,7 +572,7 @@ export async function decideOption(userId: string, productId: string, imageId: s
         if (a.render_status === "queued" || a.render_status === "running") throw new OptimizeError("Espera a que termine de generarse.", 409);
         fail("Descartar la imagen", (await db.from("page_images").update({ status: "rejected", position: null, decided_at: now, updated_at: now }).eq("id", a.id)).error);
       }
-      if (a.slot === GALLERY && a.status === "approved") await compactGallery(userId, productId);
+      if (ordered(a.slot) && a.status === "approved") await compactSlot(userId, productId, a.slot);
       return;
     case "reopen":
       fail("Deshacer", (await db.from("page_images").update({ status: "generated", decided_at: null, updated_at: now }).eq("id", a.id).eq("status", "rejected")).error);
@@ -607,13 +632,14 @@ async function coverFrom(a: PageImageRow) {
   }
   if (a.status === "approved") {
     fail("Quitar de la galería", (await adminClient().from("page_images").update({ status: "generated", position: null, decided_at: null, updated_at: stamp() }).eq("id", a.id)).error);
-    await compactGallery(a.user_id, a.product_id);
+    await compactSlot(a.user_id, a.product_id, GALLERY);
   }
 }
 
 /** Elegir una foto de Información base para un espacio: se crea su opción (una por espacio) y se elige. */
 export async function chooseReference(userId: string, productId: string, slot: string, referenceId: string): Promise<void> {
   await assertSlot(userId, productId, slot);
+  if (slot === GIFS) throw new ProductApiError("En GIFs van animaciones: sube un GIF.", 400, "slot");
   const refs = await listImageRows(userId, [productId]);
   const ref = refs.find((r) => r.id === referenceId && !r.excluded);
   if (!ref) throw new ProductApiError("Esa foto ya no está en Información base.", 404, "referenceId");
@@ -633,19 +659,31 @@ export async function chooseReference(userId: string, productId: string, slot: s
   await choose(row);
 }
 
-/** El orden de la galería: `ids` son las elegidas, de la primera a la última. */
-export async function reorderGallery(userId: string, productId: string, ids: string[]): Promise<void> {
+/** El orden de la galería o de los GIF: `ids` son las elegidas, de la primera a la última. */
+export async function reorderSlot(userId: string, productId: string, ids: string[], slot: string = GALLERY): Promise<void> {
+  if (!ordered(slot)) throw new ProductApiError("Ese espacio no se ordena.", 400, "slot");
   const db = adminClient();
-  const { data, error } = await db.from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", GALLERY).eq("status", "approved");
-  fail("Leer la galería", error);
+  const { data, error } = await db.from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
+  fail("Leer las elegidas", error);
   const current = new Set((data ?? []).map((r) => r.id as string));
-  if (ids.length !== current.size || ids.some((id) => !current.has(id))) throw new ProductApiError("La galería cambió. Actualiza la página.", 409);
+  if (ids.length !== current.size || ids.some((id) => !current.has(id))) throw new ProductApiError(slot === GIFS ? "Tus GIF cambiaron. Actualiza la página." : "La galería cambió. Actualiza la página.", 409);
   await Promise.all(ids.map((id, i) => db.from("page_images").update({ position: i + 1, updated_at: stamp() }).eq("id", id)));
 }
 
 // ---------------------------------------------------------------- Subir
 
-export async function preparePageUpload(userId: string, productId: string, file: { type?: string; size?: number }) {
+/** Subir, paso 1: valida tipo y peso según el espacio y entrega una URL firmada de subida. */
+export async function preparePageUpload(userId: string, productId: string, file: { type?: string; size?: number }, slot?: string) {
+  if (slot === GIFS) {
+    const ext = file.type ? GIF_UPLOAD_TYPES[file.type] : undefined;
+    if (!ext) throw new ProductApiError("Sube un GIF animado (también sirve WebP animado o APNG).", 415, "file");
+    if (!file.size || file.size > GIF_MAX_UPLOAD_BYTES) throw new ProductApiError("El GIF pesa más de 25 MB. Recórtalo o súbelo más corto.", 413, "file");
+    if ((await chosenCount(productId, GIFS)) >= GIF_MAX) throw new ProductApiError(`Ya usas ${GIF_MAX} GIF. Quita uno para subir otro.`, 409, "file");
+    const path = `${userId}/${productId}/upload-${randomUUID()}.${ext}`;
+    const { data, error } = await adminClient().storage.from(PAGE_MEDIA_BUCKET).createSignedUploadUrl(path);
+    if (error || !data) throw new Error(`Preparar la subida: ${error?.message ?? "sin URL"}`);
+    return { path, uploadUrl: data.signedUrl };
+  }
   const ext = file.type ? UPLOAD_TYPES[file.type] : undefined;
   if (!ext) throw new ProductApiError("Sube una imagen JPG, PNG o WebP.", 415, "file");
   if (!file.size || file.size > MAX_UPLOAD_BYTES) throw new ProductApiError("La imagen pesa más de 15 MB.", 413, "file");
@@ -655,10 +693,17 @@ export async function preparePageUpload(userId: string, productId: string, file:
   return { path, uploadUrl: data.signedUrl };
 }
 
+async function chosenCount(productId: string, slot: string): Promise<number> {
+  const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
+  fail("Contar las elegidas", error);
+  return count ?? 0;
+}
+
 /** La imagen ya se subió con la URL firmada: se revisa que sea una imagen legible y se agrega al espacio. */
 export async function confirmPageUpload(userId: string, productId: string, slot: string, path: string): Promise<void> {
   if (!path.startsWith(`${userId}/${productId}/upload-`) || path.includes("..")) throw new ProductApiError("Esa subida no es de este producto.", 400, "path");
   await assertSlot(userId, productId, slot);
+  if (slot === GIFS) return confirmGifUpload(userId, productId, path);
   const db = adminClient();
   const drop = async (msg: string) => {
     await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
@@ -692,4 +737,64 @@ export async function confirmPageUpload(userId: string, productId: string, slot:
   });
   if (error) await db.storage.from(PAGE_MEDIA_BUCKET).remove([stored]);
   fail("Agregar la imagen", error);
+}
+
+/**
+ * Un GIF subido: se decodifica con todos sus cuadros, se rechaza si no se mueve (un solo cuadro; la
+ * cabecera no lo prueba) y se guarda re-codificado como WebP animado, que pesa de 5 a 10 veces menos
+ * que el GIF con mejor color. El original se borra. Entra ya elegido, al final de la fila: el GIF N
+ * lleva el texto N de la página.
+ */
+async function confirmGifUpload(userId: string, productId: string, path: string): Promise<void> {
+  const db = adminClient();
+  const drop = async (msg: string, status = 415) => {
+    await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
+    throw new ProductApiError(msg, status, "file");
+  };
+  const file = await db.storage.from(PAGE_MEDIA_BUCKET).download(path);
+  if (file.error || !file.data) throw new ProductApiError("No encontramos el GIF subido. Súbelo de nuevo.", 404, "path");
+  const count = await chosenCount(productId, GIFS);
+  if (count >= GIF_MAX) return drop(`Ya usas ${GIF_MAX} GIF. Quita uno para subir otro.`, 409);
+
+  const bytes = Buffer.from(await file.data.arrayBuffer());
+  const meta = await sharp(bytes, { animated: true }).metadata().catch(() => null);
+  if (!meta?.width || !["gif", "webp", "png"].includes(meta.format ?? "")) return drop("No pudimos leer ese archivo. Sube un GIF animado.");
+  if ((meta.pages ?? 1) <= 1) return drop("Ese archivo no se mueve: sube un GIF animado.");
+  const frameHeight = meta.pageHeight ?? meta.height ?? 0;
+  if (Math.min(meta.width, frameHeight) < GIF_MIN_SIDE) return drop(`El GIF es muy chico: usa uno de al menos ${GIF_MIN_SIDE} px por lado.`);
+
+  // `animated: true` al leer y al escribir: sin eso sharp entrega el primer cuadro, sin ningún error.
+  const out = await sharp(bytes, { animated: true })
+    .resize({ width: Math.min(meta.width, GIF_MAX_WIDTH), withoutEnlargement: true })
+    .webp({ quality: GIF_QUALITY, effort: 4 })
+    .toBuffer()
+    .catch(() => null);
+  if (!out) return drop("No pudimos convertir ese GIF. Prueba con otro archivo.");
+  const saved = await sharp(out, { animated: true }).metadata();
+  if ((saved.pages ?? 1) <= 1) return drop("Ese archivo no se mueve: sube un GIF animado.");
+
+  const stored = `${userId}/${productId}/gif-${randomUUID()}.webp`;
+  const up = await db.storage.from(PAGE_MEDIA_BUCKET).upload(stored, out, { contentType: "image/webp", upsert: false });
+  if (up.error) return drop("No pudimos guardar el GIF. Intenta de nuevo.", 500);
+  await db.storage.from(PAGE_MEDIA_BUCKET).remove([path]);
+
+  const now = stamp();
+  const { error } = await db.from("page_images").insert({
+    product_id: productId,
+    user_id: userId,
+    slot: GIFS,
+    source: "upload",
+    input: { frames: saved.pages, original_bytes: bytes.byteLength },
+    render_status: "succeeded",
+    storage_path: stored,
+    width: saved.width,
+    height: saved.pageHeight ?? saved.height,
+    size_bytes: out.byteLength,
+    status: "approved",
+    position: count + 1,
+    decided_at: now,
+    finished_at: now,
+  });
+  if (error) await db.storage.from(PAGE_MEDIA_BUCKET).remove([stored]);
+  fail("Agregar el GIF", error);
 }

@@ -3,6 +3,7 @@ import { BenefitDoubleBoxPreview } from "./benefit-double-box";
 import { BenefitUspsPreview } from "./benefit-usps";
 import { ComparisonTablePreview } from "./comparison-table";
 import { FaqAndTextPreview } from "./faq-and-text";
+import { GifStripPreview } from "./gif-strip";
 import { ImageWithBenefitsPreview } from "./image-with-benefits";
 import { InstaStoryPreview } from "./insta-story";
 import { InventoryPreview } from "./inventory";
@@ -26,6 +27,7 @@ export const PREVIEWS: Record<string, ComponentType<PreviewProps<any>>> = {
   inventory: InventoryPreview,
   "shipping-timeline": ShippingTimelinePreview,
   "benefit-double-box": BenefitDoubleBoxPreview,
+  "gif-strip": GifStripPreview,
   "review-slider": ReviewSliderPreview,
   "ugc-slider": UgcSliderPreview,
   "stats-with-image": StatsWithImagePreview,

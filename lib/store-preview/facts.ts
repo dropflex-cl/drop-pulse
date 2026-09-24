@@ -57,6 +57,8 @@ export interface StoreFacts {
   policies: StorePolicies;
   /** Días hábiles de entrega; null si la tienda todavía no los tiene. */
   logistics: { min: number; max: number } | null;
+  /** Los GIF elegidos en Imágenes (URLs firmadas), en su orden: el GIF N lleva el texto N de gif-strip. */
+  gifs?: string[];
 }
 
 /** El tachado de un pack: lo que costarían sus unidades al precio de referencia, si es mayor. */

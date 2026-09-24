@@ -8,7 +8,7 @@ import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { money } from "@/lib/format";
-import { GALLERY_MAX, GALLERY_MIN, GALLERY_SHOTS } from "@/lib/page-images/catalog";
+import { GALLERY_MAX, GALLERY_MIN, GALLERY_SHOTS, GIF_MAX } from "@/lib/page-images/catalog";
 import { ProductApiClientError, productsApi, uploadPageImage } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { PageImageOptionView, PageImageSlotView, PageImagesState, ProductPageImages, RunStatus } from "@/lib/types";
@@ -270,7 +270,7 @@ function slotBadge(s: PageImageSlotView): { label: string; tone: "success" | "pr
   const opts = visible(s);
   const chosen = chosenOf(s).length;
   if (opts.some(rendering)) return { label: "Generando", tone: "progress", icon: "loader" };
-  if (chosen) return { label: s.kind === "gallery" ? `${chosen} elegidas` : "Elegida", tone: "success", icon: "check" };
+  if (chosen) return { label: s.kind === "gif" ? `${chosen} en uso` : s.kind === "gallery" ? `${chosen} elegidas` : "Elegida", tone: "success", icon: "check" };
   const ok = opts.filter((o) => o.render === "succeeded").length;
   if (ok) return { label: ok === 1 ? "1 opción" : `${ok} opciones`, tone: "quiet", icon: "image" };
   if (opts.some((o) => o.render === "failed")) return { label: "Con error", tone: "danger", icon: "alert" };
@@ -279,8 +279,9 @@ function slotBadge(s: PageImageSlotView): { label: string; tone: "success" | "pr
 
 function SlotList({ slots, current, onOpen }: { slots: PageImageSlotView[]; current?: string; onOpen: (key: string) => void }) {
   const groups = [
-    { title: "Galería", items: slots.filter((s) => s.kind !== "benefit") },
+    { title: "Galería", items: slots.filter((s) => s.kind === "cover" || s.kind === "gallery") },
     { title: "Por qué comprarlo", items: slots.filter((s) => s.kind === "benefit") },
+    { title: "En movimiento", items: slots.filter((s) => s.kind === "gif") },
   ].filter((g) => g.items.length);
   return (
     <div className="flex flex-col gap-4">
@@ -365,7 +366,11 @@ function SlotDetail({
   const usedRefs = new Set(opts.filter((o) => o.referenceId).map((o) => o.referenceId));
   const freeRefs = references.filter((r) => !usedRefs.has(r.id));
   const aspect = s.ratio === "3:4" ? "aspect-[3/4]" : "aspect-square";
-  const full = s.kind === "gallery" && chosen.length >= GALLERY_MAX;
+  const gif = s.kind === "gif";
+  // Galería y GIF: varias elegidas, en orden.
+  const ordered = s.kind === "gallery" || gif;
+  const max = gif ? GIF_MAX : GALLERY_MAX;
+  const full = ordered && chosen.length >= max;
 
   const decide = (o: PageImageOptionView, action: "choose" | "unchoose" | "recover") =>
     onAct(`${action}-${o.id}`, () => productsApi.decidePageImage(productId, o.id, action), action === "recover" ? "No pudimos recuperar la imagen." : "No pudimos guardar tu elección.");
@@ -392,7 +397,7 @@ function SlotDetail({
     const j = i + delta;
     if (j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
-    void onAct(`order-${o.id}`, () => productsApi.orderGallery(productId, ids), "No pudimos guardar el orden.");
+    void onAct(`order-${o.id}`, () => productsApi.orderGallery(productId, ids, s.key), "No pudimos guardar el orden.");
   }
 
   async function onFile(file?: File) {
@@ -400,9 +405,9 @@ function SlotDetail({
     setUpload(0);
     try {
       onState(await uploadPageImage(productId, s.key, file, setUpload).done);
-      notify("Imagen agregada");
+      notify(gif ? "GIF agregado" : "Imagen agregada");
     } catch (e) {
-      onError(errorText(e, "No pudimos subir la imagen."));
+      onError(errorText(e, gif ? "No pudimos subir el GIF." : "No pudimos subir la imagen."));
     } finally {
       setUpload(null);
       if (fileRef.current) fileRef.current.value = "";
@@ -425,9 +430,16 @@ function SlotDetail({
         </div>
       ) : null}
 
-      {s.kind === "gallery" ? (
+      {gif ? (
+        <div className="rounded-md bg-muted p-3">
+          <p className="m-0 text-body">{`Sube hasta ${GIF_MAX} GIF del producto funcionando. La página ya trae ${GIF_MAX} textos, del más fuerte al más débil: el GIF 1 lleva el texto 1, el GIF 2 el texto 2 y así. Con 3 GIF se usan los 3 primeros textos.`}</p>
+          <p className="m-0 mt-1 text-caption text-muted-foreground">GIF, WebP animado o APNG de hasta 25 MB. Lo guardamos como WebP animado, más liviano para el teléfono del comprador.</p>
+        </div>
+      ) : null}
+
+      {ordered ? (
         <div className="flex flex-col gap-2">
-          <h3 className="text-label">{`Elegidas · ${chosen.length} de ${GALLERY_MIN} a ${GALLERY_MAX}, en este orden`}</h3>
+          <h3 className="text-label">{gif ? `En la página · ${chosen.length} de ${GIF_MAX}, en este orden` : `Elegidas · ${chosen.length} de ${GALLERY_MIN} a ${GALLERY_MAX}, en este orden`}</h3>
           {chosen.length ? (
             <ol className="m-0 grid list-none grid-cols-3 gap-2 p-0 @xl:grid-cols-6">
               {chosen.map((o, i) => (
@@ -435,7 +447,7 @@ function SlotDetail({
                   <div className="relative aspect-square overflow-hidden rounded-md bg-muted inset-ring inset-ring-border">
                     {o.src ? (
                       // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage
-                      <img src={o.src} alt={`Galería ${i + 1}`} className="size-full object-cover" />
+                      <img src={o.src} alt={gif ? `GIF ${i + 1}` : `Galería ${i + 1}`} className="size-full object-cover" />
                     ) : null}
                     <span className="absolute top-1 left-1 grid size-6 place-items-center rounded-full bg-primary text-micro font-semibold text-primary-foreground">{i + 1}</span>
                   </div>
@@ -447,13 +459,13 @@ function SlotDetail({
               ))}
             </ol>
           ) : (
-            <p className="text-caption text-muted-foreground">Toca Elegir en las opciones de abajo. La primera va justo después de la portada.</p>
+            <p className="text-caption text-muted-foreground">{gif ? "Todavía no hay GIF en la página. Sube el primero." : "Toca Elegir en las opciones de abajo. La primera va justo después de la portada."}</p>
           )}
         </div>
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-label">Opciones</h3>
+        <h3 className="text-label">{gif ? "Tus GIF" : "Opciones"}</h3>
         {opts.length ? (
           <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 @xl:grid-cols-3 @4xl:grid-cols-4">
             {opts.map((o) => (
@@ -461,7 +473,7 @@ function SlotDetail({
                 <OptionTile
                   option={o}
                   aspect={aspect}
-                  gallery={s.kind === "gallery"}
+                  gallery={ordered}
                   full={full}
                   busy={busy}
                   costLabel={costLabel}
@@ -477,7 +489,9 @@ function SlotDetail({
             ))}
           </ul>
         ) : (
-          <p className="text-caption text-muted-foreground">{canGenerate ? "Todavía no hay opciones. Genera la galería o sube una imagen." : "Elige una de tus fotos o sube una imagen."}</p>
+          <p className="text-caption text-muted-foreground">
+            {gif ? "Todavía no subes GIF." : canGenerate ? "Todavía no hay opciones. Genera la galería o sube una imagen." : "Elige una de tus fotos o sube una imagen."}
+          </p>
         )}
       </div>
 
@@ -500,7 +514,7 @@ function SlotDetail({
         </div>
       ) : null}
 
-      {freeRefs.length ? (
+      {freeRefs.length && !gif ? (
         <div className="flex flex-col gap-2">
           <h3 className="text-label">Tus fotos</h3>
           <ul className="m-0 grid list-none grid-cols-4 gap-2 p-0 @xl:grid-cols-6">
@@ -523,10 +537,19 @@ function SlotDetail({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => onFile(e.target.files?.[0])} />
-        <Button variant="secondary" icon="upload" loading={upload !== null} disabled={!!busy} onClick={() => fileRef.current?.click()}>
-          {upload !== null ? `Subiendo ${Math.round(upload * 100)}%` : "Subir imagen"}
+        <input
+          ref={fileRef}
+          type="file"
+          accept={gif ? "image/gif,image/webp,image/png,image/apng" : "image/jpeg,image/png,image/webp"}
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+        <Button variant={gif && !chosen.length ? "primary" : "secondary"} icon="upload" loading={upload !== null} disabled={!!busy || (gif && full)} onClick={() => fileRef.current?.click()}>
+          {upload !== null ? `Subiendo ${Math.round(upload * 100)}%` : gif ? "Subir GIF" : "Subir imagen"}
         </Button>
+        {gif && full ? <span className="self-center text-caption text-muted-foreground">{`Ya usas ${GIF_MAX} GIF: quita uno para subir otro.`}</span> : null}
         {onBack ? (
           <Button variant="ghost" icon="chevron-left" onClick={onBack}>
             Todos los espacios

@@ -8,6 +8,7 @@ import {
   componentName,
   componentPitch,
   componentSummary,
+  missingGifs,
   missingImages,
 } from "@/lib/copy/page-ui";
 import { componentById } from "@/lib/shopify/components/catalog";
@@ -60,6 +61,8 @@ export function ComponentCard({
   // Sin sus fotos mínimas (las historias) el componente no se dibuja en la tienda: se dice en vez de un marco vacío.
   const needsPhotos = missing.find((s) => s.min > 0);
   const noImage = view?.enabled ? missing : [];
+  // gif-strip toma sus GIF de Imágenes: sin ellos, la tienda no lo muestra.
+  const noGifs = Boolean(view?.enabled) && missingGifs(id, facts.gifs);
   const approved = view?.status === "aprobado";
   // El degradado de abajo solo cuando la vista previa de verdad se corta.
   const box = useRef<HTMLDivElement>(null);
@@ -144,7 +147,7 @@ export function ComponentCard({
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            {examples.length || noImage.length ? (
+            {examples.length || noImage.length || noGifs ? (
               <ul className="flex flex-wrap gap-2 text-caption">
                 {examples.length ? (
                   <li className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
@@ -161,6 +164,12 @@ export function ComponentCard({
                     Falta imagen: {s.label.toLowerCase()}
                   </li>
                 ))}
+                {noGifs ? (
+                  <li className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-warning">
+                    <Icon name="image" size="sm" />
+                    Faltan los GIF: súbelos en Imágenes
+                  </li>
+                ) : null}
               </ul>
             ) : (
               <span />

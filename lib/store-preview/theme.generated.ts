@@ -110,6 +110,11 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_top": 48,
     "padding_bottom": 48
   },
+  "gif-strip": {
+    "radius": 12,
+    "margin_top": 8,
+    "margin_bottom": 8
+  },
   "image-with-benefits": {
     "heading": "¿Por qué elegirlo?",
     "use_product_image": true,

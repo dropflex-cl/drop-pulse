@@ -13,7 +13,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
 import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { missingPublishScopes } from "@/lib/integrations/shopify/oauth";
-import { COVER, GALLERY, GALLERY_MIN, slotKind } from "@/lib/page-images/catalog";
+import { COVER, GALLERY, GALLERY_MIN, GIFS, slotKind } from "@/lib/page-images/catalog";
 import { PAGE_MEDIA_BUCKET, pageImageRows } from "@/lib/page-images/store";
 import { labelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
@@ -141,6 +141,12 @@ export async function preparePublish(userId: string, productId: string): Promise
     const p = pageRows.find((x) => x.id === pick.id);
     return p ? pageSource(p, name) : null;
   };
+  // Los GIF de Imágenes, en su orden: el GIF N lleva el texto N de gif-strip.
+  const gifs = chosen
+    .filter((p) => p.slot === GIFS)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((p, i) => pageSource(p, `${name}, en movimiento ${i + 1}`))
+    .filter((s): s is SourceImage => Boolean(s));
   const components = rows
     .filter((r) => r.component !== LISTING && r.status === "approved" && r.enabled && componentById(r.component))
     .map((r) => {
@@ -150,6 +156,10 @@ export async function preparePublish(userId: string, productId: string): Promise
         if (!src) continue;
         images.push(src);
         (bySlot[pick.slot] ??= []).push(src.key);
+      }
+      if (r.component === "gif-strip" && gifs.length) {
+        images.push(...gifs);
+        bySlot[GIFS] = gifs.map((g) => g.key);
       }
       return { id: r.component, content: currentContent(r), images: bySlot };
     });

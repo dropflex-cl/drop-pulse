@@ -1,6 +1,6 @@
 # Etapa Imágenes: las imágenes de la página del producto
 
-La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel de agencia: una galería que se ve como la de una marca premium, generada desde la foto real del producto. Se organiza **por espacios de la página** (design-system `imagenes.md`). **Va antes de la Página del producto** (cambio del 2026-09-24): la página usa estas imágenes en la ficha y en sus componentes. Por ahora solo imágenes: el video UGC y los GIF quedan para después (§7).
+La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel de agencia: una galería que se ve como la de una marca premium, generada desde la foto real del producto. Se organiza **por espacios de la página** (design-system `imagenes.md`). **Va antes de la Página del producto** (cambio del 2026-09-24): la página usa estas imágenes en la ficha y en sus componentes. Además de las imágenes, el comerciante **sube sus GIF** (§1bis); el video UGC queda para después (§7).
 
 ## 1. Espacios
 
@@ -9,10 +9,21 @@ La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel 
 | Portada | 1:1 | Sí | Una toma `hero_clean` o `hero_mood`, sin textos |
 | Galería | 1:1, se eligen 4 a 6 y se ordenan | Sí (mínimo 4) | 5 tomas distintas: ambiente, infografía, comparativa, qué incluye (o detalle) y una de uso, escala o detalle |
 | Beneficio N | **3:4** | No | 3 tomas, una por cada beneficio que el director propone desde la ficha y los ángulos (`benefit-1…3`, `BENEFIT_SHOTS`) |
+| GIFs | animado, hasta 5 ordenados | No | Solo **subidos** por el comerciante (`gifs`, `GIF_MAX`); nunca generados (§1bis) |
 
 - La etapa se habilita con los 2 desarrollos de Ángulos aprobados y queda lista con portada y al menos 4 de galería (`lib/products/stages.ts › imagesStage`). Si cambian los desarrollos, la galería queda desactualizada. La Página del producto se habilita recién con las imágenes listas.
 - **Por qué 3:4 y no 4:5:** Flare acepta 1:1, 3:2, 2:3, 4:3, 3:4, 16:9, 9:16 y 21:9 (medido: `4:5` responde 400). En el POC, recortar un 3:4 a 4:5 cortó un titular. 3:4 nativo se ve casi igual en la página y no se corta nada.
 - Cada espacio junta opciones de tres orígenes: **IA** (generadas), **Tu foto** (las en uso de Información base, sin copiarlas) y **Subida** (JPG, PNG o WebP de hasta 15 MB y al menos 600 px por lado).
+
+## 1bis. GIFs
+
+El espacio `gifs` alimenta el componente **`gif-strip`** («DropFlex · GIFs», bajo el botón de compra). La Página del producto escribe **5 textos** para él en la misma llamada que el resto de la página (título arriba del GIF, párrafo o lista abajo), **el más fuerte primero**. El GIF N lleva el texto N: con 3 GIF subidos se usan los 3 primeros textos; sin GIF, la tienda no muestra el bloque. La IA no ve los GIF: si un texto no calza, se reordenan los GIF aquí o se edita el texto en la Página del producto.
+
+- **Subida** por URL firmada (`preparePageUpload` con `slot: "gifs"`): GIF, WebP animado o APNG de hasta 25 MB. El bucket `page-media` acepta `image/gif` y `image/apng` desde la migración `20261011000000_page_gifs.sql`.
+- **Se guarda como WebP animado** (`confirmGifUpload`): sharp con `animated: true` al leer y al escribir (sin eso entrega el primer cuadro, sin error), ancho máximo 900 px (una animación decodificada es una tira vertical de cuadros: el tope es de ancho), calidad 72. El original se borra. Pesa de 5 a 10 veces menos que el GIF.
+- **Un archivo de un solo cuadro se rechaza** («Ese archivo no se mueve»), y también uno de menos de 240 px por lado. La comprobación es después de decodificar: la cabecera no prueba que algo se mueva.
+- Entra **ya elegido**, al final de la fila (`position`). Se reordena con las flechas (`PUT /page-images/order` con `slot`), se quita y se descarta como cualquier opción (Deshacer, borrado a los 2 minutos).
+- No entra en el catálogo de fotos de los componentes (`lib/copy/images.ts`) ni en la galería: solo en `gif-strip`. Publicar lo sube a Shopify Files como imagen y lo escribe en `dropflex.gif_strip_media` (`list.file_reference`); el Liquid usa `image_url` **sin `width`**, porque una variante transformada conserva un solo cuadro.
 
 ## 2. Flujo
 
@@ -97,7 +108,7 @@ La dirección de arte se validó en un POC con datos de prod de solo lectura (re
 ## 7. Pendiente
 
 - Video UGC (Higgsfield, 9:16) y la guardia de honestidad.
-- GIF por enlace (convertir a WebP animado con `sharp`).
+- GIF por enlace (importar pegando una URL, con los guardas SSRF de las fotos): hoy solo se suben.
 - «Cómo funciona» en 16:9. Flare lo soporta nativo; falta una toma para ese espacio.
 - Llevar lo elegido a Shopify (etapa Publicar).
 - Tercera columna de escritorio con el generador (`GenerationComposer`): hoy el director decide la toma y el comerciante solo pide otra.
