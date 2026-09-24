@@ -1,0 +1,78 @@
+// La etapa Anuncios del producto (docs/spec-anuncios.md §7): el borrador del configurador, sus
+// creativos, las plantillas propias y las campañas ya creadas.
+import "server-only";
+import { cache } from "react";
+import { adsContext, getDraft, listCampaignRows, listMediaRows, listTemplates, presetFor, toAdMedia, type AdsContext, type CampaignRow } from "@/lib/ads/store";
+import { DEFAULT_PRESET } from "@/lib/ads/presets";
+import { sessionUser } from "@/lib/integrations/session";
+import { getProductRow, type ProductRow } from "@/lib/products/store";
+import type { AdCampaignSummary, AdDraft, ProductAds } from "@/lib/types";
+import { getProduct } from "./products";
+
+function lockReason(copyDone: boolean, ctx: AdsContext): string | null {
+  if (!copyDone) return "Termina la página del producto para lanzar anuncios.";
+  if (!ctx.metaReady) return "Conecta Meta Ads y elige cuenta, página y píxel en Ajustes.";
+  return null;
+}
+
+function toDraft(row: CampaignRow | null, ctx: AdsContext, product: ProductRow): AdDraft {
+  if (row) {
+    return {
+      id: row.id,
+      name: row.name,
+      structure: row.structure,
+      templateKey: row.template_key,
+      templateId: row.template_id,
+      launch: row.launch,
+      engine: row.engine,
+      // Un lanzamiento que falla vuelve el borrador a `draft` con su error (y todo lo creado, revertido).
+      status: row.status === "launching" ? "launching" : row.error ? "failed" : "draft",
+      progress: row.progress,
+      error: row.error,
+    };
+  }
+  const preset = presetFor(DEFAULT_PRESET, ctx);
+  return {
+    id: null,
+    name: `${product.title.slice(0, 60)} · Testeo`,
+    structure: preset.structure,
+    templateKey: DEFAULT_PRESET,
+    templateId: null,
+    launch: preset.launch,
+    engine: preset.engine,
+    status: "draft",
+    progress: null,
+    error: null,
+  };
+}
+
+const toSummary = (r: CampaignRow): AdCampaignSummary => ({ id: r.id, name: r.name, structure: r.structure, status: r.status, launchedAt: r.launched_at, publishedAt: r.published_at });
+
+/** Todo lo de la etapa sin el producto: lo que devuelve GET /api/products/[id]/ads. */
+export async function adsState(uid: string, row: ProductRow, copyDone: boolean): Promise<Omit<ProductAds, "product">> {
+  const ctx = await adsContext(uid, row);
+  const [draft, media, templates, campaigns] = await Promise.all([getDraft(uid, row.id), listMediaRows(uid, row.id), listTemplates(uid), listCampaignRows(uid, row.id)]);
+  return {
+    locked: lockReason(copyDone, ctx),
+    meta: { ready: ctx.metaReady, account: ctx.meta?.ad_account_name ?? null, page: ctx.meta?.page_name ?? null, pixel: ctx.meta?.pixel_name ?? null },
+    currency: ctx.currency,
+    timezone: ctx.timezone,
+    country: ctx.country,
+    cpaLimit: ctx.cpaLimit,
+    spendCap: ctx.spendCap,
+    productUrl: ctx.productUrl,
+    draft: toDraft(draft, ctx, row),
+    media: await toAdMedia(media),
+    templates,
+    campaigns: campaigns.filter((c) => c.status !== "draft" && c.status !== "failed").map(toSummary),
+    defaultTexts: ctx.texts,
+  };
+}
+
+export const getProductAds = cache(async (id: string): Promise<ProductAds | null> => {
+  const user = await sessionUser();
+  if (!user) return null;
+  const [product, row] = await Promise.all([getProduct(id), getProductRow(user.id, id)]);
+  if (!product || !row) return null;
+  return { product, ...(await adsState(user.id, row, product.copyPhase === "done")) };
+});

@@ -13,7 +13,9 @@ import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { syncSelectedProducts } from "@/lib/products/sync";
-import { productPosition, type AngleFacts, type CopyFacts, type ReviewFacts } from "@/lib/products/stages";
+import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type ReviewFacts } from "@/lib/products/stages";
+import { adminClient } from "@/lib/integrations/admin";
+import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { customerReviews, expireStaleImports, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
 import {
   baseImage,
@@ -65,7 +67,18 @@ function copyFacts(run: CopyRunRow | undefined, items: ContentItemRow[] | undefi
   };
 }
 
-function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts, angles?: AngleFacts | null, copy?: CopyFacts | null): Product {
+/** Meta listo y las campañas de cada producto (etapa Anuncios). */
+async function adsFacts(uid: string): Promise<(productId: string) => AdsFacts> {
+  const [meta, { data }] = await Promise.all([getMetaConnection(uid), adminClient().from("ad_campaigns").select("product_id, status").eq("user_id", uid).in("status", ["launching", "paused", "active"])]);
+  const metaReady = Boolean(meta?.status === "connected" && meta.ad_account_id && meta.page_id && meta.pixel_id);
+  const rows = (data ?? []) as { product_id: string; status: string }[];
+  return (productId) => {
+    const mine = rows.filter((r) => r.product_id === productId);
+    return { metaReady, campaigns: mine.filter((r) => r.status !== "launching").length, launching: mine.some((r) => r.status === "launching") };
+  };
+}
+
+function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: AvatarRow, reviews?: ReviewFacts, angles?: AngleFacts | null, copy?: CopyFacts | null, ads?: AdsFacts): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
@@ -74,6 +87,7 @@ function toProduct(row: ProductRow, image: string, run?: RunRow, avatar?: Avatar
     reviews,
     angles,
     copy,
+    ads,
   });
   return {
     id: row.id,
@@ -104,7 +118,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
   await Promise.all([expireStaleRuns(uid), expireStaleImports(uid), expireStaleAngles(uid), expireStaleCopy(uid)]);
   const rows = await listProductRows(uid);
   const ids = rows.map((r) => r.id);
-  const [images, runs, avatars, reviews, rankings, copyRuns, copyItems] = await Promise.all([
+  const [images, runs, avatars, reviews, rankings, copyRuns, copyItems, ads] = await Promise.all([
     listImageRows(uid, ids),
     latestRuns(uid, ids),
     latestAvatars(uid, ids),
@@ -112,6 +126,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
     latestRankings(uid, ids),
     latestCopyRuns(uid, ids),
     activeItems(uid, ids),
+    adsFacts(uid),
   ]);
   const briefs = await currentBriefs(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id));
   const covers = rows.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
@@ -122,7 +137,7 @@ const allProducts = cache(async (): Promise<Product[]> => {
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
     const copy = copyFacts(copyRuns.get(r.id), copyItems.get(r.id), chosen);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy);
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id));
   });
 });
 

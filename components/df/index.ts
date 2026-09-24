@@ -60,3 +60,13 @@ export { Notice, type NoticeProps } from "./notice";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
 export { PageOutline, type BlockState, type OutlineItem, type PageOutlineProps } from "./page-outline";
 export { CopySummary, type CopySummaryProps, type SummaryTag } from "./copy-summary";
+// Anuncios y motor de decisión (design-system/anuncios.md)
+export { StructurePicker, type Structure, type StructurePickerProps } from "./structure-picker";
+export { PresetSelect, type PresetOption, type PresetSelectProps } from "./preset-select";
+export { ConfigSection, ConfigSections, type ConfigSectionProps } from "./config-section";
+export { ChipInput, type ChipInputProps, type ChipValue } from "./chip-input";
+export { RuleRow, type RulePart, type RuleRowProps } from "./rule-row";
+export { RuleGroup, type RuleGroupKind, type RuleGroupProps } from "./rule-group";
+export { CreativeSlot, type CreativeSlotProps, type CreativeState } from "./creative-slot";
+export { CampaignTree, type CampaignTreeProps, type TreeAd, type TreeAdset } from "./campaign-tree";
+export { DecisionRow, type DecisionKind, type DecisionRowProps } from "./decision-row";

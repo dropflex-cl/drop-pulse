@@ -354,3 +354,73 @@ export interface Assumptions {
   store: string;
   metaAccount: string;
 }
+
+// ---------------------------------------------------------------- Anuncios (docs/spec-anuncios.md)
+
+/** Un creativo subido por el comerciante (bucket ad-media). */
+export interface AdMedia {
+  id: string;
+  kind: "image" | "video";
+  name: string;
+  /** URL firmada para mostrarlo. */
+  url: string;
+  ratio: "1:1" | "4:5" | "9:16" | null;
+  durationS: number | null;
+  status: "uploading" | "processing" | "ready" | "error";
+  error: string | null;
+}
+
+/** Una plantilla propia (Ajustes › Plantillas de campaña). */
+export interface AdTemplate {
+  id: string;
+  name: string;
+  structure: import("./ads/schemas").Structure;
+  launch: import("./ads/schemas").LaunchConfig;
+  engine: import("./ads/schemas").EngineConfig;
+  basedOn: string | null;
+  updatedAt: string;
+}
+
+/** El borrador del configurador: la configuración que es SUYA. */
+export interface AdDraft {
+  id: string | null;
+  name: string;
+  structure: import("./ads/schemas").Structure;
+  templateKey: string | null;
+  templateId: string | null;
+  launch: import("./ads/schemas").LaunchConfig;
+  engine: import("./ads/schemas").EngineConfig;
+  status: "draft" | "launching" | "failed";
+  progress: { step: string; done: number; total: number } | null;
+  error: string | null;
+}
+
+/** Una campaña ya creada en Meta, para la lista de la etapa. */
+export interface AdCampaignSummary {
+  id: string;
+  name: string;
+  structure: import("./ads/schemas").Structure;
+  status: "paused" | "active" | "failed" | "archived" | "launching" | "draft";
+  launchedAt: string | null;
+  publishedAt: string | null;
+}
+
+/** La etapa Anuncios del producto (/products/[id]/ads). */
+export interface ProductAds {
+  product: Product;
+  /** Por qué no se puede lanzar todavía (página sin terminar, Meta sin conectar). */
+  locked: string | null;
+  meta: { ready: boolean; account: string | null; page: string | null; pixel: string | null };
+  currency: string;
+  timezone: string;
+  country: string;
+  cpaLimit: number | null;
+  spendCap: number | null;
+  productUrl: string | null;
+  draft: AdDraft;
+  media: AdMedia[];
+  templates: AdTemplate[];
+  campaigns: AdCampaignSummary[];
+  /** Los textos por defecto (de lo aprobado), para «Restablecer». */
+  defaultTexts: { primary_texts: string[]; headlines: string[]; description: string };
+}

@@ -33,6 +33,16 @@ export interface ProductFacts {
   copy?: CopyFacts | null;
   /** Reseñas importadas (etapa opcional): nunca bloquean ni se bloquean. */
   reviews?: ReviewFacts | null;
+  /** Anuncios (etapa opcional): Meta con cuenta, página y píxel, y las campañas del producto. */
+  ads?: AdsFacts | null;
+}
+
+export interface AdsFacts {
+  metaReady: boolean;
+  /** Campañas creadas en Meta (en pausa o activas). */
+  campaigns: number;
+  /** Hay un lanzamiento en curso. */
+  launching?: boolean;
 }
 
 export interface ReviewFacts {
@@ -211,6 +221,16 @@ function anglesDesc(phase: AnglesPhase, a: AngleFacts | null | undefined): strin
   }
 }
 
+/** Anuncios: opcional, se habilita con la página del producto lista y Meta conectado (spec-anuncios §2). */
+function adsStage(pageDone: boolean, a: AdsFacts | null | undefined): Stage {
+  const base = { key: "anuncios", title: "Anuncios", optional: true } as const;
+  if (!pageDone) return { ...base, state: "locked", desc: "Después de la página del producto" };
+  if (!a?.metaReady) return { ...base, state: "locked", desc: "Conecta Meta Ads en Ajustes" };
+  if (a.launching) return { ...base, state: "current", desc: "Creando la campaña en Meta" };
+  if (a.campaigns) return { ...base, state: "done", desc: a.campaigns === 1 ? "1 campaña" : `${a.campaigns} campañas` };
+  return { ...base, state: "available", desc: "Lanza una campaña de testeo" };
+}
+
 /** Reseñas: opcional, entre Información base y Ángulos (arquitectura.md › 9). */
 function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter: MeterStage } {
   const base = { key: "resenas", title: "Reseñas", optional: true } as const;
@@ -240,7 +260,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
     { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy) },
     { key: "imagenes", title: "Imágenes", state: pageDone ? "current" : "locked", desc: pageDone ? "Elige las imágenes de tu tienda" : "Después de la página del producto" },
     { key: "publicar", title: "Publicar en tu tienda", state: "locked", desc: "Necesita la página y las imágenes aprobadas" },
-    { key: "anuncios", title: "Anuncios", state: "locked", optional: true, desc: "Usa los ángulos elegidos" },
+    adsStage(pageDone, f.ads),
   ];
   const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], COPY_METER[copy], pageDone ? "current" : "locked", "locked", "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
