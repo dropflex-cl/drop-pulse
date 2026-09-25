@@ -32,7 +32,7 @@ describe("selección", () => {
 
 describe("números sugeridos", () => {
   it("en CLP, los del design system", () => {
-    expect(suggestedNumbers("CLP", [1000])).toEqual({ deliveredOf10: 8, shipping: 3500, maxCpa: 6000 });
+    expect(suggestedNumbers("CLP", [1000])).toEqual({ deliveredOf10: 8, shipping: 9000, maxCpa: 6000 });
   });
   it("en otra moneda, proporcionales a la mediana de precios", () => {
     expect(suggestedNumbers("USD", [10, 25, 40])).toEqual({ deliveredOf10: 8, shipping: 3.5, maxCpa: 6 });

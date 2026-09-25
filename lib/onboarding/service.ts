@@ -2,6 +2,7 @@
 // devuelven el estado nuevo o lo derivado. Las usan las rutas de app/api/onboarding y las páginas.
 // Las conexiones con Shopify y Meta (I/O) viven en lib/integrations/.
 import { fractionDigits } from "@/lib/format";
+import { CLP_DEFAULTS } from "@/lib/pricing/plan";
 import {
   OnboardingError,
   type CatalogProduct,
@@ -48,13 +49,13 @@ const round = (value: number, currency: string) => {
 };
 
 /**
- * Valores sugeridos. En CLP, los del design system ($3.500 de envío y $6.000 de CPA). En otras
+ * Valores sugeridos. En CLP, el envío por defecto del costeo ($9.000, CLP_DEFAULTS) y $6.000 de CPA. En otras
  * monedas, la misma proporción sobre la mediana de precios de la tienda (14% y 24%, las de
  * $3.500 y $6.000 sobre $24.990 en el ejemplo del design system). La entrega aún no se calcula
  * con los pedidos (spec D7): 8 de 10.
  */
 export function suggestedNumbers(currency: string, prices: number[]): Numbers {
-  if (!currency || currency === "CLP" || !prices.length) return { deliveredOf10: 8, shipping: 3500, maxCpa: 6000 };
+  if (!currency || currency === "CLP" || !prices.length) return { deliveredOf10: 8, shipping: CLP_DEFAULTS.avgShippingCost, maxCpa: 6000 };
   const sorted = [...prices].filter((p) => p > 0).sort((a, b) => a - b);
   const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
   if (!median) return { deliveredOf10: 8, shipping: 0, maxCpa: 0 };

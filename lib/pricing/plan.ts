@@ -75,8 +75,12 @@ export const PACK_TIERS = [1, 2, 3];
  */
 export const DEFAULT_EXTRA_UNIT_DISCOUNT = 50;
 export const MAX_EXTRA_UNIT_DISCOUNT = 95;
-/** Supuestos del curso (v1, TFL_PRICING_DEFAULTS), en CLP. */
-export const CLP_DEFAULTS = { purchaseCostLimit: 5000, avgShippingCost: 8000, confirmationRate: 70, deliveryRate: 70 } as const;
+/**
+ * Supuestos por defecto en CLP (decisión del 2026-09-25, docs/spec-angulos-testeo.md §7): envío
+ * promedio de $9.000 (la mentoría costea entre $7.500 y $9.500 «a la segura»), 75 % de confirmación
+ * y 75 % de entrega (la planilla de costeo del curso) y CPA de $5.000.
+ */
+export const CLP_DEFAULTS = { purchaseCostLimit: 5000, avgShippingCost: 9000, confirmationRate: 75, deliveryRate: 75 } as const;
 
 const finite = (n: number) => Number.isFinite(n);
 
