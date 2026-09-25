@@ -875,6 +875,8 @@ export interface DifferentiatorView {
   confirmed: boolean;
   /** Lo que propuso la ficha (product_briefs.payload.differentiator). */
   proposed: import("@/lib/ai/schemas").Differentiator | null;
+  /** La ficha es de antes del diferenciador: la IA no llegó a proponerlo. */
+  oldBrief?: boolean;
 }
 
 /** Una tienda de la competencia y el resumen de su análisis. */

@@ -569,7 +569,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       askReeval ? (
         reevalConfirm(where)
       ) : (
-        <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
+        <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} disabled={needsDifferentiator} onClick={evaluate}>
           Volver a evaluar
         </Button>
       );
@@ -620,7 +620,18 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           {legacy ? (
             <Notice
               title="Esta evaluación es de antes de los ángulos de testeo."
-              body="Vuelve a evaluar para que la IA proponga ángulos distintos para testear, uno por conjunto de anuncios."
+              body={
+                needsDifferentiator
+                  ? "Para volver a evaluar, primero confirma tu diferenciador en Información base."
+                  : "Vuelve a evaluar para que la IA proponga ángulos distintos para testear, uno por conjunto de anuncios."
+              }
+              action={
+                needsDifferentiator ? (
+                  <Button size="sm" href={baseHref}>
+                    Ir a Información base
+                  </Button>
+                ) : undefined
+              }
             />
           ) : null}
           <div className="lg:hidden">{summary}</div>
@@ -734,20 +745,48 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     const tabAngle = chosen.find((a) => a.slot === tab) ?? chosen[0];
     const current = tabAngle ? briefs.find((b) => b.slot === tabAngle.slot) : undefined;
     const currentStatus: AngleDevelopmentStatus | undefined = current ? devStatus(current) : tabAngle && missingFor(tabAngle) ? "error" : undefined;
-    // Elegidos antes de los ángulos de testeo (2): se sugiere un tercero, sin exigirlo.
-    const third =
-      chosen.length < TEST_ANGLES ? (
-        <Notice
-          tone="info"
-          title="Puedes testear un tercer ángulo."
-          body="En temporada conviene probar 3 ángulos a la vez, cada uno en su conjunto: así ves más rápido cuál vende. No es obligatorio."
-          action={
-            <Button size="sm" onClick={() => (ranking?.candidates.length ? setChoosing(true) : evaluate())}>
-              {ranking?.candidates.length ? "Agregar un ángulo" : "Volver a evaluar"}
+    // Elegidos antes de los ángulos de testeo (sin candidatos): se invita a volver a evaluar con el
+    // diferenciador y la competencia. Volver a evaluar pasa a la elección con la confirmación abierta
+    // (el aviso de costo vive ahí). Sin diferenciador confirmado, primero Información base.
+    const legacyChoice = !ranking?.candidates.length;
+    const reevalFromDevs = () => {
+      setChoosing(true);
+      if (hasBriefs) setAskReeval(true);
+      else void runEvaluate();
+    };
+    const third = legacyChoice ? (
+      <Notice
+        tone="info"
+        title="Estos ángulos son de antes de los ángulos de testeo."
+        body={
+          needsDifferentiator
+            ? "Para rehacerlos con el método nuevo, primero confirma tu diferenciador (y, si quieres, agrega tu competencia) en Información base. Después vuelve a evaluar."
+            : "Vuelve a evaluar: la IA propone ángulos distintos a partir de tu diferenciador y tu competencia, y eliges 2 o 3 para testear."
+        }
+        action={
+          needsDifferentiator ? (
+            <Button size="sm" href={baseHref}>
+              Ir a Información base
             </Button>
-          }
-        />
-      ) : null;
+          ) : (
+            <Button size="sm" icon="sparkle" loading={busy?.what === "evaluate"} onClick={reevalFromDevs}>
+              Volver a evaluar
+            </Button>
+          )
+        }
+      />
+    ) : chosen.length < TEST_ANGLES ? (
+      <Notice
+        tone="info"
+        title="Puedes testear un tercer ángulo."
+        body="En temporada conviene probar 3 ángulos a la vez, cada uno en su conjunto: así ves más rápido cuál vende. No es obligatorio."
+        action={
+          <Button size="sm" onClick={() => setChoosing(true)}>
+            Agregar un ángulo
+          </Button>
+        }
+      />
+    ) : null;
     body = (
       <div className="flex flex-col gap-3">
         {avatarChanged}

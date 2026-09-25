@@ -99,7 +99,11 @@ export function DifferentiatorSection({ productId, initial }: { productId: strin
           {!start ? (
             <p className="flex gap-2 rounded-md bg-muted p-3 text-label font-normal">
               <Icon name="sparkle" size="sm" className="mt-px flex-none" />
-              <span>La IA no encontró una diferencia que se pueda sostener con tu información. Escríbela tú: los ángulos parten de aquí.</span>
+              <span>
+                {state.oldBrief
+                  ? "Tu ficha es de antes del diferenciador, así que la IA no lo propuso. Escríbelo tú: los ángulos y la página parten de aquí."
+                  : "La IA no encontró una diferencia que se pueda sostener con tu información. Escríbela tú: los ángulos parten de aquí."}
+              </span>
             </p>
           ) : null}
           <Area

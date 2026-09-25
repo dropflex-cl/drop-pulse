@@ -201,7 +201,7 @@ function ranking(state: string): AngleRankingView | undefined {
     ],
     avatarChanged: false,
   };
-  if (state === "legacy") return { ...base, candidates: [], suggested: [], chosen: [chosenOf({ ...CANDIDATES[0], title: "" }, 1), chosenOf({ ...CANDIDATES[1], title: "" }, 2)].map((a) => ({ ...a, name: a.frameName })), confirmedAt: NOW };
+  if (state === "legacy" || state === "legacy-nodiff") return { ...base, candidates: [], suggested: [], chosen: [chosenOf({ ...CANDIDATES[0], title: "" }, 1), chosenOf({ ...CANDIDATES[1], title: "" }, 2)].map((a) => ({ ...a, name: a.frameName })), confirmedAt: NOW };
   if (["developing", "review", "approved", "changing"].includes(state)) return { ...base, chosen: [chosenOf(CANDIDATES[0], 1), chosenOf(CANDIDATES[2], 2), chosenOf(CANDIDATES[1], 3)], confirmedAt: NOW };
   return base;
 }
@@ -285,7 +285,7 @@ function briefs(state: string): ProductAngles["briefs"] {
   if (state === "developing") return [PRIMARY, { ...ENEMY, generation: "running", content: undefined }, { ...SECONDARY, generation: "running", content: undefined }];
   if (state === "review" || state === "changing") return [{ ...PRIMARY, status: "aprobado" }, ENEMY, SECONDARY];
   if (state === "approved") return [{ ...PRIMARY, status: "aprobado" }, { ...ENEMY, status: "aprobado" }, { ...SECONDARY, status: "aprobado" }];
-  if (state === "legacy") return [{ ...PRIMARY, name: "Mecanismo único", status: "aprobado" }, { ...SECONDARY, name: "Edad e identidad", slot: 2, status: "aprobado" }];
+  if (state === "legacy" || state === "legacy-nodiff") return [{ ...PRIMARY, name: "Mecanismo único", status: "aprobado" }, { ...SECONDARY, name: "Edad e identidad", slot: 2, status: "aprobado" }];
   return [];
 }
 
@@ -326,7 +326,7 @@ export function fixture(state: string): ProductAngles {
     ranking: r,
     briefs: b,
     differentiator:
-      state === "nodiff"
+      state === "nodiff" || state === "legacy-nodiff"
         ? { versus: "una faja o una silla ergonómica", claim: "Lleva los hombros atrás con un ajuste cruzado bajo la ropa", confirmed: false }
         : { versus: "una faja o una silla ergonómica", claim: "Lleva los hombros atrás con un ajuste cruzado bajo la ropa, en vez de apretar la cintura", confirmed: true },
     competitors: 4,

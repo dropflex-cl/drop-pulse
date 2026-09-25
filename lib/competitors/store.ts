@@ -48,10 +48,12 @@ export async function confirmedDifferentiator(userId: string, productId: string)
 /** Lo confirmado manda; si no hay, vale la propuesta de la ficha. */
 export function differentiatorState(confirmed: Differentiator | null, brief: Pick<ProductBrief, "differentiator"> | null): DifferentiatorView {
   const proposed = parseDifferentiator(brief?.differentiator);
-  return { value: confirmed ?? proposed, confirmed: confirmed !== null, proposed };
+  // Una ficha escrita antes del diferenciador no trae la clave: la IA nunca lo buscó (≠ null, «no se sostiene»).
+  const oldBrief = brief !== null && brief.differentiator === undefined;
+  return { value: confirmed ?? proposed, confirmed: confirmed !== null, proposed, oldBrief };
 }
 
-export async function getDifferentiator(userId: string, productId: string): Promise<{ value: Differentiator | null; confirmed: boolean; proposed: Differentiator | null }> {
+export async function getDifferentiator(userId: string, productId: string): Promise<DifferentiatorView> {
   const [confirmed, brief] = await Promise.all([confirmedDifferentiator(userId, productId), latestBrief(userId, productId)]);
   return differentiatorState(confirmed, brief);
 }
