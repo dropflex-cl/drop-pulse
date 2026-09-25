@@ -1,11 +1,15 @@
 {%- doc -%}
   DropFlex · Prueba social (social-proof). Bloque de la columna del producto, lo primero de la
-  ficha: una tarjeta con las fotos de quienes lo compraron y «M***a, J***n y 17 personas más lo
+  ficha: una tarjeta con las fotos de quienes lo compraron y «María, Diego y 17 personas más lo
   recomiendan».
 
-  REGLA: todo sale de las reseñas APROBADAS. Fotos y nombres (enmascarados) de reseñas con 4 o 5
-  estrellas; la cantidad es review_summary.count menos los nombres mostrados. Sin resumen, con
-  menos reseñas que el mínimo, con promedio bajo 4 o sin nadie más que los nombrados, no se dibuja.
+  REGLA: fotos y cantidad salen de las reseñas APROBADAS: fotos de reseñas con 4 o 5 estrellas; la
+  cantidad es review_summary.count menos los nombres mostrados. Sin resumen, con menos reseñas que
+  el mínimo, con promedio bajo 4 o sin nadie más que los nombrados, no se dibuja.
+
+  Los nombres NO salen del autor de la reseña (las importadas traen «Cliente», «Anónimo»…):
+  df-social-proof.js los elige al azar de una lista de nombres de personas y los guarda en
+  localStorage por producto, así el visitante ve siempre los mismos.
 
   Datos: product.metafields.dropflex.reviews (items), reviews_images (fotos, la primera de cada
   reseña es su avatar) y review_summary ({ rating, count }).
@@ -21,7 +25,6 @@
   assign rating = summary.rating | default: 0 | plus: 0
   assign count = summary.count | default: 0 | plus: 0
 
-  assign names = ''
   assign name_count = 0
   assign avatar_count = 0
 -%}
@@ -32,15 +35,11 @@
         break
       endif
       assign r_rating = review.rating | plus: 0
-      if r_rating < 4 or review.author == blank
+      if r_rating < 4
         continue
       endif
       assign avatar_count = avatar_count | plus: 1
       if name_count < 2
-        if names != ''
-          assign names = names | append: ', '
-        endif
-        assign names = names | append: review.author
         assign name_count = name_count | plus: 1
       endif
       assign photo = nil
@@ -55,13 +54,14 @@
         endfor
       endif
     -%}
-    <span class="df-social-proof__avatar">
-      {%- if photo != blank -%}
-        {{ photo | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '40px', alt: '', loading: 'lazy' }}
-      {%- else -%}
-        {{ review.author | slice: 0 | upcase | escape }}
-      {%- endif -%}
-    </span>
+    {%- if photo != blank -%}
+      <span class="df-social-proof__avatar">
+        {{- photo | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '40px', alt: '', loading: 'lazy' -}}
+      </span>
+    {%- else -%}
+      {%- comment -%} La inicial la pone df-social-proof.js con el nombre elegido. {%- endcomment -%}
+      <span class="df-social-proof__avatar" data-df-initial></span>
+    {%- endif -%}
   {%- endfor -%}
 {%- endcapture -%}
 {%- liquid
@@ -80,10 +80,10 @@
     endif
     assign template = s.label | default: '**{names}** y {others} personas más lo recomiendan'
     if template contains '{others}'
-      # Primero se parte por las marcas de negrita y después se ponen los nombres: los nombres
-      # enmascarados («F***m») traen asteriscos que romperían el ** del texto.
+      # Primero se parte por las marcas de negrita y después se pone el hueco de los nombres, que
+      # llena df-social-proof.js.
       assign parts = template | escape | replace: '{others}', others_text | split: '**'
-      assign safe_names = names | escape
+      assign safe_names = '<span data-df-names></span>'
     else
       assign show = false
     endif
@@ -91,9 +91,12 @@
 -%}
 {%- if show -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
-  <div
+  <script src="{{ 'df-social-proof.js' | asset_url }}" defer></script>
+  <df-social-proof
     class="df df-social-proof"
     style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    data-product-id="{{ product.id }}"
+    data-names="{{ name_count }}"
     {{ block.shopify_attributes }}
   >
     <span class="df-social-proof__avatars" aria-hidden="true">{{ avatars_html }}</span>
@@ -108,7 +111,7 @@
         {%- endif -%}
       {%- endfor -%}
     </p>
-  </div>
+  </df-social-proof>
 {%- elsif request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <div class="df df-placeholder" {{ block.shopify_attributes }}>
@@ -125,6 +128,11 @@
     border: 1px solid var(--df-hairline);
     border-radius: var(--df-radius);
     background: var(--df-surface);
+  }
+
+  /* Hasta que df-social-proof.js pone los nombres: ocupa su lugar sin mostrar el hueco. */
+  df-social-proof:not(:defined) {
+    visibility: hidden;
   }
 
   .df-social-proof__avatars {
@@ -189,7 +197,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "Fotos, nombres y cantidad salen de las reseñas aprobadas en DropFlex. Sin reseñas suficientes no se muestra."
+      "content": "Fotos y cantidad salen de las reseñas aprobadas en DropFlex; los nombres, de una lista de nombres de personas (fijos por visitante). Sin reseñas suficientes no se muestra."
     },
     {
       "type": "text",

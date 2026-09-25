@@ -69,7 +69,7 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 | Bloque | Dónde | Datos |
 |---|---|---|
 | `df-hype-badge` | Arriba de todo | Etiqueta con el acento del producto («Producto viral»), texto del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
-| `df-social-proof` | Bajo el badge de novedad | Fotos y nombres (enmascarados) de reseñas aprobadas con 4 o 5 estrellas, más la cantidad real de `dropflex.review_summary` |
+| `df-social-proof` | Bajo el badge de novedad | Fotos de reseñas aprobadas con 4 o 5 estrellas y la cantidad real de `dropflex.review_summary`. Los nombres nunca son el autor («Cliente», «Anónimo»): `df-social-proof.js` los elige al azar de 50 nombres de mujer y 50 de hombre y los guarda por producto en `localStorage["df:social-proof:<id>"]` |
 | `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
 | `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Se actualiza al cambiar de variante |
