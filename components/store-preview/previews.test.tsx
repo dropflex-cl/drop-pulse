@@ -38,6 +38,11 @@ describe("vistas previas de los componentes", () => {
               <Preview content={example} facts={FIXTURE_FACTS} images={IMAGES} />
             </StoreFrame>,
           );
+          // inventory: con stock muestra la línea fija de producto viral, no los textos de la IA.
+          if (c.id === "inventory") {
+            expect(html).toMatch(/Producto viral · \d{3} vendidos esta semana/);
+            continue;
+          }
           const texts = visibleTexts(example).map((t) => fill(t, FIXTURE_FACTS).replaceAll("**", ""));
           // Al menos la mitad de los textos del ejemplo se ven (algunos dependen del estado: agotado, sin cuenta regresiva…).
           const shown = texts.filter((t) => html.includes(escape(t)));
