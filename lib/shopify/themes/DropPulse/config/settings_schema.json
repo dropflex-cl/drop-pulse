@@ -64,6 +64,23 @@
       },
       {
         "type": "checkbox",
+        "id": "df_gallery_autoplay",
+        "label": "Galería con avance automático",
+        "info": "Las fotos del producto cambian solas con un fundido y se detienen mientras el cliente usa la galería. Sin movimiento para quien lo desactiva en su teléfono.",
+        "default": true
+      },
+      {
+        "type": "range",
+        "id": "df_gallery_speed",
+        "label": "Tiempo por foto",
+        "min": 3,
+        "max": 8,
+        "step": 1,
+        "unit": "s",
+        "default": 4
+      },
+      {
+        "type": "checkbox",
         "id": "df_easysell",
         "label": "EasySell con el diseño de la tienda",
         "info": "El formulario de pago contra entrega toma la tipografía, los bordes y los radios del tema, y sus botones el color del producto. Mientras esté activo, los colores y la sombra de los botones configurados en EasySell no se ven.",

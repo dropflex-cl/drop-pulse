@@ -129,6 +129,27 @@
       .product-information .product-details {
         padding-block-start: 20px;
       }
+
+      /* Móvil: bajo la foto, una tira de miniaturas que se desliza (en lugar de los puntos).
+         Arranca en el margen de la ficha, no centrada: así se nota que hay más fotos a la derecha. */
+      .product-information slideshow-controls[thumbnails] .slideshow-controls__thumbnails-container {
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 16px;
+        overscroll-behavior-x: contain;
+      }
+
+      .product-information slideshow-controls[thumbnails] .slideshow-controls__thumbnails {
+        margin-inline: 0;
+        padding-inline: 16px;
+        padding-block: 10px 4px;
+        gap: 8px;
+      }
+
+      .product-information slideshow-controls[thumbnails] .slideshow-control {
+        width: 64px;
+        flex: none;
+        scroll-snap-align: start;
+      }
     }
 
     /* Cifras: precios y cantidades alineadas (type-metric del design system). */

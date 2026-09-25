@@ -1,0 +1,20 @@
+{%- doc -%}
+  DropFlex · galería de la ficha: fundido entre fotos y avance automático (assets/df-gallery.js).
+  Va al final del <body>, solo en la ficha del producto.
+
+  - Avance automático cada `df_gallery_speed` segundos; se detiene mientras la persona usa la
+    galería y vuelve a los 8 s sin tocarla.
+  - Las miniaturas, las flechas y el avance automático cambian de foto con un fundido; deslizar con
+    el dedo sigue deslizando.
+  - Con prefers-reduced-motion queda la galería del tema, sin movimiento.
+
+  Se apaga con el ajuste `df_gallery_autoplay` (el fundido de las miniaturas se mantiene).
+{%- enddoc -%}
+{%- if template.name == 'product' -%}
+  <script
+    src="{{ 'df-gallery.js' | asset_url }}"
+    defer
+    data-autoplay="{% if settings.df_gallery_autoplay == false %}false{% else %}true{% endif %}"
+    data-speed="{{ settings.df_gallery_speed | default: 4 }}"
+  ></script>
+{%- endif -%}

@@ -58,6 +58,12 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 - **Botón a todo el ancho:** EasySell oculta el «Agregar al carrito» del tema pero deja su contenedor, que en escritorio le quitaba media fila al botón de EasySell. El script marca ese contenedor vacío (`data-df-es-empty`) y el CSS lo saca de la fila.
 - El app embed de EasySell queda siempre encendido desde Publicar (`EASYSELL_EMBED` en `lib/shopify/publish/kit.ts`).
 
+## Galería de la ficha
+
+- **Miniaturas también en móvil** (`slideshow_mobile_controls_style: thumbnails`, en `templates/product.json` y como default del bloque): una tira de miniaturas bajo la foto que se desliza, desde el margen de 16 px, con snap (CSS en `df-design-system`).
+- **Fundido y avance automático** (`snippets/df-gallery.liquid` + `assets/df-gallery.js`, al final del `<body>` solo en la ficha). Las miniaturas, las flechas y el avance automático saltan a la foto nueva sin deslizar y la anterior se desvanece encima (una copia de su `<img>`, 450 ms). Deslizar con el dedo sigue deslizando. El clic se toma en captura sobre `window`, antes del `on:click` del tema; solo usa la API pública del slideshow (`select`, `current`, `slides`).
+- El avance automático (ajustes `df_gallery_autoplay`, encendido, y `df_gallery_speed`, 4 s) se detiene con cualquier toque, tecla o foco en la galería y vuelve a los 8 s; también con el mouse encima, fuera de pantalla, con la pestaña oculta, con un diálogo abierto (zoom, EasySell) o con un video sonando. Con `prefers-reduced-motion` no hay ni avance ni fundido.
+
 ## Bloques de la ficha
 
 | Bloque | Dónde | Datos |
