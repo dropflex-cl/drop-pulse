@@ -402,7 +402,8 @@ df-slider {
 }
 
 /* _landing/blocks/df-hype-badge.liquid */
-.df-hype-badge {
+/* .df.df-hype-badge: df-components.css (que pone el color de .df) se carga después y le ganaría. */
+.df.df-hype-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -421,7 +422,7 @@ df-slider {
   white-space: nowrap;
 }
 
-.df-hype-badge--solid {
+.df.df-hype-badge--solid {
   border-color: var(--df-accent);
   background: var(--df-accent);
   color: var(--df-on-accent);
@@ -1602,6 +1603,7 @@ df-faq-and-text {
 .df-image-with-benefits__media {
   position: relative;
   width: min(100%, 420px);
+  aspect-ratio: 1;
   margin-inline: auto;
 }
 
@@ -1619,13 +1621,17 @@ df-faq-and-text {
   background: var(--df-surface);
 }
 
+/* La foto con su proporción (no un cuadrado con bandas), centrada en el cuadro: así el radio
+   redondea las esquinas de la foto y no las del cuadro. */
 .df-image-with-benefits__img {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
-  aspect-ratio: 1;
-  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
   border-radius: var(--df-radius-media);
 }
 

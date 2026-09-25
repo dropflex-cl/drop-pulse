@@ -50,7 +50,8 @@
 {%- endif -%}
 
 {% stylesheet %}
-  .df-hype-badge {
+  /* .df.df-hype-badge: df-components.css (que pone el color de .df) se carga después y le ganaría. */
+  .df.df-hype-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -69,7 +70,7 @@
     white-space: nowrap;
   }
 
-  .df-hype-badge--solid {
+  .df.df-hype-badge--solid {
     border-color: var(--df-accent);
     background: var(--df-accent);
     color: var(--df-on-accent);

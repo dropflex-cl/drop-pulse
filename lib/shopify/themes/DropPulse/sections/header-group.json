@@ -109,7 +109,7 @@
         "enable_sticky_header": "always",
         "divider_width": 0,
         "divider_size": "page-width",
-        "border_width": 1,
+        "border_width": 0,
         "background_color_top": "#ffffff",
         "enable_transparent_header_home": false,
         "enable_transparent_header_product": false,

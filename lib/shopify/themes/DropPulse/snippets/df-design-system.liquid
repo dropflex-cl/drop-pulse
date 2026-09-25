@@ -110,6 +110,13 @@
       border-radius: var(--gallery-media-border-radius, 12px);
     }
 
+    /* El header se funde con la página: sin la línea de abajo (el ajuste «borde» del header es del
+       comerciante y no llega a las tiendas instaladas, por eso va aquí). */
+    #header-component .header__row,
+    #header-component .header__row .header__columns {
+      border-bottom-width: 0 !important;
+    }
+
     /* Escritorio: la galería acompaña mientras la columna de datos (más alta) corre. */
     @media screen and (min-width: 750px) {
       .product-information__media {
