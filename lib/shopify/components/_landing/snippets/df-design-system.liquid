@@ -130,6 +130,17 @@
         padding-block-start: 20px;
       }
 
+      /* Móvil: la foto principal con el mismo margen que la tira de miniaturas (16px) y el radio de
+         las fotos del producto (el «Radio de las imágenes» de la galería). */
+      .product-information media-gallery slideshow-container {
+        padding-inline: 16px;
+      }
+
+      .product-information media-gallery slideshow-slide {
+        border-radius: var(--gallery-media-border-radius, 12px);
+        overflow: hidden;
+      }
+
       /* Móvil: bajo la foto, una tira de miniaturas que se desliza (en lugar de los puntos).
          Arranca en el margen de la ficha, no centrada: así se nota que hay más fotos a la derecha. */
       .product-information slideshow-controls[thumbnails] .slideshow-controls__thumbnails-container {
