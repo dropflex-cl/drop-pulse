@@ -135,8 +135,17 @@ function reviewsBlock(c: CopyContext): string {
   ].join("\n");
 }
 
-/** `retry`: lo que estuvo mal en el intento anterior (lib/copy/page-schema.ts › pageProblems). */
-export function copyUser(c: CopyContext, retry: string[] = []): string {
+/** Un reintento: la respuesta anterior y lo que estuvo mal en ella (lib/copy/page-schema.ts › pageProblems). */
+export interface CopyRetry {
+  previous: unknown;
+  problems: string[];
+}
+
+/**
+ * `retry`: el modelo recibe su respuesta anterior para corregir solo lo que falla. Reescribirla
+ * entera cambiaría también lo que estaba bien y podría romper otra regla.
+ */
+export function copyUser(c: CopyContext, retry?: CopyRetry): string {
   const components = c.write.filter((id) => id !== LISTING);
   return [
     "FICHA DE PRODUCTO",
@@ -168,7 +177,14 @@ export function copyUser(c: CopyContext, retry: string[] = []): string {
     c.write.includes(LISTING) ? "- listing: la ficha." : "- listing: ya aprobada, responde null.",
     `- components: ${components.length ? components.join(", ") : "(ninguno)"}.`,
     "",
-    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
-    "Escribe la página del producto.",
+    ...(retry?.problems.length
+      ? [
+          "TU RESPUESTA ANTERIOR",
+          JSON.stringify(retry.previous),
+          "",
+          `No cumple las reglas: ${retry.problems.join(" ")}`,
+          "Corrige solo eso y deja igual todo lo demás. Responde de nuevo el objeto completo.",
+        ]
+      : ["Escribe la página del producto."]),
   ].join("\n");
 }

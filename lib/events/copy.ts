@@ -5,7 +5,7 @@
 // Se guarda aparte (event_copy): el copy de page_components nunca se toca. Puro.
 import * as z from "zod/v4";
 import { marketBlock } from "@/lib/ai/prompts";
-import { FORBIDDEN, INTERNAL, amountsIn } from "@/lib/copy/schemas";
+import { FORBIDDEN, INTERNAL, amountAllowed, amountsIn } from "@/lib/copy/schemas";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
@@ -94,7 +94,7 @@ export function eventCopyProblems(copy: EventCopy, facts: { currency: string; am
     if (/%|por ?ciento/i.test(text)) problems.push(`${field}: sin porcentajes (la tienda muestra el ahorro real).`);
     if (INTERNAL.test(text)) problems.push(`${field}: nombra algo interno; escribe para el comprador.`);
     if (FORBIDDEN.some((r) => r.test(text))) problems.push(`${field}: promesa prohibida.`);
-    const wrong = amountsIn(text, facts.currency).filter((n) => !facts.amounts.includes(n));
+    const wrong = amountsIn(text, facts.currency).filter((n) => !amountAllowed(n, facts.amounts));
     if (wrong.length) problems.push(`${field}: montos que no están en PRECIO Y OFERTA (${wrong.join(", ")}).`);
   }
   if (copy.badge_label !== copy.badge_label.toUpperCase()) problems.push("badge_label: en mayúsculas.");

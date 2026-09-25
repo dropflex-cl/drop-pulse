@@ -3,7 +3,7 @@
 // textos para el comerciante en español con tuteo; los textos horneados, en el idioma del mercado.
 
 import * as z from "zod/v4";
-import { allowedAmounts, amountsIn } from "@/lib/copy/schemas";
+import { allowedAmounts, amountAllowed, amountsIn } from "@/lib/copy/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
 
@@ -89,7 +89,7 @@ export function textProblems(texts: StoredText[], pricing: PricingPlan, where = 
     if (!t.text.trim()) problems.push(`${at}hay un texto vacío.`);
     if (t.text.length > ROLE_LIMITS[t.role]) problems.push(`${at}«${t.text}» pasa de ${ROLE_LIMITS[t.role]} caracteres (${t.role}).`);
     if (t.role === "headline" && t.text.trim().split(/\s+/).length > HEADLINE_MAX_WORDS) problems.push(`${at}el titular «${t.text}» pasa de ${HEADLINE_MAX_WORDS} palabras.`);
-    for (const n of amountsIn(t.text, pricing.currency)) if (!allowed.includes(n)) problems.push(`${at}«${t.text}» trae un monto que no está en PRECIO Y OFERTA.`);
+    for (const n of amountsIn(t.text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${t.text}» trae un monto que no está en PRECIO Y OFERTA.`);
     for (const re of FORBIDDEN) if (re.test(t.text)) problems.push(`${at}«${t.text}» promete un resultado de salud (usa «ayuda a», «apoya»).`);
   }
   return problems;

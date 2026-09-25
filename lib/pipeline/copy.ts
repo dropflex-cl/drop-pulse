@@ -9,7 +9,7 @@ import { currentBriefs, fail, latestRankings, type BriefRow } from "@/lib/angles
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
 import { pageProblems, pageSchema, schemaProblems, toWrite, type PageOutput } from "@/lib/copy/page-schema";
-import { copySystem, copyUser, type CopyContext } from "@/lib/copy/prompts";
+import { copySystem, copyUser, type CopyContext, type CopyRetry } from "@/lib/copy/prompts";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
 import { activeComponents, currentContent, getComponentRow, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
@@ -137,6 +137,8 @@ export async function runCopy(runId: string): Promise<void> {
     .maybeSingle();
   if (claimed.error || !claimed.data) return;
   const r = claimed.data as CopyRunRow & { input: RunInput };
+  // Lo que estuvo mal en el último intento: queda en la fila si la escritura falla.
+  let problems: string[] = [];
   try {
     const input = r.input;
     const [product, brief, avatarRow, primary, secondary, current, reviews] = await Promise.all([
@@ -174,7 +176,7 @@ export async function runCopy(runId: string): Promise<void> {
     const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: reviews.map((v) => v.id) };
     const schema = pageSchema(write);
 
-    const attempt = (retry: string[]) =>
+    const attempt = (retry?: CopyRetry) =>
       generateStructured({
         system: copySystem(input.market),
         content: [{ type: "text", text: copyUser(ctx, retry) }],
@@ -182,10 +184,9 @@ export async function runCopy(runId: string): Promise<void> {
         effort: "medium",
         maxTokens: 16000,
       });
-    let problems: string[] = [];
     let result: Awaited<ReturnType<typeof attempt>> | null = null;
     for (let i = 0; i < 2; i++) {
-      result = await attempt(problems);
+      result = await attempt(result && problems.length ? { previous: result.data, problems } : undefined);
       problems = pageProblems(result.data as PageOutput, write, facts);
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: result.usage, error: problems.length ? "invalid_copy" : null });
       if (!problems.length) break;
@@ -231,6 +232,7 @@ export async function runCopy(runId: string): Promise<void> {
         status: "failed",
         error_code: known ? e.code : "unexpected",
         error_message: known ? e.message : "No pudimos terminar de escribir la página. Toca Reintentar.",
+        problems: problems.length ? problems : null,
         finished_at: now,
         updated_at: now,
       })

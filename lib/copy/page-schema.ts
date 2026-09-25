@@ -14,7 +14,7 @@ import * as z from "zod/v4";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import type { ConversionComponent } from "@/lib/shopify/components/define";
 import { LISTING, listingSchema } from "./listing";
-import { COD, FORBIDDEN, INTERNAL, amountsIn } from "./schemas";
+import { COD, FORBIDDEN, INTERNAL, amountAllowed, amountsIn } from "./schemas";
 
 // Los mensajes de validación llegan al comerciante (hoja de edición) y al modelo: en español y
 // simples. Los largos y cantidades con frase propia; el resto, el idioma de zod.
@@ -195,7 +195,7 @@ export function pageProblems(out: PageOutput, ids: string[], facts: PageFacts): 
   const internal = texts.find((t) => INTERNAL.test(t.text));
   if (internal) problems.push(`${internal.path} usa una palabra interna («${internal.text.match(INTERNAL)![0]}»): escribe para el comprador, sin nombrar la ficha, los ángulos ni el precio y oferta.`);
   const wrong = new Set<number>();
-  for (const t of texts) for (const n of amountsIn(t.text, facts.currency)) if (!facts.amounts.some((a) => Math.abs(a - n) <= 1)) wrong.add(n);
+  for (const t of texts) for (const n of amountsIn(t.text, facts.currency)) if (!amountAllowed(n, facts.amounts)) wrong.add(n);
   if (wrong.size) problems.push(`Estos montos no están en PRECIO Y OFERTA: ${[...wrong].join(", ")}. Usa solo esos números.`);
   for (const re of FORBIDDEN) {
     const hit = texts.find((t) => re.test(t.text));

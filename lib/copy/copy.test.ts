@@ -6,7 +6,7 @@ import { buildPricingPlan } from "@/lib/pricing/plan";
 import { WRITTEN, toWrite } from "./page-schema";
 import { copyProgress, enabledLabel } from "./progress";
 import { copySystem, copyUser, type CopyContext } from "./prompts";
-import { allowedAmounts, amountsIn } from "./schemas";
+import { allowedAmounts, amountAllowed, amountsIn } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 const pricing = buildPricingPlan(
@@ -21,6 +21,15 @@ describe("montos de la página", () => {
     expect(amounts).toContain(32990);
     expect(amounts).toContain(8000);
     expect(amounts).toContain(pricing.packs[1].price);
+  });
+
+  it("acepta el redondeo de un monto permitido, no un monto inventado", () => {
+    const amounts = allowedAmounts(pricing);
+    const pack3 = pricing.packs[2].price;
+    expect(amountAllowed(Math.round(pack3 / 1000) * 1000, amounts)).toBe(true);
+    expect(amountAllowed(Math.round(pricing.packs[2].perUnitPrice), amounts)).toBe(true);
+    expect(amountAllowed(12345, amounts)).toBe(false);
+    expect(amounts).toContain(pricing.salePrice - pricing.packs[1].perUnitPrice);
   });
 
   it("lee los montos con el símbolo de la moneda", () => {
@@ -111,12 +120,18 @@ describe("prompts del redactor de página", () => {
     expect(u).not.toContain("YA APROBADO");
   });
 
-  it("al reescribir lleva lo aprobado; al reintentar, qué falló", () => {
-    const u = copyUser({ ...ctx, write: ["faq-and-text"], returnDays: 30, approved: [{ component: "listing", content: { title: "Corrector ajustable" } }] }, ["faq-and-text.items: falta una pregunta de envio"]);
+  it("al reescribir lleva lo aprobado; al reintentar, su respuesta anterior y qué falló", () => {
+    const u = copyUser(
+      { ...ctx, write: ["faq-and-text"], returnDays: 30, approved: [{ component: "listing", content: { title: "Corrector ajustable" } }] },
+      { previous: { listing: null, components: { "faq-and-text": { heading: "Dudas" } } }, problems: ["faq-and-text.items: falta una pregunta de envio"] },
+    );
     expect(u).toContain('- listing: {"title":"Corrector ajustable"}');
     expect(u).toContain("- listing: ya aprobada, responde null.");
     expect(u).toContain("{return_days} días (policy returns)");
-    expect(u).toContain("Tu respuesta anterior no cumple las reglas: faq-and-text.items: falta una pregunta de envio");
+    expect(u).toContain('TU RESPUESTA ANTERIOR\n{"listing":null,"components":{"faq-and-text":{"heading":"Dudas"}}}');
+    expect(u).toContain("No cumple las reglas: faq-and-text.items: falta una pregunta de envio");
+    expect(u).toContain("Corrige solo eso y deja igual todo lo demás.");
+    expect(u).not.toContain("Escribe la página del producto.");
   });
 
   it("sin reseñas aprobadas lo dice", () => {
