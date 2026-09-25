@@ -11,6 +11,7 @@ export const AI_STEPS = {
   angle_ranking: { stage: "angulos", label: "Ranking de ángulos" },
   angle_brief: { stage: "angulos", label: "Desarrollo" },
   page_copy: { stage: "textos", label: "Página del producto" },
+  event_copy: { stage: "textos", label: "Textos del evento" },
   page_plan: { stage: "imagenes", label: "Ideas de imágenes" },
   page_render: { stage: "imagenes", label: "Imagen de la página" },
   page_qa: { stage: "imagenes", label: "Revisión de imagen" },
@@ -29,6 +30,7 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   angle_ranking: 0.15,
   angle_brief: 0.3,
   page_copy: 0.2,
+  event_copy: 0.03,
   creative_concepts: 0.2,
   page_plan: 0.25,
 };

@@ -24,8 +24,10 @@ import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { logisticsMetafield, policiesMetafield } from "@/lib/settings/policies";
 import { getStorePolicies } from "@/lib/settings/policies-store";
 import { componentById } from "@/lib/shopify/components/catalog";
+import { EVENT_KEY, publishProductEvent } from "@/lib/events/store";
 import { ensureDefinitions } from "@/lib/shopify/publish/definitions";
 import { assertNoUserErrors, ensureImages, PublishError, type SourceImage } from "@/lib/shopify/publish/files";
+import { deleteMetafields, setMetafields } from "@/lib/shopify/publish/metafields";
 import { fingerprint, MappingError, PACK_OPTION, productMetafields, productSetInput, type ExistingProduct, type PublishInput } from "@/lib/shopify/publish/mapping";
 import { packCompareAt } from "@/lib/store-preview/facts";
 import type { ImagePick } from "@/lib/types";
@@ -46,6 +48,9 @@ export interface PublicationRow {
   published_at: string | null;
   started_at: string;
   updated_at: string;
+  /** Huella del metafield dropflex.event publicado (lib/events/store.ts › eventFingerprint). */
+  event_fingerprint: string | null;
+  events_published_at: string | null;
 }
 
 export interface PublishSummary {
@@ -245,46 +250,11 @@ const PRODUCT_SET = /* GraphQL */ `
   }
 `;
 
-const METAFIELDS_SET = /* GraphQL */ `
-  mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-    metafieldsSet(metafields: $metafields) {
-      metafields { key }
-      userErrors { field message }
-    }
-  }
-`;
-
-const METAFIELDS_DELETE = /* GraphQL */ `
-  mutation MetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
-    metafieldsDelete(metafields: $metafields) {
-      deletedMetafields { key }
-      userErrors { field message }
-    }
-  }
-`;
-
 const SHOP_METAFIELDS = /* GraphQL */ `
   query ShopMeta {
     shop { id metafields(first: 20, namespace: "dropflex") { nodes { key } } }
   }
 `;
-
-async function setMetafields(conn: ShopifyConnection, ownerId: string, list: { namespace: string; key: string; type: string; value: string }[]) {
-  for (let i = 0; i < list.length; i += 25) {
-    const res = await shopifyMutation<{ metafieldsSet: { userErrors: { message: string }[] } }>(conn, METAFIELDS_SET, {
-      metafields: list.slice(i, i + 25).map((m) => ({ ...m, ownerId })),
-    });
-    assertNoUserErrors("Guardar el contenido de la página", res.metafieldsSet.userErrors);
-  }
-}
-
-async function deleteMetafields(conn: ShopifyConnection, ownerId: string, keys: string[]) {
-  if (!keys.length) return;
-  const res = await shopifyMutation<{ metafieldsDelete: { userErrors: { message: string }[] } }>(conn, METAFIELDS_DELETE, {
-    metafields: keys.map((key) => ({ ownerId, namespace: "dropflex", key })),
-  });
-  assertNoUserErrors("Quitar lo que ya no va en la página", res.metafieldsDelete.userErrors);
-}
 
 /** Los datos de la tienda (políticas y plazos de Ajustes): se publican con cada producto. */
 async function publishShopFacts(conn: ShopifyConnection): Promise<{ policies: boolean; logistics: boolean }> {
@@ -370,7 +340,8 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     const meta = productMetafields(input, gids);
     await setMetafields(conn, existing.id, meta.set);
     const present = new Set(found.product.metafields.nodes.map((n) => n.key));
-    await deleteMetafields(conn, existing.id, meta.remove.filter((k) => present.has(k)));
+    // El evento va aparte (publishProductEvent): lo escribe o lo borra después de guardar la publicación.
+    await deleteMetafields(conn, existing.id, meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY));
     const shopFacts = await publishShopFacts(conn);
 
     const handle = set.productSet.product?.handle ?? found.product.handle;
@@ -388,6 +359,8 @@ export async function runPublish(userId: string, productId: string): Promise<voi
         ...shopFacts,
       },
     });
+    // Eventos: el metafield dropflex.event (Cyber, Black Friday…) con lo que tenga activado hoy.
+    await publishProductEvent(conn, userId, productId, existing.id, present.has(EVENT_KEY));
   } catch (e) {
     console.error("[publish]", productId, e);
     await savePublication(userId, productId, shop, { status: "error", error_message: publishMessage(e) });

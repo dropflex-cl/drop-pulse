@@ -1,0 +1,53 @@
+{%- doc -%}
+  DropFlex · Eventos: la barra de aviso del evento, arriba de todo (layout/theme.liquid, antes del
+  header). Texto del evento o, con intensidad total y textos aprobados, el adaptado al producto.
+  Con adorno (intensidad total), un dibujo chico de df-event-decor. Colores del evento, con
+  contraste AA probado en DropFlex (lib/events/catalog.ts).
+{%- enddoc -%}
+{%- if request.page_type == 'product' and product != blank -%}
+  {%- capture df_i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
+  {%- if df_i != blank -%}
+    {%- liquid
+      assign df_i = df_i | plus: 0
+      assign ev = product.metafields.dropflex.event.value.events[df_i]
+    -%}
+    {{ 'df-components.css' | asset_url | stylesheet_tag }}
+    <aside class="df df-event-bar df-ev-only" aria-label="{{ ev.name | escape }}">
+      {%- if ev.decor != blank -%}
+        {% render 'df-event-decor', name: ev.decor %}
+      {%- endif -%}
+      <p class="df-event-bar__text">{{ ev.announcement | escape }}</p>
+      {%- if ev.decor != blank -%}
+        {% render 'df-event-decor', name: ev.decor %}
+      {%- endif -%}
+    </aside>
+  {%- endif -%}
+{%- endif -%}
+
+{% stylesheet %}
+  .df-event-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px var(--df-gutter);
+    background: var(--df-event-surface, var(--df-fg));
+    color: var(--df-event-on-surface, var(--df-bg));
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+  }
+
+  .df-event-bar__text {
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .df-event-bar .df-event-decor {
+    flex: none;
+    width: 18px;
+    height: 18px;
+  }
+{% endstylesheet %}

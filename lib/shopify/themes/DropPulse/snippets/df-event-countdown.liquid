@@ -1,0 +1,59 @@
+{%- doc -%}
+  DropFlex · Eventos: la cuenta regresiva del evento (intensidad media o total). Va dentro de
+  df-price, bajo el precio.
+
+  REGLA: cuenta hasta la fecha REAL del evento (su inicio en la antesala, su término durante), la
+  misma para todos los compradores. Nunca un contador que se reinicia. Al llegar a cero, df-event.js
+  apaga toda la capa del evento.
+
+  @param {product} product - El producto de la ficha
+{%- enddoc -%}
+{%- capture df_i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
+{%- if df_i != blank -%}
+  {%- liquid
+    assign df_i = df_i | plus: 0
+    assign ev = product.metafields.dropflex.event.value.events[df_i]
+    assign df_now = 'now' | date: '%s' | plus: 0
+    if df_now < ev.start
+      assign df_label = ev.countdown_before
+    else
+      assign df_label = ev.countdown_during
+    endif
+  -%}
+  {%- if ev.countdown_during != blank -%}
+    <p
+      class="df-event-countdown df-ev-only"
+      data-df-countdown
+      data-start="{{ ev.start | plus: 0 }}"
+      data-end="{{ ev.to | plus: 0 }}"
+      data-before="{{ ev.countdown_before | escape }}"
+      data-during="{{ ev.countdown_during | escape }}"
+    >
+      <span data-df-countdown-label>{{ df_label | escape }}</span>
+      <span class="df-event-countdown__time" data-df-countdown-time role="timer"></span>
+    </p>
+  {%- endif -%}
+{%- endif -%}
+
+{% stylesheet %}
+  .df-event-countdown {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    width: 100%;
+    margin: 0;
+    font-size: 14px;
+    color: var(--df-muted);
+  }
+
+  .df-event-countdown__time {
+    color: var(--df-fg);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .df-event-countdown__time:empty {
+    display: none;
+  }
+{% endstylesheet %}

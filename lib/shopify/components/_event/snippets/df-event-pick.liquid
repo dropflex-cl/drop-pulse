@@ -1,0 +1,37 @@
+{%- doc -%}
+  DropFlex · Eventos: qué evento se ve ahora en este producto. Imprime su posición en
+  `dropflex.event.events` (0, 1…) o nada.
+
+  El metafield trae hasta 4 eventos ordenados por prioridad, con su ventana en segundos Unix
+  (`from` incluye la antesala, `to` es el término). Primero gana el que ya está dentro de su
+  ventana; si ninguno, el que empieza dentro de las próximas 24 h (Shopify guarda el HTML en
+  caché: el navegador vuelve a comprobar la hora y lo enciende o lo apaga, ver df-event-head).
+
+  @param {product} product - El producto de la ficha
+
+  @example
+  {%- capture i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
+{%- enddoc -%}
+{%- liquid
+  assign df_events = product.metafields.dropflex.event.value.events
+  assign df_pick = blank
+  if df_events != blank
+    assign df_now = 'now' | date: '%s' | plus: 0
+    assign df_soon = df_now | plus: 86400
+    for df_e in df_events
+      if df_e.from <= df_now and df_now < df_e.to
+        assign df_pick = forloop.index0
+        break
+      endif
+    endfor
+    if df_pick == blank
+      for df_e in df_events
+        if df_e.from <= df_soon and df_now < df_e.to
+          assign df_pick = forloop.index0
+          break
+        endif
+      endfor
+    endif
+  endif
+  echo df_pick
+-%}

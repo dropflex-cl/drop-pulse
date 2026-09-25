@@ -734,3 +734,83 @@ export interface PublishState {
     stale: boolean;
   } | null;
 }
+
+// ---------------------------------------------------------------- Eventos (docs/spec-eventos.md)
+
+export type EventPhaseUi = "upcoming" | "teaser" | "live" | "ended";
+export type EventIntensityUi = "subtle" | "medium" | "full";
+export type EventDecorUi = "bolt" | "tag" | "pumpkin" | "heart" | "snowflake" | "sparkles" | "sun" | "pencil";
+
+/** Los colores y textos con que se ve el evento (tema + cambios del comerciante). */
+export interface EventLook {
+  accent: string;
+  onAccent: string;
+  surface: string;
+  onSurface: string;
+  badge: string;
+  announcement: string;
+  decor: EventDecorUi;
+  countdownBefore: string;
+  countdownDuring: string;
+}
+
+export interface EventActivationView {
+  enabled: boolean;
+  intensity: EventIntensityUi;
+  overrides: { accent?: string; announcement?: string; badge_label?: string };
+  /** AAAA-MM-DD en la zona de la tienda; null = la del evento. */
+  startsOn: string | null;
+  endsOn: string | null;
+}
+
+export interface EventView {
+  slug: string;
+  name: string;
+  kindLabel: string;
+  phase: EventPhaseUi;
+  /** «En antesala · el evento empieza en 7 días». */
+  phaseLabel: string;
+  /** El evento en sí: «27 – 30 nov». */
+  eventLabel: string;
+  /** Lo que se ve en la tienda, con antesala: «16 – 30 nov». */
+  windowLabel: string;
+  /** Fechas del calendario (AAAA-MM-DD) para los campos. */
+  defaultStartsOn: string;
+  defaultEndsOn: string;
+  look: EventLook;
+  /** La activación de toda la tienda, o null. */
+  store: EventActivationView | null;
+  /** Productos con su propia activación. */
+  productOverrides: number;
+}
+
+export interface EventProductView {
+  id: string;
+  name: string;
+  image: string;
+  published: boolean;
+  /** Lo que vale para este producto: la suya o la de la tienda; null = sin evento. */
+  effective: { scope: "product" | "store"; intensity: EventIntensityUi } | null;
+  override: EventActivationView | null;
+  copy: { status: "generating" | "generated" | "approved" | "failed"; text: { announcement: string; subtitle: string; badge_label: string } | null; error: string | null } | null;
+  /** Por qué no se pueden escribir textos del evento todavía, o null. */
+  copyLocked: string | null;
+  /** Para la vista previa. */
+  preview: { title: string; subtitle: string; price: number | null; compareAt: number | null; currency: string };
+}
+
+export interface EventsOverview {
+  timezone: string;
+  countryName: string;
+  events: EventView[];
+  /** Por qué no se puede publicar en la tienda, o null. */
+  connection: string | null;
+  /** Productos publicados con cambios de eventos sin publicar. */
+  stale: { id: string; name: string }[];
+  publishedProducts: number;
+}
+
+export interface EventDetail extends EventsOverview {
+  event: EventView;
+  products: EventProductView[];
+}

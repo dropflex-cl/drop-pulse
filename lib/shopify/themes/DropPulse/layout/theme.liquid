@@ -29,6 +29,8 @@
     {%- render 'color-palette' -%}
     {%- comment -%} DropFlex: design system (Geist, foco, acento del producto). Después de la paleta para ganarle. {%- endcomment -%}
     {%- render 'df-design-system' -%}
+    {%- comment -%} DropFlex: eventos (Cyber, Black Friday, Navidad…). Después del design system para ganarle al acento. {%- endcomment -%}
+    {%- render 'df-event-head' -%}
 
     {% if request.design_mode %}
       {%- render 'theme-editor' -%}
@@ -43,6 +45,8 @@
     {% render 'chat-drawer' %}
 
     <div class="page-wrapper">
+      {%- comment -%} DropFlex: barra de aviso del evento, sobre el header. {%- endcomment -%}
+      {%- render 'df-event-bar' -%}
       <div id="header-group">
         {% sections 'header-group' %}
       </div>

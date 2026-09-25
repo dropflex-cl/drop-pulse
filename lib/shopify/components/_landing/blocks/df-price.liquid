@@ -4,6 +4,8 @@
 
   REGLA: todo sale de la variante real (price, compare_at_price). Sin precio tachado mayor que el
   precio no hay tachado ni ahorro: nunca un descuento inventado.
+  Con un evento activo (dropflex.event) suma la etiqueta del evento con ese mismo % y la cuenta
+  regresiva (_event/snippets/df-event-badge y df-event-countdown).
   Cambia con la variante (packs): los montos de cada variante van embebidos, ya formateados por la
   tienda; df-price.js solo elige cuál mostrar (evento shopify:product:select o change del form).
 {%- enddoc -%}
@@ -59,6 +61,9 @@
     {%- if s.show_badge -%}
       <span class="df-price__badge" data-df-badge{% if save <= 0 %} hidden{% endif %}>{{ badge_text | escape }}</span>
     {%- endif -%}
+    {%- comment -%} Eventos (dropflex.event): etiqueta con el % real y cuenta regresiva hasta la fecha real. {%- endcomment -%}
+    {%- render 'df-event-badge', product: product, percent: percent -%}
+    {%- render 'df-event-countdown', product: product -%}
   </df-price>
 {%- endif -%}
 

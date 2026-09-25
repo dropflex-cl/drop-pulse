@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { SetupSlot } from "@/components/onboarding/setup-slot";
 import { AttentionItem, Button, Icon, IconButton } from "@/components/df";
 import { EmptyState, Group, PageHeader, SectionTitle } from "@/components/shell/page-header";
+import { getNextEvent } from "@/lib/data/events";
 import { getTodayQueue, getTodaySummary } from "@/lib/data/today";
 import { longDate } from "@/lib/format";
 import type { AttentionEntry } from "@/lib/types";
@@ -44,6 +46,28 @@ function Item({ entry }: { entry: AttentionEntry }) {
   );
 }
 
+/** El próximo evento del calendario (docs/spec-eventos.md › UX): un aviso con su color y el acceso a Eventos. */
+async function NextEvent() {
+  const event = await getNextEvent();
+  if (!event) return null;
+  const ready = event.store?.enabled || event.productOverrides > 0;
+  return (
+    <Link href={`/events/${event.slug}`} className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 hover:bg-accent">
+      {/* Los colores del evento son datos (lib/events/catalog.ts): van por style. */}
+      <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-sm text-micro font-bold" style={{ backgroundColor: event.look.surface, color: event.look.onSurface }}>
+        {event.look.badge.slice(0, 3)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-row">
+          {event.name} · {event.eventLabel}
+        </span>
+        <span className="block truncate text-caption text-muted-foreground">{ready ? `Activado · ${event.phaseLabel}` : `${event.phaseLabel} · actívalo en tu tienda`}</span>
+      </span>
+      <Icon name="chevron-right" className="text-muted-foreground" />
+    </Link>
+  );
+}
+
 export default async function HoyPage() {
   const [queue, summary] = await Promise.all([getTodayQueue(), getTodaySummary()]);
   const first = queue.filter((e) => e.group === "primero");
@@ -69,6 +93,11 @@ export default async function HoyPage() {
           <Summary value={summary.errors} label="Con error" dot="bg-destructive" />
           <Summary value={summary.published} label="Publicados" dot="bg-success" />
         </div>
+        <Suspense fallback={null}>
+          <div className="px-4 pt-3 empty:hidden lg:px-0 md:max-lg:px-0">
+            <NextEvent />
+          </div>
+        </Suspense>
 
         {queue.length === 0 ? (
           <EmptyState icon={<Icon name="check" />} title="No tienes nada por decidir">

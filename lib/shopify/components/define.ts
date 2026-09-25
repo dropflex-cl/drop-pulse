@@ -71,6 +71,15 @@ export const SHARED_METAFIELDS = {
    * reales; el metafield solo lleva textos. Lo lee `df-pack-offers` (_landing).
    */
   offer: { owner: "product", namespace: "dropflex", key: "offer", type: "json" },
+  /**
+   * Producto · json. Eventos (Cyber, Black Friday, Navidad…) que le tocan al producto, con su
+   * ventana en segundos Unix y las capas que enciende su intensidad (lib/events/resolve.ts ›
+   * EventMetafield): { events: Array<{ slug, kind, name, from, start, to, intensity, announcement,
+   * surface, on_surface, badge_label, accent?, on_accent?, countdown_before?, countdown_during?,
+   * decor?, subtitle? }> }, ordenados por prioridad. La tienda muestra el primero que está dentro de
+   * su ventana (_event/snippets/df-event-*.liquid). Nunca lleva descuentos: el % sale del precio real.
+   */
+  event: { owner: "product", namespace: "dropflex", key: "event", type: "json" },
 } as const;
 
 export type ComponentKind = "block" | "section";

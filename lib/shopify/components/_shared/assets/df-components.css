@@ -272,3 +272,10 @@ df-slider {
     scroll-behavior: auto !important;
   }
 }
+
+/* Eventos (_event/): lo del evento solo se ve con la clase que pone df-event-head en <html> cuando la
+   hora del navegador está dentro de la ventana; lo de siempre (df-ev-off) vuelve al terminar. */
+:root:not(.df-event-on) .df-ev-only,
+:root.df-event-on .df-ev-off {
+  display: none !important;
+}

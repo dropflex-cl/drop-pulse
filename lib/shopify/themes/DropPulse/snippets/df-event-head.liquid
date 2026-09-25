@@ -1,0 +1,54 @@
+{%- doc -%}
+  DropFlex · Eventos (docs/spec-eventos.md): la capa del evento en el <head>, después de
+  df-design-system. Solo en la ficha y solo si el producto tiene un evento (dropflex.event).
+
+  - Enciende la clase `df-event-on` (y `df-event--<kind>`) en <html> si la hora del navegador está
+    dentro de la ventana: el HTML puede venir de la caché de Shopify, así que la hora de Liquid no
+    basta. Todo lo del evento (barra, etiqueta, contador, bajada) se ve solo con esa clase.
+  - Capa de color (intensidad media o total): el botón principal y el anillo de foco toman el acento
+    del evento, con el texto encima ya elegido por contraste en DropFlex.
+{%- enddoc -%}
+{%- if request.page_type == 'product' and product != blank -%}
+  {%- capture df_i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
+  {%- if df_i != blank -%}
+    {%- liquid
+      assign df_i = df_i | plus: 0
+      assign ev = product.metafields.dropflex.event.value.events[df_i]
+      assign df_kind = ev.kind | handleize
+      assign df_surface = ev.surface | color_to_hex
+      assign df_on_surface = ev.on_surface | color_to_hex
+      if ev.accent != blank
+        assign df_accent = ev.accent | color_to_hex
+        assign df_on_accent = ev.on_accent | color_to_hex
+        assign df_hover = ev.accent | color_darken: 8 | color_to_hex
+      endif
+    -%}
+    <script>
+      (function () {
+        var n = Date.now() / 1000;
+        if (n >= {{ ev.from | plus: 0 }} && n < {{ ev.to | plus: 0 }}) {
+          document.documentElement.classList.add('df-event-on', 'df-event--{{ df_kind }}');
+        }
+      })();
+    </script>
+    <script src="{{ 'df-event.js' | asset_url }}" defer></script>
+    {% style %}
+      html.df-event-on {
+        --df-event-surface: {{ df_surface }};
+        --df-event-on-surface: {{ df_on_surface }};
+        {%- if df_accent != blank %}
+          --df-event-accent: {{ df_accent }};
+          --df-event-on-accent: {{ df_on_accent }};
+          --df-ds-ring: {{ df_accent }};
+          --color-primary-button-background: {{ df_accent }};
+          --color-primary-button-border: {{ df_accent }};
+          --color-primary-button-text: {{ df_on_accent }};
+          --color-primary-button-hover-background: {{ df_hover }};
+          --color-primary-button-hover-border: {{ df_hover }};
+          --color-primary-button-hover-text: {{ df_on_accent }};
+          --color-primary-button-focus-outline: {{ df_accent }};
+        {%- endif %}
+      }
+    {% endstyle %}
+  {%- endif -%}
+{%- endif -%}

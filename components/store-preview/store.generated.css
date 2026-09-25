@@ -317,6 +317,89 @@ df-slider {
   }
 }
 
+/* Eventos (_event/): lo del evento solo se ve con la clase que pone df-event-head en <html> cuando la
+   hora del navegador está dentro de la ventana; lo de siempre (df-ev-off) vuelve al terminar. */
+:root:not(.df-event-on) .df-ev-only,
+:root.df-event-on .df-ev-off {
+  display: none !important;
+}
+
+/* _event/snippets/df-event-badge.liquid */
+.df-event-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: var(--df-radius-sm);
+  background: var(--df-event-accent, var(--df-event-surface, var(--df-fg)));
+  color: var(--df-event-on-accent, var(--df-event-on-surface, var(--df-bg)));
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.df-event-badge [hidden] {
+  display: none;
+}
+
+.df-event-badge .df-event-decor {
+  width: 14px;
+  height: 14px;
+}
+
+/* _event/snippets/df-event-bar.liquid */
+.df-event-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px var(--df-gutter);
+  background: var(--df-event-surface, var(--df-fg));
+  color: var(--df-event-on-surface, var(--df-bg));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.df-event-bar__text {
+  margin: 0;
+  text-wrap: balance;
+}
+
+.df-event-bar .df-event-decor {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* _event/snippets/df-event-countdown.liquid */
+.df-event-countdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  width: 100%;
+  margin: 0;
+  font-size: 14px;
+  color: var(--df-muted);
+}
+
+.df-event-countdown__time {
+  color: var(--df-fg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.df-event-countdown__time:empty {
+  display: none;
+}
+
 /* _landing/blocks/df-hype-badge.liquid */
 .df-hype-badge {
   display: inline-flex;

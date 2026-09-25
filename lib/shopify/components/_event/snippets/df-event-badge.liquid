@@ -1,0 +1,51 @@
+{%- doc -%}
+  DropFlex · Eventos: la etiqueta del evento junto al precio («BLACK −40 %»). Va dentro de df-price.
+
+  REGLA: el porcentaje sale del precio tachado REAL de la variante (compare_at_price), nunca del
+  evento. Sin tachado, la etiqueta queda solo con su texto. df-price.js lo cambia con la variante.
+
+  @param {product} product - El producto de la ficha
+  @param {number} percent - Ahorro de la variante elegida, en % (0 = sin tachado)
+{%- enddoc -%}
+{%- capture df_i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
+{%- if df_i != blank -%}
+  {%- liquid
+    assign df_i = df_i | plus: 0
+    assign ev = product.metafields.dropflex.event.value.events[df_i]
+  -%}
+  <span class="df-event-badge df-ev-only">
+    {%- if ev.decor != blank -%}
+      {% render 'df-event-decor', name: ev.decor %}
+    {%- endif -%}
+    <span>{{ ev.badge_label | escape }}</span>
+    <span data-df-event-pc{% if percent <= 0 %} hidden{% endif %}>−{{ percent }} %</span>
+  </span>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: var(--df-radius-sm);
+    background: var(--df-event-accent, var(--df-event-surface, var(--df-fg)));
+    color: var(--df-event-on-accent, var(--df-event-on-surface, var(--df-bg)));
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .df-event-badge [hidden] {
+    display: none;
+  }
+
+  .df-event-badge .df-event-decor {
+    width: 14px;
+    height: 14px;
+  }
+{% endstylesheet %}
