@@ -1,10 +1,16 @@
 {%- doc -%}
-  DropFlex · Eventos: la cuenta regresiva del evento (intensidad media o total). Va dentro de
+  DropFlex · Eventos: el aviso de tiempo del evento (intensidad media o total). Va dentro de
   df-price, bajo el precio.
 
-  REGLA: cuenta hasta la fecha REAL del evento (su inicio en la antesala, su término durante), la
-  misma para todos los compradores. Nunca un contador que se reinicia. Al llegar a cero, df-event.js
-  apaga toda la capa del evento.
+  Por fase (df-event.js lo recalcula con la hora del navegador):
+    antesala          «Precio Cyber adelantado · ya disponible», sin reloj. Nunca «Empieza en»:
+                      contar hasta el inicio le dice al comprador que espere.
+    quedan > 48 h     «Termina en 3 días», sin segundos.
+    últimas 48 h      «Termina en 1 día 04:12:33», reloj en segundos y color de urgencia.
+    día del término   «Último día · termina hoy a las 23:59» y el reloj.
+
+  REGLA: cuenta hasta el término REAL del evento, el mismo para todos. Nunca un contador que se
+  reinicia. Al llegar a cero, df-event.js apaga toda la capa del evento.
 
   @param {product} product - El producto de la ficha
 {%- enddoc -%}
@@ -14,8 +20,14 @@
     assign df_i = df_i | plus: 0
     assign ev = product.metafields.dropflex.event.value.events[df_i]
     assign df_now = 'now' | date: '%s' | plus: 0
+    comment
+      Metafields publicados antes de early_label traen countdown_before («Empieza en»): no sirve sin
+      reloj, así que se arma uno con el nombre del evento.
+    endcomment
+    assign df_early_fallback = 'Precio ' | append: ev.name | append: ' ya disponible'
+    assign df_early = ev.early_label | default: df_early_fallback
     if df_now < ev.start
-      assign df_label = ev.countdown_before
+      assign df_label = df_early
     else
       assign df_label = ev.countdown_during
     endif
@@ -26,7 +38,7 @@
       data-df-countdown
       data-start="{{ ev.start | plus: 0 }}"
       data-end="{{ ev.to | plus: 0 }}"
-      data-before="{{ ev.countdown_before | escape }}"
+      data-early="{{ df_early | escape }}"
       data-during="{{ ev.countdown_during | escape }}"
     >
       <span data-df-countdown-label>{{ df_label | escape }}</span>
@@ -55,5 +67,21 @@
 
   .df-event-countdown__time:empty {
     display: none;
+  }
+
+  /* Antesala: el beneficio, no una espera. */
+  .df-event-countdown--early {
+    color: var(--df-fg);
+    font-weight: 600;
+  }
+
+  /* Últimas 48 h y último día. */
+  .df-event-countdown--urgent,
+  .df-event-countdown--urgent .df-event-countdown__time {
+    color: var(--df-urgent);
+  }
+
+  .df-event-countdown--urgent [data-df-countdown-label] {
+    font-weight: 600;
   }
 {% endstylesheet %}

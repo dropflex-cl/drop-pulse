@@ -42,6 +42,8 @@ describe("temas por defecto", () => {
     expect(eventThemeSchema.parse(t)).toEqual(t);
     expect(accentCheck(t.accent).ok).toBe(true);
     expect(contrast(t.surface, t.on_surface)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+    // La antesala ofrece el precio ya; nunca invita a esperar el inicio.
+    expect(t.early_label).not.toMatch(/empieza|comienza|pronto/i);
   });
 
   it("aplica los cambios del calendario y cae al del tipo si no validan", () => {
@@ -111,7 +113,7 @@ describe("eventMetafield", () => {
     const [subtle] = resolveProductEvents([event()], [act({ intensity: "subtle" })], "p", T0);
     const s = eventMetafield([subtle], [copy], T0)!.events[0];
     expect(s.accent).toBeUndefined();
-    expect(s.countdown_before).toBeUndefined();
+    expect(s.early_label).toBeUndefined();
     expect(s.subtitle).toBeUndefined();
     expect(s.announcement).toBe(EVENT_THEMES.black_friday.announcement);
 
@@ -169,7 +171,7 @@ describe("tema de Shopify", async () => {
   it("todo texto del metafield se imprime escapado", () => {
     for (const f of ["df-event-bar.liquid", "df-event-badge.liquid", "df-event-countdown.liquid"]) {
       const src = readFileSync(join(dir, f), "utf8");
-      for (const m of src.matchAll(/\{\{\s*ev\.(announcement|badge_label|name|countdown_before|countdown_during|subtitle)\b[^}]*\}\}/g)) expect(m[0]).toContain("escape");
+      for (const m of src.matchAll(/\{\{\s*ev\.(announcement|badge_label|name|early_label|countdown_during|subtitle)\b[^}]*\}\}/g)) expect(m[0]).toContain("escape");
     }
   });
 });

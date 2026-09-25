@@ -401,6 +401,22 @@ df-slider {
   display: none;
 }
 
+/* Antesala: el beneficio, no una espera. */
+.df-event-countdown--early {
+  color: var(--df-fg);
+  font-weight: 600;
+}
+
+/* Últimas 48 h y último día. */
+.df-event-countdown--urgent,
+.df-event-countdown--urgent .df-event-countdown__time {
+  color: var(--df-urgent);
+}
+
+.df-event-countdown--urgent [data-df-countdown-label] {
+  font-weight: 600;
+}
+
 /* _landing/blocks/df-hype-badge.liquid */
 /* .df.df-hype-badge: df-components.css (que pone el color de .df) se carga después y le ganaría. */
 .df.df-hype-badge {

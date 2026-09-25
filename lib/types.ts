@@ -750,7 +750,7 @@ export interface EventLook {
   badge: string;
   announcement: string;
   decor: EventDecorUi;
-  countdownBefore: string;
+  earlyLabel: string;
   countdownDuring: string;
 }
 

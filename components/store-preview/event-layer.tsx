@@ -12,8 +12,8 @@ export interface EventLayerPreviewProps {
   /** null = la ficha sin evento. */
   look: EventLook | null;
   layers: { tokens: boolean; countdown: boolean; decor: boolean };
-  /** «Termina en» y lo que falta («3 días 04:12:00»); null sin contador. */
-  countdown: { label: string; time: string } | null;
+  /** Lo que muestra df-event.js: antesala sin reloj, o «Termina en» y lo que falta; null sin contador. */
+  countdown: { label: string; time: string; phase: "early" | "calm" | "urgent" } | null;
   product: { title: string; subtitle: string; eventSubtitle?: string | null; price: number | null; compareAt: number | null; currency: string; image?: string };
 }
 
@@ -76,7 +76,7 @@ export function EventLayerPreview({ look, layers, countdown, product }: EventLay
               </span>
             ) : null}
             {look && countdown ? (
-              <p className="df-event-countdown">
+              <p className={`df-event-countdown${countdown.phase === "calm" ? "" : ` df-event-countdown--${countdown.phase}`}`}>
                 <span>{countdown.label}</span>
                 <span className="df-event-countdown__time">{countdown.time}</span>
               </p>

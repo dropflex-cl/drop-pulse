@@ -47,7 +47,7 @@ function look(event: EventRow, overrides: unknown): EventLook {
     badge: t.badge_label,
     announcement: t.announcement,
     decor: t.decor,
-    countdownBefore: t.countdown_before,
+    earlyLabel: t.early_label,
     countdownDuring: t.countdown_during,
   };
 }

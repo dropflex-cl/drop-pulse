@@ -21,11 +21,11 @@ const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClie
 
 const INTENSITY_OPTIONS = (["subtle", "medium", "full"] as const).map((v) => ({ value: v, label: INTENSITY_LABEL[v].name }));
 
-/** Lo que falta hasta el inicio o el término, para la vista previa («3 días 04:12:00»). */
-function remaining(event: EventView): { label: string; time: string } | null {
+/** Lo que muestra el contador en la vista previa: antesala sin reloj; durante, las últimas 48 h. */
+function remaining(event: EventView): { label: string; time: string; phase: "early" | "urgent" } | null {
   if (event.phase === "ended") return null;
-  const label = event.phase === "live" ? event.look.countdownDuring : event.look.countdownBefore;
-  return { label, time: event.phase === "live" ? "1 día 08:15:42" : "3 días 12:00:00" };
+  if (event.phase !== "live") return { label: event.look.earlyLabel, time: "", phase: "early" };
+  return { label: event.look.countdownDuring, time: "1 día 08:15:42", phase: "urgent" };
 }
 
 // ---------------------------------------------------------------- Vista previa

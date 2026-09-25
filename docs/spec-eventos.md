@@ -39,6 +39,12 @@ Migración `supabase/migrations/20261015000000_events.sql`.
 - **Dónde se ve:**
   - `layout/theme.liquid`: `df-event-head` va en el `<head>` (color del botón) y `df-event-bar` va sobre el header.
   - `df-price`: `df-event-badge` y `df-event-countdown`.
+- **Aviso de tiempo por fase** (`df-event-countdown` + `df-event.js`, igual para todos los eventos):
+  - Antesala: `early_label` sin reloj («Precio Cyber adelantado · ya disponible»). Nunca «Empieza en»: contar hasta el inicio invita a esperar. Es honesto porque el precio de la antesala es el mismo del evento.
+  - Quedan más de 48 h: «Termina en 3 días», sin segundos.
+  - Últimas 48 h: reloj en segundos y color de urgencia (`--df-urgent`).
+  - Día del término (hora del comprador): «Último día · termina hoy a las 23:59» y el reloj.
+  - Metafields publicados antes traen `countdown_before`: el tema arma «Precio {nombre} ya disponible».
   - `df-subtitle`: la bajada del evento. La de siempre queda en `.df-ev-off`.
 - **Por qué no son bloques nuevos:** los templates son del comerciante (`isProtected`), así que un bloque nuevo en `product.json` no llegaría a las tiendas instaladas. Todo entra con «Actualizar tema».
 - **Nada inventado:**

@@ -32,6 +32,7 @@ export const INTENSITY_LABEL: Record<Intensity, { name: string; detail: string }
 export const ANNOUNCEMENT_MAX = 90;
 export const BADGE_MAX = 16;
 export const COUNTDOWN_LABEL_MAX = 24;
+export const EARLY_LABEL_MAX = 48;
 
 const hex = z.string().refine((s) => normalizeHex(s) === s.toLowerCase() && s.length === 7, { message: "color en #rrggbb" });
 
@@ -45,8 +46,13 @@ export const eventThemeSchema = z.object({
   /** Etiqueta junto al precio: «BLACK» → «BLACK −40 %» si la variante tiene tachado real. */
   badge_label: z.string().min(1).max(BADGE_MAX),
   announcement: z.string().min(1).max(ANNOUNCEMENT_MAX),
-  /** Antes del evento: «Empieza en»; durante: «Termina en». */
-  countdown_before: z.string().min(1).max(COUNTDOWN_LABEL_MAX),
+  /**
+   * Antes del evento (antesala), sin reloj: el precio del evento ya está disponible. Nunca «Empieza
+   * en»: una cuenta hasta el inicio le dice al comprador que espere. Honesto solo porque el precio de
+   * la antesala es el mismo del evento (la etiqueta sale del tachado real, igual en ambas fases).
+   */
+  early_label: z.string().min(1).max(EARLY_LABEL_MAX),
+  /** Durante: «Termina en» (días; reloj en las últimas 48 h; «Último día» el día del término). */
   countdown_during: z.string().min(1).max(COUNTDOWN_LABEL_MAX),
   /** Para la IA: el concepto del evento (tono, qué siente el comprador). Nunca se muestra. */
   copy_concept: z.string().min(1).max(300),
@@ -75,7 +81,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "bolt",
     badge_label: "CYBER",
     announcement: "Cyber: precios especiales por pocos días",
-    countdown_before: "Empieza en",
+    early_label: "Precio Cyber adelantado · ya disponible",
     countdown_during: "Termina en",
     copy_concept: "Evento de compras online de pocos días: el comprador ya planeó comprar y compara precios. Tono directo y rápido: el precio de este evento y que termina pronto.",
   },
@@ -86,7 +92,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "tag",
     badge_label: "BLACK",
     announcement: "Black Friday: el mejor precio del año hasta el lunes",
-    countdown_before: "Empieza en",
+    early_label: "Precio Black Friday adelantado · ya disponible",
     countdown_during: "Termina en",
     copy_concept: "El evento de descuentos más grande del año. El comprador espera el precio más bajo y decide rápido. Tono seguro y urgente, sin exagerar: precio de Black Friday y fecha de término real.",
   },
@@ -97,7 +103,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "pumpkin",
     badge_label: "HALLOWEEN",
     announcement: "Especial Halloween: date un gusto esta semana",
-    countdown_before: "Empieza en",
+    early_label: "Precio Halloween adelantado · ya disponible",
     countdown_during: "Termina en",
     copy_concept: "Fecha de tono lúdico, más decoración que descuento. Un guiño de Halloween (noche, dulce o truco) sin asustar y sin cambiar la promesa del producto.",
   },
@@ -108,7 +114,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "heart",
     badge_label: "11.11",
     announcement: "11.11: un día para darte un gusto",
-    countdown_before: "Empieza en",
+    early_label: "Precio 11.11 adelantado · ya disponible",
     countdown_during: "Termina en",
     copy_concept: "Día de compras de un solo día (11 de noviembre), nacido para regalarse a uno mismo. Tono cercano: un gusto propio que se merece, solo hoy.",
   },
@@ -119,7 +125,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "snowflake",
     badge_label: "NAVIDAD",
     announcement: "Navidad: pide con tiempo y llega antes del 24",
-    countdown_before: "Empieza en",
+    early_label: "Precio de Navidad ya disponible",
     countdown_during: "Quedan",
     copy_concept: "Temporada de regalos. El comprador busca un regalo que se use de verdad y que llegue a tiempo. Tono cálido: para quién es el regalo y por qué lo va a usar. Nunca prometas una fecha de entrega: la pone la tienda.",
   },
@@ -130,7 +136,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "sparkles",
     badge_label: "AÑO NUEVO",
     announcement: "Año nuevo: empieza el año con lo que necesitas",
-    countdown_before: "Empieza en",
+    early_label: "Precio de Año Nuevo ya disponible",
     countdown_during: "Termina en",
     copy_concept: "Cierre de año y propósitos nuevos. Tono optimista: el producto como parte de empezar el año mejor, sin promesas de resultados.",
   },
@@ -141,7 +147,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "sun",
     badge_label: "VERANO",
     announcement: "Liquidación de verano: precios especiales",
-    countdown_before: "Empieza en",
+    early_label: "Precio de liquidación ya disponible",
     countdown_during: "Termina en",
     copy_concept: "Liquidación de temporada en pleno verano (enero y febrero en el hemisferio sur). Tono relajado: vacaciones, calor, aprovechar el precio.",
   },
@@ -152,7 +158,7 @@ export const EVENT_THEMES: Record<EventKind, EventTheme> = {
     decor: "pencil",
     badge_label: "CLASES",
     announcement: "Vuelta a clases: prepárate para marzo",
-    countdown_before: "Empieza en",
+    early_label: "Precio vuelta a clases ya disponible",
     countdown_during: "Termina en",
     copy_concept: "Regreso a clases y a la rutina de marzo. Tono práctico y ordenado: el producto ayuda a volver a la rutina.",
   },

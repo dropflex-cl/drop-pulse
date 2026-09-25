@@ -155,7 +155,8 @@ export interface EventMetafieldEntry {
   /** Capa de color: el botón y la etiqueta toman el acento del evento. */
   accent?: string;
   on_accent?: string;
-  countdown_before?: string;
+  /** Antesala: texto sin reloj («Precio Cyber adelantado · ya disponible»). */
+  early_label?: string;
   countdown_during?: string;
   decor?: DecorKey;
   /** Bajada del evento (reemplaza a dropflex.subtitle mientras dura). */
@@ -185,7 +186,7 @@ export function metafieldEntry(r: ResolvedEvent, copy: ApprovedEventCopy | null)
     on_surface: t.on_surface,
     badge_label: useCopy?.badge_label || t.badge_label,
     ...(layers.tokens ? { accent: t.accent, on_accent: accentCheck(t.accent).onAccent } : {}),
-    ...(layers.countdown ? { countdown_before: t.countdown_before, countdown_during: t.countdown_during } : {}),
+    ...(layers.countdown ? { early_label: t.early_label, countdown_during: t.countdown_during } : {}),
     ...(layers.decor ? { decor: t.decor } : {}),
     ...(useCopy?.subtitle ? { subtitle: useCopy.subtitle } : {}),
   };

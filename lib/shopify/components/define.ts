@@ -79,7 +79,7 @@ export const SHARED_METAFIELDS = {
    * Producto · json. Eventos (Cyber, Black Friday, Navidad…) que le tocan al producto, con su
    * ventana en segundos Unix y las capas que enciende su intensidad (lib/events/resolve.ts ›
    * EventMetafield): { events: Array<{ slug, kind, name, from, start, to, intensity, announcement,
-   * surface, on_surface, badge_label, accent?, on_accent?, countdown_before?, countdown_during?,
+   * surface, on_surface, badge_label, accent?, on_accent?, early_label?, countdown_during?,
    * decor?, subtitle? }> }, ordenados por prioridad. La tienda muestra el primero que está dentro de
    * su ventana (_event/snippets/df-event-*.liquid). Nunca lleva descuentos: el % sale del precio real.
    */
