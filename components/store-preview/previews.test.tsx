@@ -50,11 +50,8 @@ describe("vistas previas de los componentes", () => {
               <Preview content={example} facts={MANY_REVIEWS} images={IMAGES} />
             </StoreFrame>,
           );
-          // inventory: con stock muestra la línea fija de producto viral, no los textos de la IA.
-          if (c.id === "inventory") {
-            expect(html).toMatch(/Producto viral · \d{3} vendidos esta semana/);
-            continue;
-          }
+          // inventory: nunca muestra ventas inventadas (spec-angulos-testeo §2).
+          expect(html).not.toMatch(/vendidos esta semana|Producto viral/);
           const texts = visibleTexts(example).map((t) => fill(t, MANY_REVIEWS).replaceAll("**", ""));
           // Al menos la mitad de los textos del ejemplo se ven (algunos dependen del estado: agotado, sin cuenta regresiva…).
           const shown = texts.filter((t) => html.includes(escape(t)));

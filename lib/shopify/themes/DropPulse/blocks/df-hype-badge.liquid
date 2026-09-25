@@ -1,6 +1,6 @@
 {%- doc -%}
   DropFlex · Badge de novedad (hype-badge). Una etiqueta chica al lado de las estrellas de reseñas
-  (en la ficha van juntas en un group en fila): «PRODUCTO VIRAL» y, solo cuando es verdad,
+  (en la ficha van juntas en un group en fila): el texto que escribe el comerciante (vacío por defecto: sin texto no se muestra) y, solo cuando es verdad,
   «STOCK BAJO». Por defecto con el fondo del acento del producto y su texto encima.
 
   REGLA: la escasez sale del inventario REAL (Ley 19.496: nada de escasez inventada). «Stock bajo»
@@ -98,7 +98,7 @@
       "type": "text",
       "id": "text",
       "label": "Texto",
-      "default": "Producto viral"
+      "info": "Vacío = la etiqueta no se muestra. Escribe solo algo que sea verdad (por ejemplo, «Nuevo»)."
     },
     {
       "type": "checkbox",

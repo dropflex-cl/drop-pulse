@@ -68,7 +68,7 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 
 | Bloque | Dónde | Datos |
 |---|---|---|
-| `df-hype-badge` | Arriba de todo | Etiqueta con el acento del producto («Producto viral»), texto del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
+| `df-hype-badge` | Arriba de todo | Etiqueta con el acento del producto, texto del editor (vacío por defecto: sin texto no se muestra; nada de «Producto viral» si no es verdad). «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
 | `df-social-proof` | Bajo el badge de novedad | Fotos y nombres (enmascarados) de reseñas aprobadas con 4 o 5 estrellas, más la cantidad real de `dropflex.review_summary` |
 | `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |

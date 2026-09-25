@@ -139,7 +139,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
   },
   "inventory": {
     "available_text": "En stock, recíbelo en {min} a {max} días hábiles",
-    "viral_text": "🔥 Producto viral · {sold} vendidos esta semana",
     "limited_text": "Solo quedan {qty} unidades",
     "sold_out_text": "Agotado, vuelve pronto",
     "low_stock_threshold": 5,
