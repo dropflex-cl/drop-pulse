@@ -127,11 +127,14 @@ export const PAGE_QA_SYSTEM = [
   "- Sé estricto y breve, en español: una frase por problema, para el comerciante.",
 ].join("\n");
 
-export function pageQaUser(brief: ProductBrief, texts: ShotText[]): string {
+/** Lo fijo de un producto (va antes de la imagen generada, en la caché: se repite en cada QA). */
+export function pageQaFacts(brief: ProductBrief): string {
+  return ["FICHA", JSON.stringify(brief)].join("\n");
+}
+
+/** Lo propio de cada imagen: los textos que se pidieron. */
+export function pageQaTexts(texts: ShotText[]): string {
   return [
-    "FICHA",
-    JSON.stringify(brief),
-    "",
     "TEXTOS PEDIDOS (en orden)",
     ...(texts.length ? texts.map((t, i) => `${i + 1}. [${t.role}] «${t.text.split("\n").join(" / ")}»`) : ["(ninguno: la imagen va sin texto)"]),
     ...(texts.some((t) => t.text.includes("\n")) ? ["(« / » separa las 2 líneas de un mismo texto: cuenta como exact si están las dos, cada una en su línea)"] : []),

@@ -30,7 +30,7 @@ import {
   benefitSlot,
   slotKind,
 } from "@/lib/page-images/catalog";
-import { PAGE_QA_SYSTEM, pageImagesSystem, pageImagesUser, pageQaUser, type PageImagesContext } from "@/lib/page-images/prompts";
+import { PAGE_QA_SYSTEM, pageImagesSystem, pageImagesUser, pageQaFacts, pageQaTexts, type PageImagesContext } from "@/lib/page-images/prompts";
 import { pageRenderRequest } from "@/lib/page-images/render";
 import { PAGE_IMAGES_PROMPT_VERSION, pagePlanSchema, pageQaSchema, pageQaVerdict, planProblems, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
 import {
@@ -490,12 +490,15 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
   try {
     result = await generateStructured({
       system: PAGE_QA_SYSTEM,
+      // Primero lo que se repite en cada QA del producto (foto real y ficha), con el punto de caché:
+      // desde la segunda imagen se cobra a 0,1×. Lo propio de esta imagen va después.
       content: [
         { type: "text", text: "Foto real del producto:" },
         await imageBlock(base),
+        { type: "text", text: pageQaFacts(brief), cache_control: { type: "ephemeral" } },
         { type: "text", text: "Imagen generada:" },
         await imageBlockFromBytes(generated),
-        { type: "text", text: pageQaUser(brief, a.baked_texts) },
+        { type: "text", text: pageQaTexts(a.baked_texts) },
       ],
       schema: pageQaSchema,
       effort: "low",

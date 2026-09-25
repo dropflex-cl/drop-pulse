@@ -470,9 +470,11 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
   try {
     result = await generateStructured({
       system: QA_SYSTEM,
+      // La foto real se repite en cada QA del producto: con el punto de caché, desde la segunda pieza
+      // se cobra a 0,1×. Lo propio de esta pieza va después.
       content: [
         { type: "text", text: "Foto real del producto:" },
-        await imageBlock(base),
+        { ...(await imageBlock(base)), cache_control: { type: "ephemeral" } },
         { type: "text", text: "Anuncio generado:" },
         await imageBlockFromBytes(generated),
         { type: "text", text: qaUser(texts) },
