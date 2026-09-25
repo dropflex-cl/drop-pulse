@@ -55,8 +55,22 @@ export interface StoreFacts {
   rating: number | null;
   count: number;
   policies: StorePolicies;
-  /** Días hábiles de entrega; null si la tienda todavía no los tiene. */
-  logistics: { min: number; max: number } | null;
+  /**
+   * Días de entrega (preparación + tránsito; `max` es el de regiones si hay plazo de regiones); null
+   * si la tienda todavía no los tiene. El resto es lo que la línea de tiempo necesita para las fechas.
+   */
+  logistics: {
+    min: number;
+    max: number;
+    handling?: number;
+    cutoff?: number | null;
+    saturdayDispatch?: boolean;
+    saturdayDelivery?: boolean;
+    businessDaysOnly?: boolean;
+    /** Ciudad del tránsito y días extra a regiones (Ajustes › Envíos). */
+    city?: string | null;
+    extra?: number;
+  } | null;
   /** Los GIF elegidos en Imágenes (URLs firmadas), en su orden: el GIF N lleva el texto N de gif-strip. */
   gifs?: string[];
 }

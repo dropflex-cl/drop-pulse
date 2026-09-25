@@ -30,9 +30,26 @@
   endif
   assign biz = logistics.business_days_only | default: s.business_days_only, allow_false: true
   assign sat = logistics.saturday_delivery | default: s.saturday_delivery, allow_false: true
+  assign ship_sat = logistics.saturday_dispatch | default: false, allow_false: true
+
+  # Plazo de regiones: el tránsito de arriba es el máximo de regiones (así «llega en {min} a {max}
+  # días» es verdad en todo el país); la ciudad principal tiene el suyo y regiones suma `extra`.
+  assign extra = logistics.regions_extra_days | plus: 0
+  assign city = logistics.main_city | strip
+  if extra > 0 and city != blank
+    assign tmax = logistics.main_city_transit_max | plus: 0
+    if tmax < tmin
+      assign tmax = tmin
+    endif
+  else
+    assign extra = 0
+  endif
   assign tz = logistics.timezone | default: s.timezone | default: 'America/Santiago'
   assign days_min = handling | plus: tmin
   assign days_max = handling | plus: tmax
+  assign regions_min = days_min | plus: extra
+  assign regions_max = days_max | plus: extra
+  assign t_regions = s.regions_label | default: 'Regiones'
 
   if logistics.holidays
     assign holidays_json = logistics.holidays | json
@@ -135,8 +152,14 @@
         </span>
         <span class="df-shipping-timeline__label">{{ t_delivered | escape }}</span>
         <span class="df-shipping-timeline__sub" data-df-delivery>
+          {%- if extra > 0 %}{{ city | escape }}: {% endif -%}
           {%- if days_min == days_max -%}{{ days_min }}{%- else -%}{{ days_min }} a {{ days_max }}{%- endif %} {{ days_word -}}
         </span>
+        {%- if extra > 0 -%}
+          <span class="df-shipping-timeline__sub" data-df-delivery-regions>
+            {{- t_regions | escape }}: {{ regions_min }} a {{ regions_max }} {{ days_word -}}
+          </span>
+        {%- endif -%}
         {%- if t_suffix != blank -%}
           <span class="df-shipping-timeline__sub df-shipping-timeline__suffix">{{ t_suffix | escape }}</span>
         {%- endif -%}
@@ -145,6 +168,7 @@
 
     <p class="df-visually-hidden" data-df-summary>
       Entrega estimada en {{ days_min }} a {{ days_max }} {{ days_word }}
+      {%- if extra > 0 %} en {{ city | escape }}; {{ t_regions | downcase | escape }}, {{ regions_min }} a {{ regions_max }} {{ days_word }}{% endif %}
     </p>
 
     <script type="application/json" data-df-config>
@@ -155,6 +179,9 @@
         "tmax": {{ tmax | json }},
         "biz": {{ biz | json }},
         "sat": {{ sat | json }},
+        "shipSat": {{ ship_sat | json }},
+        "extra": {{ extra | json }},
+        "city": {{ city | json }},
         "holidays": {{ holidays_json }},
         "tz": {{ tz | json }},
         "locale": {{ locale | json }},
@@ -166,7 +193,8 @@
         "countdown": {{ t_countdown | json }},
         "closed": {{ t_closed | json }},
         "summary_range": "Entrega estimada entre el {from} y el {to}",
-        "summary_single": "Entrega estimada el {from}"
+        "summary_single": "Entrega estimada el {from}",
+        "regions": {{ t_regions | json }}
       }
     </script>
   </df-shipping-timeline>
@@ -367,6 +395,13 @@
       "id": "delivered_suffix",
       "label": "Hito 3 · nota",
       "info": "Opcional, bajo las fechas. Ej.: pagas al recibir."
+    },
+    {
+      "type": "text",
+      "id": "regions_label",
+      "label": "Nombre del resto del país",
+      "info": "Se muestra junto a la fecha de regiones cuando Ajustes › Envíos tiene días extra a regiones.",
+      "default": "Regiones"
     },
     {
       "type": "header",

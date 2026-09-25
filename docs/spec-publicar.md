@@ -102,7 +102,8 @@ Se guardan en `merchant_settings` (migración `20261009000000_store_policies.sql
   - WhatsApp;
   - días de preparación y de tránsito (mínimo y máximo);
   - hora de corte;
-  - si cuenta solo días hábiles y si entrega los sábados.
+  - si cuenta solo días hábiles, si despacha los sábados y si entrega los sábados;
+  - la ciudad donde rige el tránsito y los días extra a regiones (ej.: Santiago, +2). La línea de tiempo muestra las dos fechas; los demás componentes usan el plazo más largo.
 - **Módulo puro:** `lib/settings/policies.ts`, con tests. Valida y arma los metafields.
 - **Campo vacío = «no lo ofrezco»:** lo que lo menciona no aparece en la tienda.
 - La vista previa de la Página del producto usa estos mismos datos (`storeFacts`).

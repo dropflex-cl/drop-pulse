@@ -46,7 +46,11 @@ export const SHARED_METAFIELDS = {
   /**
    * Tienda · json. Logística real:
    * { handling_days, transit_days_min, transit_days_max, cutoff_hour (0-23), timezone (IANA),
-   *   business_days_only: boolean, saturday_delivery: boolean, holidays: string[] ("YYYY-MM-DD") }
+   *   business_days_only: boolean, saturday_delivery: boolean, saturday_dispatch: boolean,
+   *   holidays: string[] ("YYYY-MM-DD"),
+   *   main_city?: string, main_city_transit_max?: number, regions_extra_days?: number }
+   * Con plazo de regiones, transit_days_max es el de regiones (todo «llega en {min} a {max} días»
+   * es verdad en el país) y la línea de tiempo separa main_city (su máximo) del resto (+extra).
    */
   logistics: { owner: "shop", namespace: "dropflex", key: "logistics", type: "json" },
   /**

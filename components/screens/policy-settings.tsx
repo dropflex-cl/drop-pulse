@@ -9,7 +9,7 @@ import { cleanWhatsapp, deliveryDays, policyProblems, type PolicyField, type Sto
 // cambios, garantía, WhatsApp, envío gratis). Un campo vacío es «no lo ofrezco»: lo que lo menciona
 // no aparece en la tienda. Se publican con cada producto.
 
-type Draft = Record<Exclude<PolicyField, "freeShipping" | "businessDaysOnly" | "saturdayDelivery">, string>;
+type Draft = Record<Exclude<PolicyField, "freeShipping" | "businessDaysOnly" | "saturdayDelivery" | "saturdayDispatch">, string>;
 
 const text = (v: number | string | null) => (v == null ? "" : String(v));
 const int = (v: string) => (v.trim() === "" ? null : Number(v.trim()));
@@ -24,12 +24,31 @@ function toDraft(p: StorePolicies, currency: string): Draft {
     transitDaysMin: text(p.transitDaysMin),
     transitDaysMax: text(p.transitDaysMax),
     cutoffHour: text(p.cutoffHour),
+    mainCity: text(p.mainCity),
+    regionsExtraDays: text(p.regionsExtraDays),
   };
+}
+
+/** Lo que promete la tienda con estos plazos, en una frase. */
+function deliveryPreview(p: StorePolicies): string {
+  const days = deliveryDays(p);
+  if (!days) return "Sin plazos, la tienda no promete fechas de entrega.";
+  const unit = p.businessDaysOnly ? " días hábiles" : " días";
+  const span = (a: number, b: number) => (a === b ? `${a}${unit}` : `${a} a ${b}${unit}`);
+  const extra = p.regionsExtraDays && p.mainCity ? p.regionsExtraDays : 0;
+  if (!extra) return `La tienda dirá: llega en ${span(days.min, days.max)}.`;
+  const cityMax = days.max - extra;
+  return `La tienda dirá: ${p.mainCity}, llega en ${span(days.min, cityMax)}; regiones, en ${span(days.min + extra, days.max)}.`;
 }
 
 export function PolicySettings({ initial, currency }: { initial: StorePolicies; currency: string }) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(initial, currency));
-  const [flags, setFlags] = useState({ freeShipping: initial.freeShipping, businessDaysOnly: initial.businessDaysOnly, saturdayDelivery: initial.saturdayDelivery });
+  const [flags, setFlags] = useState({
+    freeShipping: initial.freeShipping,
+    businessDaysOnly: initial.businessDaysOnly,
+    saturdayDelivery: initial.saturdayDelivery,
+    saturdayDispatch: initial.saturdayDispatch,
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -44,11 +63,12 @@ export function PolicySettings({ initial, currency }: { initial: StorePolicies; 
       transitDaysMin: int(draft.transitDaysMin),
       transitDaysMax: int(draft.transitDaysMax),
       cutoffHour: int(draft.cutoffHour),
+      mainCity: draft.mainCity.trim() || null,
+      regionsExtraDays: int(draft.regionsExtraDays),
     }),
     [draft, flags, currency],
   );
   const problems = policyProblems(value);
-  const days = deliveryDays(value);
   const set = (field: keyof Draft) => (v: string) => setDraft((d) => ({ ...d, [field]: v }));
 
   async function save() {
@@ -76,10 +96,15 @@ export function PolicySettings({ initial, currency }: { initial: StorePolicies; 
           <Field label="Tránsito máximo" suffix="días" inputMode="numeric" value={draft.transitDaysMax} onValueChange={set("transitDaysMax")} error={problems.transitDaysMax} />
           <Field label="Hora de corte" suffix="h" inputMode="numeric" value={draft.cutoffHour} onValueChange={set("cutoffHour")} error={problems.cutoffHour} hint="Despacha hoy si piden antes." />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Ciudad del tránsito (opcional)" value={draft.mainCity} onValueChange={set("mainCity")} error={problems.mainCity} hint="Donde rige el tránsito, ej.: Santiago." />
+          <Field label="Días extra a regiones" suffix="días" inputMode="numeric" value={draft.regionsExtraDays} onValueChange={set("regionsExtraDays")} error={problems.regionsExtraDays} hint="Vacío: el mismo plazo en todo el país." />
+        </div>
         <p className="text-caption text-muted-foreground">
-          {days ? `La tienda dirá: llega en ${days.min} a ${days.max} días${flags.businessDaysOnly ? " hábiles" : ""}.` : "Sin plazos, la tienda no promete fechas de entrega."}
+          {deliveryPreview(value)}
         </p>
         <Switch label="Solo días hábiles" hint="Sin contar fines de semana." checked={flags.businessDaysOnly} onChange={(v) => setFlags((f) => ({ ...f, businessDaysOnly: v }))} />
+        <Switch label="Despacha los sábados" hint="El sábado cuenta para preparar y despachar." checked={flags.saturdayDispatch} onChange={(v) => setFlags((f) => ({ ...f, saturdayDispatch: v }))} />
         <Switch label="Entrega los sábados" checked={flags.saturdayDelivery} onChange={(v) => setFlags((f) => ({ ...f, saturdayDelivery: v }))} />
       </fieldset>
 

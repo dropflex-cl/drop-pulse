@@ -30,6 +30,7 @@ describe("envíos y políticas", () => {
       timezone: "America/Santiago",
       business_days_only: true,
       saturday_delivery: false,
+      saturday_dispatch: false,
       holidays: [],
     });
     expect(deliveryDays(full)).toEqual({ min: 3, max: 5 });
@@ -38,6 +39,27 @@ describe("envíos y políticas", () => {
   it("sin envío gratis no publica el monto", () => {
     expect(policiesMetafield({ ...full, freeShipping: false })).not.toHaveProperty("free_shipping_threshold");
     expect(toRow({ ...full, freeShipping: false }).free_shipping_threshold).toBeNull();
+  });
+
+  it("con plazo de regiones: el máximo general cubre regiones y la ciudad lleva el suyo", () => {
+    const stgo = { ...full, handlingDays: 0, transitDaysMin: 0, transitDaysMax: 1, cutoffHour: 9, saturdayDispatch: true, saturdayDelivery: true, mainCity: "Santiago", regionsExtraDays: 2 };
+    expect(logisticsMetafield(stgo, "America/Santiago")).toMatchObject({
+      handling_days: 0,
+      transit_days_min: 0,
+      transit_days_max: 3,
+      cutoff_hour: 9,
+      saturday_dispatch: true,
+      saturday_delivery: true,
+      main_city: "Santiago",
+      main_city_transit_max: 1,
+      regions_extra_days: 2,
+    });
+    expect(deliveryDays(stgo)).toEqual({ min: 0, max: 3 });
+    // Sin ciudad no se publica el plazo de regiones (y no se puede guardar).
+    expect(logisticsMetafield({ ...stgo, mainCity: null }, null)).not.toHaveProperty("regions_extra_days");
+    expect(policyProblems({ ...stgo, mainCity: null }).mainCity).toBeTruthy();
+    expect(policyProblems({ ...stgo, regionsExtraDays: 0 }).regionsExtraDays).toBeTruthy();
+    expect(fromRow(toRow(stgo))).toEqual(stgo);
   });
 
   it("marca lo que no se puede guardar", () => {

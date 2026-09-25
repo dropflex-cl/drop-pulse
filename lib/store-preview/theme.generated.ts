@@ -198,6 +198,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "ordered_sub": "Hoy",
     "shipped_label": "Despachado",
     "delivered_label": "Entregado",
+    "regions_label": "Regiones",
     "cutoff_hour": 14,
     "handling_days": 1,
     "transit_days_min": 2,

@@ -22,6 +22,15 @@ export interface StorePolicies {
   cutoffHour: number | null;
   businessDaysOnly: boolean;
   saturdayDelivery: boolean;
+  /** Despacha los sábados (con «solo días hábiles», el sábado cuenta para preparar y despachar). */
+  saturdayDispatch: boolean;
+  /**
+   * Ciudad donde rige el tránsito de arriba («Santiago»). Con `regionsExtraDays`, la tienda muestra
+   * dos fechas: esta ciudad y el resto del país.
+   */
+  mainCity: string | null;
+  /** Días de entrega que suma el resto del país sobre `mainCity`; null = el mismo plazo en todo el país. */
+  regionsExtraDays: number | null;
 }
 
 export const EMPTY_POLICIES: StorePolicies = {
@@ -36,6 +45,9 @@ export const EMPTY_POLICIES: StorePolicies = {
   cutoffHour: null,
   businessDaysOnly: true,
   saturdayDelivery: false,
+  saturdayDispatch: false,
+  mainCity: null,
+  regionsExtraDays: null,
 };
 
 export type PolicyField = keyof StorePolicies;
@@ -47,6 +59,7 @@ const LIMITS: Partial<Record<PolicyField, [min: number, max: number]>> = {
   transitDaysMin: [0, 60],
   transitDaysMax: [0, 60],
   cutoffHour: [0, 23],
+  regionsExtraDays: [1, 30],
 };
 
 /** Qué está mal, por campo, en frases simples. Vacío = se puede guardar. */
@@ -64,6 +77,8 @@ export function policyProblems(p: StorePolicies): Partial<Record<PolicyField, st
   if (p.transitDaysMin != null && p.transitDaysMax != null && p.transitDaysMin > p.transitDaysMax && !out.transitDaysMin) {
     out.transitDaysMax = "El máximo no puede ser menor que el mínimo.";
   }
+  if (p.regionsExtraDays != null && !p.mainCity && !out.regionsExtraDays) out.mainCity = "Escribe la ciudad donde rige ese plazo, por ejemplo Santiago.";
+  if (p.mainCity != null && p.mainCity.length > 40) out.mainCity = "Usa hasta 40 caracteres.";
   const transit = [p.transitDaysMin, p.transitDaysMax].filter((v) => v != null).length;
   if (transit === 1) out[p.transitDaysMin == null ? "transitDaysMin" : "transitDaysMax"] = "Completa el mínimo y el máximo, o deja los dos vacíos.";
   return out;
@@ -92,17 +107,24 @@ export function policiesMetafield(p: StorePolicies, locale?: string | null) {
 /**
  * shop.metafields.dropflex.logistics (json), o null si faltan los plazos: sin ellos los
  * componentes ocultan lo que dice «llega en {min} a {max} días» (nunca un plazo inventado).
+ *
+ * Con plazo de regiones: `transit_days_min` es el de la ciudad principal y `transit_days_max` el de
+ * regiones, así todo componente que dice «llega en {min} a {max} días» es verdad en todo el país.
+ * La línea de tiempo los separa con `main_city`, `main_city_transit_max` y `regions_extra_days`.
  */
 export function logisticsMetafield(p: StorePolicies, timezone: string | null) {
   if (p.transitDaysMin == null || p.transitDaysMax == null) return null;
+  const extra = p.regionsExtraDays && p.mainCity ? p.regionsExtraDays : 0;
   return {
     handling_days: p.handlingDays ?? 0,
     transit_days_min: p.transitDaysMin,
-    transit_days_max: p.transitDaysMax,
+    transit_days_max: p.transitDaysMax + extra,
     ...(p.cutoffHour != null ? { cutoff_hour: p.cutoffHour } : {}),
     ...(timezone ? { timezone } : {}),
     business_days_only: p.businessDaysOnly,
     saturday_delivery: p.saturdayDelivery,
+    saturday_dispatch: p.saturdayDispatch,
+    ...(extra ? { main_city: p.mainCity, main_city_transit_max: p.transitDaysMax, regions_extra_days: extra } : {}),
     holidays: [] as string[],
   };
 }
@@ -111,7 +133,8 @@ export function logisticsMetafield(p: StorePolicies, timezone: string | null) {
 export function deliveryDays(p: StorePolicies): { min: number; max: number } | null {
   if (p.transitDaysMin == null || p.transitDaysMax == null) return null;
   const h = p.handlingDays ?? 0;
-  return { min: h + p.transitDaysMin, max: h + Math.max(p.transitDaysMin, p.transitDaysMax) };
+  const extra = p.regionsExtraDays && p.mainCity ? p.regionsExtraDays : 0;
+  return { min: h + p.transitDaysMin, max: h + Math.max(p.transitDaysMin, p.transitDaysMax) + extra };
 }
 
 /** Fila de merchant_settings → StorePolicies. */
@@ -130,6 +153,9 @@ export function fromRow(r: Record<string, unknown> | null): StorePolicies {
     cutoffHour: n(r.cutoff_hour),
     businessDaysOnly: r.business_days_only !== false,
     saturdayDelivery: r.saturday_delivery === true,
+    saturdayDispatch: r.saturday_dispatch === true,
+    mainCity: (r.main_city as string | null) || null,
+    regionsExtraDays: n(r.regions_extra_days),
   };
 }
 
@@ -147,6 +173,9 @@ export function toRow(p: StorePolicies) {
     cutoff_hour: p.cutoffHour,
     business_days_only: p.businessDaysOnly,
     saturday_delivery: p.saturdayDelivery,
+    saturday_dispatch: p.saturdayDispatch,
+    main_city: p.mainCity,
+    regions_extra_days: p.regionsExtraDays,
   };
 }
 
@@ -155,4 +184,4 @@ export const marketLocale = (language: string | null | undefined, country: strin
   language ? (country ? `${language.trim()}-${country.trim().toUpperCase()}` : language.trim()) : null;
 
 export const POLICY_COLUMNS =
-  "language, country_code, free_shipping, free_shipping_threshold, return_days, warranty_months, whatsapp, handling_days, transit_days_min, transit_days_max, cutoff_hour, business_days_only, saturday_delivery, timezone, currency";
+  "language, country_code, free_shipping, free_shipping_threshold, return_days, warranty_months, whatsapp, handling_days, transit_days_min, transit_days_max, cutoff_hour, business_days_only, saturday_delivery, saturday_dispatch, main_city, regions_extra_days, timezone, currency";

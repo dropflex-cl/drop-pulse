@@ -23,6 +23,9 @@ export async function PUT(req: Request) {
       cutoffHour: num(body.cutoffHour),
       businessDaysOnly: body.businessDaysOnly !== false,
       saturdayDelivery: body.saturdayDelivery === true,
+      saturdayDispatch: body.saturdayDispatch === true,
+      mainCity: typeof body.mainCity === "string" && body.mainCity.trim() ? body.mainCity.trim() : null,
+      regionsExtraDays: num(body.regionsExtraDays),
     };
     return NextResponse.json({ policies: await saveStorePolicies(user.id, policies) });
   } catch (e) {

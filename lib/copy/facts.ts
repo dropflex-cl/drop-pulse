@@ -7,7 +7,7 @@ import { baseImage, getProductRow, listImageRows, withDisplayUrls } from "@/lib/
 import { reviewDate } from "@/lib/reviews/copy";
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { signPhotos } from "@/lib/reviews/store";
-import { deliveryDays } from "@/lib/settings/policies";
+import { deliveryDays, type StorePolicies } from "@/lib/settings/policies";
 import { getStorePolicies } from "@/lib/settings/policies-store";
 import { averageRating, packCompareAt, type StoreFacts } from "@/lib/store-preview/facts";
 
@@ -76,7 +76,24 @@ export async function storeFacts(userId: string, productId: string): Promise<Sto
       warranty_months: p?.warrantyMonths ?? undefined,
       whatsapp: p?.whatsapp ?? undefined,
     },
-    logistics: p ? deliveryDays(p) : null,
+    logistics: logisticsFacts(p),
     gifs: gifPaths.map((path) => gifUrls.get(path)).filter((u): u is string => Boolean(u)),
+  };
+}
+
+/** Los plazos que ve la vista previa, los mismos que publica logisticsMetafield. */
+function logisticsFacts(p: StorePolicies | null | undefined): StoreFacts["logistics"] {
+  const days = p ? deliveryDays(p) : null;
+  if (!p || !days) return null;
+  const extra = p.regionsExtraDays && p.mainCity ? p.regionsExtraDays : 0;
+  return {
+    ...days,
+    handling: p.handlingDays ?? 0,
+    cutoff: p.cutoffHour,
+    saturdayDispatch: p.saturdayDispatch,
+    saturdayDelivery: p.saturdayDelivery,
+    businessDaysOnly: p.businessDaysOnly,
+    city: extra ? p.mainCity : null,
+    extra,
   };
 }

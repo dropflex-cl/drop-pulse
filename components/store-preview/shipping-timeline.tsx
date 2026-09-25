@@ -66,23 +66,30 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
   if (!tCountdown.includes("{time}")) tCountdown = "";
   if (!tOrdered || !tShipped || !tDelivered) return null;
 
-  // Plazos: facts.logistics trae el total (preparación + tránsito); la preparación es la del bloque.
-  const handling = Math.max(0, Number(s.handling_days) || 0);
-  const tmin = facts.logistics ? Math.max(0, facts.logistics.min - handling) : Math.max(0, Number(s.transit_days_min) || 0);
-  const tmax = Math.max(tmin, facts.logistics ? facts.logistics.max - handling : Number(s.transit_days_max) || 0);
-  const biz = s.business_days_only !== false;
-  const sat = s.saturday_delivery === true;
+  // Plazos: los de Ajustes › Envíos (facts.logistics); sin ellos, los del bloque. `max` es el de
+  // regiones cuando hay plazo de regiones: la ciudad principal termina `extra` días antes.
+  const L = facts.logistics;
+  const handling = Math.max(0, L?.handling ?? (Number(s.handling_days) || 0));
+  const extra = L?.city ? Math.max(0, L.extra ?? 0) : 0;
+  const tmin = L ? Math.max(0, L.min - handling) : Math.max(0, Number(s.transit_days_min) || 0);
+  const tmax = Math.max(tmin, L ? L.max - extra - handling : Number(s.transit_days_max) || 0);
+  const biz = L?.businessDaysOnly ?? s.business_days_only !== false;
+  const sat = L?.saturdayDelivery ?? s.saturday_delivery === true;
+  const shipSat = L?.saturdayDispatch === true;
 
   // Calendario del JS (sin feriados: la vista previa no los conoce).
   const weekday = (d: number) => new Date(d * DAY).getUTCDay();
-  const work = (d: number) => !biz || (weekday(d) !== 0 && weekday(d) !== 6);
+  const work = (d: number) => !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || shipSat));
   const deliver = (d: number) => !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || sat));
 
-  // «Hoy» simulado: el próximo día hábil, antes del corte (así hay cuenta regresiva).
+  // «Hoy» simulado: el próximo día de despacho, antes del corte (así hay cuenta regresiva).
   const today = nextMatching(todayIn(String(s.timezone || "America/Santiago")), work);
   const ship = addDays(today, handling, work);
   const from = addDays(ship, tmin, deliver);
   const to = addDays(ship, tmax, deliver);
+  const regionsFrom = addDays(from, extra, deliver);
+  const regionsTo = addDays(to, extra, deliver);
+  const regionsLabel = String(s.regions_label || "Regiones");
 
   const dtf = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(LOCALE, { ...opts, timeZone: "UTC" });
   const fmtShort = dtf({ day: "numeric", month: "short" });
@@ -101,11 +108,15 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
     return (useWeekday ? fmtWeekdayDate : fmtShort).format(date);
   };
   const shipInSentence = ship - today > 1 ? `el ${dayText(ship)}` : dayText(ship);
-  const range = from === to ? capitalize(dayText(from)) : fmtShort.formatRange(new Date(from * DAY), new Date(to * DAY));
-  const summary =
-    from === to
-      ? `Entrega estimada el ${fmtLong.format(new Date(from * DAY))}`
-      : `Entrega estimada entre el ${fmtLong.format(new Date(from * DAY))} y el ${fmtLong.format(new Date(to * DAY))}`;
+  const rangeOf = (a: number, b: number) => (a === b ? capitalize(dayText(a)) : fmtShort.formatRange(new Date(a * DAY), new Date(b * DAY)));
+  const range = extra ? `${L?.city}: ${rangeOf(from, to)}` : rangeOf(from, to);
+  const sentence = (a: number, b: number) =>
+    a === b
+      ? `Entrega estimada el ${fmtLong.format(new Date(a * DAY))}`
+      : `Entrega estimada entre el ${fmtLong.format(new Date(a * DAY))} y el ${fmtLong.format(new Date(b * DAY))}`;
+  const summary = extra
+    ? `${sentence(from, to)} en ${L?.city}; ${regionsLabel.toLowerCase()}: ${sentence(regionsFrom, regionsTo).toLowerCase()}`
+    : sentence(from, to);
 
   // Título: la plantilla con {ship} y el tiempo al corte en <strong>, como lo arma el JS.
   const counting = Boolean(tCountdown);
@@ -156,6 +167,11 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
           <span className="df-shipping-timeline__sub" data-df-delivery="">
             {range}
           </span>
+          {extra ? (
+            <span className="df-shipping-timeline__sub" data-df-delivery-regions="">
+              {`${regionsLabel}: ${rangeOf(regionsFrom, regionsTo)}`}
+            </span>
+          ) : null}
           {tSuffix ? <span className="df-shipping-timeline__sub df-shipping-timeline__suffix">{fill(tSuffix, facts)}</span> : null}
         </li>
       </ol>

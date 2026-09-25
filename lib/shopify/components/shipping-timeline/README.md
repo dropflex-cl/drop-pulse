@@ -59,3 +59,10 @@ La referencia calculaba una sola vez (el contador no avanzaba), con la hora del 
 - Etiquetas: 1-2 palabras en secuencia (≤ 12; el hito 3 ≤ 14). `node_delivered_sub_suffix` (≤ 20): refuerzo del pago contra entrega, solo si está activo.
 - Tuteo, sin emojis, sin exclamaciones en las etiquetas.
 - **Prohibido:** escribir horas, días o fechas (el esquema rechaza dígitos); «entrega garantizada mañana» o «envío express» si no es el servicio real; contadores sin corte real (Ley 19.496, arts. 12 y 28).
+
+## Despacho los sábados y plazo de regiones
+
+Ajustes › Envíos y políticas, publicado en `dropflex.logistics`:
+
+- **`saturday_dispatch`:** con «solo días hábiles», el sábado cuenta para preparar y despachar; el domingo nunca. Pedido antes del corte (ej.: 9 h) con 0 días de preparación: sale el mismo día; después, el siguiente día de despacho.
+- **`main_city` + `regions_extra_days`:** el tránsito rige en esa ciudad y el resto del país suma esos días de entrega. El hito «En tu puerta» muestra dos fechas: «Santiago: 26 sept» y «Regiones: 29 – 30 sept» (texto del ajuste `regions_label`). `transit_days_max` ya viene con el plazo de regiones, así que los demás componentes («llega en {min} a {max} días») son verdad en todo el país; la línea de tiempo usa `main_city_transit_max` para la ciudad.
