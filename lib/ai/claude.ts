@@ -15,6 +15,7 @@ export const AI_MODEL = "claude-opus-5";
 const PRICING: Record<string, { input: number; output: number }> = {
   "claude-opus-5": { input: 5, output: 25 },
   "claude-opus-4-8": { input: 5, output: 25 },
+  "claude-sonnet-5": { input: 2, output: 10 },
 };
 
 export interface AiUsage {
@@ -113,16 +114,19 @@ export async function generateStructured<S extends z.ZodType>({
   schema,
   effort,
   maxTokens = 16000,
+  model = AI_MODEL,
 }: {
   system: string;
   content: Anthropic.Beta.BetaContentBlockParam[];
   schema: S;
   effort: "low" | "medium" | "high";
   maxTokens?: number;
+  /** Por defecto AI_MODEL; un paso puede pedir otro (ver scripts/eval-models.ts). */
+  model?: string;
 }): Promise<{ data: z.infer<S>; usage: AiUsage }> {
   const started = Date.now();
   const base = {
-    model: AI_MODEL,
+    model,
     max_tokens: maxTokens,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default" as const,

@@ -1,7 +1,7 @@
 import "server-only";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { pageImageCounts } from "@/lib/page-images/store";
-import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AiStepError } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
@@ -9,8 +9,9 @@ import { anglesForPrompt, fail } from "@/lib/angles/store";
 import { getDifferentiator } from "@/lib/competitors/store";
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
-import { failingParts, mergeOutput, pageProblems, pageSchema, partialOutput, productFactText, schemaProblems, toWrite, type PageOutput } from "@/lib/copy/page-schema";
-import { copySystem, copyUser, type CopyContext, type CopyRetry } from "@/lib/copy/prompts";
+import { productFactText, schemaProblems, toWrite } from "@/lib/copy/page-schema";
+import type { CopyContext } from "@/lib/copy/prompts";
+import { writePage } from "@/lib/copy/write";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
 import { activeComponents, currentContent, getComponentRow, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
 import { approvedAngles } from "./angles";
@@ -181,39 +182,17 @@ export async function runCopy(runId: string): Promise<void> {
     };
     // Los números de uso que puede citar la pregunta de duración: los que dio el comerciante.
     const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: reviews.map((v) => v.id), factText: productFactText(brief, product.base_info) };
-    const attempt = (parts: string[], retry?: CopyRetry, kept?: CopyContext["kept"]) =>
-      generateStructured({
-        system: copySystem(input.market),
-        content: [{ type: "text", text: copyUser({ ...ctx, write: parts, kept }, retry) }],
-        schema: pageSchema(parts),
-        effort: "medium",
-        maxTokens: 16000,
-      });
-
-    // Un intento con la página entera y hasta 2 correcciones. Si los problemas son de algunas partes
-    // (un largo, un monto), se reescriben solo esas y lo demás va como contexto: cuesta una fracción de
-    // la página. Si no se pueden atribuir, se corrige la página entera, una sola vez.
-    let data: PageOutput | null = null;
-    let usage: AiUsage | null = null;
-    let wholeRetried = false;
-    for (let i = 0; i < 3; i++) {
-      const parts: string[] | null = data ? failingParts(problems, write) : write;
-      const partial: boolean = Boolean(data && parts && parts.length < write.length);
-      if (data && !partial && wholeRetried) break;
-      if (data && !partial) wholeRetried = true;
-      const fix: string[] = partial ? parts! : write;
-      const result = await attempt(
-        fix,
-        data ? { previous: partial ? partialOutput(data, fix) : data, problems } : undefined,
-        partial ? write.filter((id) => !fix.includes(id)).map((id) => ({ component: id, content: id === LISTING ? data!.listing : data!.components[id] })) : undefined,
-      );
-      data = partial ? mergeOutput(data!, result.data as PageOutput, fix) : (result.data as PageOutput);
-      usage = result.usage;
-      problems = pageProblems(data, write, facts);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage, error: problems.length ? "invalid_copy" : null });
-      if (!problems.length) break;
-      console.warn(`[copy] página inválida${partial ? ` (corrección de ${fix.join(", ")})` : ""}`, problems);
-    }
+    const written = await writePage({
+      ctx,
+      market: input.market,
+      facts,
+      onAttempt: async (a) => {
+        await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: a.usage, error: a.problems.length ? "invalid_copy" : null });
+        if (a.problems.length) console.warn(`[copy] página inválida${a.partial ? ` (corrección de ${a.parts.join(", ")})` : ""}`, a.problems);
+      },
+    });
+    problems = written.problems;
+    const { data, usage } = written;
     if (problems.length || !data || !usage) throw new AiStepError("invalid_output", "La IA escribió textos que no cumplen las reglas. Toca Reintentar.", undefined, true);
 
     const rows = write.map((id) => ({
