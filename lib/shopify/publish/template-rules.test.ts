@@ -24,13 +24,6 @@ describe("reglas de importación de Shopify", () => {
     for (const f of ["blocks", "sections", "snippets", "layout"].flatMap(liquids)) expect(liquidNestingProblems(read(f)!), f).toEqual([]);
   });
 
-  it("ningún Liquid inventa cifras a partir del id del producto (spec-angulos-testeo §2)", () => {
-    for (const f of ["blocks", "sections", "snippets"].flatMap(liquids)) {
-      expect(read(f)!, f).not.toMatch(/product\.id\s*\|\s*modulo/);
-      expect(read(f)!, f).not.toMatch(/vendidos esta semana/);
-    }
-  });
-
   it("detecta lo que rompió la primera instalación", () => {
     expect(settingProblem({ type: "select", options: [{ value: "32" }] }, 32)).toMatch(/debe ser texto/);
     expect(settingProblem({ type: "range", min: 0, max: 40, step: 2 }, 7)).toMatch(/paso/);

@@ -21,7 +21,7 @@ Esta spec lleva DropFlex a ese método en 5 fases que se pueden entregar por sep
 
 | Fase | Qué | Depende de |
 |---|---|---|
-| 0 | Sacar del tema la prueba social inventada | — |
+| 0 | Sacar del tema la prueba social inventada (revertida por decisión del usuario) | — |
 | 1 | Diferenciador y competencia en Información base | — |
 | 2 | Página común a los ángulos, bloque de dolor, comparativa y preguntas frecuentes | 1 (sirve también con los 2 ángulos de hoy) |
 | 3 | Ángulos: 3 ángulos de testeo en vez de principal y secundario | 1 |
@@ -45,7 +45,9 @@ Esta spec lleva DropFlex a ese método en 5 fases que se pueden entregar por sep
 | Un ángulo por conjunto | La campaña ABO asigna los textos por turno (`pick(primary_texts, i)`), no según el ángulo del creativo | `lib/ads/plan.ts:43` |
 | Retargeting | Los creativos traen 1 concepto de oferta «para retargeting»; la mentoría no recomienda hacer retargeting | `lib/creatives/catalog.ts:66`, `lib/creatives/prompts.ts:68` |
 
-## 2. Fase 0 — Prueba social inventada (urgente)
+## 2. Fase 0 — Prueba social inventada (revertida)
+
+> **Decisión del usuario (2026-09-25): se mantiene** la línea «🔥 Producto viral · {sold} vendidos esta semana» del bloque de stock y el texto por defecto «Producto viral» del badge. El cambio de abajo se implementó y se revirtió; queda como registro.
 
 El README de componentes dice que se corrigió «lo que la referencia hacía mal (escasez y reseñas inventadas)», pero dos piezas del tema lo siguen haciendo:
 

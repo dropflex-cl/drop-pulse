@@ -32,6 +32,9 @@
   assign t_limited = content.limited_text | default: s.limited_text
   assign t_sold_out = content.sold_out_text | default: s.sold_out_text
   assign t_preorder = content.preorder_text | default: s.preorder_text | default: t_available
+  assign t_viral = s.viral_text
+  # Vendidos de la semana: 150–350 por producto (semilla del id); el navegador lo fija en localStorage.
+  assign sold = product.id | modulo: 201 | plus: 150
 -%}
 
 {%- if product != blank -%}
@@ -80,7 +83,10 @@
     if status == 'limited' and s.show_quantity == false
       assign text = t_available
     endif
-    assign text = text | replace: '{qty}', qty | replace: '{min}', days_min | replace: '{max}', days_max
+    if status == 'available' and t_viral != blank
+      assign text = t_viral
+    endif
+    assign text = text | replace: '{sold}', sold | replace: '{qty}', qty | replace: '{min}', days_min | replace: '{max}', days_max
   -%}
 
   <df-inventory
@@ -91,6 +97,8 @@
     data-show-untracked="{{ s.show_when_untracked }}"
     data-min="{{ days_min }}"
     data-max="{{ days_max }}"
+    data-product-id="{{ product.id }}"
+    data-sold="{{ sold }}"
     {{ block.shopify_attributes }}
     {% if status == 'hidden' %}hidden{% endif %}
   >
@@ -99,7 +107,7 @@
     <script type="application/json" data-df-variants>{{ variants_json }}</script>
     <script type="application/json" data-df-texts>
       {
-        "available": {{ t_available | json }},
+        "available": {{ t_viral | default: t_available | json }},
         "limited": {{ t_limited | json }},
         "sold_out": {{ t_sold_out | json }},
         "preorder": {{ t_preorder | json }}
@@ -183,8 +191,9 @@
     {
       "type": "text",
       "id": "viral_text",
-      "label": "Texto retirado (ya no se muestra)",
-      "info": "Mostraba ventas de la semana estimadas, no reales, y se retiró. El campo queda solo por compatibilidad con plantillas guardadas."
+      "label": "Disponible (producto viral)",
+      "info": "Reemplaza al texto de disponible. {sold} = vendidos de la semana (150–350, fijo por producto). Vacío = usa el de arriba.",
+      "default": "🔥 Producto viral · {sold} vendidos esta semana"
     },
     {
       "type": "text",
