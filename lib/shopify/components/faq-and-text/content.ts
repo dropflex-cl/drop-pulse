@@ -140,7 +140,7 @@ export const faqAndText = defineComponent({
       items: [
         { topic: "pago_cod", question: "¿Tengo que pagar por adelantado?", answer: "No. Pagas solo al recibir tu pedido, directamente al repartidor." },
         { topic: "envio", question: "¿Cuándo me llega?", answer: "Entre {min} y {max} días hábiles desde que confirmas tu pedido." },
-        { topic: "uso", question: "¿Cómo lo uso con mi crema?", answer: "Aplica unas gotas sobre la piel limpia, deja que se absorban y después sigue con tu crema de siempre. Es el paso de antes, no la reemplaza." },
+        { topic: "uso", question: "¿Cómo lo uso con mi crema?", answer: "Aplica unas gotas sobre la piel limpia y deja que se absorban. Si usas crema, va después." },
         { topic: "duracion", question: "¿Cuánto me dura un frasco?", answer: "Un frasco de 30 ml rinde entre 1 y 1,5 meses usándolo cada noche. El pack de 3 frascos te alcanza para 3 a 4 meses de rutina." },
         { topic: "resultados", question: "¿Cuándo voy a notar la diferencia?", answer: "Depende de cada piel. Con uso constante, noche a noche, la piel se siente más suave y cómoda después de la crema. No prometemos un plazo porque cada piel tiene su ritmo." },
         { topic: "garantia", question: "¿Qué pasa si llega con una falla?", answer: "Te lo cambiamos. Escríbenos con una foto dentro de los primeros {return_days} días y coordinamos el retiro." },

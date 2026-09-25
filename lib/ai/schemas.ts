@@ -6,7 +6,7 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 7;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 8;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
 export const CUSTOMER_AVATAR_PROMPT_VERSION = 4;
 
@@ -36,8 +36,8 @@ export const productBriefSchema = z.object({
   alternatives_already_tried: z.array(text).describe("Lo que el comprador suele usar hoy y le falla (categorías o prácticas, nunca marcas)."),
   differentiator: z
     .object({
-      versus: text.describe("Contra qué se diferencia: lo que el cliente usa hoy (categoría o práctica, nunca marca). Ej.: «su crema hidratante»."),
-      claim: text.describe("La diferencia en una frase que se sostiene con la información. Ej.: «la crema sella por encima; esto es el paso previo, en gotas, que le da algo que retener»."),
+      versus: text.describe("Contra qué se diferencia: lo que el cliente usa hoy y no le resuelve el problema (categoría o práctica, nunca marca). Ej.: «cremas y mascarillas que no le quitan la piel tirante»."),
+      claim: text.describe("La diferencia en una frase: el problema que resuelve y por qué lo resuelve donde lo que usa hoy falla, sostenida con la información. Es la solución, no un complemento de lo que ya usa. Ej.: «resuelve la piel tirante con colágeno concentrado en gotas, donde la crema solo cubre la superficie»."),
       basis: text.describe("De qué dato sale (how_it_works, key_facts, modo de uso…)."),
     })
     .nullable()

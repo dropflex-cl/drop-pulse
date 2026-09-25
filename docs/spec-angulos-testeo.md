@@ -72,7 +72,7 @@ Nuevo campo en `productBriefSchema` (`lib/ai/schemas.ts`):
 ```ts
 differentiator: z.object({
   versus: text.describe("Contra qué se diferencia: lo que el cliente usa hoy (categoría, nunca marca). Ej.: «su crema hidratante»."),
-  claim: text.describe("La diferencia en una frase que se pueda sostener con la ficha. Ej.: «la crema sella por encima; esto es el paso previo, en gotas, que da algo que retener»."),
+  claim: text.describe("La diferencia en una frase que se pueda sostener con la ficha. Ej.: «resuelve la piel tirante con colágeno concentrado en gotas, donde la crema solo cubre la superficie»."),
   basis: text.describe("De qué dato de la ficha sale (how_it_works, key_facts…)."),
 }).nullable().describe("null si con la información no se puede sostener ninguna diferencia real."),
 ```
@@ -216,7 +216,7 @@ content: z.object({
   > · *Otra crema más en el velador* — «Probé cremas más espesas, mascarillas y colágeno de tomar. Nunca supe si algo hizo efecto…»
   > · *La cara tirante a las siete* — «Me lavo la cara, me echo crema y a media mañana la piel vuelve a sentirse tirante…»
   > · *La base marcada en las líneas* — «Tengo treinta y tantos y lo que más me molesta es ver la base acumulada al lado de la nariz…»
-  > *La crema sella. Lo que faltaba es el paso de antes: unas gotas ligeras sobre piel limpia.*
+  > *La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.*
 
 ### 5.4 `comparison-table`
 
@@ -327,6 +327,7 @@ Resueltas el 2026-09-25:
 - Sin modo ganador.
 - Sin Dropkiller.
 - Valores por defecto: envío $9.000 y 75/75.
+- **El diferenciador se cuenta como solución, no como complemento** (decidido después, al revisar Deep Collagen): el problema que lo que ya usa no resuelve y por qué este sí, para subir el valor percibido. Nada de «se usa antes de», «no reemplaza» ni «complementa». Ficha v8.
 - **Deep Collagen se deja como piloto**: su página aprobada no se reescribe. Con la Fase 2 solo se le escribirían los componentes sin aprobar y el `pain-block` (§5.8).
 
 Sin preguntas abiertas.

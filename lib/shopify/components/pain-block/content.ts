@@ -56,7 +56,7 @@ export const painBlock = defineComponent({
         .length(3)
         .describe("Exactamente 3 momentos, uno por ángulo de venta (slot 1, 2 y 3)."),
       bridge: text("bridge").pipe(z.string().min(20).max(120))
-        .describe("Una frase que lleva del dolor al diferenciador del producto (qué faltaba), no a la oferta. Ej.: «La crema sella. Lo que faltaba es el paso de antes: unas gotas ligeras sobre piel limpia.»."),
+        .describe("Una frase que lleva del dolor al diferenciador del producto (qué faltaba), no a la oferta. Ej.: «La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.». Es la solución, no un complemento."),
     })
     .superRefine((c, ctx) => {
       const slots = c.moments.map((m) => m.slot);
@@ -100,7 +100,7 @@ export const painBlock = defineComponent({
           text: "Tengo treinta y tantos y lo que más me molesta es ver la base acumulada al lado de la nariz. En las fotos del trabajo mi cara se ve apagada.",
         },
       ],
-      bridge: "La crema sella. Lo que faltaba es el paso de antes: unas gotas ligeras sobre piel limpia.",
+      bridge: "La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.",
     },
     {
       heading: "¿Te reconoces al final del día?",
