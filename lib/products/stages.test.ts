@@ -48,7 +48,7 @@ describe("productPosition", () => {
     expect(p.nextStage).toBe("angulos");
     expect(p.stages[0].state).toBe("done");
     expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current" });
-    expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
+    expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
     expect(p.stages.map((s) => s.key)).not.toContain("precio");
     expect(p.meter).toHaveLength(8);
   });
@@ -69,9 +69,9 @@ describe("productPosition", () => {
 
 describe("etapa Ángulos", () => {
   const approved = { price: 24990, currency: "CLP", avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
-  const brief = (role: "primary" | "secondary", status: "generado" | "aprobado", generation: "running" | "succeeded" | "failed" = "succeeded") => ({
-    role,
-    name: role === "primary" ? "Mecanismo único" : "Oferta",
+  const brief = (slot: 1 | 2 | 3, status: "generado" | "aprobado", generation: "running" | "succeeded" | "failed" = "succeeded") => ({
+    slot,
+    name: ["", "La crema sella", "Tengo 38", "Lleva 3"][slot],
     status,
     generation,
   });
@@ -92,19 +92,27 @@ describe("etapa Ángulos", () => {
 
   it("confirmados: desarrollando, por revisar y listos", () => {
     const ranking = { status: "succeeded" as const, confirmed: true };
-    expect(anglesPhase(facts({ ranking, briefs: [brief("primary", "generado", "running"), brief("secondary", "generado")] }))).toBe("developing");
-    const review = productPosition(facts({ ranking, briefs: [brief("primary", "aprobado"), brief("secondary", "generado")] }));
+    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "generado", "running"), brief(2, "generado")] }))).toBe("developing");
+    const review = productPosition(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "generado")] }));
     expect(review.stages[2]).toMatchObject({ state: "review", desc: "1 de 2 desarrollos aprobados" });
-    const done = productPosition(facts({ ranking, briefs: [brief("primary", "aprobado"), brief("secondary", "aprobado")] }));
+    const done = productPosition(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado")] }));
     // Aprobados los 2 desarrollos sigue Imágenes (la Página del producto usa esas imágenes).
     expect(done.nextStage).toBe("imagenes");
-    expect(done.stages[2]).toMatchObject({ state: "done", desc: "Mecanismo único + Oferta" });
+    expect(done.stages[2]).toMatchObject({ state: "done", desc: "La crema sella · Tengo 38" });
     expect(done.stages[3]).toMatchObject({ key: "imagenes", state: "current" });
     expect(done.stages[4]).toMatchObject({ key: "textos", state: "locked", desc: "Se habilita con las imágenes listas" });
   });
 
+  it("con 3 ángulos elegidos, espera los 3 desarrollos", () => {
+    const ranking = { status: "succeeded" as const, confirmed: true, chosen: 3 };
+    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado")] }))).toBe("failed");
+    const review = productPosition(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado"), brief(3, "generado")] }));
+    expect(review.stages[2]).toMatchObject({ state: "review", desc: "2 de 3 desarrollos aprobados" });
+    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado"), brief(3, "aprobado")] }))).toBe("done");
+  });
+
   it("un desarrollo fallido detiene la etapa con su motivo", () => {
-    const p = productPosition(facts({ ranking: { status: "succeeded", confirmed: true }, briefs: [{ ...brief("primary", "generado", "failed"), error: "La IA no respondió." }, brief("secondary", "generado")] }));
+    const p = productPosition(facts({ ranking: { status: "succeeded", confirmed: true }, briefs: [{ ...brief(1, "generado", "failed"), error: "La IA no respondió." }, brief(2, "generado")] }));
     expect(p.anglesPhase).toBe("failed");
     expect(p.stages[2].desc).toBe("La IA no respondió.");
   });
@@ -114,7 +122,7 @@ describe("etapa Ángulos", () => {
     const none = productPosition(facts({ ranking, briefs: [] }));
     expect(none.anglesPhase).toBe("failed");
     expect(none.stages[2]).toMatchObject({ state: "error", desc: "Falta un desarrollo · toca Regenerar" });
-    expect(anglesPhase(facts({ ranking, briefs: [brief("primary", "aprobado")] }))).toBe("failed");
+    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "aprobado")] }))).toBe("failed");
   });
 });
 
@@ -127,8 +135,8 @@ describe("página del producto (Textos)", () => {
     angles: {
       ranking: { status: "succeeded" as const, confirmed: true },
       briefs: [
-        { role: "primary" as const, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
-        { role: "secondary" as const, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
+        { slot: 1, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
+        { slot: 2, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
       ],
     },
     images,
@@ -137,8 +145,8 @@ describe("página del producto (Textos)", () => {
 
   it("bloqueada hasta aprobar los 2 desarrollos y tener las imágenes; después, por escribir", () => {
     const noAngles = productPosition({ ...ready, angles: { ...ready.angles, briefs: [ready.angles.briefs[0]] } });
-    expect(noAngles.stages[3]).toMatchObject({ key: "imagenes", title: "Imágenes", state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
-    expect(noAngles.stages[4]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" });
+    expect(noAngles.stages[3]).toMatchObject({ key: "imagenes", title: "Imágenes", state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
+    expect(noAngles.stages[4]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
     const noImages = productPosition({ ...ready, images: { ...images, cover: false } });
     expect(noImages.copyPhase).toBe("locked");
     expect(noImages).toMatchObject({ nextStage: "imagenes", reason: "Espera tu elección · imágenes" });
@@ -193,8 +201,8 @@ describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
     angles: {
       ranking: { status: "succeeded" as const, confirmed: true },
       briefs: [
-        { role: "primary" as const, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
-        { role: "secondary" as const, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
+        { slot: 1, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
+        { slot: 2, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
       ],
     },
   };

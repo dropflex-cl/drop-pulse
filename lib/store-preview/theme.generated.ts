@@ -152,6 +152,13 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_top": 0,
     "margin_bottom": 0
   },
+  "pain-block": {
+    "heading": "¿Te pasa esto?",
+    "layout": "cards",
+    "heading_size": 36,
+    "padding_top": 48,
+    "padding_bottom": 48
+  },
   "review-slider": {
     "min_reviews": 3,
     "max_items": 5,

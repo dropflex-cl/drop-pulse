@@ -20,7 +20,7 @@ Fondo `--df-surface` y radio de 16 px, o borde fino (`--df-hairline`) sin fondo.
 
 | Origen | Qué |
 |---|---|
-| Metafield `dropflex.benefit_double_box` (IA) | `cards[2]`: `icon` (clave de `ICON_KEYS`), `title` (≤ 24 visibles), `body` (≤ 48 visibles), `policy` |
+| Metafield `dropflex.benefit_double_box` (IA) | `cards[2]`: `icon` (clave de `ICON_KEYS`), `title` (≤ 24 visibles), `body` (≤ 64 visibles), `policy` |
 | Ajustes del bloque | 2 tarjetas fijas (ícono, imagen, título, descripción) como respaldo; borde, apilar, radio, relleno, alto del ícono, tamaño del título, márgenes |
 | `shop.metafields.dropflex.policies` (real) | `cod`, `return_days`, `warranty_months`, `free_shipping`, `whatsapp`: habilitan cada tarjeta y llenan sus tokens |
 | `shop.metafields.dropflex.logistics` (real) | preparación + tránsito → `{min}` y `{max}` |
@@ -50,7 +50,7 @@ La referencia usaba descripciones de 11,5 px, una fuente propia en vez de la del
 ## Reglas del copy (IA)
 
 - `title`: el hecho verificable, modalidad o cifra como token («Pagas al recibir», «{return_days} días para cambiarlo»), ≤ 24 visibles.
-- `body`: cómo te protege, una frase que no repite el título, ≤ 48 visibles.
+- `body`: cómo te protege, una frase que no repite el título, ≤ 64 visibles (tres líneas en la tarjeta de ~165 px a 375 px).
 - Tarjeta 1 = pago (en pago contra entrega, siempre pagar al recibir); tarjeta 2 = cambio o garantía, o despacho y seguimiento.
 - `policy` obligatorio. Marcas de pago solo si están activas. Tono calmado, tuteo, sin exclamaciones.
 - **Prohibido:** ofrecer menos que la ley o presentar la garantía legal (6 meses) o el retracto (10 días) como regalo (Ley 19.496, arts. 21 y 3 bis); «100 % garantizado» sin política; «devolución de tu dinero» si solo hay cambio; sellos inventados; cifras escritas.

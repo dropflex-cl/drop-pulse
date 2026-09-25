@@ -1,6 +1,6 @@
 # Spec: ángulos de testeo y página coherente con el testeo
 
-> Estado: **propuesta** (2026-09-25). Nada implementado. POC de la Fase 2 corrida sobre Deep Collagen (§8).
+> Estado: **implementado** (2026-09-25, rama `feat/angulos-testeo`), fases 0 a 5 y §5.8. Pendiente: probar en una tienda de desarrollo el flujo completo con IA (ángulos → imágenes → página → creativos → anuncios) y publicar `df-pain-block`. POC de la Fase 2 sobre Deep Collagen (§8); el orquestador nuevo se corrió con los datos de Deep Collagen (5 candidatos, sugerencia 3, sin rechazos).
 > Origen: sesión de mentoría Impulso Pro con Benja (coach), contrastada con `dropflex/docs/analisis-mentoria-impulso-pro.md`, con la etapa Ángulos (`lib/angles/`, `lib/pipeline/angles.ts`) y con el prompt de la página (`lib/copy/prompts.ts`).
 > Toca: Ángulos, Página del producto, tema (`lib/shopify/components`), Creativos, Anuncios y, en una fase aparte, los valores por defecto del precio.
 > Decisiones del usuario (2026-09-25): (1) el tono de la página lo define el **cliente ideal**, no el precio (casi todo se vende sobre $20.000); (2) **sin modo ganador** por ahora: la página es siempre la versión común a los ángulos de venta; (3) **sin integración con Dropkiller**: la competencia se carga con links a mano; (4) valores por defecto del costeo: **envío $9.000, confirmación 75 % y entrega 75 %**.
@@ -82,7 +82,7 @@ differentiator: z.object({
 
 ### 3.2 Competencia
 
-Nueva tabla (migración `20261018000000_product_competitors.sql`):
+Nueva tabla (migración `20261018000000_differentiator_and_competitors.sql`, que también agrega `products.differentiator jsonb` y `products.differentiator_confirmed_at`: lo confirmado por el comerciante; null = vale la propuesta de la ficha):
 
 ```sql
 create table public.product_competitors (
@@ -107,6 +107,14 @@ create table public.product_competitors (
   Si la página no se puede leer, `failed` con `error_code` y el link queda para verlo a mano.
 - **Sin integraciones:** los links los pega el comerciante (los saca de la biblioteca de anuncios, de Dropkiller o de donde quiera). No hay búsqueda automática de competencia. `source` queda como `'manual'`, pensado para una fuente futura.
 - `deleteProducts`: cuelga en cascada de `products`; no necesita pasos nuevos (actualizar la lista de CLAUDE.md).
+
+**Implementado (Fase 1, 2026-09-25):**
+
+- `lib/competitors/`: `schemas.ts` (`competitorAnalysisSchema`: `store_name`, `price`, `compare_at`, `offer`, `main_angle { pain_or_desire, segment, promise }`, `frame`, `proof_used[]`, `tone`; `MAX_COMPETITORS = 7`; `COMPETITOR_PROMPT_VERSION`), `text.ts` (puro, con tests: link, IPs privadas, HTML → texto), `fetch.ts` (`fetchPageText`: solo http/https sin credenciales, cada host y cada redirección —máx. 3— resuelve a IPs públicas y la conexión vuelve a revisar la IP; 10 s, 2 MB, 20.000 caracteres, descripción y precio de Open Graph al comienzo), `prompts.ts` y `store.ts` (`getDifferentiator`, `saveDifferentiator`, `analyzedCompetitors`, CRUD).
+- `lib/pipeline/competitors.ts`: `startCompetitor` (valida, deduplica, tope 7 y 60 análisis por comerciante en 24 h) y `runCompetitor` (para `after()`, nunca lanza). Paso de IA `competitor_analysis` (etapa Información base, «Análisis de competencia»). Colgados: en cola > 3 min o analizando > 10 min (sobre `updated_at`) → `failed` con `error_code = 'stale'`. La tabla guarda solo el código; el mensaje («No pudimos leer esa página: …») sale de `competitorErrorMessage`.
+- API: `GET|POST /api/products/[id]/competitors`, `DELETE|POST /api/products/[id]/competitors/[competitorId]` (quitar, reintentar), `GET|PUT /api/products/[id]/differentiator`.
+- Pantalla: «Diferenciador» (desde que hay ficha, bajo el cliente ideal: «Contra qué» y «La diferencia», «Confirmar diferenciador» o «Guardar», y «Editar» cuando está confirmado) y «Tiendas de la competencia» (link + «Agregar», estado por fila, «Reintentar» y «Quitar», sondeo mientras analiza).
+- Pendiente de otras fases: bloquear Ángulos sin diferenciador (§3.1) y que `missing_inputs` lo pregunte primero.
 
 ## 4. Fase 3 — Ángulos de testeo
 
@@ -248,7 +256,7 @@ Cuando llegue la Fase 3, los productos con 2 desarrollos aprobados **no se bloqu
 **Lo que falta:**
 
 - **No hay forma de desaprobar** un componente ni la ficha, así que una página aprobada entera no se puede volver a escribir con IA. Solo se puede editar a mano, campo por campo.
-- **La página no queda desactualizada** cuando cambian los desarrollos de Ángulos ni cuando sube `COPY_PROMPT_VERSION`: `copyPhase` (`lib/products/stages.ts`) no tiene ese estado, aunque `copy_runs.input.briefs` guarda con qué desarrollos se escribió.
+- (Corrección) **Sí existía** el aviso de página desactualizada cuando cambian los desarrollos de Ángulos («Cambiaste tus ángulos», `isStale` en `lib/copy/store.ts`); ahora compara la huella de los 2 o 3 desarrollos (`stampChanged` en `lib/angles/approved.ts`). No avisa cuando sube `COPY_PROMPT_VERSION`.
 
 **Qué pasaría con Deep Collagen** (piloto, se deja como está): tiene la ficha y 11 componentes aprobados, y 3 sin aprobar (`gif-strip`, `ugc-slider` e `insta-story`, apagados). Con la Fase 2, «Reescribir lo no aprobado» escribiría **solo esos 3 y el `pain-block` nuevo**; la ficha, la comparativa y las preguntas frecuentes quedarían con las reglas antiguas. Para el piloto está bien: permite comparar el bloque de dolor sin cambiar nada de lo aprobado.
 
@@ -256,7 +264,9 @@ Cuando llegue la Fase 3, los productos con 2 desarrollos aprobados **no se bloqu
 
 1. **«Volver a escribir con IA»** en la hoja de cada componente y de la ficha. Reescribe solo ese componente, con lo demás aprobado como contexto (el mismo mecanismo que `approved` en `copyUser`). La versión aprobada queda con `superseded_at` y se puede recuperar con «Deshacer» durante la sesión. No publica nada: lo publicado en Shopify cambia recién al volver a Publicar.
 2. **«Reescribir toda la página»** en el menú de la etapa, con segundo toque («Se reemplaza lo aprobado; lo publicado no cambia hasta que publiques»). Es un `redo` que también marca como `superseded_at` lo aprobado. Los textos editados a mano (`content` distinto de `proposal`) se listan antes de confirmar, porque se pierden.
-3. **Página desactualizada:** si los desarrollos aprobados cambian (comparando con `copy_runs.input.briefs`) o sube la versión mayor del prompt, la etapa muestra «Tus ángulos cambiaron desde que se escribió la página» con el botón de la acción 2. No reescribe sola.
+3. **Página desactualizada:** ya existía («Cambiaste tus ángulos» con «Reescribir»); se mantiene, ahora con 2 o 3 ángulos. No reescribe sola.
+
+**Implementado:** `CopyMode` (`missing` | `all` | `only`) en `startCopy`, `POST /copy { mode }`, `PATCH /copy/components/[component] { restore: true }` (`restoreComponent`), «Volver a escribir con IA» en la hoja (`ComponentEditor.onRewrite`) con «Deshacer» en el toast, y «Reescribir toda la página» con segundo toque que nombra lo editado a mano.
 
 ## 6. Fase 4 — Creativos y Anuncios
 

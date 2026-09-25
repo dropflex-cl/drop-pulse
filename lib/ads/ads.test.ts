@@ -154,6 +154,25 @@ describe("plan de lanzamiento", () => {
     expect(planSteps(plan, 2)).toBe(1 + 2 + 2 * 3);
   });
 
+  it("ABO por ángulos: cada anuncio lleva el texto de SU ángulo, no por turno", () => {
+    const angled = [
+      { id: "a", name: "la-crema-sella.png", angle_slot: 2 },
+      { id: "b", name: "tengo-38.png", angle_slot: 3 },
+      { id: "c", name: "subido.mp4", angle_slot: null },
+    ];
+    const plan = planLaunch("abo", { ...base, creatives: ["a", "b", "c"], primary_texts: ["T1", "T2", "T3"] }, angled);
+    expect(plan.adsets.map((s) => s.ads[0].primaryTexts[0])).toEqual(["T2", "T3", "T3"]);
+    expect(plan.adsets[0].name).toBe("Conjunto 1 · Ángulo 2 · la-crema-sella");
+    expect(plan.adsets[2].name).toBe("Conjunto 3 · subido");
+  });
+
+  it("la plantilla de temporada son conjuntos de $5.000 abiertos, como Impulso", () => {
+    const season = buildPreset("impulso-temporada", { country: "CL", currency: "CLP", cpaLimit: 6000, creatives: ["a", "b", "c"], texts: { primary_texts: ["T1"], headlines: ["H1"], description: "D" } });
+    expect(season.structure).toBe("abo");
+    expect(season.launch.budget).toBe(5000);
+    expect(season.launch.audiences).toEqual([{ kind: "open", interests: [] }]);
+  });
+
   it("ABO con 2 públicos cruza cada creativo con cada público", () => {
     const plan = planLaunch("abo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media);
     expect(plan.adsets).toHaveLength(4);

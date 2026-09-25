@@ -10,7 +10,7 @@ import type { AttentionKind } from "@/components/df/attention-item";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 import type { StoreFacts } from "@/lib/store-preview/facts";
-import type { AngleRole, SalesAngle } from "@/lib/angles/catalog";
+import type { AngleSlot, SalesAngle } from "@/lib/angles/catalog";
 
 export type { ContentStatus, Verdict };
 
@@ -126,6 +126,12 @@ export interface ProductBase {
   pricingDefaults: Partial<PricingForm>;
   /** Lo que la ficha dice que falta, como preguntas para el comerciante. */
   missingInputs: { field: string; question: string }[];
+  /** Hay ficha (el diferenciador y la competencia se muestran desde ahí). */
+  hasBrief: boolean;
+  /** El diferenciador confirmado o propuesto. */
+  differentiator: DifferentiatorView;
+  /** Tiendas de la competencia pegadas por el comerciante. */
+  competitors: CompetitorView[];
 }
 
 /** Un ángulo del ranking del orquestador, con su puntaje calculado en código (AngleCard). */
@@ -140,9 +146,41 @@ export interface AngleOption {
   breakdown: { label: string; value: number }[];
 }
 
-export interface AnglePair {
-  primary: SalesAngle;
-  secondary: SalesAngle;
+/** Un ángulo candidato del orquestador para testear, con su puntaje calculado en código. */
+export interface AngleCandidateView {
+  /** Posición en la lista del orquestador (lo que se guarda como sugerido). */
+  index: number;
+  title: string;
+  painOrDesire: string;
+  segment: string;
+  promise: string;
+  /** La forma recomendada (una de las 6). */
+  frame: SalesAngle;
+  frameName: string;
+  triggerMoment: string;
+  competition: string;
+  /** Tiendas de la competencia que ya lo usan (0 sin datos). */
+  competitorsUsing: number;
+  score: number;
+  frameScore: number;
+  /** Lo que sumó o restó la competencia. */
+  competitionDelta: number;
+}
+
+/** Un ángulo de testeo elegido (uno por conjunto de anuncios). */
+export interface TestAngleView {
+  slot: AngleSlot;
+  frame: SalesAngle;
+  frameName: string;
+  /** El título que puso la IA o el comerciante (vacío en los elegidos antes de los ángulos de testeo). */
+  title: string;
+  /** El título o, si no hay, el nombre de la forma. */
+  name: string;
+  painOrDesire: string;
+  segment: string;
+  promise: string;
+  triggerMoment: string;
+  competition: string;
 }
 
 /** La evaluación del orquestador y la elección del comerciante. */
@@ -151,14 +189,17 @@ export interface AngleRankingView {
   status: RunStatus;
   error?: string;
   createdAt: string;
-  /** Los 6, de mayor a menor (vacío mientras evalúa o si falló). */
+  /** Las 6 formas, de mayor a menor (vacío mientras evalúa o si falló). */
   angles: AngleOption[];
-  suggested?: AnglePair;
-  /** Lo que confirmó el comerciante. */
-  chosen?: AnglePair;
+  /** Los ángulos candidatos para testear (vacío en las evaluaciones de antes). */
+  candidates: AngleCandidateView[];
+  /** Índices de candidates que sugiere el código (hasta 3). */
+  suggested: number[];
+  /** Lo que confirmó el comerciante (2 o 3 ángulos). */
+  chosen?: TestAngleView[];
   confirmedAt?: string;
-  /** Cómo se combinan los pares con más sentido, según el orquestador. */
-  combos: (AnglePair & { text: string })[];
+  /** Tiendas de la competencia analizadas al evaluar. */
+  competitors: number;
   /** “Para elegir mejor, falta”: nunca bloquea la confirmación. */
   missing: { text: string; fix?: "reviews" | "expert" }[];
   /** El cliente ideal cambió después de evaluar. */
@@ -177,9 +218,12 @@ export interface AngleBriefContent {
 
 export interface AngleBriefView {
   id: string;
+  /** La forma con que se cuenta. */
   angle: SalesAngle;
+  /** El nombre del ángulo (título o, si no hay, la forma). */
   name: string;
-  role: AngleRole;
+  frameName: string;
+  slot: AngleSlot;
   generation: RunStatus;
   error?: string;
   status: ContentStatus;
@@ -193,7 +237,12 @@ export interface AnglesState {
   /** El cliente ideal vigente (IcpSummary). */
   avatar?: { summary: string; tags: string[]; approved: boolean };
   ranking?: AngleRankingView;
-  briefs: Partial<Record<AngleRole, AngleBriefView>>;
+  /** Los desarrollos de los ángulos elegidos, en orden de slot. */
+  briefs: AngleBriefView[];
+  /** El diferenciador del producto (confirmado o propuesto); sin él no se evalúa. */
+  differentiator?: { versus: string; claim: string; confirmed: boolean } | null;
+  /** Tiendas de la competencia analizadas (Información base). */
+  competitors: number;
 }
 
 /** Todo lo que necesita la etapa Ángulos. */
@@ -555,7 +604,8 @@ export interface CreativeAssetView {
 
 export interface CreativeConceptView {
   id: string;
-  angle: AngleRole;
+  /** El ángulo de testeo al que pertenece (su conjunto de anuncios). */
+  angle: AngleSlot;
   angleName: string;
   family: import("./creatives/catalog").Family;
   familyName: string;
@@ -813,4 +863,39 @@ export interface EventsOverview {
 export interface EventDetail extends EventsOverview {
   event: EventView;
   products: EventProductView[];
+}
+
+// ---------------------------------------------------------------- Diferenciador y competencia
+// (Información base, docs/spec-angulos-testeo.md › §3)
+
+/** El diferenciador: lo confirmado por el comerciante o, si no hay, la propuesta de la ficha. */
+export interface DifferentiatorView {
+  value: import("@/lib/ai/schemas").Differentiator | null;
+  /** El comerciante lo confirmó (products.differentiator). */
+  confirmed: boolean;
+  /** Lo que propuso la ficha (product_briefs.payload.differentiator). */
+  proposed: import("@/lib/ai/schemas").Differentiator | null;
+}
+
+/** Una tienda de la competencia y el resumen de su análisis. */
+export interface CompetitorView {
+  id: string;
+  url: string;
+  /** El dominio, sin www. */
+  host: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  /** «No pudimos leer esa página: …» cuando falló. */
+  error?: string;
+  createdAt: string;
+  analysis?: {
+    storeName?: string;
+    price?: number;
+    compareAt?: number;
+    offer?: string;
+    painOrDesire: string;
+    promise: string;
+    frame: SalesAngle;
+    /** Nombre de la forma en la pantalla (ANGLES[frame].name). */
+    frameName: string;
+  };
 }

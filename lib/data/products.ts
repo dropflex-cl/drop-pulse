@@ -7,7 +7,9 @@ import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { ANGLES } from "@/lib/angles/catalog";
-import { currentBriefs, currentBriefStates, latestRankings, latestRankingStates, toBriefView, toRankingView, type BriefState, type RankingState } from "@/lib/angles/store";
+import { allApproved, chosenAngles, currentBriefs, currentBriefStates, latestRankings, latestRankingStates, toBriefView, toRankingView, type BriefsBySlot, type BriefState, type RankingState } from "@/lib/angles/store";
+import { testAngleName } from "@/lib/angles/catalog";
+import { competitorViews, confirmedDifferentiator, differentiatorState } from "@/lib/competitors/store";
 import { copyProgress } from "@/lib/copy/progress";
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
@@ -22,7 +24,8 @@ import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { activeConcepts, assetsFor, creativeCounts, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
-import { approvedBriefStamp, generationBlocker } from "@/lib/pipeline/page-images";
+import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
+import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
@@ -70,22 +73,36 @@ function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-type Briefs = Partial<Record<"primary" | "secondary", BriefState>>;
+type Briefs = BriefsBySlot<BriefState>;
 
 function angleFacts(ranking: RankingState | undefined, briefs: Briefs | undefined): AngleFacts | null {
   if (!ranking) return null;
+  const chosen = chosenAngles(ranking);
+  const name = (b: BriefState) => {
+    const a = chosen.find((c) => c.slot === b.slot);
+    return a ? testAngleName({ ...a, frame: b.angle }) : ANGLES[b.angle].name;
+  };
   return {
-    ranking: { status: ranking.status, error: ranking.error_message, confirmed: Boolean(ranking.confirmed_at) },
-    briefs: Object.values(briefs ?? {}).map((b) => ({ role: b.role, name: ANGLES[b.angle].name, status: toUiStatus(b.status), generation: b.generation, error: b.error_message })),
+    ranking: { status: ranking.status, error: ranking.error_message, confirmed: Boolean(ranking.confirmed_at), chosen: chosen.length },
+    briefs: Object.values(briefs ?? {})
+      .filter((b): b is BriefState => Boolean(b) && (!chosen.length || b!.slot <= chosen.length))
+      .sort((a, b) => a.slot - b.slot)
+      .map((b) => ({ slot: b.slot, name: name(b), status: toUiStatus(b.status), generation: b.generation, error: b.error_message })),
   };
 }
 
-function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined, briefs: Briefs | undefined): CopyFacts | null {
+/** Los desarrollos de la elección confirmada, en orden de slot, como huella (lib/angles/approved.ts). */
+function stampOfBriefs(ranking: Pick<RankingState, "chosen_angles" | "confirmed_at"> | undefined, briefs: BriefsBySlot<Pick<BriefState, "id" | "edited_at">> | undefined) {
+  if (!ranking) return [];
+  return chosenAngles(ranking).flatMap((a) => (briefs?.[a.slot] ? [{ id: briefs[a.slot]!.id, edited_at: briefs[a.slot]!.edited_at ?? null }] : []));
+}
+
+function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined, briefs: Briefs | undefined, ranking?: RankingState): CopyFacts | null {
   if (!run && !rows?.length) return null;
   return {
     run: run ? { status: run.status, error: run.error_message } : null,
     progress: copyProgress((rows ?? []).map((r) => ({ component: r.component, status: toUiStatus(r.status), enabled: r.enabled }))),
-    stale: isStale(run, briefs ?? {}),
+    stale: isStale(run, stampOfBriefs(ranking, briefs)),
   };
 }
 
@@ -192,7 +209,7 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
     const ranking = rankings.get(r.id);
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
-    const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen);
+    const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen, ranking);
     return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)));
   });
 }
@@ -247,7 +264,7 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
   const uid = await userId();
   // Todo a la vez: la etapa no espera a la ruta del producto; solo los valores por defecto del precio esperan la fila.
   const row$ = productRow(uid, id);
-  const [product, row, images, runs, avatars, brief, pricing, pricingDefaultsValue, packLabels] = await Promise.all([
+  const [product, row, images, runs, avatars, brief, pricing, pricingDefaultsValue, packLabels, differentiator, competitors] = await Promise.all([
     getProduct(id),
     row$,
     listImageRows(uid, [id]),
@@ -257,6 +274,8 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     getPricingPlan(uid, id),
     row$.then((r) => (r ? pricingDefaults(uid, r) : null)),
     latestPackLabels(uid, id),
+    confirmedDifferentiator(uid, id),
+    competitorViews(uid, id),
   ]);
   if (!product || !row || !pricingDefaultsValue) return null;
   const urls = await withDisplayUrls(images);
@@ -274,6 +293,9 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
     missingInputs: brief?.missing_inputs ?? [],
+    hasBrief: brief !== null,
+    differentiator: differentiatorState(differentiator, brief),
+    competitors,
   };
 });
 
@@ -303,7 +325,12 @@ export const getProductAngles = cache(async (id: string): Promise<ProductAngles 
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/angles). */
 export async function anglesState(uid: string, productId: string): Promise<AnglesState> {
-  const [avatars, rankings] = await Promise.all([latestAvatars(uid, [productId]), latestRankings(uid, [productId])]);
+  const [avatars, rankings, differentiator, competitors] = await Promise.all([
+    latestAvatars(uid, [productId]),
+    latestRankings(uid, [productId]),
+    getDifferentiator(uid, productId),
+    analyzedCompetitors(uid, productId),
+  ]);
   const avatar = avatars.get(productId);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
@@ -317,10 +344,9 @@ export async function anglesState(uid: string, productId: string): Promise<Angle
         }
       : undefined,
     ranking: ranking ? toRankingView(ranking, avatar?.status === "approved" ? avatar.id : undefined) : undefined,
-    briefs: {
-      primary: briefs.primary ? toBriefView(briefs.primary) : undefined,
-      secondary: briefs.secondary ? toBriefView(briefs.secondary) : undefined,
-    },
+    briefs: ranking ? chosenAngles(ranking).flatMap((a) => (briefs[a.slot] ? [toBriefView(briefs[a.slot]!, a)] : [])) : [],
+    differentiator: differentiator.value ? { versus: differentiator.value.versus, claim: differentiator.value.claim, confirmed: differentiator.confirmed } : null,
+    competitors: competitors.length,
   };
 }
 
@@ -346,7 +372,7 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
   const run = runs.get(productId);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  const approved = (["primary", "secondary"] as const).every((r) => briefs[r]?.generation === "succeeded" && briefs[r]?.status === "approved");
+  const approved = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
   const chosen = counts(productId);
   return {
     locked: !approved ? "angles" : imagesReady(chosen) ? null : "images",
@@ -354,7 +380,7 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
     components: toComponentViews(rows.get(productId) ?? []),
     images,
     facts,
-    stale: approved && isStale(run, briefs),
+    stale: approved && isStale(run, stampOfBriefs(ranking, briefs)),
   };
 }
 
@@ -369,14 +395,14 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
   const [conn, runs, concepts, rankings] = await Promise.all([getHiggsfieldConnection(uid), latestCreativeRuns(uid, [productId]), activeConcepts(uid, [productId]), latestRankings(uid, [productId])]);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  const anglesDone = (["primary", "secondary"] as const).every((r) => briefs[r]?.generation === "succeeded" && briefs[r]?.status === "approved");
+  const anglesDone = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
   const connected = conn?.status === "connected";
   const rows = concepts.get(productId) ?? [];
   const assets = await assetsFor(uid, rows.map((c) => c.id));
   const urls = await signedUrls(assets.map((a) => a.storage_path).filter((p): p is string => Boolean(p)));
   const run = runs.get(productId);
   return {
-    locked: !anglesDone ? "Aprueba los 2 desarrollos de Ángulos para crear anuncios." : !connected ? (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.") : null,
+    locked: !anglesDone ? "Aprueba los desarrollos de tus ángulos para crear anuncios." : !connected ? (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.") : null,
     connected,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     concepts: rows.map((c) => toConceptView(c, assets, urls)),
@@ -407,16 +433,16 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   const run = runs.get(productId);
   const connected = conn?.status === "connected";
   // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
-  const planned = (run?.input as { briefs?: { primary: string; secondary: string } } | undefined)?.briefs;
+  const planned = briefStampOf((run?.input as { briefs?: unknown } | undefined)?.briefs);
   return {
-    locked: briefStamp ? null : "Aprueba los 2 desarrollos de Ángulos para preparar las imágenes.",
+    locked: briefStamp ? null : "Aprueba los desarrollos de tus ángulos para preparar las imágenes.",
     connected,
     cannotGenerate: blocker ?? (connected ? null : (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar imágenes.")),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
     imageCostUsd: IMAGE_COST_USD,
-    stale: Boolean(run?.status === "succeeded" && shots.length && planned && briefStamp && `${planned.primary},${planned.secondary}` !== briefStamp),
+    stale: Boolean(run?.status === "succeeded" && shots.length && planned && briefStamp && planned !== briefStamp),
   };
 }
 

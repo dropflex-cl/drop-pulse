@@ -8,7 +8,7 @@ import { LISTING_FIELDS } from "./listing";
 export type FormField =
   | { kind: "text"; key: string; label: string; hint?: string; min?: number; max?: number; optional: boolean; multiline: boolean }
   | { kind: "icon"; key: string; label: string; optional: boolean }
-  | { kind: "choice"; key: string; label: string; options: { value: string; label: string }[]; optional: boolean }
+  | { kind: "choice"; key: string; label: string; options: { value: string; label: string }[]; optional: boolean; numeric?: boolean }
   | { kind: "review"; key: string; label: string; optional: boolean }
   | { kind: "cell"; key: string; label: string; options: { value: string; label: string }[]; max?: number }
   | { kind: "group"; key: string; label: string; fields: FormField[]; optional: boolean }
@@ -18,6 +18,9 @@ export type FormField =
 export const FIELD_LABELS: Record<string, string> = {
   ...LISTING_FIELDS,
   heading: "Título",
+  moments: "Momentos",
+  slot: "Ángulo",
+  bridge: "Remate",
   eyebrow: "Rótulo",
   heading_highlight: "Palabras en color",
   label: "Texto",
@@ -89,6 +92,7 @@ export const CHOICE_LABELS: Record<string, string> = {
   cuidado: "Cuidado",
   diferencial: "Qué lo hace distinto",
   resultados: "Resultados",
+  duracion: "Duración",
   garantia: "Garantía",
   otro: "Otro",
   rating: "Calificación",
@@ -169,6 +173,18 @@ function field(key: string, label: string, schema: z.ZodType, optional: boolean,
       const { min, max } = range(schema);
       return { kind: "text", key, label, hint: exampleOf(description), min, max, optional, multiline: (max ?? 0) > 90 };
     }
+    case "number": {
+      // Un entero chico con mínimo y máximo (el ángulo de un momento): se elige de una lista.
+      let js: { minimum?: number; maximum?: number } = {};
+      try {
+        js = toJSONSchema(schema, { unrepresentable: "any" }) as typeof js;
+      } catch {}
+      const lo = js.minimum ?? 1;
+      const hi = js.maximum ?? lo;
+      if (hi - lo > 10) throw new Error(`form: número sin rango chico en ${key}`);
+      const options = Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i)).map((v) => ({ value: v, label: key === "slot" ? `Ángulo ${v}` : v }));
+      return { kind: "choice", key, label, options, optional, numeric: true };
+    }
     default:
       throw new Error(`form: tipo ${def.type} sin campo`);
   }
@@ -183,7 +199,7 @@ export function emptyValue(f: FormField): unknown {
     case "icon":
       return "check";
     case "choice":
-      return f.options[0]?.value ?? "";
+      return f.numeric ? Number(f.options[0]?.value ?? 0) : (f.options[0]?.value ?? "");
     case "cell":
       return f.options[0]?.value ?? "yes";
     case "group":

@@ -4,7 +4,8 @@ import sharp from "sharp";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
-import { ANGLES, type AngleRole } from "@/lib/angles/catalog";
+import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
+import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
@@ -47,7 +48,7 @@ import { ProductApiError } from "@/lib/products/http";
 import { download as downloadFromLink } from "@/lib/products/images";
 import { latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { approvedBriefs } from "./copy";
+import { approvedAngles } from "./angles";
 import { onHiggsfieldError, productImageUrls, requireKey } from "./creatives";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeImage } from "@/lib/media/optimize";
@@ -95,30 +96,34 @@ async function inBatches<T>(items: T[], n: number, fn: (item: T) => Promise<void
 type RunInput = {
   market: Market;
   avatar_id: string;
-  briefs: Record<AngleRole, string>;
+  /** Los desarrollos aprobados con que se hizo (en orden de slot); las corridas de antes guardaban { primary, secondary }. */
+  briefs: BriefStampEntry[] | Record<string, string>;
 };
 
 /** Lo que el director necesita: sin esto la etapa no genera (sí deja elegir y subir). */
 export async function generationBlocker(userId: string, productId: string): Promise<string | null> {
-  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedBriefs(userId, productId)]);
+  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedAngles(userId, productId)]);
   if (!brief || avatars.get(productId)?.status !== "approved") return "Aprueba tu cliente ideal en Información base para generar imágenes.";
-  if (!briefs) return "Aprueba los 2 desarrollos de Ángulos para generar imágenes.";
+  if (!briefs) return "Aprueba los desarrollos de tus ángulos para generar imágenes.";
   return null;
 }
 
 async function loadContext(userId: string, productId: string) {
-  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedBriefs(userId, productId)]);
+  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedAngles(userId, productId)]);
   const avatar = avatars.get(productId);
   if (!avatar || avatar.status !== "approved" || !brief) throw new OptimizeError("Aprueba tu cliente ideal en Información base para generar imágenes.", 409);
-  if (!briefs) throw new OptimizeError("Aprueba los 2 desarrollos de Ángulos para generar imágenes.", 409);
+  if (!briefs) throw new OptimizeError("Aprueba los desarrollos de tus ángulos para generar imágenes.", 409);
   return { brief, avatar, briefs };
 }
 
-/** Los desarrollos aprobados hoy («primary,secondary»): si cambian, la galería quedó desactualizada. */
+/** Los desarrollos aprobados hoy («id1,id2,id3»): si cambian, la galería quedó desactualizada. */
 export async function approvedBriefStamp(userId: string, productId: string): Promise<string | null> {
-  const briefs = await approvedBriefs(userId, productId);
-  return briefs ? `${briefs.primary.id},${briefs.secondary.id}` : null;
+  const briefs = await approvedAngles(userId, productId);
+  return briefs ? briefs.map((b) => b.brief.id).join(",") : null;
 }
+
+/** La huella guardada en una corrida, en el mismo formato que approvedBriefStamp. */
+export const briefStampOf = (v: unknown): string | null => stampKey(v);
 
 /** Crea la corrida del director (queued). Tocar dos veces no cobra dos veces. */
 export async function startPageImages(userId: string, productId: string): Promise<{ run: PageImageRunRow; created: boolean }> {
@@ -138,7 +143,7 @@ export async function startPageImages(userId: string, productId: string): Promis
   const input: RunInput = {
     market,
     avatar_id: ctx.avatar.id,
-    briefs: { primary: ctx.briefs.primary.id, secondary: ctx.briefs.secondary.id },
+    briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })),
   };
   const { data, error } = await db.from("page_image_runs").insert({ product_id: productId, user_id: userId, status: "queued", input }).select("*").single();
   if (error?.code === "23505") {
@@ -164,23 +169,20 @@ export async function runPageImages(runId: string): Promise<void> {
     const key = await higgsfieldKey(r.user_id);
     if (!key) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
     const input = r.input;
-    const [brief, avatarRow, briefRows, images] = await Promise.all([
+    const [brief, avatarRow, angles, images] = await Promise.all([
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
-      db.from("angle_briefs").select("id, angle, role, payload").eq("user_id", r.user_id).in("id", [input.briefs.primary, input.briefs.secondary]),
+      anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
       productImageUrls(r.user_id, r.product_id, 3),
     ]);
     fail("Leer el cliente ideal", avatarRow.error);
-    fail("Leer los desarrollos", briefRows.error);
-    const byRole = Object.fromEntries((briefRows.data ?? []).map((b) => [b.role, b])) as Record<AngleRole, { angle: keyof typeof ANGLES; payload: PageImagesContext["primary"]["payload"] }>;
-    if (!brief || !avatarRow.data || !byRole.primary?.payload || !byRole.secondary?.payload) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los 2 desarrollos y reintenta.");
+    if (!brief || !avatarRow.data || !angles) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los desarrollos y reintenta.");
     if (!images.length) throw new AiStepError("no_image", "El producto no tiene una imagen base. Elige una en Información base.");
 
     const ctx: PageImagesContext = {
       brief,
       avatar: avatarRow.data.payload as CustomerAvatar,
-      primary: { name: ANGLES[byRole.primary.angle].name, payload: byRole.primary.payload },
-      secondary: { name: ANGLES[byRole.secondary.angle].name, payload: byRole.secondary.payload },
+      angles,
     };
     const blocks = await Promise.all(images.map((u) => imageBlock(u).catch(() => null)));
     const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);

@@ -63,8 +63,14 @@ export const RENDER = {
  */
 export const IMAGE_COST_USD = 0.1;
 
-/** Conceptos por corrida: 3 del ángulo principal, 2 del secundario y 1 de oferta para retargeting. */
+/**
+ * Conceptos por corrida: 6, repartidos entre los ángulos de testeo (2 por ángulo con 3 ángulos, 3 con
+ * 2), cada uno en su propio conjunto de anuncios. Sin concepto de retargeting: la oferta va como capa.
+ */
 export const CONCEPTS_PER_RUN = 6;
+
+/** Cuántos conceptos le tocan a cada ángulo. */
+export const conceptsPerAngle = (angles: number) => Math.floor(CONCEPTS_PER_RUN / Math.max(1, angles));
 
 /** Presets que no sirven para un producto sin reseñas reales (Social Proof pide cifras y testimonios). */
 export const PROOF_GROUP = "Social Proof";

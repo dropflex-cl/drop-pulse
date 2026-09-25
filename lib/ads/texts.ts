@@ -5,7 +5,7 @@
 import { DESCRIPTION_LIMIT, HEADLINE_LIMIT, MAX_HEADLINES, MAX_PRIMARY_TEXTS, PRIMARY_TEXT_LIMIT, type LaunchConfig } from "./schemas";
 
 export interface TextSources {
-  /** El gancho recomendado de cada desarrollo aprobado (principal primero). */
+  /** El gancho recomendado de cada ángulo aprobado, en orden de slot: el texto N es el del ángulo N. */
   hooks: string[];
   /** La frase de la oferta aprobada en la página («2 por $39.990 · Paga al recibir»). */
   offerLine: string | null;
@@ -22,14 +22,12 @@ const clip = (s: string, n: number) => ([...s].length <= n ? s : [...s].slice(0,
 export function defaultTexts(s: TextSources): Pick<LaunchConfig, "primary_texts" | "headlines" | "description"> {
   const offer = s.offerLine?.trim() ?? "";
   const close = offer ? (/recibir/i.test(offer) ? offer : `${offer} · ${COD}`) : COD;
-  const primary = s.hooks
-    .map((h) => h.trim())
-    .filter(Boolean)
-    .map((h) => clip(`${h}\n\n${close}`, PRIMARY_TEXT_LIMIT));
+  // Sin filtrar ni deduplicar: la posición es el ángulo (un gancho vacío queda con el cierre).
+  const primary = s.hooks.map((h) => h.trim()).map((h) => (h ? clip(`${h}\n\n${close}`, PRIMARY_TEXT_LIMIT) : close));
   const name = (s.shortName?.trim() || s.title.trim()).slice(0, 200);
   const headlines = [clip(name, HEADLINE_LIMIT), ...(offer && [...offer].length <= HEADLINE_LIMIT ? [offer] : [COD])];
   return {
-    primary_texts: [...new Set(primary.length ? primary : [close])].slice(0, MAX_PRIMARY_TEXTS),
+    primary_texts: (primary.length ? primary : [close]).slice(0, MAX_PRIMARY_TEXTS),
     headlines: [...new Set(headlines)].slice(0, MAX_HEADLINES),
     description: clip(s.freeShipping ? `Envío gratis · ${COD}` : COD, DESCRIPTION_LIMIT),
   };

@@ -1,6 +1,6 @@
 import "server-only";
-import type { AngleRole } from "@/lib/angles/catalog";
-import { fail, type BriefRow } from "@/lib/angles/store";
+import { stampChanged, type BriefStampEntry } from "@/lib/angles/approved";
+import { fail } from "@/lib/angles/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { ImagePick, PageComponentView, RunStatus } from "@/lib/types";
@@ -12,8 +12,11 @@ import type { ImagePick, PageComponentView, RunStatus } from "@/lib/types";
 const RUNNING_STALE_MS = 10 * 60 * 1000;
 const QUEUED_STALE_MS = 3 * 60 * 1000;
 
-/** Qué desarrollo de cada papel se usó (y cuándo se editó por última vez). */
-export type BriefStamp = Record<AngleRole, { id: string; edited_at: string | null }>;
+/**
+ * Qué desarrollos se usaron (en orden de slot, y cuándo se editó cada uno por última vez). Las
+ * escrituras de antes guardaban { primary, secondary }: lib/angles/approved.ts › stampEntries lee las dos.
+ */
+export type BriefStamp = BriefStampEntry[] | Record<string, BriefStampEntry>;
 
 export interface CopyRunRow {
   id: string;
@@ -142,14 +145,9 @@ export async function getComponentRow(userId: string, productId: string, compone
 /** La versión vigente de un componente: la del comerciante si la editó, si no la propuesta. */
 export const currentContent = (r: Pick<PageComponentRow, "content" | "proposal">): unknown => r.content ?? r.proposal;
 
-/** Los desarrollos cambiaron (otro, o editado) después de escribir la página. */
-export function isStale(run: Pick<CopyRunRow, "input"> | undefined, briefs: Partial<Record<AngleRole, Pick<BriefRow, "id" | "edited_at">>>): boolean {
-  const used = run?.input.briefs;
-  if (!used) return false;
-  return (["primary", "secondary"] as AngleRole[]).some((r) => {
-    const b = briefs[r];
-    return !b || b.id !== used[r]?.id || (b.edited_at ?? null) !== (used[r]?.edited_at ?? null);
-  });
+/** Los desarrollos cambiaron (otro, editado o un ángulo más) después de escribir la página. `current`: los aprobados hoy, en orden de slot. */
+export function isStale(run: Pick<CopyRunRow, "input"> | undefined, current: BriefStampEntry[]): boolean {
+  return stampChanged(run?.input.briefs, current);
 }
 
 export function toComponentViews(rows: PageComponentRow[]): PageComponentView[] {

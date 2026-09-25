@@ -39,6 +39,7 @@ export function productBriefSystem(market: Market): string {
     "- Mira cada imagen: di qué muestra y si sirve para anuncios. Una imagen con texto del proveedor (a menudo en chino), marca de agua o collage confuso no sirve.",
     "- Precio de venta, tachado, costo del proveedor y packs vienen en PRECIO Y OFERTA: son decisiones del comerciante. Cópialos tal cual en la ficha y no los preguntes. La OFERTA PRINCIPAL es el pack: en bundle_options va primero, y cuenta para qué le sirve al comprador llevar más de una unidad.",
     "- Si el producto se consume o se gasta (cápsulas, cremas, recargas) y no sabes cuánto trae ni cuánto se usa, pregúntalo en missing_inputs: sin ese dato no se puede decir cuánto dura cada pack.",
+    "- differentiator: en qué se diferencia el producto de lo que el comprador ya usa (alternatives_already_tried). Es lo primero que se decide antes de vender: si no puedes decir por qué alguien lo compraría en vez de lo que ya tiene, no hay ángulo que sirva. Sale de hechos (cómo funciona, cómo se usa, qué trae), nunca de adjetivos («mejor calidad», «premium»). Si con la información no se sostiene, null y la primera pregunta de missing_inputs es «¿En qué se diferencia de [lo que ya usa]?».",
     "- missing_inputs son preguntas para el comerciante, cortas y en tuteo, ordenadas por cuánto mejorarían los anuncios. No preguntes lo que ya está.",
   ].join("\n");
 }

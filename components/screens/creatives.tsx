@@ -194,7 +194,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
       />
     );
   } else {
-    const groups = (["primary", "secondary"] as const).map((role) => ({ role, items: concepts.filter((c) => c.angle === role) })).filter((g) => g.items.length);
+    const groups = ([1, 2, 3] as const).map((role) => ({ role, items: concepts.filter((c) => c.angle === role) })).filter((g) => g.items.length);
     body = (
       <div className="flex flex-col gap-6">
         {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos proponer otros anuncios." body={run.error ?? "Toca Proponer otros para reintentar."} /> : null}
@@ -205,7 +205,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
         {groups.map((g) => (
           <section key={g.role} aria-labelledby={`angulo-${g.role}`} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <RoleChip role={g.role === "primary" ? "principal" : "secundario"} short />
+              <RoleChip slot={g.role} short />
               <h2 id={`angulo-${g.role}`} className="text-heading">
                 {g.items[0].angleName}
               </h2>

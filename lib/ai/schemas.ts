@@ -6,7 +6,7 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 6;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 7;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
 export const CUSTOMER_AVATAR_PROMPT_VERSION = 4;
 
@@ -34,6 +34,14 @@ export const productBriefSchema = z.object({
     where_they_feel_it: maybe.describe("En qué momento o lugar concreto sienten el problema."),
   }),
   alternatives_already_tried: z.array(text).describe("Lo que el comprador suele usar hoy y le falla (categorías o prácticas, nunca marcas)."),
+  differentiator: z
+    .object({
+      versus: text.describe("Contra qué se diferencia: lo que el cliente usa hoy (categoría o práctica, nunca marca). Ej.: «su crema hidratante»."),
+      claim: text.describe("La diferencia en una frase que se sostiene con la información. Ej.: «la crema sella por encima; esto es el paso previo, en gotas, que le da algo que retener»."),
+      basis: text.describe("De qué dato sale (how_it_works, key_facts, modo de uso…)."),
+    })
+    .nullable()
+    .describe("En qué se diferencia el producto de lo que el cliente ya usa. null si con la información no se sostiene ninguna diferencia real (y entonces va primero en missing_inputs)."),
   price: z.number().nullable().describe("Precio de venta de PRECIO Y OFERTA, en la moneda del mercado."),
   unit_cost: z.number().nullable().describe("Precio de compra al proveedor de PRECIO Y OFERTA."),
   bundle_options: z.array(text).describe("Los packs de PRECIO Y OFERTA, uno por línea, p. ej. «2 unidades: $47.990 ($23.995 c/u, ahorra $9.990)»; más cualquier otra oferta que el comerciante mencione (kit, regalo)."),
@@ -69,6 +77,14 @@ export const productBriefSchema = z.object({
 });
 
 export type ProductBrief = z.infer<typeof productBriefSchema>;
+
+/** El diferenciador del producto (propuesto en la ficha, confirmado por el comerciante en `products.differentiator`). */
+export const differentiatorSchema = z.object({
+  versus: z.string().trim().min(3).max(120),
+  claim: z.string().trim().min(10).max(280),
+  basis: z.string().trim().max(280).default(""),
+});
+export type Differentiator = z.infer<typeof differentiatorSchema>;
 
 // ---------------------------------------------------------------- Cliente ideal
 // El avatar psicológico de dropflex base (docs/prompt-avatar.md: 7 secciones + fórmula), con lo que

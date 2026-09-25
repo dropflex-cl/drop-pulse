@@ -61,6 +61,7 @@ export const imageWithBenefits = defineComponent({
   ],
   rules: [
     "Cada beneficio cubre un eje distinto; no repetir la misma idea con otras palabras.",
+    "Al menos una tarjeta nombra el ingrediente, material o mecanismo que hace la diferencia del producto (su diferenciador).",
     "Título: 2 o 3 palabras, sustantivo + adjetivo concreto, sin punto final.",
     "Texto: una oración de 40 a 110 caracteres, característica real → beneficio en tu día, mencionando el momento de uso cuando aplique.",
     "Tono claro, cálido y concreto; tuteo; nada de relleno («de la más alta calidad»).",

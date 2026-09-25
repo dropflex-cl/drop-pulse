@@ -1,7 +1,7 @@
 // Textos del evento por producto (docs/spec-eventos.md › Copy de evento): una llamada chica que
 // adapta al evento la barra de aviso, la bajada y la etiqueta del precio, a partir de lo que YA
 // aprobó el comerciante. Avatar, ángulos y ficha son solo de lectura: el texto del evento mantiene
-// el ángulo principal y cambia el enfoque; nunca crea ángulos ni cambia a quién le habla la página.
+// el diferenciador del producto y cambia el enfoque; nunca crea ángulos ni cambia a quién le habla la página.
 // Se guarda aparte (event_copy): el copy de page_components nunca se toca. Puro.
 import * as z from "zod/v4";
 import { marketBlock } from "@/lib/ai/prompts";
@@ -43,8 +43,10 @@ export interface EventCopyContext {
   /** La ficha aprobada (lib/copy/listing.ts). */
   listing: { title: string; short_name: string; short_description: string; offer_line: string };
   avatarSummary: string;
-  /** El ángulo principal aprobado: se mantiene, solo cambia el enfoque. */
-  primaryAngle: { name: string; core_message: string };
+  /** El diferenciador del producto (lo común a todos los ángulos): se mantiene, solo cambia el enfoque. */
+  differentiator: { versus: string; claim: string } | null;
+  /** Los ángulos de venta aprobados (nombres), para no contradecirlos. */
+  angles: string[];
   pricing: PricingPlan;
   labels?: PackLabel[];
 }
@@ -56,7 +58,7 @@ export function eventCopySystem(market: Market): string {
     marketBlock(market),
     "",
     "REGLAS QUE NO SE NEGOCIAN",
-    "- No cambias a quién le habla la página ni el ángulo: mantienes el ÁNGULO PRINCIPAL y el resultado de la bajada aprobada, y solo cambias el enfoque hacia el evento (ej.: «ahorra tiempo en la cocina» → «el regalo que le ahorra tiempo»).",
+    "- No cambias a quién le habla la página ni el ángulo: mantienes el DIFERENCIADOR y el resultado de la bajada aprobada, y solo cambias el enfoque hacia el evento (ej.: «ahorra tiempo en la cocina» → «el regalo que le ahorra tiempo»).",
     "- Nada inventado: ni descuentos, ni porcentajes, ni cupos, ni «últimas unidades», ni plazos de entrega. La tienda muestra el % de ahorro real y la cuenta regresiva hasta la fecha real del evento.",
     "- Montos: solo los de PRECIO Y OFERTA, tal cual, y solo si hacen falta. Nunca un porcentaje.",
     "- Fechas: solo las del EVENTO que te damos.",
@@ -78,7 +80,8 @@ export function eventCopyUser(c: EventCopyContext, retry: string[] = []): string
     `- Oferta: ${c.listing.offer_line}`,
     "",
     `CLIENTE IDEAL (solo lectura): ${c.avatarSummary}`,
-    `ÁNGULO PRINCIPAL (solo lectura, se mantiene): ${c.primaryAngle.name}. ${c.primaryAngle.core_message}`,
+    `DIFERENCIADOR (solo lectura, se mantiene): ${c.differentiator ? `frente a ${c.differentiator.versus}, ${c.differentiator.claim}` : "el que dicen el título y la bajada aprobados"}`,
+    `Ángulos de venta que se testean (no los contradigas): ${c.angles.join(" · ") || "—"}`,
     "",
     pricingBlock(c.pricing, c.labels),
     "",

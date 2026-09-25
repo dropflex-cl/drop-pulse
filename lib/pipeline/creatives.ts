@@ -2,7 +2,8 @@ import "server-only";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
-import { ANGLES, type AngleRole } from "@/lib/angles/catalog";
+import { stampEntries } from "@/lib/angles/approved";
+import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
 import { CONCEPTS_PER_RUN, IMAGE_COST_USD, type Ratio } from "@/lib/creatives/catalog";
 import { QA_SYSTEM, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
@@ -29,7 +30,7 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { imagesForGeneration, latestAvatars, latestBrief, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { approvedBriefs } from "./copy";
+import { approvedAngles } from "./angles";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeForAds } from "@/lib/media/optimize";
 import { OptimizeError } from "./optimize";
@@ -97,11 +98,11 @@ async function loadContext(userId: string, productId: string) {
     latestAvatars(userId, [productId]),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
-    approvedBriefs(userId, productId),
+    approvedAngles(userId, productId),
   ]);
   const avatar = avatars.get(productId);
   if (!avatar || avatar.status !== "approved" || !brief || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y guarda el precio en Información base.", 409);
-  if (!briefs) throw new OptimizeError("Aprueba los 2 desarrollos de Ángulos para crear anuncios.", 409);
+  if (!briefs) throw new OptimizeError("Aprueba los desarrollos de tus ángulos para crear anuncios.", 409);
   return { brief, avatar, pricing: pricing as PricingPlan, labels: labels?.status === "approved" ? labels.payload : undefined, briefs };
 }
 
@@ -126,7 +127,7 @@ export async function startCreatives(userId: string, productId: string): Promise
       product_id: productId,
       user_id: userId,
       status: "queued",
-      input: { market, pricing: ctx.pricing, labels: ctx.labels ?? null, avatar_id: ctx.avatar.id, briefs: { primary: ctx.briefs.primary.id, secondary: ctx.briefs.secondary.id } },
+      input: { market, pricing: ctx.pricing, labels: ctx.labels ?? null, avatar_id: ctx.avatar.id, briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })) },
     })
     .select("*")
     .single();
@@ -146,7 +147,7 @@ export async function productImageUrls(userId: string, productId: string, max: n
   return rows.map((r) => urls.get(r.id)).filter((u): u is string => Boolean(u));
 }
 
-type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: Record<AngleRole, string> };
+type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: unknown };
 
 /** Ejecuta el generador. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runCreatives(runId: string): Promise<void> {
@@ -159,17 +160,15 @@ export async function runCreatives(runId: string): Promise<void> {
     const key = await higgsfieldKey(r.user_id);
     if (!key) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
     const input = r.input;
-    const [brief, avatarRow, briefRows, presets, images] = await Promise.all([
+    const [brief, avatarRow, angles, presets, images] = await Promise.all([
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
-      db.from("angle_briefs").select("id, angle, role, payload").eq("user_id", r.user_id).in("id", [input.briefs.primary, input.briefs.secondary]),
+      anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
       presetsFor(key),
       productImageUrls(r.user_id, r.product_id, 3),
     ]);
     fail("Leer el cliente ideal", avatarRow.error);
-    fail("Leer los desarrollos", briefRows.error);
-    const byRole = Object.fromEntries((briefRows.data ?? []).map((b) => [b.role, b])) as Record<AngleRole, { angle: keyof typeof ANGLES; payload: CreativesContext["primary"]["payload"] }>;
-    if (!brief || !avatarRow.data || !byRole.primary?.payload || !byRole.secondary?.payload) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los 2 desarrollos y reintenta.");
+    if (!brief || !avatarRow.data || !angles) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los desarrollos y reintenta.");
     if (!images.length) throw new AiStepError("no_image", "El producto no tiene una imagen base. Elige una en Información base.");
 
     const ctx: CreativesContext = {
@@ -177,8 +176,7 @@ export async function runCreatives(runId: string): Promise<void> {
       avatar: avatarRow.data.payload as CustomerAvatar,
       pricing: input.pricing,
       labels: input.labels ?? undefined,
-      primary: { name: ANGLES[byRole.primary.angle].name, payload: byRole.primary.payload },
-      secondary: { name: ANGLES[byRole.secondary.angle].name, payload: byRole.secondary.payload },
+      angles,
       presets,
       hasRealReviews: (brief.proof.real_reviews?.length ?? 0) > 0,
     };
@@ -186,7 +184,7 @@ export async function runCreatives(runId: string): Promise<void> {
     const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);
     if (!imageContent.length) throw new AiStepError("no_image", "No pudimos leer la imagen base del producto. Revísala en Información base.");
 
-    const facts = { presetIds: new Set(presets.map((p) => p.id)), pricing: input.pricing };
+    const facts = { presetIds: new Set(presets.map((p) => p.id)), pricing: input.pricing, slots: angles.map((a) => a.slot) };
     let problems: string[] = [];
     let result: Awaited<ReturnType<typeof generateStructured<typeof creativeConceptsSchema>>> | null = null;
     // Con la dirección de arte hay más reglas (largos por rol): un concepto fuera de medida no debería
@@ -214,9 +212,10 @@ export async function runCreatives(runId: string): Promise<void> {
         product_look: result.data.product_look,
         kit: result.data.kit,
         preset: p ? { id: p.id, name: p.name, group: p.group, cover: p.cover } : null,
-        sales_angle: byRole[c.angle].angle,
+        sales_angle: (angles.find((a) => a.slot === c.angle) ?? angles[0]).angle.frame,
+        angle_name: (angles.find((a) => a.slot === c.angle) ?? angles[0]).name,
       };
-      return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, position: i, angle_role: c.angle, family: c.family, payload };
+      return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, position: i, angle_slot: c.angle, family: c.family, payload };
     });
     const now = stamp();
     fail("Guardar los conceptos", (await db.from("creative_concepts").insert(rows)).error);
@@ -527,12 +526,25 @@ async function copyToAds(a: AssetRow): Promise<string> {
   const mime = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
   const path = `${a.user_id}/${a.product_id}/creative-${a.id}.${ext}`;
   fail("Copiar a Anuncios", (await db.storage.from(AD_MEDIA_BUCKET).upload(path, bytes, { contentType: mime, upsert: true })).error);
-  const concept = await db.from("creative_concepts").select("payload").eq("id", a.concept_id).single();
+  const concept = await db.from("creative_concepts").select("payload, angle_slot").eq("id", a.concept_id).single();
   fail("Leer el concepto", concept.error);
   const name = `${(concept.data?.payload as StoredConcept | undefined)?.name ?? "Creativo"} · ${a.ratio}`.slice(0, 120);
   const { data, error } = await db
     .from("ad_media")
-    .insert({ user_id: a.user_id, product_id: a.product_id, kind: "image", name, storage_path: path, mime_type: mime, width: a.width, height: a.height, ratio: a.ratio, size_bytes: bytes.byteLength, status: "ready" })
+    .insert({
+      user_id: a.user_id,
+      product_id: a.product_id,
+      kind: "image",
+      name,
+      storage_path: path,
+      mime_type: mime,
+      width: a.width,
+      height: a.height,
+      ratio: a.ratio,
+      size_bytes: bytes.byteLength,
+      status: "ready",
+      angle_slot: (concept.data as { angle_slot?: number } | null)?.angle_slot ?? null,
+    })
     .select("id")
     .single();
   fail("Agregar a Anuncios", error);

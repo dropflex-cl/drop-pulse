@@ -124,7 +124,7 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
         field.kind === "review"
           ? ctx.reviews.map((r) => ({ value: r.id, label: `${r.author} · ${r.rating}★ · ${r.body.length > 60 ? `${r.body.slice(0, 59)}…` : r.body}` }))
           : field.options;
-      const current = typeof value === "string" ? value : "";
+      const current = typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
       return (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={id} className="text-label">
@@ -136,7 +136,7 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
             value={current}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
-            onChange={(e) => set(e.target.value || undefined)}
+            onChange={(e) => set(e.target.value ? (field.kind === "choice" && field.numeric ? Number(e.target.value) : e.target.value) : undefined)}
             className={cn(control, "h-control")}
           >
             {field.optional || !current ? <option value="">{field.kind === "review" ? "Ninguna" : "Elige una"}</option> : null}
@@ -153,7 +153,7 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
     }
 
     case "icon": {
-      const current = typeof value === "string" ? value : "";
+      const current = typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
       return (
         <fieldset className="flex flex-col gap-1.5">
           <legend className="mb-1.5 text-label">{name}</legend>

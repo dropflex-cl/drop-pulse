@@ -11,6 +11,7 @@ import { gifStrip } from "./gif-strip/content";
 import { imageWithBenefits } from "./image-with-benefits/content";
 import { instaStory } from "./insta-story/content";
 import { inventory } from "./inventory/content";
+import { painBlock } from "./pain-block/content";
 import { reviewSlider } from "./review-slider/content";
 import { reviewStars } from "./review-stars/content";
 import { scrollingBenefits } from "./scrolling-benefits/content";
@@ -29,6 +30,7 @@ export const CATALOG: ConversionComponent[] = [
   reviewSlider,
   ugcSlider,
   // Secciones de la landing
+  painBlock,
   statsWithImage,
   scrollingBenefits,
   imageWithBenefits,

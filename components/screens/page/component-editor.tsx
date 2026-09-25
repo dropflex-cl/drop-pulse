@@ -39,9 +39,12 @@ export interface ComponentEditorProps {
   error?: string;
   onCancel: () => void;
   onSave: (patch: { content: unknown; images?: ImagePick[] }) => void;
+  /** «Volver a escribir con IA»: una escritura nueva solo de este componente (lo demás queda igual). */
+  onRewrite?: () => void;
+  rewriting?: boolean;
 }
 
-export function ComponentEditor({ view, facts, accent, catalog, imagesHref, saving, error, onCancel, onSave }: ComponentEditorProps) {
+export function ComponentEditor({ view, facts, accent, catalog, imagesHref, saving, error, onCancel, onSave, onRewrite, rewriting }: ComponentEditorProps) {
   const listing = view.component === LISTING;
   const def = componentById(view.component);
   const slots = def?.imageSlots ?? [];
@@ -97,6 +100,11 @@ export function ComponentEditor({ view, facts, accent, catalog, imagesHref, savi
           <p role="alert" className="text-label font-normal text-destructive">
             {error ?? (errors.size === 1 ? "Corrige el campo marcado para guardar." : `Corrige los ${errors.size} campos marcados para guardar.`)}
           </p>
+        ) : null}
+        {onRewrite ? (
+          <Button variant="ghost" icon="sparkle" className="self-start" loading={rewriting} disabled={saving} onClick={onRewrite}>
+            Volver a escribir con IA
+          </Button>
         ) : null}
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={onCancel} disabled={saving}>

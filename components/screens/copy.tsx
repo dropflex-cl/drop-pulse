@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Button, EmptyState, Icon, Notice, OfferPreview, StageMeter, StatusBadge, TopBar, notify, type MeterStage } from "@/components/df";
+import { Button, EmptyState, Icon, Notice, OfferPreview, StageMeter, StatusBadge, TopBar, notify, notifyUndo, type MeterStage } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
@@ -40,11 +40,16 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const [state, setState] = useState<CopyState>(data);
   const [accent, setAccent] = useState<string | null>(data.accent);
   const [editing, setEditing] = useState<string | null>(null);
+  const [askAll, setAskAll] = useState(false);
+  const rewrote = useRef<string | null>(null);
+  // «Deshacer» del toast: la función vigente, sin volver a armar el sondeo.
+  const restoreRef = useRef<(component: string) => void>(() => {});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [editError, setEditError] = useState<string>();
 
   const { components, run, facts, images } = state;
+  const editedNames = components.filter((c) => c.edited).map((c) => componentName(c.component));
   const writing = active(run?.status);
   const progress = copyProgress(components);
   const listing = components.find((c) => c.component === LISTING);
@@ -70,7 +75,10 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   useEffect(() => {
     if (wasWriting.current && !writing) {
       router.refresh();
-      if (run?.status === "succeeded") notify("La página está escrita: aprueba la ficha y elige los componentes");
+      const one = rewrote.current;
+      rewrote.current = null;
+      if (run?.status === "succeeded" && one) notifyUndo(`${componentName(one)}: nueva versión por revisar`, () => restoreRef.current(one));
+      else if (run?.status === "succeeded") notify("La página está escrita: aprueba la ficha y elige los componentes");
       else if (run?.status === "failed") notify(run.error ?? "No pudimos escribir la página. Toca Reintentar.");
     }
     wasWriting.current = writing;
@@ -86,19 +94,36 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   }, [writing, run, product.id, router]);
 
   // ---------------------------------------------------------------- Acciones
-  const write = async (redo: boolean) => {
-    setBusy(redo ? "redo" : "write");
+  const write = async (redo: boolean, mode?: "all" | { component: string }) => {
+    setBusy(mode === "all" ? "all" : mode ? `rewrite:${mode.component}` : redo ? "redo" : "write");
     setError(undefined);
+    setEditError(undefined);
     try {
-      setState(await productsApi.writeCopy(product.id, redo));
+      setState(await productsApi.writeCopy(product.id, redo, mode));
       setEditing(null);
+      setAskAll(false);
+      // Al terminar, «Deshacer» devuelve la versión anterior de ese componente.
+      rewrote.current = mode && mode !== "all" ? mode.component : null;
       router.refresh();
     } catch (e) {
-      setError(errorText(e, "No pudimos empezar a escribir la página. Intenta de nuevo."));
+      const message = errorText(e, "No pudimos empezar a escribir la página. Intenta de nuevo.");
+      if (mode && mode !== "all" && editing) setEditError(message);
+      else setError(message);
     } finally {
       setBusy(null);
     }
   };
+
+  restoreRef.current = (component: string) => void restore(component);
+  async function restore(component: string) {
+    try {
+      setState(await productsApi.restoreComponent(product.id, component));
+      notify(`${componentName(component)}: volvió la versión anterior`);
+      router.refresh();
+    } catch (e) {
+      setError(errorText(e, "No pudimos recuperar la versión anterior."));
+    }
+  }
 
   const update = async (component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean }, done?: string) => {
     setBusy(component);
@@ -347,6 +372,29 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         {listingCard}
         <PageAccent productId={product.id} initial={data.accent} onSaved={setAccent} />
         {cards}
+        {askAll ? (
+          <div role="group" aria-labelledby="reescribir-todo" className="flex flex-col gap-2.5 rounded-lg border bg-card p-4 lg:max-w-content">
+            <h3 id="reescribir-todo" className="text-heading">
+              ¿Reescribir toda la página?
+            </h3>
+            <p className="text-label font-normal text-muted-foreground">
+              Se reemplaza también lo que aprobaste; lo publicado en tu tienda no cambia hasta que vuelvas a publicar.
+              {editedNames.length ? ` Pierdes lo que editaste a mano en: ${editedNames.join(", ")}.` : ""}
+            </p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button size="sm" onClick={() => setAskAll(false)}>
+                Cancelar
+              </Button>
+              <Button size="sm" variant="primary" icon="sparkle" loading={busy === "all"} onClick={() => write(true, "all")}>
+                Reescribir toda la página
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="ghost" icon="sparkle" className="self-start" disabled={writing} onClick={() => setAskAll(true)}>
+            Reescribir toda la página
+          </Button>
+        )}
       </div>
     );
     const nextLabel = desktop ? "Continuar: Publicar" : "Publicar";
@@ -440,6 +488,8 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
               error={editError}
               onCancel={() => setEditing(null)}
               onSave={save}
+              rewriting={busy === `rewrite:${editingView.component}`}
+              onRewrite={writing ? undefined : () => write(true, { component: editingView.component })}
             />
           ) : null}
         </DrawerContent>

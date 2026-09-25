@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { approvedBriefs } from "@/lib/pipeline/copy";
+import { approvedAngles } from "@/lib/pipeline/angles";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection, type MetaConnection } from "@/lib/integrations/meta/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -64,6 +64,8 @@ export interface MediaRow {
   product_id: string;
   kind: "image" | "video";
   name: string;
+  /** El ángulo de testeo del que sale (creativos de la etapa Creativos); null en los subidos a mano. */
+  angle_slot?: number | null;
   storage_path: string;
   mime_type: string;
   width: number | null;
@@ -112,13 +114,14 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
     getShopifyConnection(userId),
     getPricingPlan(userId, product.id),
     merchantSettings(userId),
-    approvedBriefs(userId, product.id),
+    approvedAngles(userId, product.id),
     activeComponents(userId, [product.id]),
   ]);
   const { market } = await getMarket(userId, shop);
   const listingRow = (items.get(product.id) ?? []).find((r) => r.component === LISTING && r.status === "approved");
   const listing = listingRow ? (currentContent(listingRow) as Listing) : null;
-  const hooks = briefs ? (["primary", "secondary"] as const).map((r) => briefs[r].payload?.hooks[briefs[r].payload?.recommended_hook ?? 0]?.text ?? "") : [];
+  // Un texto por ángulo, en orden de slot: el anuncio de un creativo del ángulo N lleva el texto N (lib/ads/plan.ts).
+  const hooks = briefs ? briefs.map((b) => b.brief.payload?.hooks[b.brief.payload?.recommended_hook ?? 0]?.text ?? "") : [];
   const cpaLimit = pricing?.maxCpa && pricing.maxCpa > 0 ? pricing.maxCpa : pricing?.purchaseCostLimit && pricing.purchaseCostLimit > 0 ? pricing.purchaseCostLimit : null;
   return {
     meta,

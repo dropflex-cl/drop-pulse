@@ -7,7 +7,6 @@ import { after } from "next/server";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { recordAiGeneration } from "@/lib/ai/track";
-import { ANGLES } from "@/lib/angles/catalog";
 import { fail } from "@/lib/angles/store";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { allowedAmounts } from "@/lib/copy/schemas";
@@ -15,7 +14,9 @@ import { activeComponents, currentContent } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { DEFAULT_MARKET, type Market } from "@/lib/market";
-import { approvedBriefs } from "@/lib/pipeline/copy";
+import { approvedAngles } from "@/lib/pipeline/angles";
+import { getDifferentiator } from "@/lib/competitors/store";
+import { testAngleName } from "@/lib/angles/catalog";
 import { OptimizeError } from "@/lib/pipeline/optimize";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
@@ -172,23 +173,25 @@ export function approvedCopies(rows: EventCopyRow[]): ApprovedEventCopy[] {
 
 const dateLabel = (iso: string, timeZone: string) => new Intl.DateTimeFormat("es-CL", { timeZone, day: "numeric", month: "long" }).format(new Date(iso));
 
-/** Lo que necesita la llamada: la ficha aprobada, el cliente ideal, el ángulo principal y el precio. */
+/** Lo que necesita la llamada: la ficha aprobada, el cliente ideal, el diferenciador, los ángulos y el precio. */
 async function copyContext(userId: string, productId: string) {
-  const [components, avatars, briefs, pricing, labels] = await Promise.all([
+  const [components, avatars, briefs, pricing, labels, differentiator] = await Promise.all([
     activeComponents(userId, [productId]).then((m) => m.get(productId) ?? []),
     latestAvatars(userId, [productId]),
-    approvedBriefs(userId, productId),
+    approvedAngles(userId, productId),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
+    getDifferentiator(userId, productId),
   ]);
   const listingRow = components.find((c) => c.component === LISTING && c.status === "approved");
   const avatar = avatars.get(productId);
   if (!listingRow) throw new OptimizeError("Aprueba la ficha en Página del producto: los textos del evento parten de ella.", 409);
-  if (!avatar || avatar.status !== "approved" || !briefs || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y los 2 desarrollos de Ángulos primero.", 409);
+  if (!avatar || avatar.status !== "approved" || !briefs || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y los desarrollos de tus ángulos primero.", 409);
   return {
     listing: currentContent(listingRow) as Listing,
     avatarSummary: (avatar.payload as CustomerAvatar).summary,
-    primaryAngle: { name: ANGLES[briefs.primary.angle].name, core_message: briefs.primary.payload!.core_message },
+    differentiator: differentiator.value ? { versus: differentiator.value.versus, claim: differentiator.value.claim } : null,
+    angles: briefs.map((b) => testAngleName({ ...b.angle, frame: b.brief.angle })),
     pricing,
     labels: labels?.status === "approved" ? labels.payload : undefined,
   };

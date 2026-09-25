@@ -21,7 +21,7 @@ Segunda mitad de la landing, después de beneficios y antes de reseñas o FAQ. E
 
 | Origen | Qué |
 |---|---|
-| Metafield `dropflex.comparison_table` (IA, aprobado) | `heading`, `us_label`, `other_labels[1..2]`, `rows[4..7]` (`feature`, `us`, `others[]`, `basis`), `footnote?` |
+| Metafield `dropflex.comparison_table` (IA, aprobado) | `heading`, `us_label`, `other_labels[1..2]`, `rows[4..6]` (`feature`, `us`, `others[]`, `basis`), `footnote?` |
 | Ajustes de la sección | título, nombre y logo de nuestra columna, competidores 1 y 2, nota al pie, cursiva, cruces en rojo, latido, fondo, espacios; producto fuera de la ficha |
 | Bloques «Fila» (máx. 8) | respaldo del editor: característica, valor y texto para nosotros y cada competidor |
 | `shop.metafields.dropflex.logistics` (real) | `handling_days` + `transit_days_min/max` → `{min}` y `{max}` |
@@ -44,15 +44,20 @@ Una fila cuyo texto conserva un token sin dato real no se muestra. Sin filas vá
 - **Opción dominada:** la columna de la competencia hace de señuelo; nadie la elige.
 - **Conteo:** checks contra cruces se entienden sin leer; el veredicto es inmediato.
 - **Saliencia:** el pilar de color lleva la mirada primero a nuestra columna.
-- **Enemigo común sin nombre:** «Genéricos» es una categoría; no se ataca a nadie concreto.
-- **Reducción de riesgo:** filas de pago al recibir, envío y cambios vuelven la tabla un argumento de seguridad.
+- **Diferencia frente a lo que ya probó:** la columna rival es lo que el cliente ya usa («Crema más espesa», «Colágeno para tomar»); la tabla explica por qué esto es distinto y vale lo que cuesta.
+- **Enemigo común sin nombre:** la alternativa es una categoría; no se ataca a nadie concreto.
+- **Valor antes que servicio:** las filas de producto van primero. El pago al recibir y el envío ya los dicen los componentes de compra; en la tabla solo entran cuando se compara contra canales (dónde comprar).
 
 La referencia marcaba cruz en todo, incluso en lo que la competencia sí tiene, animaba la columna en bucle infinito y usaba `div` sin semántica ni texto para los íconos. Aquí hay «parcial», al menos una fila honesta a favor de la competencia, latido opcional y finito y una tabla accesible.
 
 ## Reglas del copy (IA)
 
 - Título: «[Producto] vs. [categoría genérica]» o «¿Por qué elegir [producto]?», ≤ 40 caracteres.
-- Competidores: 1 o 2 categorías genéricas («Genéricos», «Tiendas internacionales», «Tienda física»), ≤ 24. Nunca una marca.
-- Filas: 4 a 7, 2 a 5 palabras en positivo, ≤ 30; mezcla 2-3 de producto y 2-3 de compra COD. `basis` dice qué dato real sostiene nuestro valor.
+- Competidores (`other_labels`): 1 o 2, ≤ 24. Lo que el cliente **ya probó** (`alternatives_already_tried` del producto o el enemigo del ángulo «Enemigo común»), como categoría: «Crema más espesa», «Colágeno para tomar». «Genéricos» solo si no hay una alternativa previa clara. Nunca una marca.
+- Filas: **4 a 6**, 2 a 5 palabras en positivo, ≤ 30. `basis` dice qué dato real sostiene nuestro valor.
+  - **Al menos 3 de producto** (`basis: "spec"`: qué hace, dónde actúa, cómo entra en la rutina) y **van primero**.
+  - Filas de compra (`policy` o `service`: pago al recibir, envío, cambios) **solo si las otras columnas son canales o tiendas** («Tiendas internacionales», «Tienda física», «Marketplaces»); contra una categoría de producto no se escriben. Lo decide `isChannelLabel` (en `content.ts`).
+  - Validado en el esquema: filas `spec` ≥ 3, `spec` antes que las demás, y filas de compra solo con columnas de canal.
+- Dos tipos de tabla: **producto contra alternativas** (solo filas de producto) y **dónde comprar** (canales: 3 filas de producto y después las de compra).
 - Valores: `yes`, `no`, `partial` o `{ text }` corto; plazos con `{min}–{max}`. Al menos una fila con `yes` o `partial` en la competencia.
 - **Prohibido:** marcas de terceros, «el mejor», «el único», «certificado», claims de salud, cifras escritas, decir que la competencia es falsa o insegura (Ley 19.496 arts. 28 y 33; Ley 20.169). El comerciante aprueba la tabla antes de publicarla.

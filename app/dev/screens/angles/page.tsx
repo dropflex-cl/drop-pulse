@@ -7,7 +7,7 @@ import { summarizeAiCost } from "@/lib/ai/costs";
 import { fixture } from "./fixture";
 
 // Verificación visual de Ángulos con datos de ejemplo:
-// ?state=locked|start|evaluating|failed|ranking|developing|review|approved
+// ?state=locked|nodiff|start|evaluating|failed|ranking|developing|review|approved|legacy
 // Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
 // la API real y fallan sin datos: aquí solo importa cómo se ve.
 async function Screen({ searchParams }: { searchParams: Promise<{ state?: string }> }) {

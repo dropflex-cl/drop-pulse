@@ -1,11 +1,36 @@
-// Los 6 ángulos de venta del orquestador (agentes-creativos/angle-router.md) y cómo se puntúan: los
-// criterios con su peso y la penalización fuerte de cada uno. Puro: lo usan el prompt del orquestador,
-// el cálculo del puntaje (score.ts), la pantalla y los tests.
+// Las 6 formas de contar un ángulo de venta (agentes-creativos/angle-router.md) y cómo se puntúan:
+// los criterios con su peso y la penalización fuerte de cada una. Desde docs/spec-angulos-testeo.md
+// un ÁNGULO es el mensaje (qué dolor o deseo, para quién, con qué promesa) y estas 6 son su FORMA
+// (`frame`). El comerciante testea 2 o 3 ángulos separados, uno por conjunto de anuncios.
+// Puro: lo usan los prompts, el puntaje (score.ts), la pantalla y los tests.
 
 export const SALES_ANGLES = ["authority", "common_enemy", "unique_mechanism", "age_identity", "personal_story", "offer"] as const;
 export type SalesAngle = (typeof SALES_ANGLES)[number];
 
-export type AngleRole = "primary" | "secondary";
+/** Posición de un ángulo de testeo (1, 2 o 3): un conjunto de anuncios por ángulo. */
+export type AngleSlot = 1 | 2 | 3;
+export const ANGLE_SLOTS: AngleSlot[] = [1, 2, 3];
+/** Ángulos que se testean a la vez (la mentoría: 3 en una misma campaña). Con 2 también funciona. */
+export const TEST_ANGLES = 3;
+export const MIN_TEST_ANGLES = 2;
+/** Candidatos que propone el orquestador. */
+export const ANGLE_CANDIDATES = 5;
+
+/** Un ángulo de testeo elegido por el comerciante (angle_rankings.chosen_angles). */
+export interface TestAngle {
+  slot: AngleSlot;
+  /** La forma con que se cuenta (una de las 6). */
+  frame: SalesAngle;
+  /** Nombre corto del ángulo («La crema sella»). Vacío en los elegidos antes de los ángulos de testeo. */
+  title: string;
+  pain_or_desire: string;
+  segment: string;
+  promise: string;
+  /** El momento del cliente ideal que abre el anuncio y el bloque de dolor de la página. */
+  trigger_moment: string;
+  /** Qué hace la competencia con este ángulo y por qué este es distinto. */
+  competition: string;
+}
 
 export interface Criterion {
   key: string;
@@ -112,4 +137,8 @@ export const angleName = (a: SalesAngle) => ANGLES[a].name;
 /** Los criterios que puntúa el modelo, en el orden de scores. */
 export const modelCriteria = (a: SalesAngle) => ANGLES[a].criteria.filter((c) => !c.bySystem);
 
-export const ROLE_LABEL: Record<AngleRole, string> = { primary: "principal", secondary: "secundario" };
+/** El nombre que ve el comerciante: el título del ángulo o, en los antiguos, el de su forma. */
+export const testAngleName = (a: Pick<TestAngle, "title" | "frame">) => a.title.trim() || ANGLES[a.frame].name;
+
+/** «Ángulo 1 · La crema sella». */
+export const slotLabel = (slot: number) => `Ángulo ${slot}`;

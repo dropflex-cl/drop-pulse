@@ -50,5 +50,6 @@ La referencia leía «X icon» en cada ícono, cargaba una fuente decorativa ext
 - **Beneficios:** 4 o 6, cada uno de un eje distinto (función principal, comodidad, material, facilidad de uso, versatilidad, cuidado).
   - `title`: 2 o 3 palabras, sustantivo + adjetivo concreto («Tela respirable»), ≤ 24 caracteres, sin punto final.
   - `body`: una oración de 40 a 110 caracteres, característica real → beneficio en tu día, con el momento de uso cuando aplique.
+- **Al menos una tarjeta nombra el ingrediente, material o mecanismo que hace la diferencia del producto** (su diferenciador): en Deep Collagen, «Colágeno y péptidos».
 - Solo características que están en la ficha del producto; sin números escritos (las medidas exactas quedan en la ficha).
 - **Prohibido:** superlativos, porcentajes, «garantizado» sin remitir a la garantía real, claims de salud o terapéuticos («alivia dolores», «corrige la columna»), «aprobado por especialistas», certificaciones sin respaldo (Ley 19.496, art. 28).

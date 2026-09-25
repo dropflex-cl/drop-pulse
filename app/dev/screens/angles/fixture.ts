@@ -1,8 +1,9 @@
 // Datos de ejemplo para /dev/screens/angles (textos de design-system/reference/bundle.js: ANG, SUG, DEV,
-// con los 6 ángulos del orquestador). No se usan fuera de desarrollo.
+// con las 6 formas del orquestador y los ángulos de testeo de docs/spec-angulos-testeo.md). No se usan
+// fuera de desarrollo.
 import { productImage } from "@/lib/mock/images";
 import { productPosition, type AngleFacts } from "@/lib/products/stages";
-import type { AngleBriefView, AngleOption, AngleRankingView, ProductAngles } from "@/lib/types";
+import type { AngleBriefView, AngleCandidateView, AngleOption, AngleRankingView, ProductAngles, TestAngleView } from "@/lib/types";
 import { AVATAR } from "../base/fixture";
 
 const NOW = "2026-09-24T12:00:00Z";
@@ -91,38 +92,126 @@ const ANGLES: AngleOption[] = [
   },
 ];
 
+const CANDIDATES: AngleCandidateView[] = [
+  {
+    index: 0,
+    title: "No es la silla",
+    painOrDesire: "La espalda cargada a las 4 de la tarde aunque la silla sea buena",
+    segment: "Quien ya cambió de silla y sigue con dolor",
+    promise: "Los hombros vuelven atrás sin pensar en la postura",
+    frame: "unique_mechanism",
+    frameName: "Mecanismo único",
+    triggerMoment: "Estirarse en la silla a media tarde con el cuello tenso",
+    competition: "Las 4 tiendas venden «postura perfecta»; ninguna habla de la causa.",
+    competitorsUsing: 0,
+    score: 94,
+    frameScore: 84,
+    competitionDelta: 10,
+  },
+  {
+    index: 1,
+    title: "9 horas frente al computador",
+    painOrDesire: "Terminar la jornada encorvado y con los hombros adelante",
+    segment: "Oficinistas de 30 a 45 que trabajan sentados",
+    promise: "Verse firme en las reuniones otra vez",
+    frame: "age_identity",
+    frameName: "Edad e identidad",
+    triggerMoment: "Verse encorvado en la cámara de una videollamada",
+    competition: "Una tienda habla de oficinistas, sin vocero del grupo.",
+    competitorsUsing: 1,
+    score: 71,
+    frameScore: 71,
+    competitionDelta: 0,
+  },
+  {
+    index: 2,
+    title: "Adiós a la faja rígida",
+    painOrDesire: "Probó fajas que aprietan la cintura y no cambiaron nada",
+    segment: "Quien ya compró una faja y la dejó en el cajón",
+    promise: "Sostiene los hombros, no la cintura",
+    frame: "common_enemy",
+    frameName: "Enemigo común",
+    triggerMoment: "Sacar la faja del cajón y volver a guardarla",
+    competition: "Nadie ataca la faja: todos la venden como alternativa.",
+    competitorsUsing: 0,
+    score: 72,
+    frameScore: 62,
+    competitionDelta: 10,
+  },
+  {
+    index: 3,
+    title: "Uno para la casa y otro para la oficina",
+    painOrDesire: "Olvidarlo en la casa justo el día que más lo necesita",
+    segment: "Quien trabaja híbrido",
+    promise: "Siempre a mano, en los dos lugares",
+    frame: "offer",
+    frameName: "Oferta",
+    triggerMoment: "Llegar a la oficina y darse cuenta de que lo dejó",
+    competition: "3 tiendas empujan el 2x1 como gancho principal.",
+    competitorsUsing: 3,
+    score: 40,
+    frameScore: 55,
+    competitionDelta: -15,
+  },
+  {
+    index: 4,
+    title: "Lo que usa un kinesiólogo",
+    painOrDesire: "Querer una recomendación de alguien que sepa",
+    segment: "Quien desconfía de lo que ve en anuncios",
+    promise: "La misma idea que te daría un profesional",
+    frame: "authority",
+    frameName: "Autoridad (experto)",
+    triggerMoment: "Buscar en Google «postura correcta oficina»",
+    competition: "Ninguna tienda tiene un experto real.",
+    competitorsUsing: 0,
+    score: 31,
+    frameScore: 21,
+    competitionDelta: 10,
+  },
+];
+
+const chosenOf = (c: AngleCandidateView, slot: 1 | 2 | 3): TestAngleView => ({
+  slot,
+  frame: c.frame,
+  frameName: c.frameName,
+  title: c.title,
+  name: c.title,
+  painOrDesire: c.painOrDesire,
+  segment: c.segment,
+  promise: c.promise,
+  triggerMoment: c.triggerMoment,
+  competition: c.competition,
+});
+
 function ranking(state: string): AngleRankingView | undefined {
-  if (state === "start" || state === "locked") return undefined;
+  if (state === "start" || state === "locked" || state === "nodiff") return undefined;
+  const ready = state !== "evaluating" && state !== "failed";
   const base: AngleRankingView = {
     id: "rk1",
     status: state === "evaluating" ? "running" : state === "failed" ? "failed" : "succeeded",
     error: state === "failed" ? "La IA no respondió. Intenta de nuevo en un momento." : undefined,
     createdAt: NOW,
-    angles: state === "evaluating" || state === "failed" ? [] : ANGLES,
-    suggested: state === "evaluating" || state === "failed" ? undefined : { primary: "unique_mechanism", secondary: "age_identity" },
-    combos: [
-      {
-        primary: "unique_mechanism",
-        secondary: "age_identity",
-        text: "El gancho dice que el dolor no es de la silla sino de cómo se sienta; la identidad lo remata con oficinistas que pasan 9 horas frente al computador.",
-      },
-      { primary: "unique_mechanism", secondary: "common_enemy", text: "El mecanismo explica la causa real y el enemigo común desarma las fajas rígidas que ya probó." },
-    ],
+    angles: ready ? ANGLES : [],
+    candidates: ready ? CANDIDATES : [],
+    suggested: ready ? [0, 2, 1] : [],
+    competitors: 4,
     missing: [
       { text: "Reseñas reales: subirían Historia personal hasta ~70", fix: "reviews" },
       { text: "Una fecha comercial real (CyberDay, Día del Padre): subiría Oferta" },
     ],
     avatarChanged: false,
   };
-  if (["developing", "review", "approved", "changing"].includes(state)) return { ...base, chosen: { primary: "unique_mechanism", secondary: "age_identity" }, confirmedAt: NOW };
+  if (state === "legacy") return { ...base, candidates: [], suggested: [], chosen: [chosenOf({ ...CANDIDATES[0], title: "" }, 1), chosenOf({ ...CANDIDATES[1], title: "" }, 2)].map((a) => ({ ...a, name: a.frameName })), confirmedAt: NOW };
+  if (["developing", "review", "approved", "changing"].includes(state)) return { ...base, chosen: [chosenOf(CANDIDATES[0], 1), chosenOf(CANDIDATES[2], 2), chosenOf(CANDIDATES[1], 3)], confirmedAt: NOW };
   return base;
 }
 
 const PRIMARY: AngleBriefView = {
   id: "b1",
   angle: "unique_mechanism",
-  name: "Mecanismo único",
-  role: "primary",
+  name: "No es la silla",
+  frameName: "Mecanismo único",
+  slot: 1,
   generation: "succeeded",
   status: "generado",
   createdAt: NOW,
@@ -156,8 +245,9 @@ const PRIMARY: AngleBriefView = {
 const SECONDARY: AngleBriefView = {
   id: "b2",
   angle: "age_identity",
-  name: "Edad e identidad",
-  role: "secondary",
+  name: "9 horas frente al computador",
+  frameName: "Edad e identidad",
+  slot: 3,
   generation: "succeeded",
   status: "generado",
   createdAt: NOW,
@@ -176,11 +266,27 @@ const SECONDARY: AngleBriefView = {
   },
 };
 
+const ENEMY: AngleBriefView = {
+  ...PRIMARY,
+  id: "b3",
+  angle: "common_enemy",
+  name: "Adiós a la faja rígida",
+  frameName: "Enemigo común",
+  slot: 2,
+  content: {
+    ...PRIMARY.content!,
+    coreMessage: "La faja aprieta la cintura; el problema está en los hombros.",
+    hooks: ["Una faja aprieta la cintura. Tu espalda se carga en los hombros.", "Guardé 3 fajas en el cajón antes de entender esto.", "Deja de apretar la cintura para arreglar la espalda."],
+    recommendedHook: 0,
+  },
+};
+
 function briefs(state: string): ProductAngles["briefs"] {
-  if (state === "developing") return { primary: PRIMARY, secondary: { ...SECONDARY, generation: "running", content: undefined } };
-  if (state === "review" || state === "changing") return { primary: { ...PRIMARY, status: "aprobado" }, secondary: SECONDARY };
-  if (state === "approved") return { primary: { ...PRIMARY, status: "aprobado" }, secondary: { ...SECONDARY, status: "aprobado" } };
-  return {};
+  if (state === "developing") return [PRIMARY, { ...ENEMY, generation: "running", content: undefined }, { ...SECONDARY, generation: "running", content: undefined }];
+  if (state === "review" || state === "changing") return [{ ...PRIMARY, status: "aprobado" }, ENEMY, SECONDARY];
+  if (state === "approved") return [{ ...PRIMARY, status: "aprobado" }, { ...ENEMY, status: "aprobado" }, { ...SECONDARY, status: "aprobado" }];
+  if (state === "legacy") return [{ ...PRIMARY, name: "Mecanismo único", status: "aprobado" }, { ...SECONDARY, name: "Edad e identidad", slot: 2, status: "aprobado" }];
+  return [];
 }
 
 export function fixture(state: string): ProductAngles {
@@ -188,8 +294,8 @@ export function fixture(state: string): ProductAngles {
   const b = briefs(state);
   const facts: AngleFacts | null = r
     ? {
-        ranking: { status: r.status, error: r.error, confirmed: !!r.chosen },
-        briefs: Object.values(b).map((x) => ({ role: x.role, name: x.name, status: x.status, generation: x.generation })),
+        ranking: { status: r.status, error: r.error, confirmed: !!r.chosen, chosen: r.chosen?.length ?? 0 },
+        briefs: b.map((x) => ({ slot: x.slot, name: x.name, status: x.status, generation: x.generation })),
       }
     : null;
   const pos = productPosition({
@@ -219,5 +325,10 @@ export function fixture(state: string): ProductAngles {
     avatar: { summary: AVATAR.summary, tags: ["30-45 años", "Oficinista", "Santiago y otras ciudades grandes"], approved: state !== "locked" },
     ranking: r,
     briefs: b,
+    differentiator:
+      state === "nodiff"
+        ? { versus: "una faja o una silla ergonómica", claim: "Lleva los hombros atrás con un ajuste cruzado bajo la ropa", confirmed: false }
+        : { versus: "una faja o una silla ergonómica", claim: "Lleva los hombros atrás con un ajuste cruzado bajo la ropa, en vez de apretar la cintura", confirmed: true },
+    competitors: 4,
   };
 }

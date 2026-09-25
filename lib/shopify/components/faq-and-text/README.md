@@ -52,6 +52,8 @@ La referencia decía «miles de clientes confían» sin dato y usaba caras ilust
 - Título: tranquilidad + «tus dudas/preguntas», 3 a 7 palabras, ≤ 50; `heading_highlight` es 1-2 palabras literales del título.
 - Preguntas: como las pensaría el comprador, en primera persona y coloquiales, ≤ 70, terminan en «?».
 - Respuestas: la primera frase responde directo («Sí.», «Entre {min} y {max} días hábiles.»), luego el detalle y opcionalmente la red de seguridad; ≤ 280.
-- Cobertura mínima `envio`, `uso` y `garantia`; `pago_cod` si la tienda cobra al recibir. Orden: pago, envío, uso, talla, diferencial, garantía.
+- Cobertura mínima `envio`, `uso` y `garantia`; `pago_cod` si la tienda cobra al recibir. Orden: pago, envío, uso, duración, talla, cuidado, diferencial, resultados, garantía.
+- **Duración** (`duracion`, «¿Cuánto me dura?»): va siempre que el producto traiga rendimiento o duración. Usa el rendimiento que dio el comerciante y explica los packs como meses de uso («El pack de 3 frascos te alcanza para 3 a 4 meses de rutina»). Es la **única respuesta que puede llevar dígitos**, y solo los de los datos del producto (la app los compara con `key_facts` y `base_info`, `lib/copy/facts.ts`); el esquema de este componente exige el resto sin números.
+- **Resultados** (`resultados`): en belleza y bienestar se incluye, condicionado al uso constante y sin plazo.
 - Prueba social solo con `{rating}`/`{count}`.
-- **Prohibido:** escribir plazos, días, costos o cantidades (van como tokens); claims de salud; «el mejor», «100 % garantizado», «certificado»; inventar materiales o cuidados; presentar la garantía legal como beneficio extra (Ley 19.496 arts. 28 y 33).
+- **Prohibido:** escribir plazos, días, costos o cantidades (van como tokens; la excepción es el rendimiento en la respuesta de duración); inventar el rendimiento o prometer resultados en un plazo; claims de salud; «el mejor», «100 % garantizado», «certificado»; inventar materiales o cuidados; presentar la garantía legal como beneficio extra (Ley 19.496 arts. 28 y 33).

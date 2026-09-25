@@ -133,3 +133,56 @@ export function potentialScore(angle: "authority" | "personal_story", evals: Ang
   const criteria = { ...evals[angle].criteria, [key]: 4 };
   return scoreAngle(angle, criteria, false).score;
 }
+
+// ---------------------------------------------------------------- Ángulos de testeo
+
+/** Bono si ninguna tienda de la competencia usa el ángulo; castigo si 3 o más lo usan (spec §4.2). */
+export const COMPETITION_BONUS = 10;
+export const COMPETITION_PENALTY = 15;
+export const CROWDED_FROM = 3;
+/** Como máximo 2 ángulos sugeridos con la misma forma: se testean mensajes distintos. */
+export const MAX_SAME_FRAME = 2;
+
+export interface CandidateInput {
+  frame: SalesAngle;
+  competitors_using: number;
+}
+
+export interface ScoredCandidate {
+  /** Posición en test_angles del orquestador. */
+  index: number;
+  score: number;
+  /** El puntaje de su forma (del ranking de las 6). */
+  frameScore: number;
+  /** Lo que sumó o restó la competencia (0 sin competencia cargada). */
+  competition: number;
+  /** Tiendas que ya lo usan, acotado a las cargadas. */
+  competitorsUsing: number;
+}
+
+/**
+ * Puntúa los candidatos con el puntaje de su forma y la competencia, y sugiere los `take` mejores
+ * con como máximo MAX_SAME_FRAME de la misma forma. `competitors`: tiendas analizadas (0 = sin datos).
+ */
+export function rankCandidates(candidates: CandidateInput[], frames: ScoredAngle[], competitors: number, take = 3): { candidates: ScoredCandidate[]; suggested: number[] } {
+  const frameScore = new Map(frames.map((f) => [f.angle, f.score]));
+  const scored = candidates.map((c, index) => {
+    const using = competitors > 0 ? clamp(Math.round(Number(c.competitors_using) || 0), 0, competitors) : 0;
+    const competition = competitors > 0 ? (using === 0 ? COMPETITION_BONUS : using >= CROWDED_FROM ? -COMPETITION_PENALTY : 0) : 0;
+    const base = frameScore.get(c.frame) ?? 0;
+    return { index, score: clamp(base + competition, 0, 100), frameScore: base, competition, competitorsUsing: using };
+  });
+  const order = [...scored].sort((a, b) => b.score - a.score || a.index - b.index);
+  const suggested: number[] = [];
+  const perFrame = new Map<SalesAngle, number>();
+  for (const s of order) {
+    if (suggested.length >= take) break;
+    const f = candidates[s.index].frame;
+    if ((perFrame.get(f) ?? 0) >= MAX_SAME_FRAME) continue;
+    perFrame.set(f, (perFrame.get(f) ?? 0) + 1);
+    suggested.push(s.index);
+  }
+  // Si la regla de variedad dejó huecos (pocos candidatos), se completa en orden.
+  for (const s of order) if (suggested.length < take && !suggested.includes(s.index)) suggested.push(s.index);
+  return { candidates: scored, suggested };
+}

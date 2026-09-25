@@ -17,6 +17,7 @@ Los patrones vienen del análisis funcional de una demo comercial (Sternify). **
 | `review-slider` | bloque | bajo el botón | `dropflex.review_slider` | reseñas aprobadas |
 | `ugc-slider` | bloque | bajo el botón | `dropflex.ugc_slider` | videos subidos |
 | `scrolling-benefits` | sección | franja entre secciones | `dropflex.scrolling_benefits` | políticas reales |
+| `pain-block` | sección | primer bloque del cuerpo, antes de `image-with-benefits` | `dropflex.pain_block` | ninguno (solo texto) |
 | `stats-with-image` | sección | hero de la landing | `dropflex.stats_with_image` | calificación, cifras, fotos |
 | `image-with-benefits` | sección | cuerpo de la landing | `dropflex.image_with_benefits` | foto del producto |
 | `comparison-table` | sección | cuerpo de la landing | `dropflex.comparison_table` | aprobación humana |

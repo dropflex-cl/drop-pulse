@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { copyState } from "@/lib/data/products";
-import { updateComponent, type ComponentPatch } from "@/lib/pipeline/copy";
+import { restoreComponent, updateComponent, type ComponentPatch } from "@/lib/pipeline/copy";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 import type { ImagePick } from "@/lib/types";
 
@@ -8,6 +8,7 @@ import type { ImagePick } from "@/lib/types";
 // PATCH { content, images? } → guardar la hoja de edición (aprueba y lo usa en la página)
 // PATCH { enabled }          → «Usar en la página» (activar aprueba; desactivar conserva el contenido)
 // PATCH { approve: true }    → aprobar sin cambios («Aprobar ficha»)
+// PATCH { restore: true }    → «Deshacer» después de «Volver a escribir con IA»: vuelve la versión anterior
 
 type Params = { params: Promise<{ id: string; component: string }> };
 
@@ -21,6 +22,10 @@ export async function PATCH(req: Request, { params }: Params) {
     const { id, component } = await params;
     const { userId } = await ownedProduct(id);
     const body = await json<Record<string, unknown>>(req);
+    if (body.restore === true) {
+      await restoreComponent(userId, id, decodeURIComponent(component));
+      return NextResponse.json(await copyState(userId, id));
+    }
     const patch: ComponentPatch = {};
     if (body.content !== undefined) {
       if (!body.content || typeof body.content !== "object") throw new ProductApiError("El contenido no es válido.", 400, "content");

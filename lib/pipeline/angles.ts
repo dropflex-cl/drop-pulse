@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
-import { ANGLES, type AngleRole, type SalesAngle, SALES_ANGLES } from "@/lib/angles/catalog";
+import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type AngleSlot, type SalesAngle, type TestAngle } from "@/lib/angles/catalog";
 import { angleRouterSystem, angleRouterUser, angleSystem, angleUser, type AngleContext } from "@/lib/angles/prompts";
 import {
   ANGLE_BRIEF_PROMPT_VERSION,
@@ -16,8 +16,9 @@ import {
   type AngleBriefEdit,
   type AngleBriefPayload,
 } from "@/lib/angles/schemas";
-import { potentialScore, rankAngles, type ScoredAngle } from "@/lib/angles/score";
-import { currentBriefs, fail, getBriefRow, latestRankings, type BriefRow, type RankingRow } from "@/lib/angles/store";
+import { potentialScore, rankAngles, rankCandidates, type ScoredAngle } from "@/lib/angles/score";
+import { allApproved, chosenAngles, currentBriefs, fail, getBriefRow, latestRankings, type BriefRow, type RankingRow } from "@/lib/angles/store";
+import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
@@ -28,15 +29,17 @@ import { getProductRow, latestAvatars, latestBrief } from "@/lib/products/store"
 import { getMarket } from "@/lib/settings/market";
 import { OptimizeError } from "./optimize";
 
-// Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md):
-//   1. angle-router → evalúa los 6 ángulos; el puntaje y la sugerencia se calculan en código
-//   2. el comerciante confirma principal y secundario
-//   3. angulo-<principal> ∥ angulo-<secundario> → un brief por ángulo, en paralelo
-// Parte del cliente ideal APROBADO, la ficha y el precio. La IA propone y el comerciante decide.
+// Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md y
+// docs/spec-angulos-testeo.md §4):
+//   1. angle-router → evalúa las 6 formas y propone 5 ángulos para testear; los puntajes y la
+//      sugerencia de 3 se calculan en código (forma + competencia)
+//   2. el comerciante elige 2 o 3 ángulos (uno por conjunto de anuncios) y la forma de cada uno
+//   3. un agente por ángulo (el de su forma), en paralelo → un brief por ángulo
+// Parte del cliente ideal APROBADO, el diferenciador, la competencia, la ficha y el precio.
 
 /** Tope de evaluaciones y de desarrollos por comerciante en 24 h (cada uno es una llamada a Claude Opus). */
 const DAILY_RANKINGS = 20;
-const DAILY_BRIEFS = 60;
+const DAILY_BRIEFS = 90;
 
 /**
  * Cortacircuito: si las últimas evaluaciones de un producto fallaron por respuestas que no se pueden
@@ -74,12 +77,14 @@ async function dailyCount(table: "angle_rankings" | "angle_briefs", userId: stri
 
 /** Lo que leen el orquestador y los agentes: ficha, cliente ideal aprobado, precio y etiquetas aprobadas. */
 async function loadContext(userId: string, productId: string) {
-  const [product, brief, avatars, pricing, labels] = await Promise.all([
+  const [product, brief, avatars, pricing, labels, differentiator, competitors] = await Promise.all([
     getProductRow(userId, productId),
     latestBrief(userId, productId),
     latestAvatars(userId, [productId]),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
+    getDifferentiator(userId, productId),
+    analyzedCompetitors(userId, productId),
   ]);
   if (!product) throw new OptimizeError("No encontramos ese producto.", 404);
   const avatar = avatars.get(productId);
@@ -91,6 +96,8 @@ async function loadContext(userId: string, productId: string) {
     avatar,
     pricing: pricing as PricingPlan,
     labels: labels?.status === "approved" ? labels.payload : undefined,
+    differentiator,
+    competitors,
   };
 }
 
@@ -99,6 +106,8 @@ async function loadContext(userId: string, productId: string) {
 /** Crea la evaluación (queued). Devuelve la activa si ya había una: tocar dos veces no cobra dos veces. */
 export async function startRanking(userId: string, productId: string): Promise<{ ranking: RankingRow; created: boolean }> {
   const ctx = await loadContext(userId, productId);
+  // El método parte del diferenciador: sin él no hay ángulo que sirva (spec §3.1).
+  if (!ctx.differentiator.confirmed) throw new OptimizeError("Antes de elegir ángulos: confirma en Información base en qué se diferencia tu producto de lo que tu cliente ya usa.", 409);
   const db = adminClient();
   const active = await db.from("angle_rankings").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
   fail("Leer la evaluación", active.error);
@@ -118,7 +127,15 @@ export async function startRanking(userId: string, productId: string): Promise<{
       user_id: userId,
       status: "queued",
       // Copia de lo que se evalúa: si el comerciante cambia algo a mitad, la evaluación no se mezcla.
-      input: { market, pricing: ctx.pricing, avatar_id: ctx.avatar.id, labels: ctx.labels ?? null },
+      input: {
+        market,
+        pricing: ctx.pricing,
+        avatar_id: ctx.avatar.id,
+        labels: ctx.labels ?? null,
+        differentiator: ctx.differentiator.value,
+        competitors: ctx.competitors.length,
+        competitor_analyses: ctx.competitors,
+      },
     })
     .select("*")
     .single();
@@ -145,7 +162,15 @@ async function contextFor(r: { user_id: string; product_id: string }, input: Rec
     avatarById(r.user_id, input.avatar_id as string),
   ]);
   if (!product || !brief) throw new AiStepError("not_found", "El producto o su ficha ya no existen.");
-  return { brief, avatar, pricing: input.pricing as PricingPlan, labels: (input.labels as PackLabel[] | null) ?? undefined, baseInfo: product.base_info };
+  return {
+    brief,
+    avatar,
+    pricing: input.pricing as PricingPlan,
+    labels: (input.labels as PackLabel[] | null) ?? undefined,
+    baseInfo: product.base_info,
+    differentiator: (input.differentiator as AngleContext["differentiator"]) ?? brief.differentiator ?? null,
+    competitors: (input.competitor_analyses as AngleContext["competitors"]) ?? [],
+  };
 }
 
 /**
@@ -153,8 +178,8 @@ async function contextFor(r: { user_id: string; product_id: string }, input: Rec
  * de lo mismo. Los textos de la evaluación (por qué, riesgos) no entran: son la redacción del modelo
  * sobre estas mismas entradas y cambian en cada evaluación aunque nada haya cambiado.
  */
-function briefInputKey(ctx: AngleContext, market: unknown, angle: SalesAngle, role: AngleRole, partner: SalesAngle): string {
-  const input = { v: ANGLE_BRIEF_PROMPT_VERSION, market, angle, role, partner, ...ctx };
+function briefInputKey(ctx: AngleContext, market: unknown, angle: TestAngle, others: TestAngle[]): string {
+  const input = { v: ANGLE_BRIEF_PROMPT_VERSION, market, angle, others: others.map((o) => ({ ...o, slot: 0 })), ...ctx };
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 
@@ -204,6 +229,7 @@ export async function runRanking(rankingId: string): Promise<void> {
     const { data, usage } = result;
     const evals = evaluationsFrom(data);
     const ranking = rankAngles(evals, facts(ctx.brief, ctx.avatar, ctx.pricing));
+    const candidates = rankCandidates(data.test_angles ?? [], ranking.angles, ctx.competitors?.length ?? 0, TEST_ANGLES);
     const now = new Date().toISOString();
     fail(
       "Guardar la evaluación",
@@ -214,8 +240,7 @@ export async function runRanking(rankingId: string): Promise<void> {
             status: "succeeded",
             payload: data,
             scores: ranking.angles,
-            suggested_primary: ranking.suggested.primary,
-            suggested_secondary: ranking.suggested.secondary,
+            suggested_slots: candidates.suggested,
             // Cuánto subirían con la prueba que falta (“Para elegir mejor, falta”).
             input: { ...r.input, potential: { reviews: potentialScore("personal_story", evals), expert: potentialScore("authority", evals) } },
             prompt_version: ANGLE_ROUTER_PROMPT_VERSION,
@@ -249,18 +274,47 @@ export async function runRanking(rankingId: string): Promise<void> {
 
 // ---------------------------------------------------------------- 2. Confirmar la elección
 
+const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+
+/** Valida y normaliza lo que manda la pantalla: 2 o 3 ángulos, slots 1..n, formas válidas. */
+export function normalizeChoice(raw: unknown): TestAngle[] {
+  if (!Array.isArray(raw)) throw new OptimizeError(`Elige entre ${MIN_TEST_ANGLES} y ${TEST_ANGLES} ángulos.`, 400);
+  if (raw.length < MIN_TEST_ANGLES || raw.length > TEST_ANGLES) throw new OptimizeError(`Elige entre ${MIN_TEST_ANGLES} y ${TEST_ANGLES} ángulos.`, 400);
+  const out = raw.map((r, i) => {
+    const a = (r ?? {}) as Record<string, unknown>;
+    const frame = a.frame as SalesAngle;
+    if (!SALES_ANGLES.includes(frame)) throw new OptimizeError("Hay un ángulo sin forma válida.", 400);
+    const angle: TestAngle = {
+      slot: (i + 1) as AngleSlot,
+      frame,
+      title: clip(a.title, 60),
+      pain_or_desire: clip(a.pain_or_desire, 400),
+      segment: clip(a.segment, 300),
+      promise: clip(a.promise, 300),
+      trigger_moment: clip(a.trigger_moment, 400),
+      competition: clip(a.competition, 400),
+    };
+    if (!angle.title || !angle.pain_or_desire) throw new OptimizeError("Cada ángulo necesita un nombre y el dolor o deseo que destaca.", 400);
+    return angle;
+  });
+  const names = new Set(out.map((a) => a.title.toLowerCase()));
+  if (names.size !== out.length) throw new OptimizeError("Hay dos ángulos con el mismo nombre: elige ángulos distintos.", 400);
+  return out;
+}
+
+const sameAngle = (a: TestAngle, b: TestAngle | undefined) =>
+  Boolean(b) && (["frame", "title", "pain_or_desire", "segment", "promise", "trigger_moment", "competition"] as const).every((k) => a[k] === b![k]);
+
 /**
- * Guarda principal y secundario y crea los desarrollos que falten. Un desarrollo que ya existe para
- * el mismo ángulo y papel se conserva (cambiar solo el secundario no regenera el principal).
- * Devuelve los desarrollos nuevos, para ejecutarlos en segundo plano.
+ * Guarda los ángulos elegidos y crea los desarrollos que falten. Un desarrollo que ya existe para el
+ * mismo slot y el mismo ángulo se conserva. Devuelve los desarrollos nuevos, para ejecutarlos en
+ * segundo plano.
  *
  * La elección se guarda al final: si algo falla antes, la evaluación no queda confirmada sin sus
- * desarrollos (la etapa se quedaría «desarrollando» para siempre). Confirmar otra vez completa lo
- * que falte.
+ * desarrollos. Confirmar otra vez completa lo que falte.
  */
-export async function confirmSelection(userId: string, productId: string, primary: SalesAngle, secondary: SalesAngle): Promise<string[]> {
-  if (!SALES_ANGLES.includes(primary) || !SALES_ANGLES.includes(secondary)) throw new OptimizeError("Elige un ángulo principal y uno secundario.", 400);
-  if (primary === secondary) throw new OptimizeError("El principal y el secundario tienen que ser distintos.", 400);
+export async function confirmSelection(userId: string, productId: string, rawAngles: unknown): Promise<string[]> {
+  const angles = normalizeChoice(rawAngles);
   const ranking = (await latestRankings(userId, [productId])).get(productId);
   if (!ranking || ranking.status !== "succeeded") throw new OptimizeError("Primero elige ángulos con IA.", 409);
   await loadContext(userId, productId); // el cliente ideal sigue aprobado y hay precio
@@ -270,27 +324,26 @@ export async function confirmSelection(userId: string, productId: string, primar
 
   // 1. Solo lecturas: qué se descarta, qué se reutiliza y qué se crea.
   const existing = (await currentBriefs(userId, [ranking.id])).get(ranking.id) ?? {};
-  const wanted: Record<AngleRole, SalesAngle> = { primary, secondary };
+  const previous = new Map(chosenAngles(ranking).map((a) => [a.slot, a]));
   const toReject: BriefRow[] = [];
   const toReuse: string[] = [];
-  const toCreate: AngleRole[] = [];
+  const toCreate: TestAngle[] = [];
   let ctx: AngleContext | null = null;
-  for (const role of ["primary", "secondary"] as AngleRole[]) {
-    const b = existing[role];
-    if (b && b.angle === wanted[role] && b.generation !== "failed") continue;
+  for (const angle of angles) {
+    const b = existing[angle.slot];
+    if (b && b.angle === angle.frame && sameAngle(angle, previous.get(angle.slot)) && b.generation !== "failed") continue;
     if (b) toReject.push(b);
-    // Volver a evaluar sin que cambie nada: el desarrollo vigente del mismo ángulo, papel y compañero
-    // se conserva (con su aprobación) en vez de pagar otro que saldría de lo mismo.
+    // Volver a evaluar sin que cambie nada: el desarrollo vigente del mismo ángulo se conserva (con
+    // su aprobación) en vez de pagar otro que saldría de lo mismo.
     ctx ??= await contextFor(ranking, ranking.input);
-    const partner = wanted[role === "primary" ? "secondary" : "primary"];
-    const key = briefInputKey(ctx, ranking.input.market, wanted[role], role, partner);
+    const key = briefInputKey(ctx, ranking.input.market, { ...angle, slot: 1 }, angles.filter((o) => o.slot !== angle.slot));
     const { data: reusable, error: reuseError } = await db
       .from("angle_briefs")
       .select("id")
       .eq("user_id", userId)
       .eq("product_id", productId)
-      .eq("role", role)
-      .eq("angle", wanted[role])
+      .eq("slot", angle.slot)
+      .eq("angle", angle.frame)
       .eq("generation", "succeeded")
       .neq("status", "rejected")
       .neq("ranking_id", ranking.id)
@@ -300,15 +353,16 @@ export async function confirmSelection(userId: string, productId: string, primar
       .maybeSingle();
     fail("Buscar un desarrollo que sirva", reuseError);
     if (reusable) toReuse.push(reusable.id as string);
-    else toCreate.push(role);
+    else toCreate.push(angle);
   }
+  // Un slot que ya no se usa (de 3 a 2 ángulos): su desarrollo queda descartado.
+  for (const [slot, b] of Object.entries(existing)) if (b && Number(slot) > angles.length) toReject.push(b);
   if (toCreate.length && (await dailyCount("angle_briefs", userId)) + toCreate.length > DAILY_BRIEFS) {
     throw new OptimizeError(`Llegaste al máximo de ${DAILY_BRIEFS} desarrollos en 24 horas. Vuelve mañana.`, 429);
   }
 
   // 2. Escrituras: los desarrollos primero, la elección al final.
   for (const b of toReject) {
-    // El anterior queda descartado (recuperable); si seguía generando, se corta.
     fail(
       "Descartar el desarrollo anterior",
       (
@@ -326,16 +380,23 @@ export async function confirmSelection(userId: string, productId: string, primar
   if (toCreate.length) {
     const { data, error } = await db
       .from("angle_briefs")
-      .insert(toCreate.map((role) => ({ product_id: productId, user_id: userId, ranking_id: ranking.id, angle: wanted[role], role, generation: "queued" })))
+      .insert(toCreate.map((a) => ({ product_id: productId, user_id: userId, ranking_id: ranking.id, angle: a.frame, slot: a.slot, generation: "queued" })))
       .select("id");
     fail("Crear los desarrollos", error);
     created = (data ?? []).map((d) => d.id as string);
   }
-  fail(
-    "Guardar la elección",
-    (await db.from("angle_rankings").update({ primary_angle: primary, secondary_angle: secondary, confirmed_at: now, updated_at: now }).eq("id", ranking.id)).error,
-  );
+  fail("Guardar la elección", (await db.from("angle_rankings").update({ chosen_angles: angles, confirmed_at: now, updated_at: now }).eq("id", ranking.id)).error);
   return created;
+}
+
+/** Los ángulos aprobados de la elección confirmada (2 o 3, en orden), o null si falta aprobar alguno. */
+export async function approvedAngles(userId: string, productId: string): Promise<{ angle: TestAngle; brief: BriefRow }[] | null> {
+  const ranking = (await latestRankings(userId, [productId])).get(productId);
+  if (!ranking?.confirmed_at) return null;
+  const chosen = chosenAngles(ranking);
+  const briefs = (await currentBriefs(userId, [ranking.id])).get(ranking.id) ?? {};
+  if (!allApproved(chosen, briefs)) return null;
+  return chosen.map((angle) => ({ angle, brief: briefs[angle.slot]! })).filter((a) => a.brief.payload);
 }
 
 // ---------------------------------------------------------------- 3. Desarrollar (angulo-*)
@@ -358,19 +419,18 @@ export async function runBrief(briefId: string): Promise<void> {
     const r = rankingData as RankingRow;
     const ctx = await contextFor(r, r.input);
     const scored = (r.scores ?? []).find((s: ScoredAngle) => s.angle === b.angle);
-    const partner = (b.role === "primary" ? r.secondary_angle : r.primary_angle) ?? SALES_ANGLES.find((a) => a !== b.angle)!;
-    const inputKey = briefInputKey(ctx, r.input.market, b.angle, b.role, partner);
-    const pair = b.role === "primary" ? { primary: b.angle, secondary: partner } : { primary: partner, secondary: b.angle };
-    const combo = r.payload?.combinations.find((c) => c.primary === pair.primary && c.secondary === pair.secondary)?.how;
+    const chosen = chosenAngles(r);
+    const angle = chosen.find((a) => a.slot === b.slot) ?? { slot: b.slot, frame: b.angle, title: "", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "" };
+    const others = chosen.filter((a) => a.slot !== b.slot);
+    const inputKey = briefInputKey(ctx, r.input.market, { ...angle, slot: 1 }, others);
     const { data, usage } = await generateStructured({
       system: angleSystem(b.angle, r.input.market as Market),
       content: [
         {
           type: "text",
           text: angleUser(b.angle, ctx, {
-            role: b.role,
-            partner,
-            combo,
+            angle: { ...angle, frame: b.angle },
+            others,
             why: scored?.why ?? ANGLES[b.angle].gist,
             risks: scored?.risks.map((k) => k.text) ?? [],
             aidaEmphasis: r.payload?.aida_emphasis ?? "",
@@ -382,7 +442,7 @@ export async function runBrief(briefId: string): Promise<void> {
       effort: "high",
       maxTokens: 20000,
     });
-    await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: ANGLES[b.angle].name, usage });
+    await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: `${b.slot} · ${ANGLES[b.angle].name}`, usage });
     const now = new Date().toISOString();
     fail(
       "Guardar el desarrollo",
@@ -397,7 +457,7 @@ export async function runBrief(briefId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[angles] desarrollar", e);
-    if (known) await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: ANGLES[b.angle].name, usage: e.usage, error: e.code });
+    if (known) await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: `${b.slot} · ${ANGLES[b.angle].name}`, usage: e.usage, error: e.code });
     const now = new Date().toISOString();
     const { error } = await db
       .from("angle_briefs")
@@ -426,7 +486,7 @@ export async function regenerateBrief(userId: string, productId: string, briefId
   fail("Descartar el desarrollo anterior", (await db.from("angle_briefs").update({ status: "rejected", updated_at: now }).eq("id", b.id)).error);
   const { data, error } = await db
     .from("angle_briefs")
-    .insert({ product_id: productId, user_id: userId, ranking_id: b.ranking_id, angle: b.angle, role: b.role, generation: "queued" })
+    .insert({ product_id: productId, user_id: userId, ranking_id: b.ranking_id, angle: b.angle, slot: b.slot, generation: "queued" })
     .select("id")
     .single();
   fail("Crear el desarrollo", error);

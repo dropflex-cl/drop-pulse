@@ -126,5 +126,46 @@ export function fixture(state: string): ProductBase {
             { field: "proof.real_reviews", question: "¿Tienes reseñas de clientes que puedas pegar tal cual?" },
           ]
         : [],
+    hasBrief: Boolean(avatar),
+    differentiator: {
+      value: state === "approved" ? DIFFERENTIATOR : avatar ? DIFFERENTIATOR : null,
+      confirmed: state === "approved",
+      proposed: avatar ? DIFFERENTIATOR : null,
+    },
+    competitors: avatar
+      ? [
+          {
+            id: "c1",
+            url: "https://posturafit.cl/products/corrector",
+            host: "posturafit.cl",
+            status: "succeeded",
+            createdAt: now,
+            analysis: {
+              storeName: "PosturaFit",
+              price: 29990,
+              compareAt: 49990,
+              painOrDesire: "Dolor de espalda después de un día sentado",
+              promise: "Espalda recta en 7 días",
+              frame: "common_enemy",
+              frameName: "Enemigo común",
+            },
+          },
+          { id: "c2", url: "https://tiendaespalda.com/p/corrector", host: "tiendaespalda.com", status: "running", createdAt: now },
+          {
+            id: "c3",
+            url: "https://ofertasdeldia.cl/corrector",
+            host: "ofertasdeldia.cl",
+            status: "failed",
+            createdAt: now,
+            error: "No pudimos leer esa página: la tienda no nos dejó entrar o la página ya no existe. Ábrela en tu navegador para revisarla.",
+          },
+        ]
+      : [],
   };
 }
+
+const DIFFERENTIATOR = {
+  versus: "las fajas y los correctores rígidos",
+  claim: "No te sostiene a la fuerza: te avisa cuando te encorvas para que corrijas tú, así no depende de usarlo todo el día.",
+  basis: "how_it_works",
+};

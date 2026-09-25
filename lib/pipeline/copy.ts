@@ -1,17 +1,19 @@
 import "server-only";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { pageImageCounts } from "@/lib/page-images/store";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
-import { ANGLES, type AngleRole } from "@/lib/angles/catalog";
-import { currentBriefs, fail, latestRankings, type BriefRow } from "@/lib/angles/store";
+import { stampEntries } from "@/lib/angles/approved";
+import { anglesForPrompt, fail } from "@/lib/angles/store";
+import { getDifferentiator } from "@/lib/competitors/store";
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
-import { pageProblems, pageSchema, schemaProblems, toWrite, type PageOutput } from "@/lib/copy/page-schema";
+import { failingParts, mergeOutput, pageProblems, pageSchema, partialOutput, productFactText, schemaProblems, toWrite, type PageOutput } from "@/lib/copy/page-schema";
 import { copySystem, copyUser, type CopyContext, type CopyRetry } from "@/lib/copy/prompts";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
 import { activeComponents, currentContent, getComponentRow, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
+import { approvedAngles } from "./angles";
 import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
@@ -33,15 +35,6 @@ import { OptimizeError } from "./optimize";
 /** Tope de escrituras por comerciante en 24 h (cada una es una llamada a Claude Opus). */
 const DAILY_RUNS = 20;
 
-/** Los 2 desarrollos aprobados de la elección confirmada, o null si todavía no están. */
-export async function approvedBriefs(userId: string, productId: string): Promise<Record<AngleRole, BriefRow> | null> {
-  const ranking = (await latestRankings(userId, [productId])).get(productId);
-  if (!ranking?.confirmed_at) return null;
-  const briefs = (await currentBriefs(userId, [ranking.id])).get(ranking.id) ?? {};
-  const ok = (b?: BriefRow) => b && b.generation === "succeeded" && b.status === "approved" && b.payload;
-  return ok(briefs.primary) && ok(briefs.secondary) ? { primary: briefs.primary!, secondary: briefs.secondary! } : null;
-}
-
 async function freeShipping(userId: string): Promise<boolean> {
   const { data, error } = await adminClient().from("merchant_settings").select("free_shipping").eq("user_id", userId).maybeSingle();
   fail("Leer cómo despacha la tienda", error);
@@ -55,13 +48,13 @@ async function loadContext(userId: string, productId: string) {
     latestAvatars(userId, [productId]),
     getPricingPlan(userId, productId),
     latestPackLabels(userId, productId),
-    approvedBriefs(userId, productId),
+    approvedAngles(userId, productId),
     pageImageCounts(userId, [productId]),
   ]);
   if (!product) throw new OptimizeError("No encontramos ese producto.", 404);
   const avatar = avatars.get(productId);
   if (!avatar || avatar.status !== "approved" || !brief || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y guarda el precio en Información base.", 409);
-  if (!briefs) throw new OptimizeError("Aprueba los 2 desarrollos de Ángulos para escribir la página.", 409);
+  if (!briefs) throw new OptimizeError("Aprueba los desarrollos de tus ángulos para escribir la página.", 409);
   // Imágenes va antes: los componentes de la página usan las imágenes elegidas.
   const images = counts(productId);
   if (!images.cover || images.gallery < GALLERY_MIN) throw new OptimizeError(`Elige la portada y al menos ${GALLERY_MIN} imágenes de galería en Imágenes para escribir la página.`, 409);
@@ -69,19 +62,32 @@ async function loadContext(userId: string, productId: string) {
 }
 
 /**
- * Crea la escritura (queued). Sin `redo`, devuelve la activa o, si la página ya está escrita, nada
- * nuevo: tocar dos veces no cobra dos veces. Con `redo`, reescribe lo que no está aprobado.
+ * Cómo se reescribe (docs/spec-angulos-testeo.md §5.8):
+ * - `missing` («Escribir» y «Reescribir lo no aprobado»): lo que no está aprobado y lo que falta;
+ * - `all` («Reescribir toda la página»): todo, también lo aprobado (queda con superseded_at);
+ * - `only` («Volver a escribir con IA» en la hoja de un componente): solo ese, aunque esté aprobado.
  */
-export async function startCopy(userId: string, productId: string, redo = false): Promise<{ run: CopyRunRow | null; created: boolean }> {
+export type CopyMode = { kind: "missing" } | { kind: "all" } | { kind: "only"; component: string };
+
+/**
+ * Crea la escritura (queued). En modo `missing` sin `redo`, devuelve la activa o, si la página ya
+ * está escrita, nada nuevo: tocar dos veces no cobra dos veces.
+ */
+export async function startCopy(userId: string, productId: string, redo = false, mode: CopyMode = { kind: "missing" }): Promise<{ run: CopyRunRow | null; created: boolean }> {
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
   const active = await db.from("copy_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
   fail("Leer la escritura", active.error);
   if (active.data) return { run: active.data as CopyRunRow, created: false };
   const rows = (await activeComponents(userId, [productId])).get(productId) ?? [];
-  if (rows.length && !redo) return { run: null, created: false };
+  if (mode.kind === "missing" && rows.length && !redo) return { run: null, created: false };
   const reviews = await approvedReviewRows(userId, productId);
-  if (redo && rows.length && !toWrite(rows, reviews.length).length) throw new OptimizeError("Ya aprobaste toda la página: no hay nada que reescribir.", 409);
+  if (mode.kind === "missing" && redo && rows.length && !toWrite(rows, reviews.length).length) throw new OptimizeError("Ya aprobaste toda la página: no hay nada que reescribir.", 409);
+  if (mode.kind === "only") {
+    const def = mode.component === LISTING ? true : componentById(mode.component);
+    if (!def || !toWrite([], reviews.length).includes(mode.component)) throw new OptimizeError("Ese componente no se puede escribir ahora.", 400);
+  }
+  if (mode.kind !== "missing" && !rows.length) throw new OptimizeError("Primero escribe la página.", 409);
 
   const since = new Date(Date.now() - 86_400_000).toISOString();
   const { count, error: countError } = await db.from("copy_runs").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since);
@@ -89,18 +95,23 @@ export async function startCopy(userId: string, productId: string, redo = false)
   if ((count ?? 0) >= DAILY_RUNS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_RUNS} escrituras de la página en 24 horas. Vuelve mañana.`, 429);
 
   const { market } = await getMarket(userId, await getShopifyConnection(userId));
-  const briefs: BriefStamp = {
-    primary: { id: ctx.briefs.primary.id, edited_at: ctx.briefs.primary.edited_at },
-    secondary: { id: ctx.briefs.secondary.id, edited_at: ctx.briefs.secondary.edited_at },
-  };
+  const briefs: BriefStamp = ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at }));
   const { data, error } = await db
     .from("copy_runs")
     .insert({
       product_id: productId,
       user_id: userId,
       status: "queued",
-      // Copia de lo que se usa: si el comerciante cambia algo a mitad, la escritura no se mezcla.
-      input: { market, pricing: ctx.pricing, labels: ctx.labels ?? null, avatar_id: ctx.avatar.id, briefs, free_shipping: await freeShipping(userId), redo: redo && rows.length > 0 },
+      input: {
+        market,
+        pricing: ctx.pricing,
+        labels: ctx.labels ?? null,
+        avatar_id: ctx.avatar.id,
+        briefs,
+        free_shipping: await freeShipping(userId),
+        redo: mode.kind === "missing" ? redo && rows.length > 0 : true,
+        mode,
+      },
     })
     .select("*")
     .single();
@@ -113,17 +124,10 @@ export async function startCopy(userId: string, productId: string, redo = false)
   return { run: data as CopyRunRow, created: true };
 }
 
-async function briefById(userId: string, id: string): Promise<BriefRow> {
-  const { data, error } = await adminClient().from("angle_briefs").select("*").eq("user_id", userId).eq("id", id).single();
-  fail("Leer el desarrollo", error);
-  if (!data?.payload) throw new AiStepError("not_found", "Un desarrollo de Ángulos ya no existe. Vuelve a aprobarlos.");
-  return data as BriefRow;
-}
-
 /** Orden en la página: la ficha primero y los componentes en el orden del catálogo. */
 const positionOf = (id: string) => (id === LISTING ? 0 : CATALOG.findIndex((c) => c.id === id) + 1);
 
-type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: BriefStamp; free_shipping: boolean; redo: boolean };
+type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: BriefStamp; free_shipping: boolean; redo: boolean; mode?: CopyMode };
 
 /** Ejecuta la escritura. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runCopy(runId: string): Promise<void> {
@@ -141,21 +145,23 @@ export async function runCopy(runId: string): Promise<void> {
   let problems: string[] = [];
   try {
     const input = r.input;
-    const [product, brief, avatarRow, primary, secondary, current, reviews] = await Promise.all([
+    const [product, brief, avatarRow, angles, current, reviews, differentiator] = await Promise.all([
       getProductRow(r.user_id, r.product_id),
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
-      briefById(r.user_id, input.briefs.primary.id),
-      briefById(r.user_id, input.briefs.secondary.id),
+      anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
       activeComponents(r.user_id, [r.product_id]).then((m) => m.get(r.product_id) ?? []),
       approvedReviewRows(r.user_id, r.product_id),
+      getDifferentiator(r.user_id, r.product_id),
     ]);
     fail("Leer el cliente ideal", avatarRow.error);
     if (!product || !brief || !avatarRow.data) throw new AiStepError("not_found", "El producto o su ficha ya no existen.");
+    if (!angles) throw new AiStepError("not_found", "Un desarrollo de Ángulos ya no existe. Vuelve a aprobarlos.");
 
-    // Al reescribir: lo aprobado se conserva y va como contexto; lo demás se reemplaza.
-    const approved = input.redo ? current.filter((c) => c.status === "approved") : [];
-    const write = toWrite(approved, reviews.length);
+    const mode: CopyMode = input.mode ?? { kind: "missing" };
+    // Lo aprobado que no se reescribe va como contexto: lo nuevo tiene que calzar con eso.
+    const approved = mode.kind === "all" ? [] : mode.kind === "only" ? current.filter((c) => c.status === "approved" && c.component !== mode.component) : input.redo ? current.filter((c) => c.status === "approved") : [];
+    const write = mode.kind === "all" ? toWrite([], reviews.length) : mode.kind === "only" ? [mode.component] : toWrite(approved, reviews.length);
     const returnDays = brief.proof.guarantee_days && brief.proof.guarantee_days > 0 ? brief.proof.guarantee_days : null;
 
     const ctx: CopyContext = {
@@ -163,8 +169,8 @@ export async function runCopy(runId: string): Promise<void> {
       avatar: avatarRow.data.payload as CustomerAvatar,
       pricing: input.pricing,
       labels: input.labels ?? undefined,
-      primary: { name: ANGLES[primary.angle].name, payload: primary.payload! },
-      secondary: { name: ANGLES[secondary.angle].name, payload: secondary.payload! },
+      angles,
+      differentiator: differentiator.value,
       shopify: { title: product.title, description: product.description },
       countryCode: input.market.countryCode,
       freeShipping: input.free_shipping,
@@ -173,28 +179,42 @@ export async function runCopy(runId: string): Promise<void> {
       write,
       approved: approved.map((a) => ({ component: a.component, content: currentContent(a) })),
     };
-    const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: reviews.map((v) => v.id) };
-    const schema = pageSchema(write);
-
-    const attempt = (retry?: CopyRetry) =>
+    // Los números de uso que puede citar la pregunta de duración: los que dio el comerciante.
+    const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: reviews.map((v) => v.id), factText: productFactText(brief, product.base_info) };
+    const attempt = (parts: string[], retry?: CopyRetry, kept?: CopyContext["kept"]) =>
       generateStructured({
         system: copySystem(input.market),
-        content: [{ type: "text", text: copyUser(ctx, retry) }],
-        schema,
+        content: [{ type: "text", text: copyUser({ ...ctx, write: parts, kept }, retry) }],
+        schema: pageSchema(parts),
         effort: "medium",
         maxTokens: 16000,
       });
-    let result: Awaited<ReturnType<typeof attempt>> | null = null;
-    for (let i = 0; i < 2; i++) {
-      result = await attempt(result && problems.length ? { previous: result.data, problems } : undefined);
-      problems = pageProblems(result.data as PageOutput, write, facts);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: result.usage, error: problems.length ? "invalid_copy" : null });
+
+    // Un intento con la página entera y hasta 2 correcciones. Si los problemas son de algunas partes
+    // (un largo, un monto), se reescriben solo esas y lo demás va como contexto: cuesta una fracción de
+    // la página. Si no se pueden atribuir, se corrige la página entera, una sola vez.
+    let data: PageOutput | null = null;
+    let usage: AiUsage | null = null;
+    let wholeRetried = false;
+    for (let i = 0; i < 3; i++) {
+      const parts: string[] | null = data ? failingParts(problems, write) : write;
+      const partial: boolean = Boolean(data && parts && parts.length < write.length);
+      if (data && !partial && wholeRetried) break;
+      if (data && !partial) wholeRetried = true;
+      const fix: string[] = partial ? parts! : write;
+      const result = await attempt(
+        fix,
+        data ? { previous: partial ? partialOutput(data, fix) : data, problems } : undefined,
+        partial ? write.filter((id) => !fix.includes(id)).map((id) => ({ component: id, content: id === LISTING ? data!.listing : data!.components[id] })) : undefined,
+      );
+      data = partial ? mergeOutput(data!, result.data as PageOutput, fix) : (result.data as PageOutput);
+      usage = result.usage;
+      problems = pageProblems(data, write, facts);
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage, error: problems.length ? "invalid_copy" : null });
       if (!problems.length) break;
-      console.warn("[copy] página inválida", problems);
+      console.warn(`[copy] página inválida${partial ? ` (corrección de ${fix.join(", ")})` : ""}`, problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA escribió textos que no cumplen las reglas. Toca Reintentar.", undefined, true);
-    const data = result.data as PageOutput;
-    const { usage } = result;
+    if (problems.length || !data || !usage) throw new AiStepError("invalid_output", "La IA escribió textos que no cumplen las reglas. Toca Reintentar.", undefined, true);
 
     const rows = write.map((id) => ({
       product_id: r.product_id,
@@ -210,7 +230,8 @@ export async function runCopy(runId: string): Promise<void> {
     const now = new Date().toISOString();
     // Primero se retira lo que se reemplaza (uno vigente por componente) y después se inserta. Si la
     // inserción falla, lo retirado vuelve: la página nunca queda a medias.
-    const replaced = current.filter((c) => write.includes(c.component) && c.status !== "approved").map((c) => c.id);
+    // En `missing` lo aprobado nunca se toca; en `all` y `only` se reemplaza (queda con superseded_at).
+    const replaced = current.filter((c) => write.includes(c.component) && (mode.kind !== "missing" || c.status !== "approved")).map((c) => c.id);
     if (replaced.length) fail("Reemplazar la página anterior", (await db.from("page_components").update({ superseded_at: now, updated_at: now }).in("id", replaced)).error);
     const inserted = await db.from("page_components").insert(rows);
     if (inserted.error) {
@@ -307,4 +328,35 @@ export async function updateComponent(userId: string, productId: string, compone
     if (!listing && (patch.content !== undefined || patch.images !== undefined) && patch.enabled === undefined) update.enabled = true;
   }
   fail("Guardar el componente", (await adminClient().from("page_components").update(update).eq("id", row.id)).error);
+}
+
+/**
+ * «Deshacer» después de «Volver a escribir con IA»: la versión anterior de ese componente vuelve a
+ * ser la vigente y la nueva queda como reemplazada (docs/spec-angulos-testeo.md §5.8).
+ */
+export async function restoreComponent(userId: string, productId: string, component: string): Promise<void> {
+  const db = adminClient();
+  const current = await getComponentRow(userId, productId, component);
+  if (!current) throw new OptimizeError("Ese componente ya no está en la página. Actualiza.", 409);
+  const { data, error } = await db
+    .from("page_components")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("product_id", productId)
+    .eq("component", component)
+    .not("superseded_at", "is", null)
+    .lt("created_at", current.created_at)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  fail("Leer la versión anterior", error);
+  if (!data) throw new OptimizeError("No hay una versión anterior de este componente.", 409);
+  const now = new Date().toISOString();
+  // Primero se aparta la nueva: el índice único admite un solo componente vigente.
+  fail("Apartar la versión nueva", (await db.from("page_components").update({ superseded_at: now, updated_at: now }).eq("id", current.id)).error);
+  const back = await db.from("page_components").update({ superseded_at: null, updated_at: now }).eq("id", (data as { id: string }).id);
+  if (back.error) {
+    await db.from("page_components").update({ superseded_at: null, updated_at: now }).eq("id", current.id);
+    fail("Recuperar la versión anterior", back.error);
+  }
 }

@@ -27,7 +27,7 @@ function concepts(state: string): CreativeConceptView[] {
   const list: CreativeConceptView[] = [
     {
       id: "k1",
-      angle: "primary",
+      angle: 1,
       angleName: "Mecanismo único",
       family: "explainer",
       familyName: "Explicativo",
@@ -46,7 +46,7 @@ function concepts(state: string): CreativeConceptView[] {
     },
     {
       id: "k2",
-      angle: "primary",
+      angle: 1,
       angleName: "Mecanismo único",
       family: "hero",
       familyName: "Producto hero",
@@ -69,7 +69,7 @@ function concepts(state: string): CreativeConceptView[] {
     },
     {
       id: "k3",
-      angle: "secondary",
+      angle: 2,
       angleName: "Enemigo común",
       family: "proof",
       familyName: "Comparativa",
@@ -94,7 +94,7 @@ function concepts(state: string): CreativeConceptView[] {
     },
     {
       id: "k4",
-      angle: "secondary",
+      angle: 2,
       angleName: "Enemigo común",
       family: "offer",
       familyName: "Oferta y pack",
@@ -124,12 +124,12 @@ export function fixture(state: string): ProductCreatives {
         : withConcepts
           ? { id: "r1", status: "succeeded", createdAt: NOW }
           : undefined;
-  const brief = (role: "primary" | "secondary") => ({ role, name: role === "primary" ? "Mecanismo único" : "Enemigo común", status: "aprobado" as const, generation: "succeeded" as const });
+  const brief = (slot: number) => ({ slot, name: slot === 1 ? "Mecanismo único" : "Enemigo común", status: "aprobado" as const, generation: "succeeded" as const });
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
     avatar: { status: "aprobado", createdAt: NOW },
-    angles: state === "locked" ? { ranking: { status: "succeeded", confirmed: true }, briefs: [brief("primary")] } : { ranking: { status: "succeeded", confirmed: true }, briefs: [brief("primary"), brief("secondary")] },
+    angles: state === "locked" ? { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1)] } : { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2)] },
     creatives: {
       connected: state !== "key",
       running: state === "proposing",

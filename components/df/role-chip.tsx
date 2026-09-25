@@ -5,19 +5,32 @@ export type AngleRoleUi = "principal" | "secundario";
 
 export interface RoleChipProps {
   role?: AngleRoleUi | "sugerido";
+  /** Un ángulo de testeo (1, 2 o 3): «Ángulo N». Gana sobre `role`. */
+  slot?: number;
   /** Solo “Principal” o “Secundario”, para espacios estrechos. */
   short?: boolean;
   className?: string;
 }
 
 /**
- * El papel de un ángulo: principal (el gancho), secundario (el refuerzo) o sugerido por la IA.
+ * El papel de un ángulo: uno de los ángulos de testeo (1, 2 o 3, cada uno en su conjunto de anuncios),
+ * principal o secundario (evaluaciones de antes) o sugerido por la IA.
  * Principal y secundario son selección del comerciante (usan el acento); “Sugerido por la IA” es
  * neutro con el destello: informa, no decide.
  */
-export function RoleChip({ role, short, className }: RoleChipProps) {
-  if (!role) return null;
+export function RoleChip({ role, slot, short, className }: RoleChipProps) {
   const base = "inline-flex h-5.5 items-center gap-1 rounded-full text-micro font-semibold whitespace-nowrap";
+  if (slot) {
+    return (
+      <span className={cn(base, "bg-primary-soft pr-2 pl-0.75 text-primary inset-ring inset-ring-primary", className)}>
+        <b aria-hidden className="grid size-4 place-items-center rounded-full bg-primary text-nano text-primary-foreground">
+          {slot}
+        </b>
+        {short ? `Ángulo ${slot}` : `Ángulo ${slot} · su conjunto`}
+      </span>
+    );
+  }
+  if (!role) return null;
   if (role === "sugerido") return <AiChip className={className}>Sugerido por la IA</AiChip>;
   const principal = role === "principal";
   return (

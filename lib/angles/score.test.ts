@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SALES_ANGLES, type SalesAngle } from "./catalog";
 import type { AngleEvaluations } from "./schemas";
-import { potentialScore, rankAngles, scoreAngle, type AngleFacts } from "./score";
+import { COMPETITION_BONUS, COMPETITION_PENALTY, MAX_SAME_FRAME, potentialScore, rankAngles, rankCandidates, scoreAngle, type AngleFacts } from "./score";
 
 function evaluation(overrides: Partial<Record<SalesAngle, { criteria?: Record<string, number>; penalty_applies?: boolean; risks?: string[] }>> = {}): AngleEvaluations {
   const base: Record<SalesAngle, Record<string, number>> = {
@@ -98,5 +98,82 @@ describe("ranking del orquestador", () => {
   it("dice cuánto subiría historia personal con reseñas reales", () => {
     const out = evaluation();
     expect(potentialScore("personal_story", out)).toBeGreaterThan(rankAngles(out, FACTS).angles.find((a) => a.angle === "personal_story")!.score);
+  });
+});
+
+describe("ángulos de testeo", () => {
+  const frames = rankAngles(evaluation(), FACTS).angles;
+  const score = (a: SalesAngle) => frames.find((f) => f.angle === a)!.score;
+
+  it("parte del puntaje de su forma y, sin competencia, no suma ni resta", () => {
+    const r = rankCandidates([{ frame: "unique_mechanism", competitors_using: 5 }], frames, 0);
+    expect(r.candidates[0]).toMatchObject({ score: score("unique_mechanism"), competition: 0, competitorsUsing: 0 });
+  });
+
+  it("premia lo que nadie usa y castiga lo que usan 3 o más", () => {
+    const r = rankCandidates(
+      [
+        { frame: "common_enemy", competitors_using: 0 },
+        { frame: "common_enemy", competitors_using: 4 },
+        { frame: "common_enemy", competitors_using: 1 },
+      ],
+      frames,
+      5,
+    );
+    expect(r.candidates.map((c) => c.competition)).toEqual([COMPETITION_BONUS, -COMPETITION_PENALTY, 0]);
+    expect(r.suggested[0]).toBe(0);
+  });
+
+  it("no cuenta más tiendas que las cargadas", () => {
+    expect(rankCandidates([{ frame: "offer", competitors_using: 9 }], frames, 2).candidates[0].competitorsUsing).toBe(2);
+  });
+
+  it("sugiere 3 con como máximo 2 de la misma forma", () => {
+    const r = rankCandidates(
+      [
+        { frame: "unique_mechanism", competitors_using: 0 },
+        { frame: "unique_mechanism", competitors_using: 0 },
+        { frame: "unique_mechanism", competitors_using: 0 },
+        { frame: "age_identity", competitors_using: 0 },
+        { frame: "offer", competitors_using: 0 },
+      ],
+      frames,
+      3,
+    );
+    expect(r.suggested).toHaveLength(3);
+    expect(r.suggested.filter((i) => i < 3)).toHaveLength(MAX_SAME_FRAME);
+  });
+
+  it("con menos candidatos de variedad, completa igual hasta 3", () => {
+    const r = rankCandidates(
+      [
+        { frame: "offer", competitors_using: 0 },
+        { frame: "offer", competitors_using: 0 },
+        { frame: "offer", competitors_using: 0 },
+      ],
+      frames,
+      3,
+    );
+    expect(r.suggested.sort()).toEqual([0, 1, 2]);
+  });
+});
+
+describe("huellas de los desarrollos", async () => {
+  const { stampEntries, stampKey, stampChanged } = await import("./approved");
+  it("lee las corridas de antes y las nuevas", () => {
+    expect(stampKey({ primary: "a", secondary: "b" })).toBe("a,b");
+    expect(stampEntries({ primary: { id: "a", edited_at: "t" }, secondary: { id: "b", edited_at: null } })).toEqual([
+      { id: "a", edited_at: "t" },
+      { id: "b", edited_at: null },
+    ]);
+    expect(stampKey([{ id: "a", edited_at: null }, { id: "b", edited_at: null }, { id: "c", edited_at: null }])).toBe("a,b,c");
+    expect(stampKey(undefined)).toBeNull();
+  });
+  it("cambia con otro desarrollo, una edición o un ángulo más", () => {
+    const now = [{ id: "a", edited_at: null }, { id: "b", edited_at: null }];
+    expect(stampChanged({ primary: { id: "a" }, secondary: { id: "b" } }, now)).toBe(false);
+    expect(stampChanged({ primary: { id: "a" }, secondary: { id: "x" } }, now)).toBe(true);
+    expect(stampChanged([{ id: "a", edited_at: null }, { id: "b", edited_at: "t" }], now)).toBe(true);
+    expect(stampChanged({ primary: "a", secondary: "b" }, [...now, { id: "c", edited_at: null }])).toBe(true);
   });
 });

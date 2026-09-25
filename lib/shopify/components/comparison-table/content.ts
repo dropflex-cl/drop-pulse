@@ -15,6 +15,15 @@ const noSuperlatives = (field: string) =>
     message: `${field}: sin superlativos, certificaciones ni claims de salud`,
   });
 
+/**
+ * ¿La columna es un canal o una tienda («Tiendas internacionales», «Tienda física», «Marketplaces»)
+ * y no una categoría de producto («Crema más espesa»)? Las filas de compra (pago al recibir, envío,
+ * cambios) solo tienen sentido contra canales. Puro.
+ */
+export function isChannelLabel(label: string): boolean {
+  return /\b(tiendas?|multitiendas?|marketplaces?|internacional(es)?|f[ií]sicas?|online|en l[ií]nea|retail|supermercados?|farmacias?|malls?|ferias?|comercios?|sitios? web|p[aá]ginas? web|importad[oa]s?)\b/i.test(label);
+}
+
 const cell = z
   .union([
     z.enum(["yes", "no", "partial"]),
@@ -37,8 +46,9 @@ export const comparisonTable = defineComponent({
     "Opción dominada (señuelo): nadie elige la columna llena de cruces.",
     "Heurística de conteo: checks contra cruces se leen sin leer; el veredicto es visual e inmediato.",
     "Saliencia (Von Restorff): la columna nuestra es un pilar del color de acento, el ojo va ahí primero.",
-    "Enemigo común sin atacar a nadie: «Genéricos» es una categoría, no una marca.",
-    "Reducción de riesgo: filas de pago al recibir, envío local y cambios convierten la tabla en un argumento de seguridad.",
+    "Diferencia frente a lo que ya probó: la columna rival es lo que el cliente ya usa («Crema más espesa», «Colágeno para tomar»), así la tabla explica por qué esto es distinto y vale lo que cuesta.",
+    "Enemigo común sin atacar a nadie: la alternativa es una categoría, no una marca.",
+    "Valor antes que servicio: las filas de producto van primero; el pago al recibir y el envío ya los dicen los componentes de compra.",
     "Credibilidad: un parcial o un «sí» honesto en la competencia hace creíble el resto.",
   ],
   content: z
@@ -51,7 +61,7 @@ export const comparisonTable = defineComponent({
         .array(noSuperlatives("other_labels").pipe(z.string().min(3).max(24)))
         .min(1)
         .max(2)
-        .describe("1 o 2 categorías genéricas: «Genéricos», «Tiendas internacionales», «Tienda física». NUNCA una marca."),
+        .describe("1 o 2 columnas: lo que el cliente ya probó (alternatives_already_tried: «Crema más espesa», «Colágeno para tomar»); «Genéricos» solo si no hay una alternativa previa clara; canales («Tiendas internacionales», «Tienda física») solo en una tabla de dónde comprar. NUNCA una marca."),
       rows: z
         .array(
           z.object({
@@ -64,8 +74,8 @@ export const comparisonTable = defineComponent({
           }),
         )
         .min(4)
-        .max(7)
-        .describe("4 a 7 filas: 2-3 de producto, 2-3 de compra COD (pago al recibir, envío, cambios, soporte), 0-1 de experiencia."),
+        .max(6)
+        .describe("4 a 6 filas: al menos 3 de producto (basis spec: qué hace, dónde actúa, cómo entra en la rutina) y primero. Filas de compra (policy o service: pago al recibir, envío, cambios) solo si las otras columnas son canales o tiendas."),
       footnote: noDigits("footnote").pipe(z.string().min(20).max(140)).optional()
         .describe("A qué se compara, en una frase: «Comparación referencial con correctores genéricos sin tallas»."),
     })
@@ -75,6 +85,23 @@ export const comparisonTable = defineComponent({
           ctx.addIssue({ code: "custom", path: ["rows", i, "others"], message: "others debe tener un valor por cada other_labels" });
         }
       });
+      const specs = c.rows.filter((row) => row.basis === "spec").length;
+      if (specs < 3) {
+        ctx.addIssue({ code: "custom", path: ["rows"], message: "al menos 3 filas de producto (basis spec): la tabla muestra el valor del producto, no el servicio" });
+      }
+      const firstOther = c.rows.findIndex((row) => row.basis !== "spec");
+      if (firstOther >= 0 && c.rows.slice(firstOther).some((row) => row.basis === "spec")) {
+        ctx.addIssue({ code: "custom", path: ["rows"], message: "las filas de producto (basis spec) van primero, antes de las de compra" });
+      }
+      const purchase = c.rows.some((row) => row.basis !== "spec");
+      const notChannels = c.other_labels.filter((l) => !isChannelLabel(l));
+      if (purchase && notChannels.length) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["rows"],
+          message: `filas de compra (policy o service) solo contra canales o tiendas; «${notChannels.join("», «")}» es una categoría de producto: deja solo filas de producto`,
+        });
+      }
       const othersPositive = c.rows.some((row) => row.others.some((v) => v === "yes" || v === "partial"));
       if (!othersPositive) {
         ctx.addIssue({ code: "custom", path: ["rows"], message: "al menos una fila con «yes» o «partial» en la competencia: una tabla perfecta no es creíble" });
@@ -89,8 +116,9 @@ export const comparisonTable = defineComponent({
   ],
   rules: [
     "Tuteo, directo y sin agresividad. Español neutro.",
-    "Competidores solo como categorías genéricas («Genéricos», «Otros correctores», «Tiendas internacionales», «Marketplaces»).",
-    "Filas cortas (≤ 30 caracteres) en positivo; mezcla producto y compra COD; la más fuerte primero.",
+    "Contra qué: other_labels son lo que el cliente ya probó (alternatives_already_tried del producto o el enemigo del ángulo «Enemigo común»), como categorías: «Crema más espesa», «Colágeno para tomar». «Genéricos» solo si no hay una alternativa previa clara.",
+    "Filas: de 4 a 6, cortas (≤ 30 caracteres) y en positivo. Al menos 3 de producto (basis spec: qué hace, dónde actúa, cómo entra en la rutina) y van primero; la más fuerte arriba.",
+    "Filas de compra (basis policy o service: pago al recibir, envío, cambios, soporte) solo cuando las otras columnas son canales o tiendas («Tiendas internacionales», «Tienda física», «Marketplaces»). Contra una categoría de producto no se escriben: el pago al recibir no es una diferencia con «Crema más espesa».",
     "Al menos una fila donde la competencia tenga «yes» o «partial» si es cierto: 5-1 es más creíble que 6-0.",
     "Si una diferencia no se puede sostener a nivel de categoría, «partial» o se elimina la fila.",
     "Valores de texto solo para datos cortos (≤ 18 con los tokens); plazos siempre como {min}–{max}.",
@@ -101,29 +129,32 @@ export const comparisonTable = defineComponent({
     "Claims de salud («corrige tu columna», «alivia el dolor»).",
     "Cifras escritas («+10.000 clientes», «15–30 días»): los plazos son tokens y el resto no se afirma.",
     "Afirmar que la competencia vende falsificaciones o productos inseguros.",
+    "Filas de pago al recibir, envío o cambios contra una categoría de producto («Pago al recibir: parcial» para «Crema más espesa»).",
   ],
   examples: [
     {
-      heading: "PosturaFit vs. genéricos",
-      us_label: "PosturaFit",
-      other_labels: ["Genéricos"],
+      heading: "Deep Collagen vs. lo que ya probaste",
+      us_label: "Deep Collagen",
+      other_labels: ["Crema más espesa", "Colágeno para tomar"],
       rows: [
-        { feature: "Correas ajustables", us: "yes", others: ["partial"], basis: "spec" },
-        { feature: "Tela respirable", us: "yes", others: ["partial"], basis: "spec" },
-        { feature: "Tallas de S a XL", us: "yes", others: ["no"], basis: "spec" },
-        { feature: "Pago al recibir", us: "yes", others: ["no"], basis: "policy" },
-        { feature: "Atención en español", us: "yes", others: ["no"], basis: "service" },
+        { feature: "Colágeno y péptidos en gotas", us: "yes", others: ["partial", "partial"], basis: "spec" },
+        { feature: "Actúa sobre la piel", us: "yes", others: ["yes", "no"], basis: "spec" },
+        { feature: "Textura ligera, sin pesar", us: "yes", others: ["no", { text: "No aplica" }], basis: "spec" },
+        { feature: "Se suma a tu crema de siempre", us: "yes", others: ["no", "yes"], basis: "spec" },
+        { feature: "Se absorbe en segundos", us: "yes", others: ["partial", { text: "No aplica" }], basis: "spec" },
       ],
-      footnote: "Comparación referencial con correctores genéricos sin tallas de marketplaces internacionales.",
+      footnote: "Comparación referencial con cremas hidratantes espesas y colágeno bebible en general.",
     },
     {
       heading: "¿Dónde te conviene comprarlo?",
       us_label: "Nuestra tienda",
       other_labels: ["Tiendas internacionales", "Tienda física"],
       rows: [
-        { feature: "Tiempo de entrega", us: { text: "{min}–{max} días" }, others: ["partial", "yes"], basis: "policy" },
+        { feature: "Tallas de S a XL", us: "yes", others: ["partial", "partial"], basis: "spec" },
+        { feature: "Correas ajustables", us: "yes", others: ["yes", "yes"], basis: "spec" },
+        { feature: "Tela respirable", us: "yes", others: ["partial", "partial"], basis: "spec" },
         { feature: "Pagas al recibir", us: "yes", others: ["no", "yes"], basis: "policy" },
-        { feature: "Envío a domicilio", us: "yes", others: ["yes", "no"], basis: "policy" },
+        { feature: "Tiempo de entrega", us: { text: "{min}–{max} días" }, others: ["partial", "yes"], basis: "policy" },
         { feature: "Cambio si no te queda", us: "yes", others: ["partial", "yes"], basis: "policy" },
       ],
     },

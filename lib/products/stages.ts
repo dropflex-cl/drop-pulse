@@ -4,7 +4,6 @@
 // Textos de design-system/reference/bundle.js (PP_STAGES, RV_STAGES y ANG_STAGES).
 
 import type { MeterStage } from "@/components/df/stage-meter";
-import type { AngleRole } from "@/lib/angles/catalog";
 import { enabledLabel, type CopyProgress } from "@/lib/copy/progress";
 import { money } from "@/lib/format";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
@@ -12,9 +11,10 @@ import type { ContentStatus, ProductFilter, RunStatus, Stage, StageKey } from "@
 
 export interface AngleFacts {
   /** La evaluación más reciente del orquestador. */
-  ranking: { status: RunStatus; error?: string | null; confirmed: boolean } | null;
-  /** Los desarrollos vigentes de la elección confirmada. */
-  briefs: { role: AngleRole; name: string; status: ContentStatus; generation: RunStatus; error?: string | null }[];
+  /** `chosen`: cuántos ángulos se eligieron para testear (2 o 3; 0 sin confirmar). */
+  ranking: { status: RunStatus; error?: string | null; confirmed: boolean; chosen?: number } | null;
+  /** Los desarrollos vigentes de la elección confirmada, en orden de slot. */
+  briefs: { slot: number; name: string; status: ContentStatus; generation: RunStatus; error?: string | null }[];
 }
 
 export interface CopyFacts {
@@ -126,7 +126,7 @@ export function basePhase(f: ProductFacts): BasePhase {
   return "new";
 }
 
-/** La etapa Ángulos se habilita al aprobar el cliente ideal y termina con los 2 desarrollos aprobados. */
+/** La etapa Ángulos se habilita al aprobar el cliente ideal y termina con los desarrollos de los ángulos elegidos (2 o 3) aprobados. */
 export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): AnglesPhase {
   if (base !== "done") return "locked";
   const r = f.angles?.ranking;
@@ -136,15 +136,16 @@ export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): An
   if (!r.confirmed) return "choose";
   const briefs = f.angles?.briefs ?? [];
   if (briefs.some((b) => active(b.generation))) return "developing";
-  // Confirmado sin uno de los 2 desarrollos (una confirmación que falló a la mitad): nada lo está
+  // Confirmado sin uno de los desarrollos (una confirmación que falló a la mitad): nada lo está
   // generando, así que no es «desarrollando»; se recupera con Regenerar.
-  if (briefs.length < 2 || briefs.some((b) => b.generation === "failed")) return "failed";
+  const expected = Math.max(2, r.chosen ?? 2);
+  if (briefs.length < expected || briefs.some((b) => b.generation === "failed")) return "failed";
   if (briefs.every((b) => b.status === "aprobado")) return "done";
   return "review";
 }
 
 /**
- * La página se habilita con los 2 desarrollos aprobados. Una reescritura que falla con la página ya
+ * La página se habilita con los desarrollos de los ángulos aprobados. Una reescritura que falla con la página ya
  * escritos no tapa la revisión: la pantalla muestra el error sobre la lista.
  */
 /** La Página del producto va después de Imágenes: sus componentes usan las imágenes elegidas. */
@@ -179,7 +180,7 @@ function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined, anglesDone:
   const p = c?.progress;
   switch (phase) {
     case "locked":
-      return anglesDone ? "Se habilita con las imágenes listas" : "Se habilita al aprobar los 2 desarrollos";
+      return anglesDone ? "Se habilita con las imágenes listas" : "Se habilita al aprobar los desarrollos de los ángulos";
     case "new":
       return "La ficha y los componentes de la página con tus ángulos";
     case "writing":
@@ -246,19 +247,19 @@ function anglesDesc(phase: AnglesPhase, a: AngleFacts | null | undefined): strin
     case "new":
       return "Elige cómo vas a vender este producto";
     case "evaluating":
-      return "La IA está evaluando 6 ángulos";
+      return "La IA está evaluando los ángulos";
     case "failed":
-      return a?.ranking?.status === "failed" ? (a.ranking.error ?? "No se pudo evaluar") : (a?.briefs.find((b) => b.generation === "failed")?.error ?? (a && a.briefs.length < 2 ? "Falta un desarrollo · toca Regenerar" : "No se pudo desarrollar un ángulo"));
+      return a?.ranking?.status === "failed"
+        ? (a.ranking.error ?? "No se pudo evaluar")
+        : (a?.briefs.find((b) => b.generation === "failed")?.error ?? (a && a.briefs.length < (a.ranking?.chosen ?? 2) ? "Falta un desarrollo · toca Regenerar" : "No se pudo desarrollar un ángulo"));
     case "choose":
-      return "Sugerencia lista · elige principal y secundario";
+      return "Sugerencia lista · elige los ángulos para testear";
     case "developing":
-      return "La IA está desarrollando los 2 ángulos";
+      return `La IA está desarrollando ${a?.ranking?.chosen ?? 3} ángulos`;
     case "review":
-      return `${a?.briefs.filter((b) => b.status === "aprobado").length ?? 0} de 2 desarrollos aprobados`;
-    case "done": {
-      const name = (role: AngleRole) => a?.briefs.find((b) => b.role === role)?.name ?? "";
-      return `${name("primary")} + ${name("secondary")}`;
-    }
+      return `${a?.briefs.filter((b) => b.status === "aprobado").length ?? 0} de ${a?.ranking?.chosen ?? a?.briefs.length ?? 3} desarrollos aprobados`;
+    case "done":
+      return (a?.briefs ?? []).map((b) => b.name).join(" · ");
   }
 }
 
@@ -296,7 +297,7 @@ function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined
  */
 function imagesStage(anglesDone: boolean, i: ImageFacts | null | undefined): { stage: Stage; meter: MeterStage; done: boolean } {
   const base = { key: "imagenes", title: "Imágenes" } as const;
-  if (!anglesDone) return { stage: { ...base, state: "locked", desc: "Se habilita al aprobar los 2 desarrollos" }, meter: "locked", done: false };
+  if (!anglesDone) return { stage: { ...base, state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" }, meter: "locked", done: false };
   const done = Boolean(i?.cover) && (i?.gallery ?? 0) >= GALLERY_MIN;
   if (done) return { stage: { ...base, state: "done", desc: `Portada y ${i!.gallery} de galería` }, meter: "done", done };
   if (i?.running) return { stage: { ...base, state: "current", desc: "La IA está pensando tu galería" }, meter: "current", done };

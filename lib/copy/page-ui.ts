@@ -49,6 +49,7 @@ const PITCH: Record<string, string> = {
   "gif-strip": "¿De verdad hace eso? Tus GIF del producto funcionando, cada uno con su texto.",
   "review-slider": "¿Llega bien? ¿Es como en las fotos? Reseñas reales bajo el botón.",
   "ugc-slider": "¿Se ve igual en la vida real? Videos de uso.",
+  "pain-block": "¿Esto es para mí? Tres momentos de tu cliente y lo que le faltaba.",
   "stats-with-image": "¿Esto funciona? El resultado con fotos, calificación y un testimonio.",
   "scrolling-benefits": "¿Es seguro comprar aquí? Una cinta con el pago, el envío y los cambios.",
   "image-with-benefits": "¿Qué tiene de especial? La foto con sus razones alrededor.",

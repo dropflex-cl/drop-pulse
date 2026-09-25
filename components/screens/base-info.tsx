@@ -32,6 +32,8 @@ import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
 import type { AvatarProposal, OptimizationRun, ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
 import { AvatarProposalCard } from "./avatar-proposal";
+import { CompetitorsSection } from "./competitors-section";
+import { DifferentiatorSection } from "./differentiator-section";
 import { PricingSection } from "./pricing-section";
 
 const AUTOSAVE_MS = 1500;
@@ -402,6 +404,10 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
           regenerating={starting}
         />
       ) : null}
+      {base.hasBrief && !running ? (
+        // Se reinicia si la ficha nueva trae otra propuesta.
+        <DifferentiatorSection key={JSON.stringify(base.differentiator.proposed)} productId={product.id} initial={base.differentiator} />
+      ) : null}
       {avatar && !running && base.missingInputs.length ? (
         <section aria-labelledby="falta" className="rounded-lg border bg-card p-4">
           <h2 id="falta" className="text-heading">
@@ -520,6 +526,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
             </div>
           </section>
           {infoInput(desktop ? 9 : 4)}
+          <CompetitorsSection productId={product.id} currency={product.currency ?? "CLP"} initial={base.competitors} />
           <div className="lg:hidden">{reviewsCta}</div>
           <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
         </div>

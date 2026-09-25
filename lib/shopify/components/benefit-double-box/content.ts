@@ -25,7 +25,7 @@ const cardText = (field: string, min: number, max: number) =>
 const card = z.object({
   icon: z.enum(ICON_KEYS).describe("Ícono de la tarjeta: cash o lock = pago, return o shield = cambio/garantía, truck = envío, headset = soporte."),
   title: cardText("title", 6, 24).describe("Hecho verificable: modalidad o cifra + unidad como token. Ej.: «Pagas al recibir», «{return_days} días para cambiarlo»."),
-  body: cardText("body", 16, 48).describe("Cómo funciona o qué te evita, en una frase que no repite el título. Ej.: «Nada por adelantado: pagas cuando llega»."),
+  body: cardText("body", 16, 64).describe("Cómo funciona o qué te evita, en una frase que no repite el título. Ej.: «Nada por adelantado: pagas cuando llega»."),
   policy: z.enum(POLICIES).describe("Política real que afirma la tarjeta; la tienda la oculta si no está activa."),
 });
 

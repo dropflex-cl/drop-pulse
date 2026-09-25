@@ -1,0 +1,371 @@
+{%- comment -%}
+  DropFlex · Lo que te pasa (pain-block). Bloque de dolor: «¿Esto es para mí? ¿Entienden lo que
+  me pasa?». Un título, exactamente 3 momentos del cliente (título corto + 1 o 2 oraciones en
+  primera o tercera persona, uno por ángulo de venta) y un remate que lleva del dolor al
+  diferenciador del producto. Primer bloque del cuerpo, antes de la foto con razones.
+
+  REGLA: es solo texto. Sin cifras, plazos ni tokens; nada que la tienda tenga que llenar.
+
+  Contenido: metafield `dropflex.pain_block` (json) → si falta, el título, el remate y los bloques
+  «Momento» del editor. Sin momentos no se muestra (en el editor, un aviso).
+    { heading, moments: [{ slot, title, text }] (3), bridge }
+  `slot` es el ángulo de venta al que le hace puente; no se muestra.
+  **texto** → destacado (acento en el título, <strong> en el texto y el remate), después de escapar.
+
+  Orden de lectura: título → momentos 1..3 → remate. Sin JS ni animaciones.
+{%- endcomment -%}
+{%- liquid
+  if product == blank
+    assign product = section.settings.product
+  endif
+  assign s = section.settings
+  assign content = product.metafields.dropflex.pain_block.value
+
+  if content.moments.size > 0
+    assign source = 'metafield'
+    assign heading = content.heading | default: s.heading
+    assign bridge = content.bridge | default: s.bridge
+  else
+    assign source = 'editor'
+    assign heading = s.heading
+    assign bridge = s.bridge
+  endif
+-%}
+
+{%- capture moments_html -%}
+  {%- if source == 'metafield' -%}
+    {%- for moment in content.moments limit: 3 -%}
+      {%- if moment.title != blank -%}
+        {%- assign parts = moment.text | escape | split: '**' -%}
+        <li class="df-pain-block__item">
+          <span class="df-pain-block__marker" aria-hidden="true"></span>
+          <div class="df-pain-block__body">
+            <h3 class="df-pain-block__title">{{ moment.title | escape }}</h3>
+            {%- if moment.text != blank -%}
+              <p class="df-text df-pain-block__text">
+                {%- for part in parts -%}
+                  {%- assign odd = forloop.index0 | modulo: 2 -%}
+                  {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+                {%- endfor -%}
+              </p>
+            {%- endif -%}
+          </div>
+        </li>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%- for block in section.blocks limit: 3 -%}
+      {%- if block.settings.title != blank -%}
+        {%- assign parts = block.settings.text | escape | split: '**' -%}
+        <li class="df-pain-block__item" {{ block.shopify_attributes }}>
+          <span class="df-pain-block__marker" aria-hidden="true"></span>
+          <div class="df-pain-block__body">
+            <h3 class="df-pain-block__title">{{ block.settings.title | escape }}</h3>
+            {%- if block.settings.text != blank -%}
+              <p class="df-text df-pain-block__text">
+                {%- for part in parts -%}
+                  {%- assign odd = forloop.index0 | modulo: 2 -%}
+                  {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+                {%- endfor -%}
+              </p>
+            {%- endif -%}
+          </div>
+        </li>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if moments_html != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+  {%- capture color_style -%}
+    {%- if s.background_color != blank -%}--df-bg: {{ s.background_color }}; --df-pain-bg: {{ s.background_color }};{%- endif -%}
+    {%- if s.text_color != blank -%} --df-fg: {{ s.text_color }};{%- endif -%}
+  {%- endcapture -%}
+
+  <div
+    class="df df-pain-block df-pain-block--{{ s.layout }}"
+    style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ color_style }} --df-pain-pt: {{ s.padding_top }}px; --df-pain-pb: {{ s.padding_bottom }}px; --df-pain-heading: {{ s.heading_size }}px;"
+  >
+    <div class="df-pain-block__inner">
+      {%- if heading != blank -%}
+        {%- assign parts = heading | escape | split: '**' -%}
+        <h2 class="df-heading df-pain-block__heading">
+          {%- for part in parts -%}
+            {%- assign odd = forloop.index0 | modulo: 2 -%}
+            {%- if odd == 1 -%}<span class="df-pain-block__hl">{{ part }}</span>{%- else -%}{{ part }}{%- endif -%}
+          {%- endfor -%}
+        </h2>
+      {%- endif -%}
+
+      <ul class="df-pain-block__list" role="list">
+        {{ moments_html }}
+      </ul>
+
+      {%- if bridge != blank -%}
+        {%- assign parts = bridge | escape | split: '**' -%}
+        <p class="df-pain-block__bridge">
+          {%- for part in parts -%}
+            {%- assign odd = forloop.index0 | modulo: 2 -%}
+            {%- if odd == 1 -%}<strong>{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+          {%- endfor -%}
+        </p>
+      {%- endif -%}
+    </div>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-pain-block" style="--df-pain-pt: {{ s.padding_top }}px; --df-pain-pb: {{ s.padding_bottom }}px;">
+    <p class="df-placeholder">
+      Lo que te pasa: agrega 3 bloques «Momento» o genera el contenido desde DropFlex.
+    </p>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-pain-block {
+    padding-block: calc(var(--df-pain-pt, 48px) * var(--df-space, 1)) calc(var(--df-pain-pb, 48px) * var(--df-space, 1));
+    background: var(--df-pain-bg, transparent);
+  }
+
+  .df-pain-block__inner {
+    max-width: calc(var(--df-container) + var(--df-gutter) * 2);
+    margin-inline: auto;
+    padding-inline: var(--df-gutter);
+  }
+
+  .df-pain-block__heading {
+    max-width: 36rem;
+    margin: 0 auto var(--df-title-gap);
+    font-size: min(var(--df-title-size), var(--df-pain-heading, 36px));
+    text-align: center;
+  }
+
+  .df-pain-block__hl {
+    color: var(--df-accent-ink);
+  }
+
+  /* Móvil: una lista vertical; cada momento con una marca del acento a la izquierda. */
+  .df-pain-block__list {
+    display: grid;
+    gap: 12px;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+  }
+
+  .df-pain-block__item {
+    display: grid;
+    grid-template-columns: 4px minmax(0, 1fr);
+    gap: 16px;
+    padding: 18px 20px 18px 16px;
+    border-radius: var(--df-radius);
+    background: var(--df-surface);
+  }
+
+  .df-pain-block__marker {
+    display: block;
+    width: 4px;
+    border-radius: var(--df-radius-pill);
+    background: var(--df-accent);
+  }
+
+  .df-pain-block__title {
+    margin: 0 0 6px;
+    font-family: var(--df-font-heading);
+    font-weight: var(--df-font-heading-weight);
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+
+  .df-pain-block__text {
+    font-size: 0.9375rem;
+  }
+
+  .df-pain-block__text strong,
+  .df-pain-block__bridge strong {
+    color: var(--df-fg);
+    font-weight: 600;
+  }
+
+  /* El remate: centrado, más grande, entre dos filetes; es el paso del dolor al producto. */
+  .df-pain-block__bridge {
+    max-width: 36rem;
+    margin: calc(40px * var(--df-space, 1)) auto 0;
+    font-family: var(--df-font-heading);
+    font-weight: var(--df-font-heading-weight);
+    font-size: 1.1875rem;
+    line-height: 1.4;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .df-pain-block__bridge::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    margin: 0 auto 16px;
+    border-radius: var(--df-radius-pill);
+    background: var(--df-accent);
+  }
+
+  /* Escritorio, diseño en tarjetas: 3 columnas con la marca arriba. */
+  @media (min-width: 990px) {
+    .df-pain-block--cards .df-pain-block__list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+      max-width: none;
+    }
+
+    .df-pain-block--cards .df-pain-block__item {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      padding: 24px;
+    }
+
+    .df-pain-block--cards .df-pain-block__marker {
+      width: 32px;
+      height: 4px;
+    }
+
+    .df-pain-block__title {
+      font-size: 1.1875rem;
+    }
+
+    .df-pain-block__text {
+      font-size: 1rem;
+    }
+
+    .df-pain-block__bridge {
+      font-size: 1.375rem;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Lo que te pasa",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "max_blocks": 3,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Los textos vienen del metafield dropflex.pain_block; el título, el remate y los bloques son el respaldo. Usa 3 momentos."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Producto (fuera de la ficha)"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "info": "Una pregunta de reconocimiento. Encierra una palabra entre ** para destacarla.",
+      "default": "¿Te pasa esto?"
+    },
+    {
+      "type": "textarea",
+      "id": "bridge",
+      "label": "Remate",
+      "info": "Una frase que lleva de lo que le pasa al cliente a lo que hace distinto al producto."
+    },
+    {
+      "type": "header",
+      "content": "Diseño"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Momentos en escritorio",
+      "options": [
+        { "value": "cards", "label": "Tres tarjetas" },
+        { "value": "list", "label": "Lista" }
+      ],
+      "default": "cards"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Tamaño del título",
+      "min": 24,
+      "max": 56,
+      "step": 2,
+      "unit": "px",
+      "default": 36
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Fondo",
+      "info": "Vacío: el fondo de la página."
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Texto",
+      "info": "Vacío: el color de texto del tema."
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Relleno superior",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Relleno inferior",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "blocks": [
+    {
+      "type": "moment",
+      "name": "Momento",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Título",
+          "info": "La escena en pocas palabras.",
+          "default": "Un momento concreto"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texto",
+          "info": "1 o 2 oraciones en primera o tercera persona, con las palabras de tu cliente.",
+          "default": "Cuenta lo que le pasa a tu cliente en ese momento, con sus palabras y sin diagnosticarlo."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DropFlex · Lo que te pasa",
+      "blocks": [
+        { "type": "moment", "settings": { "title": "El primer momento", "text": "Cuenta la escena en la que tu cliente nota el problema, con sus palabras." } },
+        { "type": "moment", "settings": { "title": "El segundo momento", "text": "Otra escena distinta: lo que ya probó y por qué no le funcionó." } },
+        { "type": "moment", "settings": { "title": "El tercer momento", "text": "Una tercera escena, en primera o tercera persona, sin diagnosticar." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

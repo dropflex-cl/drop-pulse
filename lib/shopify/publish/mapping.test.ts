@@ -164,6 +164,17 @@ describe("metafields", () => {
     expect(remove).not.toContain("gif_strip_media");
   });
 
+  it("pain-block publica su json sin archivos y se baja si deja de usarse", () => {
+    const pain = { id: "pain-block", content: example("pain-block"), images: {} };
+    const { set, remove } = productMetafields(input({ components: [pain] }), gids);
+    const meta = set.find((m) => m.key === "pain_block")!;
+    expect(meta).toMatchObject({ namespace: "dropflex", type: "json" });
+    expect(JSON.parse(meta.value)).toEqual(example("pain-block"));
+    expect(set.filter((m) => m.key.startsWith("pain_block"))).toHaveLength(1);
+    expect(remove).not.toContain("pain_block");
+    expect(productMetafields(input({ components: [] }), gids).remove).toContain("pain_block");
+  });
+
   it("la huella cambia con lo aprobado", () => {
     expect(fingerprint(input())).toBe(fingerprint(input()));
     expect(fingerprint(input())).not.toBe(fingerprint(input({ accent: "#000000" })));

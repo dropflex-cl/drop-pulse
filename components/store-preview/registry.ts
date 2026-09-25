@@ -8,6 +8,7 @@ import { ImageWithBenefitsPreview } from "./image-with-benefits";
 import { InstaStoryPreview } from "./insta-story";
 import { InventoryPreview } from "./inventory";
 import { ListingPreview } from "./listing";
+import { PainBlockPreview } from "./pain-block";
 import { ReviewSliderPreview } from "./review-slider";
 import { ReviewStarsPreview } from "./review-stars";
 import { ScrollingBenefitsPreview } from "./scrolling-benefits";
@@ -30,6 +31,7 @@ export const PREVIEWS: Record<string, ComponentType<PreviewProps<any>>> = {
   "gif-strip": GifStripPreview,
   "review-slider": ReviewSliderPreview,
   "ugc-slider": UgcSliderPreview,
+  "pain-block": PainBlockPreview,
   "stats-with-image": StatsWithImagePreview,
   "scrolling-benefits": ScrollingBenefitsPreview,
   "image-with-benefits": ImageWithBenefitsPreview,

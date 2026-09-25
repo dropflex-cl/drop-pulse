@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { angleForPrompt } from "@/lib/angles/approved";
 import { AVATAR } from "@/app/dev/screens/base/fixture";
 import type { ProductBrief } from "@/lib/ai/schemas";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
@@ -85,8 +86,11 @@ describe("prompts del redactor de página", () => {
     brief: { product_name: "Corrector", proof: { guarantee_days: null } } as unknown as ProductBrief,
     avatar: AVATAR,
     pricing,
-    primary: { name: "Mecanismo único", payload: brief("La postura se corrige sola") },
-    secondary: { name: "Oferta", payload: brief("Lleva 2") },
+    angles: [
+      angleForPrompt({ slot: 1, frame: "unique_mechanism", title: "No es la silla", pain_or_desire: "Espalda cargada", segment: "Oficinistas", promise: "Hombros atrás", trigger_moment: "A las 4 de la tarde", competition: "" }, brief("La postura se corrige sola")),
+      angleForPrompt({ slot: 2, frame: "offer", title: "", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "" }, brief("Lleva 2")),
+    ],
+    differentiator: { versus: "una faja", claim: "Lleva los hombros atrás", basis: "" },
     shopify: { title: "Corrector Postura Unisex", description: null },
     countryCode: "CL",
     freeShipping: true,
@@ -112,7 +116,12 @@ describe("prompts del redactor de página", () => {
     expect(u).toContain("- Envío gratis a todo Chile (policy free_shipping).");
     expect(u).toContain("Sin política de cambios cargada");
     expect(u).toContain("- rv_1 · 5★ · CL: Me llegó rápido y se ajusta bien.");
-    expect(u).toContain("ÁNGULO PRINCIPAL: Mecanismo único");
+    expect(u).toContain("ÁNGULOS DE VENTA (2");
+    expect(u).toContain("Ángulo 1: No es la silla (forma: Mecanismo único)");
+    expect(u).toContain("Ángulo 2: Oferta (forma: Oferta)");
+    expect(u).toContain("Frente a una faja: Lleva los hombros atrás");
+    expect(copySystem(CL)).toContain("UNA PÁGINA PARA TODOS LOS ÁNGULOS");
+    expect(copySystem(CL)).not.toMatch(/ángulo PRINCIPAL manda/);
     expect(u).toContain("¿Y si no me queda?");
     expect(u).not.toContain("gancho");
     expect(u).toContain("- listing: la ficha.");

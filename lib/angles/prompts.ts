@@ -7,11 +7,12 @@
 // Puro. Regla de caché: el system depende solo del ángulo y del mercado; el producto va en el usuario.
 
 import { marketBlock } from "@/lib/ai/prompts";
-import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
+import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
+import type { CompetitorAnalysis } from "@/lib/competitors/schemas";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import { ANGLES, modelCriteria, ROLE_LABEL, SALES_ANGLES, type AngleRole, type SalesAngle } from "./catalog";
+import { ANGLE_CANDIDATES, ANGLES, modelCriteria, SALES_ANGLES, slotLabel, testAngleName, type SalesAngle, type TestAngle } from "./catalog";
 
 /** Reglas comunes a todos (README de los agentes, versión LATAM). */
 const COMMON_RULES = [
@@ -37,19 +38,24 @@ export function angleRouterSystem(market: Market): string {
     ].join("\n");
   });
   return [
-    "Eres el estratega creativo jefe de una operación de dropshipping con pago contra entrega en Latinoamérica. Recibes la ficha de producto, el cliente ideal aprobado por el comerciante y su precio, y evalúas con qué ángulo de venta conviene hablarle a ese comprador. No escribes anuncios: diagnosticas y evalúas; los agentes de ángulo escriben después.",
+    "Eres el estratega creativo jefe de una operación de dropshipping con pago contra entrega en Latinoamérica. Recibes la ficha de producto, su diferenciador, el cliente ideal aprobado por el comerciante, su precio y lo que hace la competencia. Haces dos cosas: evalúas las 6 FORMAS de contar un ángulo y propones los ÁNGULOS que conviene testear. No escribes anuncios: los agentes de ángulo escriben después.",
+    "",
+    "EL MÉTODO",
+    "- Un ÁNGULO es el mensaje: qué dolor o deseo destacas, para quién y con qué promesa. Una FORMA es cómo se cuenta (las 6 de abajo). El mismo ángulo se puede contar con distintas formas.",
+    "- El comerciante testea 3 ángulos a la vez, cada uno en su propio conjunto de anuncios, y el mercado decide cuál vende. Por eso los ángulos tienen que ser DISTINTOS entre sí (otro dolor u otro segmento), no la misma idea con otras palabras.",
+    "- La pregunta que responde cada ángulo: ¿por qué me compran a mí y no a las otras tiendas que venden lo mismo? Parte del DIFERENCIADOR y busca lo que la COMPETENCIA no está diciendo.",
     "",
     marketBlock(market),
     "",
-    "LOS 6 ÁNGULOS (salen de anuncios de Meta con 90 a 330 días activos: son rentables)",
+    "LAS 6 FORMAS (salen de anuncios de Meta con 90 a 330 días activos: son rentables)",
     ...angles,
     "",
     "CÓMO EVALUAR",
     "1. Diagnóstico, campo por campo: nivel de consciencia (Schwartz; parte del del cliente ideal), sofisticación (1–5), si el resultado se ve en 3 segundos de video (result_visible), las pruebas reales que hay hoy en la ficha (available_proof) y, en diagnosis, el tipo de problema y qué permite la economía (PRECIO Y OFERTA: packs, ganancia, CPA máximo). Úsalo para puntuar: sin prueba real no hay 5 en los criterios que la piden.",
-    "2. En angles, un elemento por ángulo: scores lleva un número de 0 a 5 por criterio, en c1, c2 y c3 según la numeración de arriba de ESE ángulo, y penalty si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
+    "2. En angles, un elemento por forma: scores lleva un número de 0 a 5 por criterio, en c1, c2 y c3 según la numeración de arriba de ESE ángulo, y penalty si aplica la penalización. Sé exigente: un 5 es evidente en la ficha o en el cliente ideal, no una posibilidad.",
     "3. NO calcules puntajes totales ni ordenes los ángulos: el sistema calcula el puntaje con pesos fijos y comprueba por su cuenta si hay experto o reseñas reales, la sofisticación, la fecha comercial y el margen de los packs.",
-    "4. why: una o dos frases para el comerciante, en tuteo, sobre SU producto y SU cliente («Tu cliente ideal ya siente el dolor al final de la jornada: el gancho nombra algo que vive a diario»). Si no encaja, di por qué sin rodeos.",
-    "5. combinations: el principal define el gancho y el secundario refuerza el cuerpo. Combinaciones probadas: autoridad + mecanismo, historia + enemigo, identidad + oferta. La oferta rara vez es principal en un problema complejo: úsala como capa.",
+    "4. why (de cada forma): una o dos frases para el comerciante, en tuteo, sobre SU producto y SU cliente («Tu cliente ideal ya siente el dolor al final de la jornada: el gancho nombra algo que vive a diario»). Si no encaja, di por qué sin rodeos.",
+    `5. test_angles: ${ANGLE_CANDIDATES} ángulos candidatos para testear. Cada uno con un dolor o deseo distinto (o un segmento distinto del cliente ideal), su promesa dentro de forbidden_claims, la forma que mejor lo cuenta (frame), el momento concreto que abre el anuncio (de trigger_moments del cliente ideal) y qué hace la competencia. competitors_using: cuántas de las tiendas de COMPETENCIA ya lo usan (mira su main_angle); prefiere ángulos que ninguna use. Al menos uno debe salir directo del DIFERENCIADOR. La oferta rara vez es un ángulo propio en un problema complejo: va como capa de los demás.`,
     "6. aida_emphasis según el nivel de consciencia: unaware/problem_aware → el Interés educa (mecanismo, historia, enemigo); solution_aware → el Deseo diferencia (autoridad, identidad); product_aware/most_aware → Deseo y Acción (oferta).",
     "",
     COMMON_RULES,
@@ -67,6 +73,22 @@ export interface AngleContext {
   /** Etiquetas de los packs APROBADAS (sin aprobar no se pasan). */
   labels?: PackLabel[];
   baseInfo: string;
+  /** El diferenciador confirmado (o el que propuso la ficha). */
+  differentiator?: Differentiator | null;
+  /** Lo que hace la competencia (tiendas analizadas). Vacío = sin datos. */
+  competitors?: (CompetitorAnalysis & { url: string })[];
+}
+
+function competitorLine(c: CompetitorAnalysis & { url: string }, i: number): string {
+  const host = (() => {
+    try {
+      return new URL(c.url).host;
+    } catch {
+      return c.url;
+    }
+  })();
+  const price = c.price != null ? ` · ${c.price}` : "";
+  return `${i + 1}. ${c.store_name || host}${price} · ángulo: ${c.main_angle.pain_or_desire} → ${c.main_angle.promise} (para ${c.main_angle.segment}) · forma: ${ANGLES[c.frame]?.name ?? c.frame}${c.offer ? ` · oferta: ${c.offer}` : ""}`;
 }
 
 function contextBlock(c: AngleContext): string[] {
@@ -79,6 +101,12 @@ function contextBlock(c: AngleContext): string[] {
     "",
     pricingBlock(c.pricing, c.labels),
     "",
+    "DIFERENCIADOR (en qué se diferencia de lo que el cliente ya usa)",
+    c.differentiator ? `Frente a ${c.differentiator.versus}: ${c.differentiator.claim}` : "(sin diferenciador: dilo en missing_inputs)",
+    "",
+    `COMPETENCIA (${c.competitors?.length ?? 0} tiendas analizadas)`,
+    ...(c.competitors?.length ? c.competitors.map(competitorLine) : ["(sin datos de competencia: competitors_using = 0 y competition = «Sin datos de competencia»)"]),
+    "",
     "LO QUE EL COMERCIANTE ESCRIBIÓ (contexto original; la ficha ya lo ordenó)",
     c.baseInfo.trim() || "(vacío)",
   ];
@@ -89,8 +117,8 @@ export function angleRouterUser(c: AngleContext, retry: string[] = []): string {
   return [
     ...contextBlock(c),
     "",
-    ...(retry.length ? [`Tu respuesta anterior no se pudo puntuar: ${retry.join(" ")} Revisa que cada ángulo aparezca una vez y traiga un puntaje de 0 a 5 por criterio, en el orden numerado.`, ""] : []),
-    "Evalúa los 6 ángulos para este producto.",
+    ...(retry.length ? [`Tu respuesta anterior no se pudo puntuar: ${retry.join(" ")} Revisa que cada forma aparezca una vez con un puntaje de 0 a 5 por criterio, en el orden numerado, y que vengan los ${ANGLE_CANDIDATES} ángulos candidatos completos.`, ""] : []),
+    `Evalúa las 6 formas y propone ${ANGLE_CANDIDATES} ángulos para testear con este producto.`,
   ].join("\n");
 }
 
@@ -257,30 +285,37 @@ export function angleSystem(angle: SalesAngle, market: Market): string {
 }
 
 export interface AngleHandoff {
-  role: AngleRole;
-  /** El otro ángulo elegido (el principal si este es secundario, y viceversa). */
-  partner: SalesAngle;
-  /** Cómo se combinan, según el orquestador (si lo dijo). */
-  combo?: string | null;
+  /** El ángulo que se desarrolla (mensaje + forma). */
+  angle: TestAngle;
+  /** Los otros ángulos que se testean en paralelo (para no repetirlos). */
+  others: TestAngle[];
+  /** Por qué conviene esta forma, según el orquestador. */
   why: string;
   risks: string[];
   aidaEmphasis: string;
   complianceFlags: string[];
 }
 
-export function angleUser(angle: SalesAngle, c: AngleContext, h: AngleHandoff): string {
-  const partnerRole = h.role === "primary" ? "secundario" : "principal";
+export function angleUser(frame: SalesAngle, c: AngleContext, h: AngleHandoff): string {
+  const a = h.angle;
   return [
     ...contextBlock(c),
     "",
     "HANDOFF DEL ORQUESTADOR",
-    `- Este desarrollo es el ${ROLE_LABEL[h.role]}: ${h.role === "primary" ? "define el gancho que abre el anuncio" : "refuerza el cuerpo del argumento del principal"}.`,
-    `- El ${partnerRole} es ${ANGLES[h.partner].name}.${h.combo ? ` Cómo se combinan: ${h.combo}` : ""}`,
-    `- Por qué este ángulo: ${h.why}`,
+    `- Este es el ${slotLabel(a.slot).toLowerCase()} de ${h.others.length + 1} que se testean a la vez, cada uno en su propio conjunto de anuncios. Quien ve este anuncio no ve los otros: tiene que ser 100 % este ángulo, sin mezclarlo con los demás.`,
+    `- El ángulo: «${testAngleName(a)}».`,
+    ...(a.pain_or_desire ? [`- Dolor o deseo: ${a.pain_or_desire}`] : []),
+    ...(a.segment ? [`- Para quién: ${a.segment}`] : []),
+    ...(a.promise ? [`- Promesa: ${a.promise}`] : []),
+    ...(a.trigger_moment ? [`- Momento que abre el anuncio: ${a.trigger_moment}`] : []),
+    ...(a.competition ? [`- Competencia: ${a.competition}`] : []),
+    `- Se cuenta con la forma ${ANGLES[frame].name}. Por qué: ${h.why}`,
+    ...(h.others.length ? [`- Los otros ángulos del testeo (no los repitas): ${h.others.map((o) => `«${testAngleName(o)}» (${ANGLES[o.frame].name})`).join("; ")}.`] : []),
     ...(h.risks.length ? [`- Riesgos: ${h.risks.join("; ")}.`] : []),
     `- Énfasis AIDA: ${h.aidaEmphasis}`,
     ...(h.complianceFlags.length ? [`- Alertas de cumplimiento: ${h.complianceFlags.join("; ")}.`] : []),
+    "- La oferta va como capa (offer_layer), nunca reemplaza al ángulo.",
     "",
-    `Desarrolla el ángulo ${ANGLES[angle].name}.`,
+    `Desarrolla este ángulo con la forma ${ANGLES[frame].name}.`,
   ].join("\n");
 }

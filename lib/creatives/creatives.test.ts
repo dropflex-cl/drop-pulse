@@ -17,7 +17,7 @@ const preset = "f53dec43-8292-53fc-b944-f70e8086b6f0";
 const KIT = ["spare grey roller head", "white USB cable"];
 
 const concept = (over: Partial<ConceptPayload> = {}): ConceptPayload => ({
-  angle: "primary",
+  angle: 1,
   family: "hero",
   name: "Equilibrio",
   why: "El titular nombra la sensación, no el síntoma.",
@@ -160,9 +160,9 @@ describe("conceptProblems", () => {
       concept(),
       concept({ family: "explainer", preset_id: null, kit_parts: ["Spare grey roller head"] }),
       concept({ family: "headline" }),
-      concept({ angle: "secondary", family: "proof" }),
-      concept({ angle: "secondary", family: "native", preset_id: null }),
-      concept({ family: "offer", product_units: 3 }),
+      concept({ angle: 2, family: "proof" }),
+      concept({ angle: 2, family: "native", preset_id: null }),
+      concept({ angle: 2, family: "offer", product_units: 3 }),
     ],
     compliance_flags: [],
   });
@@ -172,13 +172,27 @@ describe("conceptProblems", () => {
     expect(conceptProblems(six(), facts)).toEqual([]);
   });
 
-  it("pide la oferta, presets reales y un preset en las familias que lo tienen", () => {
+  it("pide presets reales y un preset en las familias que lo tienen", () => {
     const base = six();
-    const bad = { ...base, concepts: [...base.concepts.slice(0, 5), concept({ preset_id: "00000000-0000-0000-0000-000000000000" })] };
+    const bad = { ...base, concepts: [...base.concepts.slice(0, 5), concept({ angle: 2, preset_id: "00000000-0000-0000-0000-000000000000" })] };
     const problems = conceptProblems(bad, facts);
-    expect(problems.some((p) => /oferta/.test(p))).toBe(true);
     expect(problems.some((p) => /no está en PRESETS/.test(p))).toBe(true);
-    expect(conceptProblems({ ...base, concepts: [...base.concepts.slice(0, 5), concept({ family: "offer", preset_id: null })] }, facts).some((p) => /elige uno de PRESETS/.test(p))).toBe(true);
+    expect(conceptProblems({ ...base, concepts: [...base.concepts.slice(0, 5), concept({ angle: 2, family: "offer", preset_id: null })] }, facts).some((p) => /elige uno de PRESETS/.test(p))).toBe(true);
+  });
+
+  it("reparte los conceptos por ángulo, en formatos distintos y sin concepto de retargeting obligatorio", () => {
+    const base = six();
+    // 3 ángulos: 2 por ángulo.
+    const three = { ...base, concepts: base.concepts.map((c, i) => ({ ...c, angle: [1, 1, 2, 2, 3, 3][i] })) };
+    expect(conceptProblems(three, { ...facts, slots: [1, 2, 3] }).filter((p) => /ángulo/.test(p))).toEqual([]);
+    // Un ángulo que no existe y un ángulo corto de conceptos.
+    const wrong = { ...base, concepts: base.concepts.map((c, i) => (i === 0 ? { ...c, angle: 3 } : c)) };
+    const problems = conceptProblems(wrong, facts);
+    expect(problems.some((p) => /ángulo 3, que no existe/.test(p))).toBe(true);
+    expect(problems.some((p) => /El ángulo 1 necesita 3 conceptos y trae 2/.test(p))).toBe(true);
+    // Mismo formato dos veces en un ángulo.
+    const same = { ...base, concepts: base.concepts.map((c, i) => (i === 1 ? { ...c, family: "hero" as const, preset_id: preset } : c)) };
+    expect(conceptProblems(same, facts).some((p) => /repiten familia/.test(p))).toBe(true);
   });
 
   it("las familias de escena van sin preset", () => {

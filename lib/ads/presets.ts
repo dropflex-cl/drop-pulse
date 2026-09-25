@@ -7,6 +7,7 @@ import { adsetCount, type EngineConfig, type LaunchConfig, type Rule, type Struc
 
 export const SYSTEM_PRESETS = [
   { key: "impulso", label: "Testeo ABO · 1 creativo por conjunto", structure: "abo" },
+  { key: "impulso-temporada", label: "Testeo ABO · 3 ángulos (temporada)", structure: "abo" },
   { key: "gem", label: "Testeo ABO · con intereses", structure: "abo" },
   { key: "pancho", label: "Testeo ABO · muchos videos", structure: "abo" },
   { key: "tfl", label: "Testeo CBO · TFL", structure: "cbo" },
@@ -45,6 +46,9 @@ interface Numbers {
 const PRESET_NUMBERS: Record<PresetKey, Numbers> = {
   // Impulso Pro: 2 conjuntos abiertos, 1 creativo y 1 anuncio por conjunto, $5.000 cada uno, 06:00.
   impulso: { structure: "abo", audiences: [{ kind: "open", interests: [] }], cbo_ads: "one_per_creative", budgetClp: 5000, minAge: 18, startHour: 6 },
+  // Impulso en temporada alta (docs/spec-angulos-testeo.md §6): 3 conjuntos de $5.000, uno por ángulo
+  // de testeo (elige un creativo de cada ángulo); cada anuncio lleva el texto de su ángulo.
+  "impulso-temporada": { structure: "abo", audiences: [{ kind: "open", interests: [] }], cbo_ads: "one_per_creative", budgetClp: 5000, minAge: 18, startHour: 6 },
   // GEM: cada creativo en un conjunto abierto y en uno con intereses, 35+.
   gem: {
     structure: "abo",
@@ -98,6 +102,7 @@ function presetRules(key: PresetKey, currency: string, dailyTotalClp: number): R
   const base = impulsoRules(currency, dailyTotalClp);
   switch (key) {
     case "impulso":
+    case "impulso-temporada":
       return base;
     case "gem":
       return [{ id: "wait-days", group: "wait", type: "min_days", enabled: true, days: 3 }, ...base];

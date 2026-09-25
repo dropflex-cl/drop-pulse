@@ -134,6 +134,26 @@ export interface PageFacts {
   amounts: number[];
   /** Ids de las reseñas aprobadas que la IA puede citar. */
   reviewIds: string[];
+  /** Los datos que dio el comerciante (ficha y Información base): de aquí salen los números de la pregunta de duración. */
+  factText?: string;
+}
+
+/** El texto con los datos del producto contra el que se comprueban los números de uso (duración, contenido). */
+export function productFactText(brief: { key_facts?: { label: string; value: string }[]; what_it_does?: string } | null, baseInfo: string | null | undefined): string {
+  return [...(brief?.key_facts ?? []).map((f) => `${f.label}: ${f.value}`), brief?.what_it_does ?? "", baseInfo ?? ""].join("\n");
+}
+
+/** Números de un texto, normalizados («1,5» y «1.5» son el mismo). */
+const numbersIn = (t: string) => [...t.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0].replace(",", "."));
+
+/**
+ * Números de la pregunta de duración que no salen de los datos del comerciante. Se aceptan también
+ * los múltiplos por pack (2 o 3 veces un número de los datos: «3 frascos rinden de 3 a 4 meses»).
+ */
+export function unsupportedNumbers(answer: string, factText: string): string[] {
+  const known = new Set(numbersIn(factText).map(Number));
+  const ok = (n: number) => [...known].some((k) => [1, 2, 3].some((m) => Math.abs(k * m - n) < 1e-9)) || n <= 3;
+  return numbersIn(answer).filter((x) => !ok(Number(x)));
 }
 
 /** Los problemas del esquema estricto, en el formato que entiende el modelo («faq-and-text.items.2.answer: …»). */
@@ -194,12 +214,24 @@ export function pageProblems(out: PageOutput, ids: string[], facts: PageFacts): 
   const texts = parts.flatMap(([id, value]) => textsOf(value, [id]).filter((t) => !NOT_COPY.test(t.path)));
   const internal = texts.find((t) => INTERNAL.test(t.text));
   if (internal) problems.push(`${internal.path} usa una palabra interna («${internal.text.match(INTERNAL)![0]}»): escribe para el comprador, sin nombrar la ficha, los ángulos ni el precio y oferta.`);
-  const wrong = new Set<number>();
-  for (const t of texts) for (const n of amountsIn(t.text, facts.currency)) if (!amountAllowed(n, facts.amounts)) wrong.add(n);
-  if (wrong.size) problems.push(`Estos montos no están en PRECIO Y OFERTA: ${[...wrong].join(", ")}. Usa solo esos números.`);
+  // Con su ruta, para que la corrección reescriba solo la parte que los nombra (failingParts).
+  for (const t of texts) {
+    const wrong = [...new Set(amountsIn(t.text, facts.currency).filter((n) => !amountAllowed(n, facts.amounts)))];
+    if (wrong.length) problems.push(`${t.path}: estos montos no están en PRECIO Y OFERTA: ${wrong.join(", ")}. Usa solo esos números.`);
+  }
   for (const re of FORBIDDEN) {
     const hit = texts.find((t) => re.test(t.text));
     if (hit) problems.push(`${hit.path} tiene una promesa prohibida («${hit.text.match(re)![0]}»): usa «ayuda a» o «diseñado para».`);
+  }
+
+  // La pregunta de duración puede llevar números, pero solo los que dio el comerciante.
+  if (facts.factText !== undefined) {
+    const faq = parts.find(([id]) => id === "faq-and-text")?.[1] as { items?: { topic?: string; answer?: string }[] } | undefined;
+    (faq?.items ?? []).forEach((item, i) => {
+      if (item.topic !== "duracion" || !item.answer) return;
+      const bad = unsupportedNumbers(item.answer, facts.factText!);
+      if (bad.length) problems.push(`faq-and-text.items.${i}.answer: ${bad.join(", ")} no sale de los datos del producto. Usa solo el rendimiento que dio el comerciante.`);
+    });
   }
 
   const offer = (out.listing as { offer_line?: string } | null)?.offer_line;
@@ -217,4 +249,36 @@ export function pageProblems(out: PageOutput, ids: string[], facts: PageFacts): 
     else if (!first) seen.set(key, t.path);
   }
   return problems;
+}
+
+// ---------------------------------------------------------------- Corrección por partes
+
+/**
+ * Las partes (la ficha o un componente) que nombran los problemas, en el orden de `ids`, o null si
+ * alguno no se puede atribuir a una parte: entonces se corrige la página entera.
+ */
+export function failingParts(problems: string[], ids: string[]): string[] | null {
+  const owners = new Set<string>();
+  for (const p of problems) {
+    const owner = p.match(/^Falta (?:components\.)?([\w-]+)\.$/)?.[1] ?? p.split(/[.:\s]/)[0];
+    if (!ids.includes(owner)) return null;
+    owners.add(owner);
+  }
+  return ids.filter((id) => owners.has(id));
+}
+
+/** Solo esas partes de una respuesta (lo que se le devuelve al modelo para corregir). */
+export function partialOutput(out: PageOutput, ids: string[]): PageOutput {
+  return {
+    listing: ids.includes(LISTING) ? out.listing : null,
+    components: Object.fromEntries(Object.entries(out.components ?? {}).filter(([id]) => ids.includes(id))),
+  };
+}
+
+/** La respuesta con las partes corregidas en lugar de las anteriores. */
+export function mergeOutput(out: PageOutput, fix: PageOutput, ids: string[]): PageOutput {
+  return {
+    listing: ids.includes(LISTING) ? fix.listing : out.listing,
+    components: { ...out.components, ...partialOutput(fix, ids).components },
+  };
 }

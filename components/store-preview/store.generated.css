@@ -2224,6 +2224,129 @@ df-insta-story {
   .df-inventory--pulse .df-inventory__dot::after { animation: none; }
 }
 
+/* pain-block/sections/df-pain-block.liquid */
+.df-pain-block {
+  padding-block: calc(var(--df-pain-pt, 48px) * var(--df-space, 1)) calc(var(--df-pain-pb, 48px) * var(--df-space, 1));
+  background: var(--df-pain-bg, transparent);
+}
+
+.df-pain-block__inner {
+  max-width: calc(var(--df-container) + var(--df-gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--df-gutter);
+}
+
+.df-pain-block__heading {
+  max-width: 36rem;
+  margin: 0 auto var(--df-title-gap);
+  font-size: min(var(--df-title-size), var(--df-pain-heading, 36px));
+  text-align: center;
+}
+
+.df-pain-block__hl {
+  color: var(--df-accent-ink);
+}
+
+/* Móvil: una lista vertical; cada momento con una marca del acento a la izquierda. */
+.df-pain-block__list {
+  display: grid;
+  gap: 12px;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.df-pain-block__item {
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px 20px 18px 16px;
+  border-radius: var(--df-radius);
+  background: var(--df-surface);
+}
+
+.df-pain-block__marker {
+  display: block;
+  width: 4px;
+  border-radius: var(--df-radius-pill);
+  background: var(--df-accent);
+}
+
+.df-pain-block__title {
+  margin: 0 0 6px;
+  font-family: var(--df-font-heading);
+  font-weight: var(--df-font-heading-weight);
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.df-pain-block__text {
+  font-size: 0.9375rem;
+}
+
+.df-pain-block__text strong,
+.df-pain-block__bridge strong {
+  color: var(--df-fg);
+  font-weight: 600;
+}
+
+/* El remate: centrado, más grande, entre dos filetes; es el paso del dolor al producto. */
+.df-pain-block__bridge {
+  max-width: 36rem;
+  margin: calc(40px * var(--df-space, 1)) auto 0;
+  font-family: var(--df-font-heading);
+  font-weight: var(--df-font-heading-weight);
+  font-size: 1.1875rem;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.df-pain-block__bridge::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin: 0 auto 16px;
+  border-radius: var(--df-radius-pill);
+  background: var(--df-accent);
+}
+
+/* Escritorio, diseño en tarjetas: 3 columnas con la marca arriba. */
+@container store (min-width: 990px) {
+  .df-pain-block--cards .df-pain-block__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    max-width: none;
+  }
+
+  .df-pain-block--cards .df-pain-block__item {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 14px;
+    padding: 24px;
+  }
+
+  .df-pain-block--cards .df-pain-block__marker {
+    width: 32px;
+    height: 4px;
+  }
+
+  .df-pain-block__title {
+    font-size: 1.1875rem;
+  }
+
+  .df-pain-block__text {
+    font-size: 1rem;
+  }
+
+  .df-pain-block__bridge {
+    font-size: 1.375rem;
+  }
+}
+
 /* review-slider/blocks/df-review-slider.liquid */
 .df-review-slider {
   display: block;

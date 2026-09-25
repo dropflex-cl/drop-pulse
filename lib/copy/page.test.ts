@@ -5,7 +5,7 @@ import { CATALOG } from "@/lib/shopify/components/catalog";
 import { FIELD_LABELS, ICON_LABELS, emptyValue, formFields, type FormField } from "./form";
 import { ICON_KEYS } from "@/lib/shopify/components/define";
 import { LISTING, listingSchema, type Listing } from "./listing";
-import { WRITTEN, loosen, pageProblems, pageSchema, schemaProblems, textsOf, type PageFacts, type PageOutput } from "./page-schema";
+import { WRITTEN, failingParts, loosen, mergeOutput, pageProblems, pageSchema, partialOutput, schemaProblems, textsOf, type PageFacts, type PageOutput } from "./page-schema";
 import { allowedAmounts } from "./schemas";
 
 const pricing = buildPricingPlan(
@@ -134,6 +134,50 @@ describe("pageProblems", () => {
     expect(schemaProblems(LISTING, {})[0]).toBe("listing.title: Falta este campo.");
     expect(schemaProblems(LISTING, { ...LISTING_EXAMPLE, short_name: "x".repeat(31) })).toEqual(["listing.short_name: Pasa de 30 caracteres."]);
     expect(schemaProblems(LISTING, { ...LISTING_EXAMPLE, title: "Corto" })).toEqual(["listing.title: Escribe al menos 10 caracteres."]);
+  });
+});
+
+describe("corrección por partes", () => {
+  it("atribuye cada problema a su parte, en el orden de la página", () => {
+    const p = page();
+    (p.listing as Listing).offer_line = "2 por $12.345 · Paga al recibir";
+    const box = p.components["benefit-double-box"] as { cards: { body: string }[] };
+    box.cards[0].body = "x".repeat(80);
+    delete p.components["faq-and-text"];
+    expect(failingParts(pageProblems(p, ALL, facts), ALL)).toEqual([LISTING, "benefit-double-box", "faq-and-text"]);
+  });
+
+  it("los montos van con la ruta del texto que los nombra", () => {
+    const p = page();
+    (p.listing as Listing).offer_line = "2 por $12.345 · Paga al recibir";
+    expect(pageProblems(p, ALL, facts).find((m) => m.includes("12345"))).toMatch(/^listing\.offer_line: /);
+  });
+
+  it("un problema sin parte pide la página entera", () => {
+    expect(failingParts(["Algo salió mal en general."], ALL)).toBeNull();
+    expect(failingParts(["otro-componente.title: Pasa de 20 caracteres."], ALL)).toBeNull();
+  });
+
+  it("la duplicación la corrige quien repite", () => {
+    const p = page();
+    (p.listing as Listing).short_description = "Lleva tus hombros suavemente hacia atrás para que notes cuando te encorvas.";
+    (p.components["image-with-benefits"] as { benefits: { body: string }[] }).benefits[0].body = "Lleva tus hombros suavemente hacia atrás para que notes cuando te encorvas.";
+    expect(failingParts(pageProblems(p, ALL, facts), ALL)).toEqual(["image-with-benefits"]);
+  });
+
+  it("toma solo esas partes y las reemplaza sin tocar el resto", () => {
+    const p = page();
+    const ids = [LISTING, "benefit-double-box"];
+    const part = partialOutput(p, ids);
+    expect(Object.keys(part.components)).toEqual(["benefit-double-box"]);
+    expect(partialOutput(p, ["benefit-double-box"]).listing).toBeNull();
+
+    const fix: PageOutput = { listing: { ...LISTING_EXAMPLE, title: "Otro título para la ficha del producto" }, components: { "benefit-double-box": { cards: [] }, "faq-and-text": "no pedido" } };
+    const merged = mergeOutput(p, fix, ids);
+    expect((merged.listing as Listing).title).toBe("Otro título para la ficha del producto");
+    expect(merged.components["benefit-double-box"]).toEqual({ cards: [] });
+    expect(merged.components["faq-and-text"]).toEqual(p.components["faq-and-text"]);
+    expect(mergeOutput(p, { listing: null, components: {} }, ["benefit-double-box"]).listing).toEqual(p.listing);
   });
 });
 

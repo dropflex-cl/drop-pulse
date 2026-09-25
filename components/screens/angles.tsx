@@ -1,49 +1,54 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AngleCard,
   AngleDevelopment,
   AngleDevelopmentActions,
-  AngleSuggestion,
   Button,
   Icon,
   IcpSummary,
-  OptionList,
+  Notice,
+  RoleChip,
   SegmentedControl,
   TopBar,
   notify,
   notifyUndo,
   type AngleDevelopmentStatus,
   type AngleDevelopmentValue,
-  type AngleRoleUi,
 } from "@/components/df";
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton, useAiEstimate } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
-import { ANGLES, type AngleRole, type SalesAngle } from "@/lib/angles/catalog";
-import { ProductApiClientError, productsApi } from "@/lib/products/client";
+import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type SalesAngle } from "@/lib/angles/catalog";
 import { money } from "@/lib/format";
+import { ProductApiClientError, productsApi, type TestAngleInput } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
-import type { AngleBriefView, AngleOption, AnglesState, ProductAngles, RunStatus } from "@/lib/types";
+import type { AngleBriefView, AngleCandidateView, AngleRankingView, AnglesState, ProductAngles, RunStatus, TestAngleView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// Etapa Ángulos (PantallasAngulos1/2 y PantallasAngulosEscritorio1/2): el cliente ideal aprobado →
-// “Elegir ángulos con IA” → ranking de los 6 con la sugerencia → el comerciante confirma principal y
-// secundario → 2 desarrollos en paralelo → aprobar los 2 habilita la página del producto (Textos).
+// Etapa Ángulos (docs/spec-angulos-testeo.md §4): el cliente ideal aprobado y el diferenciador
+// confirmado → “Elegir ángulos con IA” → 5 ángulos candidatos (mensaje + forma) con la sugerencia de 3
+// → el comerciante elige 2 o 3 (uno por conjunto de anuncios) y la forma de cada uno → un desarrollo
+// por ángulo, en paralelo → aprobarlos habilita Imágenes y la página del producto.
 
 const POLL_MS = 2500;
-const UI_ROLE: Record<AngleRole, AngleRoleUi> = { primary: "principal", secondary: "secundario" };
-const DATA_ROLE: Record<AngleRoleUi, AngleRole> = { principal: "primary", secundario: "secondary" };
-const ROLES: AngleRole[] = ["primary", "secondary"];
 
-type Pick = Partial<Record<AngleRole, SalesAngle>>;
-type Sheet = { kind: "role"; role: AngleRole } | { kind: "use"; angle: SalesAngle } | null;
+type Pick = TestAngleInput & { key: string };
 
 const active = (s?: RunStatus) => s === "queued" || s === "running";
+/** Lo que se manda al confirmar: sin la clave de la pantalla. */
+const toInput = (p: Pick): TestAngleInput => ({
+  title: p.title,
+  frame: p.frame,
+  pain_or_desire: p.pain_or_desire,
+  segment: p.segment,
+  promise: p.promise,
+  trigger_moment: p.trigger_moment,
+  competition: p.competition,
+});
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 
 function devStatus(b: AngleBriefView): AngleDevelopmentStatus {
@@ -64,6 +69,38 @@ function devValue(b: AngleBriefView): Partial<AngleDevelopmentValue> {
   };
 }
 
+const fromCandidate = (c: AngleCandidateView): Pick => ({
+  key: `c${c.index}`,
+  title: c.title,
+  frame: c.frame,
+  pain_or_desire: c.painOrDesire,
+  segment: c.segment,
+  promise: c.promise,
+  trigger_moment: c.triggerMoment,
+  competition: c.competition,
+});
+
+const fromChosen = (a: TestAngleView, candidates: AngleCandidateView[]): Pick => {
+  const match = candidates.find((c) => c.title === a.title && c.painOrDesire === a.painOrDesire);
+  return {
+    key: match ? `c${match.index}` : `s${a.slot}`,
+    title: a.title || a.name,
+    frame: a.frame,
+    pain_or_desire: a.painOrDesire,
+    segment: a.segment,
+    promise: a.promise,
+    trigger_moment: a.triggerMoment,
+    competition: a.competition,
+  };
+};
+
+/** La elección de partida: lo confirmado o, si no hay, la sugerencia del código. */
+function initialPicks(r: AngleRankingView | undefined): Pick[] {
+  if (!r) return [];
+  if (r.chosen?.length && r.candidates.length) return r.chosen.map((a) => fromChosen(a, r.candidates));
+  return r.suggested.map((i) => r.candidates[i]).filter(Boolean).map(fromCandidate);
+}
+
 /** Riesgo que se resuelve con un dato real: las reseñas se importan en Reseñas; el experto se escribe en Información base. */
 const FIX_LABEL = { reviews: "Importar reseñas", expert: "Agregar experto" } as const;
 
@@ -78,26 +115,25 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   const fixHref = (fix?: "reviews" | "expert") => (fix === "reviews" ? productHref(product.id, "resenas") : baseHref);
 
   const evaluating = active(ranking?.status);
-  const generating = ROLES.some((r) => active(briefs[r]?.generation));
+  const generating = briefs.some((b) => active(b.generation));
   const locked = !state.avatar?.approved;
+  const needsDifferentiator = !state.differentiator?.confirmed;
 
   // Elección en curso: parte de lo confirmado o de la sugerencia; una evaluación nueva la reinicia.
-  const [pick, setPick] = useState<Pick>(() => ranking?.chosen ?? ranking?.suggested ?? {});
+  const [picks, setPicks] = useState<Pick[]>(() => initialPicks(ranking));
   const rankingKey = `${ranking?.id}:${ranking?.status}:${ranking?.confirmedAt}`;
   const [pickFor, setPickFor] = useState(rankingKey);
   if (rankingKey !== pickFor) {
     setPickFor(rankingKey);
-    setPick(ranking?.chosen ?? ranking?.suggested ?? {});
+    setPicks(initialPicks(ranking));
   }
   const [choosing, setChoosing] = useState(false);
-  // En escritorio, el principal abre con su cálculo a la vista (como el diseño); tocar lo cambia.
-  const [expandedState, setExpanded] = useState<SalesAngle | null | undefined>(undefined);
-  const expanded = expandedState === undefined ? (desktop ? (pick.primary ?? null) : null) : expandedState;
-  const [sheet, setSheet] = useState<Sheet>(null);
-  const [sheetValue, setSheetValue] = useState<string>("");
-  const [tab, setTab] = useState<AngleRole>("primary");
-  const [editing, setEditing] = useState<AngleRole | null>(null);
-  const [busy, setBusy] = useState<{ what: string; role?: AngleRole } | null>(null);
+  const [editingPick, setEditingPick] = useState<string | null>(null);
+  const [showForms, setShowForms] = useState(false);
+  const [expandedForm, setExpandedForm] = useState<SalesAngle | null>(null);
+  const [tab, setTab] = useState<number>(1);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [busy, setBusy] = useState<{ what: string; slot?: number } | null>(null);
   const [error, setError] = useState<string>();
 
   // ---------------------------------------------------------------- Sondeo
@@ -107,9 +143,9 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     if (wasWorking.current && !working) {
       // La ruta, el encabezado y Hoy se leen en el servidor.
       router.refresh();
-      if (ranking?.status === "succeeded" && !ranking.chosen) notify("Los 6 ángulos están evaluados: elige principal y secundario");
+      if (ranking?.status === "succeeded" && !ranking.chosen) notify("Los ángulos están listos: elige los que vas a testear");
       else if (ranking?.status === "failed") notify(ranking.error ?? "No pudimos evaluar los ángulos. Toca Reintentar.");
-      else if (ROLES.every((r) => briefs[r]?.generation === "succeeded")) notify("Los 2 desarrollos están listos para revisar");
+      else if (briefs.length && briefs.every((b) => b.generation === "succeeded")) notify("Los desarrollos están listos para revisar");
     }
     wasWorking.current = working;
     if (!working) return;
@@ -124,8 +160,8 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   }, [evaluating, generating, product.id, router, ranking, briefs]);
 
   // ---------------------------------------------------------------- Acciones
-  const run = async (what: string, fn: () => Promise<AnglesState>, fallback: string, role?: AngleRole) => {
-    setBusy({ what, role });
+  const run = async (what: string, fn: () => Promise<AnglesState>, fallback: string, slot?: number) => {
+    setBusy({ what, slot });
     setError(undefined);
     try {
       const next = await fn();
@@ -147,47 +183,52 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     });
   // Con desarrollos hechos, volver a evaluar puede costar también los desarrollos: avisa antes de gastar
   // (design-system/arquitectura.md › 11, “Antes de gastar”).
-  const hasBriefs = ROLES.some((r) => briefs[r]);
+  const hasBriefs = briefs.length > 0;
   const [askReeval, setAskReeval] = useState(false);
   const rankingCost = useAiEstimate("angle_ranking");
   const briefCost = useAiEstimate("angle_brief");
   const evaluate = () => (hasBriefs ? setAskReeval(true) : runEvaluate());
 
   const confirm = async () => {
-    if (!pick.primary || !pick.secondary) return;
-    const next = await run("confirm", () => productsApi.confirmAngles(product.id, pick.primary!, pick.secondary!), "No pudimos guardar tu elección. Intenta de nuevo.");
+    if (picks.length < MIN_TEST_ANGLES) return;
+    const next = await run(
+      "confirm",
+      () => productsApi.confirmAngles(product.id, picks.map(toInput)),
+      "No pudimos guardar tu elección. Intenta de nuevo.",
+    );
     if (next) {
       setChoosing(false);
-      setTab("primary");
+      setEditingPick(null);
+      setTab(1);
     }
   };
 
-  const decide = (role: AngleRole, action: "approve" | "reopen") => {
-    const b = briefs[role];
-    if (!b) return;
-    run(action, () => productsApi.decideAngleBrief(product.id, b.id, action), "No pudimos guardar tu decisión. Intenta de nuevo.", role).then((next) => {
+  const decide = (b: AngleBriefView, action: "approve" | "reopen") => {
+    run(action, () => productsApi.decideAngleBrief(product.id, b.id, action), "No pudimos guardar tu decisión. Intenta de nuevo.", b.slot).then((next) => {
       if (!next || action !== "approve") return;
-      notifyUndo(`${UI_ROLE[role] === "principal" ? "Principal" : "Secundario"} aprobado`, () => decide(role, "reopen"));
+      notifyUndo(`Ángulo ${b.slot} aprobado`, () => decide(b, "reopen"));
       // Como la revisión de textos: pasa sola al siguiente pendiente.
-      const other = role === "primary" ? "secondary" : "primary";
-      if (next.briefs[other] && next.briefs[other]!.status !== "aprobado") setTab(other);
+      const pending = next.briefs.find((x) => x.status !== "aprobado" && x.slot !== b.slot);
+      if (pending) setTab(pending.slot);
     });
   };
 
-  const regenerate = (role: AngleRole) => {
-    const b = briefs[role];
-    const chosen = ranking?.chosen;
+  const regenerate = (slot: number) => {
+    const b = briefs.find((x) => x.slot === slot);
     setEditing(null);
-    if (b) run("regenerate", () => productsApi.regenerateAngleBrief(product.id, b.id), "No pudimos regenerar este desarrollo. Intenta de nuevo.", role);
+    if (b) run("regenerate", () => productsApi.regenerateAngleBrief(product.id, b.id), "No pudimos regenerar este desarrollo. Intenta de nuevo.", slot);
     // Sin desarrollo (una confirmación que falló a la mitad): confirmar otra vez la misma elección
     // crea el que falta.
-    else if (chosen?.primary && chosen.secondary)
-      run("regenerate", () => productsApi.confirmAngles(product.id, chosen.primary!, chosen.secondary!), "No pudimos crear este desarrollo. Intenta de nuevo.", role);
+    else if (ranking?.chosen?.length)
+      run(
+        "regenerate",
+        () => productsApi.confirmAngles(product.id, ranking.chosen!.map((a) => toInput(fromChosen(a, ranking.candidates)))),
+        "No pudimos crear este desarrollo. Intenta de nuevo.",
+        slot,
+      );
   };
 
-  const save = (role: AngleRole, v: AngleDevelopmentValue) => {
-    const b = briefs[role];
-    if (!b) return;
+  const save = (b: AngleBriefView, v: AngleDevelopmentValue) => {
     run(
       "save",
       () =>
@@ -204,78 +245,155 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           true,
         ),
       "No pudimos guardar los cambios. Intenta de nuevo.",
-      role,
+      b.slot,
     ).then((next) => {
       if (!next) return;
       setEditing(null);
-      notifyUndo("Cambios guardados y desarrollo aprobado", () => decide(role, "reopen"));
+      notifyUndo("Cambios guardados y desarrollo aprobado", () => decide(b, "reopen"));
     });
   };
 
-  /** Pone un ángulo en un papel; si ya estaba en el otro, se intercambian. */
-  const assign = (role: AngleRole, angle: SalesAngle) => {
-    setPick((p) => {
-      const other = role === "primary" ? "secondary" : "primary";
-      return { ...p, [role]: angle, [other]: p[other] === angle ? p[role] : p[other] };
-    });
-  };
-  const remove = (angle: SalesAngle) => setPick((p) => ({ primary: p.primary === angle ? undefined : p.primary, secondary: p.secondary === angle ? undefined : p.secondary }));
+  const toggle = (c: AngleCandidateView) =>
+    setPicks((p) => (p.some((x) => x.key === `c${c.index}`) ? p.filter((x) => x.key !== `c${c.index}`) : p.length >= TEST_ANGLES ? p : [...p, fromCandidate(c)]));
+  const patchPick = (key: string, patch: Partial<Pick>) => setPicks((p) => p.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
   // ---------------------------------------------------------------- Piezas
-  const byAngle = useMemo(() => new Map((ranking?.angles ?? []).map((a) => [a.angle, a])), [ranking]);
-  const roleOf = (a: SalesAngle): AngleRoleUi | undefined => (pick.primary === a ? "principal" : pick.secondary === a ? "secundario" : undefined);
-  const suggestedRoleOf = (a: SalesAngle): AngleRoleUi | undefined =>
-    ranking?.suggested?.primary === a ? "principal" : ranking?.suggested?.secondary === a ? "secundario" : undefined;
-  const changed = Boolean(ranking?.suggested && (pick.primary !== ranking.suggested.primary || pick.secondary !== ranking.suggested.secondary));
-  const combo = ranking?.combos.find((c) => c.primary === pick.primary && c.secondary === pick.secondary)?.text;
-
-  const card = (a: AngleOption) => (
-    <AngleCard
-      key={a.angle}
-      rank={a.rank}
-      name={a.name}
-      score={a.score}
-      role={roleOf(a.angle)}
-      suggestedRole={suggestedRoleOf(a.angle)}
-      fit={a.why}
-      risks={a.risks.map((r) => ({ text: r.text, penalty: r.penalty, fix: r.fix ? FIX_LABEL[r.fix] : undefined }))}
-      breakdown={a.breakdown}
-      expanded={expanded === a.angle}
-      onToggle={() => setExpanded(expanded === a.angle ? null : a.angle)}
-      onUse={() => {
-        setSheet({ kind: "use", angle: a.angle });
-        setSheetValue(!pick.primary ? "primary" : "secondary");
-      }}
-      onRemove={() => remove(a.angle)}
-      onFix={(r) => router.push(fixHref(a.risks.find((k) => k.text === r.text)?.fix))}
-    />
-  );
-
-  const suggestion = ranking?.status === "succeeded" && (
-    <AngleSuggestion
-      principal={pick.primary && ANGLES[pick.primary].name}
-      principalScore={pick.primary && byAngle.get(pick.primary)?.score}
-      secundario={pick.secondary && ANGLES[pick.secondary].name}
-      secundarioScore={pick.secondary && byAngle.get(pick.secondary)?.score}
-      combo={combo}
-      changed={changed}
-      missing={ranking.missing.map((m) => ({ text: m.text, action: m.fix === "reviews" ? "Importar" : m.fix ? "Agregar" : undefined, onAction: () => router.push(fixHref(m.fix)) }))}
-      onPick={(r) => {
-        const role = DATA_ROLE[r];
-        setSheet({ kind: "role", role });
-        setSheetValue(pick[role] ?? "");
-      }}
-    />
-  );
+  const frameScore = new Map((ranking?.angles ?? []).map((a) => [a.angle, a.score]));
+  const suggestedKeys = new Set((ranking?.suggested ?? []).map((i) => `c${i}`));
+  const changed = Boolean(ranking && (picks.length !== ranking.suggested.length || picks.some((p) => !suggestedKeys.has(p.key))));
 
   const avatarChanged = ranking?.avatarChanged ? (
-    <div role="status" className="flex gap-3 rounded-lg border border-warning bg-warning-soft p-4 text-warning">
-      <Icon name="alert" />
-      <p className="min-w-0 flex-1 text-label font-normal">Tu cliente ideal cambió después de esta evaluación. Vuelve a evaluar para que los ángulos partan del nuevo.</p>
-    </div>
+    <Notice title="Tu cliente ideal cambió después de esta evaluación." body="Vuelve a evaluar para que los ángulos partan del nuevo." />
   ) : null;
 
   const icp = state.avatar ? <IcpSummary text={state.avatar.summary} tags={state.avatar.tags} approved={state.avatar.approved} action="Ver o cambiar" href={baseHref} /> : null;
+
+  const differentiator = state.differentiator ? (
+    <section aria-labelledby="diferenciador" className="rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="diferenciador" className="text-label font-semibold text-muted-foreground">
+          Tu diferenciador
+        </h2>
+        <Button size="sm" variant="ghost" href={baseHref}>
+          {state.differentiator.confirmed ? "Cambiar" : "Confirmar"}
+        </Button>
+      </div>
+      <p className="mt-1 text-body">
+        Frente a {state.differentiator.versus}: {state.differentiator.claim}
+      </p>
+      <p className="mt-2 text-label font-normal text-muted-foreground">
+        {state.competitors
+          ? `${state.competitors === 1 ? "1 tienda de la competencia analizada" : `${state.competitors} tiendas de la competencia analizadas`}: los ángulos buscan lo que no están diciendo.`
+          : "Sin tiendas de la competencia: agrégalas en Información base para que los ángulos eviten lo que ya se dice."}
+      </p>
+    </section>
+  ) : null;
+
+  const candidateCard = (c: AngleCandidateView) => {
+    const key = `c${c.index}`;
+    const pos = picks.findIndex((p) => p.key === key);
+    const picked = pos >= 0;
+    const pick = picks[pos];
+    const full = !picked && picks.length >= TEST_ANGLES;
+    const edit = editingPick === key && pick;
+    return (
+      <article key={key} aria-labelledby={`cand-${key}`} className={cn("flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4", picked && "border-2 border-primary p-3.75")}>
+        <div className="flex flex-wrap items-center gap-2">
+          {picked ? <RoleChip slot={pos + 1} short /> : null}
+          {suggestedKeys.has(key) ? <RoleChip role="sugerido" /> : null}
+          <span className="ml-auto text-label font-semibold tabular-nums">{c.score}/100</span>
+        </div>
+        <h3 id={`cand-${key}`} className="text-heading">
+          {pick?.title || c.title}
+        </h3>
+        {edit ? (
+          <div className="flex flex-col gap-2.5">
+            {(
+              [
+                ["title", "Nombre del ángulo", 60],
+                ["pain_or_desire", "Dolor o deseo", 400],
+                ["segment", "Para quién", 300],
+                ["promise", "Promesa", 300],
+              ] as const
+            ).map(([field, label, max]) => (
+              <label key={field} className="flex flex-col gap-1 text-label">
+                {label}
+                <textarea
+                  rows={field === "title" ? 1 : 2}
+                  maxLength={max}
+                  value={pick[field]}
+                  onChange={(e) => patchPick(key, { [field]: e.target.value })}
+                  className="min-h-11 w-full resize-y rounded-md border border-input bg-background p-2.5 text-body font-normal outline-none focus:border-primary focus:ring-3 focus:ring-primary-soft"
+                />
+              </label>
+            ))}
+            <Button size="sm" className="self-start" onClick={() => setEditingPick(null)}>
+              Listo
+            </Button>
+          </div>
+        ) : (
+          <dl className="flex flex-col gap-1.5 text-small">
+            <div>
+              <dt className="inline font-semibold">Dolor o deseo: </dt>
+              <dd className="inline">{pick?.pain_or_desire || c.painOrDesire}</dd>
+            </div>
+            <div>
+              <dt className="inline font-semibold">Para quién: </dt>
+              <dd className="inline">{pick?.segment || c.segment}</dd>
+            </div>
+            <div>
+              <dt className="inline font-semibold">Promesa: </dt>
+              <dd className="inline">{pick?.promise || c.promise}</dd>
+            </div>
+            {c.triggerMoment ? (
+              <div>
+                <dt className="inline font-semibold">Abre con: </dt>
+                <dd className="inline">{c.triggerMoment}</dd>
+              </div>
+            ) : null}
+          </dl>
+        )}
+        <p className={cn("flex gap-2 text-label font-normal", c.competitionDelta > 0 ? "text-success" : c.competitionDelta < 0 ? "text-warning" : "text-muted-foreground")}>
+          <Icon name={c.competitionDelta < 0 ? "alert" : "sparkle"} size="sm" className="mt-0.5 shrink-0" />
+          <span>
+            {ranking?.competitors
+              ? c.competitorsUsing === 0
+                ? "Ninguna tienda de la competencia lo usa (+10)."
+                : `${c.competitorsUsing === 1 ? "Lo usa 1 tienda" : `Lo usan ${c.competitorsUsing} tiendas`} de la competencia${c.competitionDelta < 0 ? " (−15)" : ""}.`
+              : "Sin datos de competencia."}{" "}
+            {c.competition && c.competition !== "Sin datos de competencia" ? c.competition : ""}
+          </span>
+        </p>
+        <label className="flex flex-col gap-1 text-label">
+          Forma de contarlo
+          <select
+            value={pick?.frame ?? c.frame}
+            disabled={!picked}
+            onChange={(e) => patchPick(key, { frame: e.target.value as SalesAngle })}
+            className="h-control w-full min-w-0 rounded-md border border-input bg-background px-2.5 text-body font-normal outline-none focus:border-primary focus:ring-3 focus:ring-primary-soft disabled:opacity-70"
+          >
+            {SALES_ANGLES.map((f) => (
+              <option key={f} value={f}>
+                {ANGLES[f].name}
+                {frameScore.has(f) ? ` · ${frameScore.get(f)}/100` : ""}
+                {f === c.frame ? " · recomendada" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant={picked ? "secondary" : "primary"} icon={picked ? "x" : "check"} disabled={full} onClick={() => toggle(c)}>
+            {picked ? "Quitar" : full ? `Ya elegiste ${TEST_ANGLES}` : "Testear este"}
+          </Button>
+          {picked && !edit ? (
+            <Button size="sm" variant="ghost" onClick={() => setEditingPick(key)}>
+              Editar
+            </Button>
+          ) : null}
+        </div>
+      </article>
+    );
+  };
 
   // ---------------------------------------------------------------- Vistas
   let view: "locked" | "start" | "evaluating" | "failed" | "ranking" | "developments";
@@ -286,14 +404,16 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   else if (!ranking.chosen || choosing) view = "ranking";
   else view = "developments";
 
-  const approvedCount = ROLES.filter((r) => briefs[r]?.status === "aprobado" && briefs[r]?.generation === "succeeded").length;
+  const chosen = ranking?.chosen ?? [];
+  const expected = chosen.length || TEST_ANGLES;
+  const approvedCount = briefs.filter((b) => b.status === "aprobado" && b.generation === "succeeded").length;
   const subtitle =
     view === "ranking"
-      ? `6 evaluados · ${changed ? "tu elección" : "sugerencia lista"}`
+      ? `${ranking?.candidates.length ?? 0} ángulos · ${picks.length} elegidos`
       : view === "developments"
-        ? `${approvedCount} de 2 desarrollos aprobados`
+        ? `${approvedCount} de ${expected} desarrollos aprobados`
         : view === "evaluating"
-          ? "Evaluando 6 ángulos"
+          ? "Evaluando ángulos"
           : "Cómo vas a vender este producto";
 
   let body: React.ReactNode;
@@ -331,27 +451,47 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
             </div>
           </div>
         ) : null}
+        {needsDifferentiator ? (
+          <Notice
+            title="Primero confirma tu diferenciador."
+            body="¿En qué se diferencia tu producto de lo que tu cliente ya usa? Los ángulos parten de ahí. Confírmalo en Información base."
+            action={
+              <Button size="sm" href={baseHref}>
+                Ir a Información base
+              </Button>
+            }
+          />
+        ) : null}
         {icp}
+        {differentiator}
         <section aria-labelledby="que-hara" className="rounded-lg border bg-card p-4">
           <h2 id="que-hara" className="text-heading">
             Qué hará la IA
           </h2>
           <ol className="mt-2 mb-3 flex list-decimal flex-col gap-1.5 pl-5 text-small">
             <li>
-              Evalúa <b>6 ángulos</b> de venta con tu cliente ideal, tu información y tu precio.
+              Propone <b>5 ángulos</b> de venta distintos: qué dolor o deseo destacar, para quién y con qué promesa.
             </li>
-            <li>Te los muestra todos con su puntaje, sus motivos y sus riesgos.</li>
+            <li>Mira lo que dice tu competencia y prefiere lo que nadie está usando.</li>
             <li>
-              Sugiere un <b>principal</b> (el gancho) y un <b>secundario</b> (el refuerzo). Tú decides.
+              Sugiere <b>3 para testear</b>, cada uno en su propio conjunto de anuncios. Tú decides; el mercado dice cuál vende.
             </li>
           </ol>
-          <p className="text-label font-normal text-muted-foreground">No inventa pruebas: si falta un experto o reseñas reales, baja el puntaje del ángulo que las necesita.</p>
+          <p className="text-label font-normal text-muted-foreground">No inventa pruebas: si falta un experto o reseñas reales, baja el puntaje de la forma que las necesita.</p>
         </section>
       </div>
     );
     footer = (
       <StickyActions variant="bar" stack summary="Toma alrededor de un minuto. Nada se publica sin tu OK." mobileNote="Toma alrededor de un minuto." className="lg:px-8">
-        <Button variant="primary" size="lg" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate} className="max-lg:w-full lg:h-control lg:text-row">
+        <Button
+          variant="primary"
+          size="lg"
+          icon="sparkle"
+          disabled={needsDifferentiator}
+          loading={busy?.what === "evaluate"}
+          onClick={evaluate}
+          className="max-lg:w-full lg:h-control lg:text-row"
+        >
           {view === "failed" ? "Reintentar" : "Elegir ángulos con IA"}
         </Button>
       </StickyActions>
@@ -362,8 +502,8 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         <section role="status" aria-label="Evaluación en curso" className="flex gap-3 rounded-lg border bg-card p-4">
           <Icon name="loader" className="motion-exempt animate-spin text-muted-foreground" />
           <div className="min-w-0 flex-1">
-            <p className="text-row">La IA está evaluando 6 ángulos</p>
-            <p className="text-label font-normal text-muted-foreground">Con tu cliente ideal, tu información y tu precio. Puedes salir de esta pantalla: te avisamos en Hoy.</p>
+            <p className="text-row">La IA está proponiendo ángulos para testear</p>
+            <p className="text-label font-normal text-muted-foreground">Con tu cliente ideal, tu diferenciador, la competencia y tu precio. Puedes salir de esta pantalla: te avisamos en Hoy.</p>
           </div>
         </section>
         {icp}
@@ -386,6 +526,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </StickyActions>
     );
   } else if (view === "ranking" && ranking) {
+    const legacy = !ranking.candidates.length;
     const confirmButton = (
       <Button
         variant="primary"
@@ -393,11 +534,11 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         iconEnd="chevron-right"
         block
         loading={busy?.what === "confirm"}
-        disabled={!pick.primary || !pick.secondary}
+        disabled={legacy || picks.length < MIN_TEST_ANGLES}
         onClick={confirm}
         className="lg:h-control lg:text-row"
       >
-        Confirmar y desarrollar
+        {picks.length >= MIN_TEST_ANGLES ? `Confirmar y desarrollar ${picks.length}` : "Confirmar y desarrollar"}
       </Button>
     );
     const reevalConfirm = (where: "m" | "d") => (
@@ -411,8 +552,8 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
               Cuesta cerca de <b className="font-medium text-foreground tabular-nums">{money(rankingCost.amount, rankingCost.currency)}</b>.{" "}
             </>
           ) : null}
-          Si nada cambió y eliges los mismos ángulos, conservas tus desarrollos. Si cambió algo (reseñas, cliente ideal o precio), se escriben de nuevo
-          {briefCost ? ` por cerca de ${money(briefCost.amount * 2, briefCost.currency)}` : ""}.
+          Si nada cambió y eliges los mismos ángulos, conservas tus desarrollos. Si cambió algo (reseñas, cliente ideal, competencia o precio), se escriben de nuevo
+          {briefCost ? ` por cerca de ${money(briefCost.amount * TEST_ANGLES, briefCost.currency)}` : ""}.
         </p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button size="sm" onClick={() => setAskReeval(false)}>
@@ -424,25 +565,91 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         </div>
       </div>
     );
-    const confirmNote = !pick.primary || !pick.secondary ? "Elige un principal y un secundario." : "Se generan los 2 desarrollos en paralelo.";
+    const reevalButton = (where: "m" | "d") =>
+      askReeval ? (
+        reevalConfirm(where)
+      ) : (
+        <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
+          Volver a evaluar
+        </Button>
+      );
+    const confirmNote = legacy
+      ? "Vuelve a evaluar para proponer ángulos de testeo."
+      : picks.length < MIN_TEST_ANGLES
+        ? `Elige entre ${MIN_TEST_ANGLES} y ${TEST_ANGLES} ángulos.`
+        : `Se desarrollan ${picks.length} ángulos en paralelo, uno por conjunto de anuncios.`;
+    const summary = (
+      <section aria-labelledby="tu-testeo" className="flex flex-col gap-2 rounded-lg border bg-card p-4">
+        <h2 id="tu-testeo" className="flex items-baseline justify-between text-heading">
+          Tu testeo <span className="text-label font-normal text-muted-foreground">{changed ? "tu elección" : "sugerencia de la IA"}</span>
+        </h2>
+        {picks.length ? (
+          <ol className="flex flex-col gap-1.5">
+            {picks.map((p, i) => (
+              <li key={p.key} className="flex items-center gap-2 text-small">
+                <RoleChip slot={i + 1} short />
+                <span className="min-w-0 flex-1 truncate">{p.title}</span>
+                <span className="text-label font-normal text-muted-foreground">{ANGLES[p.frame].name}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-label font-normal text-muted-foreground">Elige los ángulos que vas a testear.</p>
+        )}
+        <p className="text-label font-normal text-muted-foreground">Cada ángulo va en su propio conjunto de anuncios; la página del producto sirve a todos.</p>
+        {ranking.missing.length ? (
+          <ul className="mt-1 flex flex-col gap-1 border-t pt-2 text-label font-normal text-muted-foreground">
+            {ranking.missing.map((m) => (
+              <li key={m.text} className="flex items-start gap-2">
+                <span className="min-w-0 flex-1">{m.text}</span>
+                {m.fix ? (
+                  <Button size="sm" variant="ghost" onClick={() => router.push(fixHref(m.fix))}>
+                    {m.fix === "reviews" ? "Importar" : "Agregar"}
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+    );
     body = (
       <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(90)] lg:items-start lg:gap-8">
         <div className="flex min-w-0 flex-col gap-3">
           {avatarChanged}
-          <div className="lg:hidden">{suggestion}</div>
-          <h2 className="flex items-baseline justify-between pt-1 text-label font-semibold text-muted-foreground lg:hidden">
-            Ranking completo <span className="font-normal">de mayor a menor</span>
-          </h2>
-          {/* 2 columnas solo si cada tarjeta tiene al menos 300px (escritorio angosto: 1). */}
-          <div className="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">{ranking.angles.map(card)}</div>
+          {legacy ? (
+            <Notice
+              title="Esta evaluación es de antes de los ángulos de testeo."
+              body="Vuelve a evaluar para que la IA proponga ángulos distintos para testear, uno por conjunto de anuncios."
+            />
+          ) : null}
+          <div className="lg:hidden">{summary}</div>
+          {differentiator}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">{ranking.candidates.map(candidateCard)}</div>
+          <Button variant="ghost" className="self-start" onClick={() => setShowForms((v) => !v)}>
+            {showForms ? "Ocultar las 6 formas de contarlo" : "Ver las 6 formas de contarlo"}
+          </Button>
+          {showForms ? (
+            <div className="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">
+              {ranking.angles.map((a) => (
+                <AngleCard
+                  key={a.angle}
+                  rank={a.rank}
+                  name={a.name}
+                  score={a.score}
+                  fit={a.why}
+                  risks={a.risks.map((r) => ({ text: r.text, penalty: r.penalty, fix: r.fix ? FIX_LABEL[r.fix] : undefined }))}
+                  breakdown={a.breakdown}
+                  hideActions
+                  expanded={expandedForm === a.angle}
+                  onToggle={() => setExpandedForm(expandedForm === a.angle ? null : a.angle)}
+                  onFix={(r) => router.push(fixHref(a.risks.find((k) => k.text === r.text)?.fix))}
+                />
+              ))}
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2 lg:hidden">
-            {askReeval ? (
-              reevalConfirm("m")
-            ) : (
-              <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
-                Volver a evaluar
-              </Button>
-            )}
+            {reevalButton("m")}
             {choosing && !askReeval ? (
               <Button variant="ghost" onClick={() => setChoosing(false)}>
                 Cancelar
@@ -451,18 +658,12 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           </div>
         </div>
         {/* Escritorio: la elección fija a la derecha, junto a “Confirmar y desarrollar”. */}
-        <aside aria-label="Tu elección" className="sticky top-6 hidden flex-col gap-3 lg:flex">
-          {suggestion}
+        <aside aria-label="Tu testeo" className="sticky top-6 hidden flex-col gap-3 lg:flex">
+          {summary}
           {confirmButton}
           <p className="text-center text-label font-normal text-muted-foreground">{confirmNote}</p>
           <div className="flex justify-center gap-2">
-            {askReeval ? (
-              reevalConfirm("d")
-            ) : (
-              <Button variant="ghost" icon="sparkle" loading={busy?.what === "evaluate"} onClick={evaluate}>
-                Volver a evaluar
-              </Button>
-            )}
+            {reevalButton("d")}
             {choosing && !askReeval ? (
               <Button variant="ghost" onClick={() => setChoosing(false)}>
                 Cancelar
@@ -478,48 +679,46 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </StickyActions>
     );
   } else {
-    const missingName = (role: AngleRole) => {
-      const a = ranking?.chosen?.[role];
-      return !briefs[role] && a ? ANGLES[a].name : undefined;
-    };
-    const dev = (role: AngleRole, hideActions: boolean) => {
-      const b = briefs[role];
-      const missing = missingName(role);
+    const missingFor = (a: TestAngleView) => (!briefs.some((b) => b.slot === a.slot) ? a.name : undefined);
+    const dev = (a: TestAngleView, hideActions: boolean) => {
+      const b = briefs.find((x) => x.slot === a.slot);
+      const missing = missingFor(a);
       if (!b && missing)
         return (
           <AngleDevelopment
-            key={`missing-${role}`}
-            role={UI_ROLE[role]}
+            key={`missing-${a.slot}`}
+            slot={a.slot}
             angle={missing}
             status="error"
             error="Este desarrollo no se alcanzó a crear. Toca Regenerar."
             hideActions={hideActions}
-            busy={busy?.role === role && busy.what === "regenerate" ? "regenerate" : null}
-            onRegenerate={() => regenerate(role)}
+            busy={busy?.slot === a.slot && busy.what === "regenerate" ? "regenerate" : null}
+            onRegenerate={() => regenerate(a.slot)}
           />
         );
       if (!b) return null;
       return (
         <AngleDevelopment
           key={b.id}
-          role={UI_ROLE[role]}
+          slot={b.slot}
           angle={b.name}
+          frame={b.frameName}
           status={devStatus(b)}
           error={b.error}
           {...devValue(b)}
           hideActions={hideActions}
-          editing={editing === role}
-          busy={busy?.role === role ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
-          onApprove={() => decide(role, "approve")}
-          onReopen={() => decide(role, "reopen")}
-          onRegenerate={() => regenerate(role)}
-          onEdit={() => setEditing(role)}
+          editing={editing === b.slot}
+          busy={busy?.slot === b.slot ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
+          onApprove={() => decide(b, "approve")}
+          onReopen={() => decide(b, "reopen")}
+          onRegenerate={() => regenerate(b.slot)}
+          onEdit={() => setEditing(b.slot)}
           onCancelEdit={() => setEditing(null)}
-          onSave={(v) => save(role, v)}
+          onSave={(v) => save(b, v)}
         />
       );
     };
-    const done = approvedCount === 2;
+    const done = approvedCount === chosen.length && chosen.length >= MIN_TEST_ANGLES;
     const nextClass = "max-lg:w-full lg:h-control lg:text-row";
     // Imágenes va antes de la Página del producto (la página usa las imágenes elegidas). Generar
     // cuesta créditos de Higgsfield: «Continuar» solo lleva, no genera.
@@ -532,37 +731,55 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         Continuar: Imágenes
       </Button>
     );
-    const current = briefs[tab];
-    const currentStatus: AngleDevelopmentStatus | undefined = current ? devStatus(current) : missingName(tab) ? "error" : undefined;
+    const tabAngle = chosen.find((a) => a.slot === tab) ?? chosen[0];
+    const current = tabAngle ? briefs.find((b) => b.slot === tabAngle.slot) : undefined;
+    const currentStatus: AngleDevelopmentStatus | undefined = current ? devStatus(current) : tabAngle && missingFor(tabAngle) ? "error" : undefined;
+    // Elegidos antes de los ángulos de testeo (2): se sugiere un tercero, sin exigirlo.
+    const third =
+      chosen.length < TEST_ANGLES ? (
+        <Notice
+          tone="info"
+          title="Puedes testear un tercer ángulo."
+          body="En temporada conviene probar 3 ángulos a la vez, cada uno en su conjunto: así ves más rápido cuál vende. No es obligatorio."
+          action={
+            <Button size="sm" onClick={() => (ranking?.candidates.length ? setChoosing(true) : evaluate())}>
+              {ranking?.candidates.length ? "Agregar un ángulo" : "Volver a evaluar"}
+            </Button>
+          }
+        />
+      ) : null;
     body = (
       <div className="flex flex-col gap-3">
         {avatarChanged}
-        {/* Móvil: se navega entre los dos con SegmentedControl. */}
+        {third}
+        {/* Móvil: se navega entre los desarrollos con SegmentedControl. */}
         <div className="flex flex-col gap-3 lg:hidden">
           <SegmentedControl
             block
             label="Desarrollo"
-            value={tab}
+            value={String(tabAngle?.slot ?? 1)}
             onChange={(v) => {
-              setTab(v as AngleRole);
+              setTab(Number(v));
               setEditing(null);
             }}
-            options={ROLES.map((r, i) => ({ value: r, label: `${i + 1} · ${briefs[r]?.name ?? missingName(r) ?? ""}` }))}
+            // Con 3 ángulos los nombres no caben: la pestaña dice el número y la tarjeta, el nombre.
+            options={chosen.map((a) => ({ value: String(a.slot), label: chosen.length > 2 ? `Ángulo ${a.slot}` : `${a.slot} · ${a.name}` }))}
           />
-          {dev(tab, true)}
+          {tabAngle ? dev(tabAngle, true) : null}
           <Button variant="ghost" className="self-start" onClick={() => setChoosing(true)}>
             Cambiar ángulos
           </Button>
         </div>
         {/* Escritorio: lado a lado. */}
-        <div className="hidden gap-4 lg:grid lg:grid-cols-[repeat(auto-fill,minmax(--spacing(85),1fr))] lg:items-start">
-          {dev("primary", false)}
-          {dev("secondary", false)}
-        </div>
+        <div className="hidden gap-4 lg:grid lg:grid-cols-[repeat(auto-fill,minmax(--spacing(85),1fr))] lg:items-start">{chosen.map((a) => dev(a, false))}</div>
       </div>
     );
     footer = desktop ? (
-      <StickyActions variant="bar" summary={done ? "Los 2 desarrollos están aprobados. La página del producto se escribe con ellos." : "Aprueba los 2 desarrollos para escribir la página del producto."} className="lg:px-8">
+      <StickyActions
+        variant="bar"
+        summary={done ? "Los desarrollos están aprobados. La página del producto sirve a todos tus ángulos." : `Aprueba los ${chosen.length} desarrollos para seguir con Imágenes.`}
+        className="lg:px-8"
+      >
         <Button variant="ghost" onClick={() => setChoosing(true)}>
           Cambiar ángulos
         </Button>
@@ -570,95 +787,23 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </StickyActions>
     ) : editing || (!done && currentStatus === "generando") ? null : (
       <StickyActions className="block">
-        {done || !currentStatus ? (
-          next
+        {done || !currentStatus || !current ? (
+          done || !currentStatus ? (
+            next
+          ) : (
+            <AngleDevelopmentActions status={currentStatus} busy={busy?.slot === tabAngle?.slot ? "regenerate" : null} onRegenerate={() => tabAngle && regenerate(tabAngle.slot)} />
+          )
         ) : (
           <AngleDevelopmentActions
             status={currentStatus}
-            busy={busy?.role === tab ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
-            onApprove={() => decide(tab, "approve")}
-            onReopen={() => decide(tab, "reopen")}
-            onRegenerate={() => regenerate(tab)}
-            onEdit={() => setEditing(tab)}
+            busy={busy?.slot === current.slot ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
+            onApprove={() => decide(current, "approve")}
+            onReopen={() => decide(current, "reopen")}
+            onRegenerate={() => regenerate(current.slot)}
+            onEdit={() => setEditing(current.slot)}
           />
         )}
       </StickyActions>
-    );
-  }
-
-  // ---------------------------------------------------------------- Hojas (móvil abajo, escritorio a la derecha)
-  const sheetAngle = sheet?.kind === "use" ? byAngle.get(sheet.angle) : undefined;
-  const sheetTitle = sheet?.kind === "role" ? (sheet.role === "primary" ? "Ángulo principal" : "Ángulo secundario") : sheetAngle ? `Usar ${sheetAngle.name}` : "";
-  let sheetBody: React.ReactNode = null;
-  let sheetAction: React.ReactNode = null;
-  if (sheet?.kind === "role" && ranking) {
-    const other = sheet.role === "primary" ? "secondary" : "primary";
-    // Como en el diseño: el que ya ocupa el otro papel va al final, deshabilitado.
-    const ordered = [...ranking.angles.filter((a) => pick[other] !== a.angle), ...ranking.angles.filter((a) => pick[other] === a.angle)];
-    const options = ordered.map((a) => {
-      const penalty = a.risks.find((r) => r.penalty);
-      const risk = a.risks[0];
-      const suggested = ranking.suggested?.[sheet.role] === a.angle;
-      if (pick[other] === a.angle) return { value: a.angle, title: a.name, meta: `Ya es el ${UI_ROLE[other]}`, disabled: true };
-      return {
-        value: a.angle,
-        title: a.name,
-        meta: `${a.score}/100${suggested ? " · sugerido por la IA" : risk ? ` · riesgo: ${risk.text.toLowerCase()}` : ""}`,
-        tag: suggested ? "Sugerido" : undefined,
-        tone: suggested ? undefined : penalty && penalty.penalty! >= 40 ? ("danger" as const) : risk ? ("warning" as const) : undefined,
-      };
-    });
-    sheetBody = (
-      <OptionList
-        label={sheet.role === "primary" ? "Define el gancho que abre el anuncio" : "Refuerza el argumento del principal"}
-        name={`angulo-${sheet.role}`}
-        value={sheetValue}
-        onChange={setSheetValue}
-        options={options}
-      />
-    );
-    const chosen = sheetValue as SalesAngle;
-    sheetAction = (
-      <Button
-        variant="primary"
-        size="lg"
-        block
-        icon="check"
-        disabled={!chosen}
-        onClick={() => {
-          assign(sheet.role, chosen);
-          setSheet(null);
-        }}
-      >
-        {chosen ? `Usar ${ANGLES[chosen].name}` : "Elige un ángulo"}
-      </Button>
-    );
-  } else if (sheet?.kind === "use" && sheetAngle) {
-    const occupant = (r: AngleRole) => (pick[r] && pick[r] !== sheetAngle.angle ? `Reemplaza a ${ANGLES[pick[r]!].name}` : pick[r] === sheetAngle.angle ? "Ya está en este papel" : "Libre");
-    sheetBody = (
-      <OptionList
-        label="Úsalo como"
-        name="papel"
-        value={sheetValue}
-        onChange={setSheetValue}
-        options={ROLES.map((r) => ({ value: r, title: r === "primary" ? "Principal · el gancho" : "Secundario · el refuerzo", meta: occupant(r) }))}
-      />
-    );
-    const role = sheetValue as AngleRole;
-    sheetAction = (
-      <Button
-        variant="primary"
-        size="lg"
-        block
-        icon="check"
-        disabled={!role}
-        onClick={() => {
-          assign(role, sheetAngle.angle);
-          setSheet(null);
-        }}
-      >
-        {role === "primary" ? "Usar como principal" : "Usar como secundario"}
-      </Button>
     );
   }
 
@@ -666,15 +811,22 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     // Escritorio: el pie con la acción queda abajo aunque el contenido sea corto (como Información base).
     <div className="flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Ángulos" stageKey="angulos" image={product.image} />
-      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Ángulos" subtitle={subtitle} actions={
+      <TopBar
+        back={product.name}
+        backHref={`/products/${product.id}`}
+        title="Ángulos"
+        subtitle={subtitle}
+        actions={
           <>
             <AiCostButton />
             <AssistantButton />
           </>
-        } className="sticky top-0 z-sticky lg:hidden" />
+        }
+        className="sticky top-0 z-sticky lg:hidden"
+      />
 
       <div className={cn("flex flex-col gap-4 px-4 pt-2 pb-4 lg:flex-1 lg:px-8 lg:pt-6")}>
-        <p className="hidden text-body text-muted-foreground lg:block">{desktopLead(view, approvedCount)}</p>
+        <p className="hidden text-body text-muted-foreground lg:block">{desktopLead(view, approvedCount, expected)}</p>
         {body}
         {error && view !== "failed" ? (
           <p role="alert" className="text-label font-normal text-destructive">
@@ -684,32 +836,21 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </div>
 
       {footer}
-
-      <Drawer open={!!sheet} onOpenChange={(o) => !o && setSheet(null)} direction={desktop ? "right" : "bottom"} repositionInputs={false}>
-        <DrawerContent className="max-h-[85svh] lg:max-h-none">
-          <div className="flex items-center justify-between gap-2 px-4 pt-2 pb-3 lg:pt-4">
-            <DrawerTitle className="text-heading">{sheetTitle}</DrawerTitle>
-            <DrawerDescription className="sr-only">Elige qué ángulo cumple cada papel.</DrawerDescription>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">{sheetBody}</div>
-          <div className="border-t px-4 pt-3 pb-[calc(var(--space-3)+env(safe-area-inset-bottom))]">{sheetAction}</div>
-        </DrawerContent>
-      </Drawer>
     </div>
   );
 }
 
 /** La línea bajo el encabezado del producto en escritorio (el encabezado lo pone el layout). */
-function desktopLead(view: string, approved: number): string {
+function desktopLead(view: string, approved: number, expected: number): string {
   switch (view) {
     case "locked":
       return "Ángulos · se habilita al aprobar tu cliente ideal";
     case "evaluating":
-      return "Ángulos · la IA está evaluando 6 ángulos";
+      return "Ángulos · la IA está proponiendo ángulos para testear";
     case "ranking":
-      return "Ángulos · 6 evaluados. Elige un principal (el gancho) y un secundario (el refuerzo).";
+      return `Ángulos · elige entre ${MIN_TEST_ANGLES} y ${TEST_ANGLES} para testear, cada uno en su propio conjunto de anuncios.`;
     case "developments":
-      return `Ángulos · ${approved} de 2 desarrollos aprobados`;
+      return `Ángulos · ${approved} de ${expected} desarrollos aprobados`;
     default:
       return "Ángulos · cómo vas a vender este producto";
   }

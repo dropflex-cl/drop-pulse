@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "./button";
 import { Icon } from "./icon";
-import { AiChip, RoleChip, type AngleRoleUi } from "./role-chip";
+import { AiChip, RoleChip } from "./role-chip";
 import { StatusBadge } from "./status-badge";
 import { cn } from "@/lib/utils";
 
@@ -25,8 +25,11 @@ export interface AngleDevelopmentValue {
 }
 
 export interface AngleDevelopmentProps extends Partial<AngleDevelopmentValue> {
-  role: AngleRoleUi;
+  /** El ángulo de testeo (1, 2 o 3). */
+  slot: number;
   angle: string;
+  /** La forma con que se cuenta («Mecanismo único»), bajo el nombre. */
+  frame?: string;
   status?: AngleDevelopmentStatus;
   /** Qué pasó y qué hacer (status `error`). */
   error?: string;
@@ -160,18 +163,18 @@ function Editor({ initial, saving, onSave, onCancel }: { initial: AngleDevelopme
 
 /**
  * El desarrollo de un ángulo (ganchos, argumento por etapa, objeciones y oferta) para revisar y
- * aprobar. Los 2 se generan en paralelo: cada uno muestra su propio estado; mientras uno genera
- * (esqueleto), el otro ya se puede revisar.
+ * aprobar. Los desarrollos (uno por ángulo de testeo) se generan en paralelo: cada uno muestra su
+ * propio estado; mientras uno genera (esqueleto), los otros ya se pueden revisar.
  */
 export function AngleDevelopment(props: AngleDevelopmentProps) {
-  const { role, angle, status = "revision", error, hooks = [], pickedHook = 0, aida, objections, offer, hideActions, editing, busy, onSave, onCancelEdit, className } = props;
+  const { slot, angle, frame, status = "revision", error, hooks = [], pickedHook = 0, aida, objections, offer, hideActions, editing, busy, onSave, onCancelEdit, className } = props;
   const [allHooks, setAllHooks] = useState(false);
 
   if (status === "generando") {
     return (
       <section role="status" aria-label={`Generando el desarrollo de ${angle}`} className={cn("flex flex-col gap-4 rounded-lg border bg-card p-4", className)}>
         <div className="flex flex-wrap items-center gap-2">
-          <RoleChip role={role} />
+          <RoleChip slot={slot} short />
           <b className="min-w-0 flex-1 text-heading">{angle}</b>
           <StatusBadge status="publicando" label="Generando" size="sm" />
         </div>
@@ -189,9 +192,10 @@ export function AngleDevelopment(props: AngleDevelopmentProps) {
       className={cn("flex flex-col gap-4 rounded-lg border bg-card p-4", status === "aprobado" && "border-success", status === "error" && "border-destructive", className)}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <RoleChip role={role} />
+        <RoleChip slot={slot} short />
         <b className="min-w-0 flex-1 text-heading">{angle}</b>
         <StatusBadge status={status === "error" ? "error" : status} size="sm" />
+        {frame && frame !== angle ? <span className="w-full text-label font-normal text-muted-foreground">Contado como {frame}</span> : null}
       </div>
 
       {status === "error" ? (
@@ -204,7 +208,7 @@ export function AngleDevelopment(props: AngleDevelopmentProps) {
       ) : (
         <>
           <div className="flex flex-col gap-2">
-            <SectionTitle hint={role === "principal" ? "abren el anuncio" : "refuerzan el argumento"}>Ganchos</SectionTitle>
+            <SectionTitle hint="abren el anuncio de este ángulo">Ganchos</SectionTitle>
             <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-body">
               {shown.map((h, i) => (
                 <li key={`${i}-${h}`} className={cn(i === pickedHook && "font-semibold")}>

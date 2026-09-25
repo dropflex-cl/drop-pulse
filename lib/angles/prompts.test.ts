@@ -41,18 +41,34 @@ describe("prompts de ángulos", () => {
     expect(u).toContain("CLIENTE IDEAL");
   });
 
-  it("el desarrollo recibe el papel, el otro ángulo y cómo se combinan", () => {
-    const u = angleUser("unique_mechanism", ctx, {
-      role: "secondary",
-      partner: "age_identity",
-      combo: "El gancho filtra por oficinistas.",
+  it("el desarrollo recibe su ángulo, que es uno de varios, y los otros para no repetirlos", () => {
+    const angle = { slot: 2 as const, frame: "unique_mechanism" as const, title: "La crema sella", pain_or_desire: "Cara tirante", segment: "Usa crema", promise: "El paso previo", trigger_moment: "7 AM", competition: "Nadie lo dice" };
+    const u = angleUser("unique_mechanism", { ...ctx, differentiator: { versus: "su crema", claim: "va antes", basis: "" } }, {
+      angle,
+      others: [{ ...angle, slot: 1, frame: "age_identity", title: "Tengo 38" }],
       why: "Encaja.",
       risks: [],
       aidaEmphasis: "Interés",
       complianceFlags: [],
     });
-    expect(u).toContain("Este desarrollo es el secundario");
-    expect(u).toContain("El principal es Edad e identidad. Cómo se combinan: El gancho filtra por oficinistas.");
+    expect(u).toContain("Este es el ángulo 2 de 2");
+    expect(u).toContain("100 % este ángulo");
+    expect(u).toContain("«La crema sella»");
+    expect(u).toContain("«Tengo 38» (Edad e identidad)");
+    expect(u).toContain("Frente a su crema: va antes");
+    expect(u).not.toMatch(/principal|secundario/);
+  });
+
+  it("el orquestador ve el diferenciador y la competencia", () => {
+    const u = angleRouterUser({
+      ...ctx,
+      differentiator: { versus: "su crema", claim: "va antes", basis: "" },
+      competitors: [{ url: "https://tienda.cl/p", store_name: "Tienda", price: 19990, compare_at: null, offer: "2x1", main_angle: { pain_or_desire: "arrugas", segment: "40+", promise: "rejuvenece" }, frame: "offer", proof_used: [], tone: "gritón" }],
+    });
+    expect(u).toContain("DIFERENCIADOR");
+    expect(u).toContain("COMPETENCIA (1 tiendas analizadas)");
+    expect(u).toContain("ángulo: arrugas → rejuvenece");
+    expect(angleRouterUser(ctx)).toContain("sin datos de competencia");
   });
 });
 
@@ -104,6 +120,8 @@ describe("esquemas de ángulos", () => {
     expect(evals.authority.criteria).toEqual({ professional_domain: 0, expert_would_use: 0, real_expert: 0 });
   });
 
+  const candidates = () =>
+    [0, 1, 2, 3, 4].map((i) => ({ title: `Ángulo ${i}`, pain_or_desire: "dolor", segment: "seg", promise: "promesa", frame: "offer" as const, trigger_moment: "m", competition: "c", competitors_using: 0 }));
   const complete = () => [
     { angle: "authority" as const, scores: { c1: 4, c2: 3, c3: 0 }, penalty: true, why: "", risks: [] },
     { angle: "common_enemy" as const, scores: { c1: 3, c2: 5, c3: 3 }, penalty: false, why: "", risks: [] },
@@ -114,16 +132,21 @@ describe("esquemas de ángulos", () => {
   ];
 
   it("acepta una lista completa y rechaza puntajes fuera de 0 a 5", () => {
-    expect(routerProblems({ angles: complete() })).toEqual([]);
+    expect(routerProblems({ angles: complete(), test_angles: candidates() })).toEqual([]);
     const range = complete().map((x) => (x.angle === "authority" ? { ...x, scores: { c1: 4, c2: 7, c3: 0 } } : x));
-    expect(routerProblems({ angles: range })).toEqual(["authority tiene puntajes fuera de 0 a 5."]);
+    expect(routerProblems({ angles: range, test_angles: candidates() })).toEqual(["authority tiene puntajes fuera de 0 a 5."]);
   });
 
   it("rechaza ángulos que faltan o se repiten", () => {
     const missing = complete().filter((x) => x.angle !== "age_identity");
-    expect(routerProblems({ angles: missing })).toEqual(["Falta el ángulo age_identity."]);
+    expect(routerProblems({ angles: missing, test_angles: candidates() })).toEqual(["Falta el ángulo age_identity."]);
     const dup = [...complete(), complete()[0]];
-    expect(routerProblems({ angles: dup })).toEqual(["El ángulo authority viene 2 veces."]);
+    expect(routerProblems({ angles: dup, test_angles: candidates() })).toEqual(["El ángulo authority viene 2 veces."]);
+  });
+
+  it("pide los ángulos candidatos completos", () => {
+    expect(routerProblems({ angles: complete(), test_angles: candidates().slice(0, 2) })[0]).toMatch(/Faltan ángulos candidatos/);
+    expect(routerProblems({ angles: complete(), test_angles: candidates().map((c, i) => (i ? c : { ...c, promise: " " })) })).toEqual(["Hay candidatos sin título, dolor o promesa."]);
   });
 
   it("el reintento le dice al modelo qué falló", () => {

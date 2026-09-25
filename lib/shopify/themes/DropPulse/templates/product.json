@@ -287,6 +287,10 @@
         "padding-block-end": 32
       }
     },
+    "pain_block": {
+      "type": "df-pain-block",
+      "settings": {}
+    },
     "stats_with_image": {
       "type": "df-stats-with-image",
       "settings": {}
@@ -314,6 +318,7 @@
   },
   "order": [
     "main",
+    "pain_block",
     "stats_with_image",
     "scrolling_benefits",
     "image_with_benefits",

@@ -1,5 +1,5 @@
 import "server-only";
-import { ANGLES, type AngleRole, type SalesAngle } from "@/lib/angles/catalog";
+import { ANGLES, type AngleSlot, type SalesAngle } from "@/lib/angles/catalog";
 import { fail } from "@/lib/angles/store";
 import { adminClient } from "@/lib/integrations/admin";
 import type { Preset } from "@/lib/integrations/higgsfield/client";
@@ -50,6 +50,8 @@ export type StoredConcept = Omit<ConceptPayload, ArtFields | "texts"> &
     preset: Pick<Preset, "id" | "name" | "group" | "cover"> | null;
     /** El ángulo de venta del desarrollo del que sale. */
     sales_angle: SalesAngle;
+    /** El nombre del ángulo de testeo (desde CREATIVES_PROMPT_VERSION 3). */
+    angle_name?: string;
   };
 
 export interface ConceptRow {
@@ -58,7 +60,7 @@ export interface ConceptRow {
   user_id: string;
   run_id: string;
   position: number;
-  angle_role: AngleRole;
+  angle_slot: AngleSlot;
   family: Family;
   payload: StoredConcept;
   edited_at: string | null;
@@ -202,7 +204,7 @@ export async function activeConcepts(userId: string, productIds: string[]): Prom
   if (!productIds.length) return new Map();
   const { data, error } = await adminClient()
     .from("creative_concepts")
-    .select("id, product_id, user_id, run_id, position, angle_role, family, payload, edited_at, created_at")
+    .select("id, product_id, user_id, run_id, position, angle_slot, family, payload, edited_at, created_at")
     .eq("user_id", userId)
     .in("product_id", productIds)
     .is("superseded_at", null)
@@ -216,7 +218,7 @@ export async function activeConcepts(userId: string, productIds: string[]): Prom
 export async function getConceptRow(userId: string, productId: string, conceptId: string): Promise<ConceptRow | null> {
   const { data, error } = await adminClient()
     .from("creative_concepts")
-    .select("id, product_id, user_id, run_id, position, angle_role, family, payload, edited_at, created_at")
+    .select("id, product_id, user_id, run_id, position, angle_slot, family, payload, edited_at, created_at")
     .eq("user_id", userId)
     .eq("product_id", productId)
     .eq("id", conceptId)
@@ -313,8 +315,8 @@ export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<strin
   const p = c.payload;
   return {
     id: c.id,
-    angle: c.angle_role,
-    angleName: ANGLES[p.sales_angle]?.name ?? "",
+    angle: c.angle_slot,
+    angleName: p.angle_name || (ANGLES[p.sales_angle]?.name ?? ""),
     family: c.family,
     familyName: FAMILY_DEFS[c.family]?.name ?? c.family,
     name: p.name,

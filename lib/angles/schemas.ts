@@ -4,12 +4,12 @@
 
 import * as z from "zod/v4";
 import { AWARENESS_LEVELS } from "@/lib/ai/schemas";
-import { modelCriteria, SALES_ANGLES, type SalesAngle } from "./catalog";
+import { ANGLE_CANDIDATES, modelCriteria, SALES_ANGLES, type SalesAngle } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. */
-export const ANGLE_ROUTER_PROMPT_VERSION = 5;
+export const ANGLE_ROUTER_PROMPT_VERSION = 6;
 /** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. */
-export const ANGLE_BRIEF_PROMPT_VERSION = 2;
+export const ANGLE_BRIEF_PROMPT_VERSION = 3;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -35,6 +35,19 @@ const angleItem = z.object({
   risks: z.array(text).describe("0 a 3 riesgos concretos, en frases cortas. Sin repetir la penalización."),
 });
 
+/** Un ángulo candidato para testear: el mensaje, contado con una de las 6 formas. */
+const candidate = z.object({
+  title: text.describe("Nombre corto del ángulo, 2 a 5 palabras, en el idioma del mercado («La crema sella»)."),
+  pain_or_desire: text.describe("El dolor o deseo que destaca, con las palabras del cliente ideal."),
+  segment: text.describe("Para quién, dentro del cliente ideal («la que ya tiene rutina y siente que no le alcanza»)."),
+  promise: text.describe("La promesa, dentro de lo permitido (forbidden_claims)."),
+  frame: z.enum(SALES_ANGLES).describe("La forma con que conviene contarlo (una de las 6)."),
+  trigger_moment: text.describe("El momento concreto del cliente ideal que abre el anuncio."),
+  competition: text.describe("Qué hace la competencia con este ángulo y por qué este es distinto. Sin competencia cargada: «Sin datos de competencia»."),
+  competitors_using: z.number().int().describe("Cuántas de las tiendas de COMPETENCIA ya usan este ángulo (0 si ninguna o si no hay datos)."),
+});
+export type AngleCandidate = z.infer<typeof candidate>;
+
 export const angleRouterSchema = z.object({
   awareness_level: z.enum(AWARENESS_LEVELS),
   sophistication: z.number().int().describe("De 1 a 5."),
@@ -42,11 +55,9 @@ export const angleRouterSchema = z.object({
   result_visible: z.boolean().describe("true si el resultado se ve en 3 segundos de video; false si es invisible (alivio, bienestar)."),
   available_proof: z.array(text).describe("Pruebas reales que hay hoy en la ficha (reseñas, experto, estudios, cifras). Vacío si no hay."),
   diagnosis: text.describe("Tipo de problema y qué permite la economía de PRECIO Y OFERTA, en 1 o 2 frases."),
-  angles: z.array(angleItem).describe("Los 6 ángulos, uno por elemento."),
-  combinations: z
-    .array(z.object({ primary: z.enum(SALES_ANGLES), secondary: z.enum(SALES_ANGLES), how: text }))
-    .describe("Las 3 combinaciones principal + secundario con más sentido, la mejor primero. how: qué dice el gancho y cómo lo remata el secundario, en una o dos frases."),
+  angles: z.array(angleItem).describe("Las 6 formas, una por elemento."),
   aida_emphasis: text.describe("Qué etapa AIDA necesita más espacio con este nivel de consciencia, y por qué."),
+  test_angles: z.array(candidate).describe(`${ANGLE_CANDIDATES} ángulos candidatos para testear, distintos entre sí: distinto dolor o distinto segmento, no la misma idea contada de otra forma.`),
   missing_inputs: z.array(text).describe("Hasta 3 datos que subirían la precisión, cada uno con qué ángulo mejoraría («Una fecha comercial real: subiría Oferta»). Sin reseñas ni expertos."),
   compliance_flags: z.array(text),
 });
@@ -67,8 +78,11 @@ export type AngleEvaluations = Record<SalesAngle, AngleEvaluation>;
  * los criterios (cantidad o rango). Vacío si se puede puntuar. Con problemas, la respuesta se
  * rechaza y se pide otra: completar con 0 bajaría un puntaje sin que nadie lo note.
  */
-export function routerProblems(output: Pick<AngleRouterOutput, "angles">): string[] {
+export function routerProblems(output: Pick<AngleRouterOutput, "angles"> & Partial<Pick<AngleRouterOutput, "test_angles">>): string[] {
   const problems: string[] = [];
+  const candidates = output.test_angles ?? [];
+  if (candidates.length < 3) problems.push(`Faltan ángulos candidatos: vienen ${candidates.length} y se piden ${ANGLE_CANDIDATES}.`);
+  if (candidates.some((c) => !c.title?.trim() || !c.pain_or_desire?.trim() || !c.promise?.trim())) problems.push("Hay candidatos sin título, dolor o promesa.");
   for (const a of SALES_ANGLES) {
     const items = output.angles.filter((x) => x.angle === a);
     if (!items.length) {
@@ -122,7 +136,7 @@ const briefBase = {
   offer_layer: text.describe("La oferta en una línea, con los números de PRECIO Y OFERTA y el cierre del mercado («Paga al recibir»)."),
   visual_concepts: z.array(text).describe("3 conceptos: «formato: qué se ve (referencia)»."),
   static_ad_concepts: z.array(text).describe("2 estáticos (3 en Oferta): «titular | imagen | texto»."),
-  landing: text.describe("Qué página de producto recomiendas para este ángulo."),
+  page_block: text.describe("Qué tiene que encontrar en la página quien llega desde este anuncio (un momento, un beneficio o una respuesta), en una o dos frases. La página es común a todos los ángulos: no propongas una página entera."),
   compliance_flags: z.array(text),
   missing_inputs: z.array(text),
   handoff_to_ugc: text.describe("Para el guionista: vocero, tono y lo que se debe evitar."),

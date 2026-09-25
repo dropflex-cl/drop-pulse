@@ -7,6 +7,7 @@
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
+import { angleHeading, angleMessage, type AngleForPrompt } from "@/lib/angles/approved";
 import { HEADLINE_MAX_WORDS, ROLE_LIMITS } from "@/lib/creatives/catalog";
 import type { Market } from "@/lib/market";
 import { BENEFIT_SHOTS, GALLERY_SHOTS } from "./catalog";
@@ -81,8 +82,8 @@ function json(v: unknown) {
 export interface PageImagesContext {
   brief: ProductBrief;
   avatar: CustomerAvatar;
-  primary: { name: string; payload: AngleBriefPayload };
-  secondary: { name: string; payload: AngleBriefPayload };
+  /** Los ángulos aprobados (2 o 3), uno por conjunto de anuncios. */
+  angles: AngleForPrompt[];
 }
 
 const angleForImages = (b: AngleBriefPayload) => ({
@@ -105,12 +106,8 @@ export function pageImagesUser(c: PageImagesContext, retry: string[] = []): stri
     "CLIENTE IDEAL (aprobado por el comerciante)",
     json(c.avatar),
     "",
-    `ÁNGULO PRINCIPAL: ${c.primary.name} (aprobado)`,
-    json(angleForImages(c.primary.payload)),
-    "",
-    `ÁNGULO SECUNDARIO: ${c.secondary.name} (aprobado)`,
-    json(angleForImages(c.secondary.payload)),
-    "",
+    `ÁNGULOS DE VENTA (${c.angles.length}, aprobados; se testean a la vez, uno por conjunto de anuncios: la galería sirve a todos y cada imagen de beneficio puede apoyar a uno)`,
+    ...c.angles.flatMap((a) => [angleHeading(a), json({ ...angleMessage(a.angle), ...angleForImages(a.payload) }), ""]),
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     `Entrega ${BENEFIT_SHOTS} benefits y el set: 1 cover, ${GALLERY_SHOTS} gallery y ${BENEFIT_SHOTS} benefit.`,
   ].join("\n");

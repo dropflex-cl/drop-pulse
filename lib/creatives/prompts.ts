@@ -7,11 +7,12 @@
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
+import { angleHeading, angleMessage, type AngleForPrompt } from "@/lib/angles/approved";
 import type { Preset } from "@/lib/integrations/higgsfield/client";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import { CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_LIMITS, TEXT_ROLES } from "./catalog";
+import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_LIMITS, TEXT_ROLES } from "./catalog";
 import type { StoredText } from "./schemas";
 
 const RULES = [
@@ -65,7 +66,9 @@ export function creativesSystem(market: Market): string {
     ...FAMILIES.map((f) => `- ${f} (${FAMILY_DEFS[f].name}): ${FAMILY_DEFS[f].gist}${FAMILY_DEFS[f].presetGroups.length ? ` Presets del grupo ${FAMILY_DEFS[f].presetGroups.join(" o ")}.` : " Sin preset."}`),
     "",
     "QUÉ ENTREGAS",
-    `- ${CONCEPTS_PER_RUN} conceptos de al menos 4 familias distintas: 3 del ángulo PRINCIPAL, 2 del SECUNDARIO y 1 de oferta (family offer, con el pack recomendado de PRECIO Y OFERTA) para retargeting.`,
+    `- ${CONCEPTS_PER_RUN} conceptos repartidos por igual entre los ÁNGULOS DE VENTA (angle = el número del ángulo): cada ángulo va en su propio conjunto de anuncios, así que cada concepto es 100 % su ángulo, sin mezclarlo con otro.`,
+    "- Los conceptos de un mismo ángulo van en familias (formatos) distintas: Meta premia la variación y el mercado decide cuál funciona.",
+    "- La oferta (el pack recomendado de PRECIO Y OFERTA) va como capa dentro de un concepto, no como concepto de retargeting.",
     "- Parte de los ganchos, el mensaje central y los static_ad_concepts de cada desarrollo, pero reescríbelos para que funcionen como texto de imagen.",
     "- El headline del concepto no repite el de otro concepto.",
     "- why: para el comerciante, qué palanca usa y por qué detiene el scroll.",
@@ -99,8 +102,8 @@ export interface CreativesContext {
   avatar: CustomerAvatar;
   pricing: PricingPlan;
   labels?: PackLabel[];
-  primary: { name: string; payload: AngleBriefPayload };
-  secondary: { name: string; payload: AngleBriefPayload };
+  /** Los ángulos aprobados (2 o 3), uno por conjunto de anuncios. */
+  angles: AngleForPrompt[];
   presets: Preset[];
   /** Sin reseñas reales aprobadas no se ofrecen los presets de prueba social. */
   hasRealReviews: boolean;
@@ -129,12 +132,8 @@ export function creativesUser(c: CreativesContext, retry: string[] = []): string
     "",
     pricingBlock(c.pricing, c.labels),
     "",
-    `ÁNGULO PRINCIPAL: ${c.primary.name} (aprobado)`,
-    json(briefForStatics(c.primary.payload)),
-    "",
-    `ÁNGULO SECUNDARIO: ${c.secondary.name} (aprobado)`,
-    json(briefForStatics(c.secondary.payload)),
-    "",
+    `ÁNGULOS DE VENTA (${c.angles.length}, aprobados; ${conceptsPerAngle(c.angles.length)} conceptos por ángulo)`,
+    ...c.angles.flatMap((a) => [angleHeading(a), json({ ...angleMessage(a.angle), ...briefForStatics(a.payload) }), ""]),
     presetsBlock(c.presets, c.hasRealReviews),
     "",
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),

@@ -58,14 +58,14 @@ export function fixture(state: string): ProductCopy {
         : withPage
           ? { id: "r1", status: "succeeded", createdAt: NOW }
           : undefined;
-  const brief = (role: "primary" | "secondary", status: ContentStatus) => ({ role, name: role === "primary" ? "Mecanismo único" : "Edad e identidad", status, generation: "succeeded" as const });
+  const brief = (slot: number, status: ContentStatus) => ({ slot, name: ["", "La crema sella", "Tengo 38", "Lleva 3"][slot], status, generation: "succeeded" as const });
   const locked = state === "locked";
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
     avatar: { status: "aprobado", createdAt: NOW },
     reviews: { pending: 0, approved: 6, total: 6 },
-    angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief("primary", "aprobado"), brief("secondary", locked ? "revision" : "aprobado")] },
+    angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1, "aprobado"), brief(2, locked ? "revision" : "aprobado")] },
     copy: run ? { run: { status: run.status, error: run.error }, progress: copyProgress(list) } : null,
     // Imágenes va antes de la página: con los ángulos listos, la galería ya está elegida.
     images: locked ? null : { running: false, rendering: 0, options: 8, cover: true, gallery: 5 },

@@ -5,10 +5,10 @@
 import * as z from "zod/v4";
 import { allowedAmounts, amountAllowed, amountsIn } from "@/lib/copy/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
+import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del generador. 2: dirección de arte (spec §7.4). */
-export const CREATIVES_PROMPT_VERSION = 2;
+export const CREATIVES_PROMPT_VERSION = 3;
 /** Bump cuando cambie el prompt o el esquema del QA. 2: texto inventado sobre el producto y textos que la imagen contradice. */
 export const QA_PROMPT_VERSION = 2;
 
@@ -30,7 +30,7 @@ const art = z.object({
 });
 
 const concept = z.object({
-  angle: z.enum(["primary", "secondary"]).describe("De qué desarrollo sale."),
+  angle: z.number().int().describe("El número del ángulo de venta del que sale (1, 2 o 3): cada ángulo va en su propio conjunto de anuncios."),
   family: z.enum(FAMILIES),
   name: z.string().describe("Nombre corto del concepto para el comerciante («Dentro de cada cápsula»)."),
   why: z.string().describe("Para el comerciante, una frase: qué palanca usa y por qué detiene el scroll de SU cliente."),
@@ -75,6 +75,8 @@ export type ConceptEdit = z.infer<typeof conceptEditSchema>;
 export interface ConceptFacts {
   presetIds: Set<string>;
   pricing: PricingPlan;
+  /** Los ángulos aprobados (sus slots). Por defecto 1 y 2. */
+  slots?: number[];
 }
 
 /** Problemas de los textos de un concepto (del modelo o editados): largos, montos y promesas. */
@@ -99,8 +101,15 @@ export function textProblems(texts: StoredText[], pricing: PricingPlan, where = 
 export function conceptProblems(out: CreativeConceptsOutput, facts: ConceptFacts): string[] {
   const problems: string[] = [];
   if (out.concepts.length !== CONCEPTS_PER_RUN) problems.push(`Trae ${out.concepts.length} conceptos y deben ser ${CONCEPTS_PER_RUN}.`);
-  if (!out.concepts.some((c) => c.family === "offer")) problems.push("Falta el concepto de oferta (family offer) para retargeting.");
-  for (const role of ["primary", "secondary"] as const) if (!out.concepts.some((c) => c.angle === role)) problems.push(`Falta al menos un concepto del ángulo ${role}.`);
+  const slots = facts.slots ?? [1, 2];
+  for (const c of out.concepts) if (!slots.includes(c.angle)) problems.push(`«${c.name}» dice venir del ángulo ${c.angle}, que no existe: usa ${slots.join(", ")}.`);
+  const per = conceptsPerAngle(slots.length);
+  for (const slot of slots) {
+    const mine = out.concepts.filter((c) => c.angle === slot);
+    if (mine.length < per) problems.push(`El ángulo ${slot} necesita ${per} conceptos y trae ${mine.length}.`);
+    // Formatos distintos dentro del mismo ángulo: Meta premia la variación y el mercado decide.
+    if (new Set(mine.map((c) => c.family)).size < mine.length) problems.push(`Los conceptos del ángulo ${slot} repiten familia: usa formatos distintos.`);
+  }
   out.concepts.forEach((c, i) => {
     const where = `El concepto ${i + 1} («${c.name}»)`;
     const direct = !FAMILY_DEFS[c.family].presetGroups.length;

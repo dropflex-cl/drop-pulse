@@ -2,7 +2,10 @@
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
-import type { SalesAngle } from "@/lib/angles/catalog";
+import type { TestAngle } from "@/lib/angles/catalog";
+
+/** Lo que manda la pantalla al confirmar: el slot lo pone el servidor por el orden. */
+export type TestAngleInput = Omit<TestAngle, "slot">;
 import type { AnglesState, AvatarProposal, PublishState, CopyState, ImagePick, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
@@ -122,16 +125,24 @@ export const productsApi = {
   // Etapa Ángulos: cada acción devuelve el estado completo de la etapa.
   angles: (id: string) => call<AnglesState>(`/${id}/angles`),
   evaluateAngles: (id: string) => send<AnglesState>("POST", `/${id}/angles`),
-  confirmAngles: (id: string, primary: SalesAngle, secondary: SalesAngle) => send<AnglesState>("PUT", `/${id}/angles/selection`, { primary, secondary }),
+  confirmAngles: (id: string, angles: TestAngleInput[]) => send<AnglesState>("PUT", `/${id}/angles/selection`, { angles }),
   decideAngleBrief: (id: string, briefId: string, action: "approve" | "reopen") => send<AnglesState>("PATCH", `/${id}/angles/briefs/${briefId}`, { action }),
   editAngleBrief: (id: string, briefId: string, edit: AngleBriefEdit, approve: boolean) => send<AnglesState>("PUT", `/${id}/angles/briefs/${briefId}`, { edit, approve }),
   regenerateAngleBrief: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}`),
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
-  writeCopy: (id: string, redo = false) => send<CopyState>("POST", `/${id}/copy`, { redo }),
+  writeCopy: (id: string, redo = false, mode?: "all" | { component: string }) => send<CopyState>("POST", `/${id}/copy`, { redo, mode }),
+  restoreComponent: (id: string, component: string) => send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, { restore: true }),
   updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean }) =>
     send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, patch),
   saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),
+  // Información base › Diferenciador y Tiendas de la competencia: cada acción devuelve la lista completa.
+  saveDifferentiator: (id: string, d: { versus: string; claim: string; basis?: string }) =>
+    send<import("@/lib/types").DifferentiatorView>("PUT", `/${id}/differentiator`, d),
+  competitors: (id: string) => call<CompetitorsResponse>(`/${id}/competitors`),
+  addCompetitor: (id: string, url: string) => send<CompetitorsResponse>("POST", `/${id}/competitors`, { url }),
+  removeCompetitor: (id: string, competitorId: string) => send<CompetitorsResponse>("DELETE", `/${id}/competitors/${competitorId}`),
+  retryCompetitor: (id: string, competitorId: string) => send<CompetitorsResponse>("POST", `/${id}/competitors/${competitorId}`),
 };
 
 /** Ajustes › Conexiones › Higgsfield. Mismo contrato de errores que /api/products. */
@@ -163,3 +174,9 @@ export const themeApi = {
   /** Vuelve a pedir permisos en Shopify (temas y archivos): responde con la URL de autorización. */
   permissions: (shop: string) => post<{ authorizeUrl: string }>("/api/onboarding/shopify/connect", { shop }, "No pudimos abrir Shopify. Intenta de nuevo."),
 };
+
+/** Respuesta de /api/products/[id]/competitors*. */
+export interface CompetitorsResponse {
+  competitors: import("@/lib/types").CompetitorView[];
+  max: number;
+}

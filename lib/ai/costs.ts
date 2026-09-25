@@ -8,6 +8,7 @@ export const AI_STEPS = {
   product_brief: { stage: "importado", label: "Ficha del producto" },
   customer_avatar: { stage: "importado", label: "Cliente ideal" },
   pack_labels: { stage: "importado", label: "Nombres de los packs" },
+  competitor_analysis: { stage: "importado", label: "Análisis de competencia" },
   angle_ranking: { stage: "angulos", label: "Ranking de ángulos" },
   angle_brief: { stage: "angulos", label: "Desarrollo" },
   page_copy: { stage: "textos", label: "Página del producto" },

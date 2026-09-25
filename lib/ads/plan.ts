@@ -34,13 +34,24 @@ const baseName = (name: string) => name.replace(/\.[a-z0-9]+$/i, "").slice(0, 60
 const pick = <T,>(list: T[], i: number) => list[i % list.length];
 const audienceLabel = (a: Audience) => (a.kind === "open" ? "Abierto" : `Intereses: ${a.interests.map((i) => i.name).slice(0, 2).join(", ")}`);
 
-export function planLaunch(structure: Structure, launch: LaunchConfig, media: { id: string; name: string }[]): LaunchPlan {
+type PlanMedia = { id: string; name: string; angle_slot?: number | null };
+
+/**
+ * El texto principal de un creativo: el de SU ángulo (primary_texts va en orden de slot, lib/ads/texts.ts)
+ * o, en los subidos a mano, por turno.
+ */
+export function textFor(texts: string[], m: PlanMedia, i: number): string {
+  const slot = m.angle_slot ?? 0;
+  return slot >= 1 && slot <= texts.length ? texts[slot - 1] : pick(texts, i);
+}
+
+export function planLaunch(structure: Structure, launch: LaunchConfig, media: PlanMedia[]): LaunchPlan {
   const byId = new Map(media.map((m) => [m.id, m]));
-  const creatives = launch.creatives.map((id) => byId.get(id)).filter((m): m is { id: string; name: string } => !!m);
-  const single = (m: { id: string; name: string }, i: number): PlannedAd => ({
+  const creatives = launch.creatives.map((id) => byId.get(id)).filter((m): m is PlanMedia => !!m);
+  const single = (m: PlanMedia, i: number): PlannedAd => ({
     name: baseName(m.name),
     mediaIds: [m.id],
-    primaryTexts: [pick(launch.primary_texts, i)],
+    primaryTexts: [textFor(launch.primary_texts, m, i)],
     headlines: [pick(launch.headlines, i)],
   });
 
@@ -50,7 +61,7 @@ export function planLaunch(structure: Structure, launch: LaunchConfig, media: { 
       launch.audiences.forEach((a) => {
         const n = adsets.length + 1;
         adsets.push({
-          name: `Conjunto ${n} · ${baseName(m.name)}${launch.audiences.length > 1 ? ` · ${a.kind === "open" ? "abierto" : "intereses"}` : ""}`,
+          name: `Conjunto ${n}${m.angle_slot ? ` · Ángulo ${m.angle_slot}` : ""} · ${baseName(m.name)}${launch.audiences.length > 1 ? ` · ${a.kind === "open" ? "abierto" : "intereses"}` : ""}`,
           audience: a,
           dailyBudget: launch.budget,
           ads: [single(m, i)],
