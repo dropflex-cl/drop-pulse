@@ -110,6 +110,25 @@ export function averageRating(reviews: { rating: number }[]): number | null {
   return Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10;
 }
 
+/**
+ * Con menos de 30 reseñas la cantidad sola («10 reseñas») se lee como poca: la proporción
+ * («9 de cada 10 le dan 5 estrellas»), redondeada hacia abajo. "" si ninguna es verdad y convence
+ * (el bloque usa su plantilla con {count}). Espejo de snippets/df-review-proof.liquid.
+ */
+export function reviewProof(reviews: { rating: number }[]): string {
+  const n = reviews.length;
+  if (n === 0 || n >= 30) return "";
+  const five = reviews.filter((r) => r.rating >= 5).length;
+  const positive = reviews.filter((r) => r.rating >= 4).length;
+  const k5 = Math.floor((five * 10) / n);
+  const kp = Math.floor((positive * 10) / n);
+  if (five === n) return "todas sus reseñas son de 5 estrellas";
+  if (k5 >= 7) return `${k5} de cada 10 le dan 5 estrellas`;
+  if (positive === n) return "todas sus reseñas son de 4 o 5 estrellas";
+  if (kp >= 8) return `${kp} de cada 10 le dan 4 o 5 estrellas`;
+  return "";
+}
+
 const decimal = new Intl.NumberFormat("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const integer = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 });
 

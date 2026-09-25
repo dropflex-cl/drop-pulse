@@ -1,4 +1,4 @@
-import { fill } from "@/lib/store-preview/facts";
+import { fill, reviewProof } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -23,8 +23,12 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   const countText = count >= 1000 ? `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, "0")}` : String(count);
 
   const template = content.label || String(s.label ?? "");
-  // Una plantilla sin {count} escribiría la cantidad a mano: la tienda la descarta.
-  const label = template.includes("{count}")
+  // Con pocas reseñas, la proporción; una plantilla sin {count} escribiría la cantidad a mano: la
+  // tienda la descarta.
+  const proof = reviewProof(facts.reviews);
+  const label = proof
+    ? `${ratingText} · ${proof}`
+    : template.includes("{count}")
     ? fill(template.replaceAll("{count}", countText).replaceAll("{rating}", ratingText), facts)
     : `${ratingText} · ${countText} reseñas`;
 

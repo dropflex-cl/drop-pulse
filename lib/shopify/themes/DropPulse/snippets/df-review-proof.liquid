@@ -1,0 +1,30 @@
+{%- doc -%}
+  DropFlex · Prueba social con pocas reseñas. Con menos de 30 reseñas aprobadas, la cantidad sola
+  («10 reseñas») se lee como poca: se muestra la proporción, que no depende del tamaño.
+  Imprime la frase («9 de cada 10 le dan 5 estrellas») o nada si no hay una que sea verdad y
+  convenza (entonces el bloque usa su plantilla con {count}).
+
+  Proporciones redondeadas hacia abajo: 6 de 7 (86 %) es «8 de cada 10», nunca «9».
+  Espejo de reviewProof() en lib/store-preview/facts.ts.
+
+  @param {object} summary - product.metafields.dropflex.review_summary.value: { rating, count, five, positive }
+{%- enddoc -%}
+{%- liquid
+  assign n = summary.count | default: 0 | plus: 0
+  assign five = summary.five | default: -1 | plus: 0
+  assign positive = summary.positive | default: -1 | plus: 0
+
+  if n > 0 and n < 30 and five >= 0 and positive >= 0
+    assign k5 = five | times: 10 | divided_by: n
+    assign kp = positive | times: 10 | divided_by: n
+    if five == n
+      echo 'todas sus reseñas son de 5 estrellas'
+    elsif k5 >= 7
+      echo k5 | append: ' de cada 10 le dan 5 estrellas'
+    elsif positive == n
+      echo 'todas sus reseñas son de 4 o 5 estrellas'
+    elsif kp >= 8
+      echo kp | append: ' de cada 10 le dan 4 o 5 estrellas'
+    endif
+  endif
+-%}

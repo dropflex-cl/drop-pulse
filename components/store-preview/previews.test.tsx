@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LISTING } from "@/lib/copy/listing";
-import { fill } from "@/lib/store-preview/facts";
+import { fill, reviewProof } from "@/lib/store-preview/facts";
 import { EMPTY_FACTS, FIXTURE_FACTS } from "@/lib/store-preview/fixture";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import { PREVIEWS } from "./registry";
@@ -16,6 +16,18 @@ function visibleTexts(value: unknown, key = ""): string[] {
   if (value && typeof value === "object") return Object.entries(value).flatMap(([k, v]) => visibleTexts(v, k));
   return [];
 }
+
+/**
+ * Con 30 reseñas o más no aplica la proporción («9 de cada 10…»): así se ven las plantillas de la IA.
+ * Las reseñas de relleno van al final, para no cambiar las que eligen los ejemplos por id.
+ */
+const MANY_REVIEWS = {
+  ...FIXTURE_FACTS,
+  reviews: [
+    ...FIXTURE_FACTS.reviews,
+    ...Array.from({ length: Math.max(0, 30 - FIXTURE_FACTS.reviews.length) }, (_, i) => ({ ...FIXTURE_FACTS.reviews[0], id: `relleno-${i}` })),
+  ],
+};
 
 /** Muestran un estado a la vez (disponible, con cuenta regresiva): basta con que se vea uno de sus textos. */
 const ONE_STATE = ["inventory"];
@@ -35,7 +47,7 @@ describe("vistas previas de los componentes", () => {
         for (const example of c.examples) {
           const html = renderToStaticMarkup(
             <StoreFrame accent="#1f4bd8">
-              <Preview content={example} facts={FIXTURE_FACTS} images={IMAGES} />
+              <Preview content={example} facts={MANY_REVIEWS} images={IMAGES} />
             </StoreFrame>,
           );
           // inventory: con stock muestra la línea fija de producto viral, no los textos de la IA.
@@ -43,13 +55,22 @@ describe("vistas previas de los componentes", () => {
             expect(html).toMatch(/Producto viral · \d{3} vendidos esta semana/);
             continue;
           }
-          const texts = visibleTexts(example).map((t) => fill(t, FIXTURE_FACTS).replaceAll("**", ""));
+          const texts = visibleTexts(example).map((t) => fill(t, MANY_REVIEWS).replaceAll("**", ""));
           // Al menos la mitad de los textos del ejemplo se ven (algunos dependen del estado: agotado, sin cuenta regresiva…).
           const shown = texts.filter((t) => html.includes(escape(t)));
           const min = ONE_STATE.includes(c.id) ? 1 : Math.ceil(texts.length / 2);
           expect(shown.length, `${c.id}: se ven ${shown.length} de ${texts.length}`).toBeGreaterThanOrEqual(min);
         }
       });
+
+      if (c.id === "review-stars") {
+        it("con pocas reseñas muestra la proporción en vez de la plantilla", () => {
+          const proof = reviewProof(FIXTURE_FACTS.reviews);
+          expect(proof).not.toBe("");
+          const html = renderToStaticMarkup(<Preview content={c.examples[0]} facts={FIXTURE_FACTS} images={IMAGES} />);
+          expect(html).toContain(proof);
+        });
+      }
 
       it("no se rompe a medio editar ni sin datos de la tienda", () => {
         expect(() => renderToStaticMarkup(<Preview content={{}} facts={EMPTY_FACTS} images={{}} />)).not.toThrow();

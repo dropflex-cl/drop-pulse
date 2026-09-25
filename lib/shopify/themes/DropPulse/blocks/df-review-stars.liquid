@@ -10,7 +10,9 @@
 
   Contenido (texto): metafield `dropflex.review_stars` (json) → si falta, el texto del bloque.
     { label } con los tokens {count} (obligatorio) y {rating}.
-  Datos reales: product.metafields.dropflex.review_summary = { rating, count }.
+    Con menos de 30 reseñas, si la proporción convence, la plantilla cede a «4,7 · 9 de cada 10
+    le dan 5 estrellas» (snippets/df-review-proof).
+  Datos reales: product.metafields.dropflex.review_summary = { rating, count, five, positive }.
 {%- enddoc -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
@@ -43,8 +45,14 @@
       assign count_text = thousands | append: '.' | append: rest
     endif
 
+    # Con pocas reseñas la proporción convence más que la cantidad (snippets/df-review-proof).
+    capture proof
+      render 'df-review-proof', summary: summary
+    endcapture
     assign label = content.label | default: s.label
-    if label contains '{count}'
+    if proof != blank
+      assign label = rating_text | append: ' · ' | append: proof
+    elsif label contains '{count}'
       assign label = label | replace: '{count}', count_text | replace: '{rating}', rating_text
     else
       # Una plantilla sin {count} escribiría la cantidad a mano: se descarta.

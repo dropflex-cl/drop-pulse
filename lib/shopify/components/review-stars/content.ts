@@ -34,6 +34,7 @@ export const reviewStars = defineComponent({
     "Calificación y cantidad: product.metafields.dropflex.review_summary ({ rating, count }) calculado por la app sobre las reseñas APROBADAS; nunca la IA ni el editor.",
     "Origen visible: review_summary.source_label (p. ej. «Reseñas de compradores del mismo producto en AliExpress»).",
     "Bajo el mínimo de reseñas del bloque (3 por defecto) no se muestra nada.",
+    "Con menos de 30 reseñas, si la proporción convence, la tienda reemplaza la plantilla por «{rating} · 9 de cada 10 le dan 5 estrellas» (de review_summary.five/positive).",
   ],
   rules: [
     "Fórmula: [{rating} ·] {count} + sustantivo concreto: «reseñas», «opiniones», «reseñas de compradores».",

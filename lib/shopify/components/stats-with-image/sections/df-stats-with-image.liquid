@@ -11,6 +11,8 @@
   Contenido: metafield `dropflex.stats_with_image` (json) → si falta, los ajustes de la sección.
     { heading (**destacado**), description, bullets[], cta_label, rating_label ({rating} {count}),
       review_id?, stats?: [{ fact, label }] }
+    Con menos de 30 reseñas, si la proporción convence, rating_label cede a «4,7 de 5 · 9 de cada
+    10 le dan 5 estrellas» (snippets/df-review-proof).
   Fotos: ajustes image_1..4 → metafield `dropflex.stats_with_image_images` (list.file_reference)
   → imágenes del producto (la destacada primero).
 {%- endcomment -%}
@@ -263,7 +265,13 @@
 
       <div class="df-stats-with-image__body">
         {%- if show_rating -%}
-          {%- assign rating_line = rating_label | escape | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
+          {%- comment -%} Con pocas reseñas la proporción convence más que la cantidad (snippets/df-review-proof). {%- endcomment -%}
+          {%- capture proof -%}{%- render 'df-review-proof', summary: summary -%}{%- endcapture -%}
+          {%- if proof != blank -%}
+            {%- assign rating_line = rating_text | append: ' de 5 · ' | append: proof | escape -%}
+          {%- else -%}
+            {%- assign rating_line = rating_label | escape | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
+          {%- endif -%}
           <div class="df-stats-with-image__rating">
             <span aria-hidden="true">{% render 'df-stars', rating: summary.rating, size: '1.125rem' %}</span>
             <p class="df-stats-with-image__rating-text">{{ rating_line }}</p>

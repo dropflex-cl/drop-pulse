@@ -5,7 +5,7 @@ import { ICON_KEYS, UI_ICON_KEYS } from "@/lib/shopify/components/define";
 import { contrast } from "@/lib/copy/accent";
 import { ACCENT_PALETTE } from "@/lib/copy/accent";
 import { accentTones, accentVars, brightness, withLightness } from "./accent";
-import { EXAMPLE, exampleTokens, fill, tokenValues, type StoreFacts } from "./facts";
+import { EXAMPLE, exampleTokens, fill, reviewProof, tokenValues, type StoreFacts } from "./facts";
 import { CSS_OUT, TS_OUT, storeCss, themeTs } from "./generate";
 import { ICON_PATHS } from "./theme.generated";
 import { boldParts } from "./settings";
@@ -75,5 +75,23 @@ describe("tokens con datos reales o de ejemplo", () => {
       { text: "sin riesgo", bold: true },
       { text: " hoy", bold: false },
     ]);
+  });
+});
+
+describe("reviewProof", () => {
+  const of = (...ratings: number[]) => ratings.map((rating) => ({ rating }));
+
+  it("con pocas reseñas da la proporción, redondeada hacia abajo", () => {
+    expect(reviewProof(of(5, 5, 5, 5, 5, 5, 5, 5, 5, 4))).toBe("9 de cada 10 le dan 5 estrellas");
+    expect(reviewProof(of(5, 5, 5, 5, 5, 5, 4))).toBe("8 de cada 10 le dan 5 estrellas");
+    expect(reviewProof(of(5, 5, 5))).toBe("todas sus reseñas son de 5 estrellas");
+    expect(reviewProof(of(5, 4, 4, 4))).toBe("todas sus reseñas son de 4 o 5 estrellas");
+    expect(reviewProof(of(5, 5, 4, 4, 4, 4, 4, 4, 4, 2))).toBe("9 de cada 10 le dan 4 o 5 estrellas");
+  });
+
+  it("sin una proporción que convenza, o con 30 o más, nada (el bloque usa su plantilla)", () => {
+    expect(reviewProof(of(5, 4, 3, 2))).toBe("");
+    expect(reviewProof(of(...Array(30).fill(5)))).toBe("");
+    expect(reviewProof([])).toBe("");
   });
 });

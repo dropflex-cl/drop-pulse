@@ -214,7 +214,10 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
     const rating = Math.round((reviews.reduce((n, r) => n + r.rating, 0) / reviews.length) * 10) / 10;
     set.push(mf(SHARED_METAFIELDS.reviews.key, "json", { items }));
     // Sin origen visible: por decisión del comerciante la tienda no nombra la plataforma de las reseñas.
-    set.push(mf(SHARED_METAFIELDS.reviewSummary.key, "json", { rating, count: input.reviews.length }));
+    // five/positive: para la proporción que se muestra con pocas reseñas (snippets/df-review-proof).
+    const five = input.reviews.filter((r) => r.rating >= 5).length;
+    const positive = input.reviews.filter((r) => r.rating >= 4).length;
+    set.push(mf(SHARED_METAFIELDS.reviewSummary.key, "json", { rating, count: input.reviews.length, five, positive }));
     if (photos.length) set.push(mf(SHARED_METAFIELDS.reviewsImages.key, "list.file_reference", photos));
   }
 

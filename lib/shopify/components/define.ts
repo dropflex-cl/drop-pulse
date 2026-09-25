@@ -30,7 +30,7 @@ export const SHARED_METAFIELDS = {
   accent: { owner: "product", namespace: "dropflex", key: "accent", type: "color" },
   /**
    * Producto · json. Resumen de las reseñas APROBADAS (product_reviews):
-   * { rating: number (1 decimal), count: number }
+   * { rating: number (1 decimal), count: number, five: number (de 5★), positive: number (de 4★ o más) }
    * La tienda no muestra el origen de las reseñas (decisión del comerciante, 2026-09-24).
    */
   reviewSummary: { owner: "product", namespace: "dropflex", key: "review_summary", type: "json" },

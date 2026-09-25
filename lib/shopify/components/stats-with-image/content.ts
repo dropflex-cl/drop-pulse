@@ -90,6 +90,7 @@ export const statsWithImage = defineComponent({
   }),
   realData: [
     "Calificación y cantidad: dropflex.review_summary (rating, count, source_label). La línea solo aparece con el mínimo de reseñas del editor, y la fuente siempre se muestra.",
+    "Con menos de 30 reseñas, si la proporción convence, la tienda reemplaza rating_label por «{rating} de 5 · 9 de cada 10 le dan 5 estrellas» (de review_summary.five/positive).",
     "Testimonio: la reseña aprobada de dropflex.reviews con ese id (autor enmascarado, calificación, país), mostrada tal cual y recortada a 240 caracteres.",
     "Cifras: rating y review_count de review_summary; return_days y warranty_months de shop.metafields.dropflex.policies; delivery_days_max = preparación + tránsito máximo de shop.metafields.dropflex.logistics.",
     "Fotos: ajustes del editor → dropflex.stats_with_image_images → imágenes del producto. Nunca imágenes que muestren resultados que el producto no logra.",

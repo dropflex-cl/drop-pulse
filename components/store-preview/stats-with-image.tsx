@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { fill, tokenValues, type StoreFacts } from "@/lib/store-preview/facts";
+import { fill, reviewProof, tokenValues, type StoreFacts } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -57,6 +57,9 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
   // Calificación real, solo con suficientes reseñas.
   const hasRating = (facts.rating ?? 0) > 0 && facts.count >= Number(s.min_reviews);
   const showRating = Boolean(s.show_rating) && hasRating && Boolean(ratingLabel);
+  // Con pocas reseñas, la proporción en vez de la plantilla con {count}.
+  const proof = reviewProof(facts.reviews);
+  const ratingLine = proof ? `${tokenValues(facts).rating.value} de 5 · ${proof}` : fill(ratingLabel, facts);
 
   // Testimonio real, elegido por id (tal cual, recortado a 240).
   const review = s.show_testimonial && reviewId ? facts.reviews.find((r) => r.id === reviewId) : undefined;
@@ -112,7 +115,7 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
               <span aria-hidden>
                 <DfStars rating={facts.rating ?? 0} size="1.125rem" />
               </span>
-              <p className="df-stats-with-image__rating-text">{fill(ratingLabel, facts)}</p>
+              <p className="df-stats-with-image__rating-text">{ratingLine}</p>
             </div>
           )}
           <h2 className="df-heading df-stats-with-image__heading">
