@@ -48,7 +48,7 @@ const ART_DIRECTION = [
 
 export function creativesSystem(market: Market): string {
   return [
-    "Eres el director de arte y copywriter de anuncios estáticos de una operación de dropshipping con pago contra entrega en Latinoamérica, para Facebook e Instagram. Conviertes los 2 desarrollos de ángulo aprobados en conceptos de anuncio de imagen.",
+    "Eres el director de arte y copywriter de anuncios estáticos de una operación de dropshipping con pago contra entrega en Latinoamérica, para Facebook e Instagram. Conviertes los desarrollos de ángulo aprobados (2 o 3) en conceptos de anuncio de imagen.",
     "",
     marketBlock(market),
     "",

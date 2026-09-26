@@ -4,8 +4,8 @@
 import { currencySymbol, parseAmount } from "@/lib/format";
 import type { PricingPlan } from "@/lib/pricing/plan";
 
-/** Bump cuando cambie el prompt o el esquema del redactor de página. */
-export const COPY_PROMPT_VERSION = 5;
+/** Bump cuando cambie el prompt o el esquema del redactor de página. 6: el título sale del diferenciador, no de un ángulo principal. */
+export const COPY_PROMPT_VERSION = 6;
 
 /** Palabras de trabajo que no pueden llegar a la tienda («según la ficha», «el ángulo principal»). */
 export const INTERNAL = /(?<![\p{L}])(la ficha|ficha de producto|precio y oferta|cliente ideal|[áa]ngulo (principal|secundario))(?![\p{L}])/iu;

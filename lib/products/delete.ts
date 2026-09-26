@@ -128,6 +128,21 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
   return deleted;
 }
 
+/**
+ * Todos los productos del comerciante, con el mismo borrado completo (cambio de tienda y shop/redact).
+ * Lanza si alguno queda: quien llama no sigue adelante con productos, archivos o campañas a medias.
+ */
+export async function deleteAllProducts(userId: string) {
+  for (;;) {
+    const { data, error } = await adminClient().from("products").select("id").eq("user_id", userId).limit(LIST_PAGE);
+    if (error) throw new Error(`Leer los productos: ${error.message}`);
+    const ids = (data ?? []).map((r) => r.id as string);
+    if (!ids.length) return;
+    const deleted = await deleteProducts(userId, ids);
+    if (deleted < ids.length) throw new Error(`No se pudieron borrar ${ids.length - deleted} de ${ids.length} productos`);
+  }
+}
+
 /** Saca del espejo del catálogo y de la selección del onboarding los ids de Shopify que ya no existen. */
 export async function forgetCatalogItems(userId: string, shopifyIds: string[]) {
   if (!shopifyIds.length) return;

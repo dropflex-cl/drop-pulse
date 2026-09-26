@@ -1,5 +1,6 @@
 import "server-only";
 import { OnboardingError } from "@/lib/onboarding/types";
+import { deleteAllProducts } from "@/lib/products/delete";
 import type { ConnectionErrorCode } from "@/lib/onboarding/errors";
 import { adminClient } from "../admin";
 import { deleteToken, setToken } from "../tokens";
@@ -56,15 +57,29 @@ export async function assertShopAvailable(userId: string, shop: string) {
   }
 }
 
+/**
+ * Los productos de una tienda que se va, con `deleteProducts` (CLAUDE.md › Datos): campañas pausadas
+ * en Meta, archivos de los 4 buckets y costo de IA. Un `delete` directo sobre `products` los dejaría
+ * sueltos. Si alguno falla, lanza antes de tocar lo demás: se puede reintentar sin perder el rastro.
+ */
+async function forgetShopProducts(userId: string) {
+  try {
+    await deleteAllProducts(userId);
+  } catch (e) {
+    console.error("[shopify/connection] borrar productos", userId, e);
+    throw new OnboardingError("No pudimos borrar los productos de tu tienda anterior. Vuelve a intentarlo en unos minutos.", 503, "shop");
+  }
+}
+
 /** Se borra lo importado de otra tienda si el comerciante cambia de dirección. */
 async function forgetOtherShop(userId: string, shop: string) {
   const current = await getShopifyConnection(userId);
   if (!current || current.shop_domain === shop) return;
   const db = adminClient();
+  // Los productos y el mercado eran de la otra tienda. Primero los productos: si fallan, no se toca nada más.
+  await forgetShopProducts(userId);
   fail("Borrar el catálogo anterior", (await db.from("catalog_items").delete().eq("user_id", userId)).error);
   fail("Reiniciar la selección", (await db.from("onboarding").update({ selected: [], generation: null }).eq("user_id", userId)).error);
-  // Los productos y el mercado eran de la otra tienda (las imágenes, corridas y propuestas caen en cascada).
-  fail("Borrar los productos anteriores", (await db.from("products").delete().eq("user_id", userId)).error);
   fail("Olvidar el mercado anterior", (await db.from("merchant_settings").delete().eq("user_id", userId)).error);
   await deleteToken("shopify", userId);
   await deleteToken("shopify_refresh", userId);
@@ -163,8 +178,13 @@ export async function redactShop(shop: string) {
   const conn = await findByShop(shop);
   if (!conn) return;
   const db = adminClient();
+  // Primero los productos con todo lo que cuelga de ellos (en cascada: publicaciones y caché de
+  // shopify_files). Si fallan, se lanza con la conexión todavía en pie para no perder el rastro.
+  await deleteAllProducts(conn.user_id);
   await deleteToken("shopify", conn.user_id);
   await deleteToken("shopify_refresh", conn.user_id);
   fail("Borrar el catálogo", (await db.from("catalog_items").delete().eq("user_id", conn.user_id)).error);
+  fail("Reiniciar la selección", (await db.from("onboarding").update({ selected: [], generation: null }).eq("user_id", conn.user_id)).error);
+  fail("Borrar el tema instalado", (await db.from("shopify_theme_installations").delete().eq("user_id", conn.user_id).eq("shop_domain", shop)).error);
   fail("Borrar la conexión", (await db.from(TABLE).delete().eq("user_id", conn.user_id)).error);
 }

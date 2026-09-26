@@ -7,8 +7,11 @@ import { allowedAmounts, amountAllowed, amountsIn } from "@/lib/copy/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del generador. 2: dirección de arte (spec §7.4). */
-export const CREATIVES_PROMPT_VERSION = 3;
+/**
+ * Bump cuando cambie el prompt o el esquema del generador. 2: dirección de arte (spec §7.4).
+ * 4: el esquema y el system dejan de pedir principal/secundario y retargeting (2 o 3 ángulos por igual).
+ */
+export const CREATIVES_PROMPT_VERSION = 4;
 /** Bump cuando cambie el prompt o el esquema del QA. 2: texto inventado sobre el producto y textos que la imagen contradice. */
 export const QA_PROMPT_VERSION = 2;
 
@@ -47,7 +50,7 @@ const concept = z.object({
 export const creativeConceptsSchema = z.object({
   product_look: z.string().describe("En inglés, hasta 20 palabras: cómo se ve el producto principal en la IMAGEN BASE (tipo, color, material, detalles visibles)."),
   kit: z.array(z.string()).describe("En inglés: todo lo demás que aparece en la IMAGEN BASE (caja, repuestos, cables, accesorios). [] si solo está el producto."),
-  concepts: z.array(concept).describe(`${CONCEPTS_PER_RUN} conceptos: 3 del principal, 2 del secundario y 1 de oferta (family offer) para retargeting.`),
+  concepts: z.array(concept).describe(`${CONCEPTS_PER_RUN} conceptos repartidos por igual entre los ángulos de venta (${conceptsPerAngle(2)} por ángulo con 2, ${conceptsPerAngle(3)} con 3), con familias distintas dentro de un mismo ángulo.`),
   compliance_flags: z.array(z.string()),
 });
 

@@ -13,7 +13,7 @@ const plain = (field: string) =>
 export const listingSchema = z.object({
   title: plain("title")
     .pipe(z.string().min(10).max(70))
-    .describe("Título del producto: qué es y el resultado o el dolor que resuelve, según el ángulo principal. Sin mayúsculas sostenidas ni palabras sueltas de SEO."),
+    .describe("Título del producto: qué es y el resultado o el dolor que resuelve, desde el DIFERENCIADOR (la página es común a los ángulos). Sin mayúsculas sostenidas ni palabras sueltas de SEO."),
   short_name: plain("short_name")
     .pipe(z.string().min(3).max(30))
     .describe("Cómo se llama el producto en una etiqueta, un anuncio o el carrito. Ej.: «Corrector de postura»."),

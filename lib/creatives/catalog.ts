@@ -20,7 +20,7 @@ export interface FamilyDef {
 }
 
 export const FAMILY_DEFS: Record<Family, FamilyDef> = {
-  offer: { key: "offer", name: "Oferta y pack", gist: "El pack o el precio es el mensaje (aversión a la pérdida, ancla). Retargeting.", presetGroups: ["Hero Spotlight"] },
+  offer: { key: "offer", name: "Oferta y pack", gist: "El pack o el precio es el mensaje (aversión a la pérdida, ancla).", presetGroups: ["Hero Spotlight"] },
   before_after: { key: "before_after", name: "Problema → solución", gist: "Dos estados que se ven: la alternativa que no alcanza y el producto resolviéndolo. Sin cuerpos ni personas.", presetGroups: [] },
   explainer: { key: "explainer", name: "Explicativo", gist: "El producto con callouts que apuntan a sus partes visibles y explican por qué funciona (fluidez causal).", presetGroups: [] },
   headline: { key: "headline", name: "Titular", gist: "Tipografía grande que filtra al grupo o elimina el riesgo (efecto cóctel).", presetGroups: ["Hero Spotlight"] },
