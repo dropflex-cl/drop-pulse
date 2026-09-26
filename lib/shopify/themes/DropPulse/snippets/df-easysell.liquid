@@ -17,6 +17,8 @@
   - El de rechazar del downsell (y del upsell posterior a la compra) va como texto subrayado en
     gris: la salida no pesa lo mismo que la oferta. Por defecto el popup del downsell lo reemplaza
     df-downsell; esto es lo que se ve cuando ese ajuste está apagado o no aplica.
+  - Brillo en el botón que abre el formulario (ajuste `df_easysell_motion`): al aparecer en
+    pantalla, dos pasadas de una franja de luz con un leve pulso, y se detiene.
   - Una sola barra fija de compra: la del tema, con el texto del botón de EasySell; al tocarla hace
     clic en el propio botón de EasySell (sus eventos de píxel quedan iguales). La de la app se oculta.
 
@@ -516,6 +518,52 @@
       width: 100%;
     }
 
+    /* Brillo del botón que abre el formulario (ajuste df_easysell_motion): una franja de luz lo
+       cruza con un leve pulso. El script pone data-df-es-shine al aparecer el botón en pantalla y lo
+       quita al terminar; nada de clases ni ids de la app. */
+    #es-popup-button[data-df-es-motion] {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    #es-popup-button[data-df-es-motion]::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.4) 50%, transparent 70%);
+      transform: translateX(-120%);
+    }
+
+    #es-popup-button[data-df-es-shine] {
+      animation: df-es-nudge 600ms cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    #es-popup-button[data-df-es-shine]::after {
+      animation: df-es-shine 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    @keyframes df-es-nudge {
+      40% {
+        transform: scale(1.03);
+      }
+    }
+
+    @keyframes df-es-shine {
+      to {
+        transform: translateX(120%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #es-popup-button[data-df-es-shine],
+      #es-popup-button[data-df-es-shine]::after {
+        animation: none;
+      }
+    }
+
     /* Una sola barra fija de compra (html.df-es-cod, lo pone el script cuando EasySell está en la
        ficha): la del tema, con el texto del botón de EasySell y sin el ícono del carrito. La barra
        propia de EasySell se oculta; su display lo escribe la app inline con !important, por eso
@@ -753,6 +801,7 @@
         var nodes = document.querySelectorAll(BUTTONS + ', ' + BADGE + ', ' + CARD + ', ' + TEXT_SELECTOR);
         for (var i = 0; i < nodes.length; i++) paint(nodes[i]);
         syncForm();
+        watchShine();
         syncStickyBar();
       }
 
@@ -895,8 +944,49 @@
         true
       );
 
+      /* ---- Brillo del botón que abre el formulario ----
+         Cuando el botón entra en pantalla (60% visible), dos pasadas del brillo en ~3 s y se detiene:
+         nada se mueve solo más de 5 s seguidos (WCAG 2.2.2). Vuelve si el botón sale y entra otra
+         vez, hasta 3 veces por visita. Sin movimiento con prefers-reduced-motion, sin
+         IntersectionObserver o si el comerciante ya activó la animación propia de EasySell
+         (cart-shaker). Solo atributos data-: el botón, su id y su clic quedan como los deja la app. */
+      var MOTION = {% if settings.df_easysell_motion == false %}false{% else %}true{% endif %};
+      var SHINE = 'data-df-es-shine';
+      var SHINE_TIMES = 3;
+      var shineShown = 0;
+
+      function shine(button) {
+        if (button.hasAttribute(SHINE)) return;
+        button.setAttribute(SHINE, '');
+        setTimeout(function () {
+          button.removeAttribute(SHINE);
+        }, 1000);
+      }
+
+      function watchShine() {
+        if (!MOTION || !('IntersectionObserver' in window)) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var button = document.getElementById('es-popup-button');
+        if (!button || button.hasAttribute('data-df-es-motion') || button.classList.contains('cart-shaker')) return;
+        button.setAttribute('data-df-es-motion', '');
+        var seen = new IntersectionObserver(
+          function (entries) {
+            for (var i = 0; i < entries.length; i++) {
+              if (!entries[i].isIntersecting || shineShown >= SHINE_TIMES) continue;
+              shineShown++;
+              setTimeout(shine, 400, button);
+              setTimeout(shine, 2400, button);
+            }
+            if (shineShown >= SHINE_TIMES) seen.disconnect();
+          },
+          { threshold: 0.6 }
+        );
+        seen.observe(button);
+      }
+
       function start() {
         tokens = readTokens();
+        watchShine();
         syncStickyBar();
         if (!tokens) {
           new MutationObserver(syncStickyBar).observe(document.documentElement, { childList: true, subtree: true });

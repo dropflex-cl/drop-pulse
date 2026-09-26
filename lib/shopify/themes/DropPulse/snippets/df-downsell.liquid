@@ -14,6 +14,8 @@
     rechaza sola (el formulario se cierra, como pidió el comprador).
   - Los montos salen del mismo cálculo de EasySell y con su formato, así coinciden con el resumen
     del formulario después de aceptar.
+  - Aceptado, el resumen del formulario muestra el descuento del downsell en su propia línea
+    (ajuste `df_downsell_line`): EasySell lo suma al del pack en una sola.
   - Si algo no calza (sin EasySell, otra versión de la app, descuento de monto fijo), no oculta
     nada y queda el popup de EasySell con el diseño de df-easysell.
 
@@ -32,6 +34,7 @@
     assign df_dso_title = settings.df_downsell_title | default: 'Te dejamos un {percent} de descuento en tu pedido'
     assign df_dso_cta = settings.df_downsell_cta | default: 'Aplicar descuento y continuar'
     assign df_dso_decline = settings.df_downsell_decline | default: 'No, gracias'
+    assign df_dso_line = settings.df_downsell_line | default: 'Descuento extra ({percent})'
     assign df_dso_trust = settings.df_downsell_trust | newline_to_br | split: '<br />'
   -%}
   {% style %}
@@ -44,6 +47,30 @@
 
     html:has(.df-dso[open]) {
       overflow: hidden;
+    }
+
+    /* El descuento del downsell en el resumen del formulario (el script pone la línea después de
+       la de descuentos de EasySell; si esa solo tenía el del downsell, la oculta). */
+    #easysell .es-discount-row[data-df-dso-merged] {
+      display: none !important;
+    }
+
+    #easysell .df-dso-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    #easysell .df-dso-line__label {
+      color: color-mix(in srgb, var(--color-foreground, #15171c) 68%, var(--color-background, #ffffff));
+    }
+
+    #easysell .df-dso-line__value {
+      color: #12784a;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
 
     .df-dso {
@@ -364,6 +391,7 @@
     aria-labelledby="df-dso-title"
     aria-describedby="df-dso-price"
     data-title="{{ df_dso_title | escape }}"
+    data-line="{{ df_dso_line | escape }}"
     style="{% render 'df-accent-vars', product: product %}"
   >
     <form class="df-dso__panel" method="dialog">

@@ -87,6 +87,14 @@
         "default": true
       },
       {
+        "type": "checkbox",
+        "id": "df_easysell_motion",
+        "label": "Brillo en el botón de compra",
+        "info": "Una franja de luz cruza el botón que abre el formulario cuando aparece en pantalla: dos pasadas y se detiene. Sin movimiento para quien lo desactiva en su teléfono, ni si activaste la animación de EasySell.",
+        "default": true,
+        "visible_if": "{{ settings.df_easysell }}"
+      },
+      {
         "type": "header",
         "content": "Oferta de salida"
       },
@@ -136,6 +144,14 @@
         "label": "Rechazo",
         "info": "Neutro, sin culpar al comprador: nada de «No, prefiero pagar el precio normal».",
         "default": "No, gracias",
+        "visible_if": "{{ settings.df_downsell }}"
+      },
+      {
+        "type": "text",
+        "id": "df_downsell_line",
+        "label": "Línea en el resumen del pedido",
+        "info": "El descuento aceptado aparece con este nombre en el resumen del formulario. {percent} se reemplaza por el descuento.",
+        "default": "Descuento extra ({percent})",
         "visible_if": "{{ settings.df_downsell }}"
       }
     ]
