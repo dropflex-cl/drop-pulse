@@ -32,6 +32,7 @@ import { AiCostButton, useLocalCost, useStepCost } from "@/components/shell/ai-c
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
+import { useWidth } from "@/components/shell/use-width";
 import { CHAT_FAMILY, ROLE_LIMITS, conceptRatios, type Ratio } from "@/lib/creatives/catalog";
 import { CHAT_MESSAGE_MAX, CONTACT_NAME_MAX, chatShapeProblem, type WhatsappChat } from "@/lib/creatives/chat";
 import { latestPieces, needsRender } from "@/lib/creatives/pieces";
@@ -52,6 +53,13 @@ import { useImageProviderPick } from "./image-provider-picker";
 // concepto o la pieza elegida a la derecha (atajos A / D).
 
 const POLL_MS = 3000;
+/** Ancho mínimo de la etapa para la lista + el panel derecho de 400 px (spacing 100). */
+const SPLIT_MIN = 880;
+/** Videos: pasos + trabajo + paso siguiente (280 + ≥340 + 380), o pasos + trabajo. */
+const VIDEO_THREE_MIN = 1000;
+const VIDEO_TWO_MIN = 640;
+/** Subvista (concepto, pieza, edición): en escritorio sin panel, una columna angosta y centrada. */
+const SUBVIEW = "flex flex-col lg:mx-auto lg:w-full lg:max-w-140 lg:pt-2";
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 const rendering = (a: CreativeAssetView) => a.render === "queued" || a.render === "running";
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
@@ -100,6 +108,9 @@ type Sheet = { kind: "replace" } | { kind: "provider" } | { kind: "chat"; angle:
 export function CreativesScreen({ data, initialTab = "images" }: { data: ProductCreatives; initialTab?: "images" | "videos" }) {
   const router = useRouter();
   const desktop = useDesktop();
+  // Lista y panel derecho solo si caben (con el asistente abierto, la etapa se angosta): si no, subvistas.
+  const [rootRef, width] = useWidth<HTMLDivElement>();
+  const split = desktop && width >= SPLIT_MIN;
   const localCost = useLocalCost();
   const proposeCost = useStepCost("creative_concepts");
   const chatCost = useStepCost("creative_chat");
@@ -158,8 +169,8 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  const openPiece = (a: CreativeAssetView) => (desktop ? setPicked({ kind: "piece", id: a.id }) : go({ kind: "piece", id: a.id }));
-  const openConcept = (c: CreativeConceptView) => (desktop ? setPicked({ kind: "concept", id: c.id }) : go({ kind: "concept", id: c.id }));
+  const openPiece = (a: CreativeAssetView) => (split ? setPicked({ kind: "piece", id: a.id }) : go({ kind: "piece", id: a.id }));
+  const openConcept = (c: CreativeConceptView) => (split ? setPicked({ kind: "concept", id: c.id }) : go({ kind: "concept", id: c.id }));
 
   // ---------------------------------------------------------------- Sondeo
   const wasProposing = useRef(proposing);
@@ -263,10 +274,10 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     busy === `approve-${a.id}` ? "approve" : busy === `reject-${a.id}` ? "discard" : busy === `undo-${a.id}` ? "undo" : busy === `recover-${a.id}` ? "recover" : busy === `render-${c.id}-${a.ratio}` ? "retry" : null;
 
   // Escritorio: A aprueba y D descarta la pieza abierta a la derecha.
-  const selection = desktop ? resolveSelection(picked, concepts, shown) : null;
+  const selection = split ? resolveSelection(picked, concepts, shown) : null;
   const selectedPiece = selection?.kind === "piece" ? findPiece(selection.id) : null;
   useEffect(() => {
-    if (!desktop || !selectedPiece || pieceState(selectedPiece.a) !== "review" || busy) return;
+    if (!split || !selectedPiece || pieceState(selectedPiece.a) !== "review" || busy) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
@@ -280,7 +291,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- decide cambia en cada render
-  }, [desktop, selectedPiece?.a.id, selectedPiece?.a.status, busy]);
+  }, [split, selectedPiece?.a.id, selectedPiece?.a.status, busy]);
 
   // ---------------------------------------------------------------- Piezas de un concepto
   function pieceRows(c: CreativeConceptView, large = false) {
@@ -357,7 +368,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   ) : null;
 
   // Subvistas de móvil: reemplazan la pantalla entera.
-  if (!desktop && tab === "images" && view.kind !== "list") {
+  if (!split && tab === "images" && view.kind !== "list") {
     const sub = renderSubview();
     if (sub) return sub;
   }
@@ -369,7 +380,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
       const { c, a } = found;
       const { n } = place(c);
       return (
-        <div className="flex flex-col">
+        <div className={SUBVIEW}>
           <TopBar back={`Concepto ${n}`} onBack={back} title={ratioLabel(c, a.ratio)} subtitle={`${IMAGE_PROVIDER_NAME[a.provider]} · ${STATE_WORD[pieceState(a)]}`} className="sticky top-0 z-sticky" />
           <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
             {pieceFull(c, a)}
@@ -385,7 +396,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     const { n, of } = place(c);
     if (view.kind === "edit") {
       return (
-        <div className="flex flex-col">
+        <div className={SUBVIEW}>
           <TopBar back={`Concepto ${n}`} onBack={back} title="Editar textos" subtitle="Van dentro de la imagen" className="sticky top-0 z-sticky" />
           <div className="px-4 pt-1 pb-4">
             <TextsEditor key={c.id} productId={product.id} concept={c} slot={n} onSaved={setState} onDone={back} onError={setError} />
@@ -396,7 +407,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     }
     if (view.kind === "chat-edit" && c.chat) {
       return (
-        <div className="flex flex-col">
+        <div className={SUBVIEW}>
           <TopBar back="Chat de WhatsApp" onBack={back} title="Editar chat" className="sticky top-0 z-sticky" />
           <div className="px-4 pt-1 pb-4">
             <ChatEditor key={c.id} productId={product.id} concept={c} chat={c.chat} onSaved={setState} onDone={back} onError={setError} />
@@ -408,7 +419,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     const chat = c.family === CHAT_FAMILY;
     const next = nextRender(c);
     return (
-      <div className="flex flex-col">
+      <div className={SUBVIEW}>
         <TopBar
           back="Creativos"
           onBack={back}
@@ -720,7 +731,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
       </StickyActions>
     );
 
-    if (desktop && selection) aside = selectionPanel(selection);
+    if (split && selection) aside = selectionPanel(selection);
   }
 
   function selectionPanel(selection: Selection): React.ReactNode {
@@ -789,7 +800,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   const showTabs = !anglesLocked;
 
   return (
-    <div className="@container flex flex-col lg:min-h-svh">
+    <div ref={rootRef} className="@container flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Creativos" stageKey="creativos" image={product.image} />
       <TopBar
         back={product.name}
@@ -828,7 +839,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
       {showTabs ? <div className="px-4 pb-2 lg:hidden">{tabs}</div> : null}
 
       {tab === "videos" ? (
-        <VideosPanel productId={product.id} initial={data.videos} desktop={desktop} />
+        <VideosPanel productId={product.id} initial={data.videos} desktop={desktop} layout={!desktop ? "stack" : width >= VIDEO_THREE_MIN ? "three" : width >= VIDEO_TWO_MIN ? "two" : "stack"} />
       ) : (
         <div className={cn("flex flex-1 flex-col", aside && "lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(100)]")}>
           <div className="@container flex min-w-0 flex-1 flex-col">

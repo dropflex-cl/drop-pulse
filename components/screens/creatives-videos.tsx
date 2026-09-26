@@ -25,6 +25,7 @@ import { useLocalCost, useStepCost } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { mediaFacts } from "@/lib/ads/client";
 import { durationLabel } from "@/lib/ads/media";
+import { cn } from "@/lib/utils";
 import { ProductApiClientError, productsApi, uploadFinalVideo } from "@/lib/products/client";
 import type { VideoCardView, VideoShotView, VideoStep, VideosState } from "@/lib/types";
 import type { VideoFormat } from "@/lib/video/catalog";
@@ -69,7 +70,18 @@ function currentStep(card: VideoCardView): number {
   return STEP_N[card.step];
 }
 
-export function VideosPanel({ productId, initial, desktop }: { productId: string; initial: VideosState; desktop: boolean }) {
+export function VideosPanel({
+  productId,
+  initial,
+  desktop,
+  layout,
+}: {
+  productId: string;
+  initial: VideosState;
+  desktop: boolean;
+  /** Según el ancho de la etapa: pasos + trabajo + paso siguiente, pasos + trabajo, o todo apilado. */
+  layout: "three" | "two" | "stack";
+}) {
   const router = useRouter();
   const [state, setState] = useState<VideosState>(initial);
   const [busy, setBusy] = useState<string | null>(null);
@@ -180,9 +192,10 @@ export function VideosPanel({ productId, initial, desktop }: { productId: string
     </p>
   ) : null;
 
-  if (desktop) {
+  if (layout !== "stack") {
+    const three = layout === "three";
     return (
-      <div className="grid flex-1 grid-cols-[--spacing(70)_minmax(0,1fr)_--spacing(95)]">
+      <div className={cn("grid flex-1", three ? "grid-cols-[--spacing(70)_minmax(0,1fr)_--spacing(95)]" : "grid-cols-[--spacing(64)_minmax(0,1fr)]")}>
         <div className="flex flex-col gap-4 border-r p-4">
           {angleHeader}
           <UgcStepper current={current} viewing={shown} vertical notes={stepNotes(card)} onSelect={view} />
@@ -191,9 +204,11 @@ export function VideosPanel({ productId, initial, desktop }: { productId: string
           {step}
           {errorLine}
         </div>
-        <aside aria-label="Paso siguiente" className="flex flex-col gap-3 border-l bg-sidebar px-6 pt-5 pb-6">
-          <NextStep card={card} current={current} />
-        </aside>
+        {three ? (
+          <aside aria-label="Paso siguiente" className="flex flex-col gap-3 border-l bg-sidebar px-6 pt-5 pb-6">
+            <NextStep card={card} current={current} />
+          </aside>
+        ) : null}
       </div>
     );
   }
@@ -295,7 +310,7 @@ function CardStep({
           <SegmentedControl label="Formato del video" value={chosen} onChange={(v) => setChosen(v === "mascot" ? "mascot" : "ugc")} options={FORMAT_OPTIONS} block />
           <b className="text-body font-semibold">{FORMAT[chosen].title}</b>
           <span className="text-caption text-muted-foreground">{FORMAT[chosen].body}</span>
-          <Button variant="primary" icon="sparkle" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={write} className="self-start">
+          <Button variant="primary" icon="sparkle" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={write} className="h-auto min-h-control max-w-full shrink self-start py-2 text-left whitespace-normal">
             {writeLabel("Escribir el guion")}
           </Button>
         </div>

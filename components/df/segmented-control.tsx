@@ -46,7 +46,8 @@ export function SegmentedControl({ options, value, onChange, label, block, class
               "data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm data-[state=on]:inset-ring data-[state=on]:inset-ring-border",
             )}
           >
-            {opt.label ?? opt.value}
+            {/* Si no cabe, se corta con «…» en vez de salirse del control. */}
+            <span className="min-w-0 truncate">{opt.label ?? opt.value}</span>
             {opt.count != null ? <span className="text-micro font-normal text-muted-foreground">{opt.count}</span> : null}
           </ToggleGroupItem>
         );
