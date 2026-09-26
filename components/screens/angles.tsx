@@ -8,6 +8,7 @@ import {
   AngleDevelopmentActions,
   Button,
   Icon,
+  IconButton,
   IcpSummary,
   Notice,
   RoleChip,
@@ -255,12 +256,20 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
 
   const toggle = (c: AngleCandidateView) =>
     setPicks((p) => (p.some((x) => x.key === `c${c.index}`) ? p.filter((x) => x.key !== `c${c.index}`) : p.length >= TEST_ANGLES ? p : [...p, fromCandidate(c)]));
+  // El número del ángulo es su lugar en la elección: subir o bajar lo reordena (Conjunto 1, 2, 3).
+  const movePick = (from: number, to: number) =>
+    setPicks((p) => {
+      if (to < 0 || to >= p.length) return p;
+      const next = [...p];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
   const patchPick = (key: string, patch: Partial<Pick>) => setPicks((p) => p.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
   // ---------------------------------------------------------------- Piezas
   const frameScore = new Map((ranking?.angles ?? []).map((a) => [a.angle, a.score]));
   const suggestedKeys = new Set((ranking?.suggested ?? []).map((i) => `c${i}`));
-  const changed = Boolean(ranking && (picks.length !== ranking.suggested.length || picks.some((p) => !suggestedKeys.has(p.key))));
+  const changed = Boolean(ranking && (picks.length !== ranking.suggested.length || picks.some((p, i) => p.key !== `c${ranking.suggested[i]}`)));
 
   const avatarChanged = ranking?.avatarChanged ? (
     <Notice title="Tu cliente ideal cambió después de esta evaluación." body="Vuelve a evaluar para que los ángulos partan del nuevo." />
@@ -590,6 +599,12 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
                 <RoleChip slot={i + 1} short />
                 <span className="min-w-0 flex-1 truncate">{p.title}</span>
                 <span className="text-label font-normal text-muted-foreground">{ANGLES[p.frame].name}</span>
+                {picks.length > 1 ? (
+                  <span className="-my-2 flex flex-none">
+                    <IconButton icon="arrow-up" label={`Subir «${p.title}»`} disabled={i === 0} onClick={() => movePick(i, i - 1)} />
+                    <IconButton icon="arrow-down" label={`Bajar «${p.title}»`} disabled={i === picks.length - 1} onClick={() => movePick(i, i + 1)} />
+                  </span>
+                ) : null}
               </li>
             ))}
           </ol>
