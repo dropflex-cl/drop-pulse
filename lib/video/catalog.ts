@@ -56,3 +56,30 @@ export const FINAL_SECONDS_MAX = 60;
 export const PACKAGE_VERSION = 1;
 
 export type ShotKind = "keyframe" | "a_roll" | "b_roll";
+
+/**
+ * El formato del video. `ugc`: una persona de IA habla a cámara (POC Deep Collagen). `mascot`: un
+ * personaje 3D animado (la parte del cuerpo o la cosa con el problema) cuenta su historia en primera
+ * persona (POC KeraPass del 2026-09-26). Mismo flujo y mismos modelos; cambian el guion, el estilo de
+ * las imágenes y la voz, y el largo.
+ */
+export type VideoFormat = "ugc" | "mascot";
+export const VIDEO_FORMATS: VideoFormat[] = ["ugc", "mascot"];
+
+export interface FormatLimits {
+  aRollMin: number;
+  aRollMax: number;
+  totalMin: number;
+  totalMax: number;
+}
+
+/**
+ * La mascota cuenta una historia corta (gancho → problema → mecanismo → final feliz): la POC quedó en
+ * 4 tomas y 23 s habladas (25 s con el cierre), y el usuario pidió no pasar de ahí.
+ */
+export const FORMAT_LIMITS: Record<VideoFormat, FormatLimits> = {
+  ugc: { aRollMin: A_ROLL_MIN, aRollMax: A_ROLL_MAX, totalMin: TOTAL_SECONDS_MIN, totalMax: TOTAL_SECONDS_MAX },
+  mascot: { aRollMin: 3, aRollMax: 5, totalMin: 20, totalMax: 26 },
+};
+
+export const formatOf = (v: unknown): VideoFormat => (v === "mascot" ? "mascot" : "ugc");

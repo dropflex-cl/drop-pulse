@@ -1,6 +1,6 @@
 # Spec: Video UGC en Creativos
 
-> Estado: **implementado** (2026-09-26, rama `feat/video-ugc`), fases V1 a V4. Verificado: tests puros (`lib/video/video.test.ts`), el guionista real con los datos de Deep Collagen (prompt v2: pasa al primer intento, US$0,25), las imágenes clave reales con `keyframeRequest` (cara, etiqueta y manos correctas) y `scripts/ugc-montage.py` con los clips de la POC (31 s, 7,4 MB). Pendiente: una corrida completa desde la pantalla con un producto real (la base local no tiene uno con ángulos aprobados) y aplicar la migración en producción.
+> Estado: **implementado** (2026-09-26, rama `feat/video-ugc`), fases V1 a V4, más el formato mascota (§11). Verificado: tests puros (`lib/video/video.test.ts`), el guionista real con los datos de Deep Collagen (prompt v2: pasa al primer intento, US$0,25), las imágenes clave reales con `keyframeRequest` (cara, etiqueta y manos correctas) y `scripts/ugc-montage.py` con los clips de la POC (31 s, 7,4 MB). Pendiente: una corrida completa desde la pantalla con un producto real (la base local no tiene uno con ángulos aprobados) y aplicar la migración en producción.
 > Reemplaza las fases F2–F4 de `docs/spec-creativos.md` §7 para el video hablado.
 > Origen: POC del 2026-09-25/26 sobre Deep Collagen (`ea36e7bc…`, ángulo 3 «Cuando la base se mete en las líneas»), cinco rondas (B → E) hasta un resultado que el usuario aprobó. Sesión de mentoría del 2026-09-25: probar 3 ángulos con **formatos distintos** (UGC con IA, imagen, video real) y que el video sea 100 % específico a su ángulo.
 > Toca: Creativos (`/products/[id]/creatives`), Higgsfield, Anuncios (`ad_media`), un script local nuevo.
@@ -248,3 +248,21 @@ Cada fase se prueba sola en local y con un producto real (Deep Collagen) antes d
 - Voz consistente entre tomas con referencia de audio (Seedance 2.5 `reference-to-video` + `audio_urls`).
 - Variantes de hook sobre el mismo video y remix de un ganador (Genjutsu).
 - Video con creadora real: el guion sirve como pauta de grabación; la subida del video final ya lo cubre.
+
+## 11. Formato mascota (2026-09-26)
+
+Un segundo formato de video, con el mismo flujo, las mismas tablas y los mismos modelos: **una mascota 3D estilo Pixar** (lo que tiene el problema, personificado: la uña, la rodilla, el diente) cuenta su historia en primera persona. Sale de un anuncio de la competencia (KeraPass, spray antihongos, TikTok) y de una POC que el usuario aprobó («la voz se escucha perfecto»): 4 tomas habladas de Seedance con voz + 5 B-roll de Kling, 24 s, ~US$9.
+
+| Tema | Lo que cambia respecto del UGC |
+|---|---|
+| Elección | La pantalla pide el formato al escribir el guion (`SegmentedControl` Persona / Mascota animada). Se guarda en `video_scripts.input.format` (`ugc` por defecto; sin migración). `format_fit.recommended` suma `mascot` y, si el guionista recomienda el otro formato, la pantalla ofrece reescribir en ese. |
+| Guion | `mascotSystem` (`lib/video/prompts.ts`, `MASCOT_PROMPT_VERSION`): arco fijo gancho con el problema → lo que no funcionó y por qué → llegada y mecanismo en una toma → final feliz que retoma el gancho + oferta. El personaje habla de sí mismo o de «mi dueño»; todo es animación (sin pies ni piel reales). Mismo esquema (`ugcScriptSchema`). |
+| Largo | `FORMAT_LIMITS.mascot`: 3 a 5 tomas y 20 a 26 s habladas (la POC: 23 s + 2 s de cierre; el usuario no quiso más). |
+| Reglas | `scriptProblems(…, format)`: además de las del UGC, la segunda persona sobre el cuerpo cubre uñas, pies, dientes, rodillas, pelo, hongos… y ninguna línea ni texto promete plazos («al día tres», «en dos semanas»); aplica también al UGC. |
+| Imágenes | `keyframeRequest(…, "mascot")`: cuadro de película animada 3D (no foto de teléfono), el personaje por su descripción sin ropa, el producto **sin cara ni brazos** (la etiqueta se deforma) y solo sus dos bracitos. Lección de la POC: pedir «el personaje ES un solo dedo que sube desde el borde de abajo, sin piernas ni pies», o sale con piernas y deditos propios. |
+| QA | `keyframeQaUser(…, "mascot")`: acepta manos de caricatura de 4 o 5 dedos; «la misma persona» es el mismo personaje aunque cambie su estado. |
+| Voz | `voiceBlock(…, "mascot")`: voz de personaje animado, femenina joven, juguetona, timing de comedia. Igual en todas las tomas; en la POC sonó consistente aunque el personaje cambiara de enfermo a sano. |
+| Montaje | El paquete lleva `label: "Animación"` en lugar de «Dramatización». El resto del script es el mismo (los textos largos ahora se achican o se parten en dos líneas). |
+| Anuncios | `ad_media.name` = «Video mascota · <ángulo>». |
+
+Costo: ~US$8–9 por video (Seedance manda: ~23 s habladas).

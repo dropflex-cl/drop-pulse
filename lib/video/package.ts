@@ -1,7 +1,7 @@
 // El paquete de montaje (docs/spec-video-ugc.md §5.1): todo lo que scripts/ugc-montage.py necesita
 // para armar el video en el equipo del comerciante. Puro.
 
-import { PACKAGE_VERSION } from "./catalog";
+import { PACKAGE_VERSION, type VideoFormat } from "./catalog";
 import type { UgcScript } from "./schemas";
 
 export interface MontagePackage {
@@ -11,7 +11,7 @@ export interface MontagePackage {
   language: string;
   /** Color de la palabra activa en los subtítulos (el acento de la página, o el de DropFlex). */
   accent_color: string;
-  /** Rótulo que va durante todo el video cuando habla una persona de IA. */
+  /** Rótulo que va durante todo el video: «Dramatización» si habla una persona de IA, «Animación» si es una mascota. */
   label: string;
   a_roll: { key: string; line: string; seconds: number; url: string }[];
   b_roll: { key: string; anchor: string; cut_s: number; url: string }[];
@@ -25,6 +25,7 @@ export interface PackageInput {
   angle: { slot: number; title: string };
   language: string;
   accentColor: string | null;
+  format?: VideoFormat;
   script: UgcScript;
   /** URL firmada de cada clip listo, por clave (A1…, B1…). */
   clipUrls: Map<string, string>;
@@ -51,6 +52,12 @@ export function captionAccent(hex: string | null): string {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.4 ? hex.toUpperCase() : DEFAULT_ACCENT;
 }
 
+export function videoLabel(format: VideoFormat, language: string): string {
+  const pt = language.startsWith("pt");
+  if (format === "mascot") return pt ? "Animação" : "Animación";
+  return pt ? "Dramatização" : "Dramatización";
+}
+
 export function buildPackage(p: PackageInput): MontagePackage {
   const url = (key: string) => {
     const u = p.clipUrls.get(key);
@@ -63,7 +70,7 @@ export function buildPackage(p: PackageInput): MontagePackage {
     angle: p.angle,
     language: p.language,
     accent_color: captionAccent(p.accentColor),
-    label: p.language.startsWith("pt") ? "Dramatização" : "Dramatización",
+    label: videoLabel(p.format ?? "ugc", p.language),
     a_roll: p.script.a_roll.map((a) => ({ key: a.key, line: a.line, seconds: a.seconds, url: url(a.key) })),
     b_roll: p.script.b_roll.map((b) => ({ key: b.key, anchor: b.anchor, cut_s: b.cut_s, url: url(b.key) })),
     text_beats: p.script.text_beats.map((t) => ({ anchor: t.anchor, until: t.until, text: t.text })),

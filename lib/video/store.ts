@@ -5,7 +5,7 @@ import { CREATIVES_BUCKET, signedUrls } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { RunStatus, VideoCardView, VideoShotView, VideoStep } from "@/lib/types";
-import type { ShotKind } from "./catalog";
+import { formatOf, type ShotKind } from "./catalog";
 import { scriptCost } from "./cost";
 import type { KeyframeQa, UgcScript } from "./schemas";
 
@@ -219,6 +219,7 @@ export async function toCardView(slot: AngleSlot, angleName: string, script: Scr
           status: script.status,
           error: script.error_message ?? undefined,
           payload: script.payload ?? undefined,
+          format: formatOf((script.input as { format?: unknown } | null)?.format),
           approved: script.approved_at != null,
           edited: script.edited_at != null,
           createdAt: script.created_at,

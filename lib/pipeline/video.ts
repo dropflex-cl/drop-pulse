@@ -30,13 +30,16 @@ import {
   FINAL_SECONDS_MIN,
   KEYFRAME_COST_USD,
   KLING_TURBO_5S_USD,
+  formatOf,
   type ShotKind,
+  type VideoFormat,
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, type MontagePackage } from "@/lib/video/package";
-import { KEYFRAME_QA_SYSTEM, keyframeQaUser, ugcSystem, ugcUser, type UgcContext } from "@/lib/video/prompts";
+import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcUser, type UgcContext } from "@/lib/video/prompts";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
+  MASCOT_PROMPT_VERSION,
   UGC_PROMPT_VERSION,
   applyScriptEdit,
   changedLines,
@@ -94,7 +97,19 @@ async function baseImage(userId: string, productId: string): Promise<{ url: stri
 
 // ---------------------------------------------------------------- 1. Guion
 
-type ScriptInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; brief_id: string; brief_edited_at: string | null; angle_name: string };
+type ScriptInput = {
+  market: Market;
+  pricing: PricingPlan;
+  labels: PackLabel[] | null;
+  avatar_id: string;
+  brief_id: string;
+  brief_edited_at: string | null;
+  angle_name: string;
+  /** Sin él (guiones anteriores al formato mascota), UGC. */
+  format?: VideoFormat;
+};
+
+const scriptFormat = (s: Pick<ScriptRow, "input">) => formatOf((s.input as ScriptInput | null)?.format);
 
 async function angleFor(userId: string, productId: string, slot: number) {
   const approved = await approvedAngles(userId, productId);
@@ -104,8 +119,8 @@ async function angleFor(userId: string, productId: string, slot: number) {
   return found;
 }
 
-/** «Escribir guion» de un ángulo. Reemplaza el guion anterior del ángulo (sus tomas se borran). */
-export async function startScript(userId: string, productId: string, slot: number): Promise<{ script: ScriptRow; created: boolean }> {
+/** «Escribir guion» de un ángulo, en el formato elegido. Reemplaza el guion anterior del ángulo (sus tomas se borran). */
+export async function startScript(userId: string, productId: string, slot: number, format: VideoFormat = "ugc"): Promise<{ script: ScriptRow; created: boolean }> {
   await requireHiggsfield(userId);
   const angle = await angleFor(userId, productId, slot);
   const [brief, avatars, pricing, labels] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), getPricingPlan(userId, productId), latestPackLabels(userId, productId)]);
@@ -134,6 +149,7 @@ export async function startScript(userId: string, productId: string, slot: numbe
     brief_id: angle.brief.id,
     brief_edited_at: angle.brief.edited_at,
     angle_name: testAngleName(angle.angle),
+    format,
   };
   const { data, error } = await db.from("video_scripts").insert({ product_id: productId, user_id: userId, angle_slot: slot, status: "queued", input }).select("*").single();
   if (error?.code === "23505") {
@@ -151,7 +167,8 @@ export async function runScript(scriptId: string): Promise<void> {
   const claimed = await db.from("video_scripts").update({ status: "running", started_at: stamp(), updated_at: stamp() }).eq("id", scriptId).eq("status", "queued").select("*").maybeSingle();
   if (claimed.error || !claimed.data) return;
   const s = claimed.data as ScriptRow & { input: ScriptInput };
-  const detail = s.input.angle_name || `Ángulo ${s.angle_slot}`;
+  const format = scriptFormat(s);
+  const detail = `${s.input.angle_name || `Ángulo ${s.angle_slot}`}${format === "mascot" ? " · mascota" : ""}`;
   try {
     const input = s.input;
     const [brief, avatarRow, angles, differentiator, base] = await Promise.all([
@@ -179,13 +196,13 @@ export async function runScript(scriptId: string): Promise<void> {
     let result: Awaited<ReturnType<typeof generateStructured<typeof ugcScriptSchema>>> | null = null;
     for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {
       result = await generateStructured({
-        system: ugcSystem(input.market),
-        content: [image, { type: "text", text: ugcUser(ctx, problems) }],
+        system: scriptSystem(format, input.market),
+        content: [image, { type: "text", text: ugcUser(ctx, problems, format) }],
         schema: ugcScriptSchema,
         effort: "medium",
         maxTokens: 16000,
       });
-      problems = scriptProblems(result.data, input.pricing);
+      problems = scriptProblems(result.data, input.pricing, format);
       await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems });
       if (!problems.length) break;
       console.warn("[video] guion inválido", problems);
@@ -194,7 +211,12 @@ export async function runScript(scriptId: string): Promise<void> {
     const now = stamp();
     fail(
       "Guardar el guion",
-      (await db.from("video_scripts").update({ status: "succeeded", payload: result.data, prompt_version: UGC_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now }).eq("id", s.id)).error,
+      (
+        await db
+          .from("video_scripts")
+          .update({ status: "succeeded", payload: result.data, prompt_version: format === "mascot" ? MASCOT_PROMPT_VERSION : UGC_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now })
+          .eq("id", s.id)
+      ).error,
     );
   } catch (e) {
     const known = e instanceof AiStepError;
@@ -224,7 +246,7 @@ export async function editScript(userId: string, productId: string, scriptId: st
   const pricing = await getPricingPlan(userId, productId);
   if (!pricing) throw new OptimizeError("Guarda el precio en Información base.", 409);
   const next = applyScriptEdit(s.payload, parsed.data);
-  const problems = scriptProblems(next, pricing as PricingPlan);
+  const problems = scriptProblems(next, pricing as PricingPlan, scriptFormat(s));
   if (problems.length) throw new OptimizeError(problems[0], 400);
   const db = adminClient();
   const now = stamp();
@@ -241,19 +263,19 @@ export async function approveScript(userId: string, productId: string, scriptId:
 
 // ---------------------------------------------------------------- 2 y 3. Tomas
 
-function requestFor(script: UgcScript, key: string, language: string): { kind: ShotKind; req: ShotRequest } {
+function requestFor(script: UgcScript, key: string, language: string, format: VideoFormat): { kind: ShotKind; req: ShotRequest } {
   const kf = script.keyframes.find((k) => k.key === key);
-  if (kf) return { kind: "keyframe", req: keyframeRequest(kf, script, CHARACTER_KEY) };
+  if (kf) return { kind: "keyframe", req: keyframeRequest(kf, script, CHARACTER_KEY, format) };
   const a = script.a_roll.find((x) => x.key === key);
-  if (a) return { kind: "a_roll", req: aRollRequest(a, language, Boolean(script.keyframes.find((k) => k.key === a.keyframe)?.uses_product)) };
+  if (a) return { kind: "a_roll", req: aRollRequest(a, language, Boolean(script.keyframes.find((k) => k.key === a.keyframe)?.uses_product), format) };
   const b = script.b_roll.find((x) => x.key === key);
-  if (b) return { kind: "b_roll", req: bRollRequest(b, Boolean(script.keyframes.find((k) => k.key === b.keyframe)?.uses_product)) };
+  if (b) return { kind: "b_roll", req: bRollRequest(b, Boolean(script.keyframes.find((k) => k.key === b.keyframe)?.uses_product), format) };
   throw new OptimizeError(`La toma ${key} no está en el guion.`, 409);
 }
 
 async function insertShot(s: ScriptRow & { payload: UgcScript }, key: string, attempt: number): Promise<ShotRow> {
   const language = ((s.input as ScriptInput).market?.language ?? "es") as string;
-  const { kind, req } = requestFor(s.payload, key, language);
+  const { kind, req } = requestFor(s.payload, key, language, scriptFormat(s));
   const { data, error } = await adminClient()
     .from("video_shots")
     .insert({ script_id: s.id, product_id: s.product_id, user_id: s.user_id, key, kind, attempt, endpoint: req.endpoint, input: req.input, render_status: "queued" })
@@ -545,7 +567,7 @@ async function runKeyframeQa(s: ShotRow, script: ScriptRow & { payload: UgcScrip
     const k1 = await keyframeShot(script.id, s.user_id, CHARACTER_KEY, false);
     if (k1) content.push({ type: "text", text: "Personaje (referencia de la cara):" }, await imageBlockFromBytes(await storedBytes(k1.storage_path!)));
   }
-  content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter) });
+  content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter, scriptFormat(script)) });
   let result;
   try {
     const qa = () => generateStructured({ system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
@@ -626,6 +648,7 @@ export async function montagePackage(userId: string, productId: string, scriptId
       angle: { slot: s.angle_slot, title: input.angle_name ?? "" },
       language: input.market?.language ?? "es",
       accentColor: (product.data?.page_accent_color as string | null) ?? null,
+      format: scriptFormat(s),
       script: s.payload,
       clipUrls,
       endCardImageUrl,
@@ -731,7 +754,7 @@ async function copyFinalToAds(s: ScriptRow): Promise<string> {
       user_id: s.user_id,
       product_id: s.product_id,
       kind: "video",
-      name: `Video UGC · ${angleName || `Ángulo ${s.angle_slot}`}`.slice(0, 120),
+      name: `${scriptFormat(s) === "mascot" ? "Video mascota" : "Video UGC"} · ${angleName || `Ángulo ${s.angle_slot}`}`.slice(0, 120),
       storage_path: path,
       mime_type: "video/mp4",
       width: s.final_width,

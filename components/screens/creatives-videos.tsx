@@ -11,6 +11,7 @@ import {
   MontagePackage,
   Notice,
   ScriptGuard,
+  SegmentedControl,
   ScriptShot,
   UgcStepper,
   VideoUpload,
@@ -26,6 +27,7 @@ import { durationLabel } from "@/lib/ads/media";
 import { ProductApiClientError, productsApi, uploadFinalVideo } from "@/lib/products/client";
 import type { VideoCardView, VideoShotView, VideoStep, VideosState } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { VideoFormat } from "@/lib/video/catalog";
 import { shotCost } from "@/lib/video/cost";
 import type { UgcScript } from "@/lib/video/schemas";
 import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
@@ -40,7 +42,24 @@ const POLL_MS = 4000;
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 const busyShot = (s: VideoShotView) => s.render === "queued" || s.render === "running";
 const STEP_N: Record<VideoStep, number> = { script: 1, keyframes: 2, clips: 3, montage: 4, final: 5 };
-const GUARD = "La persona muestra el producto. No dice ser clienta ni cuenta resultados propios.";
+/** Lo que cambia en la pantalla según el formato del video (docs/spec-video-ugc.md §11). */
+const FORMAT: Record<VideoFormat, { option: string; title: string; body: string; guard: string; character: string }> = {
+  ugc: {
+    option: "Persona",
+    title: "Un UGC de ~30 s para este ángulo",
+    body: "Una persona de IA habla a cámara. Claude escribe las tomas habladas, las de apoyo, los textos en pantalla y el cierre, desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.",
+    guard: "La persona muestra el producto. No dice ser clienta ni cuenta resultados propios.",
+    character: "la persona sola y define su cara",
+  },
+  mascot: {
+    option: "Mascota animada",
+    title: "Una mascota animada de ~25 s para este ángulo",
+    body: "Lo que tiene el problema, en 3D, cuenta su historia: cómo está, lo que no funcionó, cómo actúa tu producto y el final feliz. Sirve cuando el problema se ve y se puede personificar.",
+    guard: "Es una animación: el personaje habla de sí mismo, sin cuerpos reales ni plazos de resultado.",
+    character: "el personaje solo y define su cara",
+  },
+};
+const FORMAT_OPTIONS = (["ugc", "mascot"] as const).map((value) => ({ value, label: FORMAT[value].option }));
 
 type Run = (key: string, fn: () => Promise<VideosState>, fallback: string, done?: string) => Promise<VideosState | null>;
 
@@ -266,15 +285,20 @@ function CardStep({
 }) {
   const scriptCost = useStepCost("ugc_script");
   const s = card.script;
-  const write = () => run(`write-${card.slot}`, () => productsApi.writeScript(productId, card.slot), "No pudimos empezar a escribir el guion.");
+  const [chosen, setChosen] = useState<VideoFormat>("ugc");
+  // «Otro guion» y «Reintentar» siguen en el formato del guion; sin guion, el elegido.
+  const format = s?.format ?? chosen;
+  const writeAs = (f: VideoFormat) => run(`write-${card.slot}`, () => productsApi.writeScript(productId, card.slot, f), "No pudimos empezar a escribir el guion.");
+  const write = () => writeAs(format);
   const writeLabel = (text: string) => (scriptCost ? `${text} · ${scriptCost}` : text);
 
   if (shown === 1) {
     if (!s) {
       return (
-        <div className="flex flex-col gap-2 rounded-lg border bg-card p-4">
-          <b className="text-body font-semibold">Un UGC de ~30 s para este ángulo</b>
-          <span className="text-caption text-muted-foreground">Claude escribe las tomas habladas, las de apoyo, los textos en pantalla y el cierre, desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.</span>
+        <div className="flex flex-col gap-2.5 rounded-lg border bg-card p-4">
+          <SegmentedControl label="Formato del video" value={chosen} onChange={(v) => setChosen(v === "mascot" ? "mascot" : "ugc")} options={FORMAT_OPTIONS} block />
+          <b className="text-body font-semibold">{FORMAT[chosen].title}</b>
+          <span className="text-caption text-muted-foreground">{FORMAT[chosen].body}</span>
           <Button variant="primary" icon="sparkle" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={write} className="self-start">
             {writeLabel("Escribir el guion")}
           </Button>
@@ -308,8 +332,10 @@ function CardStep({
         current={current}
         desktop={desktop}
         busy={busy}
-        anotherLabel={writeLabel("Otro guion")}
+        format={format}
+        withCost={writeLabel}
         onAnother={write}
+        onWriteAs={writeAs}
         run={run}
         onState={onState}
         onError={onError}
@@ -317,7 +343,7 @@ function CardStep({
       />
     );
   }
-  if (shown === 2) return <KeyframesStep productId={productId} card={card} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
+  if (shown === 2) return <KeyframesStep productId={productId} card={card} format={format} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
   if (shown === 3) return <ClipsStep productId={productId} card={card} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
   if (shown === 4) return <MontageStep productId={productId} card={card} desktop={desktop} onView={onView} />;
   return <FinalStep productId={productId} card={card} busy={busy} run={run} onState={onState} onError={onError} />;
@@ -339,8 +365,10 @@ function ScriptStep({
   current,
   desktop,
   busy,
-  anotherLabel,
+  format,
+  withCost,
   onAnother,
+  onWriteAs,
   run,
   onState,
   onError,
@@ -354,8 +382,11 @@ function ScriptStep({
   current: number;
   desktop: boolean;
   busy: string | null;
-  anotherLabel: string;
+  format: VideoFormat;
+  /** El texto de un botón que escribe un guion, con lo que cuesta. */
+  withCost: (text: string) => string;
   onAnother: () => void;
+  onWriteAs: (f: VideoFormat) => void;
   run: Run;
   onState: (s: VideosState) => void;
   onError: (m: string) => void;
@@ -397,10 +428,18 @@ function ScriptStep({
   }
 
   const fit = p.format_fit.recommended;
+  // El otro formato de video que recomienda el guionista (se escribe con un toque, reemplaza este guion).
+  const other: VideoFormat | null = fit === "mascot" && format === "ugc" ? "mascot" : fit === "ugc_ai" && format === "mascot" ? "ugc" : null;
+  const fitTitle =
+    fit === "static" ? "Este ángulo rinde más como imagen" : fit === "real_video" ? "Este ángulo pide una persona real" : other === "mascot" ? "Este ángulo rinde más con una mascota animada" : "Este ángulo rinde más con una persona";
+  const showFit = fit === "static" || fit === "real_video" || other !== null;
   return (
     <div className="flex flex-col gap-2.5">
-      {fit !== "ugc_ai" ? (
-        <Notice tone="info" icon={fit === "static" ? "image" : "video"} title={fit === "static" ? "Este ángulo rinde más como imagen" : "Este ángulo pide una persona real"} body={`${p.format_fit.why} Informa, no bloquea: puedes seguir con el video.`} />
+      {showFit ? <Notice tone="info" icon={fit === "static" ? "image" : "video"} title={fitTitle} body={`${p.format_fit.why} Informa, no bloquea: puedes seguir con el video.`} /> : null}
+      {other ? (
+        <Button size="sm" icon="sparkle" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={() => onWriteAs(other)} className="self-start">
+          {withCost(other === "mascot" ? "Escribir como mascota" : "Escribir con persona")}
+        </Button>
       ) : null}
       <p className="text-label font-normal text-muted-foreground">{p.hook_why}</p>
       {timeline.map((t) => (
@@ -431,7 +470,7 @@ function ScriptStep({
           <p className="text-small">{`${p.end_card.title} · ${p.end_card.subtitle} · ${p.end_card.cta}`}</p>
         )}
       </div>
-      <ScriptGuard>{GUARD}</ScriptGuard>
+      <ScriptGuard>{FORMAT[format].guard}</ScriptGuard>
       {p.compliance_notes.length && !editing ? (
         <details className="text-caption text-muted-foreground">
           <summary className="min-h-8 cursor-pointer content-center">Qué cuidar al publicar</summary>
@@ -460,7 +499,7 @@ function ScriptStep({
                 Editar
               </Button>
               <Button icon="undo" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={onAnother}>
-                {anotherLabel}
+                {withCost("Otro guion")}
               </Button>
             </div>
             {approved ? (
@@ -490,7 +529,25 @@ function keyframeState(s: VideoShotView | undefined): KeyframeState {
   return s.status === "aprobado" ? "approved" : s.status === "rechazado" ? "discarded" : "review";
 }
 
-function KeyframesStep({ productId, card, current, desktop, busy, run, onView }: { productId: string; card: VideoCardView; current: number; desktop: boolean; busy: string | null; run: Run; onView: (n: number) => void }) {
+function KeyframesStep({
+  productId,
+  card,
+  format,
+  current,
+  desktop,
+  busy,
+  run,
+  onView,
+}: {
+  productId: string;
+  card: VideoCardView;
+  format: VideoFormat;
+  current: number;
+  desktop: boolean;
+  busy: string | null;
+  run: Run;
+  onView: (n: number) => void;
+}) {
   const localCost = useLocalCost();
   const expected = card.script?.payload?.keyframes ?? [];
   const byKey = new Map(card.keyframes.map((k) => [k.key, k]));
@@ -518,7 +575,7 @@ function KeyframesStep({ productId, card, current, desktop, busy, run, onView }:
       {none ? (
         <div className="flex flex-col gap-2 rounded-lg border bg-card p-4">
           <b className="text-body font-semibold">{`${expected.length} imágenes clave`}</b>
-          <span className="text-caption text-muted-foreground">La primera es la persona sola y define su cara; las demás la usan a ella y a tu foto base. Revisas manos, cara y producto antes de pagar los clips.</span>
+          <span className="text-caption text-muted-foreground">{`La primera es ${FORMAT[format].character}; las demás la usan de referencia, junto a tu foto base.`} Revisas manos, cara y producto antes de pagar los clips.</span>
           <Button variant="primary" icon="sparkle" loading={busy === `keyframes-${card.slot}`} disabled={Boolean(busy)} onClick={generate} className="self-start">
             {`Generar imágenes clave · ${localCost(expected.length * shotCost("keyframe"))}`}
           </Button>

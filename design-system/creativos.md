@@ -78,10 +78,10 @@ Arriba: selector de ángulo (chips) y `UgcStepper` con los 5 pasos. Un paso se h
 
 | Caso | UI |
 |---|---|
-| 3.1 Escribir | Tarjeta «Un UGC de ~30 s para este ángulo» + **Escribir el guion · ≈ $25** (V0) |
+| 3.1 Escribir | `SegmentedControl` «Formato del video»: **Persona** (UGC de ~30 s, por defecto) o **Mascota animada** (~25 s: lo que tiene el problema, en 3D, cuenta su historia). Debajo, el título y la bajada del formato elegido + **Escribir el guion · ≈ $25** (V0). «Otro guion» y «Reintentar» siguen en el formato del guion |
 | 3.2 Esperar | `EmptyState busy` «Escribiendo el guion» y aviso al terminar (V0) |
 | 3.3 Reintentar | `EmptyState tone="error"` con **Reintentar** (V0) |
-| 3.4 format_fit | `Notice tone="info"` sobre el guion: «Este ángulo rinde más como imagen» o «pide una persona real». Informa, no bloquea (V1) |
+| 3.4 format_fit | `Notice tone="info"` sobre el guion: «Este ángulo rinde más como imagen», «pide una persona real», «rinde más con una mascota animada» o «rinde más con una persona». Informa, no bloquea (V1). Cuando recomienda el otro formato de video, debajo del aviso: **Escribir como mascota · ≈ $X** o **Escribir con persona · ≈ $X** (reemplaza el guion del ángulo) |
 | 3.5 Editar | `ScriptShot` por toma: hablada (lo que dice) o de apoyo (lo que se ve), el texto en pantalla y el cierre. Si ya había clips, la toma cambiada muestra «Se genera de nuevo» (V1) |
 | 3.6 Aprobar / otro | **Aprobar guion** (principal), **Editar**, **Otro guion · ≈ $25**. Desaprobar vuelve al guion editable |
 | 3.7 Imágenes clave | **Generar la que falta · ≈ $X** (o todas, la primera vez) (V2) |

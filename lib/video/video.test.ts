@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
-import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent } from "./package";
+import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, videoLabel } from "./package";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
 import { applyScriptEdit, changedLines, keyframeQaVerdict, scriptProblems, words, type UgcScript } from "./schemas";
 
@@ -219,5 +219,90 @@ describe("QA de imágenes clave", () => {
   it("falla con manos de más aunque el modelo no lo explique", () => {
     expect(keyframeQaVerdict({ hands_ok: false, product_ok: true, same_person: true, no_text: true, issues: [] })).toEqual({ pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] });
     expect(keyframeQaVerdict({ hands_ok: true, product_ok: null, same_person: null, no_text: true, issues: [] }).pass).toBe(true);
+  });
+});
+
+// KeraPass (POC mascota 2026-09-26): el guion que se generó y el usuario aprobó (voz «perfecta»).
+const mascot = (): UgcScript => ({
+  format_fit: { recommended: "mascot", why: "El hongo se ve y la uña se puede personificar con gracia." },
+  persona: "a cute 3D animated big-toe character",
+  character: {
+    look: "the whole character is a single big toe rising from the bottom edge of the frame, no legs, peachy skin, smooth pink toenail on top like a forehead, big brown eyes, thick eyebrows, two small cartoon arms",
+    wardrobe: "none",
+    setting: "cozy home scenes, soft cinematic light",
+  },
+  hook_why: "La uña enferma que se esconde en un zapato da risa y se reconoce al instante.",
+  keyframes: [
+    { key: "K1", uses_character: true, uses_product: false, one_hand: false, prompt: "The character alone, healthy, front view, friendly smile." },
+    { key: "K2", uses_character: true, uses_product: false, one_hand: false, prompt: "The character, its toenail thick and yellow-green, peeking out of a closed sneaker, grumpy." },
+    { key: "K3", uses_character: true, uses_product: false, one_hand: false, prompt: "The character with a cracked toenail, arms crossed, among cream tubes and patches." },
+    { key: "K4", uses_character: true, uses_product: true, one_hand: false, prompt: "The character looking up amazed at the product, golden sparkles." },
+    { key: "K5", uses_character: true, uses_product: true, one_hand: false, prompt: "The character healthy again on a sunny beach in a tiny sandal, hugging the product." },
+    { key: "K6", uses_character: false, uses_product: false, one_hand: false, prompt: "Macro of the cracked toenail with a blob of cream on top." },
+    { key: "K7", uses_character: false, uses_product: false, one_hand: false, prompt: "Stylized 3D cross-section: hard amber layer, grumpy green spores beneath." },
+  ],
+  a_roll: [
+    { key: "A1", keyframe: "K2", seconds: 5, line: "Hola. Soy la uña que mi dueño esconde en zapatos cerrados.", delivery: "Deadpan, offended.", acting: "Rolls its eyes.", motion: "Slow push-in." },
+    { key: "A2", keyframe: "K3", seconds: 6, line: "Crema, parches, remedios caseros… nada. El hongo vive debajo de esta capa dura.", delivery: "Frustrated list.", acting: "Counts on tiny fingers.", motion: "Static." },
+    { key: "A3", keyframe: "K4", seconds: 7, line: "Hasta que llegó Kera Pass: su urea ablanda la capa, y los activos antihongos llegan hasta el fondo.", delivery: "Wonder, then confident.", acting: "Points at its toenail.", motion: "Slow push-in." },
+    { key: "A4", keyframe: "K5", seconds: 5, line: "¡Sandalias, aquí vamos! Kera Pass, con garantía y envío gratis.", delivery: "Joyful.", acting: "Dances, hugs the product.", motion: "Gentle sway." },
+  ],
+  b_roll: [
+    { key: "B1", keyframe: "K6", anchor: "Crema", cut_s: 1.4, motion: "The cream slides off without absorbing." },
+    { key: "B2", keyframe: "K7", anchor: "capa", cut_s: 1.6, motion: "Push-in to the hiding spores." },
+    { key: "B3", keyframe: "K7", anchor: "fondo", cut_s: 1.6, motion: "Droplets reach the spores, which dissolve into light." },
+  ],
+  text_beats: [
+    { anchor: "Hola", until: null, text: "La uña que nadie quiere mostrar" },
+    { anchor: "nada", until: null, text: "Cremas y parches no llegan al fondo" },
+    { anchor: "urea", until: null, text: "Urea + activos antihongos" },
+    { anchor: "garantía", until: null, text: "Garantía y envío gratis" },
+  ],
+  end_card: { title: "KeraPass", subtitle: "Spray antihongos para uñas", cta: "Comprar", small_print: ["Animación ilustrativa. Lee las indicaciones del producto."] },
+  compliance_notes: [],
+});
+
+describe("formato mascota", () => {
+  it("acepta el guion de la POC KeraPass con los límites de mascota, no con los de UGC", () => {
+    expect(scriptProblems(mascot(), pricing, "mascot")).toEqual([]);
+    expect(scriptProblems(mascot(), pricing, "ugc").join(" ")).toMatch(/suman 23 s; deben sumar de 24/);
+  });
+
+  it("no deja hablarle a quien mira de su uña ni prometer plazos", () => {
+    const s = mascot();
+    s.a_roll[0].line = "Hola, soy la uña de tu pie y tus uñas lo saben.";
+    s.a_roll[3].line = "¡Al día tres ya no pica! Sandalias, aquí vamos.";
+    const problems = scriptProblems(s, pricing, "mascot").join(" ");
+    expect(problems).toMatch(/«mi dueño»/);
+    expect(problems).toMatch(/plazo de resultado/);
+  });
+
+  it("dibuja un cuadro de película animada, con el producto sin cara y los brazos contados", () => {
+    const s = mascot();
+    const k1 = String(keyframeRequest(s.keyframes[0], s, "K1", "mascot").input.prompt);
+    expect(k1).toMatch(/3D animated movie, Pixar-style/);
+    expect(k1).toMatch(/The character: a cute 3D animated big-toe character/);
+    expect(k1).not.toMatch(/smartphone|wearing/);
+    const k4 = String(keyframeRequest(s.keyframes[3], s, "K1", "mascot").input.prompt);
+    expect(k4).toMatch(/same animated character as in the first reference image/);
+    expect(k4).toMatch(/no face, no eyes, no arms/);
+    expect(k4).toMatch(/two small cartoon arms/);
+  });
+
+  it("la mascota habla con la voz de personaje animado de la POC", () => {
+    const r = aRollRequest(mascot().a_roll[2], "es", true, "mascot");
+    const prompt = String(r.input.prompt);
+    expect(r.input).toMatchObject({ duration: 7, generate_audio: true });
+    expect(prompt).toMatch(/^3D animated movie shot/);
+    expect(prompt).toContain("The animated character speaks with accurate lip-sync");
+    expect(prompt).toContain("animated-movie character voice");
+    expect(prompt).not.toMatch(/selfie/);
+    expect(String(bRollRequest(mascot().b_roll[0], false, "mascot").input.prompt)).not.toMatch(/smartphone/);
+  });
+
+  it("el montaje la rotula como animación", () => {
+    expect(videoLabel("mascot", "es")).toBe("Animación");
+    expect(videoLabel("ugc", "es")).toBe("Dramatización");
+    expect(videoLabel("mascot", "pt-BR")).toBe("Animação");
   });
 });

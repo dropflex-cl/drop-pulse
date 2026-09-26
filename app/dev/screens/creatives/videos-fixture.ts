@@ -49,9 +49,10 @@ const shot = (key: string, kind: VideoShotView["kind"], over: Partial<VideoShotV
   ...over,
 });
 
-/** ?video=none|writing|failed|script|keyframes|clips|montage|final */
+/** ?video=none|writing|failed|script|suggest|keyframes|clips|montage|final («suggest»: el guionista recomienda mascota) */
 export function videosFixture(v: string): VideosState {
-  const at = STEPS.indexOf(v as VideoStep);
+  const at = v === "suggest" ? STEPS.indexOf("script") : STEPS.indexOf(v as VideoStep);
+  const payload = v === "suggest" ? { ...script, format_fit: { recommended: "mascot" as const, why: "Las líneas de expresión se pueden personificar: una arruga que cuenta su historia." } } : script;
   const card = (slot: 1 | 2 | 3, name: string, withScript: boolean): VideoCardView => {
     const step: VideoStep = at < 0 ? "script" : STEPS[at];
     const keyframes =
@@ -71,10 +72,10 @@ export function videosFixture(v: string): VideosState {
       script: !withScript
         ? undefined
         : v === "writing"
-          ? { id: `v${slot}`, status: "running", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
+          ? { id: `v${slot}`, status: "running", format: "ugc", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
           : v === "failed"
-            ? { id: `v${slot}`, status: "failed", error: "La IA escribió un guion que no cumple las reglas. Toca Reintentar.", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
-            : { id: `v${slot}`, status: "succeeded", payload: script, approved: at >= 1, edited: false, createdAt: "2026-09-26T10:00:00Z" },
+            ? { id: `v${slot}`, status: "failed", format: "ugc", error: "La IA escribió un guion que no cumple las reglas. Toca Reintentar.", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
+            : { id: `v${slot}`, status: "succeeded", format: "ugc", payload, approved: at >= 1, edited: false, createdAt: "2026-09-26T10:00:00Z" },
       keyframes,
       clips,
       final: at >= 4 ? { durationS: 31.2, sizeBytes: 8_000_000, status: "revision", inAds: false } : undefined,

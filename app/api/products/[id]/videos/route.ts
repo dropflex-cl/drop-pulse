@@ -2,6 +2,7 @@ import { NextResponse, after } from "next/server";
 import { videosState } from "@/lib/data/products";
 import { runScript, startScript, syncVideos } from "@/lib/pipeline/video";
 import { ProductApiError, errorResponse, json, ownedProduct } from "@/lib/products/http";
+import { formatOf } from "@/lib/video/catalog";
 import { expireStaleVideos } from "@/lib/video/store";
 
 // Pestaña Videos de Creativos (docs/spec-video-ugc.md): un video UGC por ángulo. El guion sigue
@@ -21,14 +22,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-/** «Escribir guion», «Otro guion» y «Reintentar» de un ángulo. */
+/** «Escribir guion», «Otro guion» y «Reintentar» de un ángulo, en su formato (UGC o mascota). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { userId } = await ownedProduct(id);
-    const { slot } = await json<{ slot: number }>(req);
+    const { slot, format } = await json<{ slot: number; format?: string }>(req);
     if (slot !== 1 && slot !== 2 && slot !== 3) throw new ProductApiError("Ángulo no válido.", 400);
-    const { script, created } = await startScript(userId, id, slot);
+    if (format !== undefined && format !== "ugc" && format !== "mascot") throw new ProductApiError("Formato no válido.", 400);
+    const { script, created } = await startScript(userId, id, slot, formatOf(format));
     if (created) after(() => runScript(script.id));
     return NextResponse.json(await videosState(userId, id), { status: created ? 202 : 200 });
   } catch (e) {

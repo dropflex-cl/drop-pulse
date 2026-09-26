@@ -684,6 +684,8 @@ export interface VideoCardView {
     status: RunStatus;
     error?: string;
     payload?: import("./video/schemas").UgcScript;
+    /** UGC (persona de IA) o mascota animada. */
+    format: import("./video/catalog").VideoFormat;
     approved: boolean;
     edited: boolean;
     createdAt: string;

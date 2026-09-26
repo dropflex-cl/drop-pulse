@@ -18,11 +18,13 @@ import {
   B_ROLL_CUT_MIN,
   B_ROLL_MAX,
   CHARACTER_KEY,
+  FORMAT_LIMITS,
   KEYFRAMES_MAX,
   MISPRONOUNCED,
   TOTAL_SECONDS_MAX,
   TOTAL_SECONDS_MIN,
   WORDS_PER_SECOND_MAX,
+  type VideoFormat,
 } from "./catalog";
 
 const STRUCTURE = [
@@ -88,6 +90,81 @@ export function ugcSystem(market: Market): string {
   ].join("\n");
 }
 
+// ---------------------------------------------------------------- Mascota (POC KeraPass, 2026-09-26)
+
+const M = FORMAT_LIMITS.mascot;
+
+const MASCOT_STORY = [
+  "EL FORMATO: UNA MASCOTA ANIMADA QUE CUENTA SU HISTORIA",
+  "- El personaje es lo que tiene el problema, personificado como en una película animada 3D estilo Pixar: la uña, el pie, la rodilla, el diente, el cuero cabelludo, la almohada, la mancha. Tiene cara expresiva (ojos grandes, cejas) y dos bracitos de caricatura. Si es una parte del cuerpo, es SOLO esa parte (un dedo gordo que sube desde el borde de abajo): sin piernas ni pies propios.",
+  "- Habla en primera persona de SÍ MISMO («Soy la uña que mi dueño esconde en zapatos cerrados»). Su dueño o dueña va en tercera persona. Con humor y ternura: el problema da risa y pena, nunca asco.",
+  `- Dura ${M.totalMin} a ${M.totalMax} s habladas (más 2 s de cierre), vertical 9:16. ${M.aRollMin} a ${M.aRollMax} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s: el personaje habla a cámara, con su voz de principio a fin.`,
+  "- El arco, en este orden:",
+  "  1. GANCHO: el personaje YA con el problema, en una escena graciosa que lo muestra (asomándose de un zapato cerrado, escondido bajo el pelo). NUNCA abras con el personaje sano: se pierden los primeros segundos.",
+  "  2. PROBLEMA: lo que probó el dueño y no funcionó, y POR QUÉ no llegó (la causa que el producto sí resuelve).",
+  "  3. LLEGADA Y MECANISMO: aparece el producto, nombrado por su marca, y cómo actúa, con los ingredientes o la tecnología de la ficha. Una sola toma: no repitas el mecanismo en dos.",
+  "  4. FINAL FELIZ Y OFERTA: el personaje sano, contento, retomando algo del gancho (si se escondía en zapatos, ahora va en sandalias), y la oferta en una frase.",
+  `- B-ROLL: hasta ${B_ROLL_MAX} insertos de ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX} s sobre la voz, sobre todo en el problema y el mecanismo: la crema que resbala, un corte 3D estilizado de cómo actúa por dentro (esporas, capas, fibras con caritas), la bruma del spray cayendo. Entra en una palabra dicha (anchor).`,
+  "- Nada de escenas reales: todo es animación, también el B-roll. Sin pies, piel ni cuerpos reales, sin antes/después real.",
+  "- TEXT_BEATS: el texto grande arriba, uno por idea (el gancho, el problema, el mecanismo en 3 a 5 palabras, la oferta). 2 a 6 palabras.",
+  "- END_CARD: 2 s finales con la foto del producto, el nombre, una línea y el botón. La letra chica no rotula la animación (el montaje pone «Animación» todo el video) ni habla de resultados, ni siquiera para negarlos («no garantiza resultados»).",
+].join("\n");
+
+const MASCOT_VOICE = [
+  "LA VOZ Y LA ACTUACIÓN",
+  "- La voz es la de un personaje animado (el modelo de video la genera igual en todas las tomas). En delivery: la emoción de cada línea y qué palabra remarca (ofendido y serio en el gancho, frustrado en el problema, asombrado y seguro en el mecanismo, feliz en el final).",
+  "- acting: gestos de caricatura concretos por toma (pone los ojos en blanco, cuenta con los deditos, se toca la uña, abraza el frasco, baila).",
+  `- Largo: máximo ${WORDS_PER_SECOND_MAX} palabras por segundo: ${[4, 5, 6, 7, 8].map((s) => `${s} s → ${Math.floor(s * WORDS_PER_SECOND_MAX)}`).join(", ")} palabras.`,
+  "- La marca, separada como se pronuncia si es una palabra inventada («Kera Pass»); en los textos en pantalla y el cierre, escrita como es.",
+  "- Números en palabras. NUNCA un precio ni un monto hablado: van solo en pantalla.",
+  `- Palabras que la voz pronuncia mal: ${MISPRONOUNCED.map((m) => `«${m.word}» (usa ${m.instead})`).join("; ")}.`,
+].join("\n");
+
+const MASCOT_PICTURES = [
+  "LAS IMÁGENES CLAVE (keyframes)",
+  `- ${CHARACTER_KEY} es el personaje solo, SANO, de frente, sin el producto: define su cara y todas las demás lo usan de referencia. Descríbelo en persona y character.look (forma, piel, ojos, cejas, bracitos); wardrobe «none».`,
+  "- Toda imagen clave donde aparece el personaje (también enfermo, triste o sanando) lleva uses_character true: se genera con K1 de referencia para que sea el mismo. Las tomas habladas parten siempre de una de esas.",
+  "- Cada imagen clave dice el ESTADO del personaje en su prompt: con el problema (p. ej., «its toenail is thick, yellow-green and cracked, with faint green fumes»), sanando o sano. Nunca más feo que tierno.",
+  "- Una imagen clave por escena distinta: el gancho, el problema, la llegada del producto, el final. Cada B-roll parte de su propia imagen clave (un macro, un corte 3D, la bruma), nunca de K1.",
+  "- El producto sale siempre de la foto real, SIN cara ni brazos (la etiqueta se deforma): nómbralo «the product», sin describirlo. El personaje puede abrazarlo o mirarlo.",
+  "- Escenas: dentro de un zapato, un mueble del baño, una manta tejida, una playa. Sin texto en la imagen.",
+].join("\n");
+
+const MASCOT_RULES = [
+  "REGLAS QUE NO SE NEGOCIAN",
+  "- Política de atributos personales de Meta: NUNCA le hables a quien mira de su cuerpo o su problema («tu uña», «tus pies», «tienes hongos»). El personaje habla de sí mismo o de «mi dueño». Hablarle de lo que HACE sí vale («¿Probaste cremas y nada?»).",
+  "- Sin plazos de resultado («al día tres», «en dos semanas»), sin cifras de estudios o ventas, sin nombres de fármacos aunque el producto los tenga.",
+  "- Salud y bienestar: «ayuda a», «combate», «llega hasta el fondo». Nunca «cura», «elimina», «trata», ni resultados garantizados.",
+  "- Montos en pantalla solo de PRECIO Y OFERTA. Sin urgencia inventada. Sin marcas ajenas.",
+  "- Respeta los compliance_flags del desarrollo del ángulo.",
+].join("\n");
+
+export function mascotSystem(market: Market): string {
+  return [
+    "Eres el guionista de videos animados de una operación de dropshipping con pago contra entrega en Latinoamérica: videos cortos para anuncios de Meta donde una mascota 3D (lo que tiene el problema, personificado) cuenta su historia, 100 % enfocados en UN ángulo de venta y hechos con IA.",
+    "",
+    marketBlock(market),
+    "",
+    MASCOT_STORY,
+    "",
+    MASCOT_VOICE,
+    "",
+    MASCOT_PICTURES,
+    "",
+    MASCOT_RULES,
+    "",
+    "QUÉ ENTREGAS",
+    "- format_fit: mascot si el problema es físico y visible y se puede personificar con gracia; ugc_ai si rinde más una persona hablando; static o real_video si corresponde. Escribe el guion de mascota igual.",
+    "- El gancho adapta los hooks del desarrollo (con policy_ok true) a la voz del personaje. hook_why explica por qué detiene el scroll.",
+    "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
+    "- compliance_notes: para el comerciante, qué cuidar al publicar.",
+  ].join("\n");
+}
+
+export function scriptSystem(format: VideoFormat, market: Market): string {
+  return format === "mascot" ? mascotSystem(market) : ugcSystem(market);
+}
+
 function json(v: unknown) {
   return JSON.stringify(v, null, 2);
 }
@@ -102,7 +179,7 @@ export interface UgcContext {
 }
 
 /** `retry`: lo que estuvo mal en el intento anterior (lib/video/schemas.ts › scriptProblems). */
-export function ugcUser(c: UgcContext, retry: string[] = []): string {
+export function ugcUser(c: UgcContext, retry: string[] = [], format: VideoFormat = "ugc"): string {
   const b = c.angle.payload;
   return [
     "La imagen es la foto real del producto (la referencia de todas las tomas con producto).",
@@ -137,7 +214,7 @@ export function ugcUser(c: UgcContext, retry: string[] = []): string {
     }),
     "",
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
-    "Escribe el guion del video UGC.",
+    format === "mascot" ? "Escribe el guion del video de mascota animada." : "Escribe el guion del video UGC.",
   ].join("\n");
 }
 
@@ -152,10 +229,15 @@ export const KEYFRAME_QA_SYSTEM = [
   "- issues: cada problema en una frase corta en español para el comerciante. Sé estricto con las manos.",
 ].join("\n");
 
-export function keyframeQaUser(k: { key: string; prompt: string; uses_product: boolean }, hasCharacterRef: boolean): string {
+export function keyframeQaUser(k: { key: string; prompt: string; uses_product: boolean }, hasCharacterRef: boolean, format: VideoFormat = "ugc"): string {
   return [
     `IMAGEN CLAVE ${k.key}`,
     `Se pidió: ${k.prompt}`,
+    ...(format === "mascot"
+      ? [
+          "Es una animación 3D con un personaje de caricatura: sus manos pueden tener cuatro o cinco dedos (hands_ok false solo si hay brazos o manos de más o deformes). same_person compara el MISMO personaje (cara, ojos, cejas, forma); su estado puede cambiar (enfermo, sano). El producto no lleva cara ni brazos.",
+        ]
+      : []),
     k.uses_product ? "La escena muestra el producto." : "La escena NO muestra el producto: product_ok = null.",
     hasCharacterRef ? "Hay imagen del personaje: compara la cara." : "No hay imagen del personaje: same_person = null.",
     "",

@@ -9,6 +9,7 @@ import {
   A_ROLL_MAX,
   A_ROLL_MIN,
   A_ROLL_SECONDS_MAX,
+  FORMAT_LIMITS,
   A_ROLL_SECONDS_MIN,
   B_ROLL_CUT_MAX,
   B_ROLL_CUT_MIN,
@@ -19,28 +20,31 @@ import {
   TOTAL_SECONDS_MAX,
   TOTAL_SECONDS_MIN,
   WORDS_PER_SECOND_MAX,
+  type VideoFormat,
 } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del guionista. */
 export const UGC_PROMPT_VERSION = 2;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). */
+export const MASCOT_PROMPT_VERSION = 1;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. */
 export const KEYFRAME_QA_PROMPT_VERSION = 1;
 
 const keyframe = z.object({
   key: z.string().describe(`«K1» a «K${KEYFRAMES_MAX}». ${CHARACTER_KEY} es SIEMPRE el personaje solo, sin el producto.`),
-  uses_character: z.boolean().describe("true si aparece la persona (cara, manos o cuerpo): se genera con K1 de referencia."),
+  uses_character: z.boolean().describe("true si aparece la persona o el personaje (cara, manos o cuerpo): se genera con K1 de referencia."),
   uses_product: z.boolean().describe("true si aparece el producto: se genera con la foto real de referencia."),
   one_hand: z.boolean().describe("true si la escena necesita una sola mano visible (sostener el frasco, señalar): evita manos de más."),
   prompt: z
     .string()
     .describe(
-      "En inglés, 40 a 90 palabras: la escena como una foto vertical tomada con un teléfono (lugar, luz, encuadre, qué hace la persona, qué se ve del producto). Nombra a «the person» y «the product» sin describir el producto (sale de la foto real). Sin textos ni subtítulos en la imagen.",
+      "En inglés, 40 a 90 palabras: la escena (lugar, luz, encuadre, qué hace la persona o el personaje, qué se ve del producto). UGC: una foto vertical tomada con un teléfono, nombra a «the person». Mascota: un cuadro de película animada 3D, nombra a «the character» y su estado (sano, con el problema, sanando). Nombra «the product» sin describirlo (sale de la foto real). Sin textos ni subtítulos en la imagen.",
     ),
 });
 
 const aRoll = z.object({
   key: z.string().describe("«A1», «A2»… en orden."),
-  keyframe: z.string().describe("La imagen clave de la que parte la toma (K1… de keyframes): la persona mirando a cámara."),
+  keyframe: z.string().describe("La imagen clave de la que parte la toma (K1… de keyframes): la persona o el personaje mirando a cámara."),
   seconds: z.number().int().describe(`${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX}. Cuenta las palabras: máximo ${WORDS_PER_SECOND_MAX} por segundo.`),
   line: z.string().describe("Lo que dice, exactamente, en el idioma del mercado. Números en palabras. NUNCA un precio ni un monto."),
   delivery: z.string().describe("En inglés: cómo lo dice (qué palabra remarca, qué tono en cada frase)."),
@@ -64,18 +68,24 @@ const textBeat = z.object({
 
 export const ugcScriptSchema = z.object({
   format_fit: z.object({
-    recommended: z.enum(["ugc_ai", "static", "real_video"]).describe("ugc_ai: sirve para video con persona de IA. static: el ángulo rinde más como imagen. real_video: necesita una persona real (testimonio, experta)."),
+    recommended: z
+      .enum(["ugc_ai", "mascot", "static", "real_video"])
+      .describe("ugc_ai: sirve para video con persona de IA. mascot: rinde más con un personaje animado (un problema físico visible que se puede personificar). static: el ángulo rinde más como imagen. real_video: necesita una persona real (testimonio, experta)."),
     why: z.string().describe("Para el comerciante, una frase."),
   }),
-  persona: z.string().describe("En inglés: quién habla (edad aparente, género, estilo) según el cliente ideal. Siempre una dramatización."),
+  persona: z.string().describe("En inglés: quién habla. UGC: edad aparente, género y estilo según el cliente ideal (siempre una dramatización). Mascota: qué es el personaje animado («a cute 3D animated big-toe character»)."),
   character: z.object({
-    look: z.string().describe("En inglés: rostro, pelo y rasgos de la persona."),
-    wardrobe: z.string().describe("En inglés: ropa."),
+    look: z.string().describe("En inglés: rostro, pelo y rasgos de la persona. Mascota: cómo es el personaje sano (forma, piel, ojos, cejas, brazos), sin piernas si es una parte del cuerpo."),
+    wardrobe: z.string().describe("En inglés: ropa. Mascota: «none» (los accesorios de una escena van en su imagen clave)."),
     setting: z.string().describe("En inglés: el lugar principal y la luz."),
   }),
   hook_why: z.string().describe("Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."),
   keyframes: z.array(keyframe).describe(`De 3 a ${KEYFRAMES_MAX}. K1 = el personaje solo; una por cada escena distinta de a_roll y b_roll.`),
-  a_roll: z.array(aRoll).describe(`${A_ROLL_MIN} a ${A_ROLL_MAX} tomas habladas; en total ${TOTAL_SECONDS_MIN} a ${TOTAL_SECONDS_MAX} s.`),
+  a_roll: z
+    .array(aRoll)
+    .describe(
+      `UGC: ${A_ROLL_MIN} a ${A_ROLL_MAX} tomas habladas, en total ${TOTAL_SECONDS_MIN} a ${TOTAL_SECONDS_MAX} s. Mascota: ${FORMAT_LIMITS.mascot.aRollMin} a ${FORMAT_LIMITS.mascot.aRollMax}, en total ${FORMAT_LIMITS.mascot.totalMin} a ${FORMAT_LIMITS.mascot.totalMax} s.`,
+    ),
   b_roll: z.array(bRoll).describe(`Hasta ${B_ROLL_MAX} insertos cortos sobre la voz; al menos uno por toma hablada.`),
   text_beats: z.array(textBeat).describe("Los textos grandes en pantalla, en orden: el gancho, cada idea numerada y la oferta al final."),
   end_card: z.object({
@@ -121,11 +131,17 @@ const SPOKEN_AMOUNT = /\d|\b(mil|miles|millones?|pesos|d[oó]lares|reais|reales|
 const OWN_AGE = /\btengo\s+(\d+|veinti\w*|treinta|cuarenta|cincuenta|sesenta|setenta)\b|\b(mis|a mis)\s+(\d+|treinta|cuarenta|cincuenta|sesenta)\b/i;
 
 /** Condición del lector en segunda persona (política de atributos personales de Meta). */
-const SECOND_PERSON = /\b(tu|tus) (piel|cara|rostro|edad|cuerpo|arrugas|manchas|l[ií]neas|cuello|papada|acn[eé]|flacidez)\b|\ba tu edad\b|\btienes (arrugas|manchas|acn[eé])/i;
+const SECOND_PERSON =
+  /\b(tu|tus) (piel|cara|rostro|edad|cuerpo|arrugas|manchas|l[ií]neas|cuello|papada|acn[eé]|flacidez|u[ñn]as?|pies?|dedos?|dientes?|enc[ií]as|rodillas?|articulaciones|espalda|pelo|cabello|calvicie|barriga|panza|grasa|hongos?)\b|\ba tu edad\b|\btienes (arrugas|manchas|acn[eé]|hongos?|dolor)/i;
+
+/** Un plazo de resultado («al día tres», «en dos semanas»): promesa de salud que Meta rechaza. */
+const RESULT_TIMELINE = /\b(al|en|a los|en solo)\s+(\d+|un|una|dos|tres|cuatro|cinco|siete|diez|catorce|quince|treinta)\s+(d[ií]as?|semanas?|mes(es)?)\b|\bal d[ií]a\s+(\d+|uno|dos|tres|cuatro|cinco|siete)\b|\ben la semana\s+(\d+|uno|dos|tres)\b/i;
 
 /** Qué está mal en un guion (del modelo o editado). Vacío si se puede guardar. */
-export function scriptProblems(s: UgcScript, pricing: PricingPlan): string[] {
+export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc"): string[] {
   const problems: string[] = [];
+  const limits = FORMAT_LIMITS[format];
+  const who = format === "mascot" ? "al personaje" : "a la persona";
   const kfKeys = s.keyframes.map((k) => k.key);
   const kf = new Map(s.keyframes.map((k) => [k.key, k]));
 
@@ -138,9 +154,9 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan): string[] {
   else if (!character.uses_character || character.uses_product) problems.push(`${CHARACTER_KEY} es el personaje solo: uses_character true y uses_product false.`);
 
   // Tomas habladas.
-  if (s.a_roll.length < A_ROLL_MIN || s.a_roll.length > A_ROLL_MAX) problems.push(`Trae ${s.a_roll.length} tomas habladas; deben ser de ${A_ROLL_MIN} a ${A_ROLL_MAX}.`);
+  if (s.a_roll.length < limits.aRollMin || s.a_roll.length > limits.aRollMax) problems.push(`Trae ${s.a_roll.length} tomas habladas; deben ser de ${limits.aRollMin} a ${limits.aRollMax}.`);
   const total = s.a_roll.reduce((n, a) => n + a.seconds, 0);
-  if (total < TOTAL_SECONDS_MIN || total > TOTAL_SECONDS_MAX) problems.push(`Las tomas habladas suman ${total} s; deben sumar de ${TOTAL_SECONDS_MIN} a ${TOTAL_SECONDS_MAX}.`);
+  if (total < limits.totalMin || total > limits.totalMax) problems.push(`Las tomas habladas suman ${total} s; deben sumar de ${limits.totalMin} a ${limits.totalMax}.`);
   s.a_roll.forEach((a, i) => {
     const at = `La toma ${a.key || i + 1}`;
     if (a.key !== `A${i + 1}`) problems.push(`${at} debe llamarse A${i + 1}.`);
@@ -148,13 +164,19 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan): string[] {
     const n = words(a.line).length;
     if (n > a.seconds * WORDS_PER_SECOND_MAX) problems.push(`${at} tiene ${n} palabras para ${a.seconds} s (máximo ${Math.floor(a.seconds * WORDS_PER_SECOND_MAX)}): acórtala o dale más segundos.`);
     if (SPOKEN_AMOUNT.test(a.line)) problems.push(`${at} dice un número o un monto («${a.line}»): los precios van solo en pantalla y los números, en palabras.`);
-    if (SECOND_PERSON.test(a.line)) problems.push(`${at} habla de la piel, la edad o el cuerpo de quien mira en segunda persona: usa primera persona o «las que…».`);
+    if (SECOND_PERSON.test(a.line))
+      problems.push(
+        format === "mascot"
+          ? `${at} habla del cuerpo de quien mira en segunda persona («tu uña», «tus pies»): el personaje habla de sí mismo («a mí me salió…») o de «mi dueño».`
+          : `${at} habla de la piel, la edad o el cuerpo de quien mira en segunda persona: usa primera persona o «las que…».`,
+      );
+    if (RESULT_TIMELINE.test(a.line)) problems.push(`${at} promete un plazo de resultado («${a.line}»): quítalo, Meta rechaza los plazos en salud y belleza.`);
     if (OWN_AGE.test(a.line)) problems.push(`${at} le pone una edad a la persona de IA («${a.line}»): nombra el segmento en plural («las que pasamos los cuarenta»).`);
     for (const m of MISPRONOUNCED) if (words(a.line).includes(m.word)) problems.push(`${at} usa «${m.word}», que la voz pronuncia mal: usa ${m.instead}.`);
     problems.push(...claimProblems(a.line, pricing, `${at}: `));
     const k = kf.get(a.keyframe);
     if (!k) problems.push(`${at} parte de ${a.keyframe}, que no está en keyframes.`);
-    else if (!k.uses_character) problems.push(`${at} es hablada: su imagen clave (${a.keyframe}) tiene que mostrar a la persona.`);
+    else if (!k.uses_character) problems.push(`${at} es hablada: su imagen clave (${a.keyframe}) tiene que mostrar ${who}.`);
   });
 
   // B-roll y textos anclados a palabras dichas.
@@ -172,6 +194,7 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan): string[] {
     const at = `El texto en pantalla ${i + 1} («${t.text}»)`;
     if (!spoken.has(wordKey(t.anchor))) problems.push(`${at} se ancla a «${t.anchor}», que nadie dice.`);
     if (t.until && !spoken.has(wordKey(t.until))) problems.push(`${at} se quita en «${t.until}», que nadie dice.`);
+    if (RESULT_TIMELINE.test(t.text)) problems.push(`${at} promete un plazo de resultado: quítalo.`);
     problems.push(...claimProblems(t.text, pricing, `${at}: `));
   });
   for (const t of [s.end_card.title, s.end_card.subtitle, s.end_card.cta, ...s.end_card.small_print]) problems.push(...claimProblems(t, pricing, "El cierre: "));

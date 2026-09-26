@@ -138,13 +138,26 @@ def hex_rgba(h: str) -> tuple[int, int, int, int]:
     return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
 
 
+def fit_font(d, lines: list[str], kind: str, size: int, min_size: int, max_w: int, stroke: int = 0):
+    """La fuente más grande (≤ size) con la que todas las líneas caben en max_w."""
+    while size > min_size and max(d.textlength(line, font=font(kind, size)) + 2 * stroke for line in lines) > max_w:
+        size -= 2
+    return font(kind, size)
+
+
 def beat_png(path: Path, text: str) -> None:
     from PIL import Image, ImageDraw
 
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     lines = text.split("\n")
-    f = font("bold", 44 if len(lines) == 1 else 30)
+    max_w = W - 80
+    if len(lines) == 1 and d.textlength(text, font=font("bold", 36)) > max_w:
+        # Una línea que no cabe ni achicada: se parte en dos por la palabra más cercana al medio.
+        words = text.split()
+        cut = min(range(1, len(words)), key=lambda i: abs(len(" ".join(words[:i])) - len(" ".join(words[i:]))), default=len(words))
+        lines = [" ".join(words[:cut]), " ".join(words[cut:])] if len(words) > 1 else lines
+    f = fit_font(d, lines, "bold", 44 if len(lines) == 1 else 36, 26, max_w)
     y = int(H * 0.15)
     for line in lines:
         l, t, r, b = d.textbbox((0, 0), line, font=f)
@@ -160,8 +173,8 @@ def caption_png(path: Path, words: list[str], active: int, accent: tuple[int, in
 
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    f = font("bold", 50)
     line = " ".join(words)
+    f = fit_font(d, [line], "bold", 50, 30, W - 60, stroke=5)
     l, t, r, b = d.textbbox((0, 0), line, font=f)
     x, y = (W - (r - l)) // 2, int(H * 0.60)
     for i, w in enumerate(words):

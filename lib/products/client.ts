@@ -7,6 +7,7 @@ import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image
 
 /** Lo que manda la pantalla al confirmar: el slot lo pone el servidor por el orden. */
 export type TestAngleInput = Omit<TestAngle, "slot">;
+import type { VideoFormat } from "@/lib/video/catalog";
 import type { AnglesState, AvatarProposal, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
@@ -115,7 +116,7 @@ export const productsApi = {
   decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen" | "recover") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
   // Pestaña Videos (docs/spec-video-ugc.md): cada acción devuelve el estado completo de la pestaña.
   videos: (id: string) => call<VideosState>(`/${id}/videos`),
-  writeScript: (id: string, slot: number) => send<VideosState>("POST", `/${id}/videos`, { slot }),
+  writeScript: (id: string, slot: number, format: VideoFormat = "ugc") => send<VideosState>("POST", `/${id}/videos`, { slot, format }),
   scriptAction: (id: string, scriptId: string, action: "approve" | "unapprove" | "keyframes" | "approve_keyframes" | "clips") => send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action }),
   editScript: (id: string, scriptId: string, edit: { a_roll: { key: string; line: string; delivery: string }[]; text_beats: { text: string }[]; end_card: { title: string; subtitle: string; cta: string } }) =>
     send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action: "edit", edit }),
