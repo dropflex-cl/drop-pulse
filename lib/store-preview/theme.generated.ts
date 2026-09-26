@@ -196,7 +196,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "show_date": true,
     "show_engagement": true,
     "show_actions": true,
-    "columns_mobile": 2,
+    "columns_mobile": "2",
     "columns_desktop": 3,
     "text_lines": 4,
     "photo_ratio": "square",

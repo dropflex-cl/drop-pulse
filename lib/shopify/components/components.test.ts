@@ -36,6 +36,23 @@ function walk(node: unknown, visit: (n: Record<string, unknown>) => void) {
   }
 }
 
+/**
+ * Un rango que Shopify rechaza al subir el tema (theme check no lo ve): de 3 a 101 valores posibles,
+ * con el valor por defecto dentro y sobre un paso. `columns_mobile` de 1 a 2 dejó el muro de
+ * testimonios fuera del tema y, con él, la ficha que lo usa («Range settings must have at least 3 steps»).
+ */
+function rangeProblem(n: Record<string, unknown>): string | null {
+  if (n.type !== "range") return null;
+  const min = Number(n.min);
+  const max = Number(n.max);
+  const step = n.step === undefined ? 1 : Number(n.step);
+  const values = (max - min) / step + 1;
+  if (!Number.isInteger(values) || values < 3 || values > 101) return `${String(n.id)}: ${values} valores (Shopify pide de 3 a 101)`;
+  const d = Number(n.default);
+  if (d < min || d > max || !Number.isInteger((d - min) / step)) return `${String(n.id)}: el valor por defecto ${d} no calza con el rango`;
+  return null;
+}
+
 describe("íconos", () => {
   it("ICON_KEYS coincide con los que dibuja df-icon.liquid", () => {
     const liquid = readFileSync(join(ROOT, "_shared/snippets/df-icon.liquid"), "utf8");
@@ -75,13 +92,14 @@ describe("_landing", () => {
     for (const f of landing) expect(f.split("/").pop()).toMatch(/^df-/);
   });
 
-  it("schema válido para Shopify: nombres ≤ 25 y sin defaults vacíos", () => {
+  it("schema válido para Shopify: nombres ≤ 25, sin defaults vacíos y rangos de 3 a 101 valores", () => {
     for (const f of landing.filter((f) => f.endsWith(".liquid"))) {
       const schema = schemaOf(readFileSync(f, "utf8"));
       if (!schema) continue;
       walk(schema, (n) => {
         if (typeof n.name === "string" && !n.name.startsWith("t:")) expect(n.name.length, `${f}: ${n.name}`).toBeLessThanOrEqual(25);
         if ("default" in n) expect(n.default, `${f}: ${String(n.id)}`).not.toBe("");
+        expect(rangeProblem(n), f).toBeNull();
       });
     }
   });
@@ -135,7 +153,7 @@ describe.each(ids)("%s", (id) => {
     for (const f of files(id)) expect(f.split("/").pop()).toMatch(/^df-/);
   });
 
-  it("schema válido para Shopify: nombres ≤ 25 y sin defaults vacíos", async () => {
+  it("schema válido para Shopify: nombres ≤ 25, sin defaults vacíos y rangos de 3 a 101 valores", async () => {
     const c = await load();
     expect(c.name.length).toBeLessThanOrEqual(25);
     for (const f of files(id).filter((f) => f.endsWith(".liquid"))) {
@@ -144,6 +162,7 @@ describe.each(ids)("%s", (id) => {
       walk(schema, (n) => {
         if (typeof n.name === "string" && !n.name.startsWith("t:")) expect(n.name.length, `${f}: ${n.name}`).toBeLessThanOrEqual(25);
         if ("default" in n) expect(n.default, `${f}: ${String(n.id)}`).not.toBe("");
+        expect(rangeProblem(n), f).toBeNull();
       });
     }
   });

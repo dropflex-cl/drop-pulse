@@ -86,7 +86,7 @@
     endif
     assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
 
-    assign cols_m = s.columns_mobile | default: 2
+    assign cols_m = s.columns_mobile | default: '2' | plus: 0
     assign cols_d = s.columns_desktop | default: 3
     assign cols_t = cols_d | at_most: 3
     assign initial = s.initial_posts | default: 6
@@ -986,13 +986,15 @@
       "content": "Diseño"
     },
     {
-      "type": "range",
+      "type": "select",
       "id": "columns_mobile",
       "label": "Columnas en teléfono",
-      "min": 1,
-      "max": 2,
-      "step": 1,
-      "default": 2
+      "info": "Un select y no un rango: Shopify rechaza un rango con menos de 3 valores.",
+      "options": [
+        { "value": "2", "label": "2" },
+        { "value": "1", "label": "1" }
+      ],
+      "default": "2"
     },
     {
       "type": "range",
