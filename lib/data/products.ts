@@ -24,7 +24,7 @@ import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type C
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
-import { activeConcepts, assetsFor, creativeCounts, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
+import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
@@ -438,14 +438,17 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
   const noProvider = noProviderReason(choice, "anuncios");
   const rows = concepts.get(productId) ?? [];
   const assets = await assetsFor(uid, rows.map((c) => c.id));
-  const urls = await signedUrls(assets.map((a) => a.storage_path).filter((p): p is string => Boolean(p)));
+  const [urls, kept] = await Promise.all([
+    signedUrls(assets.map((a) => a.storage_path).filter((p): p is string => Boolean(p))),
+    keptAdCopies(assets.map((a) => a.ad_media_id).filter((id): id is string => Boolean(id))),
+  ]);
   const run = runs.get(productId);
   return {
     locked: !anglesDone ? "Aprueba los desarrollos de tus ángulos para crear anuncios." : !connected ? noProvider : null,
     connected,
     imageProvider: choice,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
-    concepts: rows.map((c) => toConceptView(c, assets, urls)),
+    concepts: rows.map((c) => toConceptView(c, assets, urls, kept)),
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
   };
 }

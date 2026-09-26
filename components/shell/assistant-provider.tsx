@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AssistantSheet, IconButton, notify, type AssistantMessage } from "@/components/df";
+import { AssistantButton as DfAssistantButton, AssistantSheet, IconButton, notify, type AssistantMessage } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { ASSISTANT_THREADS, DEFAULT_SUGGESTIONS, OFFLINE_REPLY } from "@/lib/mock/assistant";
 import { useDesktop } from "./use-desktop";
@@ -72,8 +72,10 @@ export function AssistantScope(props: AssistantScopeValue) {
 }
 
 /** El destello de la barra superior: mismo lugar, mismo ícono en cada pantalla de producto. */
-export function AssistantButton() {
+export function AssistantButton({ scope, label }: { scope?: string; label?: string } = {}) {
   const { openAssistant } = useAssistant();
+  // Con alcance (etapas rediseñadas, design-system/creativos.md): el botón del asistente de la etapa.
+  if (scope || label) return <DfAssistantButton scope={scope} label={label} onClick={openAssistant} />;
   return <IconButton icon="sparkle" label="Abrir asistente" onClick={openAssistant} />;
 }
 

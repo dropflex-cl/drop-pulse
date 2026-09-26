@@ -72,3 +72,17 @@ export { DecisionRow, type DecisionKind, type DecisionRowProps } from "./decisio
 export { AiCostChip, type AiCostChipProps } from "./ai-cost-chip";
 export { AiCostCard, type AiCostCardProps } from "./ai-cost-card";
 export { AiRunList, type AiRunListProps } from "./ai-run-list";
+// Creativos: anuncios estáticos, chat de WhatsApp y video UGC (design-system/creativos.md)
+export { AssistantButton, type AssistantButtonProps } from "./assistant-button";
+export { ImageProviderPicker, type ImageProviderPickerProps, type ProviderOption } from "./image-provider-picker";
+export { QaResult, detailCount, type QaResultProps } from "./qa-result";
+export { CreativePiece, type CreativePieceProps, type PieceAction, type PieceState } from "./creative-piece";
+export { CreativeConcept, Tag, type ConceptText, type CreativeConceptProps } from "./creative-concept";
+export { ChatConsent, type ChatConsentProps } from "./chat-consent";
+export { ChatPreview, type ChatMessage, type ChatPreviewProps } from "./chat-preview";
+export { UgcStepper, UGC_STEPS, type UgcStepperProps } from "./ugc-stepper";
+export { ScriptShot, ScriptGuard, type ScriptShotProps } from "./script-shot";
+export { KeyframeTile, type KeyframeState, type KeyframeTileProps } from "./keyframe-tile";
+export { ClipRow, type ClipRowProps, type ClipState } from "./clip-row";
+export { MontagePackage, type MontagePackageProps } from "./montage-package";
+export { VideoUpload, type VideoUploadProps, type VideoUploadState } from "./video-upload";

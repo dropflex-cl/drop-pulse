@@ -110,7 +110,8 @@ export const productsApi = {
   editConcept: (id: string, conceptId: string, texts: { role: string; text: string }[]) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { texts }),
   editChat: (id: string, conceptId: string, chat: { contact_name: string; messages: { text: string }[] }) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { chat }),
   createChat: (id: string, angle: number) => send<CreativesState>("POST", `/${id}/creatives/chat`, { angle, acknowledged: true }),
-  renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16") => send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, { ratio }),
+  renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16", provider?: ImageProvider) =>
+    send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, provider ? { ratio, provider } : { ratio }),
   decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen" | "recover") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
   // Pestaña Videos (docs/spec-video-ugc.md): cada acción devuelve el estado completo de la pestaña.
   videos: (id: string) => call<VideosState>(`/${id}/videos`),

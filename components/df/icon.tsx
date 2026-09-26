@@ -7,7 +7,9 @@ import {
   ChevronRight,
   CircleCheck,
   Clock,
+  Download,
   Ellipsis,
+  ExternalLink,
   Eye,
   GripVertical,
   Image,
@@ -37,6 +39,7 @@ import {
   Truck,
   Undo2,
   Upload,
+  Video,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -48,7 +51,7 @@ export type IconName =
   | "chat" | "lock" | "image" | "tag" | "text" | "store" | "send" | "arrow-up"
   | "arrow-down" | "pause" | "power" | "more" | "undo" | "edit" | "search"
   | "clock" | "minus" | "truck" | "trend" | "grip" | "star" | "settings" | "shield"
-  | "upload" | "link" | "refresh";
+  | "upload" | "link" | "refresh" | "download" | "external" | "video";
 
 // Significados fijos (design-system/README.md → Iconografía): destello = IA, ojo = en revisión,
 // check = aprobado, triángulo = error, reloj = detenido, candado = bloqueada.
@@ -92,6 +95,9 @@ const ICONS: Record<IconName, LucideIcon> = {
   upload: Upload,
   link: Link,
   refresh: RefreshCw,
+  download: Download,
+  external: ExternalLink,
+  video: Video,
 };
 
 export interface IconProps {

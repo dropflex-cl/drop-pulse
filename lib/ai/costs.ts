@@ -184,6 +184,7 @@ export function summarizeAiCost(rows: GenerationRow[], o: SummarizeOptions): Pro
     running: Boolean(o.running),
     audience: o.admin ? "admin" : "merchant",
     estimates,
+    usdRate: o.usdRate,
   };
 }
 

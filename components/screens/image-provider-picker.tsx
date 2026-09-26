@@ -11,13 +11,9 @@ import { ProductApiClientError, imageProviderApi } from "@/lib/products/client";
 // elección se guarda por etapa: la próxima vez la pantalla abre con la misma. Lo que ya se está
 // generando sigue con el proveedor con que empezó.
 
-export function ImageProviderPicker({ stage, choice, onChange }: { stage: ImageStage; choice: ImageProviderChoice; onChange: (choice: ImageProviderChoice) => void }) {
+/** Elige y guarda el proveedor de la etapa (optimista: si no se guarda, vuelve al anterior). */
+export function useImageProviderPick(stage: ImageStage, choice: ImageProviderChoice, onChange: (choice: ImageProviderChoice) => void) {
   const [saving, setSaving] = useState(false);
-  const usable = choice.options.filter((o) => o.available);
-  if (!choice.value || !usable.length) return null;
-  // El otro proveedor sin conectar (o con la clave rechazada): se ofrece ir a conectarlo.
-  const missing = choice.options.find((o) => !o.available);
-
   async function pick(value: string) {
     const provider = value as ImageProvider;
     if (provider === choice.value || saving) return;
@@ -34,6 +30,15 @@ export function ImageProviderPicker({ stage, choice, onChange }: { stage: ImageS
       setSaving(false);
     }
   }
+  return { pick, saving };
+}
+
+export function ImageProviderPicker({ stage, choice, onChange }: { stage: ImageStage; choice: ImageProviderChoice; onChange: (choice: ImageProviderChoice) => void }) {
+  const { pick } = useImageProviderPick(stage, choice, onChange);
+  const usable = choice.options.filter((o) => o.available);
+  if (!choice.value || !usable.length) return null;
+  // El otro proveedor sin conectar (o con la clave rechazada): se ofrece ir a conectarlo.
+  const missing = choice.options.find((o) => !o.available);
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

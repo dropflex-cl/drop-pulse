@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"AiCostChip"},{"name":"AiCostCard"},{"name":"AiRunList"},{"name":"Icon"}]} */
+/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"AiCostChip"},{"name":"AiCostCard"},{"name":"AiRunList"},{"name":"MediaSlot"},{"name":"MediaTile"},{"name":"GenerationComposer"},{"name":"LpNav"},{"name":"LpSectionHead"},{"name":"LpStep"},{"name":"LpFeature"},{"name":"LpFaq"},{"name":"LpCta"},{"name":"AssistantButton"},{"name":"ImageProviderPicker"},{"name":"QaResult"},{"name":"CreativePiece"},{"name":"CreativeConcept"},{"name":"ChatConsent"},{"name":"ChatPreview"},{"name":"UgcStepper"},{"name":"ScriptShot"},{"name":"KeyframeTile"},{"name":"ClipRow"},{"name":"MontagePackage"},{"name":"VideoUpload"},{"name":"Icon"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -42,6 +42,9 @@
     grip: 'M9 6h.01 M15 6h.01 M9 12h.01 M15 12h.01 M9 18h.01 M15 18h.01',
     star: 'M12 4l2.4 5 5.3.6-3.9 3.7 1 5.2L12 16l-4.8 2.5 1-5.2-3.9-3.7 5.3-.6z',
     upload: 'M12 15V4.5 M7.5 9L12 4.5 16.5 9 M4.5 15v4.5h15V15',
+    download: 'M12 4.5V15 M7.5 10.5L12 15l4.5-4.5 M4.5 15v4.5h15V15',
+    external: 'M14 4.5h5.5V10 M19.5 4.5L11 13 M17 13.5v6H4.5V7h6',
+    video: 'M4.5 6.5h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z M15.5 10.5l5-3v9l-5-3',
     link: 'M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.1 1.1 M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.1-1.1',
     shield: 'M12 3.25l7.25 2.75v5.5c0 4.5-3.1 8-7.25 9.25C7.85 19.5 4.75 16 4.75 11.5V6z M8.75 12l2.25 2.25 4.25-4.5',
     settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.1-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2.1 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.1 1.2L10 21h4l.5-2.6a7 7 0 0 0 2.1-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z'
@@ -553,7 +556,7 @@
           h('div', { className: 'df-urlrow' },
             h('div', { className: 'df-field-box', style: { flex: 1 } }, h(Icon, { name: 'link', size: 'sm', className: 'df-muted' }), h('input', { id: 'df-url', type: 'url', inputMode: 'url', defaultValue: props.url || '', placeholder: 'https://', 'aria-invalid': props.urlError ? 'true' : undefined })),
             h(Button, { variant: 'secondary', loading: st === 'fetching' }, st === 'fetching' ? 'Trayendo' : 'Traer')),
-          h('span', { className: 'df-field-hint' }, props.urlError || 'Pega el enlace directo a la imagen (por ejemplo, desde la página del proveedor).')));
+          h('span', { className: 'df-field-hint' }, props.urlError || props.urlHint || 'Pega el enlace directo a la imagen (por ejemplo, desde la página del proveedor).')));
     }
     return h('section', { className: 'df-uploader', 'aria-label': 'Agregar imágenes' },
       props.hideModes ? null : modeCtl,
@@ -1036,6 +1039,128 @@
           h('span', { className: 'df-pick-meta' }, r.stage, ' · ', r.when, admin && r.model ? ' · ' + r.model + ' · ' + r.tokens : '')),
         h('span', { className: 'df-airuns-c' }, r.cost ? money(r.cost) : '$0'));
     }));
+  }
+
+  /* =========================================================
+     Imágenes de la página (PDP): espacios, opciones y generación
+     ========================================================= */
+  var SRC = { ia: 'IA', hf: 'Higgsfield', upload: 'Subida', gif: 'GIF · enlace', shopify: 'Shopify' };
+
+  /* MediaTile: una opción (imagen, GIF o video) con su origen */
+  function MediaTile(props) {
+    var st = props.state || 'ready', kind = props.kind || 'image';
+    if (st === 'generating') return h('div', { className: 'df-mtile is-gen', role: 'status' },
+      h('span', { className: 'df-tile-center' }, h(Icon, { name: kind === 'video' ? 'megaphone' : 'sparkle', className: 'df-pulse' }), kind === 'video' ? 'Creando video' : 'Generando', props.eta ? h('small', null, props.eta) : null),
+      h('span', { className: 'df-ref-src' }, SRC[props.source || 'ia']));
+    if (st === 'error') return h('div', { className: 'df-mtile is-err', role: 'alert' },
+      h('span', { className: 'df-tile-center' }, h(Icon, { name: 'alert' }), props.error || 'No se pudo'),
+      h('button', { type: 'button', className: 'df-ref-retry' }, 'Reintentar'));
+    var sel = props.selected;
+    return h('button', { type: 'button', className: cx('df-mtile', sel && 'is-sel', props.ratio && 'r-' + props.ratio.replace(':', 'x')), 'aria-pressed': sel ? 'true' : 'false', 'aria-label': (props.alt || 'Opción') + ', ' + SRC[props.source || 'ia'] + (kind !== 'image' ? ', ' + kind : '') + (sel ? ', elegida' : '') },
+      h('img', { src: productImage(props.imageIndex || 0, props.shape != null ? props.shape : 1), alt: '' }),
+      h('span', { className: 'df-ref-src' }, SRC[props.source || 'ia']),
+      kind !== 'image' ? h('span', { className: 'df-cslot-play' }, h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: 'M8 5.5v13l10-6.5z', fill: 'currentColor' })), kind === 'gif' ? 'GIF' : props.duration) : null,
+      sel ? h('span', { className: 'df-tile-order' }, props.order || h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.5 })) : h('span', { className: 'df-tile-check' }));
+  }
+
+  /* MediaSlot: un espacio de la página con su texto, formato y lo elegido */
+  function MediaSlot(props) {
+    var st = props.state || 'empty';
+    var badge = { empty: null, options: { t: props.count + ' opciones', c: 'df-status-neutral', i: 'image' }, generating: { t: 'Generando', c: 'df-status-progress', i: 'loader', spin: true }, chosen: { t: 'Elegida', c: 'df-status-success', i: 'check' }, error: { t: 'Con error', c: 'df-status-danger', i: 'alert' } }[st];
+    return h('article', { className: cx('df-mslot', 'is-' + st) },
+      h('div', { className: 'df-mslot-m' },
+        st === 'chosen' || st === 'options' ? h('img', { src: productImage(props.imageIndex || 0, 1), alt: '' }) : h(Icon, { name: st === 'generating' ? 'sparkle' : props.kind === 'video' ? 'megaphone' : 'image', className: st === 'generating' ? 'df-pulse' : undefined }),
+        props.kind && props.kind !== 'image' && (st === 'chosen' || st === 'options') ? h('span', { className: 'df-cslot-play' }, h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: 'M8 5.5v13l10-6.5z', fill: 'currentColor' })), props.kind === 'gif' ? 'GIF' : 'Video') : null),
+      h('div', { className: 'df-mslot-b' },
+        h('div', { className: 'df-mslot-t' }, props.title, props.required ? h('span', { className: 'df-req' }, 'Obligatorio') : null),
+        props.pairs ? h('p', { className: 'df-mslot-p' }, '“' + props.pairs + '”') : null,
+        h('div', { className: 'df-mslot-f' }, props.format, badge ? h('span', { className: 'df-status df-status-sm ' + badge.c }, h(Icon, { name: badge.i, className: badge.spin ? 'df-spin' : undefined, strokeWidth: 2 }), badge.t) : null)),
+      h(Icon, { name: 'chevron-right', size: 'sm', className: 'df-mslot-chev' }));
+  }
+
+  /* GenerationComposer: pedir opciones a la IA de imágenes o a Higgsfield */
+  function GenerationComposer(props) {
+    var engine = props.engine || 'ia', kind = props.kind || 'image';
+    var hf = engine === 'hf', ugc = hf && kind === 'video';
+    return h('section', { className: cx('df-composer', props.panel && 'is-panel'), 'aria-label': 'Generar opciones' },
+      h('div', { className: 'df-field' }, h('span', { className: 'df-field-label' }, 'Motor'),
+        h(SegmentedControl, { block: true, value: engine, label: 'Motor', options: [{ value: 'ia', label: 'IA de imágenes' }, { value: 'hf', label: 'Higgsfield' }] })),
+      hf ? h('div', { className: 'df-field' }, h('span', { className: 'df-field-label' }, 'Qué crear'),
+        h(SegmentedControl, { block: true, value: kind, label: 'Qué crear', options: [{ value: 'image', label: 'Imagen' }, { value: 'video', label: 'Video UGC' }] })) : null,
+      h('div', { className: 'df-field' },
+        h('span', { className: 'df-field-label' }, 'Parte de tus fotos del producto'),
+        h('div', { className: 'df-refpick' }, [1, 5, 0].map(function (ix, i) { return h('button', { key: i, type: 'button', className: cx('df-refpick-i', i < (props.refs || 2) && 'is-on'), 'aria-pressed': i < (props.refs || 2) ? 'true' : 'false', 'aria-label': 'Foto de referencia ' + (i + 1) }, h('img', { src: productImage(ix, 1), alt: '' }), i < (props.refs || 2) ? h('span', { className: 'df-refpick-c' }, h(Icon, { name: 'check', size: 'sm', strokeWidth: 3 })) : null); })),
+        h('span', { className: 'df-field-hint' }, 'Así el producto se ve igual al que llega al cliente.')),
+      ugc ? h('div', { className: 'df-field' }, h('span', { className: 'df-field-label' }, 'Escena'),
+        h('div', { className: 'df-chips', style: { flexWrap: 'wrap' } }, ['Se lo pone y ajusta', 'Trabajando sentada', 'Antes y después de postura', 'Unboxing'].map(function (c, i) { return h('button', { key: i, type: 'button', className: cx('df-chipbtn df-chip-sm', i === (props.scene || 0) && 'is-on'), 'aria-pressed': i === (props.scene || 0) ? 'true' : 'false' }, c); }))) :
+        h('div', { className: 'df-field' }, h('span', { className: 'df-field-label' }, 'Estilo'),
+          h('div', { className: 'df-chips', style: { flexWrap: 'wrap' } }, ['Fondo blanco', 'En uso', 'Detalle', 'Lifestyle'].map(function (c, i) { return h('button', { key: i, type: 'button', className: cx('df-chipbtn df-chip-sm', i === (props.style || 1) && 'is-on'), 'aria-pressed': i === (props.style || 1) ? 'true' : 'false' }, c); }))),
+      ugc ? h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } },
+        h(Field, { label: 'Persona', value: 'Mujer, 30–40', id: 'gc-p' }),
+        h(Field, { label: 'Duración', value: '8 s · 9:16', id: 'gc-d' })) : null,
+      h('div', { className: 'df-field' },
+        h('label', { className: 'df-field-label', htmlFor: 'gc-prompt' }, 'Qué debe mostrar'),
+        h('textarea', { id: 'gc-prompt', className: 'df-gc-ta', rows: 3, defaultValue: props.prompt || '' }),
+        h('span', { className: 'df-field-hint', style: { display: 'flex', gap: 4, alignItems: 'center' } }, h(Icon, { name: 'sparkle', size: 'sm' }), 'Sugerido desde el ángulo principal y el texto de este espacio.')),
+      ugc ? h('p', { className: 'df-gc-guard' }, h(Icon, { name: 'shield', size: 'sm' }), 'Muestra el uso del producto. La persona no dice ser clienta ni cuenta resultados propios.') : null,
+      h('div', { className: 'df-gc-foot' },
+        h('span', { className: 'df-pick-meta' }, (props.count || 4) + ' opciones · ~' + money(props.cost || 0) + (props.eta ? ' · ' + props.eta : '')),
+        h(Button, { variant: 'primary', icon: 'sparkle' }, ugc ? 'Crear ' + (props.count || 2) + ' videos' : 'Generar ' + (props.count || 4))));
+  }
+
+  /* =========================================================
+     Landing de DropFlex (marketing, AIDA)
+     ========================================================= */
+  function LpNav(props) {
+    return h('header', { className: 'df-lp-nav' },
+      h('div', { className: 'df-rail-brand', style: { padding: 0 } }, h('span', { className: 'df-rail-mark', 'aria-hidden': 'true' }, 'D'), 'DropFlex'),
+      props.compact ? null : h('nav', { className: 'df-lp-links', 'aria-label': 'Secciones' }, ['Cómo funciona', 'Beneficios', 'Preguntas'].map(function (l) { return h('a', { key: l, href: '#' }, l); })),
+      h('div', { className: 'df-lp-navcta' },
+        props.compact ? null : h('a', { href: '#', className: 'df-lp-login' }, 'Iniciar sesión'),
+        h(Button, { variant: 'primary', size: 'sm' }, props.compact ? 'Empezar' : 'Conectar mi tienda')));
+  }
+
+  /* LpSectionHead: encabezado de sección */
+  function LpSectionHead(props) {
+    return h('div', { className: cx('df-lp-sh', props.center && 'is-center') },
+      props.eyebrow ? h('span', { className: 'df-lp-eyebrow' }, props.eyebrow) : null,
+      h('h2', { className: 'df-lp-h2' }, props.title),
+      props.lead ? h('p', { className: 'df-lp-lead' }, props.lead) : null);
+  }
+
+  /* LpPain: el problema en palabras del dropshipper */
+  function LpPain(props) {
+    return h('li', { className: 'df-lp-pain' }, h('span', { className: 'df-lp-pain-i' }, h(Icon, { name: props.icon || 'minus', size: 'sm', strokeWidth: 2 })), h('span', null, h('b', null, props.title), h('small', null, props.text)));
+  }
+
+  /* LpStep: un paso de cómo funciona, con una pieza real de la app */
+  function LpStep(props) {
+    return h('article', { className: 'df-lp-step' },
+      h('div', { className: 'df-lp-step-h' }, h('span', { className: 'df-lp-num' }, props.n), h('div', null, h('h3', null, props.title), h('p', null, props.text))),
+      props.children ? h('div', { className: 'df-lp-demo', 'aria-hidden': 'true' }, props.children) : null);
+  }
+
+  /* LpFeature: un beneficio con su prueba (una pieza de la app, no una cifra inventada) */
+  function LpFeature(props) {
+    return h('article', { className: cx('df-lp-feat', props.wide && 'is-wide') },
+      h('div', { className: 'df-lp-feat-t' }, h('span', { className: 'df-lp-feat-ico' }, h(Icon, { name: props.icon, size: 'sm', strokeWidth: 2 })), h('h3', null, props.title), h('p', null, props.text)),
+      props.children ? h('div', { className: 'df-lp-demo', 'aria-hidden': 'true' }, props.children) : null);
+  }
+
+  /* LpFaq: pregunta desplegable */
+  function LpFaq(props) {
+    return h('details', { className: 'df-lp-faq', open: props.open },
+      h('summary', null, h('span', null, props.q), h(Icon, { name: 'plus', size: 'sm', className: 'df-lp-faq-i' })),
+      h('p', null, props.a));
+  }
+
+  /* LpCta: cierre con la acción */
+  function LpCta(props) {
+    return h('section', { className: 'df-lp-cta' },
+      h('h2', { className: 'df-lp-h2' }, props.title),
+      props.lead ? h('p', { className: 'df-lp-lead' }, props.lead) : null,
+      h('div', { className: 'df-lp-ctas' }, h(Button, { variant: 'primary', size: 'lg', iconEnd: 'chevron-right' }, props.cta || 'Conectar mi tienda')),
+      props.fine ? h('p', { className: 'df-lp-fine' }, props.fine) : null);
   }
 
   /* =========================================================
@@ -2001,6 +2126,700 @@
             h(AiRunList, { audience: 'admin', runs: AI_RUNS.slice(0, 3) })))));
   }
 
+  /* ---------- Pantallas: Imágenes de la PDP ---------- */
+  var IM_SLOTS = [
+    { group: 'Galería', items: [
+      { title: 'Portada', required: true, format: '1:1 · imagen', state: 'chosen', imageIndex: 1 },
+      { title: 'Galería · 4 a 6', required: true, format: '1:1 o 4:5 · imagen, GIF o video', state: 'options', count: 9, imageIndex: 3 }] },
+    { group: 'Por qué comprarlo', items: [
+      { title: 'Beneficio 1', pairs: 'Tela transpirable que puedes usar bajo la ropa todo el día', format: '4:5 · imagen o GIF', state: 'chosen', imageIndex: 4 },
+      { title: 'Beneficio 3', pairs: 'Ajuste con velcro que se adapta hasta 110 cm de pecho', format: '4:5 · imagen o GIF', state: 'generating' },
+      { title: 'Cómo funciona', pairs: 'El cruce en la espalda lleva los hombros hacia atrás…', format: '16:9 · GIF o video', state: 'empty', kind: 'gif' }] },
+    { group: 'Confianza', items: [
+      { title: 'En uso (UGC)', format: '9:16 · video', state: 'error', kind: 'video' }] }
+  ];
+  function SlotList(props) {
+    return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } }, (props.slots || IM_SLOTS).map(function (g, i) {
+      return h('section', { key: i }, h('div', { className: 'df-section-t', style: { padding: '0 0 6px' } }, g.group), h('div', { className: 'df-mslots' }, g.items.map(function (s, j) { return h(MediaSlot, Object.assign({ key: j }, s)); })));
+    }));
+  }
+  var IM_OPTS = [
+    { source: 'ia', imageIndex: 4, selected: true, alt: 'Opción 1' }, { source: 'ia', imageIndex: 2, alt: 'Opción 2' }, { source: 'hf', imageIndex: 3, alt: 'Opción 3' },
+    { source: 'gif', kind: 'gif', imageIndex: 0, alt: 'GIF del proveedor' }, { source: 'hf', state: 'generating', eta: '~40 s' }, { source: 'upload', imageIndex: 5, alt: 'Subida' }];
+
+  function ImOverview() {
+    return h(Phone, { label: 'I1 · Espacios de la página, en su orden' },
+      h(TopBar, { back: 'Corrector de postura', title: 'Imágenes', subtitle: '3 de 7 espacios listos', actions: h(AiCostChip, { total: 612, cap: 1500, running: true }) }),
+      h('div', { style: { padding: '0 16px 8px' } }, h(StageMeter, { stages: ['done', 'done', 'current', 'locked', 'locked', 'optional', 'optional'] })),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px' } }, h(SlotList)),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 6 } },
+        h(Button, { variant: 'secondary', size: 'lg', block: true, icon: 'sparkle' }, 'Generar los vacíos'),
+        h('p', { className: 'df-ob-fine', style: { margin: 0 } }, 'Elige al menos 4 fotos de la galería para continuar a Publicar.')));
+  }
+
+  function ImSlot() {
+    return h(Phone, { label: 'I2 · Un espacio: elegir entre opciones de todos los orígenes' },
+      h(TopBar, { back: 'Imágenes', title: 'Beneficio 1', subtitle: '4:5 · imagen o GIF' }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h('div', { className: 'df-orig' }, h('div', { className: 'df-orig-label' }, 'Acompaña a este texto'), h('div', { className: 'df-orig-text', style: { color: 'var(--foreground)' } }, 'Tela transpirable que puedes usar bajo la ropa todo el día')),
+        h('div', { className: 'df-grid3' }, IM_OPTS.map(function (o, i) { return h(MediaTile, Object.assign({ key: i, ratio: '4:5' }, o)); })),
+        h('div', { className: 'df-im-add' },
+          h(Button, { variant: 'secondary', icon: 'sparkle' }, 'Generar más'),
+          h(Button, { variant: 'secondary', icon: 'upload' }, 'Subir'),
+          h(Button, { variant: 'secondary', icon: 'link' }, 'GIF por enlace'))),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', icon: 'check' }, 'Usar la opción 1')));
+  }
+
+  function ImCompose() {
+    return h(Phone, { label: 'I3 · Generar: video UGC con Higgsfield' },
+      h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } },
+        h(TopBar, { back: 'Imágenes', title: 'En uso (UGC)', subtitle: '9:16 · video' }),
+        h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+        h('div', { className: 'df-sheet', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '90%' } },
+          h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+          h('div', { className: 'df-sheet-head' }, h('strong', null, 'Generar opciones'), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+          h('div', { style: { padding: '0 16px 16px', flex: 1, overflow: 'hidden' } },
+            h(GenerationComposer, { engine: 'hf', kind: 'video', count: 2, cost: 480, eta: '~3 min', prompt: 'Mujer de 35 años frente al computador se pone el corrector sobre la polera, ajusta el velcro y endereza la espalda. Luz natural, cámara en mano.' })))));
+  }
+
+  function ImGif() {
+    return h(Phone, { label: 'I4 · Agregar un GIF desde un enlace' },
+      h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } },
+        h(TopBar, { back: 'Imágenes', title: 'Cómo funciona', subtitle: '16:9 · GIF o video' }),
+        h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+        h('div', { className: 'df-sheet', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '76%' } },
+          h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+          h('div', { className: 'df-sheet-head' }, h('strong', null, 'Agregar a este espacio'), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+          h('div', { style: { padding: '0 16px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 } },
+            h(ImageUploader, { mode: 'url', url: 'https://media.proveedor.com/corrector-demo.gif', urlHint: 'Enlace directo a una imagen o GIF (termina en .gif, .jpg, .png o .webp).' }),
+            h('div', { className: 'df-gifprev' },
+              h(MediaTile, { source: 'gif', kind: 'gif', imageIndex: 0, ratio: '16:9', alt: 'GIF traído' }),
+              h('div', { className: 'df-gifprev-b' },
+                h('b', null, 'corrector-demo.gif'),
+                h('span', { className: 'df-pick-meta' }, '480×270 · 3,2 s · 4,8 MB'),
+                h('span', { className: 'df-gifprev-opt' }, h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.25 }), 'Se optimiza para la página: 0,6 MB'))),
+            h('p', { className: 'df-field-hint', style: { margin: 0 } }, 'Usa solo GIFs que tengas derecho a usar, como los de tu proveedor.')),
+          h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', icon: 'check' }, 'Agregar GIF')))));
+  }
+
+  function ImDesk() {
+    return h(DeskFrame, { label: 'Escritorio · Espacios a la izquierda, opciones al centro, generador a la derecha' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' },
+        h('div', { className: 'df-desk-head' },
+          h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+          h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Imágenes · 3 de 7 espacios listos')),
+          h(AiCostChip, { total: 612, cap: 1500, running: true }),
+          h(Button, { variant: 'primary', iconEnd: 'chevron-right', disabled: true }, 'Continuar: Publicar')),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '340px minmax(0, 1fr) 380px', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', padding: '16px', overflow: 'hidden' } }, h(SlotList)),
+          h('div', { style: { padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Beneficio 1'), h('span', { className: 'df-review-count' }, '4:5 · imagen o GIF')),
+            h('div', { className: 'df-orig' }, h('div', { className: 'df-orig-label' }, 'Acompaña a este texto'), h('div', { className: 'df-orig-text', style: { color: 'var(--foreground)' } }, 'Tela transpirable que puedes usar bajo la ropa todo el día')),
+            h('div', { className: 'df-grid3' }, IM_OPTS.map(function (o, i) { return h(MediaTile, Object.assign({ key: i, ratio: '4:5' }, o)); })),
+            h('div', { className: 'df-im-add' }, h(Button, { variant: 'secondary', icon: 'upload' }, 'Subir'), h(Button, { variant: 'secondary', icon: 'link' }, 'GIF por enlace'), h('span', { style: { flex: 1 } }), h(Button, { variant: 'primary', icon: 'check' }, 'Usar la opción 1'))),
+          h('div', { style: { borderLeft: '1px solid var(--border)', padding: '20px 24px', overflow: 'hidden', background: 'var(--sidebar)' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Generar opciones'), null),
+            h(GenerationComposer, { panel: true, engine: 'ia', count: 4, cost: 96, eta: '~40 s', prompt: 'El corrector bajo una camisa clara, de perfil, en una oficina luminosa; se ve la tela y el borde.' })))));
+  }
+
+  /* ---------- Landing de DropFlex ---------- */
+  function LpHeroPhone() {
+    return h('div', { className: 'df-lp-phone', 'aria-hidden': 'true' },
+      h('div', { className: 'df-status-strip' }, h('span', null, '9:41'), h('span', null, '●●● 5G')),
+      h(TopBar, { title: 'Hoy', subtitle: '3 decisiones pendientes', large: true }),
+      h('div', { className: 'df-group' },
+        h(AttentionItem, { kind: 'review', title: '8 propuestas nuevas', product: 'Corrector de postura', actions: [h(Button, { key: 1, size: 'sm', variant: 'primary', iconEnd: 'chevron-right' }, 'Revisar ahora')] }),
+        h(AttentionItem, { kind: 'ads-up', title: 'Sube “Corrector · Video UGC”', product: 'CPA $4.100, bajo tu límite' }),
+        h(AttentionItem, { kind: 'ads', title: 'Apaga “Masajeador · Video 2”', product: 'Gastó 1,5× tu límite sin ventas' })));
+  }
+  var LP_PAINS = [
+    { icon: 'text', title: 'Textos del proveedor', text: 'Títulos eternos y descripciones traducidas a medias.' },
+    { icon: 'image', title: 'Fotos que no venden', text: 'Imágenes con texto en chino y ninguna del producto en uso.' },
+    { icon: 'tag', title: 'Precio a ojo', text: 'Sin contar envío, anuncios ni pedidos que no se entregan.' },
+    { icon: 'megaphone', title: 'Anuncios que queman plata', text: 'Apagas tarde lo que pierde y escalas tarde lo que gana.' }
+  ];
+  var LP_FAQ = [
+    { q: '¿Necesito saber de diseño o de copywriting?', a: 'No. La IA propone textos, imágenes y anuncios; tú aceptas, editas o descartas cada uno con un toque.', open: true },
+    { q: '¿La IA inventa reseñas, expertos o garantías?', a: 'No. Si no hay reseñas reales o un experto real, no los inventa: baja el puntaje del ángulo que los necesita y te dice qué falta.' },
+    { q: '¿Qué pasa con mis productos actuales en Shopify?', a: 'Nada cambia en tu tienda hasta que apruebes. Si descartas una propuesta, se mantiene lo que ya tenías.' },
+    { q: '¿Sirve si todavía no anuncio en Meta?', a: 'Sí. Solo Shopify es obligatorio; Meta Ads lo conectas cuando quieras lanzar campañas.' },
+    { q: '¿Funciona con pago contra entrega?', a: 'Está hecho para eso: calcula tu ganancia con la tasa de entrega real y cada página incluye "Paga al recibir".' },
+    { q: '¿Cuánto gasto en IA por producto?', a: 'Lo ves en cada producto, por etapa y antes de regenerar, con un tope que tú defines.' }
+  ];
+
+  function LandingPage(props) {
+    var m = props.mobile, part = props.part || 1;
+    var hero = h('section', { className: 'df-lp-hero' },
+      h('div', { className: 'df-lp-hero-t' },
+        h('span', { className: 'df-lp-eyebrow' }, 'Para dropshipping con pago contra entrega'),
+        h('h1', { className: m ? 'type-hero-sm' : 'type-hero', style: { margin: 0 } }, 'Tus productos listos para vender, sin pasar días preparándolos'),
+        h('p', { className: 'df-lp-lead' }, 'Conecta tu Shopify: la IA prepara textos, imágenes y anuncios para cada producto, y tú decides qué se publica. Todo desde el teléfono.'),
+        h('div', { className: 'df-lp-ctas' }, h(Button, { variant: 'primary', size: 'lg', iconEnd: 'chevron-right' }, 'Conectar mi tienda'), h(Button, { variant: 'ghost', size: 'lg' }, 'Ver cómo funciona')),
+        h('ul', { className: 'df-lp-trust' }, ['Nada se publica sin tu OK', 'Shopify y Meta Ads', 'Pensado para LATAM'].map(function (t) { return h('li', { key: t }, h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.25 }), t); }))),
+      h(LpHeroPhone));
+    var interes = h(Frag, null,
+      h('section', { className: 'df-lp-sec is-muted' },
+        h(LpSectionHead, { eyebrow: 'El problema', title: 'El producto no es el problema. Es todo lo que falta antes de venderlo.', lead: 'Cada producto nuevo te pide horas de trabajo que no tienes, y cada error lo pagas en anuncios.' }),
+        h('ul', { className: 'df-lp-pains' }, LP_PAINS.map(function (p, i) { return h(LpPain, Object.assign({ key: i }, p)); }))),
+      h('section', { className: 'df-lp-sec', id: 'como-funciona' },
+        h(LpSectionHead, { eyebrow: 'Cómo funciona', title: 'De producto importado a campaña, en una sola ruta', lead: 'La IA hace el trabajo pesado. Tú revisas y decides.' }),
+        h('div', { className: 'df-lp-steps' },
+          h(LpStep, { n: 1, title: 'Conecta tu tienda', text: 'Traemos tus productos de Shopify y te recomendamos con cuáles empezar.' },
+            h(ConnectionCard, { provider: 'shopify', state: 'importing', account: 'mitienda.myshopify.com', progress: 0.67, detail: '86 de 128 productos importados' })),
+          h(LpStep, { n: 2, title: 'La IA elige cómo venderlo', text: 'Evalúa 6 ángulos de venta con tu cliente ideal y te explica por qué.' },
+            h(AngleCard, { rank: 1, name: 'Problema → solución', score: 84, role: 'principal', suggestedRole: 'principal', fit: 'Tu cliente ya siente el dolor de espalda al trabajar sentado.', hideActions: true })),
+          h(LpStep, { n: 3, title: 'Tú apruebas cada texto e imagen', text: 'Aceptar, editar o descartar: un toque por propuesta.' },
+            h(ReviewCard, { field: 'Título del producto', original: 'Corrector Postura Espalda Ajustable Unisex Talla Única', originalLabel: 'Hoy en Shopify', proposal: 'Corrector de postura ajustable para trabajar sentado sin dolor de espalda', angle: 'primary', hideActions: true })),
+          h(LpStep, { n: 4, title: 'Lanza y deja que el motor vigile', text: 'Te dice cuándo esperar, pausar o escalar, con la cifra que lo justifica.' },
+            h(DecisionRow, { decision: 'escalar', name: 'Conjunto 1 · Video UGC', imageIndex: 1, metrics: 'Gasto $28.400 · 7 ventas', reason: 'CPA 32% bajo tu límite por 3 días.' })))));
+    var deseo = h(Frag, null,
+      h('section', { className: 'df-lp-sec is-muted', id: 'beneficios' },
+        h(LpSectionHead, { eyebrow: 'Beneficios', title: 'Decides con números, no a ojo', lead: 'Cada pantalla te dice qué hacer y por qué.' }),
+        h('div', { className: 'df-lp-feats' },
+          h(LpFeature, { icon: 'tag', title: 'Sabes cuánto ganas antes de vender', text: 'Con tu envío, tu costo por venta y los pedidos que no se entregan.' },
+            h('div', { className: 'df-card df-card-pad' }, h(PriceBreakdown, { price: 24990, parts: [{ label: 'Costo del producto', value: 6900 }, { label: 'Envío', value: 3500 }, { label: 'Publicidad por venta', value: 6000 }] }))),
+          h(LpFeature, { icon: 'trend', title: 'Anuncios que se cuidan solos', text: 'Reglas simples para esperar, pausar o escalar. Tú eliges si solo recomienda o actúa.' },
+            h(RuleGroup, { kind: 'pausar', level: 'Por conjunto', add: false }, h(RuleRow, { parts: ['Si gasta ', { value: '1,5×', select: true }, ' el CPA límite ', { value: 'sin ventas', select: true }] }))),
+          h(LpFeature, { icon: 'shield', title: 'Nada se publica sin tu OK', text: 'Cada texto, imagen y campaña pasa por ti. La IA no inventa reseñas ni expertos.' },
+            h('div', { className: 'df-lp-badges' }, ['generado', 'revision', 'aprobado', 'publicado'].map(function (s) { return h(StatusBadge, { key: s, status: s }); }))),
+          h(LpFeature, { icon: 'sparkle', title: 'El costo de IA, a la vista', text: 'Cuánto costó cada producto y un tope que tú defines.' },
+            h(AiCostCard, { compact: true, total: 387, totalUsd: 0.41, generations: 9, cap: 1500 })))),
+      h('section', { className: 'df-lp-sec', id: 'preguntas' },
+        h(LpSectionHead, { eyebrow: 'Preguntas', title: 'Lo que nos preguntan antes de empezar' }),
+        h('div', { className: 'df-lp-faqs' }, LP_FAQ.map(function (f, i) { return h(LpFaq, Object.assign({ key: i }, f)); }))));
+    var accion = h(LpCta, { title: 'Conecta tu tienda y revisa tu primer producto mejorado hoy', lead: 'Tarda unos 5 minutos. Empiezas con los productos que ya tienes en Shopify.', fine: 'Nada se publica en tu tienda ni en Meta sin tu aprobación.' });
+    var foot = h('footer', { className: 'df-lp-foot' }, h('div', { className: 'df-rail-brand', style: { padding: 0 } }, h('span', { className: 'df-rail-mark', 'aria-hidden': 'true' }, 'D'), 'DropFlex'), h('span', null, 'Términos · Privacidad · Contacto'));
+    return h('div', { className: cx('df-lp', m ? 'is-mobile' : 'is-desk') },
+      part === 1 ? h(LpNav, { compact: m }) : null,
+      part === 1 ? h(Frag, null, hero, interes) : h(Frag, null, deseo, accion, foot),
+      m && part === 1 ? h('div', { className: 'df-lp-sticky' }, h(Button, { variant: 'primary', block: true, size: 'lg' }, 'Conectar mi tienda')) : null);
+  }
+  function LpFrame(props) { return h('div', null, h('p', { className: 'df-phone-label' }, props.label), h('div', { className: cx('df-lp-frame', props.mobile ? 'is-mobile' : 'is-desk') }, props.children)); }
+
+  /* =========================================================
+     Creativos: anuncios estáticos, chat de WhatsApp y video UGC
+     ========================================================= */
+  var CR_PROV = { higgsfield: 'Higgsfield', gemini: 'Gemini', seedance: 'Seedance', kling: 'Kling' };
+
+  /* AssistantButton: abre el asistente del producto limitado a una etapa */
+  function AssistantButton(props) {
+    return h('button', { type: 'button', className: cx('df-asstbtn', props.label && 'has-label'), 'aria-label': 'Asistente' + (props.scope ? ', sobre ' + props.scope : '') },
+      h(Icon, { name: 'sparkle', size: 'sm' }), props.label ? h('span', null, props.label) : null);
+  }
+
+  /* ImageProviderPicker: Higgsfield o Gemini; se guarda por etapa y cambia el costo */
+  var CR_PROVS = [
+    { id: 'higgsfield', name: 'Higgsfield', cost: 95, eta: '~40 s', connected: true },
+    { id: 'gemini', name: 'Gemini', cost: 40, eta: '~20 s', connected: true }];
+  function ImageProviderPicker(props) {
+    var v = props.value || 'higgsfield', list = props.providers || CR_PROVS;
+    if (props.compact) {
+      var cur = list.filter(function (p) { return p.id === v; })[0] || list[0];
+      return h('div', { className: 'df-provrow' },
+        h(Icon, { name: 'image', size: 'sm' }),
+        h('span', { className: 'df-provrow-t' }, h('b', null, cur.name), ' · ≈ ' + money(cur.cost) + ' por pieza'),
+        h('button', { type: 'button', className: 'df-linkbtn' }, 'Cambiar'));
+    }
+    return h('div', { className: 'df-field' },
+      h('span', { className: 'df-field-label', id: 'prov-l' }, props.label || 'Proveedor de imagen'),
+      h('div', { className: 'df-prov', role: 'radiogroup', 'aria-labelledby': 'prov-l' }, list.map(function (p) {
+        var on = p.id === v, off = p.connected === false;
+        return h('button', { key: p.id, type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false', disabled: off, className: cx('df-prov-o', on && 'is-on', off && 'is-off') },
+          h('span', { className: 'df-prov-dot', 'aria-hidden': 'true' }),
+          h('span', { className: 'df-prov-b' }, h('b', null, p.name), h('span', null, off ? 'No conectado · conéctalo en Ajustes' : '≈ ' + money(p.cost) + ' por pieza · ' + p.eta)));
+      })),
+      h('span', { className: 'df-field-hint' }, 'Se guarda para esta etapa. Puedes cambiarlo y volver a generar una pieza con el otro.'));
+  }
+
+  /* QaResult: lo que revisó Claude con visión */
+  function QaResult(props) {
+    var issues = props.issues || [];
+    if (!issues.length) return h('div', { className: 'df-qa is-ok' }, h(Icon, { name: 'check-circle', size: 'sm', strokeWidth: 2 }), props.okLabel || 'Texto y producto revisados');
+    return h('div', { className: 'df-qa is-warn', role: 'status' },
+      h('div', { className: 'df-qa-h' }, h(Icon, { name: 'alert', size: 'sm', strokeWidth: 2 }), 'Revisa: ' + issues.length + (issues.length === 1 ? ' detalle' : ' detalles')),
+      h('ul', null, issues.map(function (t, i) { return h('li', { key: i }, t); })));
+  }
+
+  /* CreativePiece: una pieza (1:1, 9:16) en todos sus estados. variant 'row' | 'full' */
+  var PIECE = {
+    empty: null, locked: { t: 'Primero la 1:1', c: 'df-status-quiet', i: 'lock' },
+    queued: { t: 'En cola', c: 'df-status-neutral', i: 'clock' }, generating: { t: 'Generando', c: 'df-status-progress', i: 'loader', spin: true },
+    review: { t: 'Por revisar', c: 'df-status-warning', i: 'eye' }, approved: { t: 'En Anuncios', c: 'df-status-success', i: 'check' },
+    discarded: { t: 'Descartada', c: 'df-status-quiet', i: 'x' }, failed: { t: 'Falló', c: 'df-status-danger', i: 'alert' }
+  };
+  function CreativePiece(props) {
+    var st = props.state || 'empty', b = PIECE[st], full = props.variant === 'full';
+    var ratio = props.ratio || '1:1', vert = ratio === '9:16';
+    var hasImg = st === 'review' || st === 'approved' || st === 'discarded';
+    var media = h('div', { className: cx('df-piece-m', vert && 'is-v', st === 'discarded' && 'is-off') },
+      hasImg ? h('img', { src: productImage(props.imageIndex || 0, props.shape != null ? props.shape : 1), alt: '' })
+        : h(Icon, { name: st === 'failed' ? 'alert' : st === 'locked' ? 'lock' : 'sparkle', className: st === 'generating' ? 'df-pulse' : undefined }),
+      hasImg && full && props.overlay ? h('span', { className: 'df-piece-ov' }, props.overlay) : null,
+      props.provider && st !== 'empty' && st !== 'locked' ? h('span', { className: 'df-ref-src' }, CR_PROV[props.provider] || props.provider) : null);
+    var status = b ? h('span', { className: 'df-status df-status-sm ' + b.c }, h(Icon, { name: b.i, className: b.spin ? 'df-spin' : undefined, strokeWidth: 2 }), b.t) : null;
+    var note = st === 'generating' && props.retry ? h('span', { className: 'df-piece-note' }, h(Icon, { name: 'undo', size: 'sm' }), 'Segundo intento, sin estilo')
+      : st === 'queued' ? h('span', { className: 'df-piece-note' }, props.eta || 'Empieza en unos segundos')
+      : st === 'generating' ? h('span', { className: 'df-piece-note' }, props.eta || '~40 s')
+      : st === 'discarded' ? h('span', { className: 'df-piece-note' }, 'El archivo se borra en 2 min') : null;
+    var gen = function (label) { return h(Button, { variant: full ? 'primary' : 'secondary', size: full ? 'lg' : 'sm', icon: 'sparkle', block: full }, label + ' · ≈ ' + money(props.cost || 95)); };
+    var actions = null;
+    if (st === 'empty') actions = gen(full ? 'Generar ' + (vert ? 'Stories 9:16' : 'feed 1:1') : 'Generar');
+    else if (st === 'review' && full) actions = h('div', { className: 'df-piece-acts' }, h(Button, { variant: 'secondary', icon: 'x' }, 'Descartar'), h(Button, { variant: 'primary', icon: 'check' }, 'Aprobar'));
+    else if (st === 'review') actions = h(Button, { variant: 'secondary', size: 'sm', icon: 'eye' }, 'Revisar');
+    else if (st === 'failed') actions = h('div', { className: 'df-piece-acts' },
+      props.recoverable ? h(Button, { variant: full ? 'primary' : 'secondary', size: full ? undefined : 'sm', icon: 'download' }, 'Recuperar') : null,
+      h(Button, { variant: props.recoverable || !full ? 'secondary' : 'primary', size: full ? undefined : 'sm', icon: 'undo' }, (props.recoverable ? 'Generar de nuevo' : 'Reintentar') + ' · ≈ ' + money(props.cost || 95)));
+    else if ((st === 'approved' || st === 'discarded') && full) actions = h(Button, { variant: 'secondary', icon: 'undo' }, 'Deshacer');
+    var fail = st === 'failed' ? h('p', { className: 'df-piece-err' }, props.error || 'No se pudo generar.', props.recoverable ? ' ' + (CR_PROV[props.provider] || 'El proveedor') + ' sí la recibió: recupérala sin volver a pagar.' : '') : null;
+    if (!full) return h('div', { className: cx('df-piece', 'st-' + st) }, media,
+      h('div', { className: 'df-piece-b' }, h('div', { className: 'df-piece-t' }, props.label || (vert ? 'Stories 9:16' : 'Feed 1:1'), props.provider && st !== 'empty' && st !== 'locked' ? h('span', { className: 'df-piece-prov' }, ' · ' + (CR_PROV[props.provider] || props.provider)) : null), h('div', { className: 'df-piece-s' }, status, note), props.qa && st === 'review' ? h('span', { className: cx('df-piece-qa', props.qa.length ? 'is-warn' : 'is-ok') }, props.qa.length ? 'Revisa: ' + props.qa.length + (props.qa.length === 1 ? ' detalle' : ' detalles') : 'QA sin detalles') : null, fail),
+      actions ? h('div', { className: 'df-piece-a' }, actions) : null);
+    return h('section', { className: cx('df-piece is-full', 'st-' + st), 'aria-label': props.label || ratio },
+      media,
+      h('div', { className: 'df-piece-head' }, h('b', null, props.label || (vert ? 'Stories 9:16' : 'Feed 1:1')), status,
+        hasImg ? h('a', { className: 'df-piece-open', href: '#', target: '_blank', rel: 'noopener' }, 'Tamaño completo', h(Icon, { name: 'external', size: 'sm' })) : null),
+      note, fail,
+      props.qa && hasImg ? h(QaResult, { issues: props.qa, okLabel: props.qaOk }) : null,
+      actions);
+  }
+
+  /* CreativeConcept: lo que propone Claude, revisable antes de pagar */
+  function CreativeConcept(props) {
+    var ed = props.editing, busy = props.locked;
+    var texts = props.texts || [];
+    return h('article', { className: cx('df-concept', ed && 'is-editing', props.compact && 'is-compact') },
+      h('div', { className: 'df-concept-h' },
+        h('span', { className: 'df-concept-n' }, props.slot || 1),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { className: 'df-concept-t' }, props.title),
+          h('div', { className: 'df-concept-tags' }, h('span', { className: 'df-tag' }, props.family), h('span', { className: 'df-tag' }, props.styleKind === 'direct' ? 'Edición directa' : 'Estilo: ' + props.style)))),
+      props.compact ? null : h(Frag, null,
+        h('div', { className: 'df-concept-f' }, h('span', null, 'Por qué'), h('p', null, props.why)),
+        h('div', { className: 'df-concept-f' }, h('span', null, 'Cómo se verá'), h('p', null, props.look)),
+        h('div', { className: 'df-concept-f' },
+          h('span', { className: 'df-concept-fl' }, 'Textos dentro de la imagen', !ed ? h('button', { type: 'button', className: 'df-linkbtn', disabled: busy, 'aria-describedby': busy ? 'cc-busy' : undefined }, h(Icon, { name: 'edit', size: 'sm' }), 'Editar') : null),
+          busy && !ed ? h('p', { className: 'df-field-hint', id: 'cc-busy', style: { margin: 0 } }, 'No se puede editar mientras se genera una pieza.') : null,
+          h('dl', { className: 'df-ctexts' }, texts.map(function (t, i) {
+            var over = t.limit && t.value.length > t.limit;
+            return h('div', { key: i, className: cx('df-ctext', over && 'is-over') },
+              h('dt', null, t.role, h(CharCount, { count: t.value.length, limit: t.limit, unit: '' })),
+              ed ? h('dd', null, h('input', { className: 'df-ctext-in', defaultValue: t.value, 'aria-label': t.role, 'aria-invalid': over ? 'true' : undefined }), over ? h('span', { className: 'df-field-err' }, 'Máximo ' + t.limit + ' para un ' + t.role.toLowerCase() + '. Acórtalo para que se lea en la imagen.') : null) : h('dd', null, t.value));
+          })))),
+      props.pieces && !ed ? h('div', { className: 'df-concept-p' }, props.pieces.map(function (p, i) { return h(CreativePiece, Object.assign({ key: i }, p)); })) : null,
+      props.footer || null);
+  }
+
+  /* ChatConsent: aviso obligatorio antes de crear un chat armado */
+  function ChatConsent(props) {
+    return h('div', { className: 'df-consent' },
+      h('div', { className: 'df-consent-w' }, h(Icon, { name: 'shield' }),
+        h('div', null, h('b', null, 'Es una conversación armada'), h('p', null, 'No es de un cliente real. Meta puede rechazar un anuncio que presente un testimonio inventado, y tu cuenta puede recibir una advertencia.'))),
+      h('label', { className: 'df-ack' }, h('input', { type: 'checkbox', defaultChecked: !!props.checked }), h('span', null, 'Entiendo que es una conversación armada y me hago responsable de cómo la uso.')),
+      h(Button, { variant: 'primary', size: 'lg', block: true, disabled: !props.checked, icon: 'chat' }, 'Crear chat'));
+  }
+
+  /* ChatPreview: la conversación como se verá en la captura 9:16 */
+  function ChatPreview(props) {
+    var msgs = props.messages || [];
+    return h('div', { className: cx('df-wa', props.small && 'is-small'), role: 'img', 'aria-label': 'Vista previa del chat con ' + props.contact },
+      h('div', { className: 'df-wa-h' }, h('span', { className: 'df-wa-av', 'aria-hidden': 'true' }, (props.contact || 'C').charAt(0)), h('div', null, h('b', null, props.contact), h('span', null, 'en línea'))),
+      h('div', { className: 'df-wa-body' },
+        h('span', { className: 'df-wa-day' }, 'Hoy'),
+        msgs.map(function (m, i) {
+          return h('div', { key: i, className: cx('df-wa-msg', m.me ? 'is-me' : 'is-them', m.photo && 'has-photo') },
+            m.photo ? h('img', { src: productImage(props.imageIndex || 1, 1), alt: '' }) : null,
+            h('span', null, m.text), h('small', null, m.time));
+        })));
+  }
+
+  /* UgcStepper: los 5 pasos del video UGC */
+  var UGC_STEPS = ['Guion', 'Imágenes clave', 'Clips', 'Montaje', 'Video final'];
+  function UgcStepper(props) {
+    var cur = props.current || 1, vert = props.vertical;
+    return h('ol', { className: cx('df-ugc', vert && 'is-vert'), 'aria-label': 'Pasos del video' }, UGC_STEPS.map(function (s, i) {
+      var n = i + 1, st = n < cur ? 'done' : n === cur ? 'current' : 'todo';
+      return h('li', { key: i, className: 'is-' + st, 'aria-current': st === 'current' ? 'step' : undefined },
+        h('span', { className: 'df-ugc-n' }, st === 'done' ? h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.5 }) : n),
+        h('span', { className: 'df-ugc-l' }, vert ? s : s.split(' ')[0]),
+        vert && props.notes && props.notes[i] ? h('small', null, props.notes[i]) : null);
+    }));
+  }
+
+  /* ScriptShot: una toma del guion */
+  function ScriptShot(props) {
+    var talk = props.kind !== 'broll', ed = props.editing;
+    return h('div', { className: cx('df-shot', props.changed && 'is-changed') },
+      h('div', { className: 'df-shot-h' }, h('b', null, 'Toma ' + props.n), h('span', { className: 'df-tag' }, talk ? 'Hablada' : 'Apoyo'), h('span', { className: 'df-shot-time' }, props.time),
+        props.changed ? h('span', { className: 'df-status df-status-sm df-status-warning' }, h(Icon, { name: 'undo', strokeWidth: 2 }), 'Se genera de nuevo') : null),
+      talk ? h('div', { className: 'df-shot-f' }, h('span', null, 'Dice'), ed ? h('textarea', { className: 'df-gc-ta', rows: 2, defaultValue: props.line, 'aria-label': 'Toma ' + props.n + ', lo que dice' }) : h('p', null, '“' + props.line + '”'))
+        : h('div', { className: 'df-shot-f' }, h('span', null, 'Se ve'), h('p', null, props.line)),
+      props.onscreen ? h('div', { className: 'df-shot-f' }, h('span', null, 'Texto en pantalla'), ed ? h('input', { className: 'df-ctext-in', defaultValue: props.onscreen, 'aria-label': 'Toma ' + props.n + ', texto en pantalla' }) : h('p', null, props.onscreen)) : null);
+  }
+
+  /* KeyframeTile: imagen clave de una toma con QA de manos, cara y producto */
+  function KeyframeTile(props) {
+    var st = props.state || 'review', issues = props.qa || [];
+    return h('div', { className: cx('df-kf', 'st-' + st) },
+      h('div', { className: 'df-kf-m' },
+        st === 'missing' || st === 'generating' ? h(Icon, { name: 'sparkle', className: st === 'generating' ? 'df-pulse' : undefined }) : h('img', { src: productImage(props.imageIndex || 0, 1), alt: '' }),
+        h('span', { className: 'df-ref-src' }, 'Toma ' + props.n),
+        st === 'approved' ? h('span', { className: 'df-tile-order' }, h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.5 })) : null),
+      st === 'review' ? h('span', { className: cx('df-piece-qa', issues.length ? 'is-warn' : 'is-ok') }, issues.length ? issues[0] : 'Manos, cara y producto OK')
+        : h('span', { className: 'df-piece-note' }, { missing: 'Falta', generating: 'Generando…', approved: 'Aprobada', discarded: 'Descartada' }[st]),
+      st === 'review' ? h('div', { className: 'df-kf-a' }, h(IconButton, { icon: 'x', label: 'Descartar toma ' + props.n }), h(IconButton, { icon: 'check', label: 'Aprobar toma ' + props.n, variant: 'primary' })) : null);
+  }
+
+  /* ClipRow: un clip generado desde su imagen clave */
+  function ClipRow(props) {
+    var st = props.state || 'queued', talk = props.kind !== 'broll';
+    var b = { queued: PIECE.queued, generating: PIECE.generating, done: { t: 'Listo', c: 'df-status-success', i: 'check' }, failed: PIECE.failed }[st];
+    return h('div', { className: cx('df-clip', 'st-' + st) },
+      h('div', { className: 'df-clip-m' }, st === 'done' ? h('img', { src: productImage(props.imageIndex || 0, 1), alt: '' }) : h(Icon, { name: 'video', className: st === 'generating' ? 'df-pulse' : undefined }),
+        st === 'done' ? h('span', { className: 'df-cslot-play' }, h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: 'M8 5.5v13l10-6.5z', fill: 'currentColor' })), props.duration) : null),
+      h('div', { className: 'df-piece-b' },
+        h('div', { className: 'df-piece-t' }, 'Toma ' + props.n + ' · ' + (talk ? 'hablada' : 'apoyo')),
+        h('div', { className: 'df-piece-s' }, h('span', { className: 'df-status df-status-sm ' + b.c }, h(Icon, { name: b.i, className: b.spin ? 'df-spin' : undefined, strokeWidth: 2 }), b.t),
+          h('span', { className: 'df-piece-note' }, (talk ? 'Seedance · con voz' : 'Kling') + (st === 'generating' ? ' · ' + (props.eta || '3 a 6 min') : ''))),
+        st === 'failed' && props.recoverable ? h('p', { className: 'df-piece-err' }, 'El proveedor sí lo recibió: recupéralo sin volver a pagar.') : null),
+      st === 'failed' ? h('div', { className: 'df-piece-a df-piece-acts' }, props.recoverable ? h(Button, { variant: 'secondary', size: 'sm', icon: 'download' }, 'Recuperar') : null, h(Button, { variant: 'secondary', size: 'sm', icon: 'undo' }, 'Rehacer · ≈ ' + money(props.cost || 420)))
+        : st === 'done' ? h('div', { className: 'df-piece-a' }, h(IconButton, { icon: 'more', label: 'Más acciones de la toma ' + props.n })) : null);
+  }
+
+  /* MontagePackage: paquete JSON para montar en local */
+  function MontagePackage(props) {
+    var expired = props.expired;
+    return h('section', { className: 'df-montage' },
+      h('div', { className: 'df-montage-h' }, h(Icon, { name: 'box' }), h('div', null, h('b', null, 'Paquete de montaje'), h('span', null, (props.clips || 5) + ' clips · textos en pantalla · cierre'))),
+      expired ? h(Notice, { title: 'Los enlaces vencieron', body: 'Las URLs firmadas duran 24 h. Genera el paquete de nuevo; no se vuelven a crear los clips.' })
+        : h('p', { className: 'df-field-hint', style: { margin: 0 } }, h(Icon, { name: 'clock', size: 'sm' }), ' Los enlaces del paquete vencen en ' + (props.expiresIn || '23 h') + '.'),
+      h(Button, { variant: expired ? 'secondary' : 'primary', icon: expired ? 'undo' : 'download', block: true, disabled: !!props.disabled }, expired ? 'Generar el paquete de nuevo' : 'Descargar paquete JSON'),
+      h('div', { className: 'df-field' }, h('span', { className: 'df-field-label' }, 'En tu computador'),
+        h('pre', { className: 'df-code' }, 'python scripts/ugc-montage.py \\\n  paquete-angulo-1.json \\\n  --music musica.mp3'),
+        h('span', { className: 'df-field-hint' }, '--music es opcional. Sale un MP4 9:16 de ~30 s.')));
+  }
+
+  /* VideoUpload: subir el MP4 montado y decidir */
+  function VideoUpload(props) {
+    var st = props.state || 'idle';
+    if (st === 'idle' || st === 'error') return h('div', { className: cx('df-drop', st === 'error' && 'is-error') },
+      h('span', { className: 'df-drop-ico' }, h(Icon, { name: st === 'error' ? 'alert' : 'upload' })),
+      h('b', null, st === 'error' ? 'Ese archivo no es MP4' : 'Sube el MP4 montado'),
+      h('span', { className: 'df-field-hint' }, st === 'error' ? 'Exporta el video en MP4 y vuelve a subirlo.' : 'Solo MP4 · 9:16 · hasta 200 MB'),
+      h(Button, { variant: 'secondary', icon: 'upload' }, 'Elegir archivo'));
+    if (st === 'uploading') return h('div', { className: 'df-vup' },
+      h('div', { className: 'df-vup-r' }, h(Icon, { name: 'video' }), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, props.file || 'ugc-angulo-1.mp4'), h('span', { className: 'df-pick-meta' }, (props.done || '31') + ' de ' + (props.size || '48') + ' MB · quedan ~20 s'))),
+      h('div', { className: 'df-prog', role: 'progressbar', 'aria-valuenow': props.progress || 64, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-label': 'Subiendo video' }, h('span', { style: { width: (props.progress || 64) + '%' } })),
+      h(Button, { variant: 'ghost' }, 'Cancelar'));
+    return h('div', { className: cx('df-vfinal', 'st-' + st) },
+      h('div', { className: cx('df-piece-m is-v', st === 'discarded' && 'is-off') }, h('img', { src: productImage(props.imageIndex || 4, 1), alt: '' }), h('span', { className: 'df-cslot-play' }, h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: 'M8 5.5v13l10-6.5z', fill: 'currentColor' })), props.duration || '0:31')),
+      h('div', { className: 'df-vfinal-b' },
+        h('b', null, props.file || 'ugc-angulo-1.mp4'),
+        h('span', { className: 'df-pick-meta' }, '9:16 · ' + (props.duration || '0:31') + ' · ' + (props.size || '48') + ' MB'),
+        st === 'approved' ? h('span', { className: 'df-status df-status-sm df-status-success' }, h(Icon, { name: 'check', strokeWidth: 2 }), 'En Anuncios · ' + (props.adset || 'Ángulo principal')) : null,
+        st === 'ready' ? h('div', { className: 'df-piece-acts' }, h(Button, { variant: 'secondary', icon: 'x' }, 'Descartar'), h(Button, { variant: 'primary', icon: 'check' }, 'Aprobar')) : h(Button, { variant: 'secondary', icon: 'undo' }, 'Deshacer')));
+  }
+
+  /* ---------- Pantallas: Creativos ---------- */
+  var CR_TEXTS = [
+    { role: 'Titular', value: '¿Espalda cargada al final del día?', limit: 40 },
+    { role: 'Bajada', value: 'Corrige tu postura mientras trabajas', limit: 45 },
+    { role: 'Sello', value: 'Pago contra entrega', limit: 22 }];
+  var CR_C1 = { slot: 1, title: 'Dolor al final de la jornada', family: 'Problema → solución', style: 'Oficina luminosa', why: 'El ángulo principal habla de quien trabaja sentado; el titular nombra el dolor y la foto muestra el alivio.', look: 'Mujer de perfil frente al computador, con el corrector sobre la polera. Titular arriba, sello abajo a la derecha.', texts: CR_TEXTS };
+  function CrBar(sub) {
+    return h(TopBar, { back: 'Corrector de postura', title: 'Creativos', subtitle: sub || 'Opcional', actions: h(Frag, null, h(AiCostChip, { total: 1840, cap: 3000 }), h(AssistantButton, { scope: 'Creativos' })) });
+  }
+  function CrTabs(v) { return h('div', { style: { padding: '0 16px 8px' } }, h(SegmentedControl, { block: true, value: v || 'img', label: 'Tipo de creativo', options: [{ value: 'img', label: 'Imágenes' }, { value: 'vid', label: 'Videos' }] })); }
+  function CrSkip() { return h('p', { className: 'df-ob-fine', style: { margin: 0, textAlign: 'center' } }, 'Es opcional: ', h('button', { type: 'button', className: 'df-linkbtn' }, 'ir a Anuncios y subir creativos a mano')); }
+  function CrOverlay(title, h1, body, sticky) {
+    return h('div', { style: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' } },
+      h('div', { style: { position: 'absolute', inset: 0, background: 'var(--scrim)' } }),
+      h('div', { className: 'df-sheet', style: { position: 'relative', maxHeight: '88%' } },
+        h('div', { className: 'df-sheet-grab', 'aria-hidden': 'true' }),
+        h('div', { className: 'df-sheet-head' }, h('strong', null, title), h(IconButton, { icon: 'x', label: 'Cerrar' })),
+        h('div', { style: { padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' } }, body),
+        sticky || null));
+  }
+  function CrToast(msg, act, bottom) { return h('div', { style: { position: 'absolute', left: 12, right: 12, bottom: bottom || 88, zIndex: 3 } }, h(Toast, { message: msg, action: act })); }
+  function CrRel(children) { return h('div', { style: { position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } }, children); }
+
+  /* 0 · Acceso */
+  function CrLocked() {
+    return h(Phone, { label: 'C1 · Bloqueada: primero los ángulos (0.1)' }, CrBar('Bloqueada'),
+      h('div', { className: 'df-scroll', style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 16 } },
+        h(EmptyState, { icon: 'lock', title: 'Primero, los ángulos', body: 'Los anuncios se arman desde los ángulos aprobados: el principal y el secundario. Apruébalos y vuelve.', action: h(Button, { variant: 'primary', iconEnd: 'chevron-right' }, 'Ir a Ángulos') })),
+      h('div', { className: 'df-sticky', style: { justifyContent: 'center' } }, CrSkip()));
+  }
+  function CrNoProvider() {
+    return h(Phone, { label: 'C2 · Sin proveedor conectado (0.2, 0.4)' }, CrBar(), CrTabs('img'),
+      h('div', { className: 'df-scroll', style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 16, gap: 16 } },
+        h(EmptyState, { icon: 'image', title: 'Conecta un proveedor de imágenes', body: 'Higgsfield o Gemini. Se conecta una vez en Ajustes y sirve para todos tus productos.', action: h(Button, { variant: 'primary', icon: 'settings' }, 'Ir a Ajustes') }),
+        h('p', { className: 'df-field-hint', style: { margin: 0, textAlign: 'center' } }, 'En la pestaña Videos verás «Conecta Higgsfield»: los videos solo usan Higgsfield.')),
+      h('div', { className: 'df-sticky', style: { justifyContent: 'center' } }, CrSkip()));
+  }
+  function CrStart() {
+    return h(Phone, { label: 'C3 · Elegir proveedor y proponer (1.1, 1.2)' }, CrBar(), CrTabs('img'),
+      h('div', { className: 'df-scroll', style: { padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+        h('div', null, h('div', { className: 'type-heading' }, 'Anuncios estáticos'), h('p', { className: 'df-empty-b', style: { margin: '4px 0 0', textAlign: 'left' } }, 'Claude lee tus 2 ángulos y la foto base y propone unos 6 conceptos. Revisas cada uno antes de pagar su imagen.')),
+        h('div', { className: 'df-basephoto' }, h('img', { src: productImage(1, 1), alt: '' }), h('div', null, h('b', null, 'Foto base'), h('span', null, 'La portada de Imágenes')), h('button', { type: 'button', className: 'df-linkbtn' }, 'Cambiar')),
+        h(ImageProviderPicker, { value: 'higgsfield' })),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 8 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'sparkle' }, 'Proponer anuncios · ≈ ' + money(30)),
+        h('p', { className: 'df-ob-fine', style: { margin: 0, textAlign: 'center' } }, 'Tarda ~1 min. Puedes salir de la pantalla: te avisamos.')));
+  }
+  function CrBusy() {
+    return h(Phone, { label: 'C4 · Proponiendo en segundo plano (1.3)' }, CrBar(), CrTabs('img'),
+      h('div', { className: 'df-scroll', style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 16 } },
+        h(EmptyState, { icon: 'sparkle', busy: true, title: 'La IA está proponiendo tus anuncios', body: 'Tarda ~1 min. Puedes salir de esta pantalla; te avisamos cuando termine.', secondary: h(Button, { variant: 'secondary' }, 'Volver al producto') })),
+      h('div', { className: 'df-sticky', style: { justifyContent: 'center' } }, CrSkip()));
+  }
+  function CrFailed() {
+    return h(Phone, { label: 'C5 · La propuesta falló (1.4)' }, CrBar(), CrTabs('img'),
+      CrRel(h(Frag, null,
+        h('div', { className: 'df-scroll', style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 16 } },
+          h(EmptyState, { icon: 'alert', tone: 'error', title: 'No se pudo proponer', body: 'La IA no terminó la propuesta. Tus ángulos y la foto base siguen igual.', action: h(Button, { variant: 'primary', icon: 'undo' }, 'Reintentar · ≈ ' + money(30)) })),
+        CrToast('No se pudieron proponer tus anuncios.', 'Reintentar', 16))));
+  }
+
+  /* 1 · Lista de conceptos */
+  function CrList() {
+    return h(Phone, { label: 'C6 · Conceptos, lote y continuar (1.6, 1.10, 1.11, 1.20)' }, CrBar('1 pieza aprobada'), CrTabs('img'),
+      CrRel(h(Frag, null,
+        h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
+          h(ImageProviderPicker, { compact: true }),
+          h('div', { className: 'df-section-t', style: { padding: '4px 0 0' } }, 'Ángulo principal · 3 conceptos', h('button', { type: 'button', className: 'df-linkbtn' }, h(Icon, { name: 'undo', size: 'sm' }), 'Proponer otros')),
+          h(CreativeConcept, Object.assign({}, CR_C1, { compact: true, pieces: [{ ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1 }, { ratio: '9:16', state: 'empty' }] })),
+          h(CreativeConcept, { compact: true, slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', pieces: [{ ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello tapa el velcro'] }, { ratio: '1:1', state: 'review', provider: 'higgsfield', imageIndex: 2, qa: [] }] }),
+          h(CreativeConcept, { compact: true, slot: 3, title: 'Chat de WhatsApp', family: 'Conversación', style: 'Captura 9:16', pieces: [{ ratio: '9:16', state: 'empty', label: 'Captura 9:16' }] })),
+        CrToast('La IA propuso tus anuncios: 6 conceptos.', 'Ver', 132))),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 8 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'sparkle' }, 'Generar 4 · ≈ ' + money(380)),
+        h(Button, { variant: 'secondary', size: 'lg', block: true, iconEnd: 'chevron-right' }, 'Continuar a Anuncios')));
+  }
+  function CrConcept() {
+    return h(Phone, { label: 'C7 · Revisar el concepto antes de pagar (1.6, 1.8, 1.9)' },
+      h(TopBar, { back: 'Creativos', title: 'Concepto 1', subtitle: 'Ángulo principal · 1 de 3', actions: h(AssistantButton, { scope: 'Creativos' }) }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px' } },
+        h(CreativeConcept, Object.assign({}, CR_C1, { pieces: [{ ratio: '1:1', state: 'empty', cost: 95 }, { ratio: '9:16', state: 'locked' }] }))),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', icon: 'sparkle' }, 'Generar feed 1:1 · ≈ ' + money(95))));
+  }
+  function CrEdit() {
+    var t = CR_TEXTS.slice(); t[0] = { role: 'Titular', value: '¿Tu espalda llega cargada al final del día?', limit: 40 };
+    return h(Phone, { label: 'C8 · Editar los textos del concepto (1.7)' },
+      h(TopBar, { back: 'Concepto 1', title: 'Editar textos', subtitle: 'Van dentro de la imagen' }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px' } }, h(CreativeConcept, Object.assign({}, CR_C1, { texts: t, editing: true }))),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'secondary', size: 'lg' }, 'Cancelar'), h(Button, { variant: 'primary', size: 'lg', disabled: true }, 'Guardar')));
+  }
+
+  /* 1 · Generar, QA y decidir */
+  function CrGenerating() {
+    return h(Phone, { label: 'C9 · En cola, generando y segundo intento (1.12)' },
+      h(TopBar, { back: 'Creativos', title: 'Concepto 2', subtitle: 'Ángulo principal · 2 de 3', actions: h(AiCostChip, { total: 1935, cap: 3000, running: true }) }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px' } },
+        h(CreativeConcept, { slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', locked: true, why: 'El secundario promete un cambio visible; el antes y después lo muestra sin decir cifras.', look: 'Dos fotos lado a lado de la misma persona, encorvada y derecha. Rótulos «Antes» y «Con el corrector».', texts: [{ role: 'Rótulo', value: 'Antes', limit: 12 }, { role: 'Rótulo', value: 'Con el corrector', limit: 18 }],
+          pieces: [{ ratio: '1:1', state: 'generating', provider: 'higgsfield', retry: true }, { ratio: '1:1', label: 'Feed 1:1', state: 'queued', provider: 'gemini' }] })));
+  }
+  function CrReview() {
+    return h(Phone, { label: 'C10 · Resultado con QA (1.13, 1.14)' },
+      h(TopBar, { back: 'Concepto 2', title: 'Feed 1:1', subtitle: 'Gemini · por revisar' }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px' } },
+        h(CreativePiece, { variant: 'full', ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello «Pago contra entrega» tapa el velcro.', 'El titular dice «corretor»: falta la c.'] })));
+  }
+  function CrApproved() {
+    return h(Phone, { label: 'C11 · Aprobada, con Deshacer (1.15, 1.17, 1.9)' },
+      h(TopBar, { back: 'Concepto 1', title: 'Feed 1:1', subtitle: 'Higgsfield · aprobada' }),
+      CrRel(h(Frag, null,
+        h('div', { className: 'df-scroll', style: { padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+          h(CreativePiece, { variant: 'full', ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1, qa: [] }),
+          h(CreativePiece, { ratio: '9:16', state: 'empty', cost: 95 })),
+        CrToast('Aprobada. Ya está en Anuncios.', 'Deshacer', 16))));
+  }
+  function CrRecover() {
+    return h(Phone, { label: 'C12 · Falló, recuperar o descartar (1.16, 1.18, 1.19)' },
+      h(TopBar, { back: 'Creativos', title: 'Concepto 4', subtitle: 'Ángulo secundario · 1 de 3' }),
+      CrRel(h(Frag, null,
+        h('div', { className: 'df-scroll', style: { padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+          h(CreativePiece, { variant: 'full', ratio: '1:1', state: 'failed', provider: 'higgsfield', recoverable: true, error: 'La imagen no llegó a tiempo.' }),
+          h(CreativePiece, { ratio: '9:16', state: 'discarded', provider: 'higgsfield', imageIndex: 3 }),
+          h(CreativePiece, { ratio: '9:16', label: 'Stories 9:16', state: 'failed', provider: 'gemini', cost: 40, error: 'Gemini rechazó la solicitud.' })),
+        CrToast('Descartada. El archivo se borra en 2 min.', 'Deshacer', 16))));
+  }
+  function CrReplace() {
+    return h(Phone, { label: 'C13 · Proponer otros: qué se reemplaza (1.5)' },
+      CrRel(h(Frag, null, CrBar('3 piezas aprobadas'), CrTabs('img'), h('div', { className: 'df-scroll' }),
+        CrOverlay('¿Proponer otros conceptos?', null, h(Frag, null,
+          h('ul', { className: 'df-replace' },
+            h('li', null, h(Icon, { name: 'undo', size: 'sm' }), h('span', null, 'Los 6 conceptos se cambian por nuevos.')),
+            h('li', null, h(Icon, { name: 'check', size: 'sm' }), h('span', null, 'Mientras la IA trabaja, lo aprobado sigue en Anuncios.')),
+            h('li', { className: 'is-warn' }, h(Icon, { name: 'alert', size: 'sm' }), h('span', null, 'Al terminar se borran las piezas de los conceptos reemplazados, ', h('b', null, 'también las 3 aprobadas'), '.')),
+            h('li', null, h(Icon, { name: 'shield', size: 'sm' }), h('span', null, 'Se conservan 2 que ya están en Meta o las usa un anuncio.'))),
+          h('p', { className: 'df-field-hint', style: { margin: 0 } }, 'Tarda ~1 min · ≈ ' + money(30))),
+          h('div', { className: 'df-sticky' }, h(Button, { variant: 'secondary', size: 'lg' }, 'Cancelar'), h(Button, { variant: 'destructive', size: 'lg' }, 'Proponer otros'))))));
+  }
+
+  /* 2 · Chat de WhatsApp */
+  var CR_CHAT = [
+    { me: false, text: 'Hola, me llegó el corrector. ¿Cómo lo ajusto?', time: '10:12' },
+    { me: true, text: 'Hola Carla, cruza las tiras en la espalda y cierra el velcro adelante.', time: '10:14' },
+    { me: false, photo: true, text: 'Así? Lo tengo puesto bajo la polera', time: '10:20' },
+    { me: true, text: 'Perfecto, así va.', time: '10:21' }];
+  function CrChatAck() {
+    return h(Phone, { label: 'W1 · Crear el chat: confirmar el aviso (2.1)' },
+      CrRel(h(Frag, null, CrBar(), CrTabs('img'), h('div', { className: 'df-scroll' }),
+        CrOverlay('Chat de WhatsApp · Ángulo principal', null, h(ChatConsent, { checked: true })))));
+  }
+  function CrChatPreview() {
+    return h(Phone, { label: 'W2 · Vista previa y captura 9:16 (2.2, 2.4, 2.5)' },
+      h(TopBar, { back: 'Creativos', title: 'Chat de WhatsApp', subtitle: 'Ángulo principal · conversación armada', actions: h(IconButton, { icon: 'edit', label: 'Editar chat' }) }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
+        h(ChatPreview, { contact: 'Carla', messages: CR_CHAT, imageIndex: 1 }),
+        h('div', { className: 'df-im-add' }, h(Button, { variant: 'secondary', icon: 'edit' }, 'Editar'), h(Button, { variant: 'secondary', icon: 'undo' }, 'Otro chat · ≈ ' + money(15)))),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 6 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'sparkle' }, 'Generar captura 9:16 · ≈ ' + money(95)),
+        h('p', { className: 'df-ob-fine', style: { margin: 0, textAlign: 'center' } }, 'Solo 9:16. Después se aprueba o descarta como cualquier pieza.')));
+  }
+  function CrChatEdit() {
+    return h(Phone, { label: 'W3 · Editar contacto, mensajes y pie de foto (2.3)' },
+      h(TopBar, { back: 'Chat de WhatsApp', title: 'Editar chat' }),
+      h('div', { className: 'df-scroll', style: { padding: '4px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(Field, { label: 'Nombre del contacto', value: 'Carla', id: 'wa-c' }),
+        CR_CHAT.map(function (m, i) {
+          return h('div', { key: i, className: 'df-field' }, h('label', { className: 'df-field-label', htmlFor: 'wa-m' + i }, (m.me ? 'Tienda' : 'Contacto') + ' · ' + m.time + (m.photo ? ' · pie de la foto' : '')),
+            h('textarea', { id: 'wa-m' + i, className: 'df-gc-ta', rows: 2, defaultValue: m.text }));
+        })),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'secondary', size: 'lg' }, 'Cancelar'), h(Button, { variant: 'primary', size: 'lg' }, 'Guardar')));
+  }
+
+  /* 3 · Videos UGC */
+  var CR_SHOTS = [
+    { n: 1, kind: 'talk', time: '0–5 s', line: 'Si pasas el día sentada frente al computador, mira cómo se pone.', onscreen: 'Todo el día sentada' },
+    { n: 2, kind: 'broll', time: '5–10 s', line: 'Manos cruzando las tiras y cerrando el velcro sobre la polera.' },
+    { n: 3, kind: 'talk', time: '10–18 s', line: 'Va bajo la ropa y el cruce en la espalda lleva los hombros hacia atrás.', onscreen: 'Bajo la ropa', changed: true },
+    { n: 4, kind: 'broll', time: '18–24 s', line: 'De perfil frente al computador, hombros atrás.' }];
+  function CrVidTop(step) {
+    return h(Frag, null, CrBar(), CrTabs('vid'),
+      h('div', { style: { padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 10 } },
+        h('div', { className: 'df-chips' }, h('button', { type: 'button', className: 'df-chipbtn df-chip-sm is-on', 'aria-pressed': 'true' }, 'Ángulo principal'), h('button', { type: 'button', className: 'df-chipbtn df-chip-sm', 'aria-pressed': 'false' }, 'Ángulo secundario')),
+        h(UgcStepper, { current: step })));
+  }
+  function CrScript() {
+    return h(Phone, { label: 'V1 · Guion: aviso de formato, editar y aprobar (3.4–3.6)' }, CrVidTop(1),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
+        h(Notice, { tone: 'info', icon: 'image', title: 'Este ángulo rinde más como imagen', body: 'Muestra un cambio de postura; un antes y después estático lo cuenta más rápido.' }),
+        CR_SHOTS.slice(0, 3).map(function (s) { return h(ScriptShot, Object.assign({ key: s.n }, s)); }),
+        h('p', { className: 'df-gc-guard' }, h(Icon, { name: 'shield', size: 'sm' }), 'La persona muestra el producto. No dice ser clienta ni cuenta resultados propios.')),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 8 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'check' }, 'Aprobar guion'),
+        h('div', { style: { display: 'flex', gap: 8 } }, h(Button, { variant: 'secondary', icon: 'edit' }, 'Editar'), h(Button, { variant: 'secondary', icon: 'undo' }, 'Otro guion · ≈ ' + money(25)))));
+  }
+  function CrScriptStates() {
+    return h(Phone, { label: 'V0 · Escribir el guion, esperarlo o reintentar (3.1–3.3)' }, CrVidTop(1),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h('div', { className: 'df-card df-card-pad', style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+          h('b', null, 'Un UGC de ~30 s para este ángulo'), h('span', { className: 'df-field-hint' }, 'Claude escribe las tomas habladas, las de apoyo, los textos en pantalla y el cierre.'),
+          h(Button, { variant: 'primary', icon: 'sparkle' }, 'Escribir el guion · ≈ ' + money(25))),
+        h(EmptyState, { icon: 'text', busy: true, title: 'Escribiendo el guion', body: '~1 min. Te avisamos al terminar.' }),
+        h(EmptyState, { icon: 'alert', tone: 'error', title: 'No se pudo escribir el guion', action: h(Button, { variant: 'secondary', icon: 'undo' }, 'Reintentar') })));
+  }
+  function CrKeyframes() {
+    return h(Phone, { label: 'V2 · Imágenes clave con QA (3.7–3.9)' }, CrVidTop(2),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, h('span', { className: 'df-review-count', style: { flex: 1 } }, '2 aprobadas · 1 falta'), h(Button, { variant: 'secondary', size: 'sm', icon: 'sparkle' }, 'Generar la que falta · ≈ ' + money(95))),
+        h('div', { className: 'df-kfgrid' },
+          h(KeyframeTile, { n: 1, state: 'approved', imageIndex: 4 }),
+          h(KeyframeTile, { n: 2, state: 'approved', imageIndex: 1 }),
+          h(KeyframeTile, { n: 3, state: 'review', imageIndex: 2, qa: ['Mano con 6 dedos'] }),
+          h(KeyframeTile, { n: 4, state: 'review', imageIndex: 0, qa: [] }),
+          h(KeyframeTile, { n: 5, state: 'missing' }))),
+      h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 8 } },
+        h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'check' }, 'Aprobar todas (2)'),
+        h('div', { style: { display: 'flex', gap: 8 } }, h(Button, { variant: 'secondary', icon: 'eye' }, 'Volver a revisar'), h(Button, { variant: 'secondary', icon: 'undo' }, 'Pedir otra'))));
+  }
+  function CrClips() {
+    return h(Phone, { label: 'V3 · Clips: Seedance con voz y Kling (3.10, 3.11)' }, CrVidTop(3),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
+        h(Notice, { tone: 'info', icon: 'clock', title: 'Tardan de 3 a 6 minutos', body: 'Puedes salir. Te avisamos cuando estén todos.' }),
+        h(ClipRow, { n: 1, kind: 'talk', state: 'done', imageIndex: 4, duration: '0:05' }),
+        h(ClipRow, { n: 2, kind: 'broll', state: 'generating' }),
+        h(ClipRow, { n: 3, kind: 'talk', state: 'failed', recoverable: true }),
+        h(ClipRow, { n: 4, kind: 'broll', state: 'queued' })),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'primary', size: 'lg', disabled: true, iconEnd: 'chevron-right' }, 'Continuar a Montaje')));
+  }
+  function CrMontage() {
+    return h(Phone, { label: 'V4 · Montaje en tu computador (3.12)' }, CrVidTop(4),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px' } }, h(MontagePackage, { clips: 5, expiresIn: '23 h' })),
+      h('div', { className: 'df-sticky' }, h(Button, { variant: 'secondary', size: 'lg', iconEnd: 'chevron-right' }, 'Ya lo monté: subir el video')));
+  }
+  function CrUpload() {
+    return h(Phone, { label: 'V5 · Subir el MP4 montado (3.13)' }, CrVidTop(5),
+      h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(VideoUpload, { state: 'uploading', progress: 64 }),
+        h(VideoUpload, { state: 'error' })));
+  }
+  function CrVideoDone() {
+    return h(Phone, { label: 'V6 · Aprobar el video final (3.14)' }, CrVidTop(5),
+      CrRel(h(Frag, null,
+        h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+          h(VideoUpload, { state: 'ready' }),
+          h(VideoUpload, { state: 'approved', adset: 'Ángulo principal' })),
+        CrToast('Video aprobado. Ya está en Anuncios.', 'Deshacer', 16))));
+  }
+
+  /* Escritorio */
+  function CrDeskHead(tab) {
+    return h('div', { className: 'df-desk-head' },
+      h(IconButton, { icon: 'chevron-left', label: 'Productos' }),
+      h('div', { style: { flex: 1 } }, h('div', { className: 'type-display' }, 'Corrector de postura'), h('div', { className: 'df-topbar-s' }, 'Creativos · opcional')),
+      h('div', { style: { width: 240 } }, h(SegmentedControl, { block: true, value: tab, label: 'Tipo de creativo', options: [{ value: 'img', label: 'Imágenes' }, { value: 'vid', label: 'Videos' }] })),
+      h(AiCostChip, { total: 1840, cap: 3000 }),
+      h(AssistantButton, { scope: 'Creativos', label: 'Asistente' }),
+      h(Button, { variant: 'secondary', iconEnd: 'chevron-right' }, 'Continuar a Anuncios'));
+  }
+  function CrDeskImages() {
+    return h(DeskFrame, { label: 'Escritorio · Imágenes: conceptos por ángulo al centro, la pieza con su QA a la derecha' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' }, CrDeskHead('img'),
+        h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', flex: 1, minHeight: 0 } },
+          h('div', { style: { display: 'flex', flexDirection: 'column', minHeight: 0 } },
+            h('div', { style: { padding: '16px 28px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden', flex: 1 } },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } }, h('div', { style: { width: 360 } }, h(ImageProviderPicker, { compact: true })), h('span', { style: { flex: 1 } }), h('button', { type: 'button', className: 'df-linkbtn' }, h(Icon, { name: 'undo', size: 'sm' }), 'Proponer otros')),
+              h('div', { className: 'df-section-t', style: { padding: 0 } }, 'Ángulo principal · Dolor al trabajar sentado'),
+              h('div', { className: 'df-cgrid' },
+                h(CreativeConcept, Object.assign({}, CR_C1, { compact: true, pieces: [{ ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1 }, { ratio: '9:16', state: 'generating', provider: 'higgsfield', retry: true }] })),
+                h(CreativeConcept, { compact: true, slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', pieces: [{ ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello tapa el velcro', 'Falta una letra'] }, { ratio: '9:16', state: 'locked' }] }),
+                h(CreativeConcept, { compact: true, slot: 3, title: 'Chat de WhatsApp', family: 'Conversación', style: 'Captura 9:16', pieces: [{ ratio: '9:16', label: 'Captura 9:16', state: 'failed', provider: 'higgsfield', recoverable: true }] })),
+              h('div', { className: 'df-section-t', style: { padding: 0 } }, 'Ángulo secundario · Se ve mejor en fotos'),
+              h('div', { className: 'df-cgrid' },
+                h(CreativeConcept, { compact: true, slot: 1, title: 'Hombros atrás en 10 segundos', family: 'Demostración', style: 'Estudio claro', pieces: [{ ratio: '1:1', state: 'empty', cost: 95 }, { ratio: '9:16', state: 'locked' }] }),
+                h(CreativeConcept, { compact: true, slot: 2, title: 'Invisible bajo la ropa', family: 'Objeción', style: 'Lifestyle', pieces: [{ ratio: '1:1', state: 'queued', provider: 'higgsfield' }, { ratio: '9:16', state: 'locked' }] }))),
+            h('div', { className: 'df-desk-bar' }, h('span', { className: 'df-review-count', style: { flex: 1 } }, '1 aprobada · 1 por revisar · 4 sin generar'), h(Button, { variant: 'primary', icon: 'sparkle' }, 'Generar 4 · ≈ ' + money(380)))),
+          h('div', { style: { borderLeft: '1px solid var(--border)', padding: '16px 24px', overflow: 'hidden', background: 'var(--sidebar)', display: 'flex', flexDirection: 'column', gap: 12 } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Concepto 2 · Feed 1:1'), h('span', { className: 'df-review-count' }, 'A · D')),
+            h(CreativePiece, { variant: 'full', ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello «Pago contra entrega» tapa el velcro.', 'El titular dice «corretor»: falta la c.'] }),
+            h(Button, { variant: 'ghost', icon: 'undo' }, 'Generar con Higgsfield · ≈ ' + money(95))))));
+  }
+  function CrDeskVideo() {
+    return h(DeskFrame, { label: 'Escritorio · Videos: pasos a la izquierda, trabajo al centro, montaje a la derecha' },
+      h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
+      h('div', { className: 'df-desk-main' }, CrDeskHead('vid'),
+        h('div', { style: { display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr) 380px', flex: 1, minHeight: 0 } },
+          h('div', { style: { borderRight: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+            h('div', { className: 'df-chips', style: { flexWrap: 'wrap', flex: 'none', height: 'auto', overflow: 'visible' } }, h('button', { type: 'button', className: 'df-chipbtn df-chip-sm is-on', 'aria-pressed': 'true' }, 'Ángulo principal'), h('button', { type: 'button', className: 'df-chipbtn df-chip-sm', 'aria-pressed': 'false' }, 'Ángulo secundario')),
+            h(UgcStepper, { current: 3, vertical: true, notes: ['Aprobado · 5 tomas', '5 de 5 aprobadas', '1 de 5 listos · 3 a 6 min', 'Paquete JSON + script local', 'Sube el MP4 montado'] })),
+          h('div', { style: { padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Clips'), h('span', { className: 'df-review-count' }, 'Habladas en Seedance con voz · apoyo en Kling')),
+            h(Notice, { tone: 'info', icon: 'clock', title: 'Tardan de 3 a 6 minutos', body: 'Puedes salir. Te avisamos cuando estén todos.' }),
+            h(ClipRow, { n: 1, kind: 'talk', state: 'done', imageIndex: 4, duration: '0:05' }),
+            h(ClipRow, { n: 2, kind: 'broll', state: 'generating' }),
+            h(ClipRow, { n: 3, kind: 'talk', state: 'failed', recoverable: true }),
+            h(ClipRow, { n: 4, kind: 'broll', state: 'queued' }),
+            h(ClipRow, { n: 5, kind: 'talk', state: 'queued' })),
+          h('div', { style: { borderLeft: '1px solid var(--border)', padding: '20px 24px', overflow: 'hidden', background: 'var(--sidebar)', display: 'flex', flexDirection: 'column', gap: 12 } },
+            h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Siguiente: montaje'), null),
+            h('p', { className: 'df-field-hint', style: { margin: 0 } }, 'Se habilita cuando los 5 clips estén listos.'),
+            h(MontagePackage, { clips: 5, disabled: true })))));
+  }
+
   var Screens = {
     Movil1: function () { return h('div', { className: 'df-screens' }, h(ScreenHoy), h(ScreenProductos), h(ScreenProducto)); },
     Movil2: function () { return h('div', { className: 'df-screens' }, h(ScreenRevision), h(ScreenImagenes), h(ScreenPrecio)); },
@@ -2028,7 +2847,23 @@
     Textos2: function () { return h('div', { className: 'df-screens' }, h(TxFaqFail), h(TxDone)); },
     TextosEscritorio: function () { return h('div', { className: 'df-screens' }, h(TxDeskReview)); },
     CostoIA: function () { return h('div', { className: 'df-screens' }, h(AiProduct), h(AiSheet), h(AiWarn)); },
-    CostoIAEscritorio: function () { return h('div', { className: 'df-screens' }, h(AiDesk)); }
+    CostoIAEscritorio: function () { return h('div', { className: 'df-screens' }, h(AiDesk)); },
+    ImagenesPDP1: function () { return h('div', { className: 'df-screens' }, h(ImOverview), h(ImSlot)); },
+    ImagenesPDP2: function () { return h('div', { className: 'df-screens' }, h(ImCompose), h(ImGif)); },
+    ImagenesPDPEscritorio: function () { return h('div', { className: 'df-screens' }, h(ImDesk)); },
+    Creativos1: function () { return h('div', { className: 'df-screens' }, h(CrLocked), h(CrNoProvider), h(CrStart)); },
+    Creativos2: function () { return h('div', { className: 'df-screens' }, h(CrBusy), h(CrFailed), h(CrList)); },
+    Creativos3: function () { return h('div', { className: 'df-screens' }, h(CrConcept), h(CrEdit), h(CrGenerating)); },
+    Creativos4: function () { return h('div', { className: 'df-screens' }, h(CrReview), h(CrApproved), h(CrRecover)); },
+    Creativos5: function () { return h('div', { className: 'df-screens' }, h(CrReplace), h(CrChatAck), h(CrChatPreview)); },
+    Creativos6: function () { return h('div', { className: 'df-screens' }, h(CrChatEdit), h(CrScriptStates), h(CrScript)); },
+    Creativos7: function () { return h('div', { className: 'df-screens' }, h(CrKeyframes), h(CrClips), h(CrMontage)); },
+    Creativos8: function () { return h('div', { className: 'df-screens' }, h(CrUpload), h(CrVideoDone)); },
+    CreativosEscritorio1: function () { return h('div', { className: 'df-screens' }, h(CrDeskImages)); },
+    CreativosEscritorio2: function () { return h('div', { className: 'df-screens' }, h(CrDeskVideo)); },
+    LandingMovil: function () { return h('div', { className: 'df-screens' }, h(LpFrame, { mobile: true, label: 'Móvil · Atención + Interés' }, h(LandingPage, { mobile: true, part: 1 })), h(LpFrame, { mobile: true, label: 'Móvil · Deseo + Acción' }, h(LandingPage, { mobile: true, part: 2 }))); },
+    LandingEscritorio1: function () { return h('div', { className: 'df-screens' }, h(LpFrame, { label: 'Escritorio · Atención + Interés' }, h(LandingPage, { part: 1 }))); },
+    LandingEscritorio2: function () { return h('div', { className: 'df-screens' }, h(LpFrame, { label: 'Escritorio · Deseo + Acción' }, h(LandingPage, { part: 2 }))); }
   };
 
   window.DropFlex = Object.assign(window.DropFlex || {}, {
@@ -2043,6 +2878,9 @@
     ScoreBar: ScoreBar, RoleChip: RoleChip, AngleCard: AngleCard, AngleSuggestion: AngleSuggestion, IcpSummary: IcpSummary, AngleDevelopment: AngleDevelopment,
     StructurePicker: StructurePicker, PresetSelect: PresetSelect, ConfigSection: ConfigSection, ChipInput: ChipInput, RuleRow: RuleRow, RuleGroup: RuleGroup, CreativeSlot: CreativeSlot, CampaignTree: CampaignTree, DecisionRow: DecisionRow,
     CharCount: CharCount, EmptyState: EmptyState, Notice: Notice, PageOutline: PageOutline, CopySummary: CopySummary,
-    AiCostChip: AiCostChip, AiCostCard: AiCostCard, AiRunList: AiRunList, productImage: productImage, money: money, Screens: Screens
+    AiCostChip: AiCostChip, AiCostCard: AiCostCard, AiRunList: AiRunList,
+    MediaTile: MediaTile, MediaSlot: MediaSlot, GenerationComposer: GenerationComposer,
+    LpNav: LpNav, LpSectionHead: LpSectionHead, LpPain: LpPain, LpStep: LpStep, LpFeature: LpFeature, LpFaq: LpFaq, LpCta: LpCta, LandingPage: LandingPage,
+    AssistantButton: AssistantButton, ImageProviderPicker: ImageProviderPicker, QaResult: QaResult, CreativePiece: CreativePiece, CreativeConcept: CreativeConcept, ChatConsent: ChatConsent, ChatPreview: ChatPreview, UgcStepper: UgcStepper, ScriptShot: ScriptShot, KeyframeTile: KeyframeTile, ClipRow: ClipRow, MontagePackage: MontagePackage, VideoUpload: VideoUpload, productImage: productImage, money: money, Screens: Screens
   });
 })();

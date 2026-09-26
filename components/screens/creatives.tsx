@@ -1,34 +1,57 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { AiChip, Button, EmptyState, Field, Icon, Notice, RoleChip, SegmentedControl, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Button,
+  ChatConsent,
+  ChatPreview,
+  CreativeConcept,
+  CreativePiece,
+  EmptyState,
+  Field,
+  Icon,
+  ImageProviderPicker as ProviderPicker,
+  Notice,
+  SegmentedControl,
+  TopBar,
+  linkClasses,
+  notify,
+  notifyUndo,
+  type ConceptText,
+  type PieceAction,
+  type PieceState,
+  type ProviderOption,
+} from "@/components/df";
+import { AiCostButton, useLocalCost, useStepCost } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
-import { CHAT_FAMILY, ROLE_LIMITS, conceptRatios } from "@/lib/creatives/catalog";
+import { CHAT_FAMILY, ROLE_LIMITS, conceptRatios, type Ratio } from "@/lib/creatives/catalog";
 import { CHAT_MESSAGE_MAX, CONTACT_NAME_MAX, chatShapeProblem, type WhatsappChat } from "@/lib/creatives/chat";
 import { latestPieces, needsRender } from "@/lib/creatives/pieces";
-import { IMAGE_COST_BY_PROVIDER, IMAGE_PROVIDER_NAME, costSource, type ImageProvider, type ImageProviderChoice } from "@/lib/image-provider";
-import { money } from "@/lib/format";
+import { IMAGE_COST_BY_PROVIDER, IMAGE_PROVIDER_NAME, type ImageProvider, type ImageProviderChoice } from "@/lib/image-provider";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { CreativeAssetView, CreativeConceptView, CreativesState, ProductCreatives, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { CreativesSheet } from "./creatives-sheet";
 import { VideosPanel } from "./creatives-videos";
-import { ImageProviderPicker } from "./image-provider-picker";
+import { useImageProviderPick } from "./image-provider-picker";
 
-// Etapa Creativos (docs/spec-creativos.md §6.6): la IA propone 6 conceptos desde los 2 ángulos
-// aprobados; el comerciante revisa sus textos y genera cada uno con el proveedor que elige arriba
-// (Higgsfield o Gemini; la pieza sale terminada, con sus textos). Un QA revisa producto y textos.
-// Aprobar la manda a los creativos de Anuncios. Por ángulo, además, el comerciante puede pedir un
-// «Chat de WhatsApp» (lib/creatives/chat.ts): una captura 9:16 de una conversación entre amigos.
+// Etapa Creativos (design-system/creativos.md, docs/spec-creativos.md §6.6). Pestaña Imágenes: la IA
+// propone conceptos desde los ángulos aprobados; el comerciante los revisa gratis y paga solo las piezas
+// que pide (cada botón que gasta dice cuánto). Un QA revisa producto y textos. Aprobar manda la pieza a
+// Anuncios, con Deshacer. Por ángulo, además, un «Chat de WhatsApp» armado (lib/creatives/chat.ts).
+// Móvil: lista → concepto → pieza, como subvistas con historial. Escritorio: la lista al centro y el
+// concepto o la pieza elegida a la derecha (atajos A / D).
 
 const POLL_MS = 3000;
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 const rendering = (a: CreativeAssetView) => a.render === "queued" || a.render === "running";
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 const ROLE_LABEL: Record<string, string> = {
   headline: "Titular",
@@ -40,39 +63,111 @@ const ROLE_LABEL: Record<string, string> = {
   note: "Nota",
 };
 
+/** Tiempo por pieza de cada proveedor, para elegir (Gemini responde sin cola). */
+const PROVIDER_ETA: Record<ImageProvider, string> = { higgsfield: "~40 s", gemini: "~20 s" };
+
+const STATE_WORD: Record<PieceState, string> = {
+  empty: "sin generar",
+  locked: "sin generar",
+  queued: "en cola",
+  generating: "generando",
+  review: "por revisar",
+  approved: "aprobada",
+  discarded: "descartada",
+  failed: "falló",
+};
+
+export function pieceState(a: CreativeAssetView): PieceState {
+  if (a.render === "queued") return "queued";
+  if (a.render === "running") return "generating";
+  if (a.render === "failed") return "failed";
+  return a.status === "aprobado" ? "approved" : a.status === "rechazado" ? "discarded" : "review";
+}
+
+const ratioLabel = (c: CreativeConceptView, ratio: Ratio) => (c.family === CHAT_FAMILY ? "Captura 9:16" : ratio === "9:16" ? "Stories 9:16" : "Feed 1:1");
+const mainRatio = (c: CreativeConceptView) => conceptRatios(c.family)[0];
+/** La 9:16 de un concepto con 1:1 espera a que exista la 1:1. */
+const storiesLocked = (c: CreativeConceptView, ratio: Ratio) => ratio === "9:16" && conceptRatios(c.family).length > 1 && !c.assets.some((a) => a.ratio === "1:1" && a.render === "succeeded");
+
+type View = { kind: "list" } | { kind: "concept" | "edit" | "chat-edit"; id: string } | { kind: "piece"; id: string };
+type Selection = { kind: "concept" | "piece"; id: string };
+type Sheet = { kind: "replace" } | { kind: "provider" } | { kind: "chat"; angle: number } | null;
+
 export function CreativesScreen({ data, initialTab = "images" }: { data: ProductCreatives; initialTab?: "images" | "videos" }) {
   const router = useRouter();
   const desktop = useDesktop();
+  const localCost = useLocalCost();
+  const proposeCost = useStepCost("creative_concepts");
+  const chatCost = useStepCost("creative_chat");
   const { product } = data;
   const [state, setState] = useState<CreativesState>(data);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
-  // Imágenes (los estáticos de siempre) o Videos (docs/spec-video-ugc.md).
   const [tab, setTab] = useState<"images" | "videos">(initialTab);
+  const [view, setView] = useState<View>({ kind: "list" });
+  const [picked, setPicked] = useState<Selection | null>(null);
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [ack, setAck] = useState(false);
+  // Escritorio: el concepto que se está editando en el panel derecho.
+  const [deskEditing, setDeskEditing] = useState<string | null>(null);
 
   const { concepts, run } = state;
+  const provider = state.imageProvider.value;
   const proposing = active(run?.status);
   const working = proposing || concepts.some((c) => c.assets.some(rendering));
-  const cost = (n: number) => money(n * state.imageCostUsd, "USD");
-  const billed = costSource(state.imageProvider.value);
-  const setProvider = (imageProvider: ImageProviderChoice) => setState((s) => ({ ...s, imageProvider, imageCostUsd: IMAGE_COST_BY_PROVIDER[imageProvider.value ?? "higgsfield"] }));
-  // Cada concepto, en su proporción principal (1:1; el chat, 9:16).
-  const mainRatio = (c: CreativeConceptView) => conceptRatios(c.family)[0];
+  const costFor = useCallback((p: ImageProvider | null | undefined) => localCost(IMAGE_COST_BY_PROVIDER[p ?? "higgsfield"]), [localCost]);
+  const assets = concepts.flatMap((c) => c.assets);
+  const shown = concepts.flatMap((c) => latestPieces(c.assets));
+  const approved = assets.filter((a) => a.status === "aprobado").length;
+  const toReview = shown.filter((a) => pieceState(a) === "review").length;
   const missing = concepts.filter((c) => !c.assets.some((a) => a.ratio === mainRatio(c)));
-  const approved = concepts.flatMap((c) => c.assets).filter((a) => a.status === "aprobado").length;
+  const adsHref = productHref(product.id, "anuncios");
+  const setProvider = (imageProvider: ImageProviderChoice) => setState((s) => ({ ...s, imageProvider, imageCostUsd: IMAGE_COST_BY_PROVIDER[imageProvider.value ?? "higgsfield"] }));
+  const { pick } = useImageProviderPick("creatives", state.imageProvider, setProvider);
+  const providerOptions: ProviderOption[] = state.imageProvider.options.map((o) => ({ id: o.id, name: o.name, cost: costFor(o.id), eta: PROVIDER_ETA[o.id], connected: o.available, reason: o.reason }));
+
+  const groups = ([1, 2, 3] as const).map((angle) => ({ angle, items: concepts.filter((c) => c.angle === angle) })).filter((g) => g.items.length);
+  const place = (c: CreativeConceptView) => {
+    const g = groups.find((x) => x.angle === c.angle);
+    return { n: (g?.items.indexOf(c) ?? 0) + 1, of: g?.items.length ?? 1 };
+  };
+  const findConcept = (id: string) => concepts.find((c) => c.id === id);
+  const findPiece = (id: string) => {
+    for (const c of concepts) {
+      const a = c.assets.find((x) => x.id === id);
+      if (a) return { c, a };
+    }
+    return null;
+  };
+
+  // ---------------------------------------------------------------- Subvistas (móvil) con historial
+  const go = useCallback((v: View) => {
+    window.history.pushState({ ...window.history.state, creatives: v }, "");
+    setView(v);
+    window.scrollTo(0, 0);
+  }, []);
+  const back = () => window.history.back();
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => setView((e.state as { creatives?: View } | null)?.creatives ?? { kind: "list" });
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const openPiece = (a: CreativeAssetView) => (desktop ? setPicked({ kind: "piece", id: a.id }) : go({ kind: "piece", id: a.id }));
+  const openConcept = (c: CreativeConceptView) => (desktop ? setPicked({ kind: "concept", id: c.id }) : go({ kind: "concept", id: c.id }));
 
   // ---------------------------------------------------------------- Sondeo
   const wasProposing = useRef(proposing);
   useEffect(() => {
     if (wasProposing.current && !proposing) {
       router.refresh();
-      if (run?.status === "succeeded") notify("La IA propuso tus anuncios: revisa los textos y genera");
-      else if (run?.status === "failed") notify(run.error ?? "No pudimos proponer los anuncios. Toca Reintentar.");
+      if (run?.status === "succeeded") notify(`La IA propuso tus anuncios: ${plural(concepts.length, "concepto", "conceptos")}.`, { action: "Ver", onAction: () => window.scrollTo({ top: 0 }) });
+      else if (run?.status === "failed") notify("No se pudieron proponer tus anuncios.", { action: "Reintentar", onAction: () => void propose() });
     }
     wasProposing.current = proposing;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar el estado de la corrida
   }, [proposing, run, router]);
 
-  const readyCount = concepts.flatMap((c) => c.assets).filter((a) => a.render === "succeeded").length;
+  const readyCount = assets.filter((a) => a.render === "succeeded").length;
   const wasReady = useRef(readyCount);
   useEffect(() => {
     if (readyCount > wasReady.current) router.refresh();
@@ -91,21 +186,28 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     return () => window.clearInterval(t);
   }, [working, product.id]);
 
-  async function run_(key: string, fn: () => Promise<CreativesState>, fallback: string) {
+  // ---------------------------------------------------------------- Acciones
+  async function run_(key: string, fn: () => Promise<CreativesState>, fallback: string): Promise<CreativesState | null> {
     setBusy(key);
     setError(undefined);
     try {
-      setState(await fn());
+      const next = await fn();
+      setState(next);
+      return next;
     } catch (e) {
       setError(errorText(e, fallback));
+      return null;
     } finally {
       setBusy(null);
     }
   }
 
-  const propose = () => run_("propose", () => productsApi.proposeCreatives(product.id), "No pudimos empezar. Intenta de nuevo.");
-  const render = (c: CreativeConceptView, ratio: "1:1" | "9:16") =>
-    run_(`render-${c.id}-${ratio}`, () => productsApi.renderConcept(product.id, c.id, ratio), "No pudimos empezar a generar la imagen.");
+  async function propose() {
+    setSheet(null);
+    await run_("propose", () => productsApi.proposeCreatives(product.id), "No pudimos empezar. Intenta de nuevo.");
+  }
+  const render = (c: CreativeConceptView, ratio: Ratio, p?: ImageProvider) =>
+    run_(`render-${c.id}-${ratio}`, () => productsApi.renderConcept(product.id, c.id, ratio, p), "No pudimos empezar a generar la imagen.");
 
   async function renderAll() {
     setBusy("all");
@@ -114,7 +216,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
       let last: CreativesState | null = null;
       for (const c of missing) last = await productsApi.renderConcept(product.id, c.id, mainRatio(c));
       if (last) setState(last);
-      notify(`Generando ${missing.length} ${missing.length === 1 ? "imagen" : "imágenes"}`);
+      notify(`Generando ${plural(missing.length, "pieza", "piezas")}. Puedes salir: te avisamos.`);
     } catch (e) {
       setError(errorText(e, "No pudimos generar todas. Intenta de nuevo."));
     } finally {
@@ -122,245 +224,687 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     }
   }
 
-  const createChat = (angle: number) => run_(`chat-${angle}`, () => productsApi.createChat(product.id, angle), "No pudimos escribir el chat. Intenta de nuevo.");
+  async function createChat(angle: number) {
+    const next = await run_(`chat-${angle}`, () => productsApi.createChat(product.id, angle), "No pudimos escribir el chat. Intenta de nuevo.");
+    if (!next) return;
+    setSheet(null);
+    const chat = next.concepts.find((c) => c.angle === angle && c.family === CHAT_FAMILY);
+    if (chat) openConcept(chat);
+  }
 
-  const recover = (a: CreativeAssetView) =>
-    run_(`recover-${a.id}`, () => productsApi.decideCreative(product.id, a.id, "recover"), "No pudimos recuperar la imagen. Intenta de nuevo.");
+  async function reopen(a: CreativeAssetView) {
+    const next = await run_(`undo-${a.id}`, () => productsApi.decideCreative(product.id, a.id, "reopen"), "No pudimos deshacer.");
+    if (next) router.refresh();
+  }
 
   async function decide(a: CreativeAssetView, action: "approve" | "reject") {
-    setBusy(`decide-${a.id}`);
-    setError(undefined);
-    try {
-      setState(await productsApi.decideCreative(product.id, a.id, action));
-      router.refresh();
-      notifyUndo(action === "approve" ? "Aprobado: ya está en Anuncios" : "Imagen descartada", async () => {
-        try {
-          setState(await productsApi.decideCreative(product.id, a.id, "reopen"));
-          router.refresh();
-        } catch (e) {
-          setError(errorText(e, "No pudimos deshacer."));
-        }
-      });
-    } catch (e) {
-      setError(errorText(e, "No pudimos guardar tu decisión."));
-    } finally {
-      setBusy(null);
-    }
+    const next = await run_(`${action}-${a.id}`, () => productsApi.decideCreative(product.id, a.id, action), "No pudimos guardar tu decisión.");
+    if (!next) return;
+    router.refresh();
+    notifyUndo(action === "approve" ? "Aprobada. Ya está en Anuncios." : "Descartada. El archivo se borra en 2 min.", () => void reopen(a));
+  }
+
+  function onPieceAction(c: CreativeConceptView, a: CreativeAssetView | null, ratio: Ratio, act: PieceAction) {
+    if (!a) return void render(c, ratio);
+    if (act === "review") return openPiece(a);
+    if (act === "approve" || act === "discard") return void decide(a, act === "approve" ? "approve" : "reject");
+    if (act === "undo") return void reopen(a);
+    if (act === "recover") return void run_(`recover-${a.id}`, () => productsApi.decideCreative(product.id, a.id, "recover"), "No pudimos recuperar la imagen. Intenta de nuevo.");
+    if (act === "retry") return void render(c, a.ratio, a.provider);
+  }
+
+  const pieceBusy = (c: CreativeConceptView, a: CreativeAssetView): PieceAction | null =>
+    busy === `approve-${a.id}` ? "approve" : busy === `reject-${a.id}` ? "discard" : busy === `undo-${a.id}` ? "undo" : busy === `recover-${a.id}` ? "recover" : busy === `render-${c.id}-${a.ratio}` ? "retry" : null;
+
+  // Escritorio: A aprueba y D descarta la pieza abierta a la derecha.
+  const selection = desktop ? resolveSelection(picked, concepts, shown) : null;
+  const selectedPiece = selection?.kind === "piece" ? findPiece(selection.id) : null;
+  useEffect(() => {
+    if (!desktop || !selectedPiece || pieceState(selectedPiece.a) !== "review" || busy) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const k = e.key.toLowerCase();
+      if (k === "a") void decide(selectedPiece.a, "approve");
+      else if (k === "d") void decide(selectedPiece.a, "reject");
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- decide cambia en cada render
+  }, [desktop, selectedPiece?.a.id, selectedPiece?.a.status, busy]);
+
+  // ---------------------------------------------------------------- Piezas de un concepto
+  function pieceRows(c: CreativeConceptView) {
+    const all = latestPieces(c.assets);
+    return conceptRatios(c.family).flatMap((ratio) => {
+      const mine = all.filter((a) => a.ratio === ratio);
+      if (!mine.length) {
+        const locked = storiesLocked(c, ratio);
+        return [
+          <CreativePiece
+            key={ratio}
+            ratio={ratio}
+            label={ratioLabel(c, ratio)}
+            state={locked ? "locked" : "empty"}
+            cost={costFor(provider)}
+            busy={busy === `render-${c.id}-${ratio}` ? "generate" : null}
+            disabled={Boolean(busy) || !provider}
+            onAction={() => onPieceAction(c, null, ratio, "generate")}
+          />,
+        ];
+      }
+      return mine.map((a) => (
+        <CreativePiece
+          key={a.id}
+          ratio={a.ratio}
+          label={ratioLabel(c, a.ratio)}
+          state={pieceState(a)}
+          provider={IMAGE_PROVIDER_NAME[a.provider]}
+          src={a.src}
+          cost={costFor(a.provider)}
+          retry={a.attempt > 1}
+          qa={a.qa?.issues}
+          recoverable={a.recoverable}
+          error={a.error}
+          eta={a.render === "queued" ? a.error : undefined}
+          busy={pieceBusy(c, a)}
+          disabled={Boolean(busy)}
+          onOpen={() => openPiece(a)}
+          onAction={(act) => onPieceAction(c, a, a.ratio, act)}
+        />
+      ));
+    });
+  }
+
+  /** La próxima pieza que se puede generar del concepto con el proveedor elegido. */
+  function nextRender(c: CreativeConceptView): { ratio: Ratio; label: string } | null {
+    const ratio = conceptRatios(c.family).find((r) => needsRender(c.assets, r, provider) && !storiesLocked(c, r) && !c.assets.some((a) => a.ratio === r && rendering(a)));
+    if (!ratio || !provider) return null;
+    const other = c.assets.some((a) => a.ratio === ratio);
+    const what = c.family === CHAT_FAMILY ? "captura 9:16" : ratio === "9:16" ? "Stories 9:16" : "feed 1:1";
+    return { ratio, label: `Generar ${what}${other ? ` con ${IMAGE_PROVIDER_NAME[provider]}` : ""} · ${costFor(provider)}` };
   }
 
   // ---------------------------------------------------------------- Vistas
-  let body: React.ReactNode;
-  let footer: React.ReactNode = null;
-  const actionClass = "max-lg:w-full lg:h-control lg:text-row";
+  const needsKey = Boolean(state.locked) && state.connected === false && !state.locked!.startsWith("Aprueba");
+  const anglesLocked = Boolean(state.locked) && !needsKey;
+  const hasPieces = assets.length > 0;
+  const subtitle = anglesLocked ? "Bloqueada" : proposing ? "La IA está trabajando" : approved ? plural(approved, "pieza aprobada", "piezas aprobadas") : "Opcional";
 
-  if (state.locked) {
-    const needsKey = state.connected === false && !state.locked.startsWith("Aprueba");
-    body = (
-      <EmptyState
-        icon="lock"
-        title={needsKey ? "Conecta un proveedor de imágenes" : "Primero, los ángulos"}
-        body={state.locked}
-        action={
-          needsKey ? (
-            <Button variant="primary" icon="settings" href="/settings#creativos">
-              Ir a Ajustes
+  const skip = (
+    <p className="text-center text-label font-normal text-muted-foreground">
+      Es opcional:{" "}
+      <Link href={adsHref} className={linkClasses}>
+        ir a Anuncios y subir creativos a mano
+      </Link>
+    </p>
+  );
+  const errorLine = error ? (
+    <p role="alert" className="text-label font-normal text-destructive">
+      {error}
+    </p>
+  ) : null;
+
+  // Subvistas de móvil: reemplazan la pantalla entera.
+  if (!desktop && tab === "images" && view.kind !== "list") {
+    const sub = renderSubview();
+    if (sub) return sub;
+  }
+
+  function renderSubview(): React.ReactNode {
+    if (view.kind === "piece") {
+      const found = findPiece(view.id);
+      if (!found) return null;
+      const { c, a } = found;
+      const { n } = place(c);
+      return (
+        <div className="flex flex-col">
+          <TopBar back={`Concepto ${n}`} onBack={back} title={ratioLabel(c, a.ratio)} subtitle={`${IMAGE_PROVIDER_NAME[a.provider]} · ${STATE_WORD[pieceState(a)]}`} className="sticky top-0 z-sticky" />
+          <div className="flex flex-col gap-3 px-4 pt-1 pb-6">
+            {pieceFull(c, a)}
+            {errorLine}
+            <div className="flex flex-col">{pieceRows(c).filter((r) => (r as React.ReactElement).key !== a.id)}</div>
+          </div>
+        </div>
+      );
+    }
+    if (view.kind === "list") return null;
+    const c = findConcept(view.id);
+    if (!c) return null;
+    const { n, of } = place(c);
+    if (view.kind === "edit") {
+      return (
+        <div className="flex flex-col">
+          <TopBar back={`Concepto ${n}`} onBack={back} title="Editar textos" subtitle="Van dentro de la imagen" className="sticky top-0 z-sticky" />
+          <div className="px-4 pt-1 pb-4">
+            <TextsEditor key={c.id} productId={product.id} concept={c} slot={n} onSaved={setState} onDone={back} onError={setError} />
+            {errorLine}
+          </div>
+        </div>
+      );
+    }
+    if (view.kind === "chat-edit" && c.chat) {
+      return (
+        <div className="flex flex-col">
+          <TopBar back="Chat de WhatsApp" onBack={back} title="Editar chat" className="sticky top-0 z-sticky" />
+          <div className="px-4 pt-1 pb-4">
+            <ChatEditor key={c.id} productId={product.id} concept={c} chat={c.chat} onSaved={setState} onDone={back} onError={setError} />
+            {errorLine}
+          </div>
+        </div>
+      );
+    }
+    const chat = c.family === CHAT_FAMILY;
+    const next = nextRender(c);
+    return (
+      <div className="flex flex-col">
+        <TopBar
+          back="Creativos"
+          onBack={back}
+          title={chat ? "Chat de WhatsApp" : `Concepto ${n}`}
+          subtitle={chat ? `Ángulo ${c.angle} · conversación armada` : `Ángulo ${c.angle} · ${n} de ${of}`}
+          actions={<AssistantButton scope="Creativos" />}
+          className="sticky top-0 z-sticky"
+        />
+        <div className="flex flex-col gap-3 px-4 pt-1 pb-4">
+          {conceptDetail(c, n, () => go({ kind: chat ? "chat-edit" : "edit", id: c.id }))}
+          {errorLine}
+        </div>
+        {next ? (
+          <StickyActions stack mobileNote={chat ? "Solo 9:16. Después se aprueba o descarta como cualquier pieza." : undefined}>
+            <Button variant="primary" size="lg" block icon="sparkle" loading={busy === `render-${c.id}-${next.ratio}`} disabled={Boolean(busy)} onClick={() => render(c, next.ratio)}>
+              {next.label}
             </Button>
-          ) : (
-            <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
-              Ir a Ángulos
-            </Button>
-          )
-        }
-      />
-    );
-  } else if (proposing && !concepts.length) {
-    body = <EmptyState icon="sparkle" busy title="La IA está pensando tus anuncios" body="Lee tus 2 ángulos y tu foto base. Suele tardar un minuto. Puedes salir: te avisamos." />;
-  } else if (!concepts.length) {
-    const failed = run?.status === "failed";
-    body = (
-      <EmptyState
-        icon="sparkle"
-        tone={failed ? "error" : "neutral"}
-        title={failed ? "No pudimos proponer los anuncios" : "Anuncios de imagen terminados con IA"}
-        body={
-          failed
-            ? (run?.error ?? "Toca Reintentar.")
-            : `La IA propone 6 anuncios desde tus 2 ángulos. Tú revisas sus textos y eliges cuáles generar: cada imagen parte de tu foto base y cuesta cerca de ${cost(1)}${billed}.`
-        }
-        action={
-          <Button variant="primary" icon="sparkle" loading={busy === "propose"} onClick={propose}>
-            {failed ? "Reintentar" : "Proponer anuncios"}
-          </Button>
-        }
-      />
-    );
-  } else {
-    const groups = ([1, 2, 3] as const).map((role) => ({ role, items: concepts.filter((c) => c.angle === role) })).filter((g) => g.items.length);
-    body = (
-      <div className="flex flex-col gap-6">
-        {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos proponer otros anuncios." body={run.error ?? "Toca Proponer otros para reintentar."} /> : null}
-        {proposing ? <Notice tone="info" icon="sparkle" title="La IA está proponiendo otros anuncios." body="Cuando termine, reemplazan a estos. Lo que ya aprobaste sigue en Anuncios." /> : null}
-        {missing.length && !desktop ? (
-          <p className="text-caption text-muted-foreground">{`${missing.length === 1 ? "Generar el que falta" : `Generar los ${missing.length} que faltan`} cuesta cerca de ${cost(missing.length)}${billed}.`}</p>
+          </StickyActions>
         ) : null}
-        {groups.map((g) => (
-          <section key={g.role} aria-labelledby={`angulo-${g.role}`} className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <RoleChip slot={g.role} short />
-              <h2 id={`angulo-${g.role}`} className="text-heading">
-                {g.items[0].angleName}
-              </h2>
-            </div>
-            <div className="grid gap-3 @3xl:grid-cols-2">
-              {g.items.map((c) =>
-                c.family === CHAT_FAMILY && c.chat ? (
-                  <ChatCard
-                    key={c.id}
-                    productId={product.id}
-                    concept={c}
-                    chat={c.chat}
-                    provider={state.imageProvider.value}
-                    busy={busy}
-                    costLabel={cost(1)}
-                    onRender={() => render(c, "9:16")}
-                    onAnother={() => createChat(c.angle)}
-                    onDecide={decide}
-                    onRecover={recover}
-                    onSaved={setState}
-                    onError={setError}
-                  />
-                ) : (
-                <ConceptCard
-                  key={c.id}
-                  productId={product.id}
-                  concept={c}
-                  provider={state.imageProvider.value}
-                  busy={busy}
-                  costLabel={cost(1)}
-                  onRender={(ratio) => render(c, ratio)}
-                  onDecide={decide}
-                  onRecover={recover}
-                  onSaved={setState}
-                  onError={setError}
-                />
-                ),
-              )}
-            </div>
-            {!g.items.some((c) => c.family === CHAT_FAMILY) ? <ChatOffer angle={g.role} busy={busy} disabled={proposing} onCreate={() => createChat(g.role)} /> : null}
-          </section>
-        ))}
       </div>
-    );
-    footer = (
-      <StickyActions
-        variant="bar"
-        summary={<span className="hidden @4xl:inline">{approved ? `${approved} ${approved === 1 ? "anuncio aprobado" : "anuncios aprobados"} en Anuncios.` : "Aprueba los que quieras lanzar: pasan a Anuncios."}</span>}
-        className="lg:px-8"
-      >
-        <Button size="lg" icon="sparkle" loading={busy === "propose"} disabled={proposing} onClick={propose} className={actionClass}>
-          {desktop ? "Proponer otros" : "Otros"}
-        </Button>
-        {missing.length ? (
-          <Button variant="primary" size="lg" icon="image" loading={busy === "all"} disabled={!!busy} onClick={renderAll} className={actionClass}>
-            {desktop ? `Generar ${missing.length} (≈ ${cost(missing.length)})` : `Generar ${missing.length}`}
-          </Button>
-        ) : approved ? (
-          <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "anuncios")} className={actionClass}>
-            {desktop ? "Continuar: Anuncios" : "Anuncios"}
-          </Button>
-        ) : (
-          <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className={actionClass}>
-            {desktop ? "Continuar: Anuncios" : "Anuncios"}
-          </Button>
-        )}
-      </StickyActions>
     );
   }
 
-  const subtitle = state.locked ? "Bloqueada" : proposing ? "La IA está trabajando" : concepts.length ? `${concepts.length} conceptos · ${approved} aprobados` : "Opcional";
+  /** El concepto completo: por qué, cómo se verá, los textos (o el chat) y sus piezas. */
+  function conceptDetail(c: CreativeConceptView, slot: number, onEdit: () => void) {
+    const chat = c.family === CHAT_FAMILY && c.chat;
+    const inProgress = c.assets.some(rendering);
+    return (
+      <CreativeConcept
+        slot={chat ? undefined : slot}
+        title={c.name}
+        family={c.familyName}
+        style={chat ? "Captura 9:16" : c.preset?.name}
+        styleKind={chat ? "plain" : c.preset ? "preset" : "direct"}
+        why={c.why}
+        look={c.look}
+        texts={c.texts.map((t) => ({ role: ROLE_LABEL[t.role] ?? t.role, value: t.text, limit: ROLE_LIMITS[t.role] }))}
+        locked={inProgress}
+        onEdit={onEdit}
+        body={
+          chat ? (
+            <div className="flex flex-col gap-2.5">
+              <ChatPreview contact={chat.contact_name} messages={chat.messages.map((m) => ({ me: m.from === "me", text: m.text, time: m.time, photo: m.photo }))} image={product.image} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button icon="edit" disabled={inProgress} onClick={onEdit}>
+                  Editar
+                </Button>
+                <Button icon="refresh" loading={busy === `chat-${c.angle}`} disabled={Boolean(busy) || inProgress} onClick={() => createChat(c.angle)}>
+                  {chatCost ? `Otro chat · ${chatCost}` : "Otro chat"}
+                </Button>
+              </div>
+              {inProgress ? <p className="text-caption text-muted-foreground">No se puede editar mientras se genera la captura.</p> : null}
+            </div>
+          ) : undefined
+        }
+        pieces={pieceRows(c)}
+      />
+    );
+  }
+
+  /** Una pieza en grande, con su QA y las acciones; y generar la misma con el otro proveedor. */
+  function pieceFull(c: CreativeConceptView, a: CreativeAssetView) {
+    const others = rendering(a) ? [] : state.imageProvider.options.filter((o) => o.available && o.id !== a.provider && needsRender(c.assets, a.ratio, o.id));
+    return (
+      <CreativePiece
+        variant="full"
+        ratio={a.ratio}
+        label={ratioLabel(c, a.ratio)}
+        state={pieceState(a)}
+        provider={IMAGE_PROVIDER_NAME[a.provider]}
+        src={a.src}
+        cost={costFor(a.provider)}
+        retry={a.attempt > 1}
+        qa={a.qa?.issues}
+        recoverable={a.recoverable}
+        error={a.error}
+        eta={a.render === "queued" ? a.error : undefined}
+        busy={pieceBusy(c, a)}
+        disabled={Boolean(busy)}
+        onAction={(act) => onPieceAction(c, a, a.ratio, act)}
+        extra={others.map((o) => (
+          <Button key={o.id} variant="ghost" icon="refresh" loading={busy === `render-${c.id}-${a.ratio}`} disabled={Boolean(busy)} onClick={() => render(c, a.ratio, o.id)}>
+            {`Generar con ${o.name} · ${costFor(o.id)}`}
+          </Button>
+        ))}
+      />
+    );
+  }
+
+  // ---------------------------------------------------------------- Contenido de la pestaña Imágenes
+  let body: React.ReactNode;
+  let footer: React.ReactNode = null;
+  // «Es opcional: ir a Anuncios…» abajo solo en móvil; en escritorio va en la barra de arriba.
+  let footerMobileOnly = false;
+  let aside: React.ReactNode = null;
+
+  if (anglesLocked) {
+    body = (
+      <EmptyState
+        icon="lock"
+        title="Primero, los ángulos"
+        body={`${state.locked} Los anuncios se arman desde tus ángulos aprobados.`}
+        action={
+          <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
+            Ir a Ángulos
+          </Button>
+        }
+      />
+    );
+    footer = <StickyActions>{skip}</StickyActions>;
+    footerMobileOnly = true;
+  } else if (needsKey) {
+    body = (
+      <div className="flex flex-col gap-4">
+        <EmptyState
+          icon="image"
+          title="Conecta un proveedor de imágenes"
+          body="Higgsfield o Gemini. Se conecta una vez en Ajustes y sirve para todos tus productos."
+          action={
+            <Button variant="primary" icon="settings" href="/settings#creativos">
+              Ir a Ajustes
+            </Button>
+          }
+        />
+        <p className="text-center text-caption text-muted-foreground">En la pestaña Videos verás «Conecta Higgsfield»: los videos solo usan Higgsfield.</p>
+      </div>
+    );
+    footer = <StickyActions>{skip}</StickyActions>;
+    footerMobileOnly = true;
+  } else if (proposing && !concepts.length) {
+    body = (
+      <EmptyState
+        icon="sparkle"
+        busy
+        title="La IA está proponiendo tus anuncios"
+        body="Tarda ~1 min. Puedes salir de esta pantalla; te avisamos cuando termine."
+        secondary={<Button href={`/products/${product.id}`}>Volver al producto</Button>}
+      />
+    );
+    footer = <StickyActions>{skip}</StickyActions>;
+    footerMobileOnly = true;
+  } else if (!concepts.length && run?.status === "failed") {
+    body = (
+      <EmptyState
+        icon="alert"
+        tone="error"
+        title="No se pudo proponer"
+        body={run.error ?? "La IA no terminó la propuesta. Tus ángulos y la foto base siguen igual."}
+        action={
+          <Button variant="primary" icon="undo" loading={busy === "propose"} onClick={propose}>
+            {proposeCost ? `Reintentar · ${proposeCost}` : "Reintentar"}
+          </Button>
+        }
+      />
+    );
+    footer = <StickyActions>{skip}</StickyActions>;
+    footerMobileOnly = true;
+  } else if (!concepts.length) {
+    body = (
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-heading">Anuncios estáticos</h2>
+          <p className="mt-1 text-body text-muted-foreground">Claude lee tus ángulos y la foto base y propone unos 6 conceptos. Revisas cada uno antes de pagar su imagen.</p>
+        </div>
+        <div className="flex items-center gap-3 rounded-md border p-2">
+          {product.image ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage, sin optimizador
+            <img src={product.image} alt="" className="size-12 rounded-sm bg-muted object-cover" />
+          ) : (
+            <span className="size-12 rounded-sm bg-muted" />
+          )}
+          <div className="flex min-w-0 flex-1 flex-col text-label font-normal text-muted-foreground">
+            <b className="text-small font-semibold text-foreground">Foto base</b>
+            Toda imagen parte de esta foto
+          </div>
+          <Link href={productHref(product.id, "importado")} className={linkClasses}>
+            Cambiar
+          </Link>
+        </div>
+        <ProviderPicker value={provider} providers={providerOptions} onChange={pick} />
+      </div>
+    );
+    footer = (
+      <StickyActions stack mobileNote="Tarda ~1 min. Puedes salir de la pantalla: te avisamos.">
+        <Button variant="primary" size="lg" block={!desktop} icon="sparkle" loading={busy === "propose"} onClick={propose}>
+          {proposeCost ? `Proponer anuncios · ${proposeCost}` : "Proponer anuncios"}
+        </Button>
+      </StickyActions>
+    );
+  } else {
+    const kept = assets.filter((a) => a.kept).length;
+    const replaceLink = (
+      <button type="button" disabled={proposing || Boolean(busy)} onClick={() => setSheet({ kind: "replace" })} className="inline-flex min-h-8 cursor-pointer items-center gap-1 text-small font-medium text-primary underline underline-offset-3 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline">
+        Proponer otros
+      </button>
+    );
+    const summary = [approved ? plural(approved, "aprobada", "aprobadas") : null, toReview ? `${toReview} por revisar` : null, missing.length ? `${missing.length} sin generar` : null].filter(Boolean).join(" · ");
+    body = (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <ProviderPicker compact value={provider} providers={providerOptions} onChangeRequest={() => setSheet({ kind: "provider" })} className="min-w-0 flex-1 lg:max-w-90 lg:flex-none" />
+          <span className="hidden flex-1 lg:block" />
+          <span className="hidden lg:inline-flex">{replaceLink}</span>
+        </div>
+        {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos proponer otros anuncios." body={run.error ?? "Toca Proponer otros para reintentar."} /> : null}
+        {proposing ? <Notice tone="info" icon="sparkle" title="La IA está proponiendo otros anuncios." body="Cuando termine, reemplazan a estos. Lo aprobado sigue en Anuncios mientras tanto." /> : null}
+        {errorLine}
+        {groups.map((g, gi) => (
+          <section key={g.angle} aria-labelledby={`angulo-${g.angle}`} className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <h2 id={`angulo-${g.angle}`} className="text-label font-semibold text-muted-foreground">
+                {desktop ? `Ángulo ${g.angle} · ${g.items[0].angleName}` : `Ángulo ${g.angle} · ${plural(g.items.length, "concepto", "conceptos")}`}
+              </h2>
+              {gi === 0 ? <span className="lg:hidden">{replaceLink}</span> : null}
+            </div>
+            <div className="grid gap-3 @2xl:grid-cols-2">
+              {g.items.map((c, i) => {
+                const chat = c.family === CHAT_FAMILY;
+                return (
+                  <CreativeConcept
+                    key={c.id}
+                    compact
+                    slot={chat ? undefined : i + 1}
+                    title={c.name}
+                    family={c.familyName}
+                    style={chat ? "Captura 9:16" : c.preset?.name}
+                    styleKind={chat ? "plain" : c.preset ? "preset" : "direct"}
+                    onOpen={() => openConcept(c)}
+                    selected={selection?.kind === "concept" && selection.id === c.id}
+                    pieces={pieceRows(c)}
+                  />
+                );
+              })}
+              {!g.items.some((c) => c.family === CHAT_FAMILY) ? (
+                <div className="flex flex-col justify-center gap-2 rounded-lg border border-dashed p-3.5">
+                  <div>
+                    <p className="text-body font-semibold">Chat de WhatsApp</p>
+                    <p className="text-label font-normal text-muted-foreground">Una amiga le cuenta al lector cómo le fue y el lector pide el link. Es una conversación armada.</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    icon="chat"
+                    disabled={proposing || Boolean(busy)}
+                    onClick={() => {
+                      setAck(false);
+                      setSheet({ kind: "chat", angle: g.angle });
+                    }}
+                    className="self-start"
+                  >
+                    Crear chat
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ))}
+        <CreativesSheet
+          open={sheet?.kind === "replace"}
+          onClose={() => setSheet(null)}
+          title="¿Proponer otros conceptos?"
+          actions={
+            <>
+              <Button size="lg" onClick={() => setSheet(null)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" size="lg" loading={busy === "propose"} onClick={propose}>
+                Proponer otros
+              </Button>
+            </>
+          }
+        >
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-body">
+            <ReplaceItem icon="undo">{`${concepts.length === 1 ? "El concepto se cambia" : `Los ${concepts.length} conceptos se cambian`} por nuevos.`}</ReplaceItem>
+            <ReplaceItem icon="check">Mientras la IA trabaja, lo aprobado sigue en Anuncios.</ReplaceItem>
+            <ReplaceItem icon="alert" warn>
+              Al terminar se borran las piezas de los conceptos reemplazados
+              {approved ? (
+                <>
+                  , <b>{approved === 1 ? "también la aprobada" : `también las ${approved} aprobadas`}</b>
+                </>
+              ) : null}
+              .
+            </ReplaceItem>
+            {kept ? <ReplaceItem icon="shield">{`Se ${kept === 1 ? "conserva 1 que ya está en Meta o la usa" : `conservan ${kept} que ya están en Meta o las usa`} un anuncio.`}</ReplaceItem> : null}
+          </ul>
+          <p className="text-caption text-muted-foreground">{`Tarda ~1 min${proposeCost ? ` · ${proposeCost}` : ""}`}</p>
+        </CreativesSheet>
+      </div>
+    );
+
+    const canContinue = approved > 0;
+    footer = (
+      <StickyActions variant="bar" stack="reverse" summary={summary} mobileNote={!canContinue ? "Aprueba al menos una pieza para continuar a Anuncios." : undefined} className="lg:px-7">
+        {/* En escritorio, Continuar a Anuncios va en la barra de arriba. */}
+        {canContinue ? (
+          <Button size="lg" variant={missing.length ? "secondary" : "primary"} iconEnd="chevron-right" href={adsHref} className="lg:hidden">
+            Continuar a Anuncios
+          </Button>
+        ) : (
+          <Button size="lg" variant={missing.length ? "secondary" : "primary"} iconEnd="chevron-right" disabled className="lg:hidden">
+            Continuar a Anuncios
+          </Button>
+        )}
+        {missing.length ? (
+          <Button variant="primary" size="lg" icon="sparkle" loading={busy === "all"} disabled={Boolean(busy) || !provider} onClick={renderAll}>
+            {`Generar ${missing.length} · ${localCost(missing.length * IMAGE_COST_BY_PROVIDER[provider ?? "higgsfield"])}`}
+          </Button>
+        ) : null}
+      </StickyActions>
+    );
+
+    if (desktop && selection) aside = selectionPanel(selection);
+  }
+
+  function selectionPanel(selection: Selection): React.ReactNode {
+    if (selection.kind === "piece") {
+      const found = findPiece(selection.id);
+      if (!found) return null;
+      const { c, a } = found;
+      const { n } = place(c);
+      return (
+        <>
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-heading">{`${c.family === CHAT_FAMILY ? "Chat" : `Concepto ${n}`} · ${ratioLabel(c, a.ratio)}`}</h2>
+            {pieceState(a) === "review" ? <span className="text-caption text-muted-foreground">A · D</span> : null}
+          </div>
+          {pieceFull(c, a)}
+          <button type="button" onClick={() => setPicked({ kind: "concept", id: c.id })} className={cn(linkClasses, "self-start")}>
+            Ver el concepto
+          </button>
+        </>
+      );
+    }
+    const c = findConcept(selection.id);
+    if (!c) return null;
+    const { n } = place(c);
+    const chat = c.family === CHAT_FAMILY;
+    const editing = deskEditing === c.id;
+    const setEditing = (on: boolean) => setDeskEditing(on ? c.id : null);
+    const next = nextRender(c);
+    return (
+      <>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-heading">{chat ? "Chat de WhatsApp" : `Concepto ${n}`}</h2>
+          <span className="text-caption text-muted-foreground">{`Ángulo ${c.angle}${chat ? " · conversación armada" : ""}`}</span>
+        </div>
+        {editing && !chat ? (
+          <TextsEditor key={c.id} productId={product.id} concept={c} slot={n} onSaved={setState} onDone={() => setEditing(false)} onError={setError} />
+        ) : editing && c.chat ? (
+          <ChatEditor key={c.id} productId={product.id} concept={c} chat={c.chat} onSaved={setState} onDone={() => setEditing(false)} onError={setError} />
+        ) : (
+          <>
+            {conceptDetail(c, n, () => setEditing(true))}
+            {next ? (
+              <Button variant="primary" block icon="sparkle" loading={busy === `render-${c.id}-${next.ratio}`} disabled={Boolean(busy)} onClick={() => render(c, next.ratio)}>
+                {next.label}
+              </Button>
+            ) : null}
+          </>
+        )}
+      </>
+    );
+  }
+
+  // ---------------------------------------------------------------- Marco
+  const tabs = (
+    <SegmentedControl
+      label="Tipo de creativo"
+      block
+      value={tab}
+      onChange={(v) => setTab(v as "images" | "videos")}
+      options={[
+        { value: "images", label: "Imágenes" },
+        { value: "videos", label: "Videos" },
+      ]}
+    />
+  );
+  const showTabs = !anglesLocked;
 
   return (
     <div className="@container flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Creativos" stageKey="creativos" image={product.image} />
-      <TopBar back={product.name} backHref={`/products/${product.id}`} title="Creativos" subtitle={subtitle} actions={
+      <TopBar
+        back={product.name}
+        backHref={`/products/${product.id}`}
+        title="Creativos"
+        subtitle={subtitle}
+        actions={
           <>
             <AiCostButton />
-            <AssistantButton />
+            <AssistantButton scope="Creativos" />
           </>
-        } className="sticky top-0 z-sticky lg:hidden" />
-      <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
-        <p className="hidden text-body text-muted-foreground lg:block">Creativos · {subtitle}</p>
-        <SegmentedControl
-          label="Tipo de anuncio"
-          value={tab}
-          onChange={(v) => setTab(v as "images" | "videos")}
-          options={[
-            { value: "images", label: "Imágenes" },
-            { value: "videos", label: "Videos" },
-          ]}
-          className="self-start"
-        />
-        {tab === "videos" ? (
-          <VideosPanel productId={product.id} initial={data.videos} />
-        ) : (
-          <>
-            {!state.locked ? <ImageProviderPicker stage="creatives" choice={state.imageProvider} onChange={setProvider} /> : null}
-            <div>{body}</div>
-            {error ? (
-              <p role="alert" className="text-label font-normal text-destructive">
-                {error}
-              </p>
-            ) : null}
-          </>
-        )}
+        }
+        className="sticky top-0 z-sticky lg:hidden"
+      />
+      {/* Escritorio: la pestaña y Continuar a Anuncios (el producto, el costo y el asistente van en el encabezado del producto). */}
+      <div className="hidden items-center gap-4 border-b px-7 py-3 lg:flex">
+        <p className="min-w-0 flex-1 text-body text-muted-foreground">{`Creativos · ${subtitle.toLowerCase()}`}</p>
+        {showTabs ? <div className="w-60">{tabs}</div> : null}
+        {tab === "images" && hasPieces ? (
+          <div className="flex items-center gap-2">
+            {!approved ? <span className="text-caption text-muted-foreground">Aprueba al menos una pieza</span> : null}
+            {approved ? (
+              <Button iconEnd="chevron-right" href={adsHref}>
+                Continuar a Anuncios
+              </Button>
+            ) : (
+              <Button iconEnd="chevron-right" disabled>
+                Continuar a Anuncios
+              </Button>
+            )}
+          </div>
+        ) : tab === "images" ? (
+          skip
+        ) : null}
       </div>
-      {tab === "images" ? footer : null}
+      {showTabs ? <div className="px-4 pb-2 lg:hidden">{tabs}</div> : null}
+
+      {tab === "videos" ? (
+        <VideosPanel productId={product.id} initial={data.videos} desktop={desktop} />
+      ) : (
+        <div className={cn("flex flex-1 flex-col", aside && "lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(100)]")}>
+          <div className="@container flex min-w-0 flex-1 flex-col">
+            <div className={cn("flex flex-1 flex-col px-4 pt-2 pb-4 lg:px-7 lg:pt-4", !concepts.length && "justify-center lg:mx-auto lg:w-full lg:max-w-content lg:justify-start lg:pt-8")}>
+              {body}
+              {!concepts.length ? errorLine : null}
+            </div>
+            {footerMobileOnly ? <div className="lg:hidden">{footer}</div> : footer}
+          </div>
+          {aside ? (
+            <aside aria-label="Pieza elegida" className="sticky top-0 hidden max-h-svh flex-col gap-3 self-start overflow-auto border-l bg-sidebar px-6 py-4 lg:flex">
+              {aside}
+            </aside>
+          ) : null}
+        </div>
+      )}
+
+      <CreativesSheet open={sheet?.kind === "provider"} onClose={() => setSheet(null)} title="Proveedor de imagen">
+        <ProviderPicker
+          value={provider}
+          providers={providerOptions}
+          onChange={(v) => {
+            void pick(v);
+            setSheet(null);
+          }}
+        />
+      </CreativesSheet>
+      <CreativesSheet open={sheet?.kind === "chat"} onClose={() => setSheet(null)} title={`Chat de WhatsApp · Ángulo ${sheet?.kind === "chat" ? sheet.angle : ""}`}>
+        <ChatConsent checked={ack} onCheckedChange={setAck} cost={chatCost ?? undefined} loading={sheet?.kind === "chat" && busy === `chat-${sheet.angle}`} onCreate={() => sheet?.kind === "chat" && createChat(sheet.angle)} />
+        {errorLine}
+      </CreativesSheet>
     </div>
   );
 }
 
-// ---------------------------------------------------------------- Concepto
+/** Qué se abre a la derecha en escritorio: lo elegido si sigue vigente; si no, la primera por revisar o el primer concepto. */
+function resolveSelection(picked: Selection | null, concepts: CreativeConceptView[], shown: CreativeAssetView[]): Selection | null {
+  if (picked?.kind === "concept" && concepts.some((c) => c.id === picked.id)) return picked;
+  if (picked?.kind === "piece" && concepts.some((c) => c.assets.some((a) => a.id === picked.id))) return picked;
+  const review = shown.find((a) => pieceState(a) === "review");
+  if (review) return { kind: "piece", id: review.id };
+  return concepts[0] ? { kind: "concept", id: concepts[0].id } : null;
+}
 
-function ConceptCard({
+/** Una línea de «Proponer otros» (.df-replace): qué se reemplaza, qué sigue y qué se borra. */
+function ReplaceItem({ icon, warn, children }: { icon: "undo" | "check" | "alert" | "shield"; warn?: boolean; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2.5">
+      <Icon name={icon} size="sm" className={cn("mt-0.75", warn ? "text-warning" : "text-muted-foreground")} />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+// ---------------------------------------------------------------- Edición
+
+/** Editar los textos que van dentro de la imagen, con su límite por rol. */
+function TextsEditor({
   productId,
   concept: c,
-  provider,
-  busy,
-  costLabel,
-  onRender,
-  onDecide,
-  onRecover,
+  slot,
   onSaved,
+  onDone,
   onError,
 }: {
   productId: string;
   concept: CreativeConceptView;
-  /** El proveedor elegido en la pantalla: se puede generar con él aunque haya piezas del otro. */
-  provider: ImageProvider | null;
-  busy: string | null;
-  costLabel: string;
-  onRender: (ratio: "1:1" | "9:16") => void;
-  onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
-  onRecover: (a: CreativeAssetView) => void;
+  slot: number;
   onSaved: (s: CreativesState) => void;
+  onDone: () => void;
   onError: (m: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
   const [texts, setTexts] = useState(c.texts);
   const [saving, setSaving] = useState(false);
-  const shown = latestPieces(c.assets);
-  // Piezas de los dos proveedores: cada una dice con cuál se generó.
-  const mixed = new Set(c.assets.map((a) => a.provider)).size > 1 || c.assets.some((a) => a.provider !== provider);
-  const missing = (ratio: string) => needsRender(c.assets, ratio, provider);
-  const withName = (label: string) => (c.assets.length && provider ? `${label} con ${IMAGE_PROVIDER_NAME[provider]}` : label);
-  const inProgress = c.assets.some(rendering);
+  const view: ConceptText[] = texts.map((t) => ({ role: ROLE_LABEL[t.role] ?? t.role, value: t.text, limit: ROLE_LIMITS[t.role] }));
+  const over = view.some((t) => t.limit != null && t.value.length > t.limit);
+  const changed = texts.some((t, i) => t.text !== c.texts[i]?.text);
 
   async function save() {
     setSaving(true);
     try {
       onSaved(await productsApi.editConcept(productId, c.id, texts));
-      setEditing(false);
       notify("Textos guardados");
+      onDone();
     } catch (e) {
       onError(errorText(e, "No pudimos guardar los textos."));
     } finally {
@@ -369,208 +913,58 @@ function ConceptCard({
   }
 
   return (
-    <article aria-labelledby={`concepto-${c.id}`} className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground">
-      <div className="flex flex-wrap items-center gap-2">
-        <AiChip>{c.familyName}</AiChip>
-        {c.preset ? <span className="text-caption text-muted-foreground">Estilo {c.preset.name}</span> : <span className="text-caption text-muted-foreground">Sin estilo, edición directa</span>}
-      </div>
-      <div>
-        <h3 id={`concepto-${c.id}`} className="text-row font-semibold">
-          {c.name}
-        </h3>
-        <p className="mt-0.5 text-label font-normal text-muted-foreground">{c.why}</p>
-        {c.look ? <p className="mt-1 text-caption text-muted-foreground">Cómo se verá: {c.look}</p> : null}
-      </div>
-
-      {editing ? (
-        <div className="flex flex-col gap-2">
-          {texts.map((t, i) => (
-            <Field
-              key={i}
-              label={ROLE_LABEL[t.role] ?? t.role}
-              value={t.text}
-              maxLength={ROLE_LIMITS[t.role]}
-              hint={`${t.text.length} de ${ROLE_LIMITS[t.role]} caracteres`}
-              onValueChange={(v) => setTexts((l) => l.map((x, j) => (j === i ? { ...x, text: v } : x)))}
-            />
-          ))}
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" icon="check" loading={saving} onClick={save}>
-              Guardar textos
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setTexts(c.texts);
-                setEditing(false);
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1.5 rounded-md bg-muted p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-micro text-muted-foreground">Textos que van en la imagen{c.edited ? " · editados" : ""}</span>
-            <Button size="sm" variant="ghost" icon="edit" disabled={inProgress} onClick={() => setEditing(true)} aria-label={`Editar los textos de ${c.name}`}>
-              Editar
-            </Button>
-          </div>
-          <ul className="m-0 flex list-none flex-col gap-1 p-0">
-            {c.texts.map((t, i) => (
-              <li key={i} className="text-small">
-                <span className="text-caption text-muted-foreground">{ROLE_LABEL[t.role] ?? t.role}: </span>
-                <span className={cn(t.role === "headline" && "font-semibold")}>{t.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {shown.length ? (
-        <div className="grid grid-cols-2 gap-3">
-          {shown.map((a) => (
-            <AssetTile
-              key={a.id}
-              asset={a}
-              busy={busy === `decide-${a.id}`}
-              recovering={busy === `recover-${a.id}`}
-              costLabel={costLabel}
-              providerName={mixed ? IMAGE_PROVIDER_NAME[a.provider] : undefined}
-              onDecide={onDecide}
-              onRecover={() => onRecover(a)}
-              onRetry={() => onRender(a.ratio)}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {!editing ? (
-        <div className="flex flex-wrap gap-2">
-          {missing("1:1") ? (
-            <Button size="sm" variant="secondary" icon="image" loading={busy === `render-${c.id}-1:1`} disabled={!!busy} onClick={() => onRender("1:1")}>
-              {`${withName("Generar feed 1:1")} · ${costLabel}`}
-            </Button>
-          ) : null}
-          {!missing("1:1") && missing("9:16") ? (
-            <Button size="sm" variant="ghost" icon="plus" loading={busy === `render-${c.id}-9:16`} disabled={!!busy} onClick={() => onRender("9:16")}>
-              {`${withName("Versión Stories 9:16")} · ${costLabel}`}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-    </article>
+    <>
+      <CreativeConcept
+        slot={slot}
+        title={c.name}
+        family={c.familyName}
+        style={c.preset?.name}
+        styleKind={c.preset ? "preset" : "direct"}
+        why={c.why}
+        look={c.look}
+        texts={view}
+        editing
+        onTextChange={(i, v) => setTexts((l) => l.map((x, j) => (j === i ? { ...x, text: v } : x)))}
+      />
+      <StickyActions className="lg:mt-3">
+        <Button size="lg" disabled={saving} onClick={onDone}>
+          Cancelar
+        </Button>
+        <Button variant="primary" size="lg" loading={saving} disabled={over || !changed} onClick={save}>
+          Guardar
+        </Button>
+      </StickyActions>
+    </>
   );
 }
 
-// ---------------------------------------------------------------- Chat de WhatsApp
-
-/**
- * La invitación a crear el chat de un ángulo. Es una conversación armada: se dice antes de gastar y
- * pide un segundo toque (el servidor exige `acknowledged`).
- */
-function ChatOffer({ angle, busy, disabled, onCreate }: { angle: number; busy: string | null; disabled: boolean; onCreate: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-  const loading = busy === `chat-${angle}`;
-  if (confirming || loading) {
-    return (
-      <div className="flex flex-col gap-2">
-        <Notice
-          tone="warning"
-          icon="chat"
-          title="El chat es una conversación armada"
-          body="Se ve como un chat real entre amigos, pero lo escribe la IA con lo que dicen tus reseñas reales (o tu ficha, si no tienes). Úsalo como recreación: Meta puede rechazar un anuncio que presente un testimonio inventado como real."
-        />
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" icon="chat" loading={loading} disabled={!!busy && !loading} onClick={onCreate}>
-            Entiendo, crear chat
-          </Button>
-          <Button size="sm" variant="ghost" disabled={loading} onClick={() => setConfirming(false)}>
-            Cancelar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-4">
-      <div className="min-w-0 flex-1">
-        <p className="text-row font-semibold">Chat de WhatsApp</p>
-        <p className="text-label font-normal text-muted-foreground">Un amigo le cuenta al lector cómo le fue, le manda una foto del producto y el lector pide el link.</p>
-      </div>
-      <Button size="sm" variant="secondary" icon="chat" disabled={disabled || !!busy} onClick={() => setConfirming(true)}>
-        Crear chat
-      </Button>
-    </div>
-  );
-}
-
-/** La conversación como se verá: el amigo a la izquierda, el lector a la derecha, la foto en su burbuja. */
-function ChatPreview({ chat }: { chat: WhatsappChat }) {
-  return (
-    <div className="flex flex-col gap-1.5 rounded-md bg-muted p-3">
-      <span className="text-micro text-muted-foreground">{`Chat con ${chat.contact_name} · ${chat.clock}`}</span>
-      <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
-        {chat.messages.map((m, i) => (
-          <li key={i} className={cn("flex max-w-[85%] flex-col gap-1 rounded-md px-2.5 py-1.5 text-small", m.from === "me" ? "self-end bg-accent text-accent-foreground" : "self-start bg-card text-card-foreground")}>
-            {m.photo ? (
-              <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-                <Icon name="image" size="sm" aria-hidden />
-                Foto del producto
-              </span>
-            ) : null}
-            {m.text ? <span>{m.text}</span> : null}
-            <span className="self-end text-micro text-muted-foreground tabular-nums">{m.time}</span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-function ChatCard({
+/** Editar el contacto y cada mensaje del chat (el de la foto es su pie). */
+function ChatEditor({
   productId,
   concept: c,
   chat,
-  provider,
-  busy,
-  costLabel,
-  onRender,
-  onAnother,
-  onDecide,
-  onRecover,
   onSaved,
+  onDone,
   onError,
 }: {
   productId: string;
   concept: CreativeConceptView;
   chat: WhatsappChat;
-  provider: ImageProvider | null;
-  busy: string | null;
-  costLabel: string;
-  onRender: () => void;
-  onAnother: () => void;
-  onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
-  onRecover: (a: CreativeAssetView) => void;
   onSaved: (s: CreativesState) => void;
+  onDone: () => void;
   onError: (m: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(chat);
   const [saving, setSaving] = useState(false);
-  const shown = latestPieces(c.assets);
-  const mixed = new Set(c.assets.map((a) => a.provider)).size > 1 || c.assets.some((a) => a.provider !== provider);
-  const inProgress = c.assets.some(rendering);
-  const problem = editing ? chatShapeProblem(draft) : null;
+  const problem = chatShapeProblem(draft);
+  const area = "w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-body text-foreground outline-none focus:border-primary focus:ring-3 focus:ring-primary-soft";
 
   async function save() {
     setSaving(true);
     try {
       onSaved(await productsApi.editChat(productId, c.id, { contact_name: draft.contact_name, messages: draft.messages.map((m) => ({ text: m.text })) }));
-      setEditing(false);
       notify("Chat guardado");
+      onDone();
     } catch (e) {
       onError(errorText(e, "No pudimos guardar el chat."));
     } finally {
@@ -579,214 +973,43 @@ function ChatCard({
   }
 
   return (
-    <article aria-labelledby={`concepto-${c.id}`} className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground">
-      <div className="flex flex-wrap items-center gap-2">
-        <AiChip>{c.familyName}</AiChip>
-        <span className="text-caption text-muted-foreground">Captura 9:16, feed y Stories</span>
-      </div>
-      <div>
-        <h3 id={`concepto-${c.id}`} className="text-row font-semibold">
-          {c.name}
-        </h3>
-        <p className="mt-0.5 text-label font-normal text-muted-foreground">{c.why}</p>
-      </div>
-
-      {editing ? (
-        <div className="flex flex-col gap-2">
-          <Field
-            label="Nombre del contacto"
-            value={draft.contact_name}
-            maxLength={CONTACT_NAME_MAX}
-            hint={`${draft.contact_name.length} de ${CONTACT_NAME_MAX} caracteres`}
-            onValueChange={(v) => setDraft((d) => ({ ...d, contact_name: v }))}
+    <div className="flex flex-col gap-3">
+      <Field
+        label="Nombre del contacto"
+        value={draft.contact_name}
+        maxLength={CONTACT_NAME_MAX}
+        hint={`${draft.contact_name.length} de ${CONTACT_NAME_MAX} caracteres`}
+        onValueChange={(v) => setDraft((d) => ({ ...d, contact_name: v }))}
+      />
+      {draft.messages.map((m, i) => (
+        <div key={i} className="flex flex-col gap-1.5">
+          <label htmlFor={`chat-m${i}`} className="text-label">
+            {`${m.from === "me" ? "Lector" : draft.contact_name || "Contacto"} · ${m.time}${m.photo ? " · pie de la foto" : ""}`}
+          </label>
+          <textarea
+            id={`chat-m${i}`}
+            rows={2}
+            value={m.text}
+            maxLength={CHAT_MESSAGE_MAX}
+            onChange={(e) => setDraft((d) => ({ ...d, messages: d.messages.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) }))}
+            className={area}
           />
-          {draft.messages.map((m, i) => (
-            <Field
-              key={i}
-              label={`${i + 1}. ${m.from === "me" ? "Lector" : draft.contact_name || "Contacto"}${m.photo ? " · pie de la foto" : ""}`}
-              value={m.text}
-              maxLength={CHAT_MESSAGE_MAX}
-              hint={`${m.text.length} de ${CHAT_MESSAGE_MAX} caracteres`}
-              onValueChange={(v) => setDraft((d) => ({ ...d, messages: d.messages.map((x, j) => (j === i ? { ...x, text: v } : x)) }))}
-            />
-          ))}
-          {problem ? (
-            <p role="alert" className="text-caption text-destructive">
-              {problem}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" icon="check" loading={saving} disabled={!!problem} onClick={save}>
-              Guardar chat
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setDraft(chat);
-                setEditing(false);
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
+          <span className="text-caption text-muted-foreground tabular-nums">{`${m.text.length} de ${CHAT_MESSAGE_MAX} caracteres`}</span>
         </div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-micro text-muted-foreground">Mensajes que van en la imagen{c.edited ? " · editados" : ""}</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              icon="edit"
-              disabled={inProgress}
-              onClick={() => {
-                setDraft(chat);
-                setEditing(true);
-              }}
-              aria-label={`Editar el chat ${c.name}`}
-            >
-              Editar
-            </Button>
-          </div>
-          <ChatPreview chat={chat} />
-        </div>
-      )}
-
-      {shown.length ? (
-        <div className="grid grid-cols-2 gap-3">
-          {shown.map((a) => (
-            <AssetTile
-              key={a.id}
-              asset={a}
-              busy={busy === `decide-${a.id}`}
-              recovering={busy === `recover-${a.id}`}
-              costLabel={costLabel}
-              providerName={mixed ? IMAGE_PROVIDER_NAME[a.provider] : undefined}
-              onDecide={onDecide}
-              onRecover={() => onRecover(a)}
-              onRetry={onRender}
-            />
-          ))}
-        </div>
+      ))}
+      {problem ? (
+        <p role="alert" className="text-label font-normal text-destructive">
+          {problem}
+        </p>
       ) : null}
-
-      {!editing ? (
-        <div className="flex flex-wrap gap-2">
-          {needsRender(c.assets, "9:16", provider) ? (
-            <Button size="sm" variant="secondary" icon="image" loading={busy === `render-${c.id}-9:16`} disabled={!!busy} onClick={onRender}>
-              {`${c.assets.length && provider ? `Generar chat con ${IMAGE_PROVIDER_NAME[provider]}` : "Generar chat 9:16"} · ${costLabel}`}
-            </Button>
-          ) : null}
-          <Button size="sm" variant="ghost" icon="refresh" loading={busy === `chat-${c.angle}`} disabled={!!busy || inProgress} onClick={onAnother}>
-            Otro chat
-          </Button>
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
-// ---------------------------------------------------------------- Pieza
-
-function AssetTile({
-  asset: a,
-  busy,
-  recovering,
-  costLabel,
-  providerName,
-  onDecide,
-  onRecover,
-  onRetry,
-}: {
-  asset: CreativeAssetView;
-  busy: boolean;
-  recovering: boolean;
-  costLabel: string;
-  /** Solo cuando el concepto tiene piezas de más de un proveedor. */
-  providerName?: string;
-  onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
-  onRecover: () => void;
-  onRetry: () => void;
-}) {
-  const aspect = a.ratio === "9:16" ? "aspect-[9/16]" : "aspect-square";
-  const label = `${a.ratio === "9:16" ? "Stories 9:16" : "Feed 1:1"}${providerName ? ` · ${providerName}` : ""}`;
-  if (rendering(a)) {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <div role="status" className={cn("grid place-items-center rounded-md bg-muted p-3 text-center", aspect)}>
-          <div className="flex flex-col items-center gap-2">
-            <StateChip label={a.render === "queued" ? "En cola" : "Generando"} icon="loader" tone="progress" spin />
-            <span className="text-caption text-muted-foreground">{a.error ?? (a.attempt > 1 ? "Segundo intento, sin estilo, para corregir el texto" : "Suele tardar menos de un minuto")}</span>
-          </div>
-        </div>
-        <span className="text-caption text-muted-foreground">{label}</span>
-      </div>
-    );
-  }
-  if (a.render === "failed") {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <div className="grid min-h-40 place-items-center rounded-md border border-destructive p-3 text-center">
-          <div className="flex flex-col items-center gap-2">
-            <StatusBadge status="error" size="sm" />
-            <span className="text-caption text-destructive">{a.error ?? "No se pudo generar."}</span>
-            {a.recoverable ? (
-              <>
-                <span className="text-caption text-muted-foreground">Higgsfield sí la recibió: recupérala sin volver a pagar.</span>
-                <Button size="sm" variant="secondary" icon="refresh" loading={recovering} onClick={onRecover}>
-                  Recuperar imagen
-                </Button>
-              </>
-            ) : null}
-            <Button size="sm" variant="ghost" disabled={recovering} onClick={onRetry}>
-              {`Generar de nuevo · ${costLabel}`}
-            </Button>
-          </div>
-        </div>
-        <span className="text-caption text-muted-foreground">{label}</span>
-      </div>
-    );
-  }
-  const decided = a.status === "aprobado" || a.status === "rechazado";
-  return (
-    <div className="flex flex-col gap-1.5">
-      <a href={a.src} target="_blank" rel="noreferrer" className={cn("block overflow-hidden rounded-md bg-muted inset-ring inset-ring-border", aspect, a.status === "rechazado" && "opacity-50")}>
-        {a.src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage, sin optimizador
-          <img src={a.src} alt={`Anuncio generado ${label}`} className="size-full object-cover" loading="lazy" />
-        ) : null}
-      </a>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <StatusBadge status={a.status} size="sm" />
-        <span className="text-caption text-muted-foreground">{label}</span>
-      </div>
-      {a.qa ? (
-        a.qa.pass ? (
-          <span className="text-caption text-success">Texto y producto revisados</span>
-        ) : (
-          <details className="text-caption text-warning">
-            <summary className="cursor-pointer">Revisa: {a.qa.issues.length === 1 ? "1 detalle" : `${a.qa.issues.length} detalles`}</summary>
-            <ul className="m-0 mt-1 list-disc pl-4">
-              {a.qa.issues.map((i) => (
-                <li key={i}>{i}</li>
-              ))}
-            </ul>
-          </details>
-        )
-      ) : null}
-      {!decided ? (
-        <div className="flex gap-1.5">
-          <Button size="sm" variant="secondary" icon="check" loading={busy} onClick={() => onDecide(a, "approve")} aria-label={`Aprobar ${label}`}>
-            Aprobar
-          </Button>
-          <Button size="sm" variant="ghost" icon="x" disabled={busy} onClick={() => onDecide(a, "reject")} aria-label={`Descartar ${label}`}>
-            Descartar
-          </Button>
-        </div>
-      ) : a.inAds ? (
-        <span className="text-caption text-muted-foreground">En Anuncios</span>
-      ) : null}
+      <StickyActions>
+        <Button size="lg" disabled={saving} onClick={onDone}>
+          Cancelar
+        </Button>
+        <Button variant="primary" size="lg" loading={saving} disabled={Boolean(problem)} onClick={save}>
+          Guardar
+        </Button>
+      </StickyActions>
     </div>
   );
 }

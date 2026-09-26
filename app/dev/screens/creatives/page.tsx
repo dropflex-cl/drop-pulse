@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { IconButton, StageList, StatusBadge, Thumb } from "@/components/df";
 import { CreativesScreen } from "@/components/screens/creatives";
+import { AiCostProvider } from "@/components/shell/ai-cost-provider";
 import { AssistantProvider } from "@/components/shell/assistant-provider";
+import { summarizeAiCost } from "@/lib/ai/costs";
 import { fixture } from "./fixture";
 
 // Verificación visual de la etapa Creativos con datos de ejemplo:
@@ -39,11 +41,14 @@ async function Screen({ searchParams }: { searchParams: Promise<{ state?: string
 export default function Page({ searchParams }: { searchParams: Promise<{ state?: string; video?: string }> }) {
   return (
     <AssistantProvider>
-      <main id="contenido" className="min-h-svh">
-        <Suspense fallback={null}>
-          <Screen searchParams={searchParams} />
-        </Suspense>
-      </main>
+      {/* Costo de IA de ejemplo en CLP: los botones que gastan muestran el monto en la moneda de la tienda. */}
+      <AiCostProvider cost={Promise.resolve(summarizeAiCost([], { currency: "CLP", usdRate: 950, stages: [], now: new Date("2026-01-01T12:00:00Z") }))}>
+        <main id="contenido" className="min-h-svh">
+          <Suspense fallback={null}>
+            <Screen searchParams={searchParams} />
+          </Suspense>
+        </main>
+      </AiCostProvider>
     </AssistantProvider>
   );
 }

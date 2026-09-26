@@ -8,6 +8,8 @@ export interface TopBarProps {
   /** Texto de la pantalla anterior; es el nombre accesible del botón volver. */
   back?: string;
   backHref?: string;
+  /** Volver dentro de la misma pantalla (una subvista), en vez de navegar. */
+  onBack?: () => void;
   /** Acción de contexto a la derecha (el destello del asistente en pantallas de producto). */
   actions?: React.ReactNode;
   /** Raíces de pestaña (Hoy, Productos, Campañas): título grande, sin volver. */
@@ -16,7 +18,7 @@ export interface TopBarProps {
 }
 
 /** Barra superior: dónde estás, cómo volver y la acción de contexto. */
-export function TopBar({ title, subtitle, back, backHref, actions, large, className }: TopBarProps) {
+export function TopBar({ title, subtitle, back, backHref, onBack, actions, large, className }: TopBarProps) {
   return (
     <header
       className={cn(
@@ -25,7 +27,7 @@ export function TopBar({ title, subtitle, back, backHref, actions, large, classN
         className,
       )}
     >
-      {back ? <IconButton icon="chevron-left" label={back} href={backHref} /> : null}
+      {back ? <IconButton icon="chevron-left" label={back} href={onBack ? undefined : backHref} onClick={onBack} /> : null}
       <div className={cn("min-w-0 flex-1 px-2", !back && "pl-3")}>
         <h1 className={cn("truncate", large ? "text-title tracking-normal" : "text-topbar")}>{title}</h1>
         {subtitle ? <p className="truncate text-caption text-muted-foreground">{subtitle}</p> : null}

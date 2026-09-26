@@ -130,8 +130,10 @@ export async function expireStaleCreatives(userId: string): Promise<void> {
  * las que ya se subieron a Meta o que usa un anuncio (ads.media_id no se borra en cascada): tienen
  * su propio archivo y no dependen de la pieza. Devuelve los ids que se borraron.
  */
-export async function removeAdCopies(ids: string[]): Promise<Set<string>> {
-  if (!ids.length) return new Set();
+type AdCopy = { id: string; storage_path: string; meta_image_hash: string | null; meta_video_id: string | null };
+
+/** Las copias en Anuncios y cuáles no se pueden borrar: ya están en Meta o las usa un anuncio. */
+async function adCopies(ids: string[]): Promise<{ media: AdCopy[]; kept: (m: AdCopy) => boolean }> {
   const db = adminClient();
   const [media, used] = await Promise.all([
     db.from("ad_media").select("id, storage_path, meta_image_hash, meta_video_id").in("id", ids),
@@ -140,9 +142,21 @@ export async function removeAdCopies(ids: string[]): Promise<Set<string>> {
   fail("Leer los creativos de Anuncios", media.error);
   fail("Leer los anuncios", used.error);
   const inUse = new Set((used.data ?? []).map((a) => a.media_id as string));
-  const removable = ((media.data ?? []) as { id: string; storage_path: string; meta_image_hash: string | null; meta_video_id: string | null }[]).filter(
-    (m) => !m.meta_image_hash && !m.meta_video_id && !inUse.has(m.id),
-  );
+  return { media: (media.data ?? []) as AdCopy[], kept: (m) => Boolean(m.meta_image_hash || m.meta_video_id || inUse.has(m.id)) };
+}
+
+/** Las copias de Anuncios (ids de ad_media) que «Proponer otros» conserva, para decirlo antes. */
+export async function keptAdCopies(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const { media, kept } = await adCopies(ids);
+  return new Set(media.filter(kept).map((m) => m.id));
+}
+
+export async function removeAdCopies(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const db = adminClient();
+  const { media, kept } = await adCopies(ids);
+  const removable = media.filter((m) => !kept(m));
   if (!removable.length) return new Set();
   fail("Borrar el creativo", (await db.storage.from(AD_MEDIA_BUCKET).remove(removable.map((m) => m.storage_path))).error);
   fail("Borrar el creativo", (await db.from("ad_media").delete().in("id", removable.map((m) => m.id))).error);
@@ -307,7 +321,7 @@ export function isRecoverable(a: Pick<AssetRow, "render_status" | "hf_request_id
   return a.render_status === "failed" && Boolean(a.hf_request_id) && !HF_FINAL.includes(a.error_code ?? "");
 }
 
-export function toAssetView(a: AssetRow, src?: string): CreativeAssetView {
+export function toAssetView(a: AssetRow, src?: string, kept?: Set<string>): CreativeAssetView {
   const waiting = a.render_status === "queued" && a.error_code === "busy";
   return {
     id: a.id,
@@ -322,12 +336,13 @@ export function toAssetView(a: AssetRow, src?: string): CreativeAssetView {
     qa: a.qa ? { pass: a.qa.pass, issues: a.qa.issues } : undefined,
     status: toUiStatus(a.status),
     inAds: Boolean(a.ad_media_id),
+    ...(a.ad_media_id && kept?.has(a.ad_media_id) ? { kept: true } : {}),
     recoverable: isRecoverable(a) || undefined,
     createdAt: a.created_at,
   };
 }
 
-export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<string, string>): CreativeConceptView {
+export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<string, string>, kept?: Set<string>): CreativeConceptView {
   const p = c.payload;
   return {
     id: c.id,
@@ -342,6 +357,6 @@ export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<strin
     texts: p.texts.map((t) => ({ role: t.role, text: t.text })),
     chat: p.chat,
     edited: c.edited_at != null,
-    assets: assets.filter((a) => a.concept_id === c.id).map((a) => toAssetView(a, a.storage_path ? urls.get(a.storage_path) : undefined)),
+    assets: assets.filter((a) => a.concept_id === c.id).map((a) => toAssetView(a, a.storage_path ? urls.get(a.storage_path) : undefined, kept)),
   };
 }

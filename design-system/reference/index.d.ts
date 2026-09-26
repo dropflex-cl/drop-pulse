@@ -1,6 +1,6 @@
 import type * as React from 'react';
 
-export type IconName = 'sparkle' | 'eye' | 'check' | 'x' | 'loader' | 'check-circle' | 'alert' | 'chevron-right' | 'chevron-left' | 'plus' | 'inbox' | 'box' | 'megaphone' | 'chat' | 'lock' | 'image' | 'tag' | 'text' | 'store' | 'send' | 'arrow-up' | 'arrow-down' | 'pause' | 'power' | 'more' | 'undo' | 'edit' | 'search' | 'clock' | 'minus' | 'truck' | 'trend' | 'grip' | 'star' | 'settings' | 'shield' | 'upload' | 'link';
+export type IconName = 'sparkle' | 'eye' | 'check' | 'x' | 'loader' | 'check-circle' | 'alert' | 'chevron-right' | 'chevron-left' | 'plus' | 'inbox' | 'box' | 'megaphone' | 'chat' | 'lock' | 'image' | 'tag' | 'text' | 'store' | 'send' | 'arrow-up' | 'arrow-down' | 'pause' | 'power' | 'more' | 'undo' | 'edit' | 'search' | 'clock' | 'minus' | 'truck' | 'trend' | 'grip' | 'star' | 'settings' | 'shield' | 'upload' | 'link' | 'download' | 'external' | 'video';
 export interface IconProps { name: IconName; size?: 'sm'; label?: string; strokeWidth?: number; className?: string }
 export declare function Icon(props: IconProps): React.ReactElement;
 
@@ -112,7 +112,7 @@ export interface ReferenceImageProps { src?: string; alt?: string; source?: 'sho
 export declare function ReferenceImage(props: ReferenceImageProps): React.ReactElement;
 
 export interface UploadItem { name: string; state: 'uploading' | 'done' | 'error'; progress?: number; detail?: string }
-export interface ImageUploaderProps { pickLabel?: string; dragLabel?: string; compactLabel?: string; formats?: string; noun?: string; accept?: string[]; multiple?: boolean; urlLabel?: string; urlHint?: string; mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
+export interface ImageUploaderProps { urlHint?: string; pickLabel?: string; dragLabel?: string; formats?: string; mode?: 'file' | 'url'; state?: 'idle' | 'dragover' | 'error' | 'fetching'; items?: UploadItem[]; url?: string; urlError?: string; compact?: boolean; hideModes?: boolean }
 export declare function ImageUploader(props: ImageUploaderProps): React.ReactElement;
 
 export interface StarsProps { value: number; size?: 'lg' }
@@ -206,6 +206,63 @@ export interface AiRun { kind: 'gen' | 'regen' | 'retry' | 'fail'; what: string;
 export interface AiRunListProps { runs: AiRun[]; audience?: 'merchant' | 'admin' }
 export declare function AiRunList(props: AiRunListProps): React.ReactElement;
 
+export type MediaSource = 'ia' | 'hf' | 'upload' | 'gif' | 'shopify';
+export type MediaKind = 'image' | 'gif' | 'video';
+export interface MediaTileProps { source?: MediaSource; kind?: MediaKind; duration?: string; ratio?: '1:1' | '4:5' | '16:9' | '9:16'; selected?: boolean; order?: number; state?: 'ready' | 'generating' | 'error'; eta?: string; error?: string; alt?: string; imageIndex?: number; shape?: number }
+export declare function MediaTile(props: MediaTileProps): React.ReactElement;
+
+export interface MediaSlotProps { title: string; required?: boolean; pairs?: string; format: string; state?: 'empty' | 'options' | 'generating' | 'chosen' | 'error'; count?: number; kind?: MediaKind; imageIndex?: number }
+export declare function MediaSlot(props: MediaSlotProps): React.ReactElement;
+
+export interface GenerationComposerProps { engine?: 'ia' | 'hf'; kind?: 'image' | 'video'; refs?: number; style?: number; scene?: number; prompt?: string; count?: number; cost?: number; eta?: string; panel?: boolean }
+export declare function GenerationComposer(props: GenerationComposerProps): React.ReactElement;
+
+export interface LpNavProps { compact?: boolean }
+export declare function LpNav(props: LpNavProps): React.ReactElement;
+export interface LpSectionHeadProps { eyebrow?: string; title: string; lead?: string; center?: boolean }
+export declare function LpSectionHead(props: LpSectionHeadProps): React.ReactElement;
+export interface LpStepProps { n: number; title: string; text?: string; children?: React.ReactNode }
+export declare function LpStep(props: LpStepProps): React.ReactElement;
+export interface LpFeatureProps { icon: IconName; title: string; text?: string; children?: React.ReactNode }
+export declare function LpFeature(props: LpFeatureProps): React.ReactElement;
+export interface LpFaqProps { q: string; a: string; open?: boolean }
+export declare function LpFaq(props: LpFaqProps): React.ReactElement;
+export interface LpCtaProps { title: string; lead?: string; cta?: string; fine?: string }
+export declare function LpCta(props: LpCtaProps): React.ReactElement;
+
+
+/* ---------- Creativos ---------- */
+export interface AssistantButtonProps { scope?: string; label?: string }
+export declare function AssistantButton(props: AssistantButtonProps): React.ReactElement;
+export interface ImageProvider { id: 'higgsfield' | 'gemini' | string; name: string; cost: number; eta?: string; connected?: boolean }
+export interface ImageProviderPickerProps { value?: string; providers?: ImageProvider[]; compact?: boolean; label?: string }
+export declare function ImageProviderPicker(props: ImageProviderPickerProps): React.ReactElement;
+export interface QaResultProps { issues?: string[]; okLabel?: string }
+export declare function QaResult(props: QaResultProps): React.ReactElement;
+export type PieceState = 'empty' | 'locked' | 'queued' | 'generating' | 'review' | 'approved' | 'discarded' | 'failed';
+export interface CreativePieceProps { ratio?: '1:1' | '9:16'; label?: string; state?: PieceState; provider?: 'higgsfield' | 'gemini' | string; cost?: number; retry?: boolean; qa?: string[]; qaOk?: string; recoverable?: boolean; error?: string; eta?: string; imageIndex?: number; shape?: number; overlay?: React.ReactNode; variant?: 'row' | 'full' }
+export declare function CreativePiece(props: CreativePieceProps): React.ReactElement;
+export interface ConceptText { role: string; value: string; limit?: number }
+export interface CreativeConceptProps { slot?: number; title: string; family: string; style?: string; styleKind?: 'preset' | 'direct'; why?: string; look?: string; texts?: ConceptText[]; pieces?: CreativePieceProps[]; editing?: boolean; locked?: boolean; compact?: boolean; footer?: React.ReactNode }
+export declare function CreativeConcept(props: CreativeConceptProps): React.ReactElement;
+export interface ChatConsentProps { checked?: boolean }
+export declare function ChatConsent(props: ChatConsentProps): React.ReactElement;
+export interface ChatMessage { me?: boolean; text: string; time: string; photo?: boolean }
+export interface ChatPreviewProps { contact: string; messages: ChatMessage[]; imageIndex?: number; small?: boolean }
+export declare function ChatPreview(props: ChatPreviewProps): React.ReactElement;
+export interface UgcStepperProps { current?: 1 | 2 | 3 | 4 | 5; vertical?: boolean; notes?: string[] }
+export declare function UgcStepper(props: UgcStepperProps): React.ReactElement;
+export interface ScriptShotProps { n: number; kind?: 'talk' | 'broll'; time?: string; line: string; onscreen?: string; changed?: boolean; editing?: boolean }
+export declare function ScriptShot(props: ScriptShotProps): React.ReactElement;
+export interface KeyframeTileProps { n: number; state?: 'missing' | 'generating' | 'review' | 'approved' | 'discarded'; qa?: string[]; imageIndex?: number }
+export declare function KeyframeTile(props: KeyframeTileProps): React.ReactElement;
+export interface ClipRowProps { n: number; kind?: 'talk' | 'broll'; state?: 'queued' | 'generating' | 'done' | 'failed'; eta?: string; cost?: number; recoverable?: boolean; duration?: string; imageIndex?: number }
+export declare function ClipRow(props: ClipRowProps): React.ReactElement;
+export interface MontagePackageProps { clips?: number; expiresIn?: string; expired?: boolean; disabled?: boolean }
+export declare function MontagePackage(props: MontagePackageProps): React.ReactElement;
+export interface VideoUploadProps { state?: 'idle' | 'uploading' | 'error' | 'ready' | 'approved' | 'discarded'; progress?: number; file?: string; size?: string; done?: string; duration?: string; adset?: string; imageIndex?: number }
+export declare function VideoUpload(props: VideoUploadProps): React.ReactElement;
+
 declare global {
   interface Window {
     DropFlex: {
@@ -220,8 +277,11 @@ declare global {
       Stars: typeof Stars; ReviewImporter: typeof ReviewImporter; ReviewSummary: typeof ReviewSummary; ReviewItem: typeof ReviewItem;
       ScoreBar: typeof ScoreBar; RoleChip: typeof RoleChip; AngleCard: typeof AngleCard; AngleSuggestion: typeof AngleSuggestion; IcpSummary: typeof IcpSummary; AngleDevelopment: typeof AngleDevelopment;
       StructurePicker: typeof StructurePicker; PresetSelect: typeof PresetSelect; ConfigSection: typeof ConfigSection; ChipInput: typeof ChipInput; RuleRow: typeof RuleRow; RuleGroup: typeof RuleGroup; CreativeSlot: typeof CreativeSlot; CampaignTree: typeof CampaignTree; DecisionRow: typeof DecisionRow;
+      AssistantButton: typeof AssistantButton; ImageProviderPicker: typeof ImageProviderPicker; QaResult: typeof QaResult; CreativePiece: typeof CreativePiece; CreativeConcept: typeof CreativeConcept; ChatConsent: typeof ChatConsent; ChatPreview: typeof ChatPreview; UgcStepper: typeof UgcStepper; ScriptShot: typeof ScriptShot; KeyframeTile: typeof KeyframeTile; ClipRow: typeof ClipRow; MontagePackage: typeof MontagePackage; VideoUpload: typeof VideoUpload;
       CharCount: typeof CharCount; EmptyState: typeof EmptyState; Notice: typeof Notice; PageOutline: typeof PageOutline; CopySummary: typeof CopySummary;
       AiCostChip: typeof AiCostChip; AiCostCard: typeof AiCostCard; AiRunList: typeof AiRunList;
+      MediaTile: typeof MediaTile; MediaSlot: typeof MediaSlot; GenerationComposer: typeof GenerationComposer;
+      LpNav: typeof LpNav; LpSectionHead: typeof LpSectionHead; LpStep: typeof LpStep; LpFeature: typeof LpFeature; LpFaq: typeof LpFaq; LpCta: typeof LpCta;
     };
   }
 }

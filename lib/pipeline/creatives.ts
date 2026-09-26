@@ -32,7 +32,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { GEMINI_IMAGE_MODEL, GeminiError, generateImage, geminiGeneration, type GeminiAspectRatio } from "@/lib/integrations/gemini/client";
 import { geminiKey, markGeminiInvalid } from "@/lib/integrations/gemini/connection";
 import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
-import type { ImageProvider, ImageStage } from "@/lib/image-provider";
+import { IMAGE_PROVIDER_NAME, type ImageProvider, type ImageStage } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey, markHiggsfieldInvalid, presetsFor } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -99,8 +99,14 @@ async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: n
 }
 
 /** El proveedor de imágenes de la etapa (el elegido en la pantalla, si sigue disponible). */
-export async function requireProvider(userId: string, stage: ImageStage, what = "anuncios"): Promise<ImageProvider> {
+export async function requireProvider(userId: string, stage: ImageStage, what = "anuncios", prefer?: ImageProvider): Promise<ImageProvider> {
   const choice = await imageProviderChoice(userId, stage);
+  // Uno pedido para esta pieza («Generar con Higgsfield»): tiene que estar conectado, sin cambiar lo guardado.
+  if (prefer) {
+    const option = choice.options.find((o) => o.id === prefer);
+    if (!option?.available) throw new OptimizeError(option?.reason ?? `Conecta ${IMAGE_PROVIDER_NAME[prefer]} en Ajustes para generar con él.`, 409);
+    return prefer;
+  }
   if (!choice.value) throw new OptimizeError(noProviderReason(choice, what), 409);
   return choice.value;
 }
@@ -456,8 +462,8 @@ export async function editChat(userId: string, productId: string, conceptId: str
 // ---------------------------------------------------------------- 2. Render
 
 /** Crea la pieza (queued) de un concepto en una proporción. Si ya hay una generándose, la devuelve. */
-export async function startRender(userId: string, productId: string, conceptId: string, ratio: Ratio): Promise<{ asset: AssetRow; created: boolean }> {
-  const provider = await requireProvider(userId, "creatives");
+export async function startRender(userId: string, productId: string, conceptId: string, ratio: Ratio, prefer?: ImageProvider): Promise<{ asset: AssetRow; created: boolean }> {
+  const provider = await requireProvider(userId, "creatives", "anuncios", prefer);
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
   if (!conceptRatios(concept.family).includes(ratio)) throw new OptimizeError("El chat de WhatsApp se genera en 9:16.", 400);

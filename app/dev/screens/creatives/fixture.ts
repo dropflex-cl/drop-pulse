@@ -44,7 +44,13 @@ function concepts(state: string): CreativeConceptView[] {
         { role: "callout", text: "60 cápsulas veganas, sin sabor" },
       ],
       edited: false,
-      assets: generated ? [asset("a1", { status: state === "done" ? "aprobado" : "generado", inAds: state === "done" })] : [],
+      assets: generated
+        ? [
+            asset("a1", { status: state === "done" ? "aprobado" : "generado", inAds: state === "done", kept: state === "done" }),
+            // La misma pieza con el otro proveedor: cada una dice con cuál se generó.
+            ...(state === "review" ? [asset("a8", { provider: "gemini", qa: { pass: false, issues: ["El sello «Pago contra entrega» tapa la etiqueta.", "El titular dice «CÁPSLA»: falta una letra."] } })] : []),
+          ]
+        : [],
     },
     {
       id: "k2",

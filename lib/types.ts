@@ -608,6 +608,8 @@ export interface CreativeAssetView {
   status: ContentStatus;
   /** Ya está en Anuncios (se copió a los creativos del producto). */
   inAds: boolean;
+  /** Su copia en Anuncios ya está en Meta o la usa un anuncio: «Proponer otros» no la borra. */
+  kept?: boolean;
   /** Falló después de llegar a Higgsfield por un corte nuestro: se puede recuperar sin volver a cobrar. */
   recoverable?: boolean;
   createdAt: string;
@@ -816,6 +818,8 @@ export interface ProductAiCost {
   audience: "merchant" | "admin";
   /** Costo estimado de una llamada por paso (AI_STEPS), en la moneda de la tienda: para avisar antes de gastar. */
   estimates: Record<string, number>;
+  /** Unidades de la moneda de la tienda por dólar: para mostrar en esa moneda un costo en USD (imágenes, clips). */
+  usdRate: number;
 }
 
 /** Etapa Publicar (docs/spec-publicar.md): lo que la pantalla necesita saber. */

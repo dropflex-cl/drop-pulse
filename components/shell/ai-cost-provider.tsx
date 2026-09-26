@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AiCostCard, AiCostChip, AiRunList, IconButton, linkClasses } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
-import { count } from "@/lib/format";
+import { count, money } from "@/lib/format";
 import type { ProductAiCost } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDesktop } from "./use-desktop";
@@ -127,4 +127,19 @@ export function useAiEstimate(step: string): { amount: number; currency: string 
   const ctx = useContext(Ctx);
   const amount = ctx?.cost?.estimates[step];
   return ctx?.cost && amount ? { amount, currency: ctx.cost.currency } : null;
+}
+
+/**
+ * Formatea un costo en USD (imágenes, clips: lo que cobra el proveedor) en la moneda de la tienda, con el
+ * mismo tipo de cambio del indicador de costo de IA. Mientras no llega (o fuera de un producto), en USD.
+ */
+export function useLocalCost(): (usd: number) => string {
+  const cost = useContext(Ctx)?.cost;
+  return useCallback((usd: number) => `≈ ${cost ? money(usd * cost.usdRate, cost.currency) : money(usd, "USD")}`, [cost]);
+}
+
+/** «≈ $30» para una llamada del paso (AI_STEPS), o null si todavía no hay estimado. */
+export function useStepCost(step: string): string | null {
+  const e = useAiEstimate(step);
+  return e ? `≈ ${money(e.amount, e.currency)}` : null;
 }
