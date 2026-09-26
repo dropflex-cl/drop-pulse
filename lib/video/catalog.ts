@@ -87,3 +87,6 @@ export const FORMAT_LIMITS: Record<VideoFormat, FormatLimits> = {
 };
 
 export const formatOf = (v: unknown): VideoFormat => (v === "mascot" ? "mascot" : "ugc");
+
+/** El nombre del paquete de montaje: los dos videos de un ángulo no se pisan en Descargas. */
+export const montageFile = (slot: number, format: VideoFormat) => `video-angulo-${slot}${format === "mascot" ? "-mascota" : ""}.json`;

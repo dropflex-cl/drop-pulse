@@ -25,6 +25,7 @@ import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
 import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
+import { VIDEO_FORMATS } from "@/lib/video/catalog";
 import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
@@ -434,7 +435,7 @@ export const getProductCreatives = cache(async (id: string): Promise<ProductCrea
   return found && { product: found.product, ...found.state };
 });
 
-/** La pestaña Videos (docs/spec-video-ugc.md): una tarjeta por ángulo aprobado. Lo que devuelve su sondeo. */
+/** La pestaña Videos (docs/spec-video-ugc.md): una tarjeta por ángulo aprobado y formato. Lo que devuelve su sondeo. */
 export async function videosState(uid: string, productId: string): Promise<VideosState> {
   const [rankings, connection, scripts] = await Promise.all([latestRankings(uid, [productId]), getHiggsfieldConnection(uid), activeScripts(uid, productId)]);
   const ranking = rankings.get(productId);
@@ -444,7 +445,9 @@ export async function videosState(uid: string, productId: string): Promise<Video
   if (!anglesDone) return { locked: "Aprueba los desarrollos de tus ángulos para hacer videos.", cards: [] };
   if (connection?.status !== "connected") return { locked: "Conecta tu cuenta de Higgsfield en Ajustes para hacer videos: las voces y los clips se generan ahí.", cards: [] };
   const shots = await shotsFor(uid, scripts.map((s) => s.id));
-  const cards = await Promise.all(chosen.map((a) => toCardView(a.slot, testAngleName(a), scripts.find((s) => s.angle_slot === a.slot), shots)));
+  const cards = await Promise.all(
+    chosen.flatMap((a) => VIDEO_FORMATS.map((f) => toCardView(a.slot, testAngleName(a), f, scripts.find((s) => s.angle_slot === a.slot && s.format === f), shots))),
+  );
   return { locked: null, cards };
 }
 

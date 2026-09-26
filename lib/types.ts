@@ -656,7 +656,7 @@ export interface CreativesState {
 
 export interface ProductCreatives extends CreativesState {
   product: Product;
-  /** La pestaña Videos (docs/spec-video-ugc.md): un video UGC por ángulo. */
+  /** La pestaña Videos (docs/spec-video-ugc.md): un video por ángulo y formato. */
   videos: VideosState;
 }
 
@@ -679,20 +679,20 @@ export interface VideoShotView {
   recoverable?: boolean;
 }
 
-/** En qué paso está el video de un ángulo. */
+/** En qué paso está el video de un ángulo en un formato. */
 export type VideoStep = "script" | "keyframes" | "clips" | "montage" | "final";
 
 export interface VideoCardView {
   slot: AngleSlot;
   angleName: string;
+  /** UGC (persona de IA) o mascota animada: cada ángulo tiene una tarjeta por formato, con su propio avance. */
+  format: import("./video/catalog").VideoFormat;
   step: VideoStep;
   script?: {
     id: string;
     status: RunStatus;
     error?: string;
     payload?: import("./video/schemas").UgcScript;
-    /** UGC (persona de IA) o mascota animada. */
-    format: import("./video/catalog").VideoFormat;
     approved: boolean;
     edited: boolean;
     createdAt: string;
@@ -709,6 +709,7 @@ export interface VideoCardView {
 export interface VideosState {
   /** Por qué no se puede usar todavía (ángulos sin aprobar, sin Higgsfield). */
   locked: string | null;
+  /** Una por ángulo aprobado y formato (VIDEO_FORMATS), en el orden de los ángulos. */
   cards: VideoCardView[];
 }
 

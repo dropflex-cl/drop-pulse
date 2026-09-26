@@ -28,25 +28,28 @@ import { durationLabel } from "@/lib/ads/media";
 import { cn } from "@/lib/utils";
 import { ProductApiClientError, productsApi, uploadFinalVideo } from "@/lib/products/client";
 import type { VideoCardView, VideoShotView, VideoStep, VideosState } from "@/lib/types";
-import type { VideoFormat } from "@/lib/video/catalog";
+import { formatOf, montageFile, type VideoFormat } from "@/lib/video/catalog";
 import { shotCost } from "@/lib/video/cost";
 import type { UgcScript } from "@/lib/video/schemas";
 import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
 
-// Pestaña Videos de Creativos (design-system/creativos.md › 3, docs/spec-video-ugc.md §2): un video UGC
-// de ~30 s por ángulo en 5 pasos. Guion (centavos) → imágenes clave (se aprueban una a una) → clips (lo
-// caro) → montaje en el equipo del comerciante con el script → video final, que al aprobarlo pasa a
-// Anuncios. Arriba, el ángulo y los pasos; abajo, el paso que toca. En escritorio: los pasos a la
-// izquierda, el trabajo al centro y el paso siguiente a la derecha.
+// Pestaña Videos de Creativos (design-system/creativos.md › 3, docs/spec-video-ugc.md §2): por ángulo, un
+// video con persona (UGC de ~30 s) y otro con mascota animada (~25 s), cada uno con su propio avance en 5
+// pasos. Guion (centavos) → imágenes clave (se aprueban una a una) → clips (lo caro) → montaje en el
+// equipo del comerciante con el script → video final, que al aprobarlo pasa a Anuncios. Arriba, el
+// ángulo, el formato y los pasos; abajo, el paso que toca. En escritorio: los pasos a la izquierda, el
+// trabajo al centro y el paso siguiente a la derecha.
 
 const POLL_MS = 4000;
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 const busyShot = (s: VideoShotView) => s.render === "queued" || s.render === "running";
 const STEP_N: Record<VideoStep, number> = { script: 1, keyframes: 2, clips: 3, montage: 4, final: 5 };
 /** Lo que cambia en la pantalla según el formato del video (docs/spec-video-ugc.md §11). */
-const FORMAT: Record<VideoFormat, { option: string; title: string; body: string; guard: string; character: string }> = {
+const FORMAT: Record<VideoFormat, { option: string; short: string; noun: string; title: string; body: string; guard: string; character: string }> = {
   ugc: {
     option: "Persona",
+    short: "Persona",
+    noun: "persona",
     title: "Un UGC de ~30 s para este ángulo",
     body: "Una persona de IA habla a cámara. Claude escribe las tomas habladas, las de apoyo, los textos en pantalla y el cierre, desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.",
     guard: "La persona muestra el producto. No dice ser clienta ni cuenta resultados propios.",
@@ -54,15 +57,24 @@ const FORMAT: Record<VideoFormat, { option: string; title: string; body: string;
   },
   mascot: {
     option: "Mascota animada",
+    // En la columna de pasos del escritorio (280 px) «Mascota animada» no cabe en su mitad.
+    short: "Mascota",
+    noun: "mascota",
     title: "Una mascota animada de ~25 s para este ángulo",
     body: "Lo que tiene el problema, en 3D, cuenta su historia: cómo está, lo que no funcionó, cómo actúa tu producto y el final feliz. Sirve cuando el problema se ve y se puede personificar.",
     guard: "Es una animación: el personaje habla de sí mismo, sin cuerpos reales ni plazos de resultado.",
     character: "el personaje solo y define su cara",
   },
 };
-const FORMAT_OPTIONS = (["ugc", "mascot"] as const).map((value) => ({ value, label: FORMAT[value].option }));
+const formatOptions = (short: boolean) => (["ugc", "mascot"] as const).map((value) => ({ value, label: short ? FORMAT[value].short : FORMAT[value].option }));
 
 type Run = (key: string, fn: () => Promise<VideosState>, fallback: string, done?: string) => Promise<VideosState | null>;
+
+/** Sin elegir: el formato del ángulo con el guion más reciente (lo último en que se trabajó) o, sin guiones, Persona. */
+function initialFormat(cards: VideoCardView[], slot: number | undefined): VideoFormat {
+  const latest = cards.filter((c) => c.slot === slot && c.script).sort((a, b) => b.script!.createdAt.localeCompare(a.script!.createdAt))[0];
+  return latest?.format ?? "ugc";
+}
 
 /** El paso en que va la tarjeta: sin guion aprobado, siempre el 1. */
 function currentStep(card: VideoCardView): number {
@@ -87,8 +99,10 @@ export function VideosPanel({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [slot, setSlot] = useState<number | undefined>(initial.cards[0]?.slot);
-  // El paso que se mira en cada ángulo (uno ya hecho, para revisarlo); sin él, el actual.
-  const [viewing, setViewing] = useState<Record<number, number | undefined>>({});
+  // El formato que se mira en cada ángulo: cambiarlo no toca el video del otro formato.
+  const [formats, setFormats] = useState<Record<number, VideoFormat>>({});
+  // El paso que se mira en cada video (uno ya hecho, para revisarlo); sin él, el actual.
+  const [viewing, setViewing] = useState<Record<string, number | undefined>>({});
 
   const working = state.cards.some((c) => c.script?.status === "queued" || c.script?.status === "running" || [...c.keyframes, ...c.clips].some(busyShot));
   const wasWorking = useRef(working);
@@ -148,34 +162,43 @@ export function VideosPanel({
     );
   }
 
-  const card = state.cards.find((c) => c.slot === slot) ?? state.cards[0];
+  const slots = [...new Set(state.cards.map((c) => c.slot))];
+  const angle = slots.find((n) => n === slot) ?? slots[0];
+  const format = formats[angle] ?? initialFormat(state.cards, angle);
+  const card = state.cards.find((c) => c.slot === angle && c.format === format) ?? state.cards.find((c) => c.slot === angle);
   if (!card) return null;
+  const sibling = state.cards.find((c) => c.slot === card.slot && c.format !== card.format);
+  const viewKey = `${card.slot}-${card.format}`;
   const current = currentStep(card);
-  const shown = Math.min(viewing[card.slot] ?? current, current);
-  const view = (n: number) => setViewing((v) => ({ ...v, [card.slot]: n === current ? undefined : n }));
+  const shown = Math.min(viewing[viewKey] ?? current, current);
+  const view = (n: number) => setViewing((v) => ({ ...v, [viewKey]: n === current ? undefined : n }));
+  const pickFormat = (f: VideoFormat) => setFormats((m) => ({ ...m, [card.slot]: f }));
 
   // La cabecera del ángulo (AngleGroup, como en Imágenes) con «Ver ángulo N» para pasar al siguiente.
-  const next = state.cards[(state.cards.indexOf(card) + 1) % state.cards.length];
+  const next = slots[(slots.indexOf(card.slot) + 1) % slots.length];
   const angleHeader = (
     <AngleGroup
       headerOnly
       slot={card.slot}
       name={card.angleName}
       action={
-        next && next.slot !== card.slot ? (
-          <button type="button" onClick={() => setSlot(next.slot)} className="inline-flex min-h-8 shrink-0 cursor-pointer items-center text-small font-medium whitespace-nowrap text-primary underline underline-offset-3">
-            {`Ver ángulo ${next.slot}`}
+        next !== card.slot ? (
+          <button type="button" onClick={() => setSlot(next)} className="inline-flex min-h-8 shrink-0 cursor-pointer items-center text-small font-medium whitespace-nowrap text-primary underline underline-offset-3">
+            {`Ver ángulo ${next}`}
           </button>
         ) : null
       }
     />
   );
+  // Persona y mascota son dos videos del mismo ángulo, cada uno con su avance: se pasa de uno a otro sin perder nada.
+  const formatSwitch = <SegmentedControl label="Formato del video" value={card.format} onChange={(v) => pickFormat(formatOf(v))} options={formatOptions(layout !== "stack")} block />;
 
   const step = (
     <CardStep
-      key={`${card.slot}-${shown}`}
+      key={`${viewKey}-${shown}`}
       productId={productId}
       card={card}
+      sibling={sibling}
       shown={shown}
       current={current}
       desktop={desktop}
@@ -184,6 +207,7 @@ export function VideosPanel({
       onState={setState}
       onError={setError}
       onView={view}
+      onFormat={pickFormat}
     />
   );
   const errorLine = error ? (
@@ -198,6 +222,7 @@ export function VideosPanel({
       <div className={cn("grid flex-1", three ? "grid-cols-[--spacing(70)_minmax(0,1fr)_--spacing(95)]" : "grid-cols-[--spacing(64)_minmax(0,1fr)]")}>
         <div className="flex flex-col gap-4 border-r p-4">
           {angleHeader}
+          {formatSwitch}
           <UgcStepper current={current} viewing={shown} vertical notes={stepNotes(card)} onSelect={view} />
         </div>
         <div className="flex min-w-0 flex-col gap-3 px-7 pt-5 pb-6">
@@ -217,6 +242,7 @@ export function VideosPanel({
     <div className="flex flex-col">
       <div className="flex flex-col gap-2.5 px-4 pb-2">
         {angleHeader}
+        {formatSwitch}
         <UgcStepper current={current} viewing={shown} onSelect={view} />
       </div>
       <div className="flex flex-col gap-2.5 px-4 pt-1 pb-4">
@@ -260,7 +286,7 @@ function NextStep({ card, current }: { card: VideoCardView; current: number }) {
     return (
       <>
         {head("Siguiente: montaje", `Se habilita cuando los ${total} clips estén listos.`)}
-        <MontagePackage clips={total} file={`video-angulo-${card.slot}.json`} disabled />
+        <MontagePackage clips={total} file={montageFile(card.slot, card.format)} disabled />
       </>
     );
   if (current === 4) return head("Siguiente: video final", "Sube el MP4 que deja el script. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.");
@@ -274,6 +300,7 @@ function NextStep({ card, current }: { card: VideoCardView; current: number }) {
 function CardStep({
   productId,
   card,
+  sibling,
   shown,
   current,
   desktop,
@@ -282,9 +309,12 @@ function CardStep({
   onState,
   onError,
   onView,
+  onFormat,
 }: {
   productId: string;
   card: VideoCardView;
+  /** El video del mismo ángulo en el otro formato. */
+  sibling?: VideoCardView;
   shown: number;
   current: number;
   desktop: boolean;
@@ -293,24 +323,32 @@ function CardStep({
   onState: (s: VideosState) => void;
   onError: (m: string) => void;
   onView: (n: number) => void;
+  /** Pasa al video del otro formato del ángulo. */
+  onFormat: (f: VideoFormat) => void;
 }) {
   const scriptCost = useStepCost("ugc_script");
   const s = card.script;
-  const [chosen, setChosen] = useState<VideoFormat>("ugc");
-  // «Otro guion» y «Reintentar» siguen en el formato del guion; sin guion, el elegido.
-  const format = s?.format ?? chosen;
-  const writeAs = (f: VideoFormat) => run(`write-${card.slot}`, () => productsApi.writeScript(productId, card.slot, f), "No pudimos empezar a escribir el guion.");
+  // «Escribir», «Otro guion» y «Reintentar» van en el formato de esta tarjeta: el otro formato no se toca.
+  const format = card.format;
+  const writeKey = (f: VideoFormat) => `write-${card.slot}-${f}`;
+  const writeAs = (f: VideoFormat) => run(writeKey(f), () => productsApi.writeScript(productId, card.slot, f), "No pudimos empezar a escribir el guion.");
   const write = () => writeAs(format);
+  const writing = busy === writeKey(format);
   const writeLabel = (text: string) => (scriptCost ? `${text} · ${scriptCost}` : text);
+  // El guionista recomienda el otro formato: si ese video ya existe, se pasa a él; si no, se escribe y se pasa.
+  const toOther = async (f: VideoFormat) => {
+    if (sibling?.script) return onFormat(f);
+    if (await writeAs(f)) onFormat(f);
+  };
 
   if (shown === 1) {
     if (!s) {
       return (
         <div className="flex flex-col gap-2.5 rounded-lg border bg-card p-4">
-          <SegmentedControl label="Formato del video" value={chosen} onChange={(v) => setChosen(v === "mascot" ? "mascot" : "ugc")} options={FORMAT_OPTIONS} block />
-          <b className="text-body font-semibold">{FORMAT[chosen].title}</b>
-          <span className="text-caption text-muted-foreground">{FORMAT[chosen].body}</span>
-          <Button variant="primary" icon="sparkle" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={write} className="h-auto min-h-control max-w-full shrink self-start py-2 text-left whitespace-normal">
+          <b className="text-body font-semibold">{FORMAT[format].title}</b>
+          <span className="text-caption text-muted-foreground">{FORMAT[format].body}</span>
+          {sibling?.script ? <span className="text-caption text-muted-foreground">{`El video con ${FORMAT[sibling.format].noun} de este ángulo no cambia: cada formato es un video aparte.`}</span> : null}
+          <Button variant="primary" icon="sparkle" loading={writing} disabled={Boolean(busy)} onClick={write} className="h-auto min-h-control max-w-full shrink self-start py-2 text-left whitespace-normal">
             {writeLabel("Escribir el guion")}
           </Button>
         </div>
@@ -325,7 +363,7 @@ function CardStep({
           title="No se pudo escribir el guion"
           body={s.error}
           action={
-            <Button icon="undo" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={write}>
+            <Button icon="undo" loading={writing} disabled={Boolean(busy)} onClick={write}>
               {writeLabel("Reintentar")}
             </Button>
           }
@@ -345,8 +383,11 @@ function CardStep({
         busy={busy}
         format={format}
         withCost={writeLabel}
+        writing={writing}
+        otherExists={Boolean(sibling?.script)}
+        otherBusy={busy === writeKey(format === "ugc" ? "mascot" : "ugc")}
         onAnother={write}
-        onWriteAs={writeAs}
+        onOther={toOther}
         run={run}
         onState={onState}
         onError={onError}
@@ -378,8 +419,11 @@ function ScriptStep({
   busy,
   format,
   withCost,
+  writing,
+  otherExists,
+  otherBusy,
   onAnother,
-  onWriteAs,
+  onOther,
   run,
   onState,
   onError,
@@ -396,8 +440,14 @@ function ScriptStep({
   format: VideoFormat;
   /** El texto de un botón que escribe un guion, con lo que cuesta. */
   withCost: (text: string) => string;
+  /** Se está escribiendo otro guion de este formato. */
+  writing: boolean;
+  /** El ángulo ya tiene el video del otro formato. */
+  otherExists: boolean;
+  otherBusy: boolean;
   onAnother: () => void;
-  onWriteAs: (f: VideoFormat) => void;
+  /** Pasa al video del otro formato (y lo escribe si no existe). */
+  onOther: (f: VideoFormat) => void;
   run: Run;
   onState: (s: VideosState) => void;
   onError: (m: string) => void;
@@ -439,7 +489,7 @@ function ScriptStep({
   }
 
   const fit = p.format_fit.recommended;
-  // El otro formato de video que recomienda el guionista (se escribe con un toque, reemplaza este guion).
+  // El otro formato de video que recomienda el guionista: es otro video del ángulo, este guion se queda.
   const other: VideoFormat | null = fit === "mascot" && format === "ugc" ? "mascot" : fit === "ugc_ai" && format === "mascot" ? "ugc" : null;
   const fitTitle =
     fit === "static" ? "Este ángulo rinde más como imagen" : fit === "real_video" ? "Este ángulo pide una persona real" : other === "mascot" ? "Este ángulo rinde más con una mascota animada" : "Este ángulo rinde más con una persona";
@@ -448,9 +498,15 @@ function ScriptStep({
     <div className="flex flex-col gap-2.5">
       {showFit ? <Notice tone="info" icon={fit === "static" ? "image" : "video"} title={fitTitle} body={`${p.format_fit.why} Informa, no bloquea: puedes seguir con el video.`} /> : null}
       {other ? (
-        <Button size="sm" icon="sparkle" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={() => onWriteAs(other)} className="self-start">
-          {withCost(other === "mascot" ? "Escribir como mascota" : "Escribir con persona")}
-        </Button>
+        otherExists ? (
+          <Button size="sm" iconEnd="chevron-right" onClick={() => onOther(other)} className="self-start">
+            {`Ver el video con ${FORMAT[other].noun}`}
+          </Button>
+        ) : (
+          <Button size="sm" icon="sparkle" loading={otherBusy} disabled={Boolean(busy)} onClick={() => onOther(other)} className="self-start">
+            {withCost(other === "mascot" ? "Escribir como mascota" : "Escribir con persona")}
+          </Button>
+        )
       ) : null}
       <p className="text-label font-normal text-muted-foreground">{p.hook_why}</p>
       {timeline.map((t) => (
@@ -509,7 +565,7 @@ function ScriptStep({
               <Button icon="edit" disabled={Boolean(busy)} onClick={() => setEditing(true)}>
                 Editar
               </Button>
-              <Button icon="undo" loading={busy === `write-${card.slot}`} disabled={Boolean(busy)} onClick={onAnother}>
+              <Button icon="undo" loading={writing} disabled={Boolean(busy)} onClick={onAnother}>
                 {withCost("Otro guion")}
               </Button>
             </div>
@@ -748,7 +804,7 @@ function MontageStep({ productId, card, desktop, onView }: { productId: string; 
   const p = card.script!.payload!;
   return (
     <div className="flex flex-col gap-2.5">
-      <MontagePackage clips={p.a_roll.length + p.b_roll.length} file={`video-angulo-${card.slot}.json`} href={`/api/products/${productId}/videos/${card.script!.id}/package`} />
+      <MontagePackage clips={p.a_roll.length + p.b_roll.length} file={montageFile(card.slot, card.format)} href={`/api/products/${productId}/videos/${card.script!.id}/package`} />
       <StepActions desktop={desktop}>
         <Button size="lg" iconEnd="chevron-right" onClick={() => onView(5)}>
           Ya lo monté: subir el video

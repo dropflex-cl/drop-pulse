@@ -173,8 +173,8 @@ create table public.video_scripts (
   ad_media_id uuid → ad_media on delete set null,
   prompt_version smallint, model text, started_at, finished_at, created_at, updated_at
 );
--- uno vigente por (producto, ángulo)
-create unique index video_scripts_active on video_scripts (product_id, angle_slot) where superseded_at is null;
+-- uno vigente por (producto, ángulo, formato): migración 20261027000000_video_script_format.sql (§11)
+create unique index video_scripts_active on video_scripts (product_id, angle_slot, format) where superseded_at is null;
 
 create table public.video_shots (
   id uuid pk, script_id → video_scripts cascade, product_id, user_id,
@@ -255,7 +255,7 @@ Un segundo formato de video, con el mismo flujo, las mismas tablas y los mismos 
 
 | Tema | Lo que cambia respecto del UGC |
 |---|---|
-| Elección | La pantalla pide el formato al escribir el guion (`SegmentedControl` Persona / Mascota animada). Se guarda en `video_scripts.input.format` (`ugc` por defecto; sin migración). `format_fit.recommended` suma `mascot` y, si el guionista recomienda el otro formato, la pantalla ofrece reescribir en ese. |
+| Elección | **Cada ángulo tiene los dos videos, cada uno con su avance** (2026-09-26): la persona y la mascota del mismo ángulo conviven, y escribir uno nunca reemplaza ni borra el otro. La columna `video_scripts.format` (`ugc` por defecto; migración `20261027000000_video_script_format.sql`, que copia lo que había en `input.format`) entra en el índice único: un guion vigente por producto, ángulo y formato. `videosState` devuelve una tarjeta por ángulo y formato. En la pantalla, bajo la cabecera del ángulo, `SegmentedControl` «Formato del video» Persona / Mascota animada («Mascota» en la columna de pasos del escritorio) cambia de video sin perder nada; sin elegir, abre el del guion más reciente. «Otro guion» y «Reintentar» solo reemplazan el guion de su formato. `format_fit.recommended` suma `mascot`: si el guionista recomienda el otro formato, la pantalla ofrece «Escribir como mascota» (o «con persona»), que escribe ese video y pasa a él, o «Ver el video con mascota» si ya existe. |
 | Guion | `mascotSystem` (`lib/video/prompts.ts`, `MASCOT_PROMPT_VERSION`): arco fijo gancho con el problema → lo que no funcionó y por qué → llegada y mecanismo en una toma → final feliz que retoma el gancho + oferta. El personaje habla de sí mismo o de «mi dueño»; todo es animación (sin pies ni piel reales). Mismo esquema (`ugcScriptSchema`). |
 | Largo | `FORMAT_LIMITS.mascot`: 3 a 5 tomas y 20 a 26 s habladas (la POC: 23 s + 2 s de cierre; el usuario no quiso más). |
 | Reglas | `scriptProblems(…, format)`: además de las del UGC, la segunda persona sobre el cuerpo cubre uñas, pies, dientes, rodillas, pelo, hongos… y ninguna línea ni texto promete plazos («al día tres», «en dos semanas»); aplica también al UGC. |
@@ -263,6 +263,7 @@ Un segundo formato de video, con el mismo flujo, las mismas tablas y los mismos 
 | QA | `keyframeQaUser(…, "mascot")`: acepta manos de caricatura de 4 o 5 dedos; «la misma persona» es el mismo personaje aunque cambie su estado. |
 | Voz | `voiceBlock(…, "mascot")`: voz de personaje animado, femenina joven, juguetona, timing de comedia. Igual en todas las tomas; en la POC sonó consistente aunque el personaje cambiara de enfermo a sano. |
 | Montaje | El paquete lleva `label: "Animación"` en lugar de «Dramatización». El resto del script es el mismo (los textos largos ahora se achican o se parten en dos líneas). |
-| Anuncios | `ad_media.name` = «Video mascota · <ángulo>». |
+| Anuncios | `ad_media.name` = «Video mascota · <ángulo>». Los dos videos de un ángulo pueden estar en Anuncios a la vez, en el conjunto de ese ángulo. |
+| Paquete | Lleva `format`; se descarga como `video-angulo-N-mascota.json` (`montageFile`), para no pisar el de la persona. |
 
 Costo: ~US$8–9 por video (Seedance manda: ~23 s habladas).

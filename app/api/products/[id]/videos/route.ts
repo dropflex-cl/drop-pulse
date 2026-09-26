@@ -5,7 +5,7 @@ import { ProductApiError, errorResponse, json, ownedProduct } from "@/lib/produc
 import { formatOf } from "@/lib/video/catalog";
 import { expireStaleVideos } from "@/lib/video/store";
 
-// Pestaña Videos de Creativos (docs/spec-video-ugc.md): un video UGC por ángulo. El guion sigue
+// Pestaña Videos de Creativos (docs/spec-video-ugc.md): un video por ángulo y formato (persona o mascota). El guion sigue
 // después de responder (after): una llamada a Claude con la foto base, ~40–90 s.
 export const maxDuration = 300;
 
@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-/** «Escribir guion», «Otro guion» y «Reintentar» de un ángulo, en su formato (UGC o mascota). */
+/** «Escribir guion», «Otro guion» y «Reintentar» de un ángulo en un formato (UGC o mascota); el otro formato no se toca. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;

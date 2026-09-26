@@ -106,11 +106,9 @@ type ScriptInput = {
   brief_id: string;
   brief_edited_at: string | null;
   angle_name: string;
-  /** Sin él (guiones anteriores al formato mascota), UGC. */
-  format?: VideoFormat;
 };
 
-const scriptFormat = (s: Pick<ScriptRow, "input">) => formatOf((s.input as ScriptInput | null)?.format);
+const scriptFormat = (s: Pick<ScriptRow, "format">) => formatOf(s.format);
 
 async function angleFor(userId: string, productId: string, slot: number) {
   const approved = await approvedAngles(userId, productId);
@@ -120,7 +118,11 @@ async function angleFor(userId: string, productId: string, slot: number) {
   return found;
 }
 
-/** «Escribir guion» de un ángulo, en el formato elegido. Reemplaza el guion anterior del ángulo (sus tomas se borran). */
+/**
+ * «Escribir guion» de un ángulo en un formato. Cada ángulo tiene un guion vigente por formato: escribir
+ * la mascota no toca el video con persona del mismo ángulo (ni al revés). Solo reemplaza el guion
+ * anterior del mismo ángulo y formato («Otro guion», «Reintentar»): sus tomas se borran.
+ */
 export async function startScript(userId: string, productId: string, slot: number, format: VideoFormat = "ugc"): Promise<{ script: ScriptRow; created: boolean }> {
   await requireHiggsfield(userId);
   const angle = await angleFor(userId, productId, slot);
@@ -129,7 +131,7 @@ export async function startScript(userId: string, productId: string, slot: numbe
   if (!avatar || avatar.status !== "approved" || !brief || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y guarda el precio en Información base.", 409);
 
   const db = adminClient();
-  const current = (await activeScripts(userId, productId)).find((s) => s.angle_slot === slot);
+  const current = (await activeScripts(userId, productId)).find((s) => s.angle_slot === slot && s.format === format);
   if (current && (current.status === "queued" || current.status === "running")) return { script: current, created: false };
 
   const { count, error: countError } = await db.from("video_scripts").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since24h());
@@ -150,11 +152,10 @@ export async function startScript(userId: string, productId: string, slot: numbe
     brief_id: angle.brief.id,
     brief_edited_at: angle.brief.edited_at,
     angle_name: testAngleName(angle.angle),
-    format,
   };
-  const { data, error } = await db.from("video_scripts").insert({ product_id: productId, user_id: userId, angle_slot: slot, status: "queued", input }).select("*").single();
+  const { data, error } = await db.from("video_scripts").insert({ product_id: productId, user_id: userId, angle_slot: slot, format, status: "queued", input }).select("*").single();
   if (error?.code === "23505") {
-    const again = (await activeScripts(userId, productId)).find((s) => s.angle_slot === slot);
+    const again = (await activeScripts(userId, productId)).find((s) => s.angle_slot === slot && s.format === format);
     if (again) return { script: again, created: false };
   }
   fail("Crear el guion", error);

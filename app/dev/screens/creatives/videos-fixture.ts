@@ -2,6 +2,7 @@
 // Deep Collagen (variante E) en cada paso. Los clips no tienen archivo: aquí solo importa la pantalla.
 import { productImage } from "@/lib/mock/images";
 import type { VideoCardView, VideoShotView, VideoStep, VideosState } from "@/lib/types";
+import type { VideoFormat } from "@/lib/video/catalog";
 import type { UgcScript } from "@/lib/video/schemas";
 
 const script: UgcScript = {
@@ -49,11 +50,32 @@ const shot = (key: string, kind: VideoShotView["kind"], over: Partial<VideoShotV
   ...over,
 });
 
-/** ?video=none|writing|failed|script|suggest|keyframes|clips|montage|final («suggest»: el guionista recomienda mascota) */
+const SUGGEST_MASCOT = { recommended: "mascot" as const, why: "Las líneas de expresión se pueden personificar: una arruga que cuenta su historia." };
+
+/**
+ * ?video=none|writing|failed|script|suggest|both|keyframes|clips|montage|final. «suggest»: el guionista
+ * recomienda mascota y el ángulo todavía no la tiene. «both»: el ángulo tiene los dos videos (persona en
+ * el video final y mascota con el guion por aprobar); la persona recomienda mascota y ofrece «Ver».
+ */
 export function videosFixture(v: string): VideosState {
-  const at = v === "suggest" ? STEPS.indexOf("script") : STEPS.indexOf(v as VideoStep);
-  const payload = v === "suggest" ? { ...script, format_fit: { recommended: "mascot" as const, why: "Las líneas de expresión se pueden personificar: una arruga que cuenta su historia." } } : script;
-  const card = (slot: 1 | 2 | 3, name: string, withScript: boolean): VideoCardView => {
+  const both = v === "both";
+  const at = v === "suggest" ? STEPS.indexOf("script") : both ? STEPS.indexOf("final") : STEPS.indexOf(v as VideoStep);
+  const payload = v === "suggest" || both ? { ...script, format_fit: SUGGEST_MASCOT } : script;
+  const card = (slot: 1 | 2 | 3, name: string, withScript: boolean, format: VideoFormat = "ugc"): VideoCardView => {
+    if (format === "mascot") {
+      // Solo «both» tiene la mascota: un guion escrito y sin aprobar, más reciente que el de la persona.
+      const has = both && withScript;
+      return {
+        slot,
+        angleName: name,
+        format,
+        step: "script",
+        script: has ? { id: `m${slot}`, status: "succeeded", payload: { ...script, format_fit: { recommended: "mascot", why: SUGGEST_MASCOT.why } }, approved: false, edited: false, createdAt: "2026-09-26T11:00:00Z" } : undefined,
+        keyframes: [],
+        clips: [],
+        cost: { keyframes: 0.4, clips: 7.9 },
+      };
+    }
     const step: VideoStep = at < 0 ? "script" : STEPS[at];
     const keyframes =
       at >= 1
@@ -68,14 +90,15 @@ export function videosFixture(v: string): VideosState {
     return {
       slot,
       angleName: name,
+      format,
       step,
       script: !withScript
         ? undefined
         : v === "writing"
-          ? { id: `v${slot}`, status: "running", format: "ugc", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
+          ? { id: `v${slot}`, status: "running", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
           : v === "failed"
-            ? { id: `v${slot}`, status: "failed", format: "ugc", error: "La IA escribió un guion que no cumple las reglas. Toca Reintentar.", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
-            : { id: `v${slot}`, status: "succeeded", format: "ugc", payload, approved: at >= 1, edited: false, createdAt: "2026-09-26T10:00:00Z" },
+            ? { id: `v${slot}`, status: "failed", error: "La IA escribió un guion que no cumple las reglas. Toca Reintentar.", approved: false, edited: false, createdAt: "2026-09-26T10:00:00Z" }
+            : { id: `v${slot}`, status: "succeeded", payload, approved: at >= 1, edited: false, createdAt: "2026-09-26T10:00:00Z" },
       keyframes,
       clips,
       final: at >= 4 ? { durationS: 31.2, sizeBytes: 8_000_000, status: "revision", inAds: false } : undefined,
@@ -84,6 +107,14 @@ export function videosFixture(v: string): VideosState {
   };
   return {
     locked: v === "locked" ? "Conecta tu cuenta de Higgsfield en Ajustes para hacer videos: las voces y los clips se generan ahí." : null,
-    cards: v === "locked" ? [] : [card(3, "Cuando la base se mete en las líneas", v !== "none"), card(1, "La crema se queda arriba, las gotas van primero", false)],
+    cards:
+      v === "locked"
+        ? []
+        : [
+            card(3, "Cuando la base se mete en las líneas", v !== "none"),
+            card(3, "Cuando la base se mete en las líneas", v !== "none", "mascot"),
+            card(1, "La crema se queda arriba, las gotas van primero", false),
+            card(1, "La crema se queda arriba, las gotas van primero", false, "mascot"),
+          ],
   };
 }

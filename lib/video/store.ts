@@ -5,7 +5,7 @@ import { CREATIVES_BUCKET, signedUrls } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { RunStatus, VideoCardView, VideoShotView, VideoStep } from "@/lib/types";
-import { formatOf, type ShotKind } from "./catalog";
+import type { ShotKind, VideoFormat } from "./catalog";
 import { scriptCost } from "./cost";
 import type { KeyframeQa, UgcScript } from "./schemas";
 
@@ -23,6 +23,8 @@ export interface ScriptRow {
   product_id: string;
   user_id: string;
   angle_slot: AngleSlot;
+  /** Un guion vigente por ángulo y formato: la persona y la mascota del mismo ángulo conviven. */
+  format: VideoFormat;
   status: RunStatus;
   error_code: string | null;
   error_message: string | null;
@@ -201,7 +203,7 @@ export function videoStep(script: ScriptRow | undefined, keyframes: ShotRow[], c
   return script.final_storage_path ? "final" : "montage";
 }
 
-export async function toCardView(slot: AngleSlot, angleName: string, script: ScriptRow | undefined, shots: ShotRow[]): Promise<VideoCardView> {
+export async function toCardView(slot: AngleSlot, angleName: string, format: VideoFormat, script: ScriptRow | undefined, shots: ShotRow[]): Promise<VideoCardView> {
   const mine = shots.filter((s) => s.script_id === script?.id);
   const latest = [...latestByKey(mine).values()];
   const keyframes = latest.filter((s) => s.kind === "keyframe").sort((a, b) => keyOrder(a.key, b.key));
@@ -212,6 +214,7 @@ export async function toCardView(slot: AngleSlot, angleName: string, script: Scr
   return {
     slot,
     angleName,
+    format,
     step: videoStep(script, keyframes, clips),
     script: script
       ? {
@@ -219,7 +222,6 @@ export async function toCardView(slot: AngleSlot, angleName: string, script: Scr
           status: script.status,
           error: script.error_message ?? undefined,
           payload: script.payload ?? undefined,
-          format: formatOf((script.input as { format?: unknown } | null)?.format),
           approved: script.approved_at != null,
           edited: script.edited_at != null,
           createdAt: script.created_at,

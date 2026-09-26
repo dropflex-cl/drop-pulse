@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT } from "./catalog";
+import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, montageFile } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
 import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, videoLabel } from "./package";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
@@ -200,6 +200,14 @@ describe("paquete de montaje", () => {
     expect(p.end_card).toMatchObject({ image_url: "https://x/base.jpg", cta: "Comprar" });
     expect(p.label).toBe("Dramatización");
     expect(p.accent_color).toBe(DEFAULT_ACCENT);
+  });
+
+  it("dice su formato, y el de la persona y el de la mascota de un ángulo se descargan con otro nombre", () => {
+    expect(buildPackage({ ...base, script: script(), clipUrls: urls }).format).toBe("ugc");
+    const mascot = buildPackage({ ...base, format: "mascot", script: script(), clipUrls: urls });
+    expect(mascot).toMatchObject({ format: "mascot", label: "Animación" });
+    expect(montageFile(3, "ugc")).toBe("video-angulo-3.json");
+    expect(montageFile(3, "mascot")).toBe("video-angulo-3-mascota.json");
   });
 
   it("no se arma sin todos los clips", () => {

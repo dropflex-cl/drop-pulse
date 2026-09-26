@@ -8,6 +8,8 @@ export interface MontagePackage {
   version: number;
   product: { id: string; title: string };
   angle: { slot: number; title: string };
+  /** Persona o mascota: un ángulo puede tener los dos videos. */
+  format: VideoFormat;
   language: string;
   /** Color de la palabra activa en los subtítulos (el acento de la página, o el de DropFlex). */
   accent_color: string;
@@ -68,6 +70,7 @@ export function buildPackage(p: PackageInput): MontagePackage {
     version: PACKAGE_VERSION,
     product: p.product,
     angle: p.angle,
+    format: p.format ?? "ugc",
     language: p.language,
     accent_color: captionAccent(p.accentColor),
     label: videoLabel(p.format ?? "ugc", p.language),

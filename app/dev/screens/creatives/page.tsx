@@ -8,7 +8,7 @@ import { fixture } from "./fixture";
 
 // Verificación visual de la etapa Creativos con datos de ejemplo:
 // ?state=locked|key|start|proposing|failed|concepts|rendering|review|done
-// y la pestaña Videos: &video=locked|none|writing|failed|script|suggest|keyframes|clips|montage|final
+// y la pestaña Videos: &video=locked|none|writing|failed|script|suggest|both|keyframes|clips|montage|final
 // Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
 // la API real y fallan sin datos: aquí solo importa cómo se ve.
 async function Screen({ searchParams }: { searchParams: Promise<{ state?: string; video?: string }> }) {
