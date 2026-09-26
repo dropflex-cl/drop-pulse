@@ -41,7 +41,7 @@ export interface ProductFacts {
   reviews?: ReviewFacts | null;
   /** Anuncios (etapa opcional): Meta con cuenta, página y píxel, y las campañas del producto. */
   ads?: AdsFacts | null;
-  /** Creativos (etapa opcional): la clave de Higgsfield y las piezas generadas. */
+  /** Creativos (etapa opcional): el proveedor de imágenes y las piezas generadas. */
   creatives?: CreativeFacts | null;
   /** Imágenes de la página: lo elegido por espacio y lo que se está generando. */
   images?: ImageFacts | null;
@@ -63,7 +63,7 @@ export interface ImageFacts {
 }
 
 export interface CreativeFacts {
-  /** El comerciante conectó su clave de Higgsfield y sigue válida. */
+  /** Hay un proveedor de imágenes: Higgsfield conectado y válido, o Gemini activado. */
   connected: boolean;
   /** El generador está proponiendo conceptos. */
   running: boolean;
@@ -275,7 +275,7 @@ function adsStage(pageDone: boolean, a: AdsFacts | null | undefined): Stage {
 
 /**
  * Creativos: opcional, entre Publicar y Anuncios (docs/spec-creativos.md §6.5). Se habilita con los 2
- * desarrollos de Ángulos aprobados y la clave de Higgsfield del comerciante; nunca bloquea Publicar.
+ * desarrollos de Ángulos aprobados y un proveedor de imágenes (Higgsfield o Gemini); nunca bloquea Publicar.
  */
 function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined): { stage: Stage; meter: MeterStage } {
   const base = { key: "creativos", title: "Creativos", optional: true } as const;

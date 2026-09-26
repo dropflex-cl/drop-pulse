@@ -3,7 +3,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { AI_MODEL, type AiUsage } from "./claude";
 import type { AiStep } from "./costs";
 
-// Registro único de cada llamada a un modelo (Claude o Higgsfield), con su costo. De aquí salen el
+// Registro único de cada llamada a un modelo (Claude, Higgsfield o Gemini), con su costo. De aquí salen el
 // costo de IA por producto (AiCostCard, AiRunList) y los topes diarios. Un paso nuevo que llame a la
 // IA registra cada intento aquí, también los fallidos: el historial explica el total.
 
@@ -14,7 +14,7 @@ export interface AiGeneration {
   step: AiStep;
   /** Qué se generó dentro del paso (“Transformación”, “Concepto 2 · 9:16”). */
   detail?: string | null;
-  provider?: "anthropic" | "higgsfield";
+  provider?: "anthropic" | "higgsfield" | "google";
   /** Por defecto, el de `usage` o AI_MODEL. */
   model?: string;
   usage?: AiUsage;
@@ -22,6 +22,8 @@ export interface AiGeneration {
   error?: string | null;
   /** Costo cuando el proveedor no lo informa (se marca como estimado). */
   estimatedCostUsd?: number | null;
+  /** El costo de `usage` es una aproximación (p. ej., un modelo de Gemini fuera de la tabla de precios). */
+  costEstimated?: boolean;
   latencyMs?: number | null;
 }
 
@@ -31,7 +33,7 @@ const BEFORE_CALL = new Set(["not_found", "no_key", "no_image", "no_pricing", "i
 export async function recordAiGeneration(g: AiGeneration): Promise<void> {
   if (g.error && !g.usage && BEFORE_CALL.has(g.error)) return;
   const u = g.usage;
-  const estimated = u?.costUsd == null && g.estimatedCostUsd != null;
+  const estimated = (u?.costUsd == null && g.estimatedCostUsd != null) || Boolean(u && g.costEstimated);
   const { error } = await adminClient()
     .from("ai_generations")
     .insert({

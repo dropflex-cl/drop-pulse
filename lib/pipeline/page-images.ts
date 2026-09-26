@@ -10,6 +10,8 @@ import { fail } from "@/lib/angles/store";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
 import { adminClient } from "@/lib/integrations/admin";
+import { GEMINI_IMAGE_MODEL, GeminiError, geminiGeneration } from "@/lib/integrations/gemini/client";
+import type { ImageProvider } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -49,7 +51,7 @@ import { download as downloadFromLink } from "@/lib/products/images";
 import { latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { approvedAngles } from "./angles";
-import { onHiggsfieldError, productImageUrls, requireKey } from "./creatives";
+import { onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeImage } from "@/lib/media/optimize";
 import { OptimizeError } from "./optimize";
@@ -57,7 +59,8 @@ import { OptimizeError } from "./optimize";
 // Etapa Imágenes (docs/spec-imagenes.md): las imágenes de la página del producto, por espacio.
 // 1. El director de galería (Claude) propone una toma por espacio con dirección de arte: portada, 5 de
 //    galería y una por cada beneficio aprobado en Textos.
-// 2. Cada toma se renderiza en Higgsfield (Marketing Studio Flare, directo) desde la foto base.
+// 2. Cada toma se renderiza desde la foto base con el proveedor que eligió el comerciante en la pantalla
+//    (Higgsfield Marketing Studio Flare, directo, o Gemini; lib/image-provider.ts).
 // 3. Un QA con Claude revisa producto, textos y props; si falla, un reintento automático.
 // El comerciante elige por espacio entre lo generado, sus fotos de Información base y lo que suba.
 
@@ -98,6 +101,8 @@ type RunInput = {
   avatar_id: string;
   /** Los desarrollos aprobados con que se hizo (en orden de slot); las corridas de antes guardaban { primary, secondary }. */
   briefs: BriefStampEntry[] | Record<string, string>;
+  /** Con qué se generan las tomas de la corrida (las de antes no lo guardan: Higgsfield). */
+  provider?: ImageProvider;
 };
 
 /** Lo que el director necesita: sin esto la etapa no genera (sí deja elegir y subir). */
@@ -127,7 +132,7 @@ export const briefStampOf = (v: unknown): string | null => stampKey(v);
 
 /** Crea la corrida del director (queued). Tocar dos veces no cobra dos veces. */
 export async function startPageImages(userId: string, productId: string): Promise<{ run: PageImageRunRow; created: boolean }> {
-  await requireKey(userId, NO_KEY);
+  const provider = await requireProvider(userId, "page_images", NO_KEY);
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
   const active = await db.from("page_image_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
@@ -144,6 +149,7 @@ export async function startPageImages(userId: string, productId: string): Promis
     market,
     avatar_id: ctx.avatar.id,
     briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })),
+    provider,
   };
   const { data, error } = await db.from("page_image_runs").insert({ product_id: productId, user_id: userId, status: "queued", input }).select("*").single();
   if (error?.code === "23505") {
@@ -166,9 +172,9 @@ export async function runPageImages(runId: string): Promise<void> {
   const r = claimed.data as PageImageRunRow & { input: RunInput };
   let created: PageImageRow[] = [];
   try {
-    const key = await higgsfieldKey(r.user_id);
-    if (!key) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
     const input = r.input;
+    const provider = input.provider ?? "higgsfield";
+    if (provider === "higgsfield" && !(await higgsfieldKey(r.user_id))) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
     const [brief, avatarRow, angles, images] = await Promise.all([
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
@@ -220,7 +226,7 @@ export async function runPageImages(runId: string): Promise<void> {
     fail("Guardar la corrida", (await db.from("page_image_runs").update({ status: "succeeded", payload: { ...plan, shots: undefined }, prompt_version: PAGE_IMAGES_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error);
 
     // Toda la galería de una vez: el comerciante ya vio el costo al tocar Generar.
-    created = await Promise.all(((inserted.data ?? []) as ShotRow[]).map((s) => insertImage(s, 1, input.market)));
+    created = await Promise.all(((inserted.data ?? []) as ShotRow[]).map((s) => insertImage(s, 1, provider, input.market)));
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[page-images] director", e);
@@ -246,7 +252,7 @@ async function runMarket(runId: string): Promise<Market | undefined> {
   return (data?.input as RunInput | undefined)?.market;
 }
 
-async function insertImage(shot: ShotRow, attempt: number, market?: Market, retryOf?: string): Promise<PageImageRow> {
+async function insertImage(shot: ShotRow, attempt: number, provider: ImageProvider, market?: Market, retryOf?: string): Promise<PageImageRow> {
   const m = market ?? (await runMarket(shot.run_id));
   const req = pageRenderRequest(shot.slot, shot.payload, languageName(m?.language ?? "es"));
   const { data, error } = await adminClient()
@@ -259,7 +265,8 @@ async function insertImage(shot: ShotRow, attempt: number, market?: Market, retr
       shot_id: shot.id,
       attempt,
       retry_of: retryOf ?? null,
-      endpoint: req.endpoint,
+      provider,
+      endpoint: provider === "gemini" ? GEMINI_IMAGE_MODEL : req.endpoint,
       input: req.input,
       baked_texts: shot.payload.texts,
       render_status: "queued",
@@ -279,19 +286,19 @@ async function checkDailyImages(userId: string, adding: number) {
 
 /** «Generar otra»: una imagen más de la misma toma. Devuelve la fila creada (queued). */
 export async function startShotRender(userId: string, productId: string, shotId: string): Promise<PageImageRow> {
-  await requireKey(userId, NO_KEY);
+  const provider = await requireProvider(userId, "page_images", NO_KEY);
   const shot = await getShotRow(userId, productId, shotId);
   if (!shot) throw new OptimizeError("Esa toma ya no está vigente. Actualiza la página.", 409);
   const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("product_id", productId).eq("slot", shot.slot).eq("source", "ai").neq("status", "rejected");
   fail("Contar las opciones", error);
   if ((count ?? 0) >= MAX_OPTIONS_PER_SLOT) throw new OptimizeError(`Este espacio ya tiene ${MAX_OPTIONS_PER_SLOT} opciones. Descarta alguna para generar otra.`, 409);
   await checkDailyImages(userId, 1);
-  return insertImage(shot, 1);
+  return insertImage(shot, 1, provider);
 }
 
 /** «Generar los vacíos»: una imagen para cada toma que no tiene ninguna viva. */
 export async function startFillEmpty(userId: string, productId: string): Promise<PageImageRow[]> {
-  await requireKey(userId, NO_KEY);
+  const provider = await requireProvider(userId, "page_images", NO_KEY);
   const db = adminClient();
   const [shots, images] = await Promise.all([
     db.from("page_image_shots").select("id, product_id, user_id, run_id, slot, position, payload, created_at").eq("user_id", userId).eq("product_id", productId).is("superseded_at", null).order("position"),
@@ -304,7 +311,7 @@ export async function startFillEmpty(userId: string, productId: string): Promise
   if (!empty.length) return [];
   await checkDailyImages(userId, empty.length);
   const market = await runMarket(empty[0].run_id);
-  return Promise.all(empty.map((s) => insertImage(s, 1, market)));
+  return Promise.all(empty.map((s) => insertImage(s, 1, provider, market)));
 }
 
 /** Procesa varias imágenes recién creadas, de a PARALLEL. Para `after()`. */
@@ -355,6 +362,7 @@ async function logRender(a: PageImageRow, ok: boolean, error?: string, latencyMs
 export async function processImage(imageId: string, force = false): Promise<void> {
   const a = await lease(imageId, ["queued"], force);
   if (!a || a.source !== "ai") return;
+  if (a.provider === "gemini") return processWithGemini(a);
   const started = Date.now();
   let submitted = false;
   try {
@@ -385,6 +393,42 @@ export async function processImage(imageId: string, force = false): Promise<void
   }
 }
 
+/**
+ * Gemini: se toma la imagen (queued → running, una sola vez aunque el sondeo también la vea), se genera
+ * y se guarda en la misma llamada. Una falla queda como fallida: Gemini ya reintentó lo pasajero y probó
+ * su respaldo, y no hay pedido que recuperar.
+ */
+async function processWithGemini(leased: PageImageRow): Promise<void> {
+  const claimed = await adminClient()
+    .from("page_images")
+    .update({ render_status: "running", submitted_at: stamp(), error_code: null, error_message: null, updated_at: stamp() })
+    .eq("id", leased.id)
+    .eq("render_status", "queued")
+    .select("*")
+    .maybeSingle();
+  if (claimed.error || !claimed.data) return;
+  const a = claimed.data as PageImageRow;
+  const detail = await imageDetail(a);
+  let result;
+  try {
+    result = await renderWithGemini(a.user_id, a.product_id, a.input);
+  } catch (e) {
+    const known = e instanceof GeminiError;
+    if (!known) console.error("[page-images] render con Gemini", e);
+    await patchImage(a.id, { render_status: "failed", error_code: known ? e.code : "unexpected", error_message: known ? e.message.replace("Toca Generar de nuevo.", "Toca Generar otra.") : "No pudimos generar la imagen. Toca Generar otra.", finished_at: stamp() });
+    await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_render", detail, ...geminiGeneration(e) });
+    return;
+  }
+  // Ya se cobró: se registra antes de guardar, para que un corte al guardar no esconda el costo.
+  await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_render", detail, ...geminiGeneration(result) });
+  try {
+    await storeAndReview(a, result.bytes, async () => {});
+  } catch (e) {
+    console.error("[page-images] guardar la imagen de Gemini", e);
+    await patchImage(a.id, { render_status: "failed", error_code: "unexpected", error_message: "No pudimos guardar la imagen. Toca Generar otra.", finished_at: stamp() });
+  }
+}
+
 async function pollUntilDone(a: PageImageRow, key: string, started: number): Promise<void> {
   let wait = 3000;
   while (Date.now() - started < POLL_BUDGET_MS) {
@@ -405,7 +449,7 @@ async function pollUntilDone(a: PageImageRow, key: string, started: number): Pro
 /** «Recuperar imagen»: vuelve a preguntarle a Higgsfield por el mismo pedido, sin volver a cobrar. */
 export async function recoverImage(a: PageImageRow): Promise<void> {
   if (!isRecoverable(a)) throw new OptimizeError("Esta imagen no llegó a generarse en Higgsfield. Toca Generar otra.", 409);
-  await requireKey(a.user_id, NO_KEY);
+  if (!(await higgsfieldKey(a.user_id))) throw new OptimizeError("Conecta tu cuenta de Higgsfield en Ajustes para recuperar la imagen.", 409);
   const now = Date.now();
   const patch = { render_status: "running", error_code: null, error_message: null, finished_at: null, submitted_at: new Date(now).toISOString(), updated_at: new Date(now - LEASE_MS - 1000).toISOString() };
   fail("Recuperar la imagen", (await adminClient().from("page_images").update(patch).eq("id", a.id).eq("render_status", "failed")).error);
@@ -447,13 +491,17 @@ async function finishImage(a: PageImageRow, state: RequestState, started: number
     await logRender(a, false, state.status, Date.now() - started);
     return;
   }
+  await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
+}
+
+/** La imagen lograda (de cualquier proveedor): se guarda, se registra, pasa el QA y, si falla, un reintento. */
+async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
   // Va a la landing: se guarda como WebP optimizado. El QA mira el original, sin re-comprimir.
-  const bytes = await download(state.images[0]);
   const img = await optimizeImage(bytes);
   const path = `${a.user_id}/${a.product_id}/${a.id}.${img.ext}`;
   const up = await adminClient().storage.from(PAGE_MEDIA_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true });
   fail("Guardar la imagen", up.error);
-  await logRender(a, true, undefined, Date.now() - started);
+  await log();
 
   const qa = await runQa(a, bytes).catch((e) => {
     console.error("[page-images] QA", e);
@@ -475,7 +523,8 @@ async function finishImage(a: PageImageRow, state: RequestState, started: number
   }
   // Un reintento automático: otra generación de la misma toma. Si sale bien, reemplaza a esta.
   if (qa && !qa.pass && a.attempt === 1) {
-    const retry = await insertImage(shot, 2, undefined, a.id);
+    // Con el mismo proveedor que el primero, aunque la elección haya cambiado mientras.
+    const retry = await insertImage(shot, 2, a.provider ?? "higgsfield", undefined, a.id);
     await processImage(retry.id, true);
   }
 }
@@ -618,6 +667,7 @@ async function coverFrom(a: PageImageRow) {
           user_id: a.user_id,
           slot: COVER,
           source: a.source,
+          provider: a.provider,
           input: { copied_from: a.id },
           baked_texts: a.baked_texts,
           qa: a.qa,

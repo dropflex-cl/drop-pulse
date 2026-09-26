@@ -159,6 +159,14 @@ export function fixture(state: string): ProductCreatives {
     },
     locked: state === "locked" ? "Aprueba los 2 desarrollos de Ángulos para crear anuncios." : state === "key" ? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios." : null,
     connected: state !== "key",
+    imageProvider: {
+      value: state === "key" ? null : "higgsfield",
+      saved: null,
+      options: [
+        { id: "higgsfield", name: "Higgsfield", available: state !== "key", ...(state === "key" ? { reason: "Conecta tu cuenta de Higgsfield en Ajustes." } : {}) },
+        { id: "gemini", name: "Gemini", available: state !== "key", ...(state === "key" ? { reason: "Gemini todavía no está activado en DropFlex." } : {}) },
+      ],
+    },
     run,
     concepts: list,
     imageCostUsd: IMAGE_COST_USD,

@@ -112,6 +112,8 @@ export interface CreativesContext {
 /** Los presets que puede usar, agrupados (sin prueba social si no hay reseñas reales). */
 export function presetsBlock(presets: Preset[], hasRealReviews: boolean): string {
   const usable = presets.filter((p) => hasRealReviews || p.group !== PROOF_GROUP);
+  // Sin presets (el render es con Gemini): todas las familias van directas, con la escena y el layout.
+  if (!usable.length) return "PRESETS: ninguno. Todos los conceptos van con preset_id null; la escena, el layout y el estilo mandan.";
   const groups = [...new Set(usable.map((p) => p.group))];
   return [
     "PRESETS (usa solo estos ids)",

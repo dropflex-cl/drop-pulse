@@ -8,6 +8,7 @@ import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import type { ImageProviderChoice } from "@/lib/image-provider";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 import type { StoreFacts } from "@/lib/store-preview/facts";
 import type { AngleSlot, SalesAngle } from "@/lib/angles/catalog";
@@ -624,12 +625,15 @@ export interface CreativeConceptView {
 }
 
 export interface CreativesState {
-  /** Por qué no se puede usar todavía (ángulos sin aprobar, Higgsfield sin conectar). */
+  /** Por qué no se puede usar todavía (ángulos sin aprobar, sin proveedor de imágenes). */
   locked: string | null;
+  /** Hay un proveedor de imágenes disponible (Higgsfield conectado o Gemini activado). */
   connected: boolean;
+  /** Con qué se genera y qué más se puede elegir (la elección queda guardada). */
+  imageProvider: ImageProviderChoice;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
   concepts: CreativeConceptView[];
-  /** Cota de USD por imagen para mostrar antes de generar. */
+  /** Cota de USD por imagen del proveedor elegido, para mostrar antes de generar. */
   imageCostUsd: number;
 }
 
@@ -686,15 +690,17 @@ export interface PageImageSlotView {
 export interface PageImagesState {
   /** Por qué la etapa no se puede usar todavía (la página del producto sin aprobar). */
   locked: string | null;
-  /** Higgsfield conectado: sin él se puede elegir y subir, pero no generar. */
+  /** Hay un proveedor de imágenes: sin él se puede elegir y subir, pero no generar. */
   connected: boolean;
-  /** Por qué no se puede generar (sin Higgsfield, sin ángulos aprobados). */
+  /** Con qué se genera y qué más se puede elegir (la elección queda guardada). */
+  imageProvider: ImageProviderChoice;
+  /** Por qué no se puede generar (sin proveedor, sin ángulos aprobados). */
   cannotGenerate: string | null;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
   slots: PageImageSlotView[];
   /** Las fotos en uso de Información base: se pueden elegir en cualquier espacio. */
   references: { id: string; src: string; alt: string }[];
-  /** Cota de USD por imagen para mostrar antes de generar. */
+  /** Cota de USD por imagen del proveedor elegido, para mostrar antes de generar. */
   imageCostUsd: number;
   /** Los beneficios aprobados cambiaron después de proponer la galería. */
   stale: boolean;

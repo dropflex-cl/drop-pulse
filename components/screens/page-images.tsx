@@ -8,11 +8,13 @@ import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { money } from "@/lib/format";
+import { IMAGE_COST_BY_PROVIDER, costSource, type ImageProviderChoice } from "@/lib/image-provider";
 import { GALLERY_MAX, GALLERY_MIN, GALLERY_SHOTS, GIF_MAX } from "@/lib/page-images/catalog";
 import { ProductApiClientError, productsApi, uploadPageImage } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { PageImageOptionView, PageImageSlotView, PageImagesState, ProductPageImages, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ImageProviderPicker } from "./image-provider-picker";
 
 // Etapa Imágenes (docs/spec-imagenes.md, design-system imagenes.md): las imágenes de la página del
 // producto por espacio, en el orden de la página. La IA propone y genera una toma por espacio; el
@@ -46,6 +48,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
   const working = proposing || all.some(rendering);
   const hasShots = slots.some((s) => s.shots.length);
   const cost = (n: number) => money(n * state.imageCostUsd, "USD");
+  const setProvider = (imageProvider: ImageProviderChoice) => setState((s) => ({ ...s, imageProvider, imageCostUsd: IMAGE_COST_BY_PROVIDER[imageProvider.value ?? "higgsfield"] }));
   const setSize = 1 + GALLERY_SHOTS + slots.filter((s) => s.kind === "benefit").length;
   const empty = slots.flatMap((s) => s.shots.filter((sh) => !visible(s).some((o) => o.shotId === sh.id && o.render !== "failed")));
   const cover = slots.find((s) => s.kind === "cover");
@@ -161,7 +164,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
               <div>
                 <h2 className="text-row font-semibold">{run?.status === "failed" ? "Reintenta la galería" : "La IA arma la galería de tu página"}</h2>
                 <p className="mt-0.5 text-label font-normal text-muted-foreground">
-                  {`Portada, ${GALLERY_SHOTS} imágenes de galería y una por cada beneficio, con el estilo de una marca: ${setSize} imágenes desde tu foto base, cerca de ${cost(setSize)} de tu cuenta de Higgsfield.`}
+                  {`Portada, ${GALLERY_SHOTS} imágenes de galería y una por cada beneficio, con el estilo de una marca: ${setSize} imágenes desde tu foto base, cerca de ${cost(setSize)}${costSource(state.imageProvider.value)}.`}
                 </p>
               </div>
             </div>
@@ -252,6 +255,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
       />
       <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
         <p className="hidden text-body text-muted-foreground lg:block">Imágenes · {subtitle}</p>
+        {!state.locked && !(current && !desktop) ? <ImageProviderPicker stage="page_images" choice={state.imageProvider} onChange={setProvider} /> : null}
         <div>{body}</div>
         {error ? (
           <p role="alert" className="text-label font-normal text-destructive">

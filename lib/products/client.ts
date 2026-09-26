@@ -3,6 +3,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { AngleBriefEdit } from "@/lib/angles/schemas";
 import type { TestAngle } from "@/lib/angles/catalog";
+import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image-provider";
 
 /** Lo que manda la pantalla al confirmar: el slot lo pone el servidor por el orden. */
 export type TestAngleInput = Omit<TestAngle, "slot">;
@@ -157,6 +158,17 @@ export const higgsfieldApi = {
   disconnect: async () => {
     const res = await fetch("/api/settings/higgsfield", { method: "DELETE", cache: "no-store" }).catch(() => null);
     if (!res?.ok) throw new ProductApiClientError("No pudimos desconectar Higgsfield. Intenta de nuevo.");
+  },
+};
+
+/** El proveedor de imágenes de una pantalla que genera; queda guardado por etapa. */
+export const imageProviderApi = {
+  save: async (stage: ImageStage, provider: ImageProvider) => {
+    const res = await fetch("/api/settings/image-provider", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage, provider }), cache: "no-store" }).catch(() => null);
+    if (!res) throw new ProductApiClientError("No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ProductApiClientError(data.error ?? "No pudimos guardar tu elección. Intenta de nuevo.", undefined, res.status);
+    return data as ImageProviderChoice;
   },
 };
 

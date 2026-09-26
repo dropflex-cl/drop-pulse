@@ -1,5 +1,6 @@
 import "server-only";
 import { fail } from "@/lib/angles/store";
+import type { ImageProvider } from "@/lib/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 import type { PageImageOptionView, PageImageSlotView, RunStatus } from "@/lib/types";
@@ -16,6 +17,8 @@ const RUN_QUEUED_STALE_MS = 3 * 60 * 1000;
 /** Una imagen en cola puede esperar a que Higgsfield libere un cupo; más de esto, se da por perdida. */
 const IMAGE_QUEUED_STALE_MS = 30 * 60 * 1000;
 const IMAGE_RUNNING_STALE_MS = 20 * 60 * 1000;
+/** Gemini responde en la misma llamada (tope de la función: 5 min): más que esto, el proceso se cortó. */
+const GEMINI_RUNNING_STALE_MS = 6 * 60 * 1000;
 const SIGNED_URL_TTL_S = 60 * 60;
 /** Lo descartado se borra pasado este plazo: deja tiempo para Deshacer. */
 export const DISCARD_PURGE_MS = 2 * 60 * 1000;
@@ -52,6 +55,8 @@ export interface PageImageRow {
   reference_image_id: string | null;
   attempt: number;
   retry_of: string | null;
+  /** Con qué se generó (lib/image-provider.ts); null en subidas y fotos. */
+  provider: ImageProvider | null;
   endpoint: string | null;
   input: Record<string, unknown>;
   baked_texts: ShotText[];
@@ -83,6 +88,7 @@ export async function expireStalePageImages(userId: string): Promise<void> {
     db.from("page_image_runs").update(runPatch).eq("user_id", userId).eq("status", "running").lt("started_at", before(RUN_RUNNING_STALE_MS)),
     db.from("page_image_runs").update(runPatch).eq("user_id", userId).eq("status", "queued").lt("created_at", before(RUN_QUEUED_STALE_MS)),
     db.from("page_images").update(imagePatch).eq("user_id", userId).eq("render_status", "running").lt("submitted_at", before(IMAGE_RUNNING_STALE_MS)),
+    db.from("page_images").update(imagePatch).eq("user_id", userId).eq("render_status", "running").eq("provider", "gemini").lt("submitted_at", before(GEMINI_RUNNING_STALE_MS)),
     db.from("page_images").update(imagePatch).eq("user_id", userId).eq("render_status", "queued").lt("created_at", before(IMAGE_QUEUED_STALE_MS)),
   ]);
   for (const r of results) fail("Cerrar lo colgado de Imágenes", r.error);

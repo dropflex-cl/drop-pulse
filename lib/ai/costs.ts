@@ -60,7 +60,8 @@ function failReason(code: string | null): string {
   if (code === "invalid_output") return "formato inesperado";
   if (code === "max_tokens") return "respuesta incompleta";
   if (code === "refusal") return "la IA no quiso";
-  if (code === "rate_limited") return "mucha demanda";
+  if (code === "rate_limited" || code === "busy") return "mucha demanda";
+  if (code === "blocked" || code === "nsfw") return "rechazada por reglas de contenido";
   return "no respondió";
 }
 

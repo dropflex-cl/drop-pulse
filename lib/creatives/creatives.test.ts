@@ -195,6 +195,14 @@ describe("conceptProblems", () => {
     expect(conceptProblems(same, facts).some((p) => /repiten familia/.test(p))).toBe(true);
   });
 
+  it("sin presets (render con Gemini), todas las familias van directas", () => {
+    const base = six();
+    const direct = { ...base, concepts: base.concepts.map((c) => ({ ...c, preset_id: null })) };
+    expect(conceptProblems(direct, { ...facts, presetIds: new Set<string>() })).toEqual([]);
+    // Un preset inventado sigue siendo un problema.
+    expect(conceptProblems(base, { ...facts, presetIds: new Set<string>() }).some((p) => /no está en PRESETS/.test(p))).toBe(true);
+  });
+
   it("las familias de escena van sin preset", () => {
     const base = six();
     base.concepts[1] = concept({ family: "before_after" });

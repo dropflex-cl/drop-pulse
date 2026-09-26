@@ -23,12 +23,12 @@ import { scheduleHousekeeping } from "@/lib/products/housekeeping";
 import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { publishState } from "@/lib/data/publish";
-import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
+import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
 import { activeConcepts, assetsFor, creativeCounts, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
 import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
-import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
+import { imageProviderChoice } from "@/lib/integrations/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { customerReviews, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
@@ -123,10 +123,10 @@ async function adsFacts(uid: string, ids: string[]): Promise<(productId: string)
   };
 }
 
-/** La clave de Higgsfield y las piezas de cada producto (etapa Creativos). */
+/** El proveedor de imágenes y las piezas de cada producto (etapa Creativos). */
 async function creativeFacts(uid: string, ids: string[]): Promise<(productId: string) => CreativeFacts> {
-  const [conn, counts] = await Promise.all([getHiggsfieldConnection(uid), creativeCounts(uid, ids)]);
-  const connected = conn?.status === "connected";
+  const [choice, counts] = await Promise.all([imageProviderChoice(uid, "creatives"), creativeCounts(uid, ids)]);
+  const connected = choice.value !== null;
   return (productId) => ({ connected, ...counts(productId) });
 }
 
@@ -402,7 +402,7 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
   };
 }
 
-/** La etapa Creativos: los conceptos del generador y sus piezas generadas con Higgsfield. */
+/** La etapa Creativos: los conceptos del generador y sus piezas generadas (Higgsfield o Gemini). */
 export const getProductCreatives = cache(async (id: string): Promise<ProductCreatives | null> => {
   const found = await withProduct(id, (uid) => creativesState(uid, id));
   return found && { product: found.product, ...found.state };
@@ -410,21 +410,23 @@ export const getProductCreatives = cache(async (id: string): Promise<ProductCrea
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/creatives). */
 export async function creativesState(uid: string, productId: string): Promise<CreativesState> {
-  const [conn, runs, concepts, rankings] = await Promise.all([getHiggsfieldConnection(uid), latestCreativeRuns(uid, [productId]), activeConcepts(uid, [productId]), latestRankings(uid, [productId])]);
+  const [choice, runs, concepts, rankings] = await Promise.all([imageProviderChoice(uid, "creatives"), latestCreativeRuns(uid, [productId]), activeConcepts(uid, [productId]), latestRankings(uid, [productId])]);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
   const anglesDone = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
-  const connected = conn?.status === "connected";
+  const connected = choice.value !== null;
+  const noProvider = choice.options.find((o) => o.id === "higgsfield")?.reason ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.";
   const rows = concepts.get(productId) ?? [];
   const assets = await assetsFor(uid, rows.map((c) => c.id));
   const urls = await signedUrls(assets.map((a) => a.storage_path).filter((p): p is string => Boolean(p)));
   const run = runs.get(productId);
   return {
-    locked: !anglesDone ? "Aprueba los desarrollos de tus ángulos para crear anuncios." : !connected ? (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.") : null,
+    locked: !anglesDone ? "Aprueba los desarrollos de tus ángulos para crear anuncios." : !connected ? noProvider : null,
     connected,
+    imageProvider: choice,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     concepts: rows.map((c) => toConceptView(c, assets, urls)),
-    imageCostUsd: IMAGE_COST_USD,
+    imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
   };
 }
 
@@ -436,8 +438,8 @@ export const getProductPageImages = cache(async (id: string): Promise<ProductPag
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/page-images). */
 export async function pageImagesState(uid: string, productId: string): Promise<PageImagesState> {
-  const [conn, briefStamp, runs, shots, rows, refs, blocker] = await Promise.all([
-    getHiggsfieldConnection(uid),
+  const [choice, briefStamp, runs, shots, rows, refs, blocker] = await Promise.all([
+    imageProviderChoice(uid, "page_images"),
     approvedBriefStamp(uid, productId),
     latestPageImageRuns(uid, [productId]),
     activeShots(uid, productId),
@@ -449,17 +451,19 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   const [urls, refUrls] = await Promise.all([signedPageUrls([...new Set(rows.map((r) => r.storage_path).filter((p): p is string => Boolean(p)))]), withDisplayUrls(inUse)]);
   for (const [id, src] of refUrls) urls.set(`ref:${id}`, src);
   const run = runs.get(productId);
-  const connected = conn?.status === "connected";
+  const connected = choice.value !== null;
+  const noProvider = choice.options.find((o) => o.id === "higgsfield")?.reason ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar imágenes.";
   // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
   const planned = briefStampOf((run?.input as { briefs?: unknown } | undefined)?.briefs);
   return {
     locked: briefStamp ? null : "Aprueba los desarrollos de tus ángulos para preparar las imágenes.",
     connected,
-    cannotGenerate: blocker ?? (connected ? null : (conn?.last_error ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar imágenes.")),
+    imageProvider: choice,
+    cannotGenerate: blocker ?? (connected ? null : noProvider),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
-    imageCostUsd: IMAGE_COST_USD,
+    imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
     stale: Boolean(run?.status === "succeeded" && shots.length && planned && briefStamp && planned !== briefStamp),
   };
 }
