@@ -1066,6 +1066,9 @@ df-comparison-table {
 }
 
 .df-comparison-table__scroll {
+  /* Contiene lo absoluto de las celdas (los textos df-visually-hidden): sin esto escapan del
+     recorte del scroll y ensanchan la página en móvil (scroll horizontal). */
+  position: relative;
   /* El borde superior del pilar sobresale: espacio para que no lo corte el overflow. */
   padding-top: 2px;
 }
