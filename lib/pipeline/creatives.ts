@@ -215,6 +215,9 @@ export async function runCreatives(runId: string): Promise<void> {
         effort: "medium",
         maxTokens: 16000,
       });
+      // Sin presets (Gemini), un preset_id del modelo no sirve de nada: se quita antes de validar, en
+      // vez de tumbar la propuesta por un id que igual no se usaría.
+      if (!presets.length) result.data.concepts = result.data.concepts.map((c) => ({ ...c, preset_id: null }));
       problems = conceptProblems(result.data, facts);
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage: result.usage, error: problems.length ? "invalid_concepts" : null });
       if (!problems.length) break;

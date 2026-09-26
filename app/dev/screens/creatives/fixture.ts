@@ -10,6 +10,7 @@ const NOW = "2026-09-24T10:00:00Z";
 const asset = (id: string, over: Partial<CreativeAssetView> = {}): CreativeAssetView => ({
   id,
   ratio: "1:1",
+  provider: "higgsfield",
   attempt: 1,
   render: "succeeded",
   src: productImage(Number(id.replace(/\D/g, "")) || 0, 1),

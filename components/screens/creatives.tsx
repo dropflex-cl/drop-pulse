@@ -8,7 +8,8 @@ import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ROLE_LIMITS } from "@/lib/creatives/catalog";
-import { IMAGE_COST_BY_PROVIDER, costSource, type ImageProviderChoice } from "@/lib/image-provider";
+import { latestPieces, needsRender } from "@/lib/creatives/pieces";
+import { IMAGE_COST_BY_PROVIDER, IMAGE_PROVIDER_NAME, costSource, type ImageProvider, type ImageProviderChoice } from "@/lib/image-provider";
 import { money } from "@/lib/format";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
@@ -35,20 +36,6 @@ const ROLE_LABEL: Record<string, string> = {
   table_row: "Fila",
   note: "Nota",
 };
-
-/**
- * La pieza que se muestra por proporción: la más reciente (el reintento sin preset reemplaza al
- * primero), salvo que haya fallado y ya exista una lista: esa no se esconde.
- */
-function latestByRatio(assets: CreativeAssetView[]): CreativeAssetView[] {
-  const out = new Map<string, CreativeAssetView>();
-  for (const a of assets) {
-    const prev = out.get(a.ratio);
-    if (a.render === "failed" && prev?.render === "succeeded") continue;
-    out.set(a.ratio, a);
-  }
-  return [...out.values()].sort((a, b) => a.ratio.localeCompare(b.ratio));
-}
 
 export function CreativesScreen({ data }: { data: ProductCreatives }) {
   const router = useRouter();
@@ -221,6 +208,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
                   key={c.id}
                   productId={product.id}
                   concept={c}
+                  provider={state.imageProvider.value}
                   busy={busy}
                   costLabel={cost(1)}
                   onRender={(ratio) => render(c, ratio)}
@@ -292,6 +280,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
 function ConceptCard({
   productId,
   concept: c,
+  provider,
   busy,
   costLabel,
   onRender,
@@ -302,6 +291,8 @@ function ConceptCard({
 }: {
   productId: string;
   concept: CreativeConceptView;
+  /** El proveedor elegido en la pantalla: se puede generar con él aunque haya piezas del otro. */
+  provider: ImageProvider | null;
   busy: string | null;
   costLabel: string;
   onRender: (ratio: "1:1" | "9:16") => void;
@@ -313,8 +304,11 @@ function ConceptCard({
   const [editing, setEditing] = useState(false);
   const [texts, setTexts] = useState(c.texts);
   const [saving, setSaving] = useState(false);
-  const shown = latestByRatio(c.assets);
-  const has = (ratio: string) => c.assets.some((a) => a.ratio === ratio);
+  const shown = latestPieces(c.assets);
+  // Piezas de los dos proveedores: cada una dice con cuál se generó.
+  const mixed = new Set(c.assets.map((a) => a.provider)).size > 1 || c.assets.some((a) => a.provider !== provider);
+  const missing = (ratio: string) => needsRender(c.assets, ratio, provider);
+  const withName = (label: string) => (c.assets.length && provider ? `${label} con ${IMAGE_PROVIDER_NAME[provider]}` : label);
   const inProgress = c.assets.some(rendering);
 
   async function save() {
@@ -400,6 +394,7 @@ function ConceptCard({
               busy={busy === `decide-${a.id}`}
               recovering={busy === `recover-${a.id}`}
               costLabel={costLabel}
+              providerName={mixed ? IMAGE_PROVIDER_NAME[a.provider] : undefined}
               onDecide={onDecide}
               onRecover={() => onRecover(a)}
               onRetry={() => onRender(a.ratio)}
@@ -410,14 +405,14 @@ function ConceptCard({
 
       {!editing ? (
         <div className="flex flex-wrap gap-2">
-          {!has("1:1") ? (
+          {missing("1:1") ? (
             <Button size="sm" variant="secondary" icon="image" loading={busy === `render-${c.id}-1:1`} disabled={!!busy} onClick={() => onRender("1:1")}>
-              {`Generar feed 1:1 · ${costLabel}`}
+              {`${withName("Generar feed 1:1")} · ${costLabel}`}
             </Button>
           ) : null}
-          {has("1:1") && !has("9:16") ? (
+          {!missing("1:1") && missing("9:16") ? (
             <Button size="sm" variant="ghost" icon="plus" loading={busy === `render-${c.id}-9:16`} disabled={!!busy} onClick={() => onRender("9:16")}>
-              {`Versión Stories 9:16 · ${costLabel}`}
+              {`${withName("Versión Stories 9:16")} · ${costLabel}`}
             </Button>
           ) : null}
         </div>
@@ -433,6 +428,7 @@ function AssetTile({
   busy,
   recovering,
   costLabel,
+  providerName,
   onDecide,
   onRecover,
   onRetry,
@@ -441,12 +437,14 @@ function AssetTile({
   busy: boolean;
   recovering: boolean;
   costLabel: string;
+  /** Solo cuando el concepto tiene piezas de más de un proveedor. */
+  providerName?: string;
   onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
   onRecover: () => void;
   onRetry: () => void;
 }) {
   const aspect = a.ratio === "9:16" ? "aspect-[9/16]" : "aspect-square";
-  const label = a.ratio === "9:16" ? "Stories 9:16" : "Feed 1:1";
+  const label = `${a.ratio === "9:16" ? "Stories 9:16" : "Feed 1:1"}${providerName ? ` · ${providerName}` : ""}`;
   if (rendering(a)) {
     return (
       <div className="flex flex-col gap-1.5">

@@ -8,7 +8,7 @@ import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
-import type { ImageProviderChoice } from "@/lib/image-provider";
+import type { ImageProvider, ImageProviderChoice } from "@/lib/image-provider";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 import type { StoreFacts } from "@/lib/store-preview/facts";
 import type { AngleSlot, SalesAngle } from "@/lib/angles/catalog";
@@ -589,6 +589,8 @@ export interface CampaignDetail {
 export interface CreativeAssetView {
   id: string;
   ratio: "1:1" | "9:16";
+  /** Con qué se generó: las piezas de un proveedor no esconden las del otro. */
+  provider: ImageProvider;
   /** 1: con el preset; 2: edición directa, después de que el QA rechazó el primero. */
   attempt: number;
   render: "queued" | "running" | "succeeded" | "failed";

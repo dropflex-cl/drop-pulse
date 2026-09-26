@@ -303,6 +303,7 @@ export function toAssetView(a: AssetRow, src?: string): CreativeAssetView {
   return {
     id: a.id,
     ratio: a.ratio,
+    provider: a.provider,
     attempt: a.attempt,
     render: a.render_status,
     error: a.render_status === "failed" || waiting ? (a.error_message ?? undefined) : undefined,
