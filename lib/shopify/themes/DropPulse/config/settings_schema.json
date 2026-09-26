@@ -85,6 +85,58 @@
         "label": "EasySell con el diseño de la tienda",
         "info": "El formulario de pago contra entrega toma la tipografía, los bordes y los radios del tema, y sus botones el color del producto. Mientras esté activo, los colores y la sombra de los botones configurados en EasySell no se ven.",
         "default": true
+      },
+      {
+        "type": "header",
+        "content": "Oferta de salida"
+      },
+      {
+        "type": "paragraph",
+        "content": "El descuento y cuándo aparece se configuran en EasySell (Downsell). La tienda lo muestra con el total, el total con descuento y el ahorro en dinero, y un «No, gracias» discreto. Aparece una vez por sesión. Con un descuento de monto fijo queda el popup de EasySell."
+      },
+      {
+        "type": "checkbox",
+        "id": "df_downsell",
+        "label": "Oferta de salida de DropFlex",
+        "default": true
+      },
+      {
+        "type": "text",
+        "id": "df_downsell_eyebrow",
+        "label": "Antetítulo",
+        "default": "Antes de irte",
+        "visible_if": "{{ settings.df_downsell }}"
+      },
+      {
+        "type": "text",
+        "id": "df_downsell_title",
+        "label": "Título",
+        "info": "{percent} se reemplaza por el descuento de EasySell. Sin urgencia inventada: nada de «solo por ahora».",
+        "default": "Te dejamos un {percent} de descuento en tu pedido",
+        "visible_if": "{{ settings.df_downsell }}"
+      },
+      {
+        "type": "textarea",
+        "id": "df_downsell_trust",
+        "label": "Líneas de confianza",
+        "info": "Una por línea. Solo lo que sea verdad.",
+        "default": "Pagas cuando lo recibes, no antes\nEl descuento queda aplicado en el total",
+        "visible_if": "{{ settings.df_downsell }}"
+      },
+      {
+        "type": "text",
+        "id": "df_downsell_cta",
+        "label": "Botón",
+        "default": "Aplicar descuento y continuar",
+        "visible_if": "{{ settings.df_downsell }}"
+      },
+      {
+        "type": "text",
+        "id": "df_downsell_decline",
+        "label": "Rechazo",
+        "info": "Neutro, sin culpar al comprador: nada de «No, prefiero pagar el precio normal».",
+        "default": "No, gracias",
+        "visible_if": "{{ settings.df_downsell }}"
       }
     ]
   },

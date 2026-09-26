@@ -1,0 +1,409 @@
+{%- doc -%}
+  DropFlex · oferta de salida (DownsellOffer del design system) sobre el downsell de EasySell COD
+  Form. Va al final del <body>, después de df-easysell. Lógica en assets/df-downsell.js.
+
+  EasySell sigue siendo el motor: decide cuándo aparece la oferta (al cerrar el formulario y, en
+  escritorio, al llevar el mouse al borde superior), guarda el porcentaje y aplica el descuento al
+  pedido. Esta capa solo cambia lo que ve el comprador: cuando EasySell abre su popup, el script
+  lo oculta y abre este <dialog> con el total, el total nuevo y el ahorro en dinero. Los botones
+  hacen clic en los botones reales de EasySell, así corre su código tal cual.
+
+  - Hoja inferior en móvil y modal centrado en escritorio. Cerrar con la X, Esc o un toque en el
+    fondo cuenta como «No, gracias».
+  - Una vez por sesión: si el comprador la rechaza, las siguientes veces que EasySell la abra se
+    rechaza sola (el formulario se cierra, como pidió el comprador).
+  - Los montos salen del mismo cálculo de EasySell y con su formato, así coinciden con el resumen
+    del formulario después de aceptar.
+  - Si algo no calza (sin EasySell, otra versión de la app, descuento de monto fijo), no oculta
+    nada y queda el popup de EasySell con el diseño de df-easysell.
+
+  Se apaga con el ajuste `df_downsell` (o con todo el design system, `df_design_system`).
+{%- enddoc -%}
+{%- if settings.df_design_system != false and settings.df_downsell != false -%}
+  {%- liquid
+    assign df_dso_image = blank
+    if request.page_type == 'product' and product.featured_media
+      assign df_dso_image = product.featured_media.preview_image
+    elsif cart.item_count > 0
+      assign df_dso_image = cart.items.first.image
+    endif
+
+    assign df_dso_eyebrow = settings.df_downsell_eyebrow | default: 'Antes de irte'
+    assign df_dso_title = settings.df_downsell_title | default: 'Te dejamos un {percent} de descuento en tu pedido'
+    assign df_dso_cta = settings.df_downsell_cta | default: 'Aplicar descuento y continuar'
+    assign df_dso_decline = settings.df_downsell_decline | default: 'No, gracias'
+    assign df_dso_trust = settings.df_downsell_trust | newline_to_br | split: '<br />'
+  -%}
+  {% style %}
+    /* El popup de EasySell, mientras esta oferta lo reemplaza (el script pone el atributo). */
+    #es-downsell[data-df-dso-hidden] {
+      display: none !important;
+    }
+
+    html:has(.df-dso[open]) {
+      overflow: hidden;
+    }
+
+    .df-dso {
+      --df-dso-fg: var(--color-foreground, #15171c);
+      --df-dso-bg: var(--color-background, #ffffff);
+      --df-dso-muted: color-mix(in srgb, var(--df-dso-fg) 68%, var(--df-dso-bg));
+      --df-dso-border: color-mix(in srgb, var(--df-dso-fg) 12%, var(--df-dso-bg));
+      --df-dso-surface: color-mix(in srgb, var(--df-dso-fg) 4%, var(--df-dso-bg));
+      --df-dso-ink: var(--df-product-accent-ink, var(--color-primary-button-background, #1f4bd8));
+      --df-dso-ring: var(--df-ds-ring, #1f4bd8);
+      /* Significado fijo (ahorro = verde), como success y success-soft del design system. */
+      --df-dso-positive: #12784a;
+      --df-dso-positive-soft: #e6f4ec;
+
+      box-sizing: border-box;
+      width: min(420px, calc(100% - 32px));
+      max-width: none;
+      max-height: calc(100dvh - 32px);
+      margin: auto;
+      padding: 0;
+      overflow-y: auto;
+      border: 0;
+      border-radius: 20px;
+      background: var(--df-dso-bg);
+      color: var(--df-dso-fg);
+      box-shadow: 0 16px 48px -8px rgba(21, 23, 28, 0.22);
+      font-family: var(--df-ds-font, inherit);
+      font-size: 15px;
+      line-height: 22px;
+      overscroll-behavior: contain;
+    }
+
+    .df-dso::backdrop {
+      background: rgba(14, 16, 20, 0.4);
+    }
+
+    .df-dso *,
+    .df-dso *::before,
+    .df-dso *::after {
+      box-sizing: border-box;
+    }
+
+    .df-dso__panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 20px 24px 24px;
+    }
+
+    .df-dso__grab {
+      display: none;
+    }
+
+    .df-dso__x {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: var(--style-border-radius-md, 10px);
+      background: transparent;
+      color: var(--df-dso-muted);
+      cursor: pointer;
+    }
+
+    .df-dso__x:hover {
+      background: var(--df-dso-surface);
+      color: var(--df-dso-fg);
+    }
+
+    .df-dso__x .df-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .df-dso__eyebrow {
+      margin: 0 0 4px;
+      padding-right: 44px;
+      color: var(--df-dso-ink);
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 600;
+    }
+
+    .df-dso__title {
+      margin: 0 0 16px;
+      padding-right: 36px;
+      color: var(--df-dso-fg);
+      font-family: inherit;
+      font-size: 24px;
+      line-height: 30px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      text-wrap: balance;
+    }
+
+    .df-dso__price {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--df-dso-border);
+      border-radius: var(--style-border-radius-lg, 14px);
+    }
+
+    .df-dso__price--solo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .df-dso__img {
+      display: block;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--gallery-media-border-radius, 10px);
+      background: var(--df-dso-surface);
+      object-fit: cover;
+    }
+
+    .df-dso__label {
+      color: var(--df-dso-muted);
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    .df-dso__row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .df-dso__old {
+      color: var(--df-dso-muted);
+      font-size: 15px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .df-dso__new {
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .df-dso__save {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      margin-top: 4px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--df-dso-positive-soft);
+      color: var(--df-dso-positive);
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .df-dso__trust {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 14px 0 18px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .df-dso__trust li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 15px;
+      line-height: 20px;
+    }
+
+    .df-dso__trust .df-icon {
+      flex: none;
+      width: 20px;
+      height: 20px;
+      color: var(--df-dso-positive);
+    }
+
+    .df-dso__price + .df-dso__cta {
+      margin-top: 18px;
+    }
+
+    .df-dso__cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 52px;
+      margin: 0;
+      padding: 12px 20px;
+      border: 0;
+      border-radius: var(--style-border-radius-buttons-primary, 10px);
+      background: var(--color-primary-button-background, #1f4bd8);
+      color: var(--color-primary-button-text, #ffffff);
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+
+    .df-dso__cta:hover {
+      background: var(--color-primary-button-hover-background, #1a3fb8);
+      color: var(--color-primary-button-hover-text, var(--color-primary-button-text, #ffffff));
+    }
+
+    .df-dso__no {
+      display: block;
+      min-height: 44px;
+      margin: 6px auto 0;
+      padding: 0 16px;
+      border: 0;
+      border-radius: var(--style-border-radius-sm, 6px);
+      background: transparent;
+      color: var(--df-dso-muted);
+      font-family: inherit;
+      font-size: 15px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .df-dso__no:hover {
+      color: var(--df-dso-fg);
+    }
+
+    .df-dso :is(.df-dso__x, .df-dso__cta, .df-dso__no):focus-visible {
+      outline: 2px solid var(--df-dso-ring);
+      outline-offset: 2px;
+    }
+
+    .df-dso__sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Móvil: hoja inferior de borde a borde, con el área segura del teléfono. */
+    @media screen and (max-width: 749px) {
+      .df-dso {
+        width: 100%;
+        max-height: calc(100dvh - 24px);
+        margin: auto 0 0;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 32px rgba(21, 23, 28, 0.12);
+      }
+
+      .df-dso__panel {
+        padding: 8px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .df-dso__grab {
+        display: block;
+        width: 36px;
+        height: 4px;
+        margin: 0 auto 8px;
+        border-radius: 2px;
+        background: var(--df-dso-border);
+      }
+
+      .df-dso__eyebrow {
+        margin-top: 12px;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) and (max-width: 749px) {
+      .df-dso[open] {
+        animation: df-dso-up 320ms cubic-bezier(0, 0, 0, 1);
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) and (min-width: 750px) {
+      .df-dso[open] {
+        animation: df-dso-in 200ms cubic-bezier(0, 0, 0, 1);
+      }
+    }
+
+    @keyframes df-dso-up {
+      from {
+        transform: translateY(24px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes df-dso-in {
+      from {
+        transform: scale(0.98);
+        opacity: 0;
+      }
+    }
+  {% endstyle %}
+
+  <dialog
+    class="df-dso"
+    id="df-dso"
+    aria-labelledby="df-dso-title"
+    aria-describedby="df-dso-price"
+    data-title="{{ df_dso_title | escape }}"
+    style="{% render 'df-accent-vars', product: product %}"
+  >
+    <form class="df-dso__panel" method="dialog">
+      <div class="df-dso__grab" aria-hidden="true"></div>
+      <button class="df-dso__x" type="submit" value="decline" aria-label="Cerrar">
+        {%- render 'df-icon', name: 'x' -%}
+      </button>
+      <p class="df-dso__eyebrow">{{ df_dso_eyebrow | escape }}</p>
+      <h2 class="df-dso__title" id="df-dso-title"></h2>
+      <div class="df-dso__price{% if df_dso_image == blank %} df-dso__price--solo{% endif %}" id="df-dso-price">
+        {%- if df_dso_image != blank -%}
+          {{
+            df_dso_image
+            | image_url: width: 112, height: 112, crop: 'center'
+            | image_tag: class: 'df-dso__img', alt: '', width: 56, height: 56, loading: 'lazy'
+          }}
+        {%- endif -%}
+        <div>
+          <div class="df-dso__label">Total de tu pedido</div>
+          <div class="df-dso__row">
+            <s class="df-dso__old"><span class="df-dso__sr">Antes </span><span data-df-dso="total"></span></s>
+            <span class="df-dso__new"><span class="df-dso__sr">Ahora </span><span data-df-dso="new-total"></span></span>
+          </div>
+          <span class="df-dso__save">Ahorras&nbsp;<span data-df-dso="savings"></span></span>
+        </div>
+      </div>
+      {%- assign df_dso_lines = 0 -%}
+      {%- capture df_dso_trust_items -%}
+        {%- for df_dso_line in df_dso_trust -%}
+          {%- assign df_dso_text = df_dso_line | strip -%}
+          {%- if df_dso_text != blank -%}
+            {%- assign df_dso_lines = df_dso_lines | plus: 1 -%}
+            <li>{% render 'df-icon', name: 'check' %}{{ df_dso_text | escape }}</li>
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endcapture -%}
+      {%- if df_dso_lines > 0 -%}
+        <ul class="df-dso__trust">{{ df_dso_trust_items }}</ul>
+      {%- endif -%}
+      <button class="df-dso__cta" type="submit" value="accept" autofocus>{{ df_dso_cta | escape }}</button>
+      <button class="df-dso__no" type="submit" value="decline">{{ df_dso_decline | escape }}</button>
+    </form>
+  </dialog>
+  <script src="{{ 'df-downsell.js' | asset_url }}" defer></script>
+{%- endif -%}

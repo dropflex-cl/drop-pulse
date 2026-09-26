@@ -4,9 +4,12 @@
 
   - Formulario: campos, prefijos, resumen del pedido, fotos, errores y modales con los tokens del
     tema (Geist, tinta, bordes, radios 6/10/14px, anillo de foco, radio de las fotos del producto).
-  - Botones: el que abre el formulario, la barra fija de la app, el de enviar y el del downsell
-    toman el botón principal del tema: el acento del producto (df-design-system), su texto, su
-    hover y su radio. Planos, sin el degradado ni la sombra de la app.
+  - Botones: el que abre el formulario, la barra fija de la app, el de enviar y el de aceptar del
+    downsell toman el botón principal del tema: el acento del producto (df-design-system), su
+    texto, su hover y su radio. Planos, sin el degradado ni la sombra de la app.
+  - El de rechazar del downsell (y del upsell posterior a la compra) va como texto subrayado en
+    gris: la salida no pesa lo mismo que la oferta. Por defecto el popup del downsell lo reemplaza
+    df-downsell; esto es lo que se ve cuando ese ajuste está apagado o no aplica.
   - Una sola barra fija de compra: la del tema, con el texto del botón de EasySell; al tocarla hace
     clic en el propio botón de EasySell (sus eventos de píxel quedan iguales). La de la app se oculta.
 
@@ -199,10 +202,14 @@
   <script>
     (function () {
       /* Los botones que la app pinta con su degradado, en el orden del comprador: el que abre el
-         formulario, la barra fija de la app, el de enviar y el del downsell. El sello del downsell
+         formulario, la barra fija de la app, el de enviar y los del downsell. El sello del downsell
          solo toma el fondo (su forma es un clip-path de la app). La tarjeta del formulario toma el
          radio y la tinta del tema, sin la sombra de la app. */
       var BUTTONS = '.es-popup-button, .es-sticky-btn, .es-cta-btn, .es-animated-button';
+      /* Aceptar y rechazar del downsell (y del upsell posterior a la compra) son el mismo
+         componente de la app, con la misma clase y un id aleatorio: el de rechazar es el que no es
+         el primero de su grupo. */
+      var DECLINE_GROUPS = '.es-downsell-buttons, #easysell-upsell';
       var BADGE = '.es-downsell-badge';
       var CARD = '.es-form-container';
       var HOVER = 'dfEsHover';
@@ -236,8 +243,28 @@
           cardRadius: cs.borderTopRightRadius,
         };
         probe.remove();
+        t.muted = mix(t.ink, t.bg, 0.68);
         /* Sin botón principal resuelto (otro tema, variables ausentes): la app queda como está. */
         return t.accent && t.accent !== 'rgba(0, 0, 0, 0)' ? t : null;
+      }
+
+      /* El gris de texto secundario del tema (68% de tinta sobre el fondo, como --df-muted), ya
+         como rgb(): el navegador lo devuelve igual al leerlo, así la comparación de paint() cierra. */
+      function mix(ink, bg, weight) {
+        var a = (ink.match(/[\d.]+/g) || []).map(Number);
+        var b = (bg.match(/[\d.]+/g) || []).map(Number);
+        if (a.length < 3 || b.length !== 3) return ink;
+        var c = [0, 1, 2].map(function (i) {
+          return Math.round(a[i] * weight + b[i] * (1 - weight));
+        });
+        return 'rgb(' + c.join(', ') + ')';
+      }
+
+      function isDecline(el) {
+        if (!el.matches('.es-animated-button')) return false;
+        var group = el.closest(DECLINE_GROUPS);
+        var first = group ? group.querySelector('.es-animated-button') : null;
+        return Boolean(first) && first !== el;
       }
 
       function wanted(el) {
@@ -246,6 +273,18 @@
         }
         if (el.matches(CARD)) {
           return { 'border-radius': tokens.cardRadius, 'box-shadow': 'none', color: tokens.ink, 'background-color': tokens.bg };
+        }
+        if (isDecline(el)) {
+          return {
+            'background-image': 'none',
+            'background-color': 'transparent',
+            'border-color': 'transparent',
+            color: el.dataset[HOVER] ? tokens.ink : tokens.muted,
+            'box-shadow': 'none',
+            'text-decoration': 'underline',
+            'text-underline-offset': '3px',
+            'font-weight': '400',
+          };
         }
         return {
           'background-image': 'none',
@@ -279,7 +318,7 @@
         }
         var inner = labels(el);
         for (var i = 0; i < inner.length; i++) {
-          if (inner[i].style.color !== tokens.onAccent) inner[i].style.setProperty('color', tokens.onAccent, 'important');
+          if (inner[i].style.color !== want.color) inner[i].style.setProperty('color', want.color, 'important');
         }
       }
 
