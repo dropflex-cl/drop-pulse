@@ -307,6 +307,15 @@ describe("formato mascota", () => {
       s.character.look = r.look;
       expect(scriptProblems(s, pricing, "mascot").join(" ")).toMatch(/puede leerse como algo sexual/);
     }
+    // Lo negado no cuenta: así describió el modelo la mascota en producción y la regla rechazó los 6 intentos.
+    const negated = mascot();
+    negated.persona = "a round, chubby 3D animated water-droplet character, no neck, never rising from the bottom edge";
+    negated.character.look = "pastel blue droplet as wide as it is tall, without any elongated or cylindrical shape, not a patch of skin; no fingers, no toes";
+    expect(scriptProblems(negated, pricing, "mascot")).toEqual([]);
+    // Pero un rasgo riesgoso dicho en positivo sigue contando aunque la frase tenga otro «no».
+    const mixed = mascot();
+    mixed.character.look = "a rounded blob of peach skin with a little neck below, no legs";
+    expect(scriptProblems(mixed, pricing, "mascot").join(" ")).toMatch(/puede leerse como algo sexual/);
     // Manos de cuatro dedos o una uña del pie no son formas riesgosas.
     const ok = mascot();
     ok.character.look += ", four-fingered hands, a toenail forehead";

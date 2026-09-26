@@ -26,8 +26,8 @@ import {
 
 /** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. */
 export const UGC_PROMPT_VERSION = 4;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. */
-export const MASCOT_PROMPT_VERSION = 3;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. */
+export const MASCOT_PROMPT_VERSION = 4;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). */
 export const KEYFRAME_QA_PROMPT_VERSION = 2;
 
@@ -141,6 +141,16 @@ const RESULT_TIMELINE = /\b(al|en|a los|en solo)\s+(\d+|un|una|dos|tres|cuatro|c
 /** Qué está mal en un guion (del modelo o editado). Vacío si se puede guardar. */
 /** Rasgos del personaje de mascota que dan siluetas fálicas (se revisan en persona y character.look, en inglés). */
 const RISKY_SHAPE = /\b(neck|stalk|shaft|tube|cylind\w*|elongated|finger|toe|bottom edge|patch of (?:facial )?skin|skin patch|blob of (?:\w+ )*skin)\b/i;
+/**
+ * Lo que el personaje NO es no cuenta: el modelo repite las prohibiciones («no neck», «never rising from
+ * the bottom edge») y la primera versión de la regla rechazó así todos los intentos en producción. Se
+ * quita cada tramo negado hasta la siguiente coma o punto.
+ */
+const NEGATED = /\b(?:no|not|never|without|nor|instead of|rather than|free of|avoid\w*)\b[^.,;:()]*/gi;
+
+export function riskyShape(text: string): string | null {
+  return text.replace(NEGATED, " ").match(RISKY_SHAPE)?.[0] ?? null;
+}
 
 export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc"): string[] {
   const problems: string[] = [];
@@ -158,8 +168,9 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
   else if (!character.uses_character || character.uses_product) problems.push(`${CHARACTER_KEY} es el personaje solo: uses_character true y uses_product false.`);
 
   // La mascota: formas que se leen como algo sexual (la primera corrida real dio «a patch of facial skin with a small neck»).
-  if (format === "mascot" && RISKY_SHAPE.test(`${s.persona} ${s.character.look}`))
-    problems.push("La forma del personaje puede leerse como algo sexual (cuello o tallo bajo una cabeza redonda, sale del borde de abajo, parche o bulto de piel, dedo o tubo): dale una silueta redonda o ancha e inconfundible, en un color que no sea piel.");
+  const risky = format === "mascot" ? riskyShape(`${s.persona}. ${s.character.look}`) : null;
+  if (risky)
+    problems.push(`La forma del personaje puede leerse como algo sexual («${risky}»): dale una silueta redonda o ancha e inconfundible, en un color que no sea piel, y descríbela solo por lo que ES (forma, proporción y color), sin nombrar lo que no es.`);
 
   // Tomas habladas.
   if (s.a_roll.length < limits.aRollMin || s.a_roll.length > limits.aRollMax) problems.push(`Trae ${s.a_roll.length} tomas habladas; deben ser de ${limits.aRollMin} a ${limits.aRollMax}.`);
