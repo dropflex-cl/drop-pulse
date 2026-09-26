@@ -99,8 +99,8 @@ export function textProblems(texts: StoredText[], pricing: PricingPlan, where = 
   return problems;
 }
 
-/** Montos fuera de PRECIO Y OFERTA y promesas de salud en un texto horneado. */
-function claimProblems(text: string, pricing: PricingPlan, at = ""): string[] {
+/** Montos fuera de PRECIO Y OFERTA y promesas de salud en un texto horneado (también los del video UGC). */
+export function claimProblems(text: string, pricing: PricingPlan, at = ""): string[] {
   const problems: string[] = [];
   const allowed = allowedAmounts(pricing);
   for (const n of amountsIn(text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${text}» trae un monto que no está en PRECIO Y OFERTA.`);

@@ -7,7 +7,7 @@ import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image
 
 /** Lo que manda la pantalla al confirmar: el slot lo pone el servidor por el orden. */
 export type TestAngleInput = Omit<TestAngle, "slot">;
-import type { AnglesState, AvatarProposal, PublishState, CopyState, ImagePick, CreativesState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -55,6 +55,21 @@ export function uploadPageImage(productId: string, slot: string, file: File, onP
   });
 }
 
+/** Sube el video montado en local (MP4 9:16) y devuelve el estado de la pestaña Videos. */
+export function uploadFinalVideo(
+  productId: string,
+  scriptId: string,
+  file: File,
+  facts: { width: number; height: number; durationS: number | null },
+  onProgress: (p: number) => void,
+): { done: Promise<VideosState>; cancel: () => void } {
+  return signedUpload(file, onProgress, async (put) => {
+    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/videos/${scriptId}/final`, { type: file.type, size: file.size });
+    await put(uploadUrl);
+    return send<VideosState>("PUT", `/${productId}/videos/${scriptId}/final`, { path, ...facts });
+  });
+}
+
 function signedUpload<T>(file: File, onProgress: (p: number) => void, flow: (put: (url: string) => Promise<void>) => Promise<T>): { done: Promise<T>; cancel: () => void } {
   const xhr = new XMLHttpRequest();
   let cancelled = false;
@@ -97,6 +112,14 @@ export const productsApi = {
   createChat: (id: string, angle: number) => send<CreativesState>("POST", `/${id}/creatives/chat`, { angle, acknowledged: true }),
   renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16") => send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, { ratio }),
   decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen" | "recover") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
+  // Pestaña Videos (docs/spec-video-ugc.md): cada acción devuelve el estado completo de la pestaña.
+  videos: (id: string) => call<VideosState>(`/${id}/videos`),
+  writeScript: (id: string, slot: number) => send<VideosState>("POST", `/${id}/videos`, { slot }),
+  scriptAction: (id: string, scriptId: string, action: "approve" | "unapprove" | "keyframes" | "approve_keyframes" | "clips") => send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action }),
+  editScript: (id: string, scriptId: string, edit: { a_roll: { key: string; line: string; delivery: string }[]; text_beats: { text: string }[]; end_card: { title: string; subtitle: string; cta: string } }) =>
+    send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action: "edit", edit }),
+  shotAction: (id: string, shotId: string, action: "approve" | "reject" | "reopen" | "regenerate" | "recover") => send<VideosState>("PATCH", `/${id}/videos/shots/${shotId}`, { action }),
+  decideFinalVideo: (id: string, scriptId: string, action: "approve" | "reject" | "reopen") => send<VideosState>("PATCH", `/${id}/videos/${scriptId}/final`, { action }),
   // Etapa Imágenes (la página del producto): cada acción devuelve el estado completo de la etapa.
   pageImages: (id: string) => call<PageImagesState>(`/${id}/page-images`),
   proposePageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images`),

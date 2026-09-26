@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { AiChip, Button, EmptyState, Field, Icon, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
+import { AiChip, Button, EmptyState, Field, Icon, Notice, RoleChip, SegmentedControl, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
@@ -16,6 +16,7 @@ import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { CreativeAssetView, CreativeConceptView, CreativesState, ProductCreatives, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { VideosPanel } from "./creatives-videos";
 import { ImageProviderPicker } from "./image-provider-picker";
 
 // Etapa Creativos (docs/spec-creativos.md §6.6): la IA propone 6 conceptos desde los 2 ángulos
@@ -39,13 +40,15 @@ const ROLE_LABEL: Record<string, string> = {
   note: "Nota",
 };
 
-export function CreativesScreen({ data }: { data: ProductCreatives }) {
+export function CreativesScreen({ data, initialTab = "images" }: { data: ProductCreatives; initialTab?: "images" | "videos" }) {
   const router = useRouter();
   const desktop = useDesktop();
   const { product } = data;
   const [state, setState] = useState<CreativesState>(data);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
+  // Imágenes (los estáticos de siempre) o Videos (docs/spec-video-ugc.md).
+  const [tab, setTab] = useState<"images" | "videos">(initialTab);
 
   const { concepts, run } = state;
   const proposing = active(run?.status);
@@ -287,15 +290,31 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
         } className="sticky top-0 z-sticky lg:hidden" />
       <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
         <p className="hidden text-body text-muted-foreground lg:block">Creativos · {subtitle}</p>
-        {!state.locked ? <ImageProviderPicker stage="creatives" choice={state.imageProvider} onChange={setProvider} /> : null}
-        <div>{body}</div>
-        {error ? (
-          <p role="alert" className="text-label font-normal text-destructive">
-            {error}
-          </p>
-        ) : null}
+        <SegmentedControl
+          label="Tipo de anuncio"
+          value={tab}
+          onChange={(v) => setTab(v as "images" | "videos")}
+          options={[
+            { value: "images", label: "Imágenes" },
+            { value: "videos", label: "Videos" },
+          ]}
+          className="self-start"
+        />
+        {tab === "videos" ? (
+          <VideosPanel productId={product.id} initial={data.videos} />
+        ) : (
+          <>
+            {!state.locked ? <ImageProviderPicker stage="creatives" choice={state.imageProvider} onChange={setProvider} /> : null}
+            <div>{body}</div>
+            {error ? (
+              <p role="alert" className="text-label font-normal text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </>
+        )}
       </div>
-      {footer}
+      {tab === "images" ? footer : null}
     </div>
   );
 }

@@ -62,7 +62,21 @@ async function removeFiles(userId: string, productId: string) {
   // Piezas generadas con Higgsfield (bucket creative-media, docs/spec-creativos.md §6.1).
   const { data: pieces, error: piecesError } = await db.from("creative_assets").select("storage_path").eq("user_id", userId).eq("product_id", productId).not("storage_path", "is", null);
   if (piecesError) throw new Error(`Leer piezas generadas de ${productId}: ${piecesError.message}`);
-  const piecePaths = [...new Set([...(await storedPaths(userId, productId, CREATIVES_BUCKET)), ...(pieces ?? []).map((p) => p.storage_path as string)])];
+  // Video UGC (docs/spec-video-ugc.md §6): imágenes clave, clips y el video final, en el mismo bucket.
+  const [{ data: shots, error: shotsError }, { data: finals, error: finalsError }] = await Promise.all([
+    db.from("video_shots").select("storage_path").eq("user_id", userId).eq("product_id", productId).not("storage_path", "is", null),
+    db.from("video_scripts").select("final_storage_path").eq("user_id", userId).eq("product_id", productId).not("final_storage_path", "is", null),
+  ]);
+  if (shotsError) throw new Error(`Leer tomas de video de ${productId}: ${shotsError.message}`);
+  if (finalsError) throw new Error(`Leer videos de ${productId}: ${finalsError.message}`);
+  const piecePaths = [
+    ...new Set([
+      ...(await storedPaths(userId, productId, CREATIVES_BUCKET)),
+      ...(pieces ?? []).map((p) => p.storage_path as string),
+      ...(shots ?? []).map((s) => s.storage_path as string),
+      ...(finals ?? []).map((s) => s.final_storage_path as string),
+    ]),
+  ];
   for (let i = 0; i < piecePaths.length; i += REMOVE_BATCH) {
     const { error: rmError } = await db.storage.from(CREATIVES_BUCKET).remove(piecePaths.slice(i, i + REMOVE_BATCH));
     if (rmError) throw new Error(`Borrar piezas generadas de ${productId}: ${rmError.message}`);
@@ -115,7 +129,8 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
       // La cascada se lleva product_reference_images, pipeline_runs, product_briefs, customer_avatars,
       // product_pricing, pack_labels, review_sources, review_imports, product_reviews y todo lo de
       // anuncios (ad_media, ad_campaigns → ad_sets, ads, métricas, decisiones y cambios) y los de
-      // Creativos (creative_runs → creative_concepts → creative_assets).
+      // Creativos (creative_runs → creative_concepts → creative_assets) y los videos UGC
+      // (video_scripts → video_shots).
       const { data, error } = await db.from("products").delete().eq("user_id", userId).eq("id", id).select("shopify_product_id");
       if (error) throw new Error(`Borrar el producto ${id}: ${error.message}`);
       const shopifyId = data?.[0]?.shopify_product_id as string | undefined;

@@ -134,13 +134,15 @@ export async function removeAdCopies(ids: string[]): Promise<Set<string>> {
   if (!ids.length) return new Set();
   const db = adminClient();
   const [media, used] = await Promise.all([
-    db.from("ad_media").select("id, storage_path, meta_image_hash").in("id", ids),
+    db.from("ad_media").select("id, storage_path, meta_image_hash, meta_video_id").in("id", ids),
     db.from("ads").select("media_id").in("media_id", ids),
   ]);
   fail("Leer los creativos de Anuncios", media.error);
   fail("Leer los anuncios", used.error);
   const inUse = new Set((used.data ?? []).map((a) => a.media_id as string));
-  const removable = ((media.data ?? []) as { id: string; storage_path: string; meta_image_hash: string | null }[]).filter((m) => !m.meta_image_hash && !inUse.has(m.id));
+  const removable = ((media.data ?? []) as { id: string; storage_path: string; meta_image_hash: string | null; meta_video_id: string | null }[]).filter(
+    (m) => !m.meta_image_hash && !m.meta_video_id && !inUse.has(m.id),
+  );
   if (!removable.length) return new Set();
   fail("Borrar el creativo", (await db.storage.from(AD_MEDIA_BUCKET).remove(removable.map((m) => m.storage_path))).error);
   fail("Borrar el creativo", (await db.from("ad_media").delete().in("id", removable.map((m) => m.id))).error);

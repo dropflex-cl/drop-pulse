@@ -6,11 +6,12 @@ import { fixture } from "./fixture";
 
 // Verificación visual de la etapa Creativos con datos de ejemplo:
 // ?state=locked|key|start|proposing|failed|concepts|rendering|review|done
+// y la pestaña Videos: &video=locked|none|writing|failed|script|keyframes|clips|montage|final
 // Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
 // la API real y fallan sin datos: aquí solo importa cómo se ve.
-async function Screen({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
-  const { state = "start" } = await searchParams;
-  const data = fixture(state);
+async function Screen({ searchParams }: { searchParams: Promise<{ state?: string; video?: string }> }) {
+  const { state = "start", video } = await searchParams;
+  const data = fixture(state, video);
   const { product } = data;
   return (
     <>
@@ -28,14 +29,14 @@ async function Screen({ searchParams }: { searchParams: Promise<{ state?: string
           <StageList stages={product.stages.map(({ title, state: s, desc, optional }) => ({ title, state: s, desc, optional }))} />
         </nav>
         <div className="min-w-0 flex-1">
-          <CreativesScreen key={state} data={data} />
+          <CreativesScreen key={`${state}-${video ?? ""}`} data={data} initialTab={video ? "videos" : "images"} />
         </div>
       </div>
     </>
   );
 }
 
-export default function Page({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ state?: string; video?: string }> }) {
   return (
     <AssistantProvider>
       <main id="contenido" className="min-h-svh">

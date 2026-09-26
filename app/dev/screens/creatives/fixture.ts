@@ -4,6 +4,7 @@ import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { productImage } from "@/lib/mock/images";
 import { productPosition } from "@/lib/products/stages";
 import type { CreativeAssetView, CreativeConceptView, ProductCreatives } from "@/lib/types";
+import { videosFixture } from "./videos-fixture";
 
 const NOW = "2026-09-24T10:00:00Z";
 
@@ -137,7 +138,7 @@ function concepts(state: string): CreativeConceptView[] {
   return list;
 }
 
-export function fixture(state: string): ProductCreatives {
+export function fixture(state: string, video = "none"): ProductCreatives {
   const withConcepts = ["concepts", "rendering", "review", "done"].includes(state);
   const list = withConcepts ? concepts(state) : [];
   const assets = list.flatMap((c) => c.assets);
@@ -195,5 +196,6 @@ export function fixture(state: string): ProductCreatives {
     run,
     concepts: list,
     imageCostUsd: IMAGE_COST_USD,
+    videos: videosFixture(video),
   };
 }

@@ -25,6 +25,8 @@ import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
 import { activeConcepts, assetsFor, creativeCounts, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
+import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
+import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
 import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
@@ -53,7 +55,7 @@ import {
   type ProductRow,
   type RunState,
 } from "@/lib/products/store";
-import type { AnglesState, CopyState, CreativesState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews } from "@/lib/types";
+import type { AnglesState, CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews } from "@/lib/types";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
 const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
@@ -404,9 +406,27 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
 
 /** La etapa Creativos: los conceptos del generador y sus piezas generadas (Higgsfield o Gemini). */
 export const getProductCreatives = cache(async (id: string): Promise<ProductCreatives | null> => {
-  const found = await withProduct(id, (uid) => creativesState(uid, id));
+  const found = await withProduct(id, async (uid) => {
+    await expireStaleVideos(uid).catch((e) => console.error("[video] cerrar lo colgado", e));
+    const [creatives, videos] = await Promise.all([creativesState(uid, id), videosState(uid, id)]);
+    return { ...creatives, videos };
+  });
   return found && { product: found.product, ...found.state };
 });
+
+/** La pestaña Videos (docs/spec-video-ugc.md): una tarjeta por ángulo aprobado. Lo que devuelve su sondeo. */
+export async function videosState(uid: string, productId: string): Promise<VideosState> {
+  const [rankings, connection, scripts] = await Promise.all([latestRankings(uid, [productId]), getHiggsfieldConnection(uid), activeScripts(uid, productId)]);
+  const ranking = rankings.get(productId);
+  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
+  const chosen = ranking ? chosenAngles(ranking) : [];
+  const anglesDone = ranking ? allApproved(chosen, briefs) : false;
+  if (!anglesDone) return { locked: "Aprueba los desarrollos de tus ángulos para hacer videos.", cards: [] };
+  if (connection?.status !== "connected") return { locked: "Conecta tu cuenta de Higgsfield en Ajustes para hacer videos: las voces y los clips se generan ahí.", cards: [] };
+  const shots = await shotsFor(uid, scripts.map((s) => s.id));
+  const cards = await Promise.all(chosen.map((a) => toCardView(a.slot, testAngleName(a), scripts.find((s) => s.angle_slot === a.slot), shots)));
+  return { locked: null, cards };
+}
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/creatives). */
 export async function creativesState(uid: string, productId: string): Promise<CreativesState> {

@@ -643,6 +643,58 @@ export interface CreativesState {
 
 export interface ProductCreatives extends CreativesState {
   product: Product;
+  /** La pestaña Videos (docs/spec-video-ugc.md): un video UGC por ángulo. */
+  videos: VideosState;
+}
+
+// ---------------------------------------------------------------- Video UGC (docs/spec-video-ugc.md)
+
+/** Una toma de un guion: imagen clave, toma hablada o B-roll. */
+export interface VideoShotView {
+  id: string;
+  key: string;
+  kind: "keyframe" | "a_roll" | "b_roll";
+  attempt: number;
+  render: "queued" | "running" | "succeeded" | "failed";
+  error?: string;
+  /** URL firmada (1 h): imagen en las imágenes clave, MP4 en los clips. */
+  src?: string;
+  qa?: { pass: boolean; issues: string[] };
+  /** Solo las imágenes clave se aprueban una a una. */
+  status: ContentStatus;
+  /** Falló después de llegar a Higgsfield: se puede recuperar sin volver a cobrar. */
+  recoverable?: boolean;
+}
+
+/** En qué paso está el video de un ángulo. */
+export type VideoStep = "script" | "keyframes" | "clips" | "montage" | "final";
+
+export interface VideoCardView {
+  slot: AngleSlot;
+  angleName: string;
+  step: VideoStep;
+  script?: {
+    id: string;
+    status: RunStatus;
+    error?: string;
+    payload?: import("./video/schemas").UgcScript;
+    approved: boolean;
+    edited: boolean;
+    createdAt: string;
+  };
+  /** La última de cada clave (K1…), en orden. */
+  keyframes: VideoShotView[];
+  /** La última de cada toma hablada y B-roll (A1…, B1…), en orden. */
+  clips: VideoShotView[];
+  final?: { src?: string; durationS?: number; sizeBytes?: number; status: ContentStatus; inAds: boolean };
+  /** USD estimados antes de gastar. */
+  cost: { keyframes: number; clips: number };
+}
+
+export interface VideosState {
+  /** Por qué no se puede usar todavía (ángulos sin aprobar, sin Higgsfield). */
+  locked: string | null;
+  cards: VideoCardView[];
 }
 
 // ---------------------------------------------------------------- Imágenes de la página (docs/spec-imagenes.md)

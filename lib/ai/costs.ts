@@ -20,6 +20,10 @@ export const AI_STEPS = {
   creative_chat: { stage: "creativos", label: "Chat de WhatsApp" },
   creative_render: { stage: "creativos", label: "Imagen de anuncio" },
   creative_qa: { stage: "creativos", label: "Revisión de imagen" },
+  ugc_script: { stage: "creativos", label: "Guion de video" },
+  video_keyframe: { stage: "creativos", label: "Imagen clave de video" },
+  video_qa: { stage: "creativos", label: "Revisión de imagen clave" },
+  video_clip: { stage: "creativos", label: "Clip de video" },
 } as const satisfies Record<string, { stage: StageKey; label: string }>;
 
 export type AiStep = keyof typeof AI_STEPS;
@@ -35,6 +39,7 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   event_copy: 0.03,
   creative_concepts: 0.2,
   creative_chat: 0.05,
+  ugc_script: 0.25,
   page_plan: 0.25,
 };
 
