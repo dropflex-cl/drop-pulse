@@ -4,6 +4,7 @@ import "server-only";
 import { cache } from "react";
 import { adsContext, getDraft, listCampaignRows, listMediaRows, listTemplates, presetFor, toAdMedia, type AdsContext, type CampaignRow } from "@/lib/ads/store";
 import { DEFAULT_PRESET } from "@/lib/ads/presets";
+import { draftAngles } from "@/lib/ads/angles";
 import { sessionUser } from "@/lib/integrations/session";
 import { type ProductRow } from "@/lib/products/store";
 import type { AdCampaignSummary, AdDraft, ProductAds } from "@/lib/types";
@@ -74,6 +75,14 @@ export async function adsState(uid: string, row: ProductRow, copyDone: boolean |
     templates,
     campaigns: campaigns.filter((c) => c.status !== "draft" && c.status !== "failed").map(toSummary),
     defaultTexts: ctx.texts,
+    // Solo la campaña de testeo sigue a los ángulos; la CBO de ganadores usa los creativos que ganaron.
+    draftAngles: sourceCampaignId
+      ? null
+      : draftAngles(
+          draft ? { stamp: draft.angles_stamp ?? null, primaryTexts: draft.launch.primary_texts ?? [], creatives: draft.launch.creatives ?? [] } : null,
+          { stamp: ctx.anglesStamp, primaryTexts: ctx.texts.primary_texts, since: ctx.angleSince },
+          media,
+        ),
     source: sourceCampaignId ? (campaigns.find((c) => c.id === sourceCampaignId)?.name ?? null) : null,
     sourceId: draft?.source_campaign_id ?? null,
   };

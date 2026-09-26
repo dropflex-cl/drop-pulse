@@ -40,6 +40,8 @@ export interface CampaignRow {
   status: "draft" | "launching" | "paused" | "active" | "failed" | "archived";
   launch: LaunchConfig;
   engine: EngineConfig;
+  /** Los desarrollos de ángulo con que se armó el borrador (null: de antes de guardarlo). */
+  angles_stamp?: unknown;
   daily_budget: number | null;
   currency: string;
   timezone: string;
@@ -98,6 +100,10 @@ export interface AdsContext {
   freeShipping: boolean;
   productUrl: string | null;
   texts: Pick<LaunchConfig, "primary_texts" | "headlines" | "description">;
+  /** Los desarrollos aprobados con que salen esos textos, en orden de slot (lib/ads/angles.ts). */
+  anglesStamp: { id: string; edited_at: string | null }[];
+  /** Cuándo se creó el desarrollo vigente de cada slot. */
+  angleSince: Map<number, string>;
 }
 
 async function merchantSettings(userId: string): Promise<{ ad_daily_spend_cap: number | null; free_shipping: boolean }> {
@@ -134,6 +140,8 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
     freeShipping: settings.free_shipping,
     productUrl: shop?.shop_domain && product.handle ? `https://${shop.shop_domain}/products/${product.handle}` : null,
     texts: defaultTexts({ hooks, offerLine: listing?.offer_line ?? null, shortName: listing?.short_name ?? null, title: product.title, freeShipping: settings.free_shipping }),
+    anglesStamp: (briefs ?? []).map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at ?? null })),
+    angleSince: new Map((briefs ?? []).map((b) => [b.angle.slot, b.brief.created_at])),
   };
 }
 
@@ -207,7 +215,7 @@ function laxLaunch(raw: unknown): LaunchConfig {
   return raw as LaunchConfig;
 }
 
-export async function saveDraft(userId: string, product: ProductRow, input: DraftInput, ctx: AdsContext, sourceCampaignId: string | null = null): Promise<CampaignRow> {
+export async function saveDraft(userId: string, product: ProductRow, input: DraftInput, ctx: AdsContext, sourceCampaignId: string | null = null, syncAngles = false): Promise<CampaignRow> {
   const db = adminClient();
   const current = await getDraft(userId, product.id, sourceCampaignId);
   if (current?.status === "launching") throw new ProductApiError("La campaña se está creando en Meta. Espera a que termine.", 409);
@@ -230,6 +238,12 @@ export async function saveDraft(userId: string, product: ProductRow, input: Draf
     ? await db.from("ad_campaigns").update(row).eq("id", current.id).select("*").single()
     : await db.from("ad_campaigns").insert({ ...row, status: "draft", source_campaign_id: sourceCampaignId }).select("*").single();
   fail("Guardar el borrador", res.error);
+  // Un borrador nuevo sale de los ángulos de hoy; uno existente, cuando el comerciante lo rehízo o
+  // decidió conservarlo (`syncAngles`). Aparte y sin cortar el guardado: la columna llega con su migración.
+  if (!current || syncAngles) {
+    const stamp = await adminClient().from("ad_campaigns").update({ angles_stamp: ctx.anglesStamp }).eq("id", (res.data as CampaignRow).id);
+    if (stamp.error) console.warn("[ads] no se pudo guardar la huella de los ángulos:", stamp.error.message);
+  }
   return res.data as CampaignRow;
 }
 

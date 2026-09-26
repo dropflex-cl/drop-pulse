@@ -22,7 +22,17 @@ const MEDIA: AdMedia[] = [
   { id: "00000000-0000-4000-8000-000000000003", kind: "image", name: "problema.jpg", url: productImage(0, 1), ratio: "4:5", durationS: null, status: "ready", error: null },
 ];
 
-/** ?state=locked|meta|empty|ready|launching|failed */
+/** Los textos de hoy cuando el borrador quedó con ángulos anteriores (?state=angles). */
+const NEW_TEXTS = {
+  ...TEXTS,
+  primary_texts: [
+    "No es la silla: es cómo te sientas 9 horas. El corrector sujeta tus hombros atrás sin que se note.\n\n2 por $39.990 · Paga al recibir",
+    "Adiós a la faja rígida. Tela delgada con ajuste cruzado que no aprieta la cintura.\n\n2 por $39.990 · Paga al recibir",
+    "A las 4 de la tarde la espalda ya pesa. Corrígela mientras trabajas.\n\n2 por $39.990 · Paga al recibir",
+  ],
+};
+
+/** ?state=locked|meta|empty|ready|launching|failed|angles */
 export function fixture(state: string): ProductAds {
   const pageDone = state !== "locked";
   const pos = productPosition({
@@ -78,7 +88,8 @@ export function fixture(state: string): ProductAds {
     media,
     templates: [],
     campaigns: [],
-    defaultTexts: TEXTS,
+    defaultTexts: state === "angles" ? NEW_TEXTS : TEXTS,
+    draftAngles: state === "angles" ? { stale: true, oldCreatives: [MEDIA[1].id], newCreatives: [] } : null,
     source: null,
     sourceId: null,
   };

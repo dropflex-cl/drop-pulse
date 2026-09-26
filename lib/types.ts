@@ -486,6 +486,8 @@ export interface ProductAds {
   campaigns: AdCampaignSummary[];
   /** Los textos por defecto (de lo aprobado), para «Restablecer». */
   defaultTexts: { primary_texts: string[]; headlines: string[]; description: string };
+  /** El borrador frente a los ángulos de hoy (lib/ads/angles.ts); null sin borrador guardado o sin ángulos. */
+  draftAngles: import("./ads/angles").DraftAngles | null;
   /** CBO de ganadores: el nombre y el id de la campaña ABO de la que sale. */
   source: string | null;
   sourceId: string | null;

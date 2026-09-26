@@ -30,7 +30,7 @@ import { AdsApiError, adsApi, uploadCreative } from "@/lib/ads/client";
 import { ACCEPTED_MEDIA, MEDIA_FORMATS, durationLabel } from "@/lib/ads/media";
 import { buildPreset, countChanges, DEFAULT_PRESET_FOR, isPresetKey, PANCHO_EXCLUDED_REGIONS, presetLabel, SYSTEM_PRESETS } from "@/lib/ads/presets";
 import { nextMorning, startLabel } from "@/lib/ads/schedule";
-import { adsetCount, dailyTotal, DESCRIPTION_LIMIT, HEADLINE_LIMIT, MAX_HEADLINES, MAX_PRIMARY_TEXTS, PRIMARY_TEXT_LIMIT, type EngineConfig, type LaunchConfig, type Structure, type TemplateConfig } from "@/lib/ads/schemas";
+import { adsetCount, dailyTotal, DESCRIPTION_LIMIT, HEADLINE_LIMIT, MAX_ADSETS, MAX_HEADLINES, MAX_PRIMARY_TEXTS, PRIMARY_TEXT_LIMIT, type EngineConfig, type LaunchConfig, type Structure, type TemplateConfig } from "@/lib/ads/schemas";
 import { launchProblems, type ConfigSectionKey } from "@/lib/ads/validate";
 import { amount, currencySymbol, money, parseMoney } from "@/lib/format";
 import { COUNTRIES, countryName } from "@/lib/market";
@@ -195,12 +195,20 @@ export function AdsScreen({ data }: { data: ProductAds }) {
   const reset = () => apply(presetValue);
 
   // ---------------------------------------------------------------- Borrador (se guarda solo)
+  // El próximo guardado deja el borrador al día con los ángulos de hoy (lo rehízo o decidió conservarlo).
+  const syncAngles = useRef(false);
   const persist = useCallback(
     async (c: Config) => {
       setSave("saving");
       const snapshot = JSON.stringify(c);
+      const sync = syncAngles.current;
       try {
-        await adsApi.saveDraft(product.id, { name: c.name, structure: c.structure, template_key: c.templateKey, template_id: c.templateId, launch: c.launch, engine: c.engine }, from);
+        await adsApi.saveDraft(
+          product.id,
+          { name: c.name, structure: c.structure, template_key: c.templateKey, template_id: c.templateId, launch: c.launch, engine: c.engine, ...(sync ? { sync_angles: true } : {}) },
+          from,
+        );
+        if (sync) syncAngles.current = false;
         saved.current = snapshot;
         setSave("saved");
       } catch (e) {
@@ -215,6 +223,26 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     const t = window.setTimeout(() => persist(cfg), SAVE_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [cfg, persist, launching]);
+
+  // ---------------------------------------------------------------- Ángulos cambiados
+  // El borrador se armó con otros ángulos (lib/ads/angles.ts): rehacerlo pone los textos de hoy y
+  // cambia los creativos de ángulos anteriores por los de ahora; conservarlo solo deja de avisar.
+  const [angles, setAngles] = useState(data.draftAngles);
+  const rebuildFromAngles = () => {
+    if (!angles) return;
+    const old = new Set(angles.oldCreatives);
+    const kept = cfg.launch.creatives.filter((id) => !old.has(id));
+    const creatives = [...kept, ...angles.newCreatives].slice(0, MAX_ADSETS * 2);
+    syncAngles.current = true;
+    setLaunch({ primary_texts: data.defaultTexts.primary_texts, headlines: data.defaultTexts.headlines, description: data.defaultTexts.description, creatives });
+    setAngles(null);
+    notify("Borrador rehecho con tus ángulos de hoy");
+  };
+  const keepDraft = () => {
+    syncAngles.current = true;
+    setAngles(null);
+    void persist(cfg);
+  };
 
   // ---------------------------------------------------------------- Lanzamiento en curso (sondeo)
   useEffect(() => {
@@ -934,6 +962,24 @@ export function AdsScreen({ data }: { data: ProductAds }) {
             <div role="alert" className="rounded-md bg-destructive-soft p-3 text-label font-normal text-destructive">
               {launchError} No quedó nada creado en Meta: corrige y toca Revisar y lanzar otra vez.
             </div>
+          ) : null}
+          {angles?.stale && !launching ? (
+            <Notice
+              title="Cambiaste tus ángulos."
+              body={`El borrador tiene los textos${angles.oldCreatives.length ? " y creativos" : ""} de tus ángulos anteriores. Rehacerlo cambia textos, títulos${
+                angles.oldCreatives.length || angles.newCreatives.length ? " y creativos" : ""
+              }; el presupuesto y los públicos quedan igual.`}
+              action={
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="primary" icon="sparkle" onClick={rebuildFromAngles}>
+                    Rehacer con mis ángulos
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={keepDraft}>
+                    Mantener como está
+                  </Button>
+                </div>
+              }
+            />
           ) : null}
           {data.source ? (
             <Notice tone="info" icon="trend" title={`CBO con los ganadores de «${data.source}».`} body="Revisa los creativos y el presupuesto. Se crea aparte, en pausa, y la campaña de testeo sigue igual." />

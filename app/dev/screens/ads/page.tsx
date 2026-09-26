@@ -5,7 +5,7 @@ import { AssistantProvider } from "@/components/shell/assistant-provider";
 import { fixture } from "./fixture";
 
 // Verificación visual de Anuncios (configurador) con datos de ejemplo:
-// ?state=locked|meta|empty|ready|launching|failed
+// ?state=locked|meta|empty|ready|launching|failed|angles
 // Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
 // la API real y fallan sin datos: aquí solo importa cómo se ve.
 async function Screen({ searchParams }: { searchParams: Promise<{ state?: string }> }) {

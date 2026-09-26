@@ -28,6 +28,8 @@ export interface DraftBody {
   template_id: string | null;
   launch: LaunchConfig;
   engine: EngineConfig;
+  /** El borrador queda al día con los ángulos de hoy (se rehízo o se decidió conservarlo). */
+  sync_angles?: boolean;
 }
 
 /** La CBO de ganadores es un borrador aparte, ligado a su campaña de origen. */
