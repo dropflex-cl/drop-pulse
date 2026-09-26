@@ -24,6 +24,7 @@ export const AI_STEPS = {
   video_keyframe: { stage: "creativos", label: "Imagen clave de video" },
   video_qa: { stage: "creativos", label: "Revisión de imagen clave" },
   video_clip: { stage: "creativos", label: "Clip de video" },
+  usage_tip: { stage: "mensajes", label: "Consejo de uso" },
 } as const satisfies Record<string, { stage: StageKey; label: string }>;
 
 export type AiStep = keyof typeof AI_STEPS;
@@ -41,10 +42,11 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   creative_chat: 0.05,
   ugc_script: 0.25,
   page_plan: 0.25,
+  usage_tip: 0.02,
 };
 
 /** Etapas que gastan IA, en el orden de la ruta. */
-export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "imagenes", "creativos"];
+export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "imagenes", "creativos", "mensajes"];
 
 export interface GenerationRow {
   step: string;

@@ -8,7 +8,7 @@ import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image
 /** Lo que manda la pantalla al confirmar: el slot lo pone el servidor por el orden. */
 export type TestAngleInput = Omit<TestAngle, "slot">;
 import type { VideoFormat } from "@/lib/video/catalog";
-import type { AnglesState, AvatarProposal, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { AnglesState, AvatarProposal, MessagesState, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -136,6 +136,7 @@ export const productsApi = {
   decidePackLabels: (id: string, action: "approve" | "reopen") => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action }),
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
   regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
+  writeUsageTip: (id: string) => send<{ tip: MessagesState["tip"] }>("POST", `/${id}/whatsapp/tip`),
   savePricing: (id: string, form: PricingForm) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, form),
   sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
   saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),

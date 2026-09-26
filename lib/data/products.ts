@@ -56,7 +56,8 @@ import {
   type ProductRow,
   type RunState,
 } from "@/lib/products/store";
-import type { AnglesState, CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews, UpsellProduct } from "@/lib/types";
+import type { AnglesState, CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductReviews, UpsellProduct } from "@/lib/types";
+import { messagesState } from "@/lib/whatsapp/store";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
 const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
@@ -513,6 +514,15 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     stale: Boolean(run?.status === "succeeded" && shots.length && planned && briefStamp && planned !== briefStamp),
   };
 }
+
+/** La etapa WhatsApp: los mensajes de los pedidos con los datos del producto y el consejo de uso. */
+export const getProductMessages = cache(async (id: string): Promise<ProductMessages | null> => {
+  const found = await withProduct(id, async (uid) => {
+    const row = await productRow(uid, id);
+    return row ? messagesState(uid, row) : null;
+  });
+  return found?.state ? { product: found.product, ...found.state } : null;
+});
 
 /** La etapa Publicar: el producto y el estado de su publicación (lib/data/publish.ts). */
 export const getProductPublish = cache(async (id: string) => {

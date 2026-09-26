@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CircleCheck,
   Clock,
+  Copy,
   Download,
   Ellipsis,
   ExternalLink,
@@ -51,7 +52,7 @@ export type IconName =
   | "chat" | "lock" | "image" | "tag" | "text" | "store" | "send" | "arrow-up"
   | "arrow-down" | "pause" | "power" | "more" | "undo" | "edit" | "search"
   | "clock" | "minus" | "truck" | "trend" | "grip" | "star" | "settings" | "shield"
-  | "upload" | "link" | "refresh" | "download" | "external" | "video";
+  | "upload" | "link" | "refresh" | "download" | "external" | "video" | "copy";
 
 // Significados fijos (design-system/README.md → Iconografía): destello = IA, ojo = en revisión,
 // check = aprobado, triángulo = error, reloj = detenido, candado = bloqueada.
@@ -98,6 +99,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   download: Download,
   external: ExternalLink,
   video: Video,
+  copy: Copy,
 };
 
 export interface IconProps {

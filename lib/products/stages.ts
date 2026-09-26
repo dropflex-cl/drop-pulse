@@ -274,6 +274,16 @@ function adsStage(pageDone: boolean, a: AdsFacts | null | undefined): Stage {
 }
 
 /**
+ * WhatsApp: opcional, al final. Los mensajes para confirmar y seguir los pedidos con el nombre y el
+ * precio del producto: se habilita con la información base lista. Nunca bloquea ni queda pendiente.
+ */
+function messagesStage(baseDone: boolean): Stage {
+  const base = { key: "mensajes", title: "WhatsApp", optional: true } as const;
+  if (!baseDone) return { ...base, state: "locked", desc: "Después de la información base" };
+  return { ...base, state: "available", desc: "Mensajes para confirmar y seguir pedidos" };
+}
+
+/**
  * Creativos: opcional, entre Publicar y Anuncios (docs/spec-creativos.md §6.5). Se habilita con los 2
  * desarrollos de Ángulos aprobados y un proveedor de imágenes (Higgsfield o Gemini); nunca bloquea Publicar.
  */
@@ -355,8 +365,10 @@ export function productPosition(f: ProductFacts): ProductPosition {
     // Creativos es opcional y alimenta Anuncios: nunca bloquea Publicar (spec-creativos §6.5).
     creatives.stage,
     adsStage(pageDone, f.ads),
+    // WhatsApp es opcional: los mensajes de los pedidos, cuando empiecen a llegar.
+    messagesStage(phase === "done"),
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], images.meter, COPY_METER[copy], publish.meter, creatives.meter, "optional"];
+  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], images.meter, COPY_METER[copy], publish.meter, creatives.meter, "optional", "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
   const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
 

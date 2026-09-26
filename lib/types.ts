@@ -16,7 +16,7 @@ import type { AngleSlot, SalesAngle } from "@/lib/angles/catalog";
 export type { ContentStatus, Verdict };
 
 /** Etapas de la ruta de un producto, en orden. */
-export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "creativos" | "anuncios";
+export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "creativos" | "anuncios" | "mensajes";
 
 export interface Stage {
   key: StageKey;
@@ -357,6 +357,18 @@ export interface ProductReviews {
   reviews: CustomerReview[];
   source?: { url: string; avgRating?: number; totalReviews?: number };
   lastImport?: ReviewImport;
+}
+
+/** La etapa WhatsApp: lo que completa los mensajes de los pedidos y el consejo de uso de la IA. */
+export interface MessagesState {
+  facts: import("./whatsapp/messages").MessageFacts;
+  tip: { text: string; basis: string; createdAt: string } | null;
+  /** Por qué no se puede escribir el consejo con IA (falta la ficha o el precio); null = se puede. */
+  tipBlocked: string | null;
+}
+
+export interface ProductMessages extends MessagesState {
+  product: Product;
 }
 
 /** Una propuesta de la IA para un campo del producto. */

@@ -33,6 +33,9 @@ const EXTRA = [
   { name: "creativos", path: "/dev/screens/creatives?state=rendering" },
   { name: "creativos-listos", path: "/dev/screens/creatives?state=done" },
   { name: "creativos-sin-clave", path: "/dev/screens/creatives?state=key" },
+  // WhatsApp: los mensajes con Ajustes completos y el consejo, y sin nada (el aviso y los «[…]»).
+  { name: "whatsapp", path: "/dev/screens/whatsapp?state=full" },
+  { name: "whatsapp-vacio", path: "/dev/screens/whatsapp?state=bare" },
 ];
 
 async function main() {

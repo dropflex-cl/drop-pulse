@@ -8,7 +8,7 @@ describe("productPosition", () => {
     const p = productPosition(base);
     expect(p.phase).toBe("new");
     expect(p.nextStage).toBe("importado");
-    expect(p.stages.map((s) => s.state)).toEqual(["current", "available", "locked", "locked", "locked", "locked", "locked", "locked"]);
+    expect(p.stages.map((s) => s.state)).toEqual(["current", "available", "locked", "locked", "locked", "locked", "locked", "locked", "locked"]);
     expect(p.stages.find((s) => s.key === "angulos")).toMatchObject({ desc: "Se habilita al aprobar tu cliente ideal" });
     expect(p.summary).toBe("Importado de Shopify · sin optimizar · $24.990");
     expect(p.status).toBeUndefined();
@@ -50,7 +50,7 @@ describe("productPosition", () => {
     expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current" });
     expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
     expect(p.stages.map((s) => s.key)).not.toContain("precio");
-    expect(p.meter).toHaveLength(8);
+    expect(p.meter).toHaveLength(9);
   });
 
   it("Reseñas es opcional, va después de Información base y dice cuántas esperan", () => {
@@ -215,7 +215,7 @@ describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
 
   it("va entre Publicar y Anuncios y es opcional", () => {
     const keys = productPosition(base).stages.map((s) => s.key);
-    expect(keys.slice(-3)).toEqual(["publicar", "creativos", "anuncios"]);
+    expect(keys.slice(-4, -1)).toEqual(["publicar", "creativos", "anuncios"]);
     expect(stage(base)).toMatchObject({ optional: true, state: "locked", desc: "Después de aprobar los ángulos", meter: "optional" });
   });
 
@@ -235,5 +235,23 @@ describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
     const withCreatives = stage({ ...ready, creatives: facts({ concepts: 6, pending: 4 }) }).position;
     expect(withCreatives.nextStage).toBe(productPosition(ready).nextStage);
     expect(withCreatives.filter).toBe(productPosition(ready).filter);
+  });
+});
+
+describe("etapa WhatsApp", () => {
+  const stage = (f: Parameters<typeof productPosition>[0]) => {
+    const p = productPosition(f);
+    const i = p.stages.findIndex((s) => s.key === "mensajes");
+    return { ...p.stages[i], meter: p.meter[i], position: p, last: i === p.stages.length - 1 };
+  };
+  const approved = { ...base, avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
+
+  it("va al final, es opcional y se habilita con la información base lista", () => {
+    expect(stage(base)).toMatchObject({ last: true, optional: true, state: "locked", desc: "Después de la información base", meter: "optional" });
+    expect(stage(approved)).toMatchObject({ state: "available", desc: "Mensajes para confirmar y seguir pedidos", meter: "optional" });
+  });
+
+  it("nunca cambia la siguiente etapa", () => {
+    expect(stage(approved).position.nextStage).toBe("angulos");
   });
 });

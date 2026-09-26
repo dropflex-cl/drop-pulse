@@ -35,6 +35,8 @@ export interface ProductRow {
   page_accent_color: string | null;
   /** Se vende como extra en el checkout: no se optimiza y no aparece en Productos ni en Hoy. */
   is_upsell: boolean;
+  /** El consejo de uso del mensaje «Entregado» (etapa WhatsApp); null si no se escribió. */
+  usage_tip?: import("@/lib/whatsapp/tip").UsageTip | null;
   created_at: string;
 }
 
