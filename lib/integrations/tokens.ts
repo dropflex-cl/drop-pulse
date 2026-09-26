@@ -6,7 +6,7 @@ import { adminClient } from "./admin";
 // (set_store_token / get_store_token), con nombre por proveedor y borrado real (falla 9 del spec).
 // Nunca se loguea un token.
 
-export type TokenKind = "shopify" | "shopify_refresh" | "meta" | "higgsfield";
+export type TokenKind = "shopify" | "shopify_refresh" | "meta" | "higgsfield" | "gemini";
 
 export async function setToken(kind: TokenKind, userId: string, token: string) {
   const { error } = await adminClient().rpc("set_integration_token", { p_kind: kind, p_user_id: userId, p_token: token });

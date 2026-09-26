@@ -7,10 +7,10 @@ import { LogoutButton } from "@/components/logout-button";
 import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAiCostSettings, getAssumptions, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
+import { getAdSettings, getAiCostSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
 import { PolicySettings } from "@/components/screens/policy-settings";
 import { AiCostSettings } from "@/components/screens/ai-cost-settings";
-import { HiggsfieldSettings } from "@/components/screens/higgsfield-settings";
+import { ApiKeySettings } from "@/components/screens/api-key-settings";
 import { AdSettings } from "@/components/screens/ad-settings";
 import { MarketSettings } from "@/components/screens/market-settings";
 
@@ -27,7 +27,15 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, higgsfield, aiCost, policies] = await Promise.all([getAssumptions(), getMarketSettings(), getAdSettings(), getHiggsfieldSettings(), getAiCostSettings(), getPolicySettings()]);
+  const [assumptions, market, ads, higgsfield, gemini, aiCost, policies] = await Promise.all([
+    getAssumptions(),
+    getMarketSettings(),
+    getAdSettings(),
+    getHiggsfieldSettings(),
+    getGeminiSettings(),
+    getAiCostSettings(),
+    getPolicySettings(),
+  ]);
   return (
     <>
       <PageHeader large title="Ajustes" subtitle="Supuestos, tienda y cuenta" back="Hoy" backHref="/today" />
@@ -57,9 +65,12 @@ export default async function AjustesPage() {
             </div>
           </Suspense>
         </Section>
-        {higgsfield ? (
-          <Section id="creativos" title="Anuncios con IA" description="Tu cuenta de Higgsfield: genera tus anuncios de imagen con tu clave y tus créditos.">
-            <HiggsfieldSettings keyHint={higgsfield.keyHint} status={higgsfield.status} error={higgsfield.error} />
+        {higgsfield && gemini ? (
+          <Section id="creativos" title="Anuncios con IA" description="Tus cuentas de Higgsfield y Gemini: generas las imágenes de tus anuncios y de tu página con tu clave y tus créditos. En cada pantalla eliges con cuál.">
+            <div className="flex flex-col gap-3">
+              <ApiKeySettings provider="higgsfield" keyHint={higgsfield.keyHint} status={higgsfield.status} error={higgsfield.error} />
+              <ApiKeySettings provider="gemini" keyHint={gemini.keyHint} status={gemini.status} error={gemini.error} />
+            </div>
           </Section>
         ) : null}
         {ads ? (

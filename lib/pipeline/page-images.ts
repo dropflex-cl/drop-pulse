@@ -51,7 +51,7 @@ import { download as downloadFromLink } from "@/lib/products/images";
 import { latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { approvedAngles } from "./angles";
-import { onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
+import { onGeminiError, onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeImage } from "@/lib/media/optimize";
 import { OptimizeError } from "./optimize";
@@ -72,7 +72,6 @@ const PLAN_ATTEMPTS = 3;
 const LEASE_MS = 20_000;
 /** Imágenes que se generan a la vez (la cuenta de Higgsfield tiene un cupo de concurrencia). */
 const PARALLEL = 4;
-const NO_KEY = "Conecta tu cuenta de Higgsfield en Ajustes para generar imágenes.";
 
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 const UPLOAD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
@@ -132,7 +131,7 @@ export const briefStampOf = (v: unknown): string | null => stampKey(v);
 
 /** Crea la corrida del director (queued). Tocar dos veces no cobra dos veces. */
 export async function startPageImages(userId: string, productId: string): Promise<{ run: PageImageRunRow; created: boolean }> {
-  const provider = await requireProvider(userId, "page_images", NO_KEY);
+  const provider = await requireProvider(userId, "page_images", "imágenes");
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
   const active = await db.from("page_image_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
@@ -286,7 +285,7 @@ async function checkDailyImages(userId: string, adding: number) {
 
 /** «Generar otra»: una imagen más de la misma toma. Devuelve la fila creada (queued). */
 export async function startShotRender(userId: string, productId: string, shotId: string): Promise<PageImageRow> {
-  const provider = await requireProvider(userId, "page_images", NO_KEY);
+  const provider = await requireProvider(userId, "page_images", "imágenes");
   const shot = await getShotRow(userId, productId, shotId);
   if (!shot) throw new OptimizeError("Esa toma ya no está vigente. Actualiza la página.", 409);
   const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("product_id", productId).eq("slot", shot.slot).eq("source", "ai").neq("status", "rejected");
@@ -298,7 +297,7 @@ export async function startShotRender(userId: string, productId: string, shotId:
 
 /** «Generar los vacíos»: una imagen para cada toma que no tiene ninguna viva. */
 export async function startFillEmpty(userId: string, productId: string): Promise<PageImageRow[]> {
-  const provider = await requireProvider(userId, "page_images", NO_KEY);
+  const provider = await requireProvider(userId, "page_images", "imágenes");
   const db = adminClient();
   const [shots, images] = await Promise.all([
     db.from("page_image_shots").select("id, product_id, user_id, run_id, slot, position, payload, created_at").eq("user_id", userId).eq("product_id", productId).is("superseded_at", null).order("position"),
@@ -415,6 +414,7 @@ async function processWithGemini(leased: PageImageRow): Promise<void> {
   } catch (e) {
     const known = e instanceof GeminiError;
     if (!known) console.error("[page-images] render con Gemini", e);
+    await onGeminiError(a.user_id, e);
     await patchImage(a.id, { render_status: "failed", error_code: known ? e.code : "unexpected", error_message: known ? e.message.replace("Toca Generar de nuevo.", "Toca Generar otra.") : "No pudimos generar la imagen. Toca Generar otra.", finished_at: stamp() });
     await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_render", detail, ...geminiGeneration(e) });
     return;

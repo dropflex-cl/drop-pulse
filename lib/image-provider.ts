@@ -1,5 +1,5 @@
-// El proveedor de imágenes de cada etapa que genera (Creativos e Imágenes de la página): Higgsfield, con
-// la clave y los créditos del comerciante, o Gemini, con la clave de DropFlex. El comerciante lo elige en
+// El proveedor de imágenes de cada etapa que genera (Creativos e Imágenes de la página): Higgsfield o
+// Gemini, los dos con la clave y la cuenta del comerciante (Ajustes › Anuncios con IA). El comerciante lo elige en
 // la misma pantalla y la elección queda guardada por etapa (image_provider_choices). Puro: lo usan el
 // servidor, la pantalla y los tests.
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
@@ -22,9 +22,9 @@ export const IMAGE_COST_BY_PROVIDER: Record<ImageProvider, number> = {
   gemini: imageCostUsd("gemini-3-pro-image", "2K", { inputTokens: 2000, textOutputTokens: 0, images: 1 }).usd,
 };
 
-/** De dónde sale el cobro, para completar «cuesta cerca de $0,10…». Gemini va al costo de IA del producto. */
+/** De dónde sale el cobro, para completar «cuesta cerca de $0,10…»: la cuenta del comerciante. */
 export function costSource(p: ImageProvider | null | undefined): string {
-  return p === "higgsfield" ? " de tu cuenta de Higgsfield" : "";
+  return p ? ` de tu cuenta de ${IMAGE_PROVIDER_NAME[p]}` : "";
 }
 
 export interface ImageProviderOption {

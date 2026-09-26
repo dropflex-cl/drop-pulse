@@ -2,6 +2,7 @@
 import "server-only";
 import { listTemplates } from "@/lib/ads/store";
 import { adminClient } from "@/lib/integrations/admin";
+import { getGeminiConnection } from "@/lib/integrations/gemini/connection";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { sessionUser } from "@/lib/integrations/session";
@@ -43,6 +44,14 @@ export async function getHiggsfieldSettings() {
   const user = await sessionUser();
   if (!user) return null;
   const conn = await getHiggsfieldConnection(user.id);
+  return conn ? { keyHint: conn.key_hint, status: conn.status, error: conn.last_error } : { keyHint: null, status: null, error: null };
+}
+
+/** Ajustes › Gemini: la clave propia del comerciante, igual que Higgsfield (la clave vive en Vault). */
+export async function getGeminiSettings() {
+  const user = await sessionUser();
+  if (!user) return null;
+  const conn = await getGeminiConnection(user.id);
   return conn ? { keyHint: conn.key_hint, status: conn.status, error: conn.last_error } : { keyHint: null, status: null, error: null };
 }
 

@@ -146,18 +146,21 @@ export const productsApi = {
   retryCompetitor: (id: string, competitorId: string) => send<CompetitorsResponse>("POST", `/${id}/competitors/${competitorId}`),
 };
 
-/** Ajustes › Conexiones › Higgsfield. Mismo contrato de errores que /api/products. */
-export const higgsfieldApi = {
-  connect: async (key: string) => {
-    const res = await fetch("/api/settings/higgsfield", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }), cache: "no-store" }).catch(() => null);
+/** Los proveedores de imágenes con clave propia del comerciante (Ajustes › Anuncios con IA). */
+export type ApiKeyProvider = "higgsfield" | "gemini";
+
+/** Ajustes › Anuncios con IA › Higgsfield o Gemini (/api/settings/<proveedor>). Mismo contrato de errores que /api/products. */
+export const apiKeyApi = {
+  connect: async (provider: ApiKeyProvider, key: string) => {
+    const res = await fetch(`/api/settings/${provider}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }), cache: "no-store" }).catch(() => null);
     if (!res) throw new ProductApiClientError("No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.");
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new ProductApiClientError(data.error ?? "No pudimos guardar la clave. Intenta de nuevo.", data.field, res.status);
     return data as { keyHint: string; status: "connected" | "invalid" };
   },
-  disconnect: async () => {
-    const res = await fetch("/api/settings/higgsfield", { method: "DELETE", cache: "no-store" }).catch(() => null);
-    if (!res?.ok) throw new ProductApiClientError("No pudimos desconectar Higgsfield. Intenta de nuevo.");
+  disconnect: async (provider: ApiKeyProvider) => {
+    const res = await fetch(`/api/settings/${provider}`, { method: "DELETE", cache: "no-store" }).catch(() => null);
+    if (!res?.ok) throw new ProductApiClientError(`No pudimos desconectar ${provider === "gemini" ? "Gemini" : "Higgsfield"}. Intenta de nuevo.`);
   },
 };
 

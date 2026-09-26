@@ -28,7 +28,7 @@ import { activeConcepts, assetsFor, creativeCounts, latestCreativeRuns, signedUr
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
 import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
-import { imageProviderChoice } from "@/lib/integrations/image-provider";
+import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { customerReviews, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
@@ -415,7 +415,7 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
   const anglesDone = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
   const connected = choice.value !== null;
-  const noProvider = choice.options.find((o) => o.id === "higgsfield")?.reason ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios.";
+  const noProvider = noProviderReason(choice, "anuncios");
   const rows = concepts.get(productId) ?? [];
   const assets = await assetsFor(uid, rows.map((c) => c.id));
   const urls = await signedUrls(assets.map((a) => a.storage_path).filter((p): p is string => Boolean(p)));
@@ -452,7 +452,7 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   for (const [id, src] of refUrls) urls.set(`ref:${id}`, src);
   const run = runs.get(productId);
   const connected = choice.value !== null;
-  const noProvider = choice.options.find((o) => o.id === "higgsfield")?.reason ?? "Conecta tu cuenta de Higgsfield en Ajustes para generar imágenes.";
+  const noProvider = noProviderReason(choice, "imágenes");
   // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
   const planned = briefStampOf((run?.input as { briefs?: unknown } | undefined)?.briefs);
   return {

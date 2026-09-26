@@ -15,7 +15,8 @@ export function ImageProviderPicker({ stage, choice, onChange }: { stage: ImageS
   const [saving, setSaving] = useState(false);
   const usable = choice.options.filter((o) => o.available);
   if (!choice.value || !usable.length) return null;
-  const missingHiggsfield = choice.options.some((o) => o.id === "higgsfield" && !o.available);
+  // El otro proveedor sin conectar (o con la clave rechazada): se ofrece ir a conectarlo.
+  const missing = choice.options.find((o) => !o.available);
 
   async function pick(value: string) {
     const provider = value as ImageProvider;
@@ -43,9 +44,9 @@ export function ImageProviderPicker({ stage, choice, onChange }: { stage: ImageS
         <span className="text-label">{IMAGE_PROVIDER_NAME[choice.value]}</span>
       )}
       <span className="text-caption text-muted-foreground tabular-nums">{`≈ ${money(IMAGE_COST_BY_PROVIDER[choice.value], "USD")} por imagen${costSource(choice.value)}`}</span>
-      {missingHiggsfield ? (
+      {missing ? (
         <Link href="/settings#creativos" className={linkClasses}>
-          Conecta Higgsfield para elegir
+          {`Conecta ${missing.name} para elegir`}
         </Link>
       ) : null}
     </div>

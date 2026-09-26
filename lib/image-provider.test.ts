@@ -24,8 +24,8 @@ describe("costos", () => {
     expect(IMAGE_COST_BY_PROVIDER.gemini).toBe(0.138);
   });
 
-  it("solo Higgsfield se cobra de la cuenta del comerciante", () => {
+  it("los dos se cobran de la cuenta del comerciante", () => {
     expect(costSource("higgsfield")).toBe(" de tu cuenta de Higgsfield");
-    expect(costSource("gemini")).toBe("");
+    expect(costSource("gemini")).toBe(" de tu cuenta de Gemini");
   });
 });

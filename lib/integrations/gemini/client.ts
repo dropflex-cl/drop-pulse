@@ -11,7 +11,8 @@ import { parseImageResponse, type GeminiTokens } from "./response";
 // modelo con que v1 hacía los creativos (Gemini 3 Pro Image, «Nano Banana Pro»), el mismo reintento y el
 // mismo respaldo a Flash cuando Pro está saturado. A diferencia de Higgsfield es síncrono: la imagen
 // vuelve en la respuesta (sin cola, sin sondeo, sin URL que caduque), así que no hay request_id que
-// recuperar. La clave es de la plataforma (GEMINI_API_KEY), no del comerciante. Nunca se loguea.
+// recuperar. Cada llamada usa la clave del comerciante, en Vault (connection.ts), como Higgsfield.
+// Nunca se loguea.
 //
 // El prompt lo arma quien llama: este módulo no sabe de creativos ni de páginas.
 
@@ -39,6 +40,8 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export type GeminiAspectRatio = "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9";
 
 export interface GeminiImageInput {
+  /** La clave del comerciante (connection.ts › geminiKey). */
+  apiKey: string;
   prompt: string;
   /** Referencias en orden: la imagen base primero (imagesForGeneration). */
   images: { bytes: Buffer | Uint8Array; mime: string }[];
@@ -65,7 +68,7 @@ export interface GeminiImageResult {
   costEstimated: boolean;
 }
 
-export type GeminiErrorCode = "config" | "invalid_key" | "no_credits" | "busy" | "unavailable" | "bad_request" | "blocked" | "no_image" | "too_large" | "network" | "timeout";
+export type GeminiErrorCode = "invalid_key" | "no_access" | "no_credits" | "busy" | "unavailable" | "bad_request" | "blocked" | "no_image" | "too_large" | "network" | "timeout";
 
 /** Qué pasó, con un código para el registro y un mensaje en español para la pantalla (como HiggsfieldError). */
 export class GeminiError extends Error {
@@ -86,17 +89,27 @@ export class GeminiError extends Error {
   }
 }
 
-/** Hay clave de Gemini en el servidor: sin ella, Gemini no aparece como opción. */
-export function geminiConfigured(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY?.trim());
+// Un cliente por clave, reutilizado en la instancia (cada comerciante trae la suya).
+const clients = new Map<string, GoogleGenAI>();
+
+function genai(key: string): GoogleGenAI {
+  let c = clients.get(key);
+  if (!c) clients.set(key, (c = new GoogleGenAI({ apiKey: key })));
+  return c;
 }
 
-let client: GoogleGenAI | null = null;
-
-function genai(): GoogleGenAI {
-  const key = process.env.GEMINI_API_KEY?.trim();
-  if (!key) throw new GeminiError("config", "Falta configurar Gemini en el servidor (GEMINI_API_KEY). Avísanos para activarlo.");
-  return (client ??= new GoogleGenAI({ apiKey: key }));
+/**
+ * Valida la clave con la lectura más chica que hay (los datos del modelo de imágenes): no cuesta cuota
+ * y además comprueba que la cuenta tenga acceso a ese modelo. Lanza GeminiError con el motivo.
+ */
+export async function checkKey(key: string): Promise<void> {
+  try {
+    await genai(key).models.get({ model: GEMINI_IMAGE_MODEL, config: { httpOptions: { timeout: 15_000, retryOptions: { attempts: 1 } } } });
+  } catch (e) {
+    const err = toGeminiError(e);
+    if (err.code === "bad_request" && err.status === 404) throw new GeminiError("no_access", "Tu cuenta de Gemini no tiene acceso al modelo de imágenes (Gemini 3 Pro Image).", 404);
+    throw err;
+  }
 }
 
 // Fallas de conexión en que el pedido no salió (se reintentan) y cortes por tiempo (no: pudo cobrarse).
@@ -111,13 +124,13 @@ export function toGeminiError(e: unknown): GeminiError {
   const message = e instanceof Error ? e.message : String(e);
   const status = e instanceof ApiError ? e.status : ((e as { status?: number })?.status ?? 0);
   if (status === 401 || status === 403 || /API key not valid|API_KEY_INVALID/i.test(message))
-    return new GeminiError("invalid_key", "Gemini no reconoce la clave del servidor. Avísanos para revisarla.", status);
+    return new GeminiError("invalid_key", "Gemini no reconoce tu clave. Revísala en Ajustes.", status);
   if (status === 429) {
     if (classifyGemini429(message) === "rate") return new GeminiError("busy", "Gemini está con mucha demanda. Intenta de nuevo en un momento.", status);
     // El registro guarda solo el código; el cuerpo dice qué cuota exacta se agotó, y eso necesita leerlo
     // quien arregle la cuenta.
     console.warn(`[gemini] cuota agotada: ${message.slice(0, 500)}`);
-    return new GeminiError("no_credits", "Se agotó la cuota de Gemini. Avísanos para ampliarla.", status);
+    return new GeminiError("no_credits", "Tu cuenta de Gemini no tiene cuota disponible. Revisa tu plan y facturación en Google AI Studio y vuelve a intentar.", status);
   }
   if (status >= 500) return new GeminiError("unavailable", "Gemini no respondió. Intenta de nuevo en un momento.", status);
   if (status === 400 || status === 404) {
@@ -136,11 +149,11 @@ export function toGeminiError(e: unknown): GeminiError {
   return new GeminiError("bad_request", "Gemini no pudo generar la imagen. Intenta de nuevo; si vuelve a pasar, avísanos.", status);
 }
 
-async function callModel(model: string, contents: ContentListUnion, aspectRatio: GeminiAspectRatio, size: GeminiImageSize, attempts: number) {
+async function callModel(key: string, model: string, contents: ContentListUnion, aspectRatio: GeminiAspectRatio, size: GeminiImageSize, attempts: number) {
   let last: GeminiError | undefined;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      return await genai().models.generateContent({
+      return await genai(key).models.generateContent({
         model,
         contents,
         config: {
@@ -184,7 +197,7 @@ export async function generateImage(input: GeminiImageInput): Promise<GeminiImag
   let model = input.model ?? GEMINI_IMAGE_MODEL;
   let response;
   try {
-    response = await callModel(model, contents, aspectRatio, size, MAX_ATTEMPTS);
+    response = await callModel(input.apiKey, model, contents, aspectRatio, size, MAX_ATTEMPTS);
   } catch (e) {
     const failure = toGeminiError(e);
     // Solo la falta de capacidad pasa al respaldo: la cuota de Gemini es por modelo, así que Flash puede
@@ -193,7 +206,7 @@ export async function generateImage(input: GeminiImageInput): Promise<GeminiImag
     if (!capacity || !fallbackModel || fallbackModel === model) throw failure;
     console.warn(`[gemini] ${model} no disponible (${failure.code}); se usa ${fallbackModel}`);
     model = fallbackModel;
-    response = await callModel(model, contents, aspectRatio, size, FALLBACK_ATTEMPTS);
+    response = await callModel(input.apiKey, model, contents, aspectRatio, size, FALLBACK_ATTEMPTS);
   }
   const latencyMs = Date.now() - started;
 

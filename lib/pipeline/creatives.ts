@@ -22,7 +22,8 @@ import {
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { GEMINI_IMAGE_MODEL, GeminiError, generateImage, geminiGeneration, type GeminiAspectRatio } from "@/lib/integrations/gemini/client";
-import { imageProviderChoice } from "@/lib/integrations/image-provider";
+import { geminiKey, markGeminiInvalid } from "@/lib/integrations/gemini/connection";
+import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
 import type { ImageProvider, ImageStage } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey, markHiggsfieldInvalid, presetsFor } from "@/lib/integrations/higgsfield/connection";
@@ -84,17 +85,25 @@ async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: n
 }
 
 /** El proveedor de imágenes de la etapa (el elegido en la pantalla, si sigue disponible). */
-export async function requireProvider(userId: string, stage: ImageStage, message = "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios."): Promise<ImageProvider> {
-  const { value, options } = await imageProviderChoice(userId, stage);
-  if (!value) throw new OptimizeError(options.find((o) => o.id === "higgsfield")?.reason ?? message, 409);
-  return value;
+export async function requireProvider(userId: string, stage: ImageStage, what = "anuncios"): Promise<ImageProvider> {
+  const choice = await imageProviderChoice(userId, stage);
+  if (!choice.value) throw new OptimizeError(noProviderReason(choice, what), 409);
+  return choice.value;
+}
+
+/** Google rechazó la clave: se marca para que Gemini deje de ofrecerse hasta reconectar. */
+export async function onGeminiError(userId: string, e: unknown) {
+  if (e instanceof GeminiError && e.code === "invalid_key") await markGeminiInvalid(userId, e.message);
 }
 
 /** Gemini responde sin cola: la imagen llega en la respuesta. Descarga la foto base y genera. */
 export async function renderWithGemini(userId: string, productId: string, input: Record<string, unknown>) {
+  const apiKey = await geminiKey(userId);
+  if (!apiKey) throw new GeminiError("invalid_key", "Conecta tu cuenta de Gemini en Ajustes y genera de nuevo.");
   const [base] = await productImageUrls(userId, productId, 1);
   if (!base) throw new GeminiError("bad_request", "El producto no tiene una imagen base. Elige una en Información base.");
   return generateImage({
+    apiKey,
     prompt: String(input.prompt ?? ""),
     images: [{ bytes: await toJpeg(await download(base), 2048), mime: "image/jpeg" }],
     aspectRatio: (input.aspect_ratio as GeminiAspectRatio | undefined) ?? "1:1",
@@ -408,6 +417,7 @@ async function processWithGemini(lease_: AssetRow): Promise<void> {
   } catch (e) {
     const known = e instanceof GeminiError;
     if (!known) console.error("[creatives] render con Gemini", e);
+    await onGeminiError(a.user_id, e);
     await patchAsset(a.id, { render_status: "failed", error_code: known ? e.code : "unexpected", error_message: known ? e.message : "No pudimos generar la imagen. Toca Generar de nuevo.", finished_at: new Date().toISOString() });
     await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_render", detail, ...geminiGeneration(e) });
     return;

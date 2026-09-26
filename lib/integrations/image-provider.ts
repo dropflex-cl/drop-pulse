@@ -1,11 +1,12 @@
 import "server-only";
 import { IMAGE_PROVIDER_NAME, pickImageProvider, type ImageProvider, type ImageProviderChoice, type ImageStage } from "@/lib/image-provider";
 import { adminClient } from "./admin";
-import { geminiConfigured } from "./gemini/client";
+import { getGeminiConnection } from "./gemini/connection";
 import { getHiggsfieldConnection } from "./higgsfield/connection";
 
 // La elección de proveedor de imágenes por etapa (lib/image-provider.ts): qué hay disponible para el
-// comerciante y qué eligió. Todo con service_role, como las conexiones.
+// comerciante (su clave de Higgsfield o de Gemini, conectada y válida) y qué eligió. Todo con
+// service_role, como las conexiones.
 
 const TABLE = "image_provider_choices";
 
@@ -17,8 +18,8 @@ async function savedChoice(userId: string, stage: ImageStage): Promise<ImageProv
 
 /** Los proveedores de una etapa, cuál se usa y por qué no se puede usar el otro. */
 export async function imageProviderChoice(userId: string, stage: ImageStage): Promise<ImageProviderChoice> {
-  const [conn, saved] = await Promise.all([getHiggsfieldConnection(userId), savedChoice(userId, stage)]);
-  const available = { higgsfield: conn?.status === "connected", gemini: geminiConfigured() };
+  const [conn, gemini, saved] = await Promise.all([getHiggsfieldConnection(userId), getGeminiConnection(userId), savedChoice(userId, stage)]);
+  const available = { higgsfield: conn?.status === "connected", gemini: gemini?.status === "connected" };
   return {
     value: pickImageProvider(saved, available),
     saved,
@@ -33,7 +34,7 @@ export async function imageProviderChoice(userId: string, stage: ImageStage): Pr
         id: "gemini",
         name: IMAGE_PROVIDER_NAME.gemini,
         available: available.gemini,
-        ...(available.gemini ? {} : { reason: "Gemini todavía no está activado en DropFlex." }),
+        ...(available.gemini ? {} : { reason: gemini?.last_error ?? "Conecta tu cuenta de Gemini en Ajustes." }),
       },
     ],
   };
@@ -50,3 +51,12 @@ export async function saveImageProvider(userId: string, stage: ImageStage, provi
 }
 
 export class ImageProviderUnavailable extends Error {}
+
+/**
+ * Por qué no se puede generar en la etapa: la clave rechazada, si alguna lo fue (dice qué hacer), o que
+ * falta conectar un proveedor.
+ */
+export function noProviderReason(choice: ImageProviderChoice, what: string): string {
+  const rejected = choice.options.find((o) => o.reason && !/^Conecta tu cuenta/.test(o.reason));
+  return rejected?.reason ?? `Conecta tu cuenta de Higgsfield o de Gemini en Ajustes para generar ${what}.`;
+}

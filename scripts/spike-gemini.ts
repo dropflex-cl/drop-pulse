@@ -1,4 +1,5 @@
 // Prueba real del cliente de Gemini (lib/integrations/gemini/client.ts) con una imagen y un prompt tuyos.
+// La clave va en GEMINI_API_KEY (en la app, cada comerciante conecta la suya en Ajustes).
 // Uso:
 //   npx tsx --conditions=react-server --env-file=.env.local scripts/spike-gemini.ts <imagen> "<prompt>" [1:1|3:4|9:16] [1K|2K|4K] [salida.png]
 // Imprime el modelo que corrió, los tokens y el costo que quedaría en ai_generations. No registra nada.
@@ -8,13 +9,15 @@ import { generateImage, GeminiError, type GeminiAspectRatio } from "../lib/integ
 import type { GeminiImageSize } from "../lib/integrations/gemini/pricing";
 
 const MIME: Record<string, string> = { ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg" };
+const apiKey = process.env.GEMINI_API_KEY?.trim();
+if (!apiKey) throw new Error("Falta GEMINI_API_KEY en .env.local");
 const [file, prompt, ratio = "1:1", size = "1K", out = "gemini-out.png"] = process.argv.slice(2);
 if (!file || !prompt) throw new Error('Uso: spike-gemini.ts <imagen> "<prompt>" [proporción] [resolución] [salida]');
 const mime = MIME[extname(file).toLowerCase()];
 if (!mime) throw new Error(`Tipo no soportado: ${file}`);
 
 try {
-  const r = await generateImage({ prompt, images: [{ bytes: await readFile(file), mime }], aspectRatio: ratio as GeminiAspectRatio, size: size as GeminiImageSize });
+  const r = await generateImage({ apiKey, prompt, images: [{ bytes: await readFile(file), mime }], aspectRatio: ratio as GeminiAspectRatio, size: size as GeminiImageSize });
   await writeFile(out, r.bytes);
   console.log({ out, model: r.model, fallback: r.fallback, size: r.size, mime: r.mime, width: r.width, height: r.height, usage: r.usage, costEstimated: r.costEstimated });
 } catch (e) {

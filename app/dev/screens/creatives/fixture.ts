@@ -165,7 +165,7 @@ export function fixture(state: string): ProductCreatives {
       saved: null,
       options: [
         { id: "higgsfield", name: "Higgsfield", available: state !== "key", ...(state === "key" ? { reason: "Conecta tu cuenta de Higgsfield en Ajustes." } : {}) },
-        { id: "gemini", name: "Gemini", available: state !== "key", ...(state === "key" ? { reason: "Gemini todavía no está activado en DropFlex." } : {}) },
+        { id: "gemini", name: "Gemini", available: state !== "key", ...(state === "key" ? { reason: "Conecta tu cuenta de Gemini en Ajustes." } : {}) },
       ],
     },
     run,
