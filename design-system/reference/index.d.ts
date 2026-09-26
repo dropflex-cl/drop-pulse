@@ -235,7 +235,7 @@ export declare function LpCta(props: LpCtaProps): React.ReactElement;
 export interface AssistantButtonProps { scope?: string; label?: string }
 export declare function AssistantButton(props: AssistantButtonProps): React.ReactElement;
 export interface ImageProvider { id: 'higgsfield' | 'gemini' | string; name: string; cost: number; eta?: string; connected?: boolean }
-export interface ImageProviderPickerProps { value?: string; providers?: ImageProvider[]; compact?: boolean; label?: string }
+export interface ImageProviderPickerProps { value?: string; providers?: ImageProvider[]; compact?: boolean; inline?: boolean; label?: string }
 export declare function ImageProviderPicker(props: ImageProviderPickerProps): React.ReactElement;
 export interface QaResultProps { issues?: string[]; okLabel?: string }
 export declare function QaResult(props: QaResultProps): React.ReactElement;
@@ -243,8 +243,15 @@ export type PieceState = 'empty' | 'locked' | 'queued' | 'generating' | 'review'
 export interface CreativePieceProps { ratio?: '1:1' | '9:16'; label?: string; state?: PieceState; provider?: 'higgsfield' | 'gemini' | string; cost?: number; retry?: boolean; qa?: string[]; qaOk?: string; recoverable?: boolean; error?: string; eta?: string; imageIndex?: number; shape?: number; overlay?: React.ReactNode; variant?: 'row' | 'full' }
 export declare function CreativePiece(props: CreativePieceProps): React.ReactElement;
 export interface ConceptText { role: string; value: string; limit?: number }
-export interface CreativeConceptProps { slot?: number; title: string; family: string; style?: string; styleKind?: 'preset' | 'direct'; why?: string; look?: string; texts?: ConceptText[]; pieces?: CreativePieceProps[]; editing?: boolean; locked?: boolean; compact?: boolean; footer?: React.ReactNode }
+export interface CreativeConceptProps { slot?: number; title: string; family: string; style?: string; styleKind?: 'preset' | 'direct'; why?: string; look?: string; texts?: ConceptText[]; pieces?: CreativePieceProps[]; editing?: boolean; locked?: boolean; compact?: boolean; emphasis?: 'review' | 'normal' | 'done'; footer?: React.ReactNode }
 export declare function CreativeConcept(props: CreativeConceptProps): React.ReactElement;
+export interface CreativeCounts { review?: number; pending?: number; approved?: number }
+export interface AngleGroupProps { role?: 'primary' | 'secondary'; name: string; counts?: CreativeCounts; collapsed?: boolean; chat?: React.ReactNode; headerOnly?: boolean; action?: React.ReactNode; children?: React.ReactNode }
+export declare function AngleGroup(props: AngleGroupProps): React.ReactElement;
+export interface ChatModuleProps { state?: 'new' | 'created' | 'review' | 'approved' }
+export declare function ChatModule(props: ChatModuleProps): React.ReactElement;
+export interface CreativeSummaryProps { counts?: CreativeCounts }
+export declare function CreativeSummary(props: CreativeSummaryProps): React.ReactElement;
 export interface ChatConsentProps { checked?: boolean }
 export declare function ChatConsent(props: ChatConsentProps): React.ReactElement;
 export interface ChatMessage { me?: boolean; text: string; time: string; photo?: boolean }
@@ -277,7 +284,7 @@ declare global {
       Stars: typeof Stars; ReviewImporter: typeof ReviewImporter; ReviewSummary: typeof ReviewSummary; ReviewItem: typeof ReviewItem;
       ScoreBar: typeof ScoreBar; RoleChip: typeof RoleChip; AngleCard: typeof AngleCard; AngleSuggestion: typeof AngleSuggestion; IcpSummary: typeof IcpSummary; AngleDevelopment: typeof AngleDevelopment;
       StructurePicker: typeof StructurePicker; PresetSelect: typeof PresetSelect; ConfigSection: typeof ConfigSection; ChipInput: typeof ChipInput; RuleRow: typeof RuleRow; RuleGroup: typeof RuleGroup; CreativeSlot: typeof CreativeSlot; CampaignTree: typeof CampaignTree; DecisionRow: typeof DecisionRow;
-      AssistantButton: typeof AssistantButton; ImageProviderPicker: typeof ImageProviderPicker; QaResult: typeof QaResult; CreativePiece: typeof CreativePiece; CreativeConcept: typeof CreativeConcept; ChatConsent: typeof ChatConsent; ChatPreview: typeof ChatPreview; UgcStepper: typeof UgcStepper; ScriptShot: typeof ScriptShot; KeyframeTile: typeof KeyframeTile; ClipRow: typeof ClipRow; MontagePackage: typeof MontagePackage; VideoUpload: typeof VideoUpload;
+      AssistantButton: typeof AssistantButton; ImageProviderPicker: typeof ImageProviderPicker; QaResult: typeof QaResult; CreativePiece: typeof CreativePiece; CreativeConcept: typeof CreativeConcept; AngleGroup: typeof AngleGroup; ChatModule: typeof ChatModule; CreativeSummary: typeof CreativeSummary; ChatConsent: typeof ChatConsent; ChatPreview: typeof ChatPreview; UgcStepper: typeof UgcStepper; ScriptShot: typeof ScriptShot; KeyframeTile: typeof KeyframeTile; ClipRow: typeof ClipRow; MontagePackage: typeof MontagePackage; VideoUpload: typeof VideoUpload;
       CharCount: typeof CharCount; EmptyState: typeof EmptyState; Notice: typeof Notice; PageOutline: typeof PageOutline; CopySummary: typeof CopySummary;
       AiCostChip: typeof AiCostChip; AiCostCard: typeof AiCostCard; AiRunList: typeof AiRunList;
       MediaTile: typeof MediaTile; MediaSlot: typeof MediaSlot; GenerationComposer: typeof GenerationComposer;

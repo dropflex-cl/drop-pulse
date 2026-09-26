@@ -1235,3 +1235,61 @@ body { margin: 0; font-family: var(--font-sans); background: var(--background); 
 .df-cgrid .df-piece.st-failed .df-piece-acts { flex-direction: row; }
 .df-piece.st-failed:not(.is-full) .df-piece-a { grid-column: 2 / -1; justify-content: flex-start; }
 .df-piece.st-failed:not(.is-full) .df-piece-acts { flex-direction: row; }
+
+/* ---------- Creativos · jerarquía: ángulo > concepto > pieza ---------- */
+.df-btn-soft { background: var(--primary-soft); color: var(--primary); border-color: transparent; font-weight: 600; }
+.df-btn-soft:hover { background: var(--primary-soft); box-shadow: inset 0 0 0 1px var(--primary); }
+
+.df-crsum { display: flex; align-items: stretch; gap: 8px; }
+.df-crsum-i { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 8px 10px; border-radius: var(--radius-md); background: var(--muted); }
+.df-crsum-i b { font-size: 20px; line-height: 26px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+.df-crsum-i span { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.df-crsum-i.is-review { background: var(--warning-soft); }
+.df-crsum-i.is-review b { color: var(--warning); }
+.df-crsum-i.is-ok b { color: var(--success); }
+.df-crsum > .df-iconbtn { align-self: center; }
+
+.df-agroup { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
+.df-crsum + .df-agroup, .df-agroup.is-head { border-top: 0; padding-top: 0; }
+.df-agroup-h { display: flex; align-items: flex-start; gap: 8px; }
+.df-agroup-t { margin: 6px 0 0; font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.df-agroup-c { margin-top: 2px; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+.df-agroup-c .is-review { color: var(--warning); font-weight: 600; }
+.df-agroup-c .is-ok { color: var(--success); font-weight: 500; }
+.df-agroup-tg { width: 40px; height: 40px; flex: none; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--muted-foreground); display: grid; place-items: center; cursor: pointer; }
+.df-agroup-tg:hover { background: var(--accent); }
+.df-agroup-tg:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring); }
+.df-agroup-tg.is-open svg { transform: rotate(90deg); }
+.df-agroup-b { display: flex; flex-direction: column; gap: 10px; }
+.df-agroup.is-head .df-agroup-t { font-size: 17px; margin-top: 4px; }
+.df-agroup.is-head .df-agroup-h { align-items: flex-end; }
+
+/* Concepto: el peso lo da su estado */
+.df-concept-meta { margin-top: 2px; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+.df-concept-tags { display: none; }
+.df-concept.is-compact.is-normal { background: var(--background); }
+.df-concept.is-review { border-color: var(--warning); box-shadow: 0 0 0 1px var(--warning), var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06)); }
+.df-concept.is-review .df-concept-t { font-size: 16px; }
+.df-concept.is-compact.is-review .df-piece { grid-template-columns: 64px minmax(0, 1fr) auto; }
+.df-concept.is-compact.is-review .df-piece-m { width: 64px; height: 64px; }
+.df-concept.is-compact.is-review .df-piece-m.is-v { width: 40px; height: 72px; }
+.df-concept.is-compact.is-normal .df-concept-n { background: var(--muted); color: var(--muted-foreground); }
+.df-concept.is-done { flex-direction: row; align-items: center; gap: 10px; padding: 10px 12px; background: transparent; border-style: solid; }
+.df-concept.is-done .df-concept-t { font-size: 14px; font-weight: 500; }
+.df-concept-ok { width: 24px; height: 24px; flex: none; border-radius: 50%; background: var(--success-soft); color: var(--success); display: grid; place-items: center; }
+.df-concept-thumbs { display: flex; gap: 4px; align-items: center; }
+.df-concept-thumbs img { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; background: var(--muted); }
+.df-concept-thumbs img.is-v { width: 20px; height: 36px; }
+
+/* Chat de WhatsApp: formato aparte */
+.df-chatmod { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1.5px dashed var(--input); border-radius: var(--radius-lg); background: var(--muted); }
+.df-chatmod-i { width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--background); color: var(--foreground); display: grid; place-items: center; box-shadow: 0 0 0 1px var(--border); }
+.df-chatmod-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.df-chatmod-b b { font-size: 14px; line-height: 20px; }
+.df-chatmod-b span { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.df-chatmod.st-approved { border-style: solid; background: transparent; }
+
+.df-provline { margin: 0; text-align: center; font-size: 13px; line-height: 18px; color: var(--muted-foreground); display: flex; justify-content: center; align-items: center; gap: 0; flex-wrap: wrap; }
+.df-provline b { color: var(--foreground); font-weight: 600; margin: 0 3px; }
+.df-provline .df-linkbtn { font-size: 13px; min-height: 24px; margin-left: 4px; }
+.df-desk-bar .df-provline { justify-content: flex-start; }

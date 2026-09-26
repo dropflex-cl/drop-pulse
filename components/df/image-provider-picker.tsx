@@ -20,6 +20,8 @@ export interface ImageProviderPickerProps {
   onChange?: (id: string) => void;
   /** Fila con el elegido y «Cambiar». */
   compact?: boolean;
+  /** Una línea sobre el botón de generar: «Con Higgsfield · ≈ $95 por pieza · Cambiar». */
+  inline?: boolean;
   onChangeRequest?: () => void;
   label?: string;
   disabled?: boolean;
@@ -30,8 +32,23 @@ export interface ImageProviderPickerProps {
  * Con qué proveedor se generan las imágenes de la etapa (.df-prov). Es un `radiogroup`; un proveedor sin
  * conectar queda deshabilitado y dice por qué. La elección se guarda por etapa.
  */
-export function ImageProviderPicker({ value, providers, onChange, compact, onChangeRequest, label = "Proveedor de imagen", disabled, className }: ImageProviderPickerProps) {
+export function ImageProviderPicker({ value, providers, onChange, compact, inline, onChangeRequest, label = "Proveedor de imagen", disabled, className }: ImageProviderPickerProps) {
   const id = useId();
+  if (inline) {
+    const cur = providers.find((p) => p.id === value) ?? providers[0];
+    if (!cur) return null;
+    return (
+      <p className={cn("flex flex-wrap items-center justify-center text-label font-normal text-muted-foreground tabular-nums", className)}>
+        Con <b className="mx-0.75 font-semibold text-foreground">{cur.name}</b>
+        {cur.cost ? ` · ${cur.cost} por pieza · ` : " · "}
+        {onChangeRequest ? (
+          <button type="button" onClick={onChangeRequest} className="ml-1 inline-flex min-h-6 cursor-pointer items-center font-medium text-primary underline underline-offset-3 before:absolute before:-inset-y-2.5 before:inset-x-0 relative">
+            Cambiar
+          </button>
+        ) : null}
+      </p>
+    );
+  }
   if (compact) {
     const cur = providers.find((p) => p.id === value) ?? providers[0];
     if (!cur) return null;

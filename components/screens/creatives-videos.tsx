@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  AngleGroup,
   Button,
   ClipRow,
   EmptyState,
@@ -26,7 +27,6 @@ import { mediaFacts } from "@/lib/ads/client";
 import { durationLabel } from "@/lib/ads/media";
 import { ProductApiClientError, productsApi, uploadFinalVideo } from "@/lib/products/client";
 import type { VideoCardView, VideoShotView, VideoStep, VideosState } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import type { VideoFormat } from "@/lib/video/catalog";
 import { shotCost } from "@/lib/video/cost";
 import type { UgcScript } from "@/lib/video/schemas";
@@ -142,24 +142,21 @@ export function VideosPanel({ productId, initial, desktop }: { productId: string
   const shown = Math.min(viewing[card.slot] ?? current, current);
   const view = (n: number) => setViewing((v) => ({ ...v, [card.slot]: n === current ? undefined : n }));
 
-  const chips = (
-    <div role="group" aria-label="Ángulo del video" className={cn("flex gap-1.5", desktop ? "flex-wrap" : "overflow-x-auto [scrollbar-width:none]")}>
-      {state.cards.map((c) => (
-        <button
-          key={c.slot}
-          type="button"
-          aria-pressed={c.slot === card.slot}
-          title={c.angleName}
-          onClick={() => setSlot(c.slot)}
-          className={cn(
-            "relative h-8 shrink-0 cursor-pointer rounded-full border px-2.5 text-caption whitespace-nowrap before:absolute before:-inset-y-1.5 before:inset-x-0",
-            c.slot === card.slot ? "border-primary bg-primary-soft font-medium text-primary" : "border-input bg-background text-foreground",
-          )}
-        >
-          {`Ángulo ${c.slot}`}
-        </button>
-      ))}
-    </div>
+  // La cabecera del ángulo (AngleGroup, como en Imágenes) con «Ver ángulo N» para pasar al siguiente.
+  const next = state.cards[(state.cards.indexOf(card) + 1) % state.cards.length];
+  const angleHeader = (
+    <AngleGroup
+      headerOnly
+      slot={card.slot}
+      name={card.angleName}
+      action={
+        next && next.slot !== card.slot ? (
+          <button type="button" onClick={() => setSlot(next.slot)} className="inline-flex min-h-8 shrink-0 cursor-pointer items-center text-small font-medium whitespace-nowrap text-primary underline underline-offset-3">
+            {`Ver ángulo ${next.slot}`}
+          </button>
+        ) : null
+      }
+    />
   );
 
   const step = (
@@ -187,8 +184,7 @@ export function VideosPanel({ productId, initial, desktop }: { productId: string
     return (
       <div className="grid flex-1 grid-cols-[--spacing(70)_minmax(0,1fr)_--spacing(95)]">
         <div className="flex flex-col gap-4 border-r p-4">
-          {chips}
-          <p className="text-label font-normal text-muted-foreground">{card.angleName}</p>
+          {angleHeader}
           <UgcStepper current={current} viewing={shown} vertical notes={stepNotes(card)} onSelect={view} />
         </div>
         <div className="flex min-w-0 flex-col gap-3 px-7 pt-5 pb-6">
@@ -205,7 +201,7 @@ export function VideosPanel({ productId, initial, desktop }: { productId: string
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-2.5 px-4 pb-2">
-        {chips}
+        {angleHeader}
         <UgcStepper current={current} viewing={shown} onSelect={view} />
       </div>
       <div className="flex flex-col gap-2.5 px-4 pt-1 pb-4">

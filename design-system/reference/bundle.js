@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"AiCostChip"},{"name":"AiCostCard"},{"name":"AiRunList"},{"name":"MediaSlot"},{"name":"MediaTile"},{"name":"GenerationComposer"},{"name":"LpNav"},{"name":"LpSectionHead"},{"name":"LpStep"},{"name":"LpFeature"},{"name":"LpFaq"},{"name":"LpCta"},{"name":"AssistantButton"},{"name":"ImageProviderPicker"},{"name":"QaResult"},{"name":"CreativePiece"},{"name":"CreativeConcept"},{"name":"ChatConsent"},{"name":"ChatPreview"},{"name":"UgcStepper"},{"name":"ScriptShot"},{"name":"KeyframeTile"},{"name":"ClipRow"},{"name":"MontagePackage"},{"name":"VideoUpload"},{"name":"Icon"}]} */
+/* @ds-bundle: {"format":4,"namespace":"DropFlex","components":[{"name":"Button"},{"name":"IconButton"},{"name":"StatusBadge"},{"name":"StageMeter"},{"name":"ProductRow"},{"name":"AttentionItem"},{"name":"StageList"},{"name":"ReviewCard"},{"name":"ImageTile"},{"name":"SegmentedControl"},{"name":"Field"},{"name":"PriceBreakdown"},{"name":"OfferPreview"},{"name":"Metric"},{"name":"CampaignCard"},{"name":"Navigation"},{"name":"TopBar"},{"name":"Toast"},{"name":"AssistantSheet"},{"name":"OnboardingHeader"},{"name":"ConnectionCard"},{"name":"PermissionList"},{"name":"OptionList"},{"name":"PickRow"},{"name":"GenerationProgress"},{"name":"SetupChecklist"},{"name":"ProductInfoInput"},{"name":"ReferenceImage"},{"name":"ImageUploader"},{"name":"ReviewImporter"},{"name":"ReviewItem"},{"name":"ReviewSummary"},{"name":"Stars"},{"name":"IcpSummary"},{"name":"AngleSuggestion"},{"name":"AngleCard"},{"name":"ScoreBar"},{"name":"RoleChip"},{"name":"AngleDevelopment"},{"name":"StructurePicker"},{"name":"PresetSelect"},{"name":"ConfigSection"},{"name":"CreativeSlot"},{"name":"ChipInput"},{"name":"RuleGroup"},{"name":"RuleRow"},{"name":"CampaignTree"},{"name":"DecisionRow"},{"name":"EmptyState"},{"name":"Notice"},{"name":"PageOutline"},{"name":"CopySummary"},{"name":"CharCount"},{"name":"AiCostChip"},{"name":"AiCostCard"},{"name":"AiRunList"},{"name":"MediaSlot"},{"name":"MediaTile"},{"name":"GenerationComposer"},{"name":"LpNav"},{"name":"LpSectionHead"},{"name":"LpStep"},{"name":"LpFeature"},{"name":"LpFaq"},{"name":"LpCta"},{"name":"AssistantButton"},{"name":"ImageProviderPicker"},{"name":"QaResult"},{"name":"CreativePiece"},{"name":"CreativeConcept"},{"name":"AngleGroup"},{"name":"ChatModule"},{"name":"CreativeSummary"},{"name":"ChatConsent"},{"name":"ChatPreview"},{"name":"UgcStepper"},{"name":"ScriptShot"},{"name":"KeyframeTile"},{"name":"ClipRow"},{"name":"MontagePackage"},{"name":"VideoUpload"},{"name":"Icon"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -2314,6 +2314,10 @@
     { id: 'gemini', name: 'Gemini', cost: 40, eta: '~20 s', connected: true }];
   function ImageProviderPicker(props) {
     var v = props.value || 'higgsfield', list = props.providers || CR_PROVS;
+    if (props.inline) {
+      var ci = list.filter(function (p) { return p.id === v; })[0] || list[0];
+      return h('p', { className: 'df-provline' }, 'Con ', h('b', null, ci.name), ' · ≈ ' + money(ci.cost) + ' por pieza · ', h('button', { type: 'button', className: 'df-linkbtn' }, 'Cambiar'));
+    }
     if (props.compact) {
       var cur = list.filter(function (p) { return p.id === v; })[0] || list[0];
       return h('div', { className: 'df-provrow' },
@@ -2362,11 +2366,11 @@
       : st === 'queued' ? h('span', { className: 'df-piece-note' }, props.eta || 'Empieza en unos segundos')
       : st === 'generating' ? h('span', { className: 'df-piece-note' }, props.eta || '~40 s')
       : st === 'discarded' ? h('span', { className: 'df-piece-note' }, 'El archivo se borra en 2 min') : null;
-    var gen = function (label) { return h(Button, { variant: full ? 'primary' : 'secondary', size: full ? 'lg' : 'sm', icon: 'sparkle', block: full }, label + ' · ≈ ' + money(props.cost || 95)); };
+    var gen = function (label) { return h(Button, { variant: full ? 'primary' : 'ghost', size: full ? 'lg' : 'sm', icon: 'sparkle', block: full }, label + ' · ≈ ' + money(props.cost || 95)); };
     var actions = null;
     if (st === 'empty') actions = gen(full ? 'Generar ' + (vert ? 'Stories 9:16' : 'feed 1:1') : 'Generar');
     else if (st === 'review' && full) actions = h('div', { className: 'df-piece-acts' }, h(Button, { variant: 'secondary', icon: 'x' }, 'Descartar'), h(Button, { variant: 'primary', icon: 'check' }, 'Aprobar'));
-    else if (st === 'review') actions = h(Button, { variant: 'secondary', size: 'sm', icon: 'eye' }, 'Revisar');
+    else if (st === 'review') actions = h(Button, { variant: 'secondary', size: 'sm', icon: 'eye', className: 'df-btn-soft' }, 'Revisar');
     else if (st === 'failed') actions = h('div', { className: 'df-piece-acts' },
       props.recoverable ? h(Button, { variant: full ? 'primary' : 'secondary', size: full ? undefined : 'sm', icon: 'download' }, 'Recuperar') : null,
       h(Button, { variant: props.recoverable || !full ? 'secondary' : 'primary', size: full ? undefined : 'sm', icon: 'undo' }, (props.recoverable ? 'Generar de nuevo' : 'Reintentar') + ' · ≈ ' + money(props.cost || 95)));
@@ -2387,13 +2391,21 @@
   /* CreativeConcept: lo que propone Claude, revisable antes de pagar */
   function CreativeConcept(props) {
     var ed = props.editing, busy = props.locked;
-    var texts = props.texts || [];
-    return h('article', { className: cx('df-concept', ed && 'is-editing', props.compact && 'is-compact') },
+    var texts = props.texts || [], pieces = props.pieces || [];
+    var emph = props.emphasis || (pieces.some(function (p) { return p.state === 'review'; }) ? 'review' : pieces.length && pieces.every(function (p) { return p.state === 'approved'; }) ? 'done' : 'normal');
+    var meta = props.family + ' · ' + (props.styleKind === 'direct' ? 'Edición directa' : props.style);
+    if (props.compact && emph === 'done') return h('article', { className: 'df-concept is-done' },
+      h('span', { className: 'df-concept-ok', 'aria-hidden': 'true' }, h(Icon, { name: 'check', size: 'sm', strokeWidth: 2.5 })),
+      h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'df-concept-t' }, props.title), h('div', { className: 'df-concept-meta' }, pieces.length + (pieces.length === 1 ? ' pieza en Anuncios' : ' piezas en Anuncios'))),
+      h('div', { className: 'df-concept-thumbs' }, pieces.map(function (p, i) { return h('img', { key: i, className: p.ratio === '9:16' ? 'is-v' : undefined, src: productImage(p.imageIndex || 0, 1), alt: '' }); })),
+      h(Icon, { name: 'chevron-right', size: 'sm', className: 'df-mslot-chev' }));
+    return h('article', { className: cx('df-concept', ed && 'is-editing', props.compact && 'is-compact', 'is-' + emph) },
       h('div', { className: 'df-concept-h' },
-        h('span', { className: 'df-concept-n' }, props.slot || 1),
+        h('span', { className: 'df-concept-n', 'aria-label': 'Concepto ' + (props.slot || 1) }, props.slot || 1),
         h('div', { style: { flex: 1, minWidth: 0 } },
           h('div', { className: 'df-concept-t' }, props.title),
-          h('div', { className: 'df-concept-tags' }, h('span', { className: 'df-tag' }, props.family), h('span', { className: 'df-tag' }, props.styleKind === 'direct' ? 'Edición directa' : 'Estilo: ' + props.style)))),
+          h('div', { className: 'df-concept-meta' }, meta)),
+        emph === 'review' && props.compact ? h('span', { className: 'df-status df-status-sm df-status-warning' }, h(Icon, { name: 'eye', strokeWidth: 2 }), 'Decide') : null),
       props.compact ? null : h(Frag, null,
         h('div', { className: 'df-concept-f' }, h('span', null, 'Por qué'), h('p', null, props.why)),
         h('div', { className: 'df-concept-f' }, h('span', null, 'Cómo se verá'), h('p', null, props.look)),
@@ -2406,8 +2418,45 @@
               h('dt', null, t.role, h(CharCount, { count: t.value.length, limit: t.limit, unit: '' })),
               ed ? h('dd', null, h('input', { className: 'df-ctext-in', defaultValue: t.value, 'aria-label': t.role, 'aria-invalid': over ? 'true' : undefined }), over ? h('span', { className: 'df-field-err' }, 'Máximo ' + t.limit + ' para un ' + t.role.toLowerCase() + '. Acórtalo para que se lea en la imagen.') : null) : h('dd', null, t.value));
           })))),
-      props.pieces && !ed ? h('div', { className: 'df-concept-p' }, props.pieces.map(function (p, i) { return h(CreativePiece, Object.assign({ key: i }, p)); })) : null,
+      pieces.length && !ed ? h('div', { className: 'df-concept-p' }, pieces.map(function (p, i) { return h(CreativePiece, Object.assign({ key: i }, p)); })) : null,
       props.footer || null);
+  }
+
+  /* AngleGroup: sección de un ángulo; nivel más alto de la lista de creativos */
+  function AngleGroup(props) {
+    var c = props.counts || {}, parts = [];
+    if (c.review) parts.push(h('span', { key: 'r', className: 'is-review' }, c.review + ' por revisar'));
+    if (c.pending) parts.push(h('span', { key: 'p' }, c.pending + ' sin generar'));
+    if (c.approved) parts.push(h('span', { key: 'a', className: 'is-ok' }, c.approved + (c.approved === 1 ? ' aprobada' : ' aprobadas')));
+    var sec = props.role === 'secondary', open = !props.collapsed;
+    return h('section', { className: cx('df-agroup', !open && 'is-collapsed', props.headerOnly && 'is-head'), 'aria-label': 'Ángulo ' + (sec ? 'secundario' : 'principal') + ': ' + props.name },
+      h('header', { className: 'df-agroup-h' },
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h(RoleChip, { role: sec ? 'secundario' : 'principal', short: true }),
+          h('h2', { className: 'df-agroup-t' }, props.name),
+          parts.length ? h('div', { className: 'df-agroup-c' }, parts.reduce(function (a, p, i) { return i ? a.concat([h('span', { key: 's' + i, 'aria-hidden': 'true' }, ' · '), p]) : [p]; }, [])) : null),
+        props.action || (props.collapsed != null ? h('button', { type: 'button', className: cx('df-agroup-tg', open && 'is-open'), 'aria-expanded': open ? 'true' : 'false', 'aria-label': (open ? 'Plegar' : 'Desplegar') + ' ángulo' }, h(Icon, { name: 'chevron-right' })) : null)),
+      open && !props.headerOnly ? h('div', { className: 'df-agroup-b' }, props.children, props.chat || null) : null);
+  }
+
+  /* ChatModule: el chat de WhatsApp de un ángulo; otro formato, fuera de la grilla de conceptos */
+  function ChatModule(props) {
+    var st = props.state || 'new';
+    var sub = { new: 'Captura 9:16 · conversación armada, requiere aviso', created: 'Chat creado · falta generar la captura 9:16', review: 'Captura lista para revisar', approved: 'Captura en Anuncios' }[st];
+    return h('div', { className: cx('df-chatmod', 'st-' + st) },
+      h('span', { className: 'df-chatmod-i', 'aria-hidden': 'true' }, h(Icon, { name: 'chat' })),
+      h('div', { className: 'df-chatmod-b' }, h('b', null, 'Chat de WhatsApp'), h('span', null, sub)),
+      st === 'approved' ? h('span', { className: 'df-status df-status-sm df-status-success' }, h(Icon, { name: 'check', strokeWidth: 2 }), 'En Anuncios')
+        : h(Button, { variant: st === 'review' ? 'secondary' : 'ghost', size: 'sm', className: st === 'review' ? 'df-btn-soft' : undefined, icon: st === 'new' ? 'plus' : undefined }, st === 'new' ? 'Crear chat' : st === 'review' ? 'Revisar' : 'Abrir'));
+  }
+
+  /* CreativeSummary: qué hay que hacer en la pestaña, con el menú de acciones poco frecuentes */
+  function CreativeSummary(props) {
+    var c = props.counts || {};
+    var item = function (v, l, tone) { return h('div', { className: cx('df-crsum-i', v && tone) }, h('b', null, v || 0), h('span', null, l)); };
+    return h('div', { className: 'df-crsum' },
+      item(c.review, 'Por revisar', 'is-review'), item(c.pending, 'Sin generar', ''), item(c.approved, 'Aprobadas', 'is-ok'),
+      h(IconButton, { icon: 'more', label: 'Más opciones: proponer otros conceptos' }));
   }
 
   /* ChatConsent: aviso obligatorio antes de crear un chat armado */
@@ -2583,16 +2632,18 @@
 
   /* 1 · Lista de conceptos */
   function CrList() {
-    return h(Phone, { label: 'C6 · Conceptos, lote y continuar (1.6, 1.10, 1.11, 1.20)' }, CrBar('1 pieza aprobada'), CrTabs('img'),
+    return h(Phone, { label: 'C6 · Por ángulo, lo que pide decisión primero (1.6, 1.10, 1.11, 1.20)' }, CrBar('3 piezas aprobadas'), CrTabs('img'),
       CrRel(h(Frag, null,
-        h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
-          h(ImageProviderPicker, { compact: true }),
-          h('div', { className: 'df-section-t', style: { padding: '4px 0 0' } }, 'Ángulo principal · 3 conceptos', h('button', { type: 'button', className: 'df-linkbtn' }, h(Icon, { name: 'undo', size: 'sm' }), 'Proponer otros')),
-          h(CreativeConcept, Object.assign({}, CR_C1, { compact: true, pieces: [{ ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1 }, { ratio: '9:16', state: 'empty' }] })),
-          h(CreativeConcept, { compact: true, slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', pieces: [{ ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello tapa el velcro'] }, { ratio: '1:1', state: 'review', provider: 'higgsfield', imageIndex: 2, qa: [] }] }),
-          h(CreativeConcept, { compact: true, slot: 3, title: 'Chat de WhatsApp', family: 'Conversación', style: 'Captura 9:16', pieces: [{ ratio: '9:16', state: 'empty', label: 'Captura 9:16' }] })),
-        CrToast('La IA propuso tus anuncios: 6 conceptos.', 'Ver', 132))),
+        h('div', { className: 'df-scroll', style: { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 16 } },
+          h(CreativeSummary, { counts: { review: 2, pending: 4, approved: 3 } }),
+          h(AngleGroup, { role: 'primary', name: 'Dolor al trabajar sentado', counts: { review: 2, pending: 1, approved: 3 }, collapsed: false, chat: h(ChatModule, { state: 'new' }) },
+            h(CreativeConcept, { compact: true, slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', pieces: [{ ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello tapa el velcro'] }, { ratio: '1:1', state: 'review', provider: 'higgsfield', imageIndex: 2, qa: [] }] }),
+            h(CreativeConcept, Object.assign({}, CR_C1, { compact: true, pieces: [{ ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1 }, { ratio: '9:16', state: 'empty' }] })),
+            h(CreativeConcept, { compact: true, slot: 3, title: 'Invisible bajo la ropa', family: 'Objeción', style: 'Lifestyle', pieces: [{ ratio: '1:1', state: 'approved', imageIndex: 3 }, { ratio: '9:16', state: 'approved', imageIndex: 5 }] })),
+          h(AngleGroup, { role: 'secondary', name: 'Se ve mejor en fotos', counts: { pending: 3 }, collapsed: true })),
+        CrToast('La IA propuso tus anuncios: 6 conceptos.', 'Ver', 12))),
       h('div', { className: 'df-sticky', style: { flexDirection: 'column', gap: 8 } },
+        h(ImageProviderPicker, { inline: true }),
         h(Button, { variant: 'primary', size: 'lg', block: true, icon: 'sparkle' }, 'Generar 4 · ≈ ' + money(380)),
         h(Button, { variant: 'secondary', size: 'lg', block: true, iconEnd: 'chevron-right' }, 'Continuar a Anuncios')));
   }
@@ -2645,7 +2696,7 @@
         CrToast('Descartada. El archivo se borra en 2 min.', 'Deshacer', 16))));
   }
   function CrReplace() {
-    return h(Phone, { label: 'C13 · Proponer otros: qué se reemplaza (1.5)' },
+    return h(Phone, { label: 'C13 · Proponer otros, desde el menú ⋯ (1.5)' },
       CrRel(h(Frag, null, CrBar('3 piezas aprobadas'), CrTabs('img'), h('div', { className: 'df-scroll' }),
         CrOverlay('¿Proponer otros conceptos?', null, h(Frag, null,
           h('ul', { className: 'df-replace' },
@@ -2698,8 +2749,8 @@
     { n: 4, kind: 'broll', time: '18–24 s', line: 'De perfil frente al computador, hombros atrás.' }];
   function CrVidTop(step) {
     return h(Frag, null, CrBar(), CrTabs('vid'),
-      h('div', { style: { padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 10 } },
-        h('div', { className: 'df-chips' }, h('button', { type: 'button', className: 'df-chipbtn df-chip-sm is-on', 'aria-pressed': 'true' }, 'Ángulo principal'), h('button', { type: 'button', className: 'df-chipbtn df-chip-sm', 'aria-pressed': 'false' }, 'Ángulo secundario')),
+      h('div', { style: { padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        h(AngleGroup, { role: 'primary', name: 'Dolor al trabajar sentado', headerOnly: true, action: h('button', { type: 'button', className: 'df-linkbtn' }, 'Ver secundario') }),
         h(UgcStepper, { current: step })));
   }
   function CrScript() {
@@ -2776,23 +2827,20 @@
       h(Button, { variant: 'secondary', iconEnd: 'chevron-right' }, 'Continuar a Anuncios'));
   }
   function CrDeskImages() {
-    return h(DeskFrame, { label: 'Escritorio · Imágenes: conceptos por ángulo al centro, la pieza con su QA a la derecha' },
+    return h(DeskFrame, { label: 'Escritorio · Imágenes: ángulos como secciones, lo que pide decisión primero; la pieza con su QA a la derecha' },
       h(Navigation, { variant: 'rail', active: 'productos', badges: { hoy: 6 } }),
       h('div', { className: 'df-desk-main' }, CrDeskHead('img'),
         h('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', flex: 1, minHeight: 0 } },
           h('div', { style: { display: 'flex', flexDirection: 'column', minHeight: 0 } },
-            h('div', { style: { padding: '16px 28px', display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden', flex: 1 } },
-              h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } }, h('div', { style: { width: 360 } }, h(ImageProviderPicker, { compact: true })), h('span', { style: { flex: 1 } }), h('button', { type: 'button', className: 'df-linkbtn' }, h(Icon, { name: 'undo', size: 'sm' }), 'Proponer otros')),
-              h('div', { className: 'df-section-t', style: { padding: 0 } }, 'Ángulo principal · Dolor al trabajar sentado'),
-              h('div', { className: 'df-cgrid' },
-                h(CreativeConcept, Object.assign({}, CR_C1, { compact: true, pieces: [{ ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1 }, { ratio: '9:16', state: 'generating', provider: 'higgsfield', retry: true }] })),
-                h(CreativeConcept, { compact: true, slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', pieces: [{ ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello tapa el velcro', 'Falta una letra'] }, { ratio: '9:16', state: 'locked' }] }),
-                h(CreativeConcept, { compact: true, slot: 3, title: 'Chat de WhatsApp', family: 'Conversación', style: 'Captura 9:16', pieces: [{ ratio: '9:16', label: 'Captura 9:16', state: 'failed', provider: 'higgsfield', recoverable: true }] })),
-              h('div', { className: 'df-section-t', style: { padding: 0 } }, 'Ángulo secundario · Se ve mejor en fotos'),
-              h('div', { className: 'df-cgrid' },
-                h(CreativeConcept, { compact: true, slot: 1, title: 'Hombros atrás en 10 segundos', family: 'Demostración', style: 'Estudio claro', pieces: [{ ratio: '1:1', state: 'empty', cost: 95 }, { ratio: '9:16', state: 'locked' }] }),
-                h(CreativeConcept, { compact: true, slot: 2, title: 'Invisible bajo la ropa', family: 'Objeción', style: 'Lifestyle', pieces: [{ ratio: '1:1', state: 'queued', provider: 'higgsfield' }, { ratio: '9:16', state: 'locked' }] }))),
-            h('div', { className: 'df-desk-bar' }, h('span', { className: 'df-review-count', style: { flex: 1 } }, '1 aprobada · 1 por revisar · 4 sin generar'), h(Button, { variant: 'primary', icon: 'sparkle' }, 'Generar 4 · ≈ ' + money(380)))),
+            h('div', { style: { padding: '16px 28px', display: 'flex', flexDirection: 'column', gap: 20, overflow: 'hidden', flex: 1 } },
+              h('div', { style: { maxWidth: 520 } }, h(CreativeSummary, { counts: { review: 2, pending: 4, approved: 3 } })),
+              h(AngleGroup, { role: 'primary', name: 'Dolor al trabajar sentado', counts: { review: 2, pending: 1, approved: 3 }, collapsed: false, chat: h(ChatModule, { state: 'created' }) },
+                h('div', { className: 'df-cgrid' },
+                  h(CreativeConcept, { compact: true, slot: 2, title: 'Antes y después de la postura', family: 'Antes / después', styleKind: 'direct', pieces: [{ ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello tapa el velcro', 'Falta una letra'] }, { ratio: '1:1', state: 'review', provider: 'higgsfield', imageIndex: 2, qa: [] }] }),
+                  h(CreativeConcept, Object.assign({}, CR_C1, { compact: true, pieces: [{ ratio: '1:1', state: 'approved', provider: 'higgsfield', imageIndex: 1 }, { ratio: '9:16', state: 'generating', provider: 'higgsfield', retry: true }] }))),
+                h(CreativeConcept, { compact: true, slot: 3, title: 'Invisible bajo la ropa', family: 'Objeción', style: 'Lifestyle', pieces: [{ ratio: '1:1', state: 'approved', imageIndex: 3 }, { ratio: '9:16', state: 'approved', imageIndex: 5 }] })),
+              h(AngleGroup, { role: 'secondary', name: 'Se ve mejor en fotos', counts: { pending: 3 }, collapsed: true })),
+            h('div', { className: 'df-desk-bar' }, h('div', { style: { flex: 1 } }, h(ImageProviderPicker, { inline: true })), h(Button, { variant: 'primary', icon: 'sparkle' }, 'Generar 4 · ≈ ' + money(380)))),
           h('div', { style: { borderLeft: '1px solid var(--border)', padding: '16px 24px', overflow: 'hidden', background: 'var(--sidebar)', display: 'flex', flexDirection: 'column', gap: 12 } },
             h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Concepto 2 · Feed 1:1'), h('span', { className: 'df-review-count' }, 'A · D')),
             h(CreativePiece, { variant: 'full', ratio: '1:1', state: 'review', provider: 'gemini', imageIndex: 4, qa: ['El sello «Pago contra entrega» tapa el velcro.', 'El titular dice «corretor»: falta la c.'] }),
@@ -2804,7 +2852,7 @@
       h('div', { className: 'df-desk-main' }, CrDeskHead('vid'),
         h('div', { style: { display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr) 380px', flex: 1, minHeight: 0 } },
           h('div', { style: { borderRight: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 } },
-            h('div', { className: 'df-chips', style: { flexWrap: 'wrap', flex: 'none', height: 'auto', overflow: 'visible' } }, h('button', { type: 'button', className: 'df-chipbtn df-chip-sm is-on', 'aria-pressed': 'true' }, 'Ángulo principal'), h('button', { type: 'button', className: 'df-chipbtn df-chip-sm', 'aria-pressed': 'false' }, 'Ángulo secundario')),
+            h(AngleGroup, { role: 'primary', name: 'Dolor al trabajar sentado', headerOnly: true, action: h('button', { type: 'button', className: 'df-linkbtn' }, 'Ver secundario') }),
             h(UgcStepper, { current: 3, vertical: true, notes: ['Aprobado · 5 tomas', '5 de 5 aprobadas', '1 de 5 listos · 3 a 6 min', 'Paquete JSON + script local', 'Sube el MP4 montado'] })),
           h('div', { style: { padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' } },
             h('div', { className: 'df-pp-sect' }, h('span', { className: 'type-heading' }, 'Clips'), h('span', { className: 'df-review-count' }, 'Habladas en Seedance con voz · apoyo en Kling')),
@@ -2881,6 +2929,6 @@
     AiCostChip: AiCostChip, AiCostCard: AiCostCard, AiRunList: AiRunList,
     MediaTile: MediaTile, MediaSlot: MediaSlot, GenerationComposer: GenerationComposer,
     LpNav: LpNav, LpSectionHead: LpSectionHead, LpPain: LpPain, LpStep: LpStep, LpFeature: LpFeature, LpFaq: LpFaq, LpCta: LpCta, LandingPage: LandingPage,
-    AssistantButton: AssistantButton, ImageProviderPicker: ImageProviderPicker, QaResult: QaResult, CreativePiece: CreativePiece, CreativeConcept: CreativeConcept, ChatConsent: ChatConsent, ChatPreview: ChatPreview, UgcStepper: UgcStepper, ScriptShot: ScriptShot, KeyframeTile: KeyframeTile, ClipRow: ClipRow, MontagePackage: MontagePackage, VideoUpload: VideoUpload, productImage: productImage, money: money, Screens: Screens
+    AssistantButton: AssistantButton, ImageProviderPicker: ImageProviderPicker, QaResult: QaResult, CreativePiece: CreativePiece, CreativeConcept: CreativeConcept, AngleGroup: AngleGroup, ChatModule: ChatModule, CreativeSummary: CreativeSummary, ChatConsent: ChatConsent, ChatPreview: ChatPreview, UgcStepper: UgcStepper, ScriptShot: ScriptShot, KeyframeTile: KeyframeTile, ClipRow: ClipRow, MontagePackage: MontagePackage, VideoUpload: VideoUpload, productImage: productImage, money: money, Screens: Screens
   });
 })();

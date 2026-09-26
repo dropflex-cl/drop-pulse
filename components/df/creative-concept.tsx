@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { CharCount } from "./char-count";
 import { Icon } from "./icon";
+import { StatusBadge } from "./status-badge";
 import { cn } from "@/lib/utils";
 
 export interface ConceptText {
@@ -38,6 +39,13 @@ export interface CreativeConceptProps {
   selected?: boolean;
   /** Reemplaza el bloque de textos (la vista previa del chat). */
   body?: React.ReactNode;
+  /**
+   * El peso en la lista según lo que pide decidir: `review` (borde de aviso, «Decide»), `normal`
+   * (sobre el fondo) o `done` (compacto: una fila plegada con check y miniaturas).
+   */
+  emphasis?: "review" | "normal" | "done";
+  /** `done` compacto: las miniaturas de lo aprobado. */
+  thumbs?: { src?: string; ratio: "1:1" | "9:16" }[];
   footer?: React.ReactNode;
   className?: string;
 }
@@ -50,31 +58,61 @@ export function CreativeConcept(p: CreativeConceptProps) {
   const id = useId();
   const busyId = `${id}-busy`;
   const texts = p.texts ?? [];
-  const tags = (
-    <div className="mt-1 flex flex-wrap gap-1">
-      <Tag>{p.family}</Tag>
-      {p.styleKind === "direct" ? <Tag>Edición directa</Tag> : p.style ? <Tag>{p.styleKind === "plain" ? p.style : `Estilo: ${p.style}`}</Tag> : null}
-    </div>
-  );
+  const emphasis = p.emphasis ?? "normal";
+  const meta = [p.family, p.styleKind === "direct" ? "Edición directa" : p.style].filter(Boolean).join(" · ");
+
+  // Aprobado, en la lista: una fila plegada que abre el detalle.
+  if (p.compact && emphasis === "done") {
+    const n = p.thumbs?.length ?? 0;
+    return (
+      <article aria-labelledby={`${id}-t`} className={cn("flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2.5", p.selected && "border-primary inset-ring inset-ring-primary", p.className)}>
+        <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-success-soft text-success">
+          <Icon name="check" size="sm" strokeWidth={2.5} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <button type="button" id={`${id}-t`} onClick={p.onOpen} aria-current={p.selected || undefined} className="cursor-pointer rounded-sm text-left text-small font-medium hover:underline">
+            {p.title}
+          </button>
+          <p className="text-label font-normal text-muted-foreground">{`${n} ${n === 1 ? "pieza" : "piezas"} en Anuncios`}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {p.thumbs?.map((t, i) =>
+            t.src ? (
+              // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage, sin optimizador
+              <img key={i} src={t.src} alt="" className={cn("rounded-kbd bg-muted object-cover", t.ratio === "9:16" ? "h-9 w-5" : "size-8")} />
+            ) : null,
+          )}
+        </div>
+        <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
+      </article>
+    );
+  }
+
+  const review = emphasis === "review";
   return (
     <article
       aria-labelledby={`${id}-t`}
       className={cn(
-        "flex min-w-0 flex-col gap-2.5 rounded-lg border bg-card px-3.5 pt-3 text-card-foreground",
+        "flex min-w-0 flex-col gap-2.5 rounded-lg border px-3.5 pt-3 text-card-foreground",
         p.editing ? "pb-3.5" : "pb-1",
+        p.compact && emphasis === "normal" ? "bg-background" : "bg-card",
+        review && "border-warning shadow-sm inset-ring inset-ring-warning",
         p.selected && "border-primary inset-ring inset-ring-primary",
         p.className,
       )}
     >
       <div className="flex items-start gap-2.5">
         {p.slot ? (
-          <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-caption font-semibold text-primary">
+          <span
+            aria-label={`Concepto ${p.slot}`}
+            className={cn("grid size-6 shrink-0 place-items-center rounded-full text-caption font-semibold", p.compact && !review ? "bg-muted text-muted-foreground" : "bg-primary-soft text-primary")}
+          >
             {p.slot}
           </span>
         ) : null}
         <div className="min-w-0 flex-1">
           {p.onOpen ? (
-            <button type="button" id={`${id}-t`} onClick={p.onOpen} aria-current={p.selected || undefined} className="cursor-pointer rounded-sm text-left text-body font-semibold hover:underline">
+            <button type="button" id={`${id}-t`} onClick={p.onOpen} aria-current={p.selected || undefined} className={cn("cursor-pointer rounded-sm text-left font-semibold hover:underline", review ? "text-heading" : "text-body")}>
               {p.title}
             </button>
           ) : (
@@ -82,8 +120,9 @@ export function CreativeConcept(p: CreativeConceptProps) {
               {p.title}
             </h3>
           )}
-          {tags}
+          {meta ? <p className="mt-0.5 text-label font-normal text-muted-foreground">{meta}</p> : null}
         </div>
+        {review && p.compact ? <StatusBadge size="sm" status="revision" label="Decide" /> : null}
       </div>
 
       {p.compact ? null : (

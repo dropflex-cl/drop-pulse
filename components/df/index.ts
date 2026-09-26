@@ -86,3 +86,6 @@ export { KeyframeTile, type KeyframeState, type KeyframeTileProps } from "./keyf
 export { ClipRow, type ClipRowProps, type ClipState } from "./clip-row";
 export { MontagePackage, type MontagePackageProps } from "./montage-package";
 export { VideoUpload, type VideoUploadProps, type VideoUploadState } from "./video-upload";
+export { CreativeSummary, type CreativeCounts, type CreativeSummaryProps } from "./creative-summary";
+export { AngleGroup, type AngleGroupProps } from "./angle-group";
+export { ChatModule, type ChatModuleProps, type ChatModuleState } from "./chat-module";

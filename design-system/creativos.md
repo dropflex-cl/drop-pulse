@@ -22,6 +22,30 @@ Información base → Reseñas → Ángulos → Textos → Imágenes → Publica
 4. **Nada queda esperando en pantalla.** Proponer (~1 min), escribir el guion (~1 min) y los clips (3 a 6 min) corren en segundo plano. La pantalla consulta el estado y avisa con un toast. El comerciante puede salir.
 5. **Honestidad.** El chat de WhatsApp exige un aviso aceptado. El guion del UGC muestra el producto sin que la persona diga ser clienta ni cuente resultados propios.
 
+## Jerarquía visual
+
+La lista de Imágenes tiene tres niveles, y el peso de cada elemento lo da **lo que pide decidir**, no su tipo.
+
+| Nivel | Componente | Cómo se ve |
+|---|---|---|
+| Resumen | `CreativeSummary` | Tres cifras: por revisar (con fondo de aviso si es mayor que cero), sin generar y aprobadas. El ⋯ guarda «Proponer otros» |
+| Ángulo | `AngleGroup` | `RoleChip` + nombre en 18 px seminegrita + contador. Divisor entre ángulos. El secundario se puede plegar |
+| Concepto | `CreativeConcept` | Título de 15 px y una línea apagada con familia y estilo (sin píldoras) |
+| Pieza | `CreativePiece` fila | 14 px, sin tarjeta propia |
+
+Peso según el estado del concepto:
+
+- **Por revisar** (`emphasis="review"`): borde de aviso, título de 16 px, miniaturas de 64 px, insignia «Decide» y **Revisar** como botón suave. Es lo único que llama la atención en la lista.
+- **Sin generar** (`normal`): sobre el fondo, con número apagado y **Generar · ≈ $X** como botón fantasma, porque la acción principal es el lote de la barra fija.
+- **Aprobado** (`done`): una fila plegada con check, «2 piezas en Anuncios» y miniaturas.
+- **Orden dentro del ángulo:** por revisar → sin generar → aprobados. El número de slot se mantiene para identificar el concepto.
+
+Otros cambios:
+
+- **Chat de WhatsApp:** va en `ChatModule`, al pie de cada ángulo, con borde punteado. Es otro formato y no compite con los conceptos.
+- **Proveedor:** es configuración, así que se muestra como una línea sobre el botón de generar («Con Higgsfield · ≈ $95 por pieza · Cambiar»), justo donde afecta el costo.
+- **Videos:** el ángulo usa la misma cabecera de `AngleGroup` (con «Ver secundario»), en vez de chips que competían con las pestañas.
+
 ## Casos de uso → UI
 
 ### 0 · Entrar y acceso
@@ -38,11 +62,11 @@ Información base → Reseñas → Ángulos → Textos → Imágenes → Publica
 
 | Caso | UI |
 |---|---|
-| 1.1 Proveedor | `ImageProviderPicker`: radio Higgsfield o Gemini con costo y tiempo por pieza, «Se guarda para esta etapa». Si no está conectado, aparece deshabilitado con el motivo. En la lista se muestra en su forma `compact` con **Cambiar** (C3, C6) |
+| 1.1 Proveedor | `ImageProviderPicker`: radio Higgsfield o Gemini con costo y tiempo por pieza, «Se guarda para esta etapa». Si no está conectado, aparece deshabilitado con el motivo. En la lista se muestra `inline` sobre el botón de generar, con **Cambiar** (C3, C6) |
 | 1.2 Proponer | **Proponer anuncios · ≈ $30**, con la foto base visible y el aviso «Tarda ~1 min. Puedes salir» (C3) |
 | 1.3 Esperar | `EmptyState busy` + **Volver al producto**. Al terminar: toast «La IA propuso tus anuncios: 6 conceptos» con **Ver**. Si falla: toast con **Reintentar** (C4, C5) |
 | 1.4 Reintentar | `EmptyState tone="error"` con **Reintentar · ≈ $30** (C5) |
-| 1.5 Proponer otros | Enlace en la cabecera de la lista. Abre una hoja que explica qué se reemplaza, qué sigue en Anuncios mientras tanto, que se borran también las aprobadas y **cuántas se conservan** (en Meta o usadas por un anuncio). Botón destructivo (C13) |
+| 1.5 Proponer otros | En el menú ⋯ de `CreativeSummary`. Abre una hoja que explica qué se reemplaza, qué sigue en Anuncios mientras tanto, que se borran también las aprobadas y **cuántas se conservan** (en Meta o usadas por un anuncio). Botón destructivo (C13) |
 | 1.6 Ver conceptos | Agrupados por ángulo, con slots 1–3. `CreativeConcept` compacto en la lista y completo en el detalle: familia, estilo (preset o «Edición directa»), por qué, cómo se verá y los textos dentro de la imagen (C6, C7) |
 | 1.7 Editar textos | Mismo `CreativeConcept` en modo edición. `CharCount` por rol con su límite. Si se pasa: fondo de error, mensaje y **Guardar** deshabilitado. Mientras se genera una pieza, **Editar** se deshabilita y explica por qué (C8, C9) |
 | 1.8 Generar 1:1 | Botón en la pieza con el costo; en el detalle, en la barra fija (C7) |
@@ -63,7 +87,7 @@ Información base → Reseñas → Ángulos → Textos → Imágenes → Publica
 
 | Caso | UI |
 |---|---|
-| 2.1 Crear | Hoja con `ChatConsent`: aviso «Es una conversación armada», casilla obligatoria y **Crear chat** deshabilitado hasta marcarla. El servidor exige `acknowledged` (W1) |
+| 2.1 Crear | `ChatModule` al pie del ángulo → hoja con `ChatConsent`: aviso «Es una conversación armada», casilla obligatoria y **Crear chat** deshabilitado hasta marcarla. El servidor exige `acknowledged` (W1) |
 | 2.2 Vista previa | `ChatPreview`: contacto, «en línea», burbujas con hora y foto del producto con pie. El subtítulo repite «conversación armada» (W2) |
 | 2.3 Editar | Pantalla con el contacto, cada mensaje (quién y a qué hora) y el pie de la foto. Guarda con `PATCH { chat }` (W3) |
 | 2.4 Captura | **Generar captura 9:16 · ≈ $X**. «Solo 9:16» (W2) |
@@ -74,7 +98,7 @@ No se dibuja ningún logo ni interfaz de WhatsApp en el design system: la vista 
 
 ### 3 · Pestaña Videos: un UGC de ~30 s por ángulo
 
-Arriba: selector de ángulo (chips) y `UgcStepper` con los 5 pasos. Un paso se habilita al aprobar el anterior. En escritorio, el stepper va vertical, con el estado de cada paso.
+Arriba: la cabecera del ángulo (`AngleGroup headerOnly`, con «Ver secundario») y `UgcStepper` con los 5 pasos. Un paso se habilita al aprobar el anterior. En escritorio, el stepper va vertical, con el estado de cada paso.
 
 | Caso | UI |
 |---|---|
@@ -95,7 +119,7 @@ Arriba: selector de ángulo (chips) y `UgcStepper` con los 5 pasos. Un paso se h
 
 ## Escritorio
 
-- **Imágenes:** la cabecera lleva la pestaña, el costo de IA, el asistente y **Continuar a Anuncios**. Al centro van los conceptos por ángulo en dos columnas y abajo una barra con el resumen y **Generar N**. A la derecha, la pieza seleccionada en grande con su QA y las acciones (atajos A y D).
+- **Imágenes:** la cabecera lleva la pestaña, el costo de IA, el asistente y **Continuar a Anuncios**. Al centro van el resumen, los ángulos como secciones (conceptos por revisar en dos columnas; aprobados plegados; chat al pie) y abajo una barra con el proveedor y **Generar N**. A la derecha, la pieza seleccionada en grande con su QA y las acciones (atajos A y D).
 - **Videos:** a la izquierda, el ángulo y el stepper vertical con el estado de cada paso. Al centro, el paso actual. A la derecha, el paso siguiente deshabilitado, con el motivo.
 
 ## Accesibilidad

@@ -36,6 +36,8 @@ export interface CreativePieceProps {
   busy?: PieceAction | null;
   /** Otra acción de la vista está en curso: los botones que gastan se deshabilitan. */
   disabled?: boolean;
+  /** Fila dentro de un concepto por revisar: miniatura de 64 px. */
+  large?: boolean;
   /** Fila: abre la pieza completa desde su nombre. */
   onOpen?: () => void;
   onAction?: (action: PieceAction) => void;
@@ -43,6 +45,9 @@ export interface CreativePieceProps {
   extra?: React.ReactNode;
   className?: string;
 }
+
+/** Botón suave (.df-btn-soft): lo que pide decisión, sin competir con la acción principal. */
+export const SOFT = "border-transparent bg-primary-soft font-semibold text-primary hover:bg-primary-soft hover:inset-ring hover:inset-ring-primary";
 
 const RATIO_LABEL = { "1:1": "Feed 1:1", "9:16": "Stories 9:16" } as const;
 
@@ -89,7 +94,7 @@ export function CreativePiece(p: CreativePieceProps) {
         "relative grid shrink-0 place-items-center overflow-hidden bg-muted text-muted-foreground",
         full
           ? cn("rounded-lg inset-ring inset-ring-border", hasImg ? (vertical ? "aspect-[9/16] h-95 self-center" : "aspect-square w-full") : "h-35 w-full")
-          : cn("justify-self-center rounded-sm", vertical ? "h-14 w-8" : "size-12"),
+          : cn("justify-self-center rounded-sm", p.large ? (vertical ? "h-18 w-10" : "size-16") : vertical ? "h-14 w-8" : "size-12"),
       )}
     >
       {hasImg ? (
@@ -130,7 +135,8 @@ export function CreativePiece(p: CreativePieceProps) {
   let actions: React.ReactNode = null;
   if (state === "empty" && onAction) {
     actions = (
-      <Button variant={full ? "primary" : "secondary"} size={full ? "lg" : "sm"} block={full} icon="sparkle" loading={busy === "generate"} disabled={disabled || any} onClick={act("generate")}>
+      // En la fila, fantasma: la acción principal es el lote de la barra fija.
+      <Button variant={full ? "primary" : "ghost"} size={full ? "lg" : "sm"} block={full} icon="sparkle" loading={busy === "generate"} disabled={disabled || any} onClick={act("generate")}>
         {costly(full ? `Generar ${vertical ? "Stories 9:16" : "feed 1:1"}` : "Generar")}
       </Button>
     );
@@ -145,7 +151,7 @@ export function CreativePiece(p: CreativePieceProps) {
         </Button>
       </div>
     ) : (
-      <Button size="sm" icon="eye" onClick={act("review")} aria-label={`Revisar ${label}`}>
+      <Button size="sm" icon="eye" onClick={act("review")} aria-label={`Revisar ${label}`} className={SOFT}>
         Revisar
       </Button>
     );
@@ -182,7 +188,7 @@ export function CreativePiece(p: CreativePieceProps) {
       </>
     );
     return (
-      <div className={cn("grid grid-cols-[--spacing(12)_minmax(0,1fr)_auto] items-center gap-2.5 border-t py-2", p.className)}>
+      <div className={cn("grid items-center gap-2.5 border-t py-2", p.large ? "grid-cols-[--spacing(16)_minmax(0,1fr)_auto]" : "grid-cols-[--spacing(12)_minmax(0,1fr)_auto]", p.className)}>
         {media}
         <div className="flex min-w-0 flex-col gap-0.5">
           {p.onOpen && state !== "empty" && state !== "locked" ? (

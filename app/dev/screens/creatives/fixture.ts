@@ -138,7 +138,14 @@ function concepts(state: string): CreativeConceptView[] {
         { role: "badge", text: "Paga al recibir" },
       ],
       edited: false,
-      assets: [],
+      // Con todo aprobado: en la lista se pliega a una fila.
+      assets:
+        state === "review"
+          ? [
+              asset("a9", { status: "aprobado", inAds: true }),
+              asset("a10", { ratio: "9:16", width: 752, height: 1344, status: "aprobado", inAds: true }),
+            ]
+          : [],
     },
   ];
   return list;
