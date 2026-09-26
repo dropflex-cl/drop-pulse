@@ -4,7 +4,7 @@
 Lee el paquete que descarga la pestaña Videos de Creativos («Descargar paquete») y arma el video listo
 para Meta: tomas habladas con la voz continua, B-roll encima de la voz (entra en su palabra), zoom
 alterno por frase, entrada de golpe del B-roll, destello al cambiar de idea, sacudida en el gancho,
-subtítulos palabra por palabra, rótulo «Dramatización», cierre con la foto del producto, música
+subtítulos palabra por palabra, cierre con la foto del producto, música
 opcional con bajada automática bajo la voz, marca de agua con el dominio de la tienda y compresión para
 Meta.
 
@@ -16,6 +16,11 @@ Uso:
     python3 scripts/ugc-montage.py uro-vaginal-probiotico-mascota-angulo-1.json [--music pista.mp3] [--out video.mp4] [--watermark tutienda.cl]
 
 El video sale junto al paquete con su mismo nombre (producto, formato y ángulo), salvo que se pase --out.
+
+Volver a montar es rápido: lo que ya está en la carpeta de trabajo (<paquete>-montaje, o la que se pase con
+--work) no se rehace. Los clips y las transcripciones se usan tal cual, y los planos con zoom de cada toma
+(lo más lento) se reutilizan si duran lo que la toma. Los subtítulos, los textos, el cierre, la música y la
+marca de agua se arman de nuevo cada vez. --fresh rehace también los planos.
 
 Requisitos: ffmpeg y ffprobe; Python 3.9+ con Pillow y numpy. Para los tiempos de los subtítulos,
 mlx-whisper (Mac con Apple Silicon: `pip install mlx-whisper`) u openai-whisper (`pip install
@@ -42,6 +47,8 @@ from pathlib import Path
 PACKAGE_VERSION = 1
 W, H, FPS = 720, 1280, 24
 END_CARD_S = 2.0
+# Los planos de una toma se reutilizan si su video dura lo mismo que la toma (redondeo de cuadros incluido).
+REUSE_TOLERANCE_S = 0.35
 WHITE = (255, 255, 255, 255)
 # Marca de agua: cada WATERMARK_EVERY_S segundos salta al siguiente lugar (x como expresión de overlay,
 # y como fracción del alto). Todos quedan entre los textos en pantalla (15–26 %) y los subtítulos (60 %).
@@ -220,19 +227,6 @@ def caption_png(path: Path, words: list[str], active: int, accent: tuple[int, in
         piece = w + (" " if i < len(words) - 1 else "")
         d.text((x - l, y - t), piece, font=f, fill=accent if i == active else WHITE, stroke_width=5, stroke_fill=(0, 0, 0, 255))
         x += d.textlength(piece, font=f)
-    im.save(path)
-
-
-def label_png(path: Path, text: str) -> None:
-    from PIL import Image, ImageDraw
-
-    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    f = font("regular", 22)
-    l, t, r, b = d.textbbox((0, 0), text, font=f)
-    x, y = W - (r - l) - 30, int(H * 0.105)
-    d.rounded_rectangle((x - 8, y - 6, x + (r - l) + 8, y + (b - t) + 6), radius=6, fill=(0, 0, 0, 120))
-    d.text((x - l, y - t), text, font=f, fill=WHITE)
     im.save(path)
 
 
@@ -422,6 +416,8 @@ def main() -> None:
     ap.add_argument("--crf", type=int, default=25, help="Calidad H.264 (25 para Meta; más alto, más liviano).")
     ap.add_argument("--watermark", help="Texto de la marca de agua (por defecto, el dominio de tu tienda que trae el paquete).")
     ap.add_argument("--no-watermark", action="store_true", help="Sin marca de agua.")
+    ap.add_argument("--work", help="Carpeta de un montaje anterior (clips, transcripciones y planos) para reutilizar lo que tenga. Por defecto, <paquete>-montaje junto al paquete.")
+    ap.add_argument("--fresh", action="store_true", help="Rehace los planos con zoom aunque ya existan (los clips y las transcripciones se reutilizan igual).")
     args = ap.parse_args()
 
     for tool in ("ffmpeg", "ffprobe"):
@@ -436,13 +432,16 @@ def main() -> None:
     pkg = json.loads(pkg_path.read_text())
     if pkg.get("version") != PACKAGE_VERSION:
         fail(f"este script lee paquetes versión {PACKAGE_VERSION}; el paquete es versión {pkg.get('version')}. Actualiza el script.")
-    work = pkg_path.with_suffix("").with_name(pkg_path.stem + "-montaje")
+    work = Path(args.work).expanduser().resolve() if args.work else pkg_path.with_suffix("").with_name(pkg_path.stem + "-montaje")
+    if args.work and not work.is_dir():
+        fail(f"no encuentro la carpeta {work}")
     work.mkdir(exist_ok=True)
     out = Path(args.out).expanduser() if args.out else pkg_path.parent / f"{package_name(pkg)}.mp4"
     accent = hex_rgba(pkg.get("accent_color") or "#F2C230")
     language = pkg.get("language", "es")
     whisper = find_whisper()
     print(f"Paquete: {pkg['product']['title']} · {pkg['angle']['title']}")
+    print(f"Carpeta de trabajo: {work}")
     print("Tiempos de los subtítulos: " + ("Whisper" if whisper else "estimados (instala mlx-whisper u openai-whisper para más precisión)"))
     watermark = None if args.no_watermark else (args.watermark or pkg.get("watermark") or "").strip() or None
     if watermark:
@@ -493,7 +492,6 @@ def main() -> None:
         return sum(c["cut_len"] for c in clips[:ci]) + clips[ci]["words"][wi]["s"] - clips[ci]["t0"]
 
     # 3. Cada toma: recorte, zoom por frase, B-roll encima, flash en los textos, subtítulos.
-    label_png(work / "label.png", pkg.get("label", "Dramatización"))
     flash_png(work / "flash.png", 200)
     for c in clips:
         c["t0"] = max(0.0, c["words"][0]["s"] - 0.08)
@@ -525,12 +523,16 @@ def main() -> None:
                 cur = min(oe, e)
             if cur < e:
                 pieces.append(("A", cur, e))
+        pieces = [p for p in pieces if p[2] - p[1] >= 0.05]
+        # Los planos con zoom de la toma (lo más lento) ya están si su video dura lo que la toma.
+        take = work / f"{c['key']}_v.mp4"
+        reused = not args.fresh and take.exists() and abs(probe_duration(take) - c["cut_len"]) <= REUSE_TOLERANCE_S
         vids, used = [], {}
         for src, s, e in pieces:
             d = e - s
-            if d < 0.05:
+            piece_n += 1  # también al reutilizar: el número decide si el zoom se acerca o se aleja
+            if reused:
                 continue
-            piece_n += 1
             outp = work / f"{c['key']}_p{piece_n}.mp4"
             if src == "A":
                 ss, srcf = s, c["path"]
@@ -541,13 +543,14 @@ def main() -> None:
             sh("ffmpeg", "-y", "-loglevel", "error", "-ss", f"{ss:.3f}", "-i", str(srcf), "-t", f"{d:.3f}", "-an", "-vf",
                motion("A" if src == "A" else "B", piece_n, round(d * FPS), False, ci == 0 and s - t0 < 1.5), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(outp))
             vids.append(outp)
-        listf = work / f"{c['key']}_list.txt"
-        listf.write_text("".join(f"file '{v}'\n" for v in vids))
-        sh("ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listf), "-c", "copy", str(work / f"{c['key']}_v.mp4"))
+        if not reused:
+            listf = work / f"{c['key']}_list.txt"
+            listf.write_text("".join(f"file '{v}'\n" for v in vids))
+            sh("ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listf), "-c", "copy", str(take))
 
         # Overlays de esta toma, en su tiempo local.
         dur = c["cut_len"]
-        ovs = [(work / "label.png", 0.0, dur)]
+        ovs = []
         for start, end, png, flash in beat_windows:
             s, e = start - offset, end - offset
             if e > 0 and s < dur:
@@ -570,12 +573,13 @@ def main() -> None:
         for i, (_, s, e) in enumerate(ovs):
             chain.append(f"[{last}][{i + 2}:v]overlay=enable='between(t,{s:.3f},{e:.3f})'[v{i}]")
             last = f"v{i}"
-        cmd += ["-filter_complex", ";".join(chain), "-map", f"[{last}]", "-map", "1:a", "-af", "aresample=48000,aformat=channel_layouts=stereo",
+        # Sin capas (una toma sin subtítulos ni textos), el video pasa tal cual.
+        cmd += (["-filter_complex", ";".join(chain), "-map", f"[{last}]"] if chain else ["-map", "0:v"]) + ["-map", "1:a", "-af", "aresample=48000,aformat=channel_layouts=stereo",
                 "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(work / f"{c['key']}_final.mp4")]
         sh(*cmd)
         parts.append(work / f"{c['key']}_final.mp4")
         offset += dur
-        print(f"{c['key']}: {dur:.1f} s, {len(pieces)} planos")
+        print(f"{c['key']}: {dur:.1f} s, {len(pieces)} planos" + (" (ya estaban)" if reused else ""))
 
     # 4. Cierre con la foto del producto.
     img = None
