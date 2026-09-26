@@ -1,5 +1,5 @@
 // Cuándo empieza a entregar una campaña (docs/spec-anuncios.md §7.1). Meta retiene un conjunto hasta su
-// `start_time` aunque la campaña esté activa: por defecto, mañana a primera hora EN LA HORA DE LA CUENTA
+// `start_time` aunque la campaña esté activa: por defecto, la próxima primera hora EN LA HORA DE LA CUENTA (hoy si aún no llega)
 // (Impulso: 06:00; Pancho: 05:00), porque el presupuesto diario se reinicia a medianoche y lanzar en la
 // tarde quema el día en pocas horas. Portado de dropflex (lib/ads/launch/schedule.ts), que usaba una
 // hora UTC fija (R6). Puro: `now` siempre es un argumento.
@@ -38,9 +38,21 @@ export function addDays(date: string, n: number): string {
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
-/** Mañana a `hour` en la hora de la cuenta, en ISO UTC. */
+/** Margen para que el lanzamiento (medios, conjuntos, anuncios) termine antes de la hora de inicio. */
+const LEAD_MS = 15 * 60 * 1000;
+
+/**
+ * La próxima vez que la cuenta marca `hour`, en ISO UTC: hoy si todavía no llega (a la 1:20 con inicio
+ * a las 6:00, hoy a las 6:00), si no mañana. El presupuesto del día igual está entero.
+ */
 export function nextMorning(now: Date, hour: number, timeZone: string): string {
-  const [y, m, d] = addDays(localDate(now, timeZone), 1).split("-").map(Number);
+  const today = localDate(now, timeZone);
+  for (const day of [today, addDays(today, 1)]) {
+    const [y, m, d] = day.split("-").map(Number);
+    const t = zonedTime(y, m, d, hour, timeZone);
+    if (t.getTime() - now.getTime() >= LEAD_MS) return t.toISOString();
+  }
+  const [y, m, d] = addDays(today, 2).split("-").map(Number); // inalcanzable: mañana siempre está a > 15 min
   return zonedTime(y, m, d, hour, timeZone).toISOString();
 }
 

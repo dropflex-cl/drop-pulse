@@ -707,7 +707,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
               onChange={(e) => setLaunch({ start: e.target.value as LaunchConfig["start"] })}
               className="h-control min-w-0 flex-1 cursor-pointer rounded-md border border-input bg-background px-3 text-body"
             >
-              <option value="tomorrow">Mañana</option>
+              <option value="tomorrow">A primera hora</option>
               <option value="now">Al publicar</option>
             </select>
             {cfg.launch.start === "tomorrow" ? (
@@ -725,7 +725,9 @@ export function AdsScreen({ data }: { data: ProductAds }) {
               </select>
             ) : null}
           </div>
-          <span className="text-caption text-muted-foreground">Hora de tu cuenta ({timezone.split("/").pop()?.replace(/_/g, " ")})</span>
+          <span className="text-caption text-muted-foreground">
+            {cfg.launch.start === "tomorrow" ? `Empieza ${start} · ` : ""}Hora de tu cuenta ({timezone.split("/").pop()?.replace(/_/g, " ")})
+          </span>
         </div>
       </div>
       <p className="m-0 text-caption text-muted-foreground tabular-nums">

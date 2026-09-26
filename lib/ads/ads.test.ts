@@ -92,6 +92,15 @@ describe("schedule", () => {
     // Ciudad de México (UTC−6).
     expect(nextMorning(new Date("2026-09-23T15:00:00Z"), 5, "America/Mexico_City")).toBe("2026-09-24T11:00:00.000Z");
   });
+  it("hoy si la hora todavía no llega (con margen para lanzar)", () => {
+    // 26-09 01:20 en Chile (04:20Z) con inicio a las 6:00 → hoy 6:00, no mañana.
+    expect(nextMorning(new Date("2026-09-26T04:20:00Z"), 6, "America/Santiago")).toBe("2026-09-26T09:00:00.000Z");
+    // 05:50 → faltan 10 min, menos que el margen: mañana.
+    expect(nextMorning(new Date("2026-09-26T08:50:00Z"), 6, "America/Santiago")).toBe("2026-09-27T09:00:00.000Z");
+    // 05:45 → justo el margen: hoy.
+    expect(nextMorning(new Date("2026-09-26T08:45:00Z"), 6, "America/Santiago")).toBe("2026-09-26T09:00:00.000Z");
+    expect(startLabel("2026-09-26T09:00:00.000Z", new Date("2026-09-26T04:20:00Z"), "America/Santiago")).toBe("hoy 6:00");
+  });
   it("la fecha local y los rótulos", () => {
     expect(localDate(new Date("2026-09-24T02:00:00Z"), "America/Santiago")).toBe("2026-09-23");
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");

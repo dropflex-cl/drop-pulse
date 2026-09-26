@@ -239,7 +239,7 @@ Sigue PantallasAnuncios1 y PantallasAnunciosEscritorio1.
 3. **`ConfigSection` ×5**, cada una con su resumen de una línea:
    - **Creativos:** `CreativeSlot` + `ImageUploader` con imagen y video. En ABO, cada creativo crea su conjunto; en CBO, van como anuncios.
    - **Público:** países (`ChipInput`), regiones excluidas, ubicación (vive o estuvo), edad mínima, y público abierto o intereses. Los intereses se buscan en Meta con `searchInterests`.
-   - **Presupuesto y horario:** el presupuesto va en cada conjunto (ABO) o en la campaña (CBO). Muestra la puja "Menor costo", el inicio (mañana a las 06:00 en la hora de la cuenta) y el total diario.
+   - **Presupuesto y horario:** el presupuesto va en cada conjunto (ABO) o en la campaña (CBO). Muestra la puja "Menor costo", el inicio (la próxima vez que la cuenta marca las 06:00: hoy si aún no llega, con 15 min de margen; si no, mañana) y el total diario.
    - **Textos del anuncio:** textos principales, títulos, descripción, URL y botón.
    - **Motor de decisión:** el modo y las reglas (`RuleGroup` + `RuleRow`), con el CPA límite visible y editable.
 4. **`CampaignTree`:** a la derecha en escritorio y en "Revisar y lanzar" en móvil.
