@@ -74,3 +74,24 @@ export const conceptsPerAngle = (angles: number) => Math.floor(CONCEPTS_PER_RUN 
 
 /** Presets que no sirven para un producto sin reseñas reales (Social Proof pide cifras y testimonios). */
 export const PROOF_GROUP = "Social Proof";
+
+// ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
+
+/**
+ * El chat de WhatsApp no es una familia del generador (no lo propone solo): el comerciante lo pide por
+ * ángulo y se guarda como un concepto más, con su conversación en vez de textos.
+ */
+export const CHAT_FAMILY = "whatsapp_chat" as const;
+export type ConceptFamily = Family | typeof CHAT_FAMILY;
+
+export const conceptFamilyName = (family: ConceptFamily): string =>
+  (family === CHAT_FAMILY ? "Chat de WhatsApp" : (FAMILY_DEFS[family]?.name ?? family));
+
+/**
+ * Las proporciones que se generan de cada concepto, la primera es la principal. El chat es una captura
+ * del teléfono: sale solo en 9:16 (un 1:1 corta la conversación). En el feed Meta lo recorta a 4:5 por
+ * el centro, así que el render deja los mensajes en esa zona.
+ */
+export function conceptRatios(family: ConceptFamily): readonly Ratio[] {
+  return family === CHAT_FAMILY ? ["9:16"] : RATIOS;
+}

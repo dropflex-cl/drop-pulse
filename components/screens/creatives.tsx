@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { AiChip, Button, EmptyState, Field, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
+import { AiChip, Button, EmptyState, Field, Icon, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
-import { ROLE_LIMITS } from "@/lib/creatives/catalog";
+import { CHAT_FAMILY, ROLE_LIMITS, conceptRatios } from "@/lib/creatives/catalog";
+import { CHAT_MESSAGE_MAX, CONTACT_NAME_MAX, chatShapeProblem, type WhatsappChat } from "@/lib/creatives/chat";
 import { latestPieces, needsRender } from "@/lib/creatives/pieces";
 import { IMAGE_COST_BY_PROVIDER, IMAGE_PROVIDER_NAME, costSource, type ImageProvider, type ImageProviderChoice } from "@/lib/image-provider";
 import { money } from "@/lib/format";
@@ -20,7 +21,8 @@ import { ImageProviderPicker } from "./image-provider-picker";
 // Etapa Creativos (docs/spec-creativos.md §6.6): la IA propone 6 conceptos desde los 2 ángulos
 // aprobados; el comerciante revisa sus textos y genera cada uno con el proveedor que elige arriba
 // (Higgsfield o Gemini; la pieza sale terminada, con sus textos). Un QA revisa producto y textos.
-// Aprobar la manda a los creativos de Anuncios.
+// Aprobar la manda a los creativos de Anuncios. Por ángulo, además, el comerciante puede pedir un
+// «Chat de WhatsApp» (lib/creatives/chat.ts): una captura 9:16 de una conversación entre amigos.
 
 const POLL_MS = 3000;
 const active = (s?: RunStatus) => s === "queued" || s === "running";
@@ -51,7 +53,9 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
   const cost = (n: number) => money(n * state.imageCostUsd, "USD");
   const billed = costSource(state.imageProvider.value);
   const setProvider = (imageProvider: ImageProviderChoice) => setState((s) => ({ ...s, imageProvider, imageCostUsd: IMAGE_COST_BY_PROVIDER[imageProvider.value ?? "higgsfield"] }));
-  const missing = concepts.filter((c) => !c.assets.some((a) => a.ratio === "1:1"));
+  // Cada concepto, en su proporción principal (1:1; el chat, 9:16).
+  const mainRatio = (c: CreativeConceptView) => conceptRatios(c.family)[0];
+  const missing = concepts.filter((c) => !c.assets.some((a) => a.ratio === mainRatio(c)));
   const approved = concepts.flatMap((c) => c.assets).filter((a) => a.status === "aprobado").length;
 
   // ---------------------------------------------------------------- Sondeo
@@ -105,7 +109,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
     setError(undefined);
     try {
       let last: CreativesState | null = null;
-      for (const c of missing) last = await productsApi.renderConcept(product.id, c.id, "1:1");
+      for (const c of missing) last = await productsApi.renderConcept(product.id, c.id, mainRatio(c));
       if (last) setState(last);
       notify(`Generando ${missing.length} ${missing.length === 1 ? "imagen" : "imágenes"}`);
     } catch (e) {
@@ -114,6 +118,8 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
       setBusy(null);
     }
   }
+
+  const createChat = (angle: number) => run_(`chat-${angle}`, () => productsApi.createChat(product.id, angle), "No pudimos escribir el chat. Intenta de nuevo.");
 
   const recover = (a: CreativeAssetView) =>
     run_(`recover-${a.id}`, () => productsApi.decideCreative(product.id, a.id, "recover"), "No pudimos recuperar la imagen. Intenta de nuevo.");
@@ -203,7 +209,24 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
               </h2>
             </div>
             <div className="grid gap-3 @3xl:grid-cols-2">
-              {g.items.map((c) => (
+              {g.items.map((c) =>
+                c.family === CHAT_FAMILY && c.chat ? (
+                  <ChatCard
+                    key={c.id}
+                    productId={product.id}
+                    concept={c}
+                    chat={c.chat}
+                    provider={state.imageProvider.value}
+                    busy={busy}
+                    costLabel={cost(1)}
+                    onRender={() => render(c, "9:16")}
+                    onAnother={() => createChat(c.angle)}
+                    onDecide={decide}
+                    onRecover={recover}
+                    onSaved={setState}
+                    onError={setError}
+                  />
+                ) : (
                 <ConceptCard
                   key={c.id}
                   productId={product.id}
@@ -217,8 +240,10 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
                   onSaved={setState}
                   onError={setError}
                 />
-              ))}
+                ),
+              )}
             </div>
+            {!g.items.some((c) => c.family === CHAT_FAMILY) ? <ChatOffer angle={g.role} busy={busy} disabled={proposing} onCreate={() => createChat(g.role)} /> : null}
           </section>
         ))}
       </div>
@@ -415,6 +440,228 @@ function ConceptCard({
               {`${withName("Versión Stories 9:16")} · ${costLabel}`}
             </Button>
           ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+// ---------------------------------------------------------------- Chat de WhatsApp
+
+/**
+ * La invitación a crear el chat de un ángulo. Es una conversación armada: se dice antes de gastar y
+ * pide un segundo toque (el servidor exige `acknowledged`).
+ */
+function ChatOffer({ angle, busy, disabled, onCreate }: { angle: number; busy: string | null; disabled: boolean; onCreate: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const loading = busy === `chat-${angle}`;
+  if (confirming || loading) {
+    return (
+      <div className="flex flex-col gap-2">
+        <Notice
+          tone="warning"
+          icon="chat"
+          title="El chat es una conversación armada"
+          body="Se ve como un chat real entre amigos, pero lo escribe la IA con lo que dicen tus reseñas reales (o tu ficha, si no tienes). Úsalo como recreación: Meta puede rechazar un anuncio que presente un testimonio inventado como real."
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" icon="chat" loading={loading} disabled={!!busy && !loading} onClick={onCreate}>
+            Entiendo, crear chat
+          </Button>
+          <Button size="sm" variant="ghost" disabled={loading} onClick={() => setConfirming(false)}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-row font-semibold">Chat de WhatsApp</p>
+        <p className="text-label font-normal text-muted-foreground">Un amigo le cuenta al lector cómo le fue, le manda una foto del producto y el lector pide el link.</p>
+      </div>
+      <Button size="sm" variant="secondary" icon="chat" disabled={disabled || !!busy} onClick={() => setConfirming(true)}>
+        Crear chat
+      </Button>
+    </div>
+  );
+}
+
+/** La conversación como se verá: el amigo a la izquierda, el lector a la derecha, la foto en su burbuja. */
+function ChatPreview({ chat }: { chat: WhatsappChat }) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-md bg-muted p-3">
+      <span className="text-micro text-muted-foreground">{`Chat con ${chat.contact_name} · ${chat.clock}`}</span>
+      <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
+        {chat.messages.map((m, i) => (
+          <li key={i} className={cn("flex max-w-[85%] flex-col gap-1 rounded-md px-2.5 py-1.5 text-small", m.from === "me" ? "self-end bg-accent text-accent-foreground" : "self-start bg-card text-card-foreground")}>
+            {m.photo ? (
+              <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                <Icon name="image" size="sm" aria-hidden />
+                Foto del producto
+              </span>
+            ) : null}
+            {m.text ? <span>{m.text}</span> : null}
+            <span className="self-end text-micro text-muted-foreground tabular-nums">{m.time}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ChatCard({
+  productId,
+  concept: c,
+  chat,
+  provider,
+  busy,
+  costLabel,
+  onRender,
+  onAnother,
+  onDecide,
+  onRecover,
+  onSaved,
+  onError,
+}: {
+  productId: string;
+  concept: CreativeConceptView;
+  chat: WhatsappChat;
+  provider: ImageProvider | null;
+  busy: string | null;
+  costLabel: string;
+  onRender: () => void;
+  onAnother: () => void;
+  onDecide: (a: CreativeAssetView, action: "approve" | "reject") => void;
+  onRecover: (a: CreativeAssetView) => void;
+  onSaved: (s: CreativesState) => void;
+  onError: (m: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(chat);
+  const [saving, setSaving] = useState(false);
+  const shown = latestPieces(c.assets);
+  const mixed = new Set(c.assets.map((a) => a.provider)).size > 1 || c.assets.some((a) => a.provider !== provider);
+  const inProgress = c.assets.some(rendering);
+  const problem = editing ? chatShapeProblem(draft) : null;
+
+  async function save() {
+    setSaving(true);
+    try {
+      onSaved(await productsApi.editChat(productId, c.id, { contact_name: draft.contact_name, messages: draft.messages.map((m) => ({ text: m.text })) }));
+      setEditing(false);
+      notify("Chat guardado");
+    } catch (e) {
+      onError(errorText(e, "No pudimos guardar el chat."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <article aria-labelledby={`concepto-${c.id}`} className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground">
+      <div className="flex flex-wrap items-center gap-2">
+        <AiChip>{c.familyName}</AiChip>
+        <span className="text-caption text-muted-foreground">Captura 9:16, feed y Stories</span>
+      </div>
+      <div>
+        <h3 id={`concepto-${c.id}`} className="text-row font-semibold">
+          {c.name}
+        </h3>
+        <p className="mt-0.5 text-label font-normal text-muted-foreground">{c.why}</p>
+      </div>
+
+      {editing ? (
+        <div className="flex flex-col gap-2">
+          <Field
+            label="Nombre del contacto"
+            value={draft.contact_name}
+            maxLength={CONTACT_NAME_MAX}
+            hint={`${draft.contact_name.length} de ${CONTACT_NAME_MAX} caracteres`}
+            onValueChange={(v) => setDraft((d) => ({ ...d, contact_name: v }))}
+          />
+          {draft.messages.map((m, i) => (
+            <Field
+              key={i}
+              label={`${i + 1}. ${m.from === "me" ? "Lector" : draft.contact_name || "Contacto"}${m.photo ? " · pie de la foto" : ""}`}
+              value={m.text}
+              maxLength={CHAT_MESSAGE_MAX}
+              hint={`${m.text.length} de ${CHAT_MESSAGE_MAX} caracteres`}
+              onValueChange={(v) => setDraft((d) => ({ ...d, messages: d.messages.map((x, j) => (j === i ? { ...x, text: v } : x)) }))}
+            />
+          ))}
+          {problem ? (
+            <p role="alert" className="text-caption text-destructive">
+              {problem}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" icon="check" loading={saving} disabled={!!problem} onClick={save}>
+              Guardar chat
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setDraft(chat);
+                setEditing(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-micro text-muted-foreground">Mensajes que van en la imagen{c.edited ? " · editados" : ""}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="edit"
+              disabled={inProgress}
+              onClick={() => {
+                setDraft(chat);
+                setEditing(true);
+              }}
+              aria-label={`Editar el chat ${c.name}`}
+            >
+              Editar
+            </Button>
+          </div>
+          <ChatPreview chat={chat} />
+        </div>
+      )}
+
+      {shown.length ? (
+        <div className="grid grid-cols-2 gap-3">
+          {shown.map((a) => (
+            <AssetTile
+              key={a.id}
+              asset={a}
+              busy={busy === `decide-${a.id}`}
+              recovering={busy === `recover-${a.id}`}
+              costLabel={costLabel}
+              providerName={mixed ? IMAGE_PROVIDER_NAME[a.provider] : undefined}
+              onDecide={onDecide}
+              onRecover={() => onRecover(a)}
+              onRetry={onRender}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {!editing ? (
+        <div className="flex flex-wrap gap-2">
+          {needsRender(c.assets, "9:16", provider) ? (
+            <Button size="sm" variant="secondary" icon="image" loading={busy === `render-${c.id}-9:16`} disabled={!!busy} onClick={onRender}>
+              {`${c.assets.length && provider ? `Generar chat con ${IMAGE_PROVIDER_NAME[provider]}` : "Generar chat 9:16"} · ${costLabel}`}
+            </Button>
+          ) : null}
+          <Button size="sm" variant="ghost" icon="refresh" loading={busy === `chat-${c.angle}`} disabled={!!busy || inProgress} onClick={onAnother}>
+            Otro chat
+          </Button>
         </div>
       ) : null}
     </article>

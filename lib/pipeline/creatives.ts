@@ -5,11 +5,16 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
-import { CONCEPTS_PER_RUN, IMAGE_COST_USD, type Ratio } from "@/lib/creatives/catalog";
-import { QA_SYSTEM, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
-import { languageName, renderRequest } from "@/lib/creatives/render";
+import { CHAT_FAMILY, CONCEPTS_PER_RUN, IMAGE_COST_USD, conceptRatios, type ConceptFamily, type Ratio } from "@/lib/creatives/catalog";
+import { chatBakedTexts, normalizeChat, type WhatsappChat } from "@/lib/creatives/chat";
+import { QA_SYSTEM, chatSystem, chatUser, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
+import { chatRenderRequest, languageName, renderRequest } from "@/lib/creatives/render";
 import {
+  CHAT_PROMPT_VERSION,
   CREATIVES_PROMPT_VERSION,
+  chatEditSchema,
+  chatOutputSchema,
+  chatProblems,
   conceptEditSchema,
   conceptProblems,
   creativeConceptsSchema,
@@ -19,7 +24,7 @@ import {
   TEXT_LIMIT,
   type QaResult,
 } from "@/lib/creatives/schemas";
-import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
+import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, activeConcepts, assetsFor, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { GEMINI_IMAGE_MODEL, GeminiError, generateImage, geminiGeneration, type GeminiAspectRatio } from "@/lib/integrations/gemini/client";
 import { geminiKey, markGeminiInvalid } from "@/lib/integrations/gemini/connection";
@@ -32,6 +37,7 @@ import type { Market } from "@/lib/market";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
+import { reviewsForPrompt } from "@/lib/reviews/rows";
 import { imagesForGeneration, latestAvatars, latestBrief, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { approvedAngles } from "./angles";
@@ -59,11 +65,16 @@ const CONCEPT_ATTEMPTS = 3;
 const LEASE_MS = 20_000;
 
 
+/** El concepto de una pieza, aunque ya esté reemplazado (el QA y el historial lo necesitan igual). */
+async function assetConcept(a: AssetRow): Promise<{ name?: string; family?: ConceptFamily }> {
+  const { data } = await adminClient().from("creative_concepts").select("payload, family").eq("id", a.concept_id).maybeSingle();
+  const row = data as { payload: StoredConcept; family: ConceptFamily } | null;
+  return { name: row?.payload?.name, family: row?.family };
+}
+
 /** Qué pieza es, para el historial: “Antes y después · 9:16”. */
 async function assetDetail(a: AssetRow): Promise<string> {
-  const { data } = await adminClient().from("creative_concepts").select("payload").eq("id", a.concept_id).maybeSingle();
-  const name = (data as { payload: StoredConcept } | null)?.payload?.name;
-  return [name, a.ratio].filter(Boolean).join(" · ");
+  return [(await assetConcept(a)).name, a.ratio].filter(Boolean).join(" · ");
 }
 
 /**
@@ -278,6 +289,7 @@ export async function editConcept(userId: string, productId: string, conceptId: 
   if (!parsed.success) throw new OptimizeError(`Revisa los textos: cada uno entre 1 y ${TEXT_LIMIT} caracteres, y un solo titular.`, 400);
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
+  if (concept.family === CHAT_FAMILY) throw new OptimizeError("Ese anuncio es un chat: edita sus mensajes.", 400);
   const pricing = await getPricingPlan(userId, productId);
   if (!pricing) throw new OptimizeError("Guarda el precio en Información base.", 409);
   // Se cambian las palabras; la ubicación de cada texto (dirección de arte) se conserva por posición.
@@ -290,6 +302,110 @@ export async function editConcept(userId: string, productId: string, conceptId: 
   fail("Guardar el concepto", (await adminClient().from("creative_concepts").update({ payload, edited_at: now, updated_at: now }).eq("id", conceptId)).error);
 }
 
+// ---------------------------------------------------------------- 1b. Chat de WhatsApp (lib/creatives/chat.ts)
+
+/** Tope de chats por comerciante en 24 h (cada uno es una llamada a Claude). */
+const DAILY_CHATS = 20;
+/** Reseñas reales que lee el chat: las de 4 o 5 estrellas, primero las aprobadas. */
+const CHAT_REVIEWS = 12;
+const CHAT_ATTEMPTS = 2;
+
+/**
+ * «Crear chat de WhatsApp» para un ángulo: Claude escribe la conversación (una llamada chica, sin
+ * imágenes: ~15 s, por eso en la misma solicitud) y queda como un concepto más de la propuesta vigente.
+ * El chat anterior de ese ángulo se reemplaza, salvo que tenga piezas aprobadas (esas siguen).
+ * `acknowledged`: el comerciante aceptó que es una conversación armada (se lo dice la pantalla).
+ */
+export async function createChat(userId: string, productId: string, body: unknown): Promise<void> {
+  const { angle, acknowledged } = (body ?? {}) as { angle?: number; acknowledged?: boolean };
+  if (!acknowledged) throw new OptimizeError("Confirma que entiendes que el chat es una conversación armada.", 400);
+  await requireProvider(userId, "creatives");
+  const concepts = (await activeConcepts(userId, [productId])).get(productId) ?? [];
+  const base = concepts.find((c) => c.family !== CHAT_FAMILY) ?? concepts[0];
+  if (!base) throw new OptimizeError("Primero propón los anuncios: el chat se suma a esa propuesta.", 409);
+  const ctx = await loadContext(userId, productId);
+  const run = await adminClient().from("creative_runs").select("input").eq("id", base.run_id).single();
+  fail("Leer la corrida", run.error);
+  const input = run.data!.input as RunInput;
+  const angles = await anglesForPrompt(userId, stampEntries(input.briefs).map((b) => b.id));
+  const target = angles?.find((a) => a.slot === angle);
+  if (!target) throw new OptimizeError("Ese ángulo ya no está en la propuesta. Actualiza la página.", 409);
+
+  const db = adminClient();
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const { count, error: countError } = await db.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("step", "creative_chat").gte("created_at", since);
+  fail("Contar los chats", countError);
+  if ((count ?? 0) >= DAILY_CHATS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_CHATS} chats en 24 horas. Vuelve mañana.`, 429);
+
+  const reviews = (await reviewsForPrompt(userId, productId)).filter((r) => r.rating >= 4).slice(0, CHAT_REVIEWS).map((r) => r.text);
+  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload as CustomerAvatar, angle: target, reviews };
+  let problems: string[] = [];
+  let chat: WhatsappChat | null = null;
+  let meta: { name: string; why: string } | null = null;
+  for (let attempt = 0; attempt < CHAT_ATTEMPTS; attempt++) {
+    let result;
+    try {
+      result = await generateStructured({ system: chatSystem(input.market), content: [{ type: "text", text: chatUser(chatCtx, problems) }], schema: chatOutputSchema, effort: "low", maxTokens: 6000 });
+    } catch (e) {
+      if (e instanceof AiStepError) await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, usage: e.usage, error: e.code });
+      throw new OptimizeError(e instanceof AiStepError ? e.message : "No pudimos escribir el chat. Intenta de nuevo.", 502);
+    }
+    const { name, why, ...raw } = result.data;
+    chat = normalizeChat(raw);
+    problems = chatProblems(chat, ctx.pricing);
+    await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, usage: result.usage, error: problems.length ? "invalid_chat" : null });
+    meta = { name, why };
+    if (!problems.length) break;
+    console.warn("[creatives] chat inválido", problems);
+  }
+  if (problems.length || !chat || !meta) throw new OptimizeError("La IA escribió un chat que no cumple las reglas. Intenta de nuevo.", 502);
+
+  // El chat anterior del ángulo se reemplaza, salvo que ya tenga algo aprobado.
+  const previous = concepts.filter((c) => c.family === CHAT_FAMILY && c.angle_slot === target.slot);
+  const kept = new Set((await assetsFor(userId, previous.map((c) => c.id))).filter((a) => a.status === "approved").map((a) => a.concept_id));
+  const replaced = previous.filter((c) => !kept.has(c.id)).map((c) => c.id);
+
+  const payload: StoredConcept = {
+    angle: target.slot,
+    family: CHAT_FAMILY,
+    name: meta.name,
+    why: meta.why,
+    preset_id: null,
+    scene: "",
+    texts: [],
+    chat,
+    chat_prompt_version: CHAT_PROMPT_VERSION,
+    product_look: base.payload.product_look,
+    preset: null,
+    sales_angle: target.angle.frame,
+    angle_name: target.name,
+  };
+  const position = Math.max(...concepts.map((c) => c.position)) + 1;
+  fail("Guardar el chat", (await db.from("creative_concepts").insert({ product_id: productId, user_id: userId, run_id: base.run_id, position, angle_slot: target.slot, family: CHAT_FAMILY, payload })).error);
+  if (replaced.length) {
+    const now = new Date().toISOString();
+    fail("Reemplazar el chat anterior", (await db.from("creative_concepts").update({ superseded_at: now, updated_at: now }).in("id", replaced)).error);
+    await purgeDiscardedCreatives(userId).catch((e) => console.error("[creatives] borrar el chat reemplazado", e));
+  }
+}
+
+/** Cambia el nombre del contacto y el texto de los mensajes de un chat (la forma queda). */
+export async function editChat(userId: string, productId: string, conceptId: string, body: unknown): Promise<void> {
+  const parsed = chatEditSchema.safeParse(body);
+  if (!parsed.success) throw new OptimizeError("Revisa el chat: el nombre y cada mensaje dentro de su largo.", 400);
+  const concept = await getConceptRow(userId, productId, conceptId);
+  if (!concept?.payload.chat) throw new OptimizeError("Ese chat ya no está vigente. Actualiza la página.", 409);
+  const before = concept.payload.chat;
+  if (parsed.data.chat.messages.length !== before.messages.length) throw new OptimizeError("El chat cambió. Actualiza la página.", 409);
+  const pricing = await getPricingPlan(userId, productId);
+  if (!pricing) throw new OptimizeError("Guarda el precio en Información base.", 409);
+  const chat = normalizeChat({ ...before, contact_name: parsed.data.chat.contact_name, messages: before.messages.map((m, i) => ({ ...m, text: parsed.data.chat.messages[i].text })) });
+  const problems = chatProblems(chat, pricing as PricingPlan);
+  if (problems.length) throw new OptimizeError(problems[0].replace(/^./, (c) => c.toUpperCase()), 400);
+  const now = new Date().toISOString();
+  fail("Guardar el chat", (await adminClient().from("creative_concepts").update({ payload: { ...concept.payload, chat }, edited_at: now, updated_at: now }).eq("id", conceptId)).error);
+}
+
 // ---------------------------------------------------------------- 2. Render
 
 /** Crea la pieza (queued) de un concepto en una proporción. Si ya hay una generándose, la devuelve. */
@@ -297,6 +413,7 @@ export async function startRender(userId: string, productId: string, conceptId: 
   const provider = await requireProvider(userId, "creatives");
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
+  if (!conceptRatios(concept.family).includes(ratio)) throw new OptimizeError("El chat de WhatsApp se genera en 9:16.", 400);
   const db = adminClient();
   const busy = await db.from("creative_assets").select("*").eq("concept_id", conceptId).eq("ratio", ratio).in("render_status", ["queued", "running"]).limit(1).maybeSingle();
   fail("Leer la pieza", busy.error);
@@ -316,7 +433,10 @@ async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, p
   const market = (run.data?.input as RunInput | undefined)?.market;
   // Gemini no tiene presets: un concepto propuesto con preset (para Higgsfield) va directo.
   const payload = provider === "gemini" ? { ...concept.payload, preset_id: null } : concept.payload;
-  const req = renderRequest(payload, ratio, languageName(market?.language ?? "es"), attempt);
+  const chat = concept.family === CHAT_FAMILY ? concept.payload.chat : undefined;
+  const req = chat
+    ? chatRenderRequest(chat, market?.language ?? "es", concept.payload.product_look)
+    : renderRequest({ ...payload, family: concept.family === CHAT_FAMILY ? undefined : concept.family }, ratio, languageName(market?.language ?? "es"), attempt);
   const { data, error } = await adminClient()
     .from("creative_assets")
     .insert({
@@ -329,7 +449,7 @@ async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, p
       endpoint: provider === "gemini" ? GEMINI_IMAGE_MODEL : req.endpoint,
       preset_id: req.presetId,
       input: req.input,
-      baked_texts: concept.payload.texts,
+      baked_texts: chat ? chatBakedTexts(chat) : concept.payload.texts,
       render_status: "queued",
     })
     .select("*")
@@ -541,7 +661,8 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
   const [base] = await productImageUrls(a.user_id, a.product_id, 1);
   if (!base) throw new Error("sin imagen base");
   const texts = a.baked_texts;
-  const detail = await assetDetail(a);
+  const { name, family } = await assetConcept(a);
+  const detail = [name, a.ratio].filter(Boolean).join(" · ");
   let result;
   try {
     result = await generateStructured({
@@ -553,7 +674,7 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
         { ...(await imageBlock(base)), cache_control: { type: "ephemeral" } },
         { type: "text", text: "Anuncio generado:" },
         await imageBlockFromBytes(generated),
-        { type: "text", text: qaUser(texts) },
+        { type: "text", text: qaUser(texts, family === CHAT_FAMILY) },
       ],
       schema: qaSchema,
       effort: "low",

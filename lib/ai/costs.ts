@@ -17,6 +17,7 @@ export const AI_STEPS = {
   page_render: { stage: "imagenes", label: "Imagen de la página" },
   page_qa: { stage: "imagenes", label: "Revisión de imagen" },
   creative_concepts: { stage: "creativos", label: "Ideas de anuncios" },
+  creative_chat: { stage: "creativos", label: "Chat de WhatsApp" },
   creative_render: { stage: "creativos", label: "Imagen de anuncio" },
   creative_qa: { stage: "creativos", label: "Revisión de imagen" },
 } as const satisfies Record<string, { stage: StageKey; label: string }>;
@@ -33,6 +34,7 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   page_copy: 0.2,
   event_copy: 0.03,
   creative_concepts: 0.2,
+  creative_chat: 0.05,
   page_plan: 0.25,
 };
 

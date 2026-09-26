@@ -6,7 +6,8 @@ import type { ImageProvider } from "@/lib/image-provider";
 import type { Preset } from "@/lib/integrations/higgsfield/client";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { CreativeAssetView, CreativeConceptView, RunStatus } from "@/lib/types";
-import { FAMILY_DEFS, type Family, type Ratio } from "./catalog";
+import type { WhatsappChat } from "./chat";
+import { conceptFamilyName, type ConceptFamily, type Ratio } from "./catalog";
 import type { ConceptPayload, QaResult, StoredText } from "./schemas";
 
 // creative_runs, creative_concepts y creative_assets: lecturas de la etapa Creativos y su paso a la
@@ -45,9 +46,14 @@ type ArtFields = "look" | "art" | "layout" | "product_units" | "kit_parts";
  * Lo que se guarda de un concepto: lo del generador, el preset elegido (nombre y portada) y, de la
  * corrida, cómo se ve el producto y el kit de la foto base (el render los necesita en cada pieza).
  */
-export type StoredConcept = Omit<ConceptPayload, ArtFields | "texts"> &
+export type StoredConcept = Omit<ConceptPayload, ArtFields | "texts" | "family"> &
   Partial<Pick<ConceptPayload, ArtFields>> & {
+    family: ConceptFamily;
     texts: StoredText[];
+    /** Solo el chat de WhatsApp (family = CHAT_FAMILY): la conversación que se hornea; texts va vacío. */
+    chat?: WhatsappChat;
+    /** Con qué versión del prompt se escribió el chat (lib/creatives/schemas.ts › CHAT_PROMPT_VERSION). */
+    chat_prompt_version?: number;
     product_look?: string;
     kit?: string[];
     preset: Pick<Preset, "id" | "name" | "group" | "cover"> | null;
@@ -64,7 +70,7 @@ export interface ConceptRow {
   run_id: string;
   position: number;
   angle_slot: AngleSlot;
-  family: Family;
+  family: ConceptFamily;
   payload: StoredConcept;
   edited_at: string | null;
   created_at: string;
@@ -82,7 +88,8 @@ export interface AssetRow {
   endpoint: string;
   preset_id: string | null;
   input: Record<string, unknown>;
-  baked_texts: StoredText[];
+  /** Los textos pedidos, para el QA: los del concepto o, en un chat, el contacto y cada burbuja (chatBakedTexts). */
+  baked_texts: { role: string; text: string }[];
   render_status: "queued" | "running" | "succeeded" | "failed";
   hf_request_id: string | null;
   error_code: string | null;
@@ -325,12 +332,13 @@ export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<strin
     angle: c.angle_slot,
     angleName: p.angle_name || (ANGLES[p.sales_angle]?.name ?? ""),
     family: c.family,
-    familyName: FAMILY_DEFS[c.family]?.name ?? c.family,
+    familyName: conceptFamilyName(c.family),
     name: p.name,
     why: p.why,
     look: p.look,
     preset: p.preset ? { id: p.preset.id, name: p.preset.name, group: p.preset.group, cover: p.preset.cover ?? undefined } : undefined,
     texts: p.texts.map((t) => ({ role: t.role, text: t.text })),
+    chat: p.chat,
     edited: c.edited_at != null,
     assets: assets.filter((a) => a.concept_id === c.id).map((a) => toAssetView(a, a.storage_path ? urls.get(a.storage_path) : undefined)),
   };

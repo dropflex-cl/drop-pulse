@@ -6,6 +6,7 @@
 // conceptos v1 (sin layout) siguen con el formato anterior.
 
 import { FAMILY_DEFS, RENDER, type Family, type Ratio, type TextRole } from "./catalog";
+import { chatRenderPrompt, type WhatsappChat } from "./chat";
 import type { ConceptPayload, StoredText } from "./schemas";
 
 export type RenderMode = "preset" | "direct";
@@ -122,6 +123,26 @@ export function renderRequest(concept: RenderableConcept, ratio: Ratio, language
       // que traducía textos al inglés, agregaba palabras de fondo y omitía notas (spec §7.4).
       enhance_prompt: false,
       ...(mode === "preset" ? { preset_id: concept.preset_id } : {}),
+    },
+  };
+}
+
+/**
+ * La captura del chat de WhatsApp: siempre directa (un preset le pone su diseño) y en 9:16. El prompt
+ * es el autocontenido de lib/creatives/chat.ts.
+ */
+export function chatRenderRequest(chat: WhatsappChat, languageCode: string, productLook?: string): RenderRequest {
+  return {
+    endpoint: RENDER.endpoint,
+    mode: "direct",
+    presetId: null,
+    input: {
+      prompt: chatRenderPrompt(chat, languageCode, productLook),
+      resolution: RENDER.resolution,
+      quality: RENDER.quality,
+      aspect_ratio: "9:16",
+      moderation: "auto",
+      enhance_prompt: false,
     },
   };
 }

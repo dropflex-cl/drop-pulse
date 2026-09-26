@@ -13,7 +13,7 @@ import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_LIMITS, TEXT_ROLES } from "./catalog";
-import type { StoredText } from "./schemas";
+import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_MAX } from "./chat";
 
 const RULES = [
   "REGLAS QUE NO SE NEGOCIAN",
@@ -143,6 +143,72 @@ export function creativesUser(c: CreativesContext, retry: string[] = []): string
   ].join("\n");
 }
 
+// ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
+
+/** El chat se escribe para un ángulo: la historia del amigo es la de ese ángulo. */
+export function chatSystem(market: Market): string {
+  return [
+    "Eres un copywriter de respuesta directa que escribe anuncios de Facebook e Instagram para una operación de dropshipping con pago contra entrega en Latinoamérica. El formato es «Chat de WhatsApp»: la captura de pantalla de una conversación entre dos amigos. Tiene que leerse como una recomendación privada y espontánea, nunca como texto de marca.",
+    "",
+    marketBlock(market),
+    "",
+    "LA HISTORIA (en este orden)",
+    "1. GANCHO: el amigo abre entusiasmado con lo que le está pasando con ESTE producto («Amiga, no sabes lo que me pasó con…»).",
+    "2. PRUEBA: manda UNA foto del producto (photo: true) con un pie que cuenta su experiencia concreta y personal con él.",
+    "3. RECONOCIMIENTO: el lector («me») dice que lo ha visto en TikTok o Instagram y pregunta si de verdad funciona: es la duda del propio lector.",
+    "4. RESPUESTA: el amigo confirma con un detalle específico más y una razón por la que es un sí fácil (lo fácil que es de usar, que pagó al recibirlo, que llegó rápido).",
+    "5. PEDIDO: el lector cierra queriéndolo y pide el link. La ÚLTIMA burbuja es SIEMPRE de «me».",
+    `De ${CHAT_MIN_MESSAGES} a ${CHAT_MAX_MESSAGES} burbujas. Las horas avanzan de a uno o dos minutos; el reloj de la barra de estado va justo después de la última burbuja.`,
+    "",
+    "EL ÁNGULO MANDA",
+    "- El chat es para UN ángulo de venta: el gancho y la experiencia del amigo cuentan el dolor o deseo, la promesa y el momento de ese ángulo, con las palabras de su cliente. No mezcles otro ángulo.",
+    "- contact_gender según el cliente ideal: quien le escribe al lector es alguien como él (amiga o amigo).",
+    "",
+    "QUÉ PUEDE DECIR EL AMIGO",
+    "- Si hay RESEÑAS REALES, su experiencia sale de ahí: elige lo que dijeron compradores reales y dilo con sus palabras. No agregues un resultado, un plazo ni una cifra que ninguna reseña mencione. Nunca copies una reseña entera.",
+    "- Sin reseñas, quédate en lo que la ficha dice que hace el producto.",
+    "- Vale la experiencia subjetiva y sensorial («la siento más suave», «me encanta cómo me queda»). NO valen: promesas de salud, nombrar una condición o enfermedad, resultados garantizados o con plazo («en 3 días»), porcentajes ni antes/después del cuerpo.",
+    "- Nunca afirmes una condición del lector («tú que tienes hongos»): el amigo habla de SU experiencia.",
+    "- Nunca nombres la tienda, una marca que el producto no trae, ni un precio o descuento: si el amigo habla de precio, dice que le pareció barato o que pagó al recibirlo, sin montos.",
+    "",
+    "CÓMO ESCRIBEN",
+    "- Como dos amigos que se escriben: cálido, casual, burbujas cortas, alguna muletilla natural («jaja», «amiga», «porfa», «demasiado»). Toque ligero: tiene que leerse como un chat real, no como una caricatura.",
+    "- Ortografía y tildes impecables. Como mucho un emoji por burbuja, y no en todas.",
+    `- Cada burbuja hasta ${CHAT_MESSAGE_MAX} caracteres; el nombre del contacto hasta ${CONTACT_NAME_MAX}. Cuenta los caracteres.`,
+    "- name y why, para el comerciante, en su idioma.",
+  ].join("\n");
+}
+
+export interface ChatContext {
+  brief: ProductBrief;
+  avatar: CustomerAvatar;
+  angle: AngleForPrompt;
+  /** Reseñas reales de 4 o 5 estrellas (primero las aprobadas); [] si no hay. */
+  reviews: string[];
+}
+
+/** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › chatProblems). */
+export function chatUser(c: ChatContext, retry: string[] = []): string {
+  return [
+    "FICHA DE PRODUCTO",
+    json(c.brief),
+    "",
+    "CLIENTE IDEAL (aprobado por el comerciante)",
+    json(c.avatar),
+    "",
+    "ÁNGULO DE VENTA",
+    angleHeading(c.angle),
+    json({ ...angleMessage(c.angle.angle), core_message: c.angle.payload.core_message, hooks: c.angle.payload.hooks.map((h) => h.text), details: c.angle.payload.details }),
+    "",
+    ...(c.reviews.length
+      ? ["RESEÑAS REALES (de compradores del mismo producto; la experiencia del amigo sale de aquí, con otras palabras y sin inventar nada más)", ...c.reviews.map((r, i) => `${i + 1}. ${r}`)]
+      : ["RESEÑAS REALES: ninguna importada. La experiencia sale solo de la ficha."]),
+    "",
+    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
+    "Escribe la conversación de WhatsApp.",
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------- QA (§3.3)
 
 export const QA_SYSTEM = [
@@ -155,6 +221,13 @@ export const QA_SYSTEM = [
   "- Sé estricto y breve. product_issue en español, una frase para el comerciante.",
 ].join("\n");
 
-export function qaUser(texts: StoredText[]): string {
-  return ["TEXTOS PEDIDOS (en orden)", ...texts.map((t, i) => `${i + 1}. [${t.role}] «${t.text}»`), "", "Revisa el anuncio."].join("\n");
+/** Lo que cambia en el QA de un chat: la interfaz de WhatsApp no es texto de más. */
+const CHAT_QA_NOTE = [
+  "ES UNA CAPTURA DE WHATSAPP. No cuentan como extra_texts: la hora de la barra de estado, el porcentaje de batería, «en línea» (u «online»), la hora de cada burbuja, el texto de ejemplo del campo de escribir («Escribe un mensaje») ni los íconos de la interfaz.",
+  "- El producto está dentro de la burbuja de foto: compáralo con la foto real como siempre.",
+  "- Cada burbuja pedida tiene que estar en su lado y en su orden; una burbuja que falta, se repite o cambió de orden cuenta como missing.",
+].join("\n");
+
+export function qaUser(texts: { role: string; text: string }[], chat = false): string {
+  return [...(chat ? [CHAT_QA_NOTE, ""] : []), "TEXTOS PEDIDOS (en orden)", ...texts.map((t, i) => `${i + 1}. [${t.role}] «${t.text}»`), "", "Revisa el anuncio."].join("\n");
 }

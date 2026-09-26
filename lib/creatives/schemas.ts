@@ -5,6 +5,7 @@
 import * as z from "zod/v4";
 import { allowedAmounts, amountAllowed, amountsIn } from "@/lib/copy/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
+import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_MAX, chatShapeProblem, type WhatsappChat } from "./chat";
 import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
 
 /**
@@ -89,14 +90,21 @@ export function textProblems(texts: StoredText[], pricing: PricingPlan, where = 
   if (texts.filter((t) => t.role === "headline").length !== 1) problems.push(`${at}debe tener exactamente un headline.`);
   const max = family ? maxTexts(family) : MAX_TEXTS;
   if (texts.length > max) problems.push(`${at}tiene ${texts.length} textos; el máximo es ${max}.`);
-  const allowed = allowedAmounts(pricing);
   for (const t of texts) {
     if (!t.text.trim()) problems.push(`${at}hay un texto vacío.`);
     if (t.text.length > ROLE_LIMITS[t.role]) problems.push(`${at}«${t.text}» pasa de ${ROLE_LIMITS[t.role]} caracteres (${t.role}).`);
     if (t.role === "headline" && t.text.trim().split(/\s+/).length > HEADLINE_MAX_WORDS) problems.push(`${at}el titular «${t.text}» pasa de ${HEADLINE_MAX_WORDS} palabras.`);
-    for (const n of amountsIn(t.text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${t.text}» trae un monto que no está en PRECIO Y OFERTA.`);
-    for (const re of FORBIDDEN) if (re.test(t.text)) problems.push(`${at}«${t.text}» promete un resultado de salud (usa «ayuda a», «apoya»).`);
+    problems.push(...claimProblems(t.text, pricing, at));
   }
+  return problems;
+}
+
+/** Montos fuera de PRECIO Y OFERTA y promesas de salud en un texto horneado. */
+function claimProblems(text: string, pricing: PricingPlan, at = ""): string[] {
+  const problems: string[] = [];
+  const allowed = allowedAmounts(pricing);
+  for (const n of amountsIn(text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${text}» trae un monto que no está en PRECIO Y OFERTA.`);
+  for (const re of FORBIDDEN) if (re.test(text)) problems.push(`${at}«${text}» promete un resultado de salud (usa «ayuda a», «apoya»).`);
   return problems;
 }
 
@@ -127,6 +135,46 @@ export function conceptProblems(out: CreativeConceptsOutput, facts: ConceptFacts
     for (const t of c.texts) if (t.role !== "callout" && t.points_to) problems.push(`${where}: solo los callouts llevan points_to («${t.text}»).`);
   });
   return problems;
+}
+
+// ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
+
+/** Bump cuando cambie el prompt o el esquema del chat. */
+export const CHAT_PROMPT_VERSION = 1;
+
+const chatTime = z.string().describe("«HH:MM», 24 h.");
+
+export const chatOutputSchema = z.object({
+  name: z.string().describe("Nombre corto del chat para el comerciante («Fran y sus pies suaves»)."),
+  why: z.string().describe("Para el comerciante, una frase: qué duda del lector resuelve este chat y por qué detiene el scroll."),
+  contact_name: z.string().describe(`El nombre del amigo como lo guardó el lector, opcionalmente con UN emoji al final («Fran 💗», «Cami», «Javi ✨»). Hasta ${CONTACT_NAME_MAX} caracteres.`),
+  contact_gender: z.enum(["woman", "man"]).describe("woman o man, según el cliente ideal: quien compra le escribe a alguien como él."),
+  clock: chatTime.describe("La hora de la barra de estado, «HH:MM» 24 h, uno o dos minutos después del último mensaje."),
+  messages: z
+    .array(
+      z.object({
+        from: z.enum(["friend", "me"]).describe("friend = el amigo que compró el producto (entrante, a la izquierda). me = el lector (saliente, a la derecha)."),
+        text: z.string().describe(`El texto de la burbuja, hasta ${CHAT_MESSAGE_MAX} caracteres. En la burbuja de foto, el pie bajo la foto (puede ir vacío).`),
+        time: chatTime.describe("«HH:MM» 24 h, creciente: la conversación entera dura pocos minutos."),
+        photo: z.boolean().describe("true en EXACTAMENTE UNA burbuja: la foto del producto que manda el amigo."),
+      }),
+    )
+    .describe(`De ${CHAT_MIN_MESSAGES} a ${CHAT_MAX_MESSAGES} burbujas, en orden.`),
+});
+export type ChatOutput = z.infer<typeof chatOutputSchema>;
+
+/** Lo que el comerciante puede cambiar de un chat antes de generarlo: el nombre y las palabras. */
+export const chatEditSchema = z.object({
+  chat: z.object({
+    contact_name: z.string().trim().min(1).max(CONTACT_NAME_MAX),
+    messages: z.array(z.object({ text: z.string().max(CHAT_MESSAGE_MAX) })).min(CHAT_MIN_MESSAGES).max(CHAT_MAX_MESSAGES),
+  }),
+});
+
+/** Qué está mal en un chat (del modelo o editado): la forma y las mismas reglas de contenido que los textos. */
+export function chatProblems(chat: WhatsappChat, pricing: PricingPlan): string[] {
+  const shape = chatShapeProblem(chat);
+  return [...(shape ? [shape] : []), ...[chat.contact_name, ...chat.messages.map((m) => m.text)].flatMap((t) => claimProblems(t, pricing))];
 }
 
 // ---------------------------------------------------------------- QA de la pieza (§3.3)

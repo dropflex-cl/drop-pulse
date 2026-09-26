@@ -614,7 +614,7 @@ export interface CreativeConceptView {
   /** El ángulo de testeo al que pertenece (su conjunto de anuncios). */
   angle: AngleSlot;
   angleName: string;
-  family: import("./creatives/catalog").Family;
+  family: import("./creatives/catalog").ConceptFamily;
   familyName: string;
   name: string;
   why: string;
@@ -622,6 +622,8 @@ export interface CreativeConceptView {
   look?: string;
   preset?: { id: string; name: string; group: string; cover?: string };
   texts: { role: import("./creatives/catalog").TextRole; text: string }[];
+  /** Solo el chat de WhatsApp: la conversación (texts va vacío). */
+  chat?: import("./creatives/chat").WhatsappChat;
   edited: boolean;
   assets: CreativeAssetView[];
 }

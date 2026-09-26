@@ -4,7 +4,7 @@ import { creativesState } from "@/lib/data/products";
 import { processAsset, startRender } from "@/lib/pipeline/creatives";
 import { ProductApiError, errorResponse, json, ownedProduct } from "@/lib/products/http";
 
-// Generar la imagen de un concepto en Higgsfield ({ ratio: "1:1" | "9:16" }). El envío, la espera
+// Generar la imagen de un concepto ({ ratio: "1:1" | "9:16" }; el chat de WhatsApp, solo 9:16). El envío, la espera
 // (~20–60 s), el QA y el reintento sin preset siguen después de responder.
 export const maxDuration = 300;
 

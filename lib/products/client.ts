@@ -93,6 +93,8 @@ export const productsApi = {
   creatives: (id: string) => call<CreativesState>(`/${id}/creatives`),
   proposeCreatives: (id: string) => send<CreativesState>("POST", `/${id}/creatives`),
   editConcept: (id: string, conceptId: string, texts: { role: string; text: string }[]) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { texts }),
+  editChat: (id: string, conceptId: string, chat: { contact_name: string; messages: { text: string }[] }) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { chat }),
+  createChat: (id: string, angle: number) => send<CreativesState>("POST", `/${id}/creatives/chat`, { angle, acknowledged: true }),
   renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16") => send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, { ratio }),
   decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen" | "recover") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
   // Etapa Imágenes (la página del producto): cada acción devuelve el estado completo de la etapa.
