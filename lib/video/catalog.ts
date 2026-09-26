@@ -88,5 +88,20 @@ export const FORMAT_LIMITS: Record<VideoFormat, FormatLimits> = {
 
 export const formatOf = (v: unknown): VideoFormat => (v === "mascot" ? "mascot" : "ugc");
 
-/** El nombre del paquete de montaje: los dos videos de un ángulo no se pisan en Descargas. */
-export const montageFile = (slot: number, format: VideoFormat) => `video-angulo-${slot}${format === "mascot" ? "-mascota" : ""}.json`;
+const SLUG_MAX = 40;
+
+/** El nombre del producto para un archivo: minúsculas, sin tildes ni símbolos, hasta SLUG_MAX sin cortar una palabra. */
+export function fileSlug(text: string): string {
+  const s = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  if (s.length <= SLUG_MAX) return s || "video";
+  const cut = s.slice(0, SLUG_MAX + 1);
+  return (cut.includes("-") ? cut.slice(0, cut.lastIndexOf("-")) : s.slice(0, SLUG_MAX)).replace(/-+$/g, "");
+}
+
+/**
+ * El nombre de los archivos de un video, sin extensión: el paquete (.json) y el video que arma el script
+ * (.mp4). Producto, formato (ugc o mascota) y ángulo, para que los seis videos de un producto no se
+ * pisen en Descargas: «uro-vaginal-probiotico-mascota-angulo-1». scripts/ugc-montage.py repite la regla
+ * para los paquetes que no traen `name`.
+ */
+export const montageName = (productTitle: string, slot: number, format: VideoFormat) => `${fileSlug(productTitle)}-${format === "mascot" ? "mascota" : "ugc"}-angulo-${slot}`;

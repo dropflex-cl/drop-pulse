@@ -28,7 +28,7 @@ import { durationLabel } from "@/lib/ads/media";
 import { cn } from "@/lib/utils";
 import { ProductApiClientError, productsApi, uploadFinalVideo } from "@/lib/products/client";
 import type { VideoCardView, VideoShotView, VideoStep, VideosState } from "@/lib/types";
-import { formatOf, montageFile, type VideoFormat } from "@/lib/video/catalog";
+import { formatOf, montageName, type VideoFormat } from "@/lib/video/catalog";
 import { shotCost } from "@/lib/video/cost";
 import type { UgcScript } from "@/lib/video/schemas";
 import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
@@ -84,11 +84,14 @@ function currentStep(card: VideoCardView): number {
 
 export function VideosPanel({
   productId,
+  productName,
   initial,
   desktop,
   layout,
 }: {
   productId: string;
+  /** Para el nombre del paquete (montageName): el mismo con que lo descarga la API. */
+  productName: string;
   initial: VideosState;
   desktop: boolean;
   /** Según el ancho de la etapa: pasos + trabajo + paso siguiente, pasos + trabajo, o todo apilado. */
@@ -197,6 +200,7 @@ export function VideosPanel({
     <CardStep
       key={`${viewKey}-${shown}`}
       productId={productId}
+      productName={productName}
       card={card}
       sibling={sibling}
       shown={shown}
@@ -231,7 +235,7 @@ export function VideosPanel({
         </div>
         {three ? (
           <aside aria-label="Paso siguiente" className="flex flex-col gap-3 border-l bg-sidebar px-6 pt-5 pb-6">
-            <NextStep card={card} current={current} />
+            <NextStep card={card} current={current} file={`${montageName(productName, card.slot, card.format)}.json`} />
           </aside>
         ) : null}
       </div>
@@ -270,7 +274,7 @@ function stepNotes(card: VideoCardView): (string | undefined)[] {
 }
 
 /** Escritorio, a la derecha: el paso siguiente, deshabilitado, con el motivo. */
-function NextStep({ card, current }: { card: VideoCardView; current: number }) {
+function NextStep({ card, current, file }: { card: VideoCardView; current: number; file: string }) {
   const localCost = useLocalCost();
   const p = card.script?.payload;
   const total = p ? p.a_roll.length + p.b_roll.length : 0;
@@ -286,7 +290,7 @@ function NextStep({ card, current }: { card: VideoCardView; current: number }) {
     return (
       <>
         {head("Siguiente: montaje", `Se habilita cuando los ${total} clips estén listos.`)}
-        <MontagePackage clips={total} file={montageFile(card.slot, card.format)} disabled />
+        <MontagePackage clips={total} file={file} disabled />
       </>
     );
   if (current === 4) return head("Siguiente: video final", "Sube el MP4 que deja el script. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.");
@@ -299,6 +303,7 @@ function NextStep({ card, current }: { card: VideoCardView; current: number }) {
 
 function CardStep({
   productId,
+  productName,
   card,
   sibling,
   shown,
@@ -312,6 +317,7 @@ function CardStep({
   onFormat,
 }: {
   productId: string;
+  productName: string;
   card: VideoCardView;
   /** El video del mismo ángulo en el otro formato. */
   sibling?: VideoCardView;
@@ -397,7 +403,7 @@ function CardStep({
   }
   if (shown === 2) return <KeyframesStep productId={productId} card={card} format={format} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
   if (shown === 3) return <ClipsStep productId={productId} card={card} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
-  if (shown === 4) return <MontageStep productId={productId} card={card} desktop={desktop} onView={onView} />;
+  if (shown === 4) return <MontageStep productId={productId} file={`${montageName(productName, card.slot, card.format)}.json`} card={card} desktop={desktop} onView={onView} />;
   return <FinalStep productId={productId} card={card} busy={busy} run={run} onState={onState} onError={onError} />;
 }
 
@@ -800,11 +806,11 @@ function ClipsStep({ productId, card, current, desktop, busy, run, onView }: { p
 
 // ---------------------------------------------------------------- 4. Montaje
 
-function MontageStep({ productId, card, desktop, onView }: { productId: string; card: VideoCardView; desktop: boolean; onView: (n: number) => void }) {
+function MontageStep({ productId, file, card, desktop, onView }: { productId: string; file: string; card: VideoCardView; desktop: boolean; onView: (n: number) => void }) {
   const p = card.script!.payload!;
   return (
     <div className="flex flex-col gap-2.5">
-      <MontagePackage clips={p.a_roll.length + p.b_roll.length} file={montageFile(card.slot, card.format)} href={`/api/products/${productId}/videos/${card.script!.id}/package`} />
+      <MontagePackage clips={p.a_roll.length + p.b_roll.length} file={file} href={`/api/products/${productId}/videos/${card.script!.id}/package`} />
       <StepActions desktop={desktop}>
         <Button size="lg" iconEnd="chevron-right" onClick={() => onView(5)}>
           Ya lo monté: subir el video

@@ -5,10 +5,17 @@ Lee el paquete que descarga la pestaña Videos de Creativos («Descargar paquete
 para Meta: tomas habladas con la voz continua, B-roll encima de la voz (entra en su palabra), zoom
 alterno por frase, entrada de golpe del B-roll, destello al cambiar de idea, sacudida en el gancho,
 subtítulos palabra por palabra, rótulo «Dramatización», cierre con la foto del producto, música
-opcional con bajada automática bajo la voz y compresión para Meta.
+opcional con bajada automática bajo la voz, marca de agua con el dominio de la tienda y compresión para
+Meta.
+
+La marca de agua es semitransparente y cambia de lugar cada 4 s (nunca en los subtítulos ni en los
+textos en pantalla): no se quita recortando ni tapando una esquina, así otra tienda no puede reusar el
+video. El dominio lo trae el paquete; --watermark lo cambia y --no-watermark la quita.
 
 Uso:
-    python3 scripts/ugc-montage.py video-angulo-3.json [--music pista.mp3] [--out video.mp4]
+    python3 scripts/ugc-montage.py uro-vaginal-probiotico-mascota-angulo-1.json [--music pista.mp3] [--out video.mp4] [--watermark tutienda.cl]
+
+El video sale junto al paquete con su mismo nombre (producto, formato y ángulo), salvo que se pase --out.
 
 Requisitos: ffmpeg y ffprobe; Python 3.9+ con Pillow y numpy. Para los tiempos de los subtítulos,
 mlx-whisper (Mac con Apple Silicon: `pip install mlx-whisper`) u openai-whisper (`pip install
@@ -36,6 +43,10 @@ PACKAGE_VERSION = 1
 W, H, FPS = 720, 1280, 24
 END_CARD_S = 2.0
 WHITE = (255, 255, 255, 255)
+# Marca de agua: cada WATERMARK_EVERY_S segundos salta al siguiente lugar (x como expresión de overlay,
+# y como fracción del alto). Todos quedan entre los textos en pantalla (15–26 %) y los subtítulos (60 %).
+WATERMARK_EVERY_S = 4
+WATERMARK_SPOTS = [("48", 0.34), ("W-w-48", 0.46), ("(W-w)/2", 0.53), ("W-w-48", 0.33)]
 FONT_CANDIDATES = {
     "bold": ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "C:/Windows/Fonts/arialbd.ttf"],
     "regular": ["/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "C:/Windows/Fonts/arial.ttf"],
@@ -138,6 +149,34 @@ def hex_rgba(h: str) -> tuple[int, int, int, int]:
     return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
 
 
+def wrap_lines(d, text: str, f, max_w: int) -> list[str]:
+    """Parte el texto en líneas de hasta max_w (por palabras)."""
+    lines, cur = [], ""
+    for w in text.split():
+        test = f"{cur} {w}".strip()
+        if cur and d.textlength(test, font=f) > max_w:
+            lines.append(cur)
+            cur = w
+        else:
+            cur = test
+    return lines + ([cur] if cur else [])
+
+
+def fit_block(d, text: str, kind: str, size: int, min_size: int, max_w: int, max_lines: int):
+    """La fuente más grande con que el texto cabe en max_lines líneas de max_w; en dos líneas, lo más parejas posible."""
+    while True:
+        f = font(kind, size)
+        lines = wrap_lines(d, text, f, max_w)
+        if len(lines) <= max_lines or size <= min_size:
+            break
+        size -= 2
+    if len(lines) == 2:
+        words = " ".join(lines).split()
+        cut = min(range(1, len(words)), key=lambda i: max(d.textlength(" ".join(words[:i]), font=f), d.textlength(" ".join(words[i:]), font=f)))
+        lines = [" ".join(words[:cut]), " ".join(words[cut:])]
+    return f, size, lines
+
+
 def fit_font(d, lines: list[str], kind: str, size: int, min_size: int, max_w: int, stroke: int = 0):
     """La fuente más grande (≤ size) con la que todas las líneas caben en max_w."""
     while size > min_size and max(d.textlength(line, font=font(kind, size)) + 2 * stroke for line in lines) > max_w:
@@ -197,6 +236,33 @@ def label_png(path: Path, text: str) -> None:
     im.save(path)
 
 
+def watermark_png(path: Path, text: str) -> None:
+    """El dominio en blanco al 55 %, con un borde oscuro suave para que se lea sobre fondos claros."""
+    from PIL import Image, ImageDraw
+
+    f = font("bold", 28)
+    probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    l, t, r, b = probe.textbbox((0, 0), text, font=f, stroke_width=2)
+    im = Image.new("RGBA", (r - l + 8, b - t + 8), (0, 0, 0, 0))
+    ImageDraw.Draw(im).text((4 - l, 4 - t), text, font=f, fill=(255, 255, 255, 140), stroke_width=2, stroke_fill=(0, 0, 0, 90))
+    im.save(path)
+
+
+def watermark_xy(end_start: float) -> tuple[str, str]:
+    """Posición de la marca por cuadro: rota por WATERMARK_SPOTS y en el cierre va arriba al centro."""
+    k = f"mod(floor(t/{WATERMARK_EVERY_S}),{len(WATERMARK_SPOTS)})"
+
+    def pick(values: list[str]) -> str:
+        expr = values[-1]
+        for i in range(len(values) - 2, -1, -1):
+            expr = f"if(eq({k},{i}),{values[i]},{expr})"
+        return expr
+
+    xs = [x for x, _ in WATERMARK_SPOTS]
+    ys = [f"H*{y}" for _, y in WATERMARK_SPOTS]
+    return f"if(gte(t,{end_start:.3f}),(W-w)/2,{pick(xs)})", f"if(gte(t,{end_start:.3f}),56,{pick(ys)})"
+
+
 def flash_png(path: Path, alpha: int) -> None:
     from PIL import Image
 
@@ -204,28 +270,50 @@ def flash_png(path: Path, alpha: int) -> None:
 
 
 def end_card_png(path: Path, card: dict, image: Path | None, accent: tuple[int, int, int, int]) -> None:
+    """El cierre: foto del producto, nombre, línea, botón y letra chica. Los textos se achican y se parten
+    en líneas (nunca se salen del cuadro); la foto usa el alto que dejan, desde abajo hacia arriba."""
     from PIL import Image, ImageDraw
 
     im = Image.new("RGB", (W, H), "white")
+    d = ImageDraw.Draw(im)
+    title_f, title_s, title = fit_block(d, card.get("title", ""), "bold", 58, 34, W - 80, 2)
+    sub_f, sub_s, sub = fit_block(d, card.get("subtitle", ""), "regular", 38, 26, W - 80, 2)
+    cta_text = card.get("cta", "Comprar").upper()
+    cta_f = fit_font(d, [cta_text], "bold", 36, 24, W - 200)
+    cta_w = max(300, int(d.textlength(cta_text, font=cta_f)) + 80)
+    small = [x for x in card.get("small_print", [])[:3] if x]
+    for small_s in range(20, 14, -1):
+        small_f = font("regular", small_s)
+        fine = [line for item in small for line in wrap_lines(d, item, small_f, W - 60)]
+        if len(fine) <= 6:
+            break
+
+    def lh(size: int, k: float) -> int:
+        return int(size * k)
+
+    # De abajo hacia arriba: letra chica, botón, línea, nombre y, en lo que queda, la foto.
+    y = H - 40 - len(fine) * lh(small_s, 1.35)
+    fine_top = y
+    cta_top = y - (26 if fine else 0) - 76
+    sub_top = cta_top - 34 - len(sub) * lh(sub_s, 1.25)
+    title_top = sub_top - 14 - len(title) * lh(title_s, 1.15)
+    photo_top, photo_bottom = 130, title_top - 40
     if image and image.exists():
         p = Image.open(image).convert("RGB")
-        p = p.resize((520, int(520 * p.height / p.width)))
-        if p.height > 680:
-            p = p.resize((int(p.width * 680 / p.height), 680))
-        im.paste(p, ((W - p.width) // 2, 150))
-    d = ImageDraw.Draw(im)
+        scale = min(520 / p.width, max(1, photo_bottom - photo_top) / p.height)
+        p = p.resize((max(1, int(p.width * scale)), max(1, int(p.height * scale))))
+        im.paste(p, ((W - p.width) // 2, photo_top + (photo_bottom - photo_top - p.height) // 2))
 
-    def center(text: str, y: int, size: int, kind: str, fill) -> None:
-        f = font(kind, size)
-        l, t, r, b = d.textbbox((0, 0), text, font=f)
-        d.text(((W - (r - l)) // 2 - l, y - t), text, font=f, fill=fill)
+    def lines_at(lines: list[str], f, top: int, step: int, fill) -> None:
+        for i, line in enumerate(lines):
+            d.text(((W - d.textlength(line, font=f)) / 2, top + i * step), line, font=f, fill=fill)
 
-    center(card.get("title", ""), 880, 58, "bold", "black")
-    center(card.get("subtitle", ""), 960, 38, "regular", "#333333")
-    d.rounded_rectangle((210, 1030, 510, 1106), radius=14, fill=accent[:3])
-    center(card.get("cta", "Comprar").upper(), 1052, 36, "bold", "black")
-    for i, line in enumerate(card.get("small_print", [])[:3]):
-        center(line, 1150 + i * 30, 20, "regular", "#666666")
+    lines_at(title, title_f, title_top, lh(title_s, 1.15), "black")
+    lines_at(sub, sub_f, sub_top, lh(sub_s, 1.25), "#333333")
+    d.rounded_rectangle(((W - cta_w) // 2, cta_top, (W + cta_w) // 2, cta_top + 76), radius=14, fill=accent[:3])
+    l, t, r, b = d.textbbox((0, 0), cta_text, font=cta_f)
+    d.text(((W - (r - l)) // 2 - l, cta_top + (76 - (b - t)) // 2 - t), cta_text, font=cta_f, fill="black")
+    lines_at(fine, small_f, fine_top, lh(small_s, 1.35), "#666666")
     im.save(path)
 
 
@@ -246,6 +334,24 @@ def motion(kind: str, idx: int, frames: int, flash: bool, shake: bool) -> str:
     if flash:
         vf += ",fade=t=in:st=0:d=0.14:color=white"
     return vf
+
+
+def file_slug(text: str) -> str:
+    """Igual que fileSlug en lib/video/catalog.ts: minúsculas, sin tildes ni símbolos, hasta 40 sin cortar una palabra."""
+    s = re.sub(r"[\u0300-\u036f]", "", unicodedata.normalize("NFD", text)).lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    if len(s) <= 40:
+        return s or "video"
+    cut = s[:41]
+    return (cut[: cut.rindex("-")] if "-" in cut else s[:40]).rstrip("-")
+
+
+def package_name(pkg: dict) -> str:
+    """El nombre del video: el que trae el paquete o, en los anteriores, la misma regla (montageName)."""
+    if pkg.get("name"):
+        return pkg["name"]
+    fmt = pkg.get("format") or ("mascot" if pkg.get("label") in ("Animación", "Animação") else "ugc")
+    return f"{file_slug(pkg['product']['title'])}-{'mascota' if fmt == 'mascot' else 'ugc'}-angulo-{pkg['angle']['slot']}"
 
 
 def download(url: str, dest: Path) -> Path:
@@ -312,8 +418,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Montaje local del video UGC de DropFlex.")
     ap.add_argument("package", help="El JSON que descarga «Descargar paquete».")
     ap.add_argument("--music", help="Pista de música (MP3/WAV) con licencia comercial. Opcional.")
-    ap.add_argument("--out", help="Archivo de salida (por defecto, junto al paquete).")
+    ap.add_argument("--out", help="Archivo de salida (por defecto, junto al paquete: <producto>-<ugc|mascota>-angulo-N.mp4).")
     ap.add_argument("--crf", type=int, default=25, help="Calidad H.264 (25 para Meta; más alto, más liviano).")
+    ap.add_argument("--watermark", help="Texto de la marca de agua (por defecto, el dominio de tu tienda que trae el paquete).")
+    ap.add_argument("--no-watermark", action="store_true", help="Sin marca de agua.")
     args = ap.parse_args()
 
     for tool in ("ffmpeg", "ffprobe"):
@@ -330,12 +438,17 @@ def main() -> None:
         fail(f"este script lee paquetes versión {PACKAGE_VERSION}; el paquete es versión {pkg.get('version')}. Actualiza el script.")
     work = pkg_path.with_suffix("").with_name(pkg_path.stem + "-montaje")
     work.mkdir(exist_ok=True)
-    out = Path(args.out).expanduser() if args.out else pkg_path.with_suffix(".mp4")
+    out = Path(args.out).expanduser() if args.out else pkg_path.parent / f"{package_name(pkg)}.mp4"
     accent = hex_rgba(pkg.get("accent_color") or "#F2C230")
     language = pkg.get("language", "es")
     whisper = find_whisper()
     print(f"Paquete: {pkg['product']['title']} · {pkg['angle']['title']}")
     print("Tiempos de los subtítulos: " + ("Whisper" if whisper else "estimados (instala mlx-whisper u openai-whisper para más precisión)"))
+    watermark = None if args.no_watermark else (args.watermark or pkg.get("watermark") or "").strip() or None
+    if watermark:
+        print(f"Marca de agua: {watermark} (cambia de lugar cada {WATERMARK_EVERY_S} s)")
+    elif not args.no_watermark:
+        print("Aviso: el paquete no trae el dominio de tu tienda y el video sale SIN marca de agua. Agrégala con --watermark tutienda.cl")
 
     # 1. Clips y tiempos de cada palabra.
     clips = []
@@ -493,8 +606,15 @@ def main() -> None:
         mix_music(joined, music, first_hit, mixed, work)
         source = mixed
         print("Música: recuerda usar una pista con licencia comercial para anuncios.")
-    sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), "-c:v", "libx264", "-preset", "slow", "-crf", str(args.crf), "-profile:v", "high", "-pix_fmt", "yuv420p",
-       "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out))
+    encode = ["-c:v", "libx264", "-preset", "slow", "-crf", str(args.crf), "-profile:v", "high", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out)]
+    if watermark:
+        # En esta última pasada (ya se recodifica todo): cubre también el cierre, sin otra codificación.
+        mark = work / "watermark.png"
+        watermark_png(mark, watermark)
+        x, y = watermark_xy(probe_duration(source) - END_CARD_S)
+        sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), "-i", str(mark), "-filter_complex", f"[0:v][1:v]overlay=x='{x}':y='{y}'[v]", "-map", "[v]", "-map", "0:a", *encode)
+    else:
+        sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), *encode)
     print(f"Listo: {out} · {probe_duration(out):.1f} s · {out.stat().st_size / 1024 / 1024:.1f} MB")
     print("Súbelo en DropFlex › Creativos › Videos › «Subir video montado».")
 

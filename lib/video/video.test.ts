@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, montageFile } from "./catalog";
+import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, fileSlug, montageName } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
-import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, videoLabel } from "./package";
+import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, videoLabel, watermarkText } from "./package";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
 import { applyScriptEdit, changedLines, keyframeQaVerdict, scriptProblems, words, type UgcScript } from "./schemas";
 
@@ -202,12 +202,27 @@ describe("paquete de montaje", () => {
     expect(p.accent_color).toBe(DEFAULT_ACCENT);
   });
 
-  it("dice su formato, y el de la persona y el de la mascota de un ángulo se descargan con otro nombre", () => {
-    expect(buildPackage({ ...base, script: script(), clipUrls: urls }).format).toBe("ugc");
+  it("dice su formato y se llama por el producto, el formato y el ángulo", () => {
+    const ugc = buildPackage({ ...base, script: script(), clipUrls: urls });
+    expect(ugc).toMatchObject({ format: "ugc", name: "deep-collagen-ugc-angulo-3" });
     const mascot = buildPackage({ ...base, format: "mascot", script: script(), clipUrls: urls });
-    expect(mascot).toMatchObject({ format: "mascot", label: "Animación" });
-    expect(montageFile(3, "ugc")).toBe("video-angulo-3.json");
-    expect(montageFile(3, "mascot")).toBe("video-angulo-3-mascota.json");
+    expect(mascot).toMatchObject({ format: "mascot", label: "Animación", name: "deep-collagen-mascota-angulo-3" });
+  });
+
+  it("arma el nombre del archivo sin tildes ni símbolos y sin cortar palabras", () => {
+    expect(montageName("URO Vaginal Probiótico — 60 cápsulas", 1, "mascot")).toBe("uro-vaginal-probiotico-60-capsulas-mascota-angulo-1");
+    expect(fileSlug("Ñandú: crema «Día y Noche» 2x1")).toBe("nandu-crema-dia-y-noche-2x1");
+    expect(fileSlug("Probiótico íntimo para mujer con arándano rojo y vitamina C, 60 cápsulas")).toBe("probiotico-intimo-para-mujer-con");
+    expect(fileSlug("¡¡!!")).toBe("video");
+  });
+
+  it("lleva la marca de agua: el dominio propio, o el nombre si la tienda solo tiene .myshopify.com", () => {
+    expect(buildPackage({ ...base, watermark: "tutienda.cl", script: script(), clipUrls: urls }).watermark).toBe("tutienda.cl");
+    expect(buildPackage({ ...base, script: script(), clipUrls: urls }).watermark).toBeNull();
+    expect(watermarkText("www.TuTienda.cl", "Tu Tienda")).toBe("tutienda.cl");
+    expect(watermarkText("tu-tienda.myshopify.com", "Tu Tienda")).toBe("Tu Tienda");
+    expect(watermarkText("tu-tienda.myshopify.com", "  ")).toBe("tu-tienda.myshopify.com");
+    expect(watermarkText(null, null)).toBeNull();
   });
 
   it("no se arma sin todos los clips", () => {

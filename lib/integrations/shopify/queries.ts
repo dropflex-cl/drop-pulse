@@ -82,6 +82,17 @@ export interface ShopMarketQuery {
   shop: { currencyCode: string; ianaTimezone: string | null; billingAddress: { countryCodeV2: string | null } | null };
 }
 
+// El dominio con que se ve la tienda: lo lleva la marca de agua de los videos (docs/spec-video-ugc.md §5.2).
+export const SHOP_DOMAIN_QUERY = /* GraphQL */ `
+  query DropFlexShopDomain {
+    shop { name primaryDomain { host } }
+  }
+`;
+
+export interface ShopDomainQuery {
+  shop: { name: string; primaryDomain: { host: string } | null };
+}
+
 // Detalle de un producto para su información base: descripción completa, opciones y todas sus
 // imágenes (hasta 20), acotadas a 1600 px para que la IA las lea sin pedir el original.
 const PRODUCT_DETAIL_FIELDS = (withCost: boolean) => /* GraphQL */ `

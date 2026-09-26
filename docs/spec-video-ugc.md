@@ -122,11 +122,13 @@ JSON (versión `1`), solo con el guion aprobado y todos los clips listos:
 ```json
 {
   "version": 1,
+  "name": "deep-collagen-ugc-angulo-3",
   "product": { "id": "…", "title": "Deep Collagen" },
   "angle": { "slot": 3, "title": "…" },
   "language": "es",
   "accent_color": "#F2C230",
   "label": "Dramatización",
+  "watermark": "tutienda.cl",
   "script": { "a_roll": [ { "key": "A1", "line": "…", "url": "https://…signed…" } ],
               "b_roll": [ { "key": "B1", "anchor": "minutos", "cut_s": 1.2, "url": "…" } ],
               "text_beats": [ … ] },
@@ -148,6 +150,9 @@ python3 scripts/ugc-montage.py paquete.json --music pista.mp3 --out video.mp4
 - Descarga los clips, transcribe cada toma con `mlx_whisper` (o `openai-whisper` si no es Mac) y alinea al guion.
 - Recorta, zoom alterno por frase, B-roll con entrada de golpe, destellos en los `text_beats` que empiezan con número, sacudida en el hook, subtítulos (grupos de 3, activa en `accent_color`), rótulo, cierre con zoom.
 - Música opcional: −14 LUFS la voz, bajada automática bajo la voz (`sidechaincompress`), golpe alineado al primer destello (tempo por autocorrelación), sube en el cierre.
+- **Nombres** (2026-09-26): el paquete se descarga como `<name>.json` y el video sale junto a él como `<name>.mp4` (`--out` lo cambia). `name` = `montageName`: el producto sin tildes ni símbolos (hasta 40 caracteres, sin cortar palabras), `ugc` o `mascota` y el ángulo, porque un producto puede tener seis videos. Los paquetes anteriores, sin `name`, usan la misma regla en el script (`package_name`).
+- **Cierre**: el nombre y la línea se achican hasta caber en dos líneas, el botón crece con su texto y la letra chica se parte en hasta 6 líneas; la foto usa el alto que queda. Nada se sale del cuadro.
+- **Marca de agua** (2026-09-26, para que otra tienda no reuse el video): el dominio de la tienda (`watermark`, de `shop.primaryDomain` al descargar el paquete; sin dominio propio, el nombre de la tienda, `watermarkText`). Blanco al 55 % con borde suave, salta cada 4 s entre cuatro lugares entre los textos en pantalla y los subtítulos (uno al centro: no se quita recortando una esquina) y en el cierre va arriba al centro. Va en la última pasada (sin otra codificación). `--watermark texto` la cambia y `--no-watermark` la quita; un paquete sin dominio avisa y sale sin marca.
 - Salida para Meta: H.264 `veryslow` CRF 25, AAC 128k, `+faststart`. Imprime duración y peso.
 - Requisitos: `ffmpeg`, `Pillow`, `numpy`, `mlx-whisper`. Sin `drawtext` (el ffmpeg de Homebrew no lo trae): textos con Pillow.
 
@@ -264,6 +269,6 @@ Un segundo formato de video, con el mismo flujo, las mismas tablas y los mismos 
 | Voz | `voiceBlock(…, "mascot")`: voz de personaje animado, femenina joven, juguetona, timing de comedia. Igual en todas las tomas; en la POC sonó consistente aunque el personaje cambiara de enfermo a sano. |
 | Montaje | El paquete lleva `label: "Animación"` en lugar de «Dramatización». El resto del script es el mismo (los textos largos ahora se achican o se parten en dos líneas). |
 | Anuncios | `ad_media.name` = «Video mascota · <ángulo>». Los dos videos de un ángulo pueden estar en Anuncios a la vez, en el conjunto de ese ángulo. |
-| Paquete | Lleva `format`; se descarga como `video-angulo-N-mascota.json` (`montageFile`), para no pisar el de la persona. |
+| Paquete | Lleva `format`, y su `name` dice `ugc` o `mascota` (§5.1), para no pisar el de la persona. |
 
 Costo: ~US$8–9 por video (Seedance manda: ~23 s habladas).

@@ -13,7 +13,9 @@ import { ratioOf, sniffMedia } from "@/lib/ads/media";
 import { adminClient } from "@/lib/integrations/admin";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey, markHiggsfieldInvalid } from "@/lib/integrations/higgsfield/connection";
+import { shopifyQuery } from "@/lib/integrations/shopify/client";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
+import { SHOP_DOMAIN_QUERY, type ShopDomainQuery } from "@/lib/integrations/shopify/queries";
 import type { Market } from "@/lib/market";
 import { optimizeForAds } from "@/lib/media/optimize";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
@@ -36,7 +38,7 @@ import {
   type VideoFormat,
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
-import { PackageNotReady, buildPackage, type MontagePackage } from "@/lib/video/package";
+import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
 import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
@@ -626,6 +628,19 @@ export async function syncVideos(userId: string, productId: string): Promise<voi
 
 // ---------------------------------------------------------------- 4. Paquete de montaje
 
+/** La marca de agua del video: el dominio de la tienda. Si Shopify no responde, el nombre guardado al conectar. */
+async function storeWatermark(userId: string): Promise<string | null> {
+  const conn = await getShopifyConnection(userId);
+  if (!conn) return null;
+  try {
+    const { shop } = await shopifyQuery<ShopDomainQuery>(conn, SHOP_DOMAIN_QUERY);
+    return watermarkText(shop.primaryDomain?.host, shop.name);
+  } catch (e) {
+    console.error("[video] leer el dominio de la tienda", e);
+    return watermarkText(null, conn.shop_name);
+  }
+}
+
 export async function montagePackage(userId: string, productId: string, scriptId: string): Promise<MontagePackage> {
   const s = await readyScript(userId, productId, scriptId);
   const shots = [...latestByKey(await shotsFor(userId, [s.id])).values()];
@@ -637,7 +652,11 @@ export async function montagePackage(userId: string, productId: string, scriptId
   fail("Firmar los clips", signed.error);
   const clipUrls = new Map<string, string>();
   clips.forEach((c, i) => signed.data?.[i]?.signedUrl && clipUrls.set(c.key, signed.data[i].signedUrl));
-  const [product, base] = await Promise.all([db.from("products").select("title, page_accent_color").eq("id", productId).eq("user_id", userId).single(), baseImage(userId, productId)]);
+  const [product, base, watermark] = await Promise.all([
+    db.from("products").select("title, page_accent_color").eq("id", productId).eq("user_id", userId).single(),
+    baseImage(userId, productId),
+    storeWatermark(userId),
+  ]);
   fail("Leer el producto", product.error);
   let endCardImageUrl = base?.url ?? "";
   if (base?.storagePath) {
@@ -652,6 +671,7 @@ export async function montagePackage(userId: string, productId: string, scriptId
       language: input.market?.language ?? "es",
       accentColor: (product.data?.page_accent_color as string | null) ?? null,
       format: scriptFormat(s),
+      watermark,
       script: s.payload,
       clipUrls,
       endCardImageUrl,

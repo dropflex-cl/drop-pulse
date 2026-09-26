@@ -1,11 +1,13 @@
 // El paquete de montaje (docs/spec-video-ugc.md §5.1): todo lo que scripts/ugc-montage.py necesita
 // para armar el video en el equipo del comerciante. Puro.
 
-import { PACKAGE_VERSION, type VideoFormat } from "./catalog";
+import { PACKAGE_VERSION, montageName, type VideoFormat } from "./catalog";
 import type { UgcScript } from "./schemas";
 
 export interface MontagePackage {
   version: number;
+  /** Nombre de los archivos (montageName): el paquete se descarga como <name>.json y el script arma <name>.mp4. */
+  name: string;
   product: { id: string; title: string };
   angle: { slot: number; title: string };
   /** Persona o mascota: un ángulo puede tener los dos videos. */
@@ -15,6 +17,11 @@ export interface MontagePackage {
   accent_color: string;
   /** Rótulo que va durante todo el video: «Dramatización» si habla una persona de IA, «Animación» si es una mascota. */
   label: string;
+  /**
+   * Marca de agua (el dominio de la tienda) que el script mueve por el video para que otra tienda no
+   * pueda reusarlo recortando una esquina. Null si no se pudo leer: el script avisa.
+   */
+  watermark: string | null;
   a_roll: { key: string; line: string; seconds: number; url: string }[];
   b_roll: { key: string; anchor: string; cut_s: number; url: string }[];
   text_beats: { anchor: string; until: string | null; text: string }[];
@@ -28,6 +35,7 @@ export interface PackageInput {
   language: string;
   accentColor: string | null;
   format?: VideoFormat;
+  watermark?: string | null;
   script: UgcScript;
   /** URL firmada de cada clip listo, por clave (A1…, B1…). */
   clipUrls: Map<string, string>;
@@ -37,6 +45,17 @@ export interface PackageInput {
 
 /** Amarillo de la POC: se ve sobre piel y fondos claros con borde negro. */
 export const DEFAULT_ACCENT = "#F2C230";
+
+/**
+ * El texto de la marca de agua: el dominio propio de la tienda (sin «www.»). Sin dominio propio, el
+ * nombre de la tienda, porque «x.myshopify.com» se ve provisorio; y si tampoco hay nombre, ese dominio.
+ */
+export function watermarkText(host: string | null | undefined, shopName: string | null | undefined): string | null {
+  const h = host?.trim().toLowerCase().replace(/^www\./, "") || null;
+  const name = shopName?.trim() || null;
+  if (h && !h.endsWith(".myshopify.com")) return h;
+  return name ?? h;
+}
 
 /** Falta un clip: el paquete no se arma hasta que estén todos. */
 export class PackageNotReady extends Error {}
@@ -68,12 +87,14 @@ export function buildPackage(p: PackageInput): MontagePackage {
   };
   return {
     version: PACKAGE_VERSION,
+    name: montageName(p.product.title, p.angle.slot, p.format ?? "ugc"),
     product: p.product,
     angle: p.angle,
     format: p.format ?? "ugc",
     language: p.language,
     accent_color: captionAccent(p.accentColor),
     label: videoLabel(p.format ?? "ugc", p.language),
+    watermark: p.watermark ?? null,
     a_roll: p.script.a_roll.map((a) => ({ key: a.key, line: a.line, seconds: a.seconds, url: url(a.key) })),
     b_roll: p.script.b_roll.map((b) => ({ key: b.key, anchor: b.anchor, cut_s: b.cut_s, url: url(b.key) })),
     text_beats: p.script.text_beats.map((t) => ({ anchor: t.anchor, until: t.until, text: t.text })),
