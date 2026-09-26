@@ -148,6 +148,17 @@ export async function setDailyBudget(token: string, metaId: string, amount: numb
   await graphPost(token, `/${metaId}`, { daily_budget: String(toMinorUnits(amount, currency)) });
 }
 
+/** Mueve el inicio de un conjunto. Meta lo acepta mientras el conjunto no haya empezado a entregar. */
+export async function setStartTime(token: string, adsetId: string, startTime: string): Promise<void> {
+  await graphPost(token, `/${adsetId}`, { start_time: startTime });
+}
+
+/** Impresiones de toda la vida de la campaña: 0 = nunca entregó (Meta no devuelve filas). */
+export async function lifetimeImpressions(token: string, campaignId: string): Promise<number> {
+  const body = await graphGet<{ data?: { impressions?: string }[] }>(token, `/${campaignId}/insights`, { fields: "impressions", date_preset: "maximum" });
+  return (body.data ?? []).reduce((n, r) => n + (Number(r.impressions) || 0), 0);
+}
+
 export interface LiveUnit {
   metaId: string;
   status: string | null;

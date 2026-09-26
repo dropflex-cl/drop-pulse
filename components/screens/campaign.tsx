@@ -6,6 +6,7 @@ import { Button, DecisionRow, Field, MetricGrid, Notice, SegmentedControl, notif
 import { SectionTitle } from "@/components/shell/page-header";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { engineProblems, type EngineConfig } from "@/lib/ads/schemas";
+import { startLabel } from "@/lib/ads/schedule";
 import { amount, currencySymbol, money, multiplier, parseMoney } from "@/lib/format";
 import type { AdDecisionView, AdUnitView, CampaignDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -89,7 +90,15 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
       setSavedEngine(JSON.stringify(next));
     }, done);
 
-  const publish = () => run("publish", () => call(`${base}/publish`, "POST"), "Campaña publicada: empieza a entregar según su horario");
+  const publish = (now: boolean) =>
+    run(now ? "publish-now" : "publish", () => call(`${base}/publish`, "POST", now ? { start: "now" } : {}), now ? "Campaña publicada: empieza a entregar ahora" : "Campaña publicada: empieza a entregar según su horario");
+  const redo = () =>
+    run("redo", async () => {
+      const r = await call<{ productId: string; sourceCampaignId: string | null }>(`${base}/redo`, "POST");
+      router.push(`/products/${r.productId}/ads${r.sourceCampaignId ? `?from=${r.sourceCampaignId}` : ""}`);
+    }, "Campaña borrada en Meta: ajusta lo que quieras y lánzala de nuevo");
+  // Lo que gasta o borra pide un segundo toque.
+  const confirmed = (key: string, fn: () => void) => () => (armed === key ? fn() : setArmed(key));
   const syncNow = () => run("sync", () => call(`${base}/sync`, "POST"), "Cifras actualizadas");
 
   // ---------------------------------------------------------------- Decisiones por unidad
@@ -308,6 +317,23 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
   );
 
   const notPublished = data.status === "paused" && !data.publishedAt;
+  // Meta retiene la entrega hasta el inicio programado, aunque todo esté activo.
+  const waiting = Boolean(data.startsAt && Date.parse(data.startsAt) > Date.now());
+  const startText = data.startsAt ? startLabel(data.startsAt, new Date(), tz) : "";
+  // El presupuesto diario se reinicia a medianoche: empezar tarde lo gasta en las horas que quedan.
+  const hoursLeft = 24 - Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  const lateWarning = hoursLeft <= 12 ? ` Si empieza ahora, Meta intentará gastar el presupuesto de hoy en las ${hoursLeft} horas que quedan.` : "";
+  const redoButton = data.canRedo ? (
+    <Button size="sm" variant="ghost" icon="edit" loading={busy === "redo"} onClick={confirmed("redo", redo)}>
+      {armed === "redo" ? "Confirmar: borrar y rehacer" : "Rehacer"}
+    </Button>
+  ) : null;
+  const startNowButton = (
+    <Button size="sm" variant="secondary" icon="power" loading={busy === "publish-now"} onClick={confirmed("publish-now", () => publish(true))}>
+      {armed === "publish-now" ? "Confirmar: empezar ahora" : notPublished ? "Publicar ahora" : "Empezar ahora"}
+    </Button>
+  );
+  const redoHint = data.canRedo ? " ¿Algo quedó mal? «Rehacer» la borra en Meta y vuelve al configurador." : "";
 
   return (
     <div className="@container flex flex-col">
@@ -353,11 +379,34 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
               tone="info"
               icon="megaphone"
               title="Creada en pausa en Meta."
-              body="Nada gasta hasta que la publiques. Al publicar, empieza a entregar según su horario."
-              action={
-                <Button size="sm" variant="primary" icon="send" aria-live="polite" loading={busy === "publish"} onClick={() => (armed === "publish" ? publish() : setArmed("publish"))}>
-                  {armed === "publish" ? "Confirmar: publicar" : "Publicar"}
-                </Button>
+              body={
+                <>
+                  Nada gasta hasta que la publiques. {waiting ? `Al publicar, empieza ${startText}; con «Publicar ahora», de inmediato.${lateWarning}` : "Al publicar, empieza a entregar de inmediato."}
+                  {redoHint}
+                  <span className="mt-2 flex flex-wrap gap-2" aria-live="polite">
+                    <Button size="sm" variant="primary" icon="send" loading={busy === "publish"} onClick={confirmed("publish", () => publish(false))}>
+                      {armed === "publish" ? "Confirmar: publicar" : waiting ? `Publicar · ${startText}` : "Publicar"}
+                    </Button>
+                    {waiting ? startNowButton : null}
+                    {redoButton}
+                  </span>
+                </>
+              }
+            />
+          ) : data.status === "active" && waiting ? (
+            <Notice
+              tone="info"
+              icon="clock"
+              title={`Publicada: empieza ${startText}.`}
+              body={
+                <>
+                  Meta retiene la entrega hasta esa hora.{lateWarning}
+                  {redoHint}
+                  <span className="mt-2 flex flex-wrap gap-2" aria-live="polite">
+                    {startNowButton}
+                    {redoButton}
+                  </span>
+                </>
               }
             />
           ) : null}

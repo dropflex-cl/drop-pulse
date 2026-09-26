@@ -570,6 +570,10 @@ export interface CampaignDetail {
   dailyTotal: number;
   launchedAt: string | null;
   publishedAt: string | null;
+  /** Inicio programado de los conjuntos (null: al publicar). Meta retiene la entrega hasta entonces. */
+  startsAt: string | null;
+  /** Nunca entregó según nuestras lecturas: se ofrece «Rehacer» (Meta lo confirma al tocarlo). */
+  canRedo: boolean;
   lastSyncedAt: string | null;
   syncError: string | null;
   totals: { spend: number; purchases: number; cpa: number | null; roas: number | null; ctr: number | null };

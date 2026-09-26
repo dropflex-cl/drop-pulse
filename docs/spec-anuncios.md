@@ -381,7 +381,8 @@ alter table public.merchant_settings add column ad_daily_spend_cap numeric;   --
 | `POST /api/products/[id]/ads/media/upload-url` · `POST …/media` | Sube un creativo |
 | `GET /api/ads/interests?q=` · `GET /api/ads/regions?country=` | Búsqueda en el catálogo de Meta (`ChipInput`) |
 | `POST /api/products/[id]/ads/launch` | Crea en pausa (en segundo plano con `after()`, con sondeo) |
-| `POST /api/campaigns/[id]/publish` | Activa campaña → conjuntos → anuncios |
+| `POST /api/campaigns/[id]/publish` | Activa campaña → conjuntos → anuncios. `{ start: "now" }` adelanta antes el inicio programado de los conjuntos a ese momento (si Meta no lo acepta, no activa nada) |
+| `POST /api/campaigns/[id]/redo` | «Rehacer» una campaña que nunca entregó (Meta: 0 impresiones de por vida): la borra en Meta, limpia conjuntos, anuncios, métricas, decisiones e historial, y la misma fila vuelve a borrador. Descarta el borrador abierto del producto si lo había |
 | `PUT /api/campaigns/[id]/engine` | Modo, CPA límite y reglas de **esta** campaña |
 | `POST /api/campaigns/[id]/decisions/[decisionId]` | `{ action: "apply" \| "ignore" }` |
 | `POST /api/campaigns/[id]/changes/[changeId]/undo` | Deshacer un cambio del motor o del comerciante |

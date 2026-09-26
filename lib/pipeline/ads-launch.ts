@@ -1,6 +1,6 @@
 import "server-only";
 import { adsContext, AD_MEDIA_BUCKET, fail, getCampaignRow, getDraft, listMediaRows, type CampaignRow, type MediaRow } from "@/lib/ads/store";
-import { createAd, createAdset, createCampaign, createCreative, getAdAccount, setStatus, uploadImage, uploadVideo, videoStatus, videoThumbnailHash, waitVideoReady } from "@/lib/ads/meta/adapter";
+import { createAd, createAdset, createCampaign, createCreative, getAdAccount, lifetimeImpressions, setStartTime, setStatus, uploadImage, uploadVideo, videoStatus, videoThumbnailHash, waitVideoReady } from "@/lib/ads/meta/adapter";
 import { buildTargeting, dynamicCreative, needsDynamicCreative, singleCreative, type UploadedMedia } from "@/lib/ads/meta/payloads";
 import { planLaunch, planSteps } from "@/lib/ads/plan";
 import { nextMorning } from "@/lib/ads/schedule";
@@ -257,8 +257,13 @@ export async function expireStaleLaunches(userId: string): Promise<void> {
 /**
  * «Publicar»: activa campaña → conjuntos → anuncios. Desde aquí gasta dinero. Si algo falla a mitad,
  * lo que quedó en pausa se puede reintentar (se vuelve a pedir ACTIVE a todo).
+ *
+ * `startNow`: antes de activar, el inicio de cada conjunto pasa a ahora (Meta retiene la entrega hasta
+ * el `start_time` aunque todo esté activo). Si Meta no acepta el cambio, no se activa nada: activar
+ * igual dejaría la campaña «publicada» pero muda hasta la fecha original. También sirve con la campaña
+ * ya publicada que espera su hora.
  */
-export async function publishCampaign(userId: string, campaignId: string): Promise<CampaignRow> {
+export async function publishCampaign(userId: string, campaignId: string, opts: { startNow?: boolean } = {}): Promise<CampaignRow> {
   const c = await getCampaignRow(userId, campaignId);
   if (!c) throw new ProductApiError("No encontramos esa campaña.", 404);
   if (!c.meta_campaign_id || !["paused", "active"].includes(c.status)) throw new ProductApiError("Esta campaña todavía no está creada en Meta.", 409);
@@ -267,6 +272,17 @@ export async function publishCampaign(userId: string, campaignId: string): Promi
   const db = adminClient();
   const [{ data: sets }, { data: ads }] = await Promise.all([db.from("ad_sets").select("id, meta_adset_id").eq("campaign_id", c.id), db.from("ads").select("id, meta_ad_id").eq("campaign_id", c.id)]);
   const at = now();
+  // Solo si el inicio sigue en el futuro: uno ya pasado no se puede mover y tampoco hace falta.
+  const moveStart = Boolean(opts.startNow && c.starts_at && Date.parse(c.starts_at) > Date.now());
+  if (moveStart) {
+    try {
+      for (const s of sets ?? []) if (s.meta_adset_id) await setStartTime(token, s.meta_adset_id as string, at);
+    } catch (e) {
+      if (e instanceof MetaAuthError) await markMetaError(userId, "expired").catch(() => {});
+      throw new ProductApiError(`No pudimos adelantar el inicio: ${metaReason(e)} La campaña sigue en pausa; puedes publicarla a su hora.`, 502);
+    }
+    await update(c.id, { starts_at: at });
+  }
   try {
     await setStatus(token, c.meta_campaign_id, "ACTIVE");
     for (const s of sets ?? []) if (s.meta_adset_id) await setStatus(token, s.meta_adset_id as string, "ACTIVE");
@@ -278,6 +294,86 @@ export async function publishCampaign(userId: string, campaignId: string): Promi
   await db.from("ad_sets").update({ status: "ACTIVE", updated_at: at }).eq("campaign_id", c.id);
   await db.from("ads").update({ status: "ACTIVE", updated_at: at }).eq("campaign_id", c.id);
   await update(c.id, { status: "active", published_at: c.published_at ?? at });
-  await db.from("ad_changes").insert({ user_id: userId, campaign_id: c.id, level: "campaign", unit_id: c.id, action: "publish", before: { status: c.status }, after: { status: "active" }, actor: "merchant" });
+  await db.from("ad_changes").insert({
+    user_id: userId,
+    campaign_id: c.id,
+    level: "campaign",
+    unit_id: c.id,
+    action: "publish",
+    before: { status: c.status, starts_at: c.starts_at },
+    after: { status: "active", starts_at: moveStart ? at : c.starts_at },
+    actor: "merchant",
+  });
+  return (await getCampaignRow(userId, campaignId))!;
+}
+
+/** Las filas de una campaña que dependen de lo creado en Meta (métricas, decisiones, historial). */
+const LAUNCH_TABLES = ["ad_sets", "ad_changes", "ad_decisions", "ad_insights_daily", "ad_insights_snapshots"] as const;
+
+/**
+ * «Rehacer»: una campaña que NUNCA entregó vuelve a ser borrador. Se borra en Meta (la campaña arrastra
+ * sus conjuntos y anuncios) y la misma fila vuelve a `draft` con su configuración, para editar
+ * cualquier cosa y lanzar otra vez (con la URL y el inicio de ese momento). Sin entrega no hay
+ * aprendizaje, interacciones ni métricas que perder. Lo que decide es Meta (impresiones de toda la
+ * vida), no nuestras lecturas, que pueden tener una hora de atraso.
+ */
+export async function redoCampaign(userId: string, campaignId: string): Promise<CampaignRow> {
+  const c = await getCampaignRow(userId, campaignId);
+  if (!c) throw new ProductApiError("No encontramos esa campaña.", 404);
+  if (!c.meta_campaign_id || !["paused", "active"].includes(c.status)) throw new ProductApiError("Esta campaña no se puede rehacer.", 409);
+  const token = await metaToken(userId);
+  if (!token) throw new ProductApiError("Tu conexión con Meta venció. Vuelve a conectarla en Ajustes.", 409);
+  let impressions: number;
+  try {
+    impressions = await lifetimeImpressions(token, c.meta_campaign_id);
+  } catch (e) {
+    if (e instanceof MetaAuthError) await markMetaError(userId, "expired").catch(() => {});
+    throw new ProductApiError(`No pudimos revisar la campaña en Meta: ${metaReason(e)}`, 502);
+  }
+  if (impressions > 0) throw new ProductApiError("Esta campaña ya empezó a entregar: rehacerla perdería su aprendizaje. Crea una campaña nueva.", 409);
+
+  const db = adminClient();
+  // El borrador que haya quedado abierto para el producto (el configurador guarda solo) cede su lugar:
+  // solo puede haber uno, y el que se rehace es el que el comerciante eligió.
+  let open = db.from("ad_campaigns").select("id, status").eq("user_id", userId).eq("product_id", c.product_id).in("status", ["draft", "launching"]);
+  open = c.source_campaign_id ? open.eq("source_campaign_id", c.source_campaign_id) : open.is("source_campaign_id", null);
+  const { data: other } = await open.maybeSingle();
+  if (other?.status === "launching") throw new ProductApiError("Hay otra campaña de este producto creándose en Meta. Espera a que termine.", 409);
+  if (other) fail("Descartar el borrador abierto", (await db.from("ad_campaigns").delete().eq("id", other.id)).error);
+
+  // Una sola vez: pasa a `launching` solo si sigue como la leímos (ni publicada ni rehecha entremedio).
+  // Si el proceso muere aquí, expireStaleLaunches borra lo de meta_objects y la deja en borrador.
+  const { data: locked, error } = await db
+    .from("ad_campaigns")
+    .update({ status: "launching", progress: { step: "Borrando la campaña en Meta", done: 0, total: 1 }, meta_objects: [{ level: "campaign", id: c.meta_campaign_id }], updated_at: now() })
+    .eq("id", c.id)
+    .eq("status", c.status)
+    .select("id")
+    .maybeSingle();
+  fail("Empezar a rehacer", error);
+  if (!locked) throw new ProductApiError("La campaña cambió mientras tanto. Recarga la página.", 409);
+
+  try {
+    await setStatus(token, c.meta_campaign_id, "DELETED");
+  } catch (e) {
+    if (e instanceof MetaAuthError) await markMetaError(userId, "expired").catch(() => {});
+    await update(c.id, { status: c.status, progress: null, meta_objects: c.meta_objects });
+    throw new ProductApiError(`No pudimos borrar la campaña en Meta: ${metaReason(e)} Sigue igual que antes.`, 502);
+  }
+  for (const t of LAUNCH_TABLES) fail("Limpiar la campaña", (await db.from(t).delete().eq("campaign_id", c.id)).error);
+  await update(c.id, {
+    status: "draft",
+    meta_campaign_id: null,
+    meta_objects: [],
+    progress: null,
+    error: null,
+    launched_at: null,
+    starts_at: null,
+    published_at: null,
+    last_delivery_at: null,
+    last_changed_at: null,
+    last_synced_at: null,
+    sync_error: null,
+  });
   return (await getCampaignRow(userId, campaignId))!;
 }

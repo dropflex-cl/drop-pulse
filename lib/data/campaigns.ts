@@ -249,6 +249,8 @@ export const getCampaignDetail = cache(async (id: string): Promise<CampaignDetai
     dailyTotal: committedDaily(c, sets),
     launchedAt: c.launched_at,
     publishedAt: c.published_at,
+    startsAt: c.starts_at,
+    canRedo: c.status !== "archived" && !c.last_delivery_at && daily.every((d) => !(d.spend > 0)),
     lastSyncedAt: c.last_synced_at,
     syncError: c.sync_error,
     totals: { spend: total.spend, purchases: total.purchases, cpa: total.cpa, roas: total.roas, ctr: total.ctr },
