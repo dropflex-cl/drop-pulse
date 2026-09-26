@@ -3,7 +3,7 @@ import { AVATAR } from "@/app/dev/screens/base/fixture";
 import type { ProductBrief } from "@/lib/ai/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { modelCriteria, SALES_ANGLES } from "./catalog";
-import { angleRouterSystem, angleRouterUser, angleSystem, angleUser } from "./prompts";
+import { angleRouterContext, angleRouterSystem, angleRouterTail, angleRouterUser, angleSystem, angleUser } from "./prompts";
 import { avatarStepSchema } from "@/lib/ai/schemas";
 import { angleBriefSchema, angleRouterSchema, evaluationsFrom, routerProblems, SCORE_KEYS } from "./schemas";
 
@@ -153,5 +153,12 @@ describe("esquemas de ángulos", () => {
     const u = angleRouterUser(ctx, ["offer trae 2 puntajes y debe traer 3, uno por criterio en orden."]);
     expect(u).toContain("Tu respuesta anterior no se pudo puntuar: offer trae 2 puntajes");
     expect(angleRouterUser(ctx)).not.toContain("respuesta anterior");
+  });
+
+  it("el reintento cambia solo el cierre: el contexto (con punto de caché) queda igual", () => {
+    const problems = ["offer trae 2 puntajes y debe traer 3, uno por criterio en orden."];
+    expect(angleRouterContext(ctx)).not.toContain("respuesta anterior");
+    expect(angleRouterTail(problems)).toContain("Tu respuesta anterior no se pudo puntuar: offer trae 2 puntajes");
+    expect(angleRouterUser(ctx, problems)).toBe(`${angleRouterContext(ctx)}\n\n${angleRouterTail(problems)}`);
   });
 });

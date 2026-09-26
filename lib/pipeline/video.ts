@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
+import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { testAngleName, type AngleSlot } from "@/lib/angles/catalog";
@@ -36,7 +37,7 @@ import {
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, type MontagePackage } from "@/lib/video/package";
-import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcUser, type UgcContext } from "@/lib/video/prompts";
+import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
   MASCOT_PROMPT_VERSION,
@@ -197,7 +198,8 @@ export async function runScript(scriptId: string): Promise<void> {
     for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {
       result = await generateStructured({
         system: scriptSystem(format, input.market),
-        content: [image, { type: "text", text: ugcUser(ctx, problems, format) }],
+        // La foto y el contexto con punto de caché: un reintento (hasta 3) los lee a 0,1×.
+        content: retryableContent([image], ugcContextText(ctx), ugcTail(problems, format)),
         schema: ugcScriptSchema,
         effort: "medium",
         maxTokens: 16000,

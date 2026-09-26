@@ -5,8 +5,11 @@ import * as z from "zod/v4";
 import { HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, type TextRole } from "@/lib/creatives/catalog";
 import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES } from "./catalog";
 
-/** Sube cuando cambia el prompt del director (queda en page_image_runs.prompt_version). */
-export const PAGE_IMAGES_PROMPT_VERSION = 2;
+/**
+ * Sube cuando cambia el prompt del director (queda en page_image_runs.prompt_version). 3: el prompt pide
+ * los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS.
+ */
+export const PAGE_IMAGES_PROMPT_VERSION = 3;
 
 const art = z.object({
   palette: z.string().describe("En inglés: 2 a 4 colores con nombre; la escena sale del color del producto y los textos van en un acento profundo del mismo tono."),

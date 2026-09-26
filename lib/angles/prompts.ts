@@ -113,13 +113,22 @@ function contextBlock(c: AngleContext): string[] {
 }
 
 /** `retry`: lo que estuvo mal en el intento anterior (lib/angles/schemas.ts › routerProblems). */
-export function angleRouterUser(c: AngleContext, retry: string[] = []): string {
+/** Lo fijo de la evaluación: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
+export function angleRouterContext(c: AngleContext): string {
+  return contextBlock(c).join("\n");
+}
+
+/** Lo que cambia en cada intento. `retry`: por qué no se pudo puntuar el anterior. */
+export function angleRouterTail(retry: string[] = []): string {
   return [
-    ...contextBlock(c),
-    "",
     ...(retry.length ? [`Tu respuesta anterior no se pudo puntuar: ${retry.join(" ")} Revisa que cada forma aparezca una vez con un puntaje de 0 a 5 por criterio, en el orden numerado, y que vengan los ${ANGLE_CANDIDATES} ángulos candidatos completos.`, ""] : []),
     `Evalúa las 6 formas y propone ${ANGLE_CANDIDATES} ángulos para testear con este producto.`,
   ].join("\n");
+}
+
+/** El mensaje entero en un solo texto (tests); la app lo manda en dos bloques. */
+export function angleRouterUser(c: AngleContext, retry: string[] = []): string {
+  return `${angleRouterContext(c)}\n\n${angleRouterTail(retry)}`;
 }
 
 // ---------------------------------------------------------------- Agentes de ángulo

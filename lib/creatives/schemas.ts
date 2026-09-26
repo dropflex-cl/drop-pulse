@@ -5,14 +5,15 @@
 import * as z from "zod/v4";
 import { allowedAmounts, amountAllowed, amountsIn } from "@/lib/copy/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_MAX, chatShapeProblem, type WhatsappChat } from "./chat";
-import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
+import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_MAX, CHAT_MESSAGE_PROMPT_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_MAX, CONTACT_NAME_PROMPT_MAX, chatShapeProblem, type WhatsappChat } from "./chat";
+import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, ROLE_LIMITS, ROLE_PROMPT_LIMITS, TEXT_ROLES, maxTexts, type Family } from "./catalog";
 
 /**
  * Bump cuando cambie el prompt o el esquema del generador. 2: dirección de arte (spec §7.4).
  * 4: el esquema y el system dejan de pedir principal/secundario y retargeting (2 o 3 ángulos por igual).
+ * 5: el prompt pide los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS.
  */
-export const CREATIVES_PROMPT_VERSION = 4;
+export const CREATIVES_PROMPT_VERSION = 5;
 /** Bump cuando cambie el prompt o el esquema del QA. 2: texto inventado sobre el producto y textos que la imagen contradice. */
 export const QA_PROMPT_VERSION = 2;
 
@@ -22,7 +23,7 @@ export const MAX_TEXTS = 7;
 
 const bakedText = z.object({
   role: z.enum(TEXT_ROLES),
-  text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_LIMITS.headline} caracteres; subheadline y table_row ≤ ${ROLE_LIMITS.subheadline}; el resto ≤ ${ROLE_LIMITS.callout}.`),
+  text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_PROMPT_LIMITS.headline} caracteres; subheadline y table_row ≤ ${ROLE_PROMPT_LIMITS.subheadline}; el resto ≤ ${ROLE_PROMPT_LIMITS.callout}.`),
   placement: z.string().describe("En inglés: dónde va y cómo se ve (posición, cuántas líneas, peso, color y contenedor: pill, card, stamp, handwritten note, table cell)."),
   points_to: z.string().nullable().describe("Solo callouts: la parte VISIBLE del producto a la que llega su línea, en inglés («the grey roller head»). null si no apunta a nada."),
 });
@@ -157,22 +158,22 @@ export type ConceptFixOutput = z.infer<typeof conceptFixSchema>;
 
 // ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
 
-/** Bump cuando cambie el prompt o el esquema del chat. */
-export const CHAT_PROMPT_VERSION = 1;
+/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). */
+export const CHAT_PROMPT_VERSION = 2;
 
 const chatTime = z.string().describe("«HH:MM», 24 h.");
 
 export const chatOutputSchema = z.object({
   name: z.string().describe("Nombre corto del chat para el comerciante («Fran y sus pies suaves»)."),
   why: z.string().describe("Para el comerciante, una frase: qué duda del lector resuelve este chat y por qué detiene el scroll."),
-  contact_name: z.string().describe(`El nombre del amigo como lo guardó el lector, opcionalmente con UN emoji al final («Fran 💗», «Cami», «Javi ✨»). Hasta ${CONTACT_NAME_MAX} caracteres.`),
+  contact_name: z.string().describe(`El nombre del amigo como lo guardó el lector, opcionalmente con UN emoji al final («Fran 💗», «Cami», «Javi ✨»). Hasta ${CONTACT_NAME_PROMPT_MAX} caracteres.`),
   contact_gender: z.enum(["woman", "man"]).describe("woman o man, según el cliente ideal: quien compra le escribe a alguien como él."),
   clock: chatTime.describe("La hora de la barra de estado, «HH:MM» 24 h, uno o dos minutos después del último mensaje."),
   messages: z
     .array(
       z.object({
         from: z.enum(["friend", "me"]).describe("friend = el amigo que compró el producto (entrante, a la izquierda). me = el lector (saliente, a la derecha)."),
-        text: z.string().describe(`El texto de la burbuja, hasta ${CHAT_MESSAGE_MAX} caracteres. En la burbuja de foto, el pie bajo la foto (puede ir vacío).`),
+        text: z.string().describe(`El texto de la burbuja, hasta ${CHAT_MESSAGE_PROMPT_MAX} caracteres. En la burbuja de foto, el pie bajo la foto (puede ir vacío).`),
         time: chatTime.describe("«HH:MM» 24 h, creciente: la conversación entera dura pocos minutos."),
         photo: z.boolean().describe("true en EXACTAMENTE UNA burbuja: la foto del producto que manda el amigo."),
       }),

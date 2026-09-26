@@ -2,6 +2,8 @@
 // Higgsfield (docs/spec-creativos.md §2.4, §3.2 y decisiones 3–7). Puro: lo usan el prompt del
 // generador, el armado del render, la pantalla y los tests.
 
+import { promptLimit } from "@/lib/ai/limits";
+
 export const FAMILIES = ["offer", "before_after", "explainer", "headline", "native", "letter", "proof", "hero"] as const;
 export type Family = (typeof FAMILIES)[number];
 
@@ -40,6 +42,8 @@ export type TextRole = (typeof TEXT_ROLES)[number];
  * largo, el modelo lo corta mal («Luz LED que se enciende al / funcionar»).
  */
 export const ROLE_LIMITS: Record<TextRole, number> = { headline: 45, subheadline: 40, callout: 32, badge: 32, table_header: 32, table_row: 40, note: 32 };
+/** Lo que pide el prompt: un 10 % menos que ROLE_LIMITS, que es lo que valida el código (lib/ai/limits.ts). */
+export const ROLE_PROMPT_LIMITS = Object.fromEntries(TEXT_ROLES.map((r) => [r, promptLimit(ROLE_LIMITS[r])])) as Record<TextRole, number>;
 export const HEADLINE_MAX_WORDS = 6;
 
 /** Máximo de textos por pieza: pocos se leen en el feed; la comparativa y la oferta necesitan más. */

@@ -12,8 +12,8 @@ import type { Preset } from "@/lib/integrations/higgsfield/client";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_LIMITS, TEXT_ROLES } from "./catalog";
-import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_MAX } from "./chat";
+import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_PROMPT_LIMITS, TEXT_ROLES } from "./catalog";
+import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_PROMPT_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_PROMPT_MAX } from "./chat";
 import type { ConceptPayload } from "./schemas";
 
 const RULES = [
@@ -57,7 +57,7 @@ export function creativesSystem(market: Market): string {
     "- Cada concepto lo renderiza Higgsfield Marketing Studio en UNA sola generación: escena, producto y TODOS los textos quedan horneados en la imagen. No hay capas ni edición posterior.",
     "- El producto sale de la foto real (IMAGEN BASE) y se mantiene idéntico: descríbelo solo en product_look (lo que se ve), nunca le cambies forma, color ni etiqueta.",
     "- Un preset de Marketing Studio aporta la composición, la tipografía y el estilo de su grupo: sirve cuando el producto es el protagonista. Elige el que mejor calce con la familia, el producto y su paleta. Las familias sin preset (abajo) van con preset_id null: ahí la escena y el layout mandan.",
-    `- Pocos textos y cortos: el modelo escribe mejor 3 textos que 8, y en el feed nadie lee más. Máximo 5 por concepto (7 en comparativa y oferta). Exactamente un headline de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_LIMITS.headline} caracteres); subheadline y table_row hasta ${ROLE_LIMITS.subheadline}; los demás, UNA línea de hasta ${ROLE_LIMITS.callout} caracteres. Cuenta los caracteres.`,
+    `- Pocos textos y cortos: el modelo escribe mejor 3 textos que 8, y en el feed nadie lee más. Máximo 5 por concepto (7 en comparativa y oferta). Exactamente un headline de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_PROMPT_LIMITS.headline} caracteres); subheadline y table_row hasta ${ROLE_PROMPT_LIMITS.subheadline}; los demás, UNA línea de hasta ${ROLE_PROMPT_LIMITS.callout} caracteres. Cuenta los caracteres.`,
     `- Roles de texto: ${TEXT_ROLES.join(", ")}. En una comparativa: 2 table_header (el producto y la práctica que reemplaza) y 2 a 4 table_row.`,
     "- scene, layout, art, placement y points_to van en inglés; los textos, name, why y look, en el idioma del mercado.",
     "",
@@ -142,13 +142,22 @@ function creativesContext(c: CreativesContext): string[] {
   ];
 }
 
-/** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › conceptProblems). */
-export function creativesUser(c: CreativesContext, retry: string[] = []): string {
+/** Lo fijo de la propuesta: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
+export function creativesContextText(c: CreativesContext): string {
+  return creativesContext(c).join("\n");
+}
+
+/** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (lib/creatives/schemas.ts › conceptProblems). */
+export function creativesTail(retry: string[] = []): string {
   return [
-    ...creativesContext(c),
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     "Propón los conceptos de anuncio de imagen.",
   ].join("\n");
+}
+
+/** El mensaje entero en un solo texto (scripts y tests); la app lo manda en dos bloques. */
+export function creativesUser(c: CreativesContext, retry: string[] = []): string {
+  return `${creativesContextText(c)}\n${creativesTail(retry)}`;
 }
 
 /**
@@ -204,7 +213,7 @@ export function chatSystem(market: Market): string {
     "CÓMO ESCRIBEN",
     "- Como dos amigos que se escriben: cálido, casual, burbujas cortas, alguna muletilla natural («jaja», «amiga», «porfa», «demasiado»). Toque ligero: tiene que leerse como un chat real, no como una caricatura.",
     "- Ortografía y tildes impecables. Como mucho un emoji por burbuja, y no en todas.",
-    `- Cada burbuja hasta ${CHAT_MESSAGE_MAX} caracteres; el nombre del contacto hasta ${CONTACT_NAME_MAX}. Cuenta los caracteres.`,
+    `- Cada burbuja hasta ${CHAT_MESSAGE_PROMPT_MAX} caracteres; el nombre del contacto hasta ${CONTACT_NAME_PROMPT_MAX}. Cuenta los caracteres.`,
     "- name y why, para el comerciante, en su idioma.",
   ].join("\n");
 }

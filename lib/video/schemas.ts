@@ -20,13 +20,14 @@ import {
   TOTAL_SECONDS_MAX,
   TOTAL_SECONDS_MIN,
   WORDS_PER_SECOND_MAX,
+  WORDS_PER_SECOND_PROMPT,
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. */
-export const UGC_PROMPT_VERSION = 2;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). */
-export const MASCOT_PROMPT_VERSION = 1;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). */
+export const UGC_PROMPT_VERSION = 3;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. */
+export const MASCOT_PROMPT_VERSION = 2;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. */
 export const KEYFRAME_QA_PROMPT_VERSION = 1;
 
@@ -45,7 +46,7 @@ const keyframe = z.object({
 const aRoll = z.object({
   key: z.string().describe("«A1», «A2»… en orden."),
   keyframe: z.string().describe("La imagen clave de la que parte la toma (K1… de keyframes): la persona o el personaje mirando a cámara."),
-  seconds: z.number().int().describe(`${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX}. Cuenta las palabras: máximo ${WORDS_PER_SECOND_MAX} por segundo.`),
+  seconds: z.number().int().describe(`${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX}. Cuenta las palabras: máximo ${String(WORDS_PER_SECOND_PROMPT).replace(".", ",")} por segundo.`),
   line: z.string().describe("Lo que dice, exactamente, en el idioma del mercado. Números en palabras. NUNCA un precio ni un monto."),
   delivery: z.string().describe("En inglés: cómo lo dice (qué palabra remarca, qué tono en cada frase)."),
   acting: z.string().describe("En inglés: gestos y expresión (sonrisa, cejas, manos) mientras habla."),

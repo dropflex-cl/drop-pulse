@@ -8,6 +8,8 @@
 // El prompt de render es AUTOCONTENIDO: sin dirección de arte, porque una captura tiene un solo
 // aspecto correcto (la interfaz real) y cualquier estilo es un desvío.
 
+import { promptLimit } from "@/lib/ai/limits";
+
 /** Quién manda la burbuja: el amigo que compró (entrante, a la izquierda) o el lector (saliente, a la derecha). */
 export type ChatSender = "friend" | "me";
 
@@ -40,6 +42,9 @@ export const CHAT_MAX_MESSAGES = 7;
 /** Una burbuja es un mensaje, no un párrafo: ~3 líneas en el teléfono. v1 admitía 160; el QA lee letra por letra. */
 export const CHAT_MESSAGE_MAX = 120;
 export const CONTACT_NAME_MAX = 24;
+/** Lo que pide el prompt (un 10 % menos, lib/ai/limits.ts); el editor y la validación usan los topes de arriba. */
+export const CHAT_MESSAGE_PROMPT_MAX = promptLimit(CHAT_MESSAGE_MAX);
+export const CONTACT_NAME_PROMPT_MAX = promptLimit(CONTACT_NAME_MAX);
 
 const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 

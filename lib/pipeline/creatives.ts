@@ -1,6 +1,7 @@
 import "server-only";
 import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
+import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
@@ -8,7 +9,7 @@ import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
 import { CHAT_FAMILY, CONCEPTS_PER_RUN, IMAGE_COST_USD, conceptRatios, type ConceptFamily, type Ratio } from "@/lib/creatives/catalog";
 import { chatBakedTexts, normalizeChat, type WhatsappChat } from "@/lib/creatives/chat";
-import { QA_SYSTEM, chatSystem, chatUser, creativesFixUser, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
+import { QA_SYSTEM, chatSystem, chatUser, creativesContextText, creativesFixUser, creativesSystem, creativesTail, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
 import { chatRenderRequest, languageName, renderRequest } from "@/lib/creatives/render";
 import {
   CHAT_PROMPT_VERSION,
@@ -277,7 +278,8 @@ export async function runCreatives(runId: string): Promise<void> {
       } else {
         const result = await generateStructured({
           system: creativesSystem(input.market),
-          content: [...imageContent, { type: "text", text: creativesUser(ctx, problems) }],
+          // Fotos y contexto con punto de caché: un reintento completo los lee a 0,1×.
+          content: retryableContent(imageContent, creativesContextText(ctx), creativesTail(problems)),
           schema: creativeConceptsSchema,
           effort: "medium",
           maxTokens: 16000,

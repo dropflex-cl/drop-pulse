@@ -1,10 +1,11 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type AngleSlot, type SalesAngle, type TestAngle } from "@/lib/angles/catalog";
-import { angleRouterSystem, angleRouterUser, angleSystem, angleUser, type AngleContext } from "@/lib/angles/prompts";
+import { angleRouterContext, angleRouterSystem, angleRouterTail, angleSystem, angleUser, type AngleContext } from "@/lib/angles/prompts";
 import {
   ANGLE_BRIEF_PROMPT_VERSION,
   ANGLE_ROUTER_PROMPT_VERSION,
@@ -212,7 +213,8 @@ export async function runRanking(rankingId: string): Promise<void> {
     const evaluate = (retry: string[]) =>
       generateStructured({
         system: angleRouterSystem(r.input.market as Market),
-        content: [{ type: "text", text: angleRouterUser(ctx, retry) }],
+        // El contexto con punto de caché: el segundo intento lo lee a 0,1×.
+        content: retryableContent([], angleRouterContext(ctx), angleRouterTail(retry)),
         schema: angleRouterSchema,
         effort: "medium",
       });

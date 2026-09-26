@@ -23,9 +23,14 @@ import {
   MISPRONOUNCED,
   TOTAL_SECONDS_MAX,
   TOTAL_SECONDS_MIN,
-  WORDS_PER_SECOND_MAX,
+  WORDS_PER_SECOND_PROMPT,
   type VideoFormat,
 } from "./catalog";
+
+/** Las palabras por segundo que pide el prompt, con coma decimal («2,7»). */
+const WPS = String(WORDS_PER_SECOND_PROMPT).replace(".", ",");
+/** «4 s → 10, 5 s → 13…»: el tope por toma que pide el prompt. */
+const WORDS_BY_SECONDS = [4, 5, 6, 7, 8].map((s) => `${s} s → ${Math.floor(s * WORDS_PER_SECOND_PROMPT)}`).join(", ");
 
 const STRUCTURE = [
   "CÓMO SE ARMA EL VIDEO (lo que funcionó en las pruebas)",
@@ -42,7 +47,7 @@ const VOICE = [
   "- La voz la genera el modelo de video desde el texto: escribe cómo se dice cada línea en delivery (qué palabra remarca, qué tono tiene cada frase) y los gestos en acting.",
   "- Tono: entusiasta y cálido, sonriendo, como contarle un descubrimiento a una amiga. NUNCA exasperada, dramática, gritada ni apurada (sale golpeada y molesta). Tampoco suave y pausada sin más (sale plana y aburrida).",
   "- Gestos concretos y variados por toma: se inclina a la cámara, cuenta con los dedos, se toca bajo el ojo, levanta el producto junto a la mejilla, guiña al final.",
-  `- Largo: cuenta las palabras de cada línea. Máximo ${WORDS_PER_SECOND_MAX} por segundo: ${[4, 5, 6, 7, 8].map((s) => `${s} s → ${Math.floor(s * WORDS_PER_SECOND_MAX)}`).join(", ")} palabras. Si no cabe, acorta la línea o súbele un segundo.`,
+  `- Largo: cuenta las palabras de cada línea. Máximo ${WPS} por segundo: ${WORDS_BY_SECONDS} palabras. Si no cabe, acorta la línea o súbele un segundo.`,
   "- Los números van en palabras («siete minutos», «tres gotas»). NUNCA digas un precio ni un monto: la voz los pronuncia mal. Los precios van solo en el texto en pantalla de la oferta.",
   `- Palabras que la voz pronuncia mal: ${MISPRONOUNCED.map((m) => `«${m.word}» (usa ${m.instead})`).join("; ")}.`,
   "- Frases que se entienden solas y conectores que invitan a la entonación («Entonces…», «Y tres:», «¿Lo que cambié?», exclamaciones cortas).",
@@ -114,7 +119,7 @@ const MASCOT_VOICE = [
   "LA VOZ Y LA ACTUACIÓN",
   "- La voz es la de un personaje animado (el modelo de video la genera igual en todas las tomas). En delivery: la emoción de cada línea y qué palabra remarca (ofendido y serio en el gancho, frustrado en el problema, asombrado y seguro en el mecanismo, feliz en el final).",
   "- acting: gestos de caricatura concretos por toma (pone los ojos en blanco, cuenta con los deditos, se toca la uña, abraza el frasco, baila).",
-  `- Largo: máximo ${WORDS_PER_SECOND_MAX} palabras por segundo: ${[4, 5, 6, 7, 8].map((s) => `${s} s → ${Math.floor(s * WORDS_PER_SECOND_MAX)}`).join(", ")} palabras.`,
+  `- Largo: máximo ${WPS} palabras por segundo: ${WORDS_BY_SECONDS} palabras.`,
   "- La marca, separada como se pronuncia si es una palabra inventada («Kera Pass»); en los textos en pantalla y el cierre, escrita como es.",
   "- Números en palabras. NUNCA un precio ni un monto hablado: van solo en pantalla.",
   `- Palabras que la voz pronuncia mal: ${MISPRONOUNCED.map((m) => `«${m.word}» (usa ${m.instead})`).join("; ")}.`,
@@ -178,8 +183,8 @@ export interface UgcContext {
   angle: AngleForPrompt;
 }
 
-/** `retry`: lo que estuvo mal en el intento anterior (lib/video/schemas.ts › scriptProblems). */
-export function ugcUser(c: UgcContext, retry: string[] = [], format: VideoFormat = "ugc"): string {
+/** Lo fijo del guion: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
+export function ugcContextText(c: UgcContext): string {
   const b = c.angle.payload;
   return [
     "La imagen es la foto real del producto (la referencia de todas las tomas con producto).",
@@ -213,9 +218,20 @@ export function ugcUser(c: UgcContext, retry: string[] = [], format: VideoFormat
       details: b.details,
     }),
     "",
+  ].join("\n");
+}
+
+/** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (lib/video/schemas.ts › scriptProblems). */
+export function ugcTail(retry: string[] = [], format: VideoFormat = "ugc"): string {
+  return [
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     format === "mascot" ? "Escribe el guion del video de mascota animada." : "Escribe el guion del video UGC.",
   ].join("\n");
+}
+
+/** El mensaje entero en un solo texto (scripts y tests); la app lo manda en dos bloques. */
+export function ugcUser(c: UgcContext, retry: string[] = [], format: VideoFormat = "ugc"): string {
+  return `${ugcContextText(c)}\n${ugcTail(retry, format)}`;
 }
 
 // ---------------------------------------------------------------- QA de imágenes clave

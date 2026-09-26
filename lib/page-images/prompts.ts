@@ -8,7 +8,7 @@ import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { angleHeading, angleMessage, type AngleForPrompt } from "@/lib/angles/approved";
-import { HEADLINE_MAX_WORDS, ROLE_LIMITS } from "@/lib/creatives/catalog";
+import { HEADLINE_MAX_WORDS, ROLE_PROMPT_LIMITS } from "@/lib/creatives/catalog";
 import type { Market } from "@/lib/market";
 import { BENEFIT_SHOTS, GALLERY_SHOTS } from "./catalog";
 import { BENEFIT_MAX } from "./schemas";
@@ -63,7 +63,7 @@ export function pageImagesSystem(market: Market): string {
     "- Nada decorativo que confunda: copas, unidades de más, objetos que parezcan parte del producto o del kit.",
     "",
     "TEXTOS",
-    `- Máximo 5 por imagen (7 en comparison). Exactamente un headline en las que llevan texto, de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_LIMITS.headline} caracteres), con mayúscula inicial y siglas en mayúscula («USB», «LED»); subheadline y table_row hasta ${ROLE_LIMITS.subheadline}; table_header y note en UNA línea de hasta ${ROLE_LIMITS.callout}. Badge y callout: 1 o 2 líneas separadas por «\\n» (la primera en negrita, la segunda fina), cada una de hasta ${ROLE_LIMITS.callout}. Cuenta los caracteres.`,
+    `- Máximo 5 por imagen (7 en comparison). Exactamente un headline en las que llevan texto, de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_PROMPT_LIMITS.headline} caracteres), con mayúscula inicial y siglas en mayúscula («USB», «LED»); subheadline y table_row hasta ${ROLE_PROMPT_LIMITS.subheadline}; table_header y note en UNA línea de hasta ${ROLE_PROMPT_LIMITS.callout}. Badge y callout: 1 o 2 líneas separadas por «\\n» (la primera en negrita, la segunda fina), cada una de hasta ${ROLE_PROMPT_LIMITS.callout}. Cuenta los caracteres.`,
     "- Callouts: points_to es una parte concreta que SE VE en ese layout («the white logo on the front of the jar», «the grey roller head»), nunca «the product» en general. Si no hay una parte que se vea, va como badge.",
     "- Lo que un texto nombra se ve en la imagen igual.",
     "",

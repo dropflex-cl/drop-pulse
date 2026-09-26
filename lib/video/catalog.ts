@@ -1,6 +1,8 @@
 // Constantes del video UGC (docs/spec-video-ugc.md). Lo que aprendió la POC del 2026-09-25/26 vive
 // aquí como números, no en el criterio del modelo. Puro.
 
+import { promptRate } from "@/lib/ai/limits";
+
 /** Tomas habladas por guion. Con menos, el video queda largo por toma y se siente lento. */
 export const A_ROLL_MIN = 4;
 export const A_ROLL_MAX = 6;
@@ -15,6 +17,8 @@ export const TOTAL_SECONDS_MAX = 32;
  * y sonó natural (A2: 17 palabras en 5,6 s). Más, y la toma se apura o se corta.
  */
 export const WORDS_PER_SECOND_MAX = 3;
+/** Lo que pide el prompt (un 10 % menos, lib/ai/limits.ts): 2,7. scriptProblems sigue aceptando hasta 3. */
+export const WORDS_PER_SECOND_PROMPT = promptRate(WORDS_PER_SECOND_MAX);
 export const B_ROLL_MAX = 10;
 /** Cuánto tapa un B-roll la toma hablada (el montaje lo corta de un clip de 5 s). */
 export const B_ROLL_CUT_MIN = 1;
