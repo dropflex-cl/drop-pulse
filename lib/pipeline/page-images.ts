@@ -30,6 +30,7 @@ import {
   GIFS,
   MAX_OPTIONS_PER_SLOT,
   ORDERED,
+  autoShotIds,
   benefitSlot,
   slotKind,
 } from "@/lib/page-images/catalog";
@@ -60,8 +61,10 @@ import { OptimizeError } from "./optimize";
 // Etapa Imágenes (docs/spec-imagenes.md): las imágenes de la página del producto, por espacio.
 // 1. El director de galería (Claude) propone una toma por espacio con dirección de arte: portada, 5 de
 //    galería y una por cada beneficio aprobado en Textos.
-// 2. Cada toma se renderiza desde la foto base con el proveedor que eligió el comerciante en la pantalla
-//    (Higgsfield Marketing Studio Flare, directo, o Gemini; lib/image-provider.ts).
+// 2. Se renderizan solas la portada y las primeras 4 de galería (autoShotIds), desde la foto base y con
+//    el proveedor que eligió el comerciante en la pantalla (Higgsfield Marketing Studio Flare, directo, o
+//    Gemini; lib/image-provider.ts). La quinta de galería y los beneficios quedan propuestos: se generan
+//    a pedido («Generar» por toma o «Generar los beneficios»).
 // 3. Un QA con Claude revisa producto, textos y props; si falla, un reintento automático.
 // El comerciante elige por espacio entre lo generado, sus fotos de Información base y lo que suba.
 
@@ -162,7 +165,7 @@ export async function startPageImages(userId: string, productId: string): Promis
 }
 
 /**
- * Ejecuta el director y genera todas sus tomas. Pensada para `after()`: nunca lanza; deja el
+ * Ejecuta el director y genera las tomas que van solas (autoShotIds). Pensada para `after()`: nunca lanza; deja el
  * resultado en las filas. Lo que no alcance a terminar lo termina el sondeo de la pantalla.
  */
 export async function runPageImages(runId: string): Promise<void> {
@@ -225,8 +228,10 @@ export async function runPageImages(runId: string): Promise<void> {
     await purgeDiscardedPageImages(r.user_id).catch((e) => console.error("[page-images] borrar lo reemplazado", e));
     fail("Guardar la corrida", (await db.from("page_image_runs").update({ status: "succeeded", payload: { ...plan, shots: undefined }, prompt_version: PAGE_IMAGES_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error);
 
-    // Toda la galería de una vez: el comerciante ya vio el costo al tocar Generar.
-    created = await Promise.all(((inserted.data ?? []) as ShotRow[]).map((s) => insertImage(s, 1, provider, input.market)));
+    // Solo lo que deja la etapa lista (el costo que vio el comerciante al tocar Generar); lo demás, a pedido.
+    const shots = (inserted.data ?? []) as ShotRow[];
+    const auto = autoShotIds(shots);
+    created = await Promise.all(shots.filter((s) => auto.has(s.id)).map((s) => insertImage(s, 1, provider, input.market)));
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[page-images] director", e);
@@ -296,8 +301,14 @@ export async function startShotRender(userId: string, productId: string, shotId:
   return insertImage(shot, 1, provider);
 }
 
-/** «Generar los vacíos»: una imagen para cada toma que no tiene ninguna viva. */
-export async function startFillEmpty(userId: string, productId: string): Promise<PageImageRow[]> {
+/**
+ * Una imagen para cada toma sin ninguna viva. `required` («Generar los vacíos»): solo las que se generan
+ * solas al armar la galería (autoShotIds), por si alguna falló. `benefits` («Generar los beneficios»):
+ * las de los beneficios, que quedan propuestas hasta que el comerciante las pide.
+ */
+export type FillScope = "required" | "benefits";
+
+export async function startFillEmpty(userId: string, productId: string, scope: FillScope = "required"): Promise<PageImageRow[]> {
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const db = adminClient();
   const [shots, images] = await Promise.all([
@@ -307,7 +318,10 @@ export async function startFillEmpty(userId: string, productId: string): Promise
   fail("Leer las tomas", shots.error);
   fail("Leer las imágenes", images.error);
   const alive = new Set(((images.data ?? []) as { shot_id: string; render_status: string; status: string }[]).filter((i) => i.render_status !== "failed" && i.status !== "rejected").map((i) => i.shot_id));
-  const empty = ((shots.data ?? []) as ShotRow[]).filter((s) => !alive.has(s.id));
+  const all = (shots.data ?? []) as ShotRow[];
+  const auto = autoShotIds(all);
+  const wanted = (s: ShotRow) => (scope === "benefits" ? slotKind(s.slot) === "benefit" : auto.has(s.id));
+  const empty = all.filter((s) => wanted(s) && !alive.has(s.id));
   if (!empty.length) return [];
   await checkDailyImages(userId, empty.length);
   const market = await runMarket(empty[0].run_id);

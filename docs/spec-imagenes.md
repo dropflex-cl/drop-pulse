@@ -27,17 +27,17 @@ El espacio `gifs` alimenta el componente **`gif-strip`** («DropFlex · GIFs», 
 
 ## 2. Flujo
 
-1. **Generar la galería** (`POST /api/products/[id]/page-images`). Se muestra el costo antes: 1 + 5 + N beneficios imágenes × US$0,10. Crea una corrida del director (`page_image_runs`) y sigue en `after()`.
+1. **Generar la galería** (`POST /api/products/[id]/page-images`). Se muestra el costo antes: lo que se genera solo, la portada y 4 de galería (`AUTO_SHOTS` = 5 imágenes × el costo del proveedor). Crea una corrida del director (`page_image_runs`) y sigue en `after()`.
 2. **Director de galería** (Claude, `lib/page-images/prompts.ts`). Recibe la foto base y las otras imágenes en uso, la ficha, el cliente ideal, los 2 desarrollos de ángulo y los textos aprobados (nombre corto, cómo funciona y beneficios). Entrega:
    - lo común: `product_look`, `kit`, `brand_art`, `props_allowed` y `props_forbidden`;
    - una toma por espacio (`page_image_shots`): tipo, escena, layout, arte, unidades, partes del kit, manos y textos con su ubicación.
    `planProblems` la valida en código y se reintenta hasta 3 veces con lo que falló.
-3. **Render**: todas las tomas de una vez, de a 4 en paralelo (`lib/page-images/render.ts`). Flare, 1k, `low`, directo (sin preset) y sin `enhance_prompt`, con la foto base como referencia.
+3. **Render**: solo las tomas que van solas (`autoShotIds`: la portada y las primeras 4 de galería, lo que deja la etapa lista), de a 4 en paralelo (`lib/page-images/render.ts`). Flare, 1k, `low`, directo (sin preset) y sin `enhance_prompt`, con la foto base como referencia. La quinta de galería y los beneficios quedan **propuestos, sin generar**: el comerciante los genera si los quiere («Generar» en la toma o «Generar los beneficios»). En prod (2026-09-24/25) la quinta sobró en las 2 galerías vigentes y los beneficios se usaron en 1 de 2 productos.
 4. **QA** (Claude con visión): producto idéntico, textos exactos, sin textos extra (incluido el texto de la caja impreso en el producto), props engañosos, unidades idénticas y anatomía. Si falla, **un reintento automático** de la misma toma (`retry_of`). Si el reintento sale bien, el primer intento se descarta solo, salvo que el comerciante ya lo haya elegido.
 5. **Elegir**:
    - Portada y beneficios llevan una sola imagen: elegir otra reemplaza la anterior.
    - La galería lleva de 4 a 6 y se ordena (1 = la primera después de la portada).
-   - «Generar otra» hace otra imagen de la misma toma. «Generar los vacíos» genera las tomas sin ninguna imagen viva. «Proponer otra galería» vuelve a correr el director.
+   - «Generar» hace la primera imagen de una toma propuesta; «Generar otra», una más de la misma toma. «Generar los vacíos» (`POST /page-images/fill`) genera las tomas que van solas y quedaron sin imagen viva (una falla): nunca las opcionales, que no bloquean «Continuar». «Generar los beneficios» (`{ scope: "benefits" }`) genera los beneficios sin imagen. «Proponer otra galería» vuelve a correr el director.
 6. Lo que no alcanza a terminar en `after()` lo termina el sondeo de la pantalla (`syncPageImages`, lease de 20 s), igual que Creativos. Una imagen que falló después de llegar a Higgsfield se puede **recuperar** sin volver a pagar.
 
 ## 3. Datos
@@ -92,7 +92,7 @@ La dirección de arte se validó en un POC con datos de prod de solo lectura (re
 - Director: ~US$0,25.
 - Imagen de Flare: se registra con la cota de US$0,10, marcada como estimada.
 - QA: ~US$0,04 por imagen.
-- **Una galería completa** con 5 beneficios (11 imágenes): ~US$1,10 de Higgsfield + ~US$0,70 de Claude.
+- **Generar la galería** (portada y 4 de galería, 5 imágenes): ~US$0,50 de Higgsfield + ~US$0,40 de Claude (director y QA). Cada toma opcional que se pide suma una imagen y su QA.
 - Topes por comerciante en 24 h: 10 galerías, 150 imágenes y 12 opciones generadas por espacio.
 - Los pasos `page_plan`, `page_render` y `page_qa` suman a la etapa Imágenes del costo de IA del producto.
 

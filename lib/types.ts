@@ -753,8 +753,11 @@ export interface PageImageSlotView {
   ratio: "1:1" | "3:4";
   /** El texto aprobado en Textos que acompaña a este espacio (beneficios). */
   pairs?: string;
-  /** Las tomas que propuso el director para este espacio (Generar otra). */
-  shots: { id: string; name: string; type: string; look: string }[];
+  /**
+   * Las tomas que propuso el director para este espacio («Generar» o «Generar otra»). `auto`: se genera
+   * sola al armar la galería (la portada y las primeras de galería); las demás, a pedido.
+   */
+  shots: { id: string; name: string; type: string; look: string; auto: boolean }[];
   options: PageImageOptionView[];
 }
 

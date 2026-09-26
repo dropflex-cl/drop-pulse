@@ -9,7 +9,7 @@ import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { money } from "@/lib/format";
 import { IMAGE_COST_BY_PROVIDER, costSource, type ImageProviderChoice } from "@/lib/image-provider";
-import { GALLERY_MAX, GALLERY_MIN, GALLERY_SHOTS, GIF_MAX } from "@/lib/page-images/catalog";
+import { AUTO_SHOTS, GALLERY_MAX, GALLERY_MIN, GALLERY_SHOTS, GIF_MAX } from "@/lib/page-images/catalog";
 import { ProductApiClientError, productsApi, uploadPageImage } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { PageImageOptionView, PageImageSlotView, PageImagesState, ProductPageImages, RunStatus } from "@/lib/types";
@@ -29,6 +29,8 @@ const SOURCE: Record<PageImageOptionView["source"], string> = { ai: "IA", upload
 
 /** Las opciones que se muestran: sin las descartadas (esperan su borrado). */
 const visible = (s: PageImageSlotView) => s.options.filter((o) => !o.discarded);
+/** Las tomas del espacio que no tienen ninguna imagen viva (nunca generadas o todas fallidas). */
+const pendingShots = (s: PageImageSlotView) => s.shots.filter((sh) => !visible(s).some((o) => o.shotId === sh.id && o.render !== "failed"));
 const chosenOf = (s: PageImageSlotView) => visible(s).filter((o) => o.chosen).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
 export function PageImagesScreen({ data }: { data: ProductPageImages }) {
@@ -49,8 +51,10 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
   const hasShots = slots.some((s) => s.shots.length);
   const cost = (n: number) => money(n * state.imageCostUsd, "USD");
   const setProvider = (imageProvider: ImageProviderChoice) => setState((s) => ({ ...s, imageProvider, imageCostUsd: IMAGE_COST_BY_PROVIDER[imageProvider.value ?? "higgsfield"] }));
-  const setSize = 1 + GALLERY_SHOTS + slots.filter((s) => s.kind === "benefit").length;
-  const empty = slots.flatMap((s) => s.shots.filter((sh) => !visible(s).some((o) => o.shotId === sh.id && o.render !== "failed")));
+  // Lo que va solo al armar la galería (portada y 4 de galería) y quedó sin imagen: «Generar los vacíos».
+  // La quinta de galería y los beneficios son a pedido: no bloquean «Continuar».
+  const empty = slots.flatMap((s) => pendingShots(s).filter((sh) => sh.auto));
+  const benefitsPending = slots.filter((s) => s.kind === "benefit").flatMap(pendingShots);
   const cover = slots.find((s) => s.kind === "cover");
   const gallery = slots.find((s) => s.kind === "gallery");
   const galleryChosen = gallery ? chosenOf(gallery).length : 0;
@@ -62,7 +66,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
   useEffect(() => {
     if (wasProposing.current && !proposing) {
       router.refresh();
-      if (run?.status === "succeeded") notify("La IA armó tu galería: las imágenes se están generando");
+      if (run?.status === "succeeded") notify(`La IA armó tu galería: se están generando la portada y ${GALLERY_MIN} de galería`);
       else if (run?.status === "failed") notify(run.error ?? "No pudimos proponer las imágenes. Toca Reintentar.");
     }
     wasProposing.current = proposing;
@@ -115,6 +119,8 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
 
   const propose = () => act("propose", () => productsApi.proposePageImages(product.id), "No pudimos empezar. Intenta de nuevo.");
   const fill = () => act("fill", () => productsApi.fillPageImages(product.id), "No pudimos generar. Intenta de nuevo.", `Generando ${empty.length} ${empty.length === 1 ? "imagen" : "imágenes"}`);
+  const fillBenefits = () =>
+    act("benefits", () => productsApi.fillPageImages(product.id, "benefits"), "No pudimos generar los beneficios. Intenta de nuevo.", `Generando ${benefitsPending.length} ${benefitsPending.length === 1 ? "beneficio" : "beneficios"}`);
 
   // ---------------------------------------------------------------- Vistas
   const actionClass = "max-lg:w-full lg:h-control lg:text-row";
@@ -164,18 +170,27 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
               <div>
                 <h2 className="text-row font-semibold">{run?.status === "failed" ? "Reintenta la galería" : "La IA arma la galería de tu página"}</h2>
                 <p className="mt-0.5 text-label font-normal text-muted-foreground">
-                  {`Portada, ${GALLERY_SHOTS} imágenes de galería y una por cada beneficio, con el estilo de una marca: ${setSize} imágenes desde tu foto base, cerca de ${cost(setSize)}${costSource(state.imageProvider.value)}.`}
+                  {`Propone la portada, ${GALLERY_SHOTS} tomas de galería y una por cada beneficio, con el estilo de una marca. Genera la portada y ${GALLERY_MIN} de galería, lo que necesita tu página: ${AUTO_SHOTS} imágenes desde tu foto base, cerca de ${cost(AUTO_SHOTS)}${costSource(state.imageProvider.value)}. Las demás las generas si las quieres.`}
                 </p>
               </div>
             </div>
             <Button variant="primary" icon="sparkle" loading={busy === "propose"} onClick={propose} className="self-start max-lg:w-full">
-              {run?.status === "failed" ? "Reintentar" : `Generar la galería · ${cost(setSize)}`}
+              {run?.status === "failed" ? "Reintentar" : `Generar la galería · ${cost(AUTO_SHOTS)}`}
             </Button>
           </div>
         ) : null}
       </>
     );
-    const list = <SlotList slots={slots} current={desktop ? current?.key : undefined} onOpen={setOpen} />;
+    const benefitsAction =
+      benefitsPending.length && !state.cannotGenerate ? (
+        <div className="flex flex-col gap-2 rounded-md bg-muted p-3">
+          <p className="m-0 text-caption text-muted-foreground">Opcionales: van al final de la galería de tu tienda, cada una con su beneficio. Genera las que quieras usar.</p>
+          <Button size="sm" variant="secondary" icon="sparkle" loading={busy === "benefits"} disabled={!!busy || proposing} onClick={fillBenefits} className="self-start max-lg:w-full">
+            {`Generar ${benefitsPending.length === 1 ? "el beneficio" : `los ${benefitsPending.length} beneficios`} · ${cost(benefitsPending.length)}`}
+          </Button>
+        </div>
+      ) : null;
+    const list = <SlotList slots={slots} current={desktop ? current?.key : undefined} onOpen={setOpen} benefitsAction={benefitsAction} />;
     const detail = current ? (
       <SlotDetail
         key={current.key}
@@ -222,7 +237,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
       >
         {hasShots ? (
           <Button size="lg" icon="sparkle" loading={busy === "propose"} disabled={proposing || !!state.cannotGenerate} onClick={propose} className={actionClass}>
-            {desktop ? `Proponer otra galería · ${cost(setSize)}` : "Otra galería"}
+            {desktop ? `Proponer otra galería · ${cost(AUTO_SHOTS)}` : "Otra galería"}
           </Button>
         ) : null}
         {empty.length && !state.cannotGenerate ? (
@@ -278,13 +293,26 @@ function slotBadge(s: PageImageSlotView): { label: string; tone: "success" | "pr
   const ok = opts.filter((o) => o.render === "succeeded").length;
   if (ok) return { label: ok === 1 ? "1 opción" : `${ok} opciones`, tone: "quiet", icon: "image" };
   if (opts.some((o) => o.render === "failed")) return { label: "Con error", tone: "danger", icon: "alert" };
+  // Una toma propuesta que el comerciante todavía no pide (la quinta de galería, los beneficios).
+  if (s.shots.length) return { label: "Sin generar", tone: "quiet", icon: "image" };
   return null;
 }
 
-function SlotList({ slots, current, onOpen }: { slots: PageImageSlotView[]; current?: string; onOpen: (key: string) => void }) {
+function SlotList({
+  slots,
+  current,
+  onOpen,
+  benefitsAction,
+}: {
+  slots: PageImageSlotView[];
+  current?: string;
+  onOpen: (key: string) => void;
+  /** «Generar los beneficios», bajo sus espacios, mientras falte alguno. */
+  benefitsAction?: React.ReactNode;
+}) {
   const groups = [
     { title: "Galería", items: slots.filter((s) => s.kind === "cover" || s.kind === "gallery") },
-    { title: "Por qué comprarlo", items: slots.filter((s) => s.kind === "benefit") },
+    { title: "Por qué comprarlo", items: slots.filter((s) => s.kind === "benefit"), action: benefitsAction },
     { title: "En movimiento", items: slots.filter((s) => s.kind === "gif") },
   ].filter((g) => g.items.length);
   return (
@@ -332,6 +360,7 @@ function SlotList({ slots, current, onOpen }: { slots: PageImageSlotView[]; curr
               );
             })}
           </ul>
+          {"action" in g ? g.action : null}
         </section>
       ))}
     </div>
@@ -367,6 +396,7 @@ function SlotDetail({
   const [upload, setUpload] = useState<number | null>(null);
   const opts = visible(s);
   const chosen = chosenOf(s);
+  const pending = new Set(pendingShots(s).map((sh) => sh.id));
   const usedRefs = new Set(opts.filter((o) => o.referenceId).map((o) => o.referenceId));
   const freeRefs = references.filter((r) => !usedRefs.has(r.id));
   const aspect = s.ratio === "3:4" ? "aspect-[3/4]" : "aspect-square";
@@ -502,26 +532,46 @@ function SlotDetail({
           </ul>
         ) : (
           <p className="text-caption text-muted-foreground">
-            {gif ? "Todavía no subes GIF." : canGenerate ? "Todavía no hay opciones. Genera la galería o sube una imagen." : "Elige una de tus fotos o sube una imagen."}
+            {gif
+              ? "Todavía no subes GIF."
+              : !canGenerate
+                ? "Elige una de tus fotos o sube una imagen."
+                : s.shots.length
+                  ? "La IA ya propuso esta imagen: genérala abajo, elige una de tus fotos o sube otra."
+                  : "Todavía no hay opciones. Genera la galería o sube una imagen."}
           </p>
         )}
       </div>
 
       {s.shots.length && canGenerate ? (
         <div className="flex flex-col gap-2">
-          <h3 className="text-label">Generar otra</h3>
+          <h3 className="text-label">{pending.size === s.shots.length ? "Propuesta de la IA" : pending.size ? "Tomas de la IA" : "Generar otra"}</h3>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {s.shots.map((sh) => (
-              <li key={sh.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2.5">
-                <span className="min-w-0 flex-1">
-                  <span className="text-row font-medium">{sh.name}</span>
-                  <span className="block text-caption text-muted-foreground">{`${sh.type} · ${sh.look}`}</span>
-                </span>
-                <Button size="sm" variant="secondary" icon="sparkle" loading={busy === `shot-${sh.id}`} disabled={!!busy} onClick={() => onAct(`shot-${sh.id}`, () => productsApi.renderShot(productId, sh.id), "No pudimos generar otra.", "Generando otra imagen")}>
-                  {`Generar otra · ${costLabel}`}
-                </Button>
-              </li>
-            ))}
+            {s.shots.map((sh) => {
+              // Sin imagen todavía (a pedido) o con una que falló: «Generar»; con imagen: «Generar otra».
+              const first = pending.has(sh.id);
+              return (
+                <li key={sh.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2 text-row font-medium">
+                      {sh.name}
+                      {first && !sh.auto ? <StateChip label="Sin generar" icon="image" tone="quiet" /> : null}
+                    </span>
+                    <span className="block text-caption text-muted-foreground">{`${sh.type} · ${sh.look}`}</span>
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon="sparkle"
+                    loading={busy === `shot-${sh.id}`}
+                    disabled={!!busy}
+                    onClick={() => onAct(`shot-${sh.id}`, () => productsApi.renderShot(productId, sh.id), first ? "No pudimos generar la imagen." : "No pudimos generar otra.", first ? "Generando la imagen" : "Generando otra imagen")}
+                  >
+                    {`${first ? "Generar" : "Generar otra"} · ${costLabel}`}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}

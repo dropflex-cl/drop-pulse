@@ -27,11 +27,28 @@ export function slotKind(slot: string): SlotKind | null {
   return slot.startsWith("benefit-") ? "benefit" : null;
 }
 
-/** Tomas de galería que propone el director (con la portada, 6 generadas). */
+/** Tomas de galería que propone el director. */
 export const GALLERY_SHOTS = 5;
 /** La galería de la página: de 4 a 6 elegidas, después de la portada (design-system imagenes.md). */
 export const GALLERY_MIN = 4;
 export const GALLERY_MAX = 6;
+
+/** Imágenes que genera sola «Generar la galería»: la portada y las mínimas de galería. */
+export const AUTO_SHOTS = 1 + GALLERY_MIN;
+
+/**
+ * Las tomas que se generan solas al armar la galería: la portada y las primeras GALLERY_MIN de galería
+ * (el director las entrega en orden: ambiente, infografía, comparativa, qué incluye y una más), que es
+ * lo que deja la etapa lista. La quinta de galería y los beneficios quedan propuestos y el comerciante
+ * los genera si los quiere. En prod (2026-09-24/25) la quinta sobró en las 2 galerías vigentes y los
+ * beneficios se usaron en 1 de 2 productos: generarlos siempre era pagar imágenes que nadie elegía.
+ */
+export function autoShotIds(shots: { id: string; slot: string; position: number }[]): Set<string> {
+  const ordered = [...shots].sort((a, b) => a.position - b.position);
+  const cover = ordered.filter((s) => s.slot === COVER).slice(0, 1);
+  const gallery = ordered.filter((s) => s.slot === GALLERY).slice(0, GALLERY_MIN);
+  return new Set([...cover, ...gallery].map((s) => s.id));
+}
 /** Los espacios que llevan varias elegidas en orden (1…n). */
 export const ORDERED = new Set<SlotKind>(["gallery", "gif"]);
 

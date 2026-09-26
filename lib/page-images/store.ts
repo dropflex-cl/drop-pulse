@@ -4,7 +4,7 @@ import type { ImageProvider } from "@/lib/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 import type { PageImageOptionView, PageImageSlotView, RunStatus } from "@/lib/types";
-import { COVER, GALLERY, GIFS, ORDERED, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, slotKind } from "./catalog";
+import { COVER, GALLERY, GIFS, ORDERED, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, autoShotIds, slotKind } from "./catalog";
 import type { PageQaResult, ShotText, StoredShot } from "./schemas";
 
 // page_image_runs, page_image_shots y page_images: lecturas de la etapa Imágenes, limpieza de lo
@@ -274,7 +274,9 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
       .filter((r) => r.slot === slot && !replaced.has(r.id) && !superseded(r))
       .sort((a, b) => rank(a) - rank(b))
       .map((r) => toOptionView(r, r.storage_path ? urls.get(r.storage_path) : r.reference_image_id ? urls.get(`ref:${r.reference_image_id}`) : undefined, cover));
-  const shotsOf = (slot: string) => shots.filter((s) => s.slot === slot).map((s) => ({ id: s.id, name: s.payload.name, type: SHOT_NAMES[s.payload.type] ?? s.payload.type, look: s.payload.look }));
+  const auto = autoShotIds(shots);
+  const shotsOf = (slot: string) =>
+    shots.filter((s) => s.slot === slot).map((s) => ({ id: s.id, name: s.payload.name, type: SHOT_NAMES[s.payload.type] ?? s.payload.type, look: s.payload.look, auto: auto.has(s.id) }));
   const slot = (key: string, title: string, pairs?: string): PageImageSlotView => {
     const kind = slotKind(key)!;
     return { key, kind, title, required: kind === "cover" || kind === "gallery", format: SLOT_FORMAT[kind], ratio: SLOT_RATIO[kind], pairs, shots: shotsOf(key), options: optionsOf(key) };

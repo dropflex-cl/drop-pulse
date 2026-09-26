@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GALLERY_SHOTS, benefitSlot, slotKind } from "./catalog";
+import { AUTO_SHOTS, GALLERY_MIN, GALLERY_SHOTS, autoShotIds, benefitSlot, slotKind } from "./catalog";
 import { pageRenderRequest } from "./render";
 import { pageQaVerdict, planProblems, type PagePlan, type PlanShot, type StoredShot } from "./schemas";
 
@@ -48,6 +48,35 @@ describe("espacios", () => {
     expect(slotKind("gallery")).toBe("gallery");
     expect(slotKind(benefitSlot("abc"))).toBe("benefit");
     expect(slotKind("otra")).toBeNull();
+  });
+});
+
+describe("tomas que se generan solas", () => {
+  // Como las guarda runPageImages: position = el orden en que las entregó el director.
+  const shots = [
+    { id: "p", slot: "cover", position: 0 },
+    ...["g1", "g2", "g3", "g4", "g5"].map((id, i) => ({ id, slot: "gallery", position: i + 1 })),
+    ...[1, 2, 3].map((n) => ({ id: `b${n}`, slot: benefitSlot(n), position: 5 + n })),
+  ];
+
+  it("la portada y las primeras 4 de galería: lo que deja la etapa lista", () => {
+    expect([...autoShotIds(shots)].sort()).toEqual(["g1", "g2", "g3", "g4", "p"]);
+    expect(autoShotIds(shots).size).toBe(AUTO_SHOTS);
+    expect(AUTO_SHOTS).toBe(1 + GALLERY_MIN);
+  });
+
+  it("la quinta de galería y los beneficios quedan propuestos", () => {
+    const auto = autoShotIds(shots);
+    for (const id of ["g5", "b1", "b2", "b3"]) expect(auto.has(id)).toBe(false);
+  });
+
+  it("sigue el orden del director, no el de la lista", () => {
+    const shuffled = [...shots].reverse();
+    expect([...autoShotIds(shuffled)].sort()).toEqual(["g1", "g2", "g3", "g4", "p"]);
+  });
+
+  it("con menos tomas de galería, genera las que haya", () => {
+    expect([...autoShotIds(shots.filter((s) => !["g3", "g4", "g5"].includes(s.id)))].sort()).toEqual(["g1", "g2", "p"]);
   });
 });
 

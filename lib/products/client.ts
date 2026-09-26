@@ -126,7 +126,8 @@ export const productsApi = {
   // Etapa Imágenes (la página del producto): cada acción devuelve el estado completo de la etapa.
   pageImages: (id: string) => call<PageImagesState>(`/${id}/page-images`),
   proposePageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images`),
-  fillPageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images/fill`),
+  /** «Generar los vacíos» (lo que va solo) o «Generar los beneficios» (`benefits`). */
+  fillPageImages: (id: string, scope?: "required" | "benefits") => send<PageImagesState>("POST", `/${id}/page-images/fill`, scope ? { scope } : undefined),
   renderShot: (id: string, shotId: string) => send<PageImagesState>("POST", `/${id}/page-images/shots/${shotId}`),
   decidePageImage: (id: string, optionId: string, action: "choose" | "unchoose" | "discard" | "reopen" | "recover" | "cover") => send<PageImagesState>("PATCH", `/${id}/page-images/options/${optionId}`, { action }),
   chooseReference: (id: string, slot: string, referenceId: string) => send<PageImagesState>("POST", `/${id}/page-images/references`, { slot, referenceId }),
