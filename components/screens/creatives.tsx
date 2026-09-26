@@ -8,15 +8,18 @@ import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ROLE_LIMITS } from "@/lib/creatives/catalog";
+import { IMAGE_COST_BY_PROVIDER, costSource, type ImageProviderChoice } from "@/lib/image-provider";
 import { money } from "@/lib/format";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { CreativeAssetView, CreativeConceptView, CreativesState, ProductCreatives, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ImageProviderPicker } from "./image-provider-picker";
 
 // Etapa Creativos (docs/spec-creativos.md §6.6): la IA propone 6 conceptos desde los 2 ángulos
-// aprobados; el comerciante revisa sus textos y genera cada uno en Higgsfield (la pieza sale terminada,
-// con sus textos). Un QA revisa producto y textos. Aprobar la manda a los creativos de Anuncios.
+// aprobados; el comerciante revisa sus textos y genera cada uno con el proveedor que elige arriba
+// (Higgsfield o Gemini; la pieza sale terminada, con sus textos). Un QA revisa producto y textos.
+// Aprobar la manda a los creativos de Anuncios.
 
 const POLL_MS = 3000;
 const active = (s?: RunStatus) => s === "queued" || s === "running";
@@ -59,6 +62,8 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
   const proposing = active(run?.status);
   const working = proposing || concepts.some((c) => c.assets.some(rendering));
   const cost = (n: number) => money(n * state.imageCostUsd, "USD");
+  const billed = costSource(state.imageProvider.value);
+  const setProvider = (imageProvider: ImageProviderChoice) => setState((s) => ({ ...s, imageProvider, imageCostUsd: IMAGE_COST_BY_PROVIDER[imageProvider.value ?? "higgsfield"] }));
   const missing = concepts.filter((c) => !c.assets.some((a) => a.ratio === "1:1"));
   const approved = concepts.flatMap((c) => c.assets).filter((a) => a.status === "aprobado").length;
 
@@ -157,7 +162,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
     body = (
       <EmptyState
         icon="lock"
-        title={needsKey ? "Conecta tu cuenta de Higgsfield" : "Primero, los ángulos"}
+        title={needsKey ? "Conecta un proveedor de imágenes" : "Primero, los ángulos"}
         body={state.locked}
         action={
           needsKey ? (
@@ -184,7 +189,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
         body={
           failed
             ? (run?.error ?? "Toca Reintentar.")
-            : `La IA propone 6 anuncios desde tus 2 ángulos. Tú revisas sus textos y eliges cuáles generar: cada imagen parte de tu foto base y cuesta cerca de ${cost(1)} de tu cuenta de Higgsfield.`
+            : `La IA propone 6 anuncios desde tus 2 ángulos. Tú revisas sus textos y eliges cuáles generar: cada imagen parte de tu foto base y cuesta cerca de ${cost(1)}${billed}.`
         }
         action={
           <Button variant="primary" icon="sparkle" loading={busy === "propose"} onClick={propose}>
@@ -200,7 +205,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
         {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos proponer otros anuncios." body={run.error ?? "Toca Proponer otros para reintentar."} /> : null}
         {proposing ? <Notice tone="info" icon="sparkle" title="La IA está proponiendo otros anuncios." body="Cuando termine, reemplazan a estos. Lo que ya aprobaste sigue en Anuncios." /> : null}
         {missing.length && !desktop ? (
-          <p className="text-caption text-muted-foreground">{`${missing.length === 1 ? "Generar el que falta" : `Generar los ${missing.length} que faltan`} cuesta cerca de ${cost(missing.length)} de tu cuenta de Higgsfield.`}</p>
+          <p className="text-caption text-muted-foreground">{`${missing.length === 1 ? "Generar el que falta" : `Generar los ${missing.length} que faltan`} cuesta cerca de ${cost(missing.length)}${billed}.`}</p>
         ) : null}
         {groups.map((g) => (
           <section key={g.role} aria-labelledby={`angulo-${g.role}`} className="flex flex-col gap-3">
@@ -269,6 +274,7 @@ export function CreativesScreen({ data }: { data: ProductCreatives }) {
         } className="sticky top-0 z-sticky lg:hidden" />
       <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
         <p className="hidden text-body text-muted-foreground lg:block">Creativos · {subtitle}</p>
+        {!state.locked ? <ImageProviderPicker stage="creatives" choice={state.imageProvider} onChange={setProvider} /> : null}
         <div>{body}</div>
         {error ? (
           <p role="alert" className="text-label font-normal text-destructive">

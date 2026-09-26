@@ -118,7 +118,8 @@ export function conceptProblems(out: CreativeConceptsOutput, facts: ConceptFacts
     const direct = !FAMILY_DEFS[c.family].presetGroups.length;
     if (c.preset_id && direct) problems.push(`${where} es de una familia sin preset (${c.family}): preset_id va null.`);
     else if (c.preset_id && !facts.presetIds.has(c.preset_id)) problems.push(`${where} usa un preset_id que no está en PRESETS.`);
-    if (!c.preset_id && !direct) problems.push(`${where} es de una familia con presets: elige uno de PRESETS.`);
+    // Sin presets disponibles (render con Gemini), toda familia va directa.
+    if (!c.preset_id && !direct && facts.presetIds.size) problems.push(`${where} es de una familia con presets: elige uno de PRESETS.`);
     problems.push(...textProblems(c.texts, facts.pricing, where, c.family));
     if (c.product_units > 1 && c.family !== "offer") problems.push(`${where}: varias unidades del producto solo en la oferta de pack.`);
     const kit = new Set(out.kit.map((k) => k.trim().toLowerCase()));

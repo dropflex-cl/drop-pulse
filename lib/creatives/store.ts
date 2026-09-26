@@ -2,6 +2,7 @@ import "server-only";
 import { ANGLES, type AngleSlot, type SalesAngle } from "@/lib/angles/catalog";
 import { fail } from "@/lib/angles/store";
 import { adminClient } from "@/lib/integrations/admin";
+import type { ImageProvider } from "@/lib/image-provider";
 import type { Preset } from "@/lib/integrations/higgsfield/client";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { CreativeAssetView, CreativeConceptView, RunStatus } from "@/lib/types";
@@ -20,6 +21,8 @@ const RUN_QUEUED_STALE_MS = 3 * 60 * 1000;
 /** Una pieza en cola puede esperar a que Higgsfield libere un cupo; más de esto, se da por perdida. */
 const ASSET_QUEUED_STALE_MS = 30 * 60 * 1000;
 const ASSET_RUNNING_STALE_MS = 20 * 60 * 1000;
+/** Gemini responde en la misma llamada (tope de la función: 5 min): más que esto, el proceso se cortó. */
+const GEMINI_RUNNING_STALE_MS = 6 * 60 * 1000;
 const SIGNED_URL_TTL_S = 60 * 60;
 /** Lo descartado se borra pasado este plazo: deja tiempo para Deshacer. */
 export const REJECTED_PURGE_MS = 2 * 60 * 1000;
@@ -74,6 +77,8 @@ export interface AssetRow {
   concept_id: string;
   ratio: Ratio;
   attempt: number;
+  /** Con qué se generó (lib/image-provider.ts): el render, el reintento y el sondeo siguen con ese. */
+  provider: ImageProvider;
   endpoint: string;
   preset_id: string | null;
   input: Record<string, unknown>;
@@ -106,6 +111,7 @@ export async function expireStaleCreatives(userId: string): Promise<void> {
     db.from("creative_runs").update(runPatch).eq("user_id", userId).eq("status", "running").lt("started_at", before(RUN_RUNNING_STALE_MS)),
     db.from("creative_runs").update(runPatch).eq("user_id", userId).eq("status", "queued").lt("created_at", before(RUN_QUEUED_STALE_MS)),
     db.from("creative_assets").update(assetPatch).eq("user_id", userId).eq("render_status", "running").lt("submitted_at", before(ASSET_RUNNING_STALE_MS)),
+    db.from("creative_assets").update(assetPatch).eq("user_id", userId).eq("render_status", "running").eq("provider", "gemini").lt("submitted_at", before(GEMINI_RUNNING_STALE_MS)),
     db.from("creative_assets").update(assetPatch).eq("user_id", userId).eq("render_status", "queued").lt("created_at", before(ASSET_QUEUED_STALE_MS)),
   ]);
   for (const r of results) fail("Cerrar lo colgado de Creativos", r.error);

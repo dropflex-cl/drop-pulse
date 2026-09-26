@@ -21,6 +21,9 @@ import {
 } from "@/lib/creatives/schemas";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
+import { GEMINI_IMAGE_MODEL, GeminiError, generateImage, geminiGeneration, type GeminiAspectRatio } from "@/lib/integrations/gemini/client";
+import { imageProviderChoice } from "@/lib/integrations/image-provider";
+import type { ImageProvider, ImageStage } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { higgsfieldKey, markHiggsfieldInvalid, presetsFor } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -37,8 +40,9 @@ import { OptimizeError } from "./optimize";
 
 // Etapa Creativos (docs/spec-creativos.md). Tres pasos, cada uno en segundo plano (after):
 // 1. El generador de estáticos (Claude) propone 6 conceptos desde los 2 desarrollos aprobados.
-// 2. Cada concepto se renderiza en Higgsfield (Marketing Studio Flare) con la foto base como
-//    referencia: la pieza sale terminada, con sus textos (decisión 3).
+// 2. Cada concepto se renderiza con el proveedor que eligió el comerciante en la pantalla (Higgsfield
+//    Marketing Studio Flare o Gemini, lib/image-provider.ts) con la foto base como referencia: la pieza
+//    sale terminada, con sus textos (decisión 3).
 // 3. Un QA con Claude compara el producto y los textos; si falla, un segundo intento sin preset.
 // La IA propone y el comerciante decide: al aprobar, la pieza pasa a los creativos de Anuncios.
 
@@ -79,10 +83,22 @@ async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: n
   });
 }
 
-export async function requireKey(userId: string, message = "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios."): Promise<string> {
-  const key = await higgsfieldKey(userId);
-  if (!key) throw new OptimizeError(message, 409);
-  return key;
+/** El proveedor de imágenes de la etapa (el elegido en la pantalla, si sigue disponible). */
+export async function requireProvider(userId: string, stage: ImageStage, message = "Conecta tu cuenta de Higgsfield en Ajustes para generar anuncios."): Promise<ImageProvider> {
+  const { value, options } = await imageProviderChoice(userId, stage);
+  if (!value) throw new OptimizeError(options.find((o) => o.id === "higgsfield")?.reason ?? message, 409);
+  return value;
+}
+
+/** Gemini responde sin cola: la imagen llega en la respuesta. Descarga la foto base y genera. */
+export async function renderWithGemini(userId: string, productId: string, input: Record<string, unknown>) {
+  const [base] = await productImageUrls(userId, productId, 1);
+  if (!base) throw new GeminiError("bad_request", "El producto no tiene una imagen base. Elige una en Información base.");
+  return generateImage({
+    prompt: String(input.prompt ?? ""),
+    images: [{ bytes: await toJpeg(await download(base), 2048), mime: "image/jpeg" }],
+    aspectRatio: (input.aspect_ratio as GeminiAspectRatio | undefined) ?? "1:1",
+  });
 }
 
 /** Higgsfield rechazó la clave: se marca para que la etapa pida reconectar. */
@@ -108,7 +124,7 @@ async function loadContext(userId: string, productId: string) {
 
 /** Crea la corrida del generador (queued). Tocar dos veces no cobra dos veces. */
 export async function startCreatives(userId: string, productId: string): Promise<{ run: CreativeRunRow; created: boolean }> {
-  await requireKey(userId);
+  const provider = await requireProvider(userId, "creatives");
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
   const active = await db.from("creative_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
@@ -127,7 +143,7 @@ export async function startCreatives(userId: string, productId: string): Promise
       product_id: productId,
       user_id: userId,
       status: "queued",
-      input: { market, pricing: ctx.pricing, labels: ctx.labels ?? null, avatar_id: ctx.avatar.id, briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })) },
+      input: { market, pricing: ctx.pricing, labels: ctx.labels ?? null, avatar_id: ctx.avatar.id, briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })), provider },
     })
     .select("*")
     .single();
@@ -147,7 +163,8 @@ export async function productImageUrls(userId: string, productId: string, max: n
   return rows.map((r) => urls.get(r.id)).filter((u): u is string => Boolean(u));
 }
 
-type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: unknown };
+/** `provider`: con qué se iban a generar (las corridas de antes no lo guardan: Higgsfield). */
+type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: unknown; provider?: ImageProvider };
 
 /** Ejecuta el generador. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runCreatives(runId: string): Promise<void> {
@@ -157,14 +174,15 @@ export async function runCreatives(runId: string): Promise<void> {
   if (claimed.error || !claimed.data) return;
   const r = claimed.data as CreativeRunRow & { input: RunInput };
   try {
-    const key = await higgsfieldKey(r.user_id);
-    if (!key) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
     const input = r.input;
+    // Los presets son de Marketing Studio: con Gemini no hay, y todos los conceptos van directos.
+    const key = input.provider === "gemini" ? null : await higgsfieldKey(r.user_id);
+    if (input.provider !== "gemini" && !key) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
     const [brief, avatarRow, angles, presets, images] = await Promise.all([
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
       anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
-      presetsFor(key),
+      key ? presetsFor(key) : [],
       productImageUrls(r.user_id, r.product_id, 3),
     ]);
     fail("Leer el cliente ideal", avatarRow.error);
@@ -264,7 +282,7 @@ export async function editConcept(userId: string, productId: string, conceptId: 
 
 /** Crea la pieza (queued) de un concepto en una proporción. Si ya hay una generándose, la devuelve. */
 export async function startRender(userId: string, productId: string, conceptId: string, ratio: Ratio): Promise<{ asset: AssetRow; created: boolean }> {
-  await requireKey(userId);
+  const provider = await requireProvider(userId, "creatives");
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
   const db = adminClient();
@@ -277,14 +295,16 @@ export async function startRender(userId: string, productId: string, conceptId: 
   fail("Contar las piezas", countError);
   if ((count ?? 0) >= DAILY_IMAGES) throw new OptimizeError(`Llegaste al máximo de ${DAILY_IMAGES} imágenes en 24 horas. Vuelve mañana.`, 429);
 
-  return { asset: await insertAsset(concept, ratio, 1), created: true };
+  return { asset: await insertAsset(concept, ratio, 1, provider), created: true };
 }
 
-async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number): Promise<AssetRow> {
+async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, provider: ImageProvider): Promise<AssetRow> {
   const run = await adminClient().from("creative_runs").select("input").eq("id", concept.run_id).single();
   fail("Leer la corrida", run.error);
   const market = (run.data?.input as RunInput | undefined)?.market;
-  const req = renderRequest(concept.payload, ratio, languageName(market?.language ?? "es"), attempt);
+  // Gemini no tiene presets: un concepto propuesto con preset (para Higgsfield) va directo.
+  const payload = provider === "gemini" ? { ...concept.payload, preset_id: null } : concept.payload;
+  const req = renderRequest(payload, ratio, languageName(market?.language ?? "es"), attempt);
   const { data, error } = await adminClient()
     .from("creative_assets")
     .insert({
@@ -293,7 +313,8 @@ async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number): 
       concept_id: concept.id,
       ratio,
       attempt,
-      endpoint: req.endpoint,
+      provider,
+      endpoint: provider === "gemini" ? GEMINI_IMAGE_MODEL : req.endpoint,
       preset_id: req.presetId,
       input: req.input,
       baked_texts: concept.payload.texts,
@@ -328,6 +349,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function processAsset(assetId: string, force = false): Promise<void> {
   const a = await lease(assetId, ["queued"], force);
   if (!a) return;
+  if (a.provider === "gemini") return processWithGemini(a);
   const started = Date.now();
   let submitted = false;
   try {
@@ -361,6 +383,42 @@ export async function processAsset(assetId: string, force = false): Promise<void
   }
 }
 
+/**
+ * Gemini: se toma la pieza (queued → running, una sola vez aunque el sondeo también la vea), se genera y
+ * se guarda en la misma llamada. Una falla queda como fallida: Gemini ya reintentó lo pasajero y probó
+ * su respaldo, y no hay pedido que recuperar.
+ */
+async function processWithGemini(lease_: AssetRow): Promise<void> {
+  const claimed = await adminClient()
+    .from("creative_assets")
+    .update({ render_status: "running", submitted_at: new Date().toISOString(), error_code: null, error_message: null, updated_at: new Date().toISOString() })
+    .eq("id", lease_.id)
+    .eq("render_status", "queued")
+    .select("*")
+    .maybeSingle();
+  if (claimed.error || !claimed.data) return;
+  const a = claimed.data as AssetRow;
+  const detail = await assetDetail(a);
+  let result;
+  try {
+    result = await renderWithGemini(a.user_id, a.product_id, a.input);
+  } catch (e) {
+    const known = e instanceof GeminiError;
+    if (!known) console.error("[creatives] render con Gemini", e);
+    await patchAsset(a.id, { render_status: "failed", error_code: known ? e.code : "unexpected", error_message: known ? e.message : "No pudimos generar la imagen. Toca Generar de nuevo.", finished_at: new Date().toISOString() });
+    await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_render", detail, ...geminiGeneration(e) });
+    return;
+  }
+  // Ya se cobró: se registra antes de guardar, para que un corte al guardar no esconda el costo.
+  await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_render", detail, ...geminiGeneration(result) });
+  try {
+    await storeAndReview(a, result.bytes, async () => {});
+  } catch (e) {
+    console.error("[creatives] guardar la imagen de Gemini", e);
+    await patchAsset(a.id, { render_status: "failed", error_code: "unexpected", error_message: "No pudimos guardar la imagen. Toca Generar de nuevo.", finished_at: new Date().toISOString() });
+  }
+}
+
 async function pollUntilDone(a: AssetRow, key: string, started: number): Promise<void> {
   let wait = 3000;
   while (Date.now() - started < POLL_BUDGET_MS) {
@@ -388,7 +446,7 @@ export async function recoverAsset(userId: string, productId: string, assetId: s
   const a = await getAssetRow(userId, assetId);
   if (!a || a.product_id !== productId) throw new OptimizeError("No encontramos esa imagen.", 404);
   if (!isRecoverable(a)) throw new OptimizeError("Esta imagen no llegó a generarse en Higgsfield. Toca Generar de nuevo.", 409);
-  await requireKey(userId);
+  if (!(await higgsfieldKey(userId))) throw new OptimizeError("Conecta tu cuenta de Higgsfield en Ajustes para recuperar la imagen.", 409);
   const now = Date.now();
   // Plazo nuevo para expireStaleCreatives y el lease ya vencido, para que el sondeo la tome.
   const patch = { render_status: "running", error_code: null, error_message: null, finished_at: null, submitted_at: new Date(now).toISOString(), updated_at: new Date(now - LEASE_MS - 1000).toISOString() };
@@ -435,13 +493,17 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
     await logRender(a, false, state.status, Date.now() - started);
     return;
   }
+  await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
+}
+
+/** La imagen lograda (de cualquier proveedor): se guarda, se registra, pasa el QA y, si falla, un reintento. */
+async function storeAndReview(a: AssetRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
   // Va a Meta Ads (copyToAds): JPEG optimizado, que /adimages acepta siempre. El QA mira el original.
-  const bytes = await download(state.images[0]);
   const img = await optimizeForAds(bytes);
   const path = `${a.user_id}/${a.product_id}/${a.id}.${img.ext}`;
   const up = await adminClient().storage.from(CREATIVES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true });
   fail("Guardar la imagen", up.error);
-  await logRender(a, true, undefined, Date.now() - started);
+  await log();
 
   const qa = await runQa(a, bytes).catch((e) => {
     console.error("[creatives] QA", e);
@@ -453,7 +515,8 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
   if (qa && !qa.pass && a.attempt === 1) {
     const concept = await getConceptRow(a.user_id, a.product_id, a.concept_id);
     if (concept) {
-      const retry = await insertAsset(concept, a.ratio, 2);
+      // Con el mismo proveedor que la primera, aunque la elección haya cambiado mientras.
+      const retry = await insertAsset(concept, a.ratio, 2, a.provider);
       await processAsset(retry.id, true);
     }
   }
