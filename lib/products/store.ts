@@ -282,6 +282,20 @@ export async function latestAvatarStates(userId: string, productIds: string[]): 
   return newestByProduct((data ?? []) as AvatarState[]);
 }
 
+/** El id de la ficha vigente: la huella con que la Página recuerda de qué ficha se escribió. */
+export async function latestBriefId(userId: string, productId: string): Promise<string | null> {
+  const { data, error } = await adminClient()
+    .from("product_briefs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  fail("Leer la ficha", error);
+  return (data?.id as string | undefined) ?? null;
+}
+
 export async function latestBrief(userId: string, productId: string): Promise<ProductBrief | null> {
   const { data, error } = await adminClient()
     .from("product_briefs")

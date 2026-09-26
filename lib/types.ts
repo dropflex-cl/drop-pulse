@@ -292,8 +292,10 @@ export interface CopyState {
   images: CatalogImage[];
   /** Los datos reales que llenan los componentes en la tienda (y en la vista previa). */
   facts: StoreFacts;
-  /** Los ángulos cambiaron después de escribir la página. */
+  /** El contexto del producto cambió después de escribir la página. */
   stale: boolean;
+  /** Qué cambió (lib/copy/stale.ts), en el orden en que se muestra. */
+  staleReasons: import("@/lib/copy/stale").CopyStaleReason[];
 }
 
 export interface ProductCopy extends CopyState {

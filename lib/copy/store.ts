@@ -80,6 +80,14 @@ export async function latestCopyRuns(userId: string, productIds: string[]): Prom
 export type CopyRunState = Pick<CopyRunRow, "product_id" | "status" | "error_message" | "input">;
 export type ComponentState = Pick<PageComponentRow, "product_id" | "component" | "status" | "enabled">;
 
+/** El `input` de las escrituras que dejaron la página actual (una por run_id de sus componentes). */
+export async function copyRunInputs(userId: string, runIds: string[]): Promise<CopyRunRow["input"][]> {
+  if (!runIds.length) return [];
+  const { data, error } = await adminClient().from("copy_runs").select("input").eq("user_id", userId).in("id", runIds);
+  fail("Leer las escrituras", error);
+  return ((data ?? []) as Pick<CopyRunRow, "input">[]).map((r) => r.input);
+}
+
 /** Como latestCopyRuns, con solo los desarrollos usados de `input`: para la posición en la ruta. */
 export async function latestCopyRunStates(userId: string, productIds: string[]): Promise<Map<string, CopyRunState>> {
   if (!productIds.length) return new Map();

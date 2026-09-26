@@ -47,7 +47,9 @@ function components(state: string): PageComponentView[] {
   ];
 }
 
-export function fixture(state: string): ProductCopy {
+export function fixture(requested: string): ProductCopy {
+  // «context»: la página aprobada (como «done») con el contexto del producto cambiado.
+  const state = requested === "context" ? "done" : requested;
   const withPage = ["review", "done", "stale", "fresh"].includes(state);
   const list = withPage ? components(state) : [];
   const run: ProductCopy["run"] =
@@ -97,6 +99,7 @@ export function fixture(state: string): ProductCopy {
     components: list,
     images: IMAGES,
     facts: { ...FIXTURE_FACTS, productImage: productImage(1, 1) },
-    stale: state === "stale",
+    stale: state === "stale" || requested === "context",
+    staleReasons: state === "stale" ? ["angles"] : requested === "context" ? ["angles", "differentiator", "prompt"] : [],
   };
 }

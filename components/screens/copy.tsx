@@ -15,6 +15,7 @@ import { LISTING, type Listing } from "@/lib/copy/listing";
 import { LISTING_SLOTS, PAGE_GROUPS, componentName, missingImages, type ListingSlot } from "@/lib/copy/page-ui";
 import { copyProgress, enabledLabel } from "@/lib/copy/progress";
 import { COPY_STAGE_TITLE } from "@/lib/products/stages";
+import { STALE_REASON_LABEL } from "@/lib/copy/stale";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import { CATALOG } from "@/lib/shopify/components/catalog";
@@ -30,6 +31,8 @@ import { ComponentEditor, imagesBySlot } from "./page/component-editor";
 // componente abre su hoja de edición; guardar lo aprueba y lo usa.
 
 const POLL_MS = 2500;
+/** «a, b y c». */
+const listText = (items: string[]) => (items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`);
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 
@@ -40,7 +43,8 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const [state, setState] = useState<CopyState>(data);
   const [accent, setAccent] = useState<string | null>(data.accent);
   const [editing, setEditing] = useState<string | null>(null);
-  const [askAll, setAskAll] = useState(false);
+  // Dónde se abrió la confirmación de «Reescribir toda la página»: en el aviso de arriba o al final.
+  const [askAll, setAskAll] = useState<"top" | "bottom" | null>(null);
   const rewrote = useRef<string | null>(null);
   // «Deshacer» del toast: la función vigente, sin volver a armar el sondeo.
   const restoreRef = useRef<(component: string) => void>(() => {});
@@ -101,7 +105,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     try {
       setState(await productsApi.writeCopy(product.id, redo, mode));
       setEditing(null);
-      setAskAll(false);
+      setAskAll(null);
       // Al terminar, «Deshacer» devuelve la versión anterior de ese componente.
       rewrote.current = mode && mode !== "all" ? mode.component : null;
       router.refresh();
@@ -168,17 +172,54 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         ? "La IA está escribiendo"
         : "La página del producto en tu tienda";
 
-  const staleNotice = state.stale ? (
-    <Notice
-      title="Cambiaste tus ángulos."
-      body="Reescribe lo que no aprobaste para que calce con ellos."
-      action={
-        <Button size="sm" variant="secondary" icon="sparkle" loading={busy === "redo"} disabled={writing || !redoable} onClick={() => write(true)}>
-          Reescribir
+  const confirmAll = (where: "top" | "bottom") => (
+    <div role="group" aria-labelledby={`reescribir-todo-${where}`} className="flex flex-col gap-2.5 rounded-lg border bg-card p-4 lg:max-w-content">
+      <h3 id={`reescribir-todo-${where}`} className="text-heading">
+        ¿Reescribir toda la página?
+      </h3>
+      <p className="text-label font-normal text-muted-foreground">
+        Se reemplaza también lo que aprobaste; lo publicado en tu tienda no cambia hasta que vuelvas a publicar.
+        {editedNames.length ? ` Pierdes lo que editaste a mano en: ${editedNames.join(", ")}.` : ""}
+      </p>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button size="sm" onClick={() => setAskAll(null)}>
+          Cancelar
         </Button>
+        <Button size="sm" variant="primary" icon="sparkle" loading={busy === "all"} onClick={() => write(true, "all")}>
+          Reescribir toda la página
+        </Button>
+      </div>
+    </div>
+  );
+
+  // El contexto cambió (ángulos, cliente ideal, ficha, diferenciador o cómo escribe la IA): lo aprobado
+  // también quedó atrás, así que la acción principal es reescribir toda la página.
+  const reasons = state.staleReasons ?? [];
+  const onlyAngles = reasons.length === 1 && reasons[0] === "angles";
+  const staleNotice = !state.stale ? null : askAll === "top" ? (
+    confirmAll("top")
+  ) : (
+    <Notice
+      title={onlyAngles ? "Cambiaste tus ángulos." : "Cambió el contexto de tu producto."}
+      body={
+        onlyAngles
+          ? "Reescribe la página para que calce con ellos."
+          : `Desde que se escribió esta página cambió ${listText(reasons.map((r) => STALE_REASON_LABEL[r]))}. Reescríbela entera para que calce con todo.`
+      }
+      action={
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="primary" icon="sparkle" disabled={writing} onClick={() => setAskAll("top")}>
+            Reescribir toda la página
+          </Button>
+          {redoable ? (
+            <Button size="sm" variant="ghost" loading={busy === "redo"} disabled={writing} onClick={() => write(true)}>
+              Solo lo no aprobado
+            </Button>
+          ) : null}
+        </div>
       }
     />
-  ) : null;
+  );
 
   // Una reescritura en curso o con error no tapa lo que ya está escrito.
   const runNotice =
@@ -372,26 +413,10 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         {listingCard}
         <PageAccent productId={product.id} initial={data.accent} onSaved={setAccent} />
         {cards}
-        {askAll ? (
-          <div role="group" aria-labelledby="reescribir-todo" className="flex flex-col gap-2.5 rounded-lg border bg-card p-4 lg:max-w-content">
-            <h3 id="reescribir-todo" className="text-heading">
-              ¿Reescribir toda la página?
-            </h3>
-            <p className="text-label font-normal text-muted-foreground">
-              Se reemplaza también lo que aprobaste; lo publicado en tu tienda no cambia hasta que vuelvas a publicar.
-              {editedNames.length ? ` Pierdes lo que editaste a mano en: ${editedNames.join(", ")}.` : ""}
-            </p>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button size="sm" onClick={() => setAskAll(false)}>
-                Cancelar
-              </Button>
-              <Button size="sm" variant="primary" icon="sparkle" loading={busy === "all"} onClick={() => write(true, "all")}>
-                Reescribir toda la página
-              </Button>
-            </div>
-          </div>
+        {askAll === "bottom" ? (
+          confirmAll("bottom")
         ) : (
-          <Button variant="ghost" icon="sparkle" className="self-start" disabled={writing} onClick={() => setAskAll(true)}>
+          <Button variant="ghost" icon="sparkle" className="self-start" disabled={writing} onClick={() => setAskAll("bottom")}>
             Reescribir toda la página
           </Button>
         )}

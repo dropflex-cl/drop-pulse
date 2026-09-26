@@ -10,6 +10,7 @@ import { getDifferentiator } from "@/lib/competitors/store";
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
 import { productFactText, schemaProblems, toWrite } from "@/lib/copy/page-schema";
+import { avatarStamp, differentiatorStamp, type CopyContextStamp } from "@/lib/copy/stale";
 import type { CopyContext } from "@/lib/copy/prompts";
 import { writePage } from "@/lib/copy/write";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
@@ -21,7 +22,7 @@ import type { Market } from "@/lib/market";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
-import { getProductRow, latestAvatars, latestBrief } from "@/lib/products/store";
+import { getProductRow, latestAvatars, latestBrief, latestBriefId } from "@/lib/products/store";
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { getMarket } from "@/lib/settings/market";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
@@ -97,6 +98,9 @@ export async function startCopy(userId: string, productId: string, redo = false,
 
   const { market } = await getMarket(userId, await getShopifyConnection(userId));
   const briefs: BriefStamp = ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at }));
+  // La huella del contexto: si después cambia, la pantalla ofrece reescribir toda la página (lib/copy/stale.ts).
+  const [briefId, differentiator] = await Promise.all([latestBriefId(userId, productId), getDifferentiator(userId, productId)]);
+  const context: CopyContextStamp = { avatar: avatarStamp(ctx.avatar), brief: briefId, differentiator: differentiatorStamp(differentiator.value), prompt_version: COPY_PROMPT_VERSION };
   const { data, error } = await db
     .from("copy_runs")
     .insert({
@@ -109,6 +113,7 @@ export async function startCopy(userId: string, productId: string, redo = false,
         labels: ctx.labels ?? null,
         avatar_id: ctx.avatar.id,
         briefs,
+        context,
         free_shipping: await freeShipping(userId),
         redo: mode.kind === "missing" ? redo && rows.length > 0 : true,
         mode,
@@ -128,7 +133,7 @@ export async function startCopy(userId: string, productId: string, redo = false,
 /** Orden en la página: la ficha primero y los componentes en el orden del catálogo. */
 const positionOf = (id: string) => (id === LISTING ? 0 : CATALOG.findIndex((c) => c.id === id) + 1);
 
-type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: BriefStamp; free_shipping: boolean; redo: boolean; mode?: CopyMode };
+type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: BriefStamp; context?: CopyContextStamp; free_shipping: boolean; redo: boolean; mode?: CopyMode };
 
 /** Ejecuta la escritura. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runCopy(runId: string): Promise<void> {

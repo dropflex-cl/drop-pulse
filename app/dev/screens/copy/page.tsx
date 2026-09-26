@@ -5,7 +5,7 @@ import { AssistantProvider } from "@/components/shell/assistant-provider";
 import { fixture } from "./fixture";
 
 // Verificación visual de la página del producto (ficha y componentes) con datos de ejemplo:
-// ?state=locked|start|writing|failed|fresh|review|stale|done
+// ?state=locked|start|writing|failed|fresh|review|stale|done|context
 // Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
 // la API real y fallan sin datos: aquí solo importa cómo se ve.
 async function Screen({ searchParams }: { searchParams: Promise<{ state?: string }> }) {

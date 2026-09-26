@@ -11,9 +11,11 @@ import { allApproved, chosenAngles, currentBriefs, currentBriefStates, latestRan
 import { testAngleName } from "@/lib/angles/catalog";
 import { competitorViews, confirmedDifferentiator, differentiatorState } from "@/lib/competitors/store";
 import { copyProgress } from "@/lib/copy/progress";
+import { avatarStamp, differentiatorStamp, staleReasons } from "@/lib/copy/stale";
+import { COPY_PROMPT_VERSION } from "@/lib/copy/schemas";
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
-import { activeComponents, activeComponentStates, isStale, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
+import { activeComponents, activeComponentStates, copyRunInputs, isStale, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
 import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
@@ -36,6 +38,7 @@ import {
   latestAvatars,
   latestAvatarStates,
   latestBrief,
+  latestBriefId,
   latestRuns,
   latestRunStates,
   listImageRows,
@@ -361,26 +364,41 @@ export const getProductCopy = cache(async (id: string): Promise<ProductCopy | nu
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
 export async function copyState(uid: string, productId: string): Promise<CopyState> {
-  const [runs, rows, rankings, images, facts, counts] = await Promise.all([
+  const [runs, rows, rankings, images, facts, counts, avatars, briefId, differentiator] = await Promise.all([
     latestCopyRuns(uid, [productId]),
     activeComponents(uid, [productId]),
     latestRankings(uid, [productId]),
     catalogImages(uid, productId),
     storeFacts(uid, productId),
     pageImageCounts(uid, [productId]),
+    latestAvatars(uid, [productId]),
+    latestBriefId(uid, productId),
+    getDifferentiator(uid, productId),
   ]);
   const run = runs.get(productId);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
   const approved = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
   const chosen = counts(productId);
+  // Qué cambió desde las escrituras que dejaron la página (lib/copy/stale.ts).
+  const pageRows = (rows.get(productId) ?? []).filter((r) => r.enabled);
+  const avatar = avatars.get(productId);
+  const reasons =
+    approved && pageRows.length
+      ? staleReasons(await copyRunInputs(uid, [...new Set(pageRows.map((r) => r.run_id))]), {
+          briefs: stampOfBriefs(ranking, briefs),
+          avatar: avatar?.status === "approved" ? avatarStamp(avatar) : null,
+          context: { brief: briefId, differentiator: differentiatorStamp(differentiator.value), prompt_version: COPY_PROMPT_VERSION },
+        })
+      : [];
   return {
     locked: !approved ? "angles" : imagesReady(chosen) ? null : "images",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
     images,
     facts,
-    stale: approved && isStale(run, stampOfBriefs(ranking, briefs)),
+    stale: reasons.length > 0,
+    staleReasons: reasons,
   };
 }
 
