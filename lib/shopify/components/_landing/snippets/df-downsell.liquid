@@ -35,9 +35,11 @@
     assign df_dso_trust = settings.df_downsell_trust | newline_to_br | split: '<br />'
   -%}
   {% style %}
-    /* El popup de EasySell, mientras esta oferta lo reemplaza (el script pone el atributo). */
+    /* El popup de EasySell, mientras esta oferta lo reemplaza (el script pone el atributo). Con
+       visibility y no display: EasySell cuenta la impresión del downsell solo si su nodo tiene
+       offsetParent (waitForSelectorToBeVisible), y display: none se la quitaba. */
     #es-downsell[data-df-dso-hidden] {
-      display: none !important;
+      visibility: hidden !important;
     }
 
     html:has(.df-dso[open]) {

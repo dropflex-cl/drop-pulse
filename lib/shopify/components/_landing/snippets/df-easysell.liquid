@@ -4,6 +4,13 @@
 
   - Formulario: campos, prefijos, resumen del pedido, fotos, errores y modales con los tokens del
     tema (Geist, tinta, bordes, radios 6/10/14px, anillo de foco, radio de las fotos del producto).
+  - Formulario de pedido como CodOrderForm del design system: packs como BundlePicker (radio, el
+    elegido en acento, el ahorro en verde), agregados como OrderBump (casilla de 22px, sin borde
+    punteado; marcados en acento), resumen con el ahorro y el envío gratis en verde, y el orden
+    agregados → resumen → botón. Solo la vista: ningún nodo de EasySell se mueve, se crea ni se
+    borra, y ningún id, name, clase ni manejador cambia (EasySell mide impresiones y conversiones
+    por esos selectores). Packs, agregados y la X se anuncian como radio, casilla y botón y se usan
+    con el teclado (hacen clic en el mismo nodo).
   - Botones: el que abre el formulario, la barra fija de la app, el de enviar y el de aceptar del
     downsell toman el botón principal del tema: el acento del producto (df-design-system), su
     texto, su hover y su radio. Planos, sin el degradado ni la sombra de la app.
@@ -37,6 +44,14 @@
       --df-es-field-radius: var(--style-border-radius-inputs, 10px);
       --df-es-card-radius: var(--style-border-radius-lg, 14px);
       --df-es-ring: var(--df-ds-ring, #1f4bd8);
+      --df-es-border: color-mix(in srgb, var(--df-es-ink) 12%, var(--df-es-bg));
+      --df-es-muted-bg: color-mix(in srgb, var(--df-es-ink) 5%, var(--df-es-bg));
+      --df-es-accent: var(--color-primary-button-background, #1f4bd8);
+      --df-es-on-accent: var(--color-primary-button-text, #ffffff);
+      --df-es-accent-soft: color-mix(in srgb, var(--df-es-accent) 8%, var(--df-es-bg));
+      /* Significado fijo (ahorro y envío gratis = verde): success y success-soft del design system. */
+      --df-es-positive: #12784a;
+      --df-es-positive-soft: #e6f4ec;
 
       font-family: var(--df-ds-font, inherit);
     }
@@ -84,22 +99,371 @@
       outline: none;
     }
 
-    /* Resumen del pedido: los grises fijos de la app pasan a los bordes del tema. */
-    #easysell .es-line-item,
-    #easysell .es-subt-line,
-    #easysell .es-shipping-line {
-      border-color: var(--df-es-hairline) !important;
+    /* ---- Formulario de pedido: CodOrderForm, BundlePicker y OrderBump del design system ----
+       Solo la vista. Ningún nodo de EasySell se mueve, se crea ni se borra, y ningún id, name,
+       clase ni manejador cambia: EasySell mide impresiones y conversiones por esos selectores. Lo
+       que la app escribe inline sin !important se gana aquí; lo que escribe con !important (textos
+       de los packs, título, precio) lo repinta el script. */
+
+    /* Orden del design system: agregados → resumen → botón. En la app los agregados van dentro del
+       grupo del botón, después del resumen; display: contents y order cambian solo lo que se ve. */
+    #easysell .es-form {
+      display: flex;
+      flex-direction: column;
     }
 
-    #easysell .es-total-line {
-      border-top-color: var(--df-es-hairline) !important;
+    /* Los grupos vacíos de la app (solo comentarios de Vue) dejaban 16px cada uno. Sin margen y no
+       ocultos: la app fuerza display: block en todo lo vacío de #easysell. */
+    #easysell .es-form > .es-group:empty {
+      margin-bottom: 0;
     }
 
-    /* Inline pero sin !important: esto gana. */
+    #easysell .es-form > .es-cta-group {
+      display: contents;
+    }
+
+    #easysell .es-form > .es-cta-group > * {
+      order: 3;
+    }
+
+    #easysell .es-form > .es-cta-group > #es-bumps {
+      order: 1;
+    }
+
+    #easysell .es-form > .es-order_summary-group {
+      order: 2;
+    }
+
+    #easysell .es-form > .es-cta-group ~ * {
+      order: 4;
+    }
+
+    /* Encabezado: título a la izquierda y la X con área táctil de 44px. */
+    #easysell .es-form-header {
+      align-items: center !important;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    #easysell .es-form-header .mb-2,
+    #easysell .es-form-header p {
+      margin: 0 !important;
+      text-align: inherit !important;
+      line-height: 24px;
+    }
+
+    #easysell .es-form-header .close-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin: -10px -10px -10px 0;
+      border-radius: var(--df-es-field-radius);
+      color: var(--df-es-muted) !important;
+      font-size: 18px;
+    }
+
+    #easysell .es-form-header .close-icon:hover {
+      background: var(--df-es-surface);
+      color: var(--df-es-ink) !important;
+    }
+
+    /* Títulos de sección de la app («Tus datos de envío»). */
+    #easysell .es-group[class*=' es-title'] > .mb-2 {
+      margin: 4px 0 12px !important;
+      line-height: 22px;
+    }
+
+    /* Packs (BundlePicker): tarjeta con radio, la elegida en acento y el ahorro en verde. */
+    #easysell .es-qo-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 72px;
+      margin: 0 0 8px !important;
+      padding: 10px 12px !important;
+      border: 1px solid var(--df-es-border) !important;
+      border-radius: var(--df-es-card-radius) !important;
+      background: var(--df-es-bg) !important;
+      transition: border-color 120ms ease, background-color 120ms ease;
+    }
+
+    #easysell .es-qo-container[offer-selected] {
+      border-color: var(--df-es-accent) !important;
+      background: var(--df-es-accent-soft) !important;
+      box-shadow: inset 0 0 0 1px var(--df-es-accent);
+    }
+
+    #easysell .es-qo-container > .d-flex::before {
+      content: '';
+      flex: none;
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      border-radius: 50%;
+      background: var(--df-es-bg);
+      box-shadow: inset 0 0 0 1.5px var(--df-es-line);
+    }
+
+    #easysell .es-qo-container[offer-selected] > .d-flex::before {
+      box-shadow: inset 0 0 0 5px var(--df-es-accent);
+    }
+
+    #easysell .es-qo-container .es-offer-image {
+      min-width: 0 !important;
+      margin-right: 10px !important;
+    }
+
+    #easysell .es-qo-container .offer-image {
+      display: block;
+      width: 48px !important;
+      height: 48px;
+      border-radius: var(--style-border-radius-sm, 6px);
+      object-fit: cover;
+    }
+
+    #easysell .es-qo-container .flex-fill {
+      gap: 4px;
+      min-width: 0;
+      margin: 0 !important;
+    }
+
+    #easysell .es-qo-container .flex-fill > .mb-1 {
+      margin: 0 !important;
+      line-height: 20px;
+    }
+
+    #easysell .es-qo-container .es-offer-badge {
+      height: 22px;
+      padding: 0 8px !important;
+      border-radius: 999px !important;
+      line-height: 22px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #easysell .es-qo-container .px-2 {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding: 0 0 0 8px !important;
+    }
+
+    #easysell .es-qo-container .es-o-cp {
+      color: var(--df-es-muted);
+      font-size: 13px;
+      line-height: 18px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #easysell .es-qo-container .es-o-p {
+      line-height: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Agregados (OrderBump): tarjeta sobria con casilla de 22px; marcada, acento y fondo suave. */
+    #easysell .es-bumps {
+      margin-bottom: 16px;
+    }
+
+    #easysell .es-bumps .es-offer-container {
+      margin: 0 0 8px !important;
+      padding: 10px 12px !important;
+      border: 1px solid var(--df-es-border) !important;
+      border-radius: var(--df-es-card-radius) !important;
+      background: var(--df-es-bg) !important;
+      animation: none !important;
+      transition: border-color 120ms ease, background-color 120ms ease;
+    }
+
+    #easysell .es-bumps .es-offer-container:has(.bump-checkbox-input:checked) {
+      border-color: var(--df-es-accent) !important;
+      background: var(--df-es-accent-soft) !important;
+    }
+
+    #easysell .es-bumps .es-offer-main {
+      gap: 10px;
+    }
+
+    #easysell .es-bumps .bump-checkbox {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    #easysell .es-bumps .bump-checkbox span:first-child {
+      flex: 0 0 22px !important;
+      width: 22px !important;
+      height: 22px !important;
+      border: 1.5px solid var(--df-es-line) !important;
+      border-radius: var(--style-border-radius-sm, 6px) !important;
+      background-color: var(--df-es-bg) !important;
+    }
+
+    #easysell .es-bumps .bump-checkbox-input:checked + .bump-checkbox span:first-child {
+      border-color: var(--df-es-accent) !important;
+      background-color: var(--df-es-accent) !important;
+    }
+
+    #easysell .es-bumps .bump-checkbox span:first-child svg {
+      top: 4.5px !important;
+      left: 3.5px !important;
+      stroke: var(--df-es-on-accent) !important;
+    }
+
+    #easysell .es-bumps .es-offer-content .me-2 {
+      min-width: 0 !important;
+      margin-right: 10px !important;
+    }
+
+    #easysell .es-bumps .offer-image {
+      display: block;
+      width: 44px !important;
+      height: 44px;
+      border-radius: var(--style-border-radius-sm, 6px) !important;
+      object-fit: cover;
+    }
+
+    #easysell .es-bumps .es-offer-text {
+      flex: 1;
+      color: var(--df-es-ink);
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    #easysell .es-bumps .es-offer-text :is(strong, b) {
+      font-weight: 600;
+    }
+
+    /* Tamaños que el editor de EasySell deja inline en el texto del agregado. */
+    #easysell .es-bumps .es-offer-text span[style*='font-size'] {
+      font-size: inherit !important;
+    }
+
+    #easysell .es-bumps .es-offer-text .text-secondary {
+      color: var(--df-es-muted) !important;
+      font-size: 13px !important;
+      line-height: 18px;
+    }
+
+    /* Texto del agregado con la forma «<strong>nombre</strong> <strong>+precio</strong>» (las
+       variables title y price de EasySell): el nombre a la izquierda y el precio a la derecha, como
+       OrderBump (el script lo reconoce). */
+    #easysell .es-bumps [data-df-es-split] {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #easysell .es-bumps [data-df-es-split] > :last-child {
+      flex: none;
+      font-size: 15px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Resumen: fondo gris sin borde, ahorro y envío gratis en verde, y el total a pagar al final. */
     #easysell .total-container {
-      border-color: var(--df-es-hairline) !important;
-      border-radius: var(--df-es-field-radius) !important;
-      background-color: var(--df-es-surface) !important;
+      margin: 0 !important;
+      padding: 12px 14px !important;
+      border: 0 !important;
+      border-radius: var(--df-es-card-radius) !important;
+      background-color: var(--df-es-muted-bg) !important;
+      color: var(--df-es-ink) !important;
+    }
+
+    #easysell .total-container > .p-1 {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 !important;
+    }
+
+    #easysell .total-container :is(.es-subt-line, .es-discount-line, .es-shipping-line, .es-bump-line, .es-line-item) {
+      padding: 0 !important;
+      border: 0 !important;
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    #easysell .total-container .label-title {
+      color: var(--df-es-muted);
+      font-weight: 400 !important;
+    }
+
+    #easysell .total-container .label-value {
+      color: var(--df-es-ink);
+      font-size: 14px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #easysell .total-container .es-discount-mask {
+      background-color: var(--df-es-muted) !important;
+    }
+
+    #easysell .total-container .es-d-price,
+    #easysell .total-container .es-d-price .money,
+    #easysell .total-container [data-df-es-free] .label-value {
+      color: var(--df-es-positive) !important;
+      font-weight: 600;
+    }
+
+    #easysell .total-container .es-d-price svg {
+      stroke: var(--df-es-positive);
+    }
+
+    #easysell .total-container .es-total-line {
+      margin: 4px 0 0 !important;
+      padding: 8px 0 0 !important;
+      border-top: 1px solid var(--df-es-border) !important;
+      color: var(--df-es-ink);
+      font-size: 16px;
+      font-weight: 600 !important;
+    }
+
+    #easysell .total-container .es-total-line .total-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Botón de enviar: 56px, título y bajada; sin el rebote de la app mientras se llena el formulario. */
+    #easysell .es-cta-btn {
+      min-height: 56px;
+      margin: 16px 0 0 !important;
+      padding: 8px 16px !important;
+    }
+
+    #easysell .es-cta-btn .es-button-subtitle {
+      margin-top: 0;
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+
+    #easysell .es-cta-btn.cart-shaker.es-animation-active {
+      animation: none !important;
+      transform: none !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cart-shaker.es-animation-active {
+        animation: none !important;
+      }
+    }
+
+    /* Foco de teclado en las tarjetas y la X (el script las hace alcanzables con Tab). */
+    #easysell :is(.es-qo-container, .es-offer-container, .close-icon):focus-visible {
+      outline: 2px solid var(--df-es-ring);
+      outline-offset: 2px;
+    }
+
+    @media screen and (max-width: 749px) {
+      #easysell .es-qo-container .offer-image {
+        width: 40px !important;
+        height: 40px;
+      }
     }
 
     #easysell .es-product-title {
@@ -216,6 +580,37 @@
       var WATCHED = 'dfEsWatched';
       var tokens = null;
 
+      /* Verde de ahorro (success y success-soft del design system), ya como rgb(): el navegador lo
+         devuelve igual al leerlo, así la comparación de paint() cierra. */
+      var POSITIVE = 'rgb(18, 120, 74)';
+      var POSITIVE_SOFT = 'rgb(230, 244, 236)';
+
+      /* Textos del formulario que la app escribe inline con !important: toman la escala del design
+         system (tamaño, peso, color, alineación). El texto sigue siendo el de EasySell. null = quitar
+         lo que se había escrito (el sello vacío del pack de 1 unidad se oculta; si vuelve a tener
+         texto, se muestra). */
+      var TEXTS = [
+        ['#easysell .es-form-header .flex-fill > .mb-2', function () {
+          return { color: tokens.ink, 'font-size': '18px', 'font-weight': '700', 'text-align': 'left' };
+        }],
+        ['#easysell .es-group[class*=" es-title"] > .mb-2', function () {
+          return { color: tokens.ink, 'font-size': '16px', 'font-weight': '600', 'text-align': 'left' };
+        }],
+        ['#easysell .es-qo-container .flex-fill > .mb-1', function () {
+          return { color: tokens.ink, 'font-size': '15px', 'font-weight': '600' };
+        }],
+        ['#easysell .es-qo-container .es-o-p', function () {
+          return { color: tokens.ink, 'font-size': '17px', 'font-weight': '700' };
+        }],
+        ['#easysell .es-qo-container .es-offer-badge', function (el) {
+          if (!el.textContent.trim()) return { display: 'none' };
+          return { display: null, 'background-image': 'none', 'background-color': POSITIVE_SOFT, color: POSITIVE, 'font-size': '12px', 'font-weight': '600' };
+        }],
+      ];
+      var TEXT_SELECTOR = TEXTS.map(function (rule) {
+        return rule[0];
+      }).join(', ');
+
       /* Los tokens del tema, resueltos una vez: el botón principal (que df-design-system ya tiñó
          con el acento del producto), su texto, su hover y su radio; la tinta, el fondo y el radio
          de las tarjetas. Se escriben ya resueltos para comparar texto con texto. */
@@ -268,6 +663,9 @@
       }
 
       function wanted(el) {
+        for (var i = 0; i < TEXTS.length; i++) {
+          if (el.matches(TEXTS[i][0])) return TEXTS[i][1](el);
+        }
         if (el.matches(BADGE)) {
           return { 'background-image': 'none', 'background-color': tokens.accent };
         }
@@ -286,7 +684,7 @@
             'font-weight': '400',
           };
         }
-        return {
+        var primary = {
           'background-image': 'none',
           'background-color': el.dataset[HOVER] ? tokens.hover : tokens.accent,
           'border-color': tokens.accent,
@@ -294,6 +692,12 @@
           'border-radius': tokens.buttonRadius,
           'box-shadow': 'none',
         };
+        /* El de enviar el pedido: 17px/600 como el botón de CodOrderForm. */
+        if (el.matches('#easysell .es-cta-btn')) {
+          primary['font-size'] = '17px';
+          primary['font-weight'] = '600';
+        }
+        return primary;
       }
 
       /* Los textos de los botones con color inline propio (el título es .es-button-title en un
@@ -312,7 +716,9 @@
         watch(el);
         var want = wanted(el);
         for (var prop in want) {
-          if (el.style.getPropertyValue(prop) !== want[prop] || el.style.getPropertyPriority(prop) !== 'important') {
+          if (want[prop] === null) {
+            if (el.style.getPropertyValue(prop)) el.style.removeProperty(prop);
+          } else if (el.style.getPropertyValue(prop) !== want[prop] || el.style.getPropertyPriority(prop) !== 'important') {
             el.style.setProperty(prop, want[prop], 'important');
           }
         }
@@ -344,10 +750,85 @@
       }
 
       function paintAll() {
-        var nodes = document.querySelectorAll(BUTTONS + ', ' + BADGE + ', ' + CARD);
+        var nodes = document.querySelectorAll(BUTTONS + ', ' + BADGE + ', ' + CARD + ', ' + TEXT_SELECTOR);
         for (var i = 0; i < nodes.length; i++) paint(nodes[i]);
+        syncForm();
         syncStickyBar();
       }
+
+      /* ---- Formulario: accesibilidad y marcas para el CSS ----
+         Los packs, los agregados y la X son <div>/<span> con clic y sin rol. Se anuncian como radio,
+         casilla y botón, y se usan con el teclado: Espacio o Enter hacen clic en el MISMO nodo, así
+         corre el código de EasySell tal cual (elige el pack, marca el agregado, cierra). Solo se
+         agregan atributos de accesibilidad y data-df-*: ningún id, name ni clase cambia. */
+      var PACKS = '#easysell .es-qo-container';
+      var BUMPS = '#easysell .es-bumps .es-offer-container';
+      var CLOSE = '#easysell .es-form-header .close-icon';
+
+      function setAttr(el, name, value) {
+        if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+      }
+
+      function syncForm() {
+        var packs = document.querySelectorAll(PACKS);
+        if (packs.length) {
+          setAttr(packs[0].parentElement, 'role', 'radiogroup');
+          setAttr(packs[0].parentElement, 'aria-label', 'Elige tu pack');
+        }
+        for (var i = 0; i < packs.length; i++) {
+          setAttr(packs[i], 'role', 'radio');
+          setAttr(packs[i], 'tabindex', '0');
+          setAttr(packs[i], 'aria-checked', String(packs[i].hasAttribute('offer-selected')));
+        }
+        var bumps = document.querySelectorAll(BUMPS);
+        for (var j = 0; j < bumps.length; j++) {
+          var input = bumps[j].querySelector('.bump-checkbox-input');
+          setAttr(bumps[j], 'role', 'checkbox');
+          setAttr(bumps[j], 'tabindex', '0');
+          setAttr(bumps[j], 'aria-checked', String(Boolean(input && input.checked)));
+          /* «<strong>nombre</strong> <strong>+precio</strong>»: el CSS pone el precio a la derecha. */
+          var text = bumps[j].querySelector('.es-offer-text > div:first-child > span');
+          if (text) text.toggleAttribute('data-df-es-split', isSplit(text));
+        }
+        var close = document.querySelector(CLOSE);
+        if (close) {
+          setAttr(close, 'role', 'button');
+          setAttr(close, 'tabindex', '0');
+          setAttr(close, 'aria-label', 'Cerrar');
+        }
+        /* Envío sin monto («Gratis»): en verde, como el ahorro. Con monto, en tinta. */
+        var shipping = document.querySelectorAll('#easysell .es-shipping-line');
+        for (var k = 0; k < shipping.length; k++) {
+          var value = shipping[k].querySelector('.label-value');
+          shipping[k].toggleAttribute('data-df-es-free', Boolean(value) && !/\d/.test(value.textContent));
+        }
+      }
+
+      function isSplit(span) {
+        var kids = span.children;
+        if (kids.length !== 2) return false;
+        for (var i = 0; i < kids.length; i++) {
+          if (!/^(STRONG|B)$/.test(kids[i].tagName)) return false;
+        }
+        for (var node = span.firstChild; node; node = node.nextSibling) {
+          if (node.nodeType === 3 && node.textContent.trim()) return false;
+        }
+        return true;
+      }
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key !== ' ' && event.key !== 'Enter') return;
+        var el = event.target instanceof Element ? event.target : null;
+        if (!el || !el.matches(PACKS + ', ' + BUMPS + ', ' + CLOSE)) return;
+        event.preventDefault();
+        el.click();
+      });
+
+      /* Elegir un pack o marcar un agregado no monta nodos (la app cambia un atributo o la propiedad
+         checked): se vuelve a leer el estado después de que la app termina su vuelta. */
+      document.addEventListener('click', function (event) {
+        if (tokens && event.target instanceof Element && event.target.closest('#easysell')) setTimeout(syncForm, 0);
+      });
 
       /* ---- Una sola barra fija: la del tema abre el formulario de EasySell ----
          En móvil se apilaban la barra del tema (agrega al carrito) y la de EasySell (abre el
