@@ -68,11 +68,12 @@ export const SHARED_METAFIELDS = {
    */
   subtitle: { owner: "product", namespace: "dropflex", key: "subtitle", type: "single_line_text_field" },
   /**
-   * Producto · json. La oferta de la ficha: `offer_line` de la ficha aprobada y las etiquetas
-   * aprobadas de los packs (pack_labels), en el orden de las variantes del producto:
-   * { offer_line?: string, packs: Array<{ units: number, label: string, support?: string, badge?: string }> }
-   * Cada pack es una VARIANTE del producto (1, 2 y 3 unidades) con su precio y su precio tachado
-   * reales; el metafield solo lleva textos. Lo lee `df-pack-offers` (_landing).
+   * Producto · json. La oferta de la ficha: `offer_line` de la ficha aprobada y los packs del plan de
+   * precios con sus etiquetas aprobadas (pack_labels):
+   * { offer_line?: string, packs: Array<{ units: number, label: string, price: number, compare_at?: number, support?: string, badge?: string }> }
+   * price y compare_at en centavos, como Liquid. Un pack NO es una variante: es la variante de
+   * 1 unidad × N (Dropi recibe la cantidad) y su precio lo cobra la oferta por cantidad de EasySell.
+   * Lo lee `df-pack-offers` (_landing), que esconde el pack que EasySell no cobra igual.
    */
   offer: { owner: "product", namespace: "dropflex", key: "offer", type: "json" },
   /**

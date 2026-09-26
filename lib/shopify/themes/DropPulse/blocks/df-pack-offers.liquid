@@ -1,17 +1,21 @@
 {%- doc -%}
   DropFlex · Packs (pack-offers). Bloque de la columna del producto, sobre el botón: la oferta en
   una línea y una tarjeta por pack (1, 2 y 3 unidades) con su foto, su nombre, el precio y el
-  precio tachado. La tarjeta elegida es la variante que se compra.
+  precio tachado. La tarjeta elegida es la CANTIDAD que se compra.
 
-  REGLA: cada pack es una VARIANTE real del producto; precio y tachado salen de la variante, nunca
-  del metafield. Los textos (nombre, apoyo, distintivo) son las etiquetas de los packs aprobadas en
-  DropFlex, en el orden de las variantes; sin ellas, el nombre de la variante. Con una sola
-  variante (o más de una opción) no se dibuja: el selector del tema se encarga.
+  REGLA: un pack es la variante de 1 unidad × N, nunca una variante propia. Dropify (Dropi) enlaza
+  el producto entero con un solo id y manda la cantidad de la línea: una variante «2 unidades»
+  llegaba a Dropi como 1 unidad. El precio del pack lo cobra EasySell con su oferta por cantidad;
+  df-pack-offers.js comprueba que cobre lo mismo que dice la tarjeta y esconde la que no.
 
   Contenido: metafield `dropflex.offer` (json)
-    { offer_line?: string, packs: [{ units, label, support?, badge? }] }
-  Al elegir, cambia el input[name="id"] del formulario del producto y lo avisa con `change`:
-  df-price y df-inventory lo escuchan (df-pack-offers.js).
+    { offer_line?: string, packs: [{ units, label, price, compare_at?, support?, badge? }] }
+  price y compare_at en centavos, como los precios de Liquid. Transición: un producto publicado
+  antes (packs como variantes de una sola opción, sin price en el metafield) toma el precio de la
+  variante del mismo orden.
+  Al elegir, deja la variante de 1 unidad en input[name="id"] y la cantidad en
+  input[name="quantity"]: EasySell las lee al abrir su formulario y elige su oferta de esa cantidad.
+  df-price muestra el pack elegido (evento df:pack).
 {%- enddoc -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
@@ -19,11 +23,16 @@
   assign product = closest.product | default: product
   assign s = block.settings
   assign offer = product.metafields.dropflex.offer.value
-  assign selected = product.selected_or_first_available_variant
+  assign unit = product.variants.first
   assign heading = offer.offer_line | default: s.heading
 
+  assign legacy = false
+  if product.options.size == 1 and product.variants.size > 1
+    assign legacy = true
+  endif
+
   assign show = false
-  if product != blank and product.variants.size > 1 and product.options.size == 1
+  if product != blank and unit != blank and offer.packs.size > 1
     assign show = true
   endif
 -%}
@@ -32,6 +41,9 @@
   <script src="{{ 'df-pack-offers.js' | asset_url }}" defer></script>
   <df-pack-offers
     class="df df-pack-offers"
+    data-product="{{ product.id }}"
+    data-variant="{{ unit.id }}"
+    data-unit-cents="{{ unit.price }}"
     style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
   >
@@ -41,11 +53,26 @@
         <p class="df-pack-offers__heading" aria-hidden="true"><span>{{ heading | escape }}</span></p>
       {%- endif -%}
       {%- assign badge_used = false -%}
-      {%- for v in product.variants limit: 4 -%}
+      {%- assign checked_done = false -%}
+      {%- for pack in offer.packs limit: 4 -%}
         {%- liquid
           assign idx = forloop.index0
-          assign pack = offer.packs[idx]
-          assign label = pack.label | default: v.title
+          assign price = pack.price
+          assign was = pack.compare_at
+          if price == blank and legacy
+            assign price = product.variants[idx].price
+            assign was = product.variants[idx].compare_at_price
+          endif
+          assign valid = true
+          if price == blank or pack.units == blank
+            assign valid = false
+          endif
+          if pack.units == 1
+            assign fallback_label = '1 unidad'
+          else
+            assign fallback_label = pack.units | append: ' unidades'
+          endif
+          assign label = pack.label | default: fallback_label
           assign support = pack.support
           assign badge = blank
           if pack.badge != blank and badge_used == false
@@ -53,56 +80,66 @@
             assign badge_used = true
           endif
           assign save = 0
-          if v.compare_at_price > v.price
-            assign save = v.compare_at_price | minus: v.price
+          assign percent = 0
+          if was > price
+            assign save = was | minus: price
+            assign percent = save | times: 100.0 | divided_by: was | round
           endif
           if support == blank and save > 0 and s.show_savings
             assign save_money = save | money
             assign support = s.savings_label | replace: '{amount}', save_money
           endif
-          assign image = v.featured_image | default: product.featured_image
         -%}
+        {%- if valid -%}
         <label class="df-pack-offers__card{% if badge != blank %} df-pack-offers__card--badge{% endif %}">
           <input
             type="radio"
             class="df-pack-offers__radio"
             name="df-pack-{{ block.id }}"
-            value="{{ v.id }}"
-            data-price="{{ v.price | money | escape }}"
+            value="{{ pack.units }}"
+            data-cents="{{ price }}"
+            data-price="{{ price | money | escape }}"
+            data-was="{% if save > 0 %}{{ was | money | escape }}{% endif %}"
+            data-save="{% if save > 0 %}{{ save | money | escape }}{% endif %}"
+            data-pc="{{ percent }}"
             data-label="{{ label | escape }}"
-            {% if v.id == selected.id %}checked{% endif %}
-            {% unless v.available %}disabled{% endunless %}
+            {% unless checked_done %}checked{% endunless %}
+            {% unless unit.available %}disabled{% endunless %}
           >
+          {%- assign checked_done = true -%}
           {%- if badge != blank -%}
             <span class="df-pack-offers__badge">{{ badge | escape }}</span>
           {%- endif -%}
-          {%- if image != blank and s.show_image -%}
+          {%- if product.featured_image != blank and s.show_image -%}
             <span class="df-pack-offers__media">
-              {{ image | image_url: width: 160 | image_tag: widths: '80, 160', sizes: '56px', alt: '', loading: 'lazy', class: 'df-pack-offers__img' }}
+              {{ product.featured_image | image_url: width: 160 | image_tag: widths: '80, 160', sizes: '56px', alt: '', loading: 'lazy', class: 'df-pack-offers__img' }}
             </span>
           {%- endif -%}
           <span class="df-pack-offers__body">
             <span class="df-pack-offers__label">{{ label | escape }}</span>
-            {%- if v.available == false -%}
+            {%- if unit.available == false -%}
               <span class="df-pack-offers__support">Agotado</span>
             {%- elsif support != blank -%}
               <span class="df-pack-offers__support">{{ support | escape }}</span>
             {%- endif -%}
           </span>
           <span class="df-pack-offers__prices">
-            <span class="df-pack-offers__price">{{ v.price | money }}</span>
+            <span class="df-pack-offers__price">{{ price | money }}</span>
             {%- if save > 0 -%}
-              <s class="df-pack-offers__was"><span class="df-visually-hidden">Precio normal </span>{{ v.compare_at_price | money }}</s>
+              <s class="df-pack-offers__was"><span class="df-visually-hidden">Precio normal </span>{{ was | money }}</s>
             {%- endif -%}
           </span>
         </label>
+        {%- endif -%}
       {%- endfor -%}
     </fieldset>
+    {%- comment -%} Solo en el editor de temas: por qué un pack (o el bloque) no se muestra. {%- endcomment -%}
+    <div class="df-pack-offers__notice" role="note" data-df-notice hidden></div>
   </df-pack-offers>
 {%- elsif request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <div class="df df-placeholder" {{ block.shopify_attributes }}>
-    Packs: aparecen cuando el producto tiene sus packs como variantes (1, 2 y 3 unidades) en una sola opción.
+    Packs: aparecen cuando DropFlex publica el producto con sus packs (1, 2 y 3 unidades).
   </div>
 {%- endif -%}
 
@@ -110,6 +147,29 @@
   /* Con packs, la cantidad la elige la tarjeta: el selector de cantidad del tema sobra. */
   .product-details:has(df-pack-offers) .quantity-selector-wrapper {
     display: none;
+  }
+
+  .df-pack-offers[hidden],
+  .df-pack-offers__set[hidden],
+  .df-pack-offers__card[hidden],
+  .df-pack-offers__notice[hidden] {
+    display: none;
+  }
+
+  .df-pack-offers__notice {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--df-hairline);
+    border-radius: var(--df-radius);
+    background: var(--df-surface);
+    color: var(--df-fg);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .df-pack-offers__notice ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
   }
 
   .df-pack-offers__set {
@@ -283,7 +343,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "Una tarjeta por variante (los packs de 1, 2 y 3 unidades). Precios de cada variante; nombres del metafield dropflex.offer o, si falta, el nombre de la variante."
+      "content": "Una tarjeta por pack (1, 2 y 3 unidades) del metafield dropflex.offer. Cada pack es la variante de 1 unidad × N y lo cobra la oferta por cantidad de EasySell: crea una opción por pack, con el mismo precio y sin preseleccionar. Un pack que EasySell no cobra igual no se muestra."
     },
     {
       "type": "text",

@@ -63,23 +63,26 @@ const SIMPLE: ExistingProduct = {
 };
 
 describe("productSet", () => {
-  it("publica los packs como variantes y conserva la variante de siempre", () => {
+  it("publica una sola variante, la de 1 unidad: los packs no son variantes (Dropi recibe la cantidad)", () => {
     const p = productSetInput(input(), SIMPLE, gids);
-    expect(p.productOptions).toEqual([{ name: PACK_OPTION, values: [{ name: "1 unidad" }, { name: "2 unidades" }, { name: "3 unidades" }] }]);
-    expect(p.variants[0]).toMatchObject({ id: "gid://shopify/ProductVariant/10", price: "24990.00", compareAtPrice: "32990.00", inventoryItem: { sku: "CP-01" } });
-    expect(p.variants[1]).not.toHaveProperty("id");
-    expect(p.variants[1]).toMatchObject({ price: "37990.00", inventoryItem: { sku: "CP-01-2x" } });
+    expect(p.productOptions).toEqual([{ name: "Title", values: [{ name: "Default Title" }] }]);
+    expect(p.variants).toEqual([
+      { id: "gid://shopify/ProductVariant/10", optionValues: [{ optionName: "Title", name: "Default Title" }], price: "24990.00", compareAtPrice: "32990.00", inventoryPolicy: "CONTINUE", inventoryItem: { tracked: false } },
+    ]);
     expect(p.files).toEqual([{ id: "gid://shopify/MediaImage/7" }, { id: "gid://shopify/MediaImage/8" }]);
     expect(p.seo).toEqual({ title: LISTING.seo_title, description: LISTING.seo_description });
   });
 
-  it("al volver a publicar reusa cada variante de pack por su nombre", () => {
-    const again: ExistingProduct = {
+  it("un producto que tenía los packs como variantes conserva la de 1 unidad y borra las demás", () => {
+    const legacy: ExistingProduct = {
       ...SIMPLE,
       options: [{ name: PACK_OPTION, values: ["1 unidad", "2 unidades", "3 unidades"] }],
-      variants: ["1 unidad", "2 unidades", "3 unidades"].map((o, i) => ({ id: `v${i}`, sku: i ? `CP-01-${i + 1}x` : "CP-01", title: o, option: o })),
+      variants: ["2 unidades", "1 unidad", "3 unidades"].map((o, i) => ({ id: `v${i}`, sku: o === "1 unidad" ? "CP-01" : `CP-01-${o[0]}x`, title: o, option: o })),
     };
-    expect(productSetInput(input(), again, gids).variants.map((v) => ("id" in v ? v.id : null))).toEqual(["v0", "v1", "v2"]);
+    const p = productSetInput(input(), legacy, gids);
+    expect(p.productOptions).toEqual([{ name: "Title", values: [{ name: "Default Title" }] }]);
+    expect(p.variants.map((v) => v.id)).toEqual(["v1"]);
+    expect(p.variants[0]).toMatchObject({ price: "24990.00", optionValues: [{ optionName: "Title", name: "Default Title" }] });
   });
 
   it("sin packs deja una sola variante con el precio de 1 unidad", () => {
@@ -121,7 +124,9 @@ describe("metafields", () => {
     expect(by.get("subtitle")!.value).toBe(LISTING.short_description);
     const offer = JSON.parse(by.get("offer")!.value);
     expect(offer.offer_line).toBe(LISTING.offer_line);
-    expect(offer.packs[1]).toEqual({ units: 2, label: "2 unidades", badge: "Más elegido" });
+    // Precios en centavos, como Liquid: la tarjeta los muestra y df-pack-offers los compara con EasySell.
+    expect(offer.packs[0]).toEqual({ units: 1, label: "1 unidad", price: 2499000, compare_at: 3299000, support: "Para probarlo" });
+    expect(offer.packs[1]).toEqual({ units: 2, label: "2 unidades", price: 3799000, compare_at: 6598000, badge: "Más elegido" });
     const reviews = JSON.parse(by.get("reviews")!.value);
     expect(reviews.items[0]).toMatchObject({ id: "r1", image_from: 0, image_count: 2, date: "2026-08-01" });
     expect(reviews.items[1]).toMatchObject({ id: "r2", image_from: 2, image_count: 0 });

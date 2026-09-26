@@ -27,10 +27,9 @@ export interface StorePolicies {
 }
 
 /**
- * Un pack de «Precio y packs»: en la tienda es una variante del producto (df-pack-offers), con su
- * precio y su tachado reales. Tachado = (tachado de 1 unidad, o su precio) × unidades, si es mayor.
- * Los textos son las etiquetas de los packs aprobadas; sin ellas, la tienda usa el nombre de la
- * variante.
+ * Un pack de «Precio y packs»: en la tienda es la variante de 1 unidad × N (df-pack-offers), con el
+ * precio que cobra la oferta por cantidad de EasySell. Tachado = (tachado de 1 unidad, o su precio)
+ * × unidades, si es mayor. Los textos son las etiquetas de los packs aprobadas; sin ellas, «N unidades».
  */
 export interface StorePack {
   units: number;
@@ -47,7 +46,7 @@ export interface StoreFacts {
   price: number;
   compareAt?: number;
   currency: string;
-  /** Los packs (variantes) con precio guardado; vacío o ausente sin «Precio y packs». */
+  /** Los packs con precio guardado; vacío o ausente sin «Precio y packs». */
   packs?: StorePack[];
   /** Las reseñas aprobadas, en su orden. */
   reviews: StoreReview[];

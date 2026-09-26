@@ -458,6 +458,29 @@ df-slider {
   display: none;
 }
 
+.df-pack-offers[hidden],
+.df-pack-offers__set[hidden],
+.df-pack-offers__card[hidden],
+.df-pack-offers__notice[hidden] {
+  display: none;
+}
+
+.df-pack-offers__notice {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--df-hairline);
+  border-radius: var(--df-radius);
+  background: var(--df-surface);
+  color: var(--df-fg);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.df-pack-offers__notice ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
 .df-pack-offers__set {
   display: flex;
   flex-direction: column;

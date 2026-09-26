@@ -1,5 +1,6 @@
 // Publicar, lo puro (docs/spec-publicar.md): de lo APROBADO en DropFlex a lo que recibe Shopify.
-// - productSet: título, descripción, SEO, los packs como variantes y la galería.
+// - productSet: título, descripción, SEO, la variante de 1 unidad y la galería (los packs NO son
+//   variantes: son esa variante × N, ver productSetInput).
 // - metafields dropflex.*: el contenido de cada componente en uso y los datos reales (reseñas,
 //   resumen, acento, oferta, bajada). Lo que ya no va se borra: publicar también baja lo retirado.
 // Sin red ni base: todo entra por parámetro (con tests).
@@ -8,7 +9,10 @@ import type { Listing } from "@/lib/copy/listing";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import { SHARED_METAFIELDS } from "@/lib/shopify/components/define";
 
-/** Nombre de la opción de los packs en Shopify (lo ve el comprador en el carrito). */
+/**
+ * La opción de los packs cuando eran variantes (antes del 2026-09-26). Solo para reconocerla al
+ * volver a publicar: se conserva su variante de 1 unidad y se borran las demás.
+ */
 export const PACK_OPTION = "Pack";
 /** Tope de reseñas publicadas (las mismas que ve la IA, lib/copy/prompts.ts › REVIEWS_MAX). */
 export const REVIEWS_MAX = 30;
@@ -101,12 +105,17 @@ export function descriptionHtml(input: PublishInput): string {
 }
 
 const money = (n: number) => n.toFixed(2);
+/** Liquid da los precios en centavos en toda moneda (también CLP): $24.990 → 2499000. */
+const cents = (n: number) => Math.round(n * 100);
 
 /**
- * El productSet: packs como variantes de una opción «Pack» (1, 2, 3 unidades), con precio y tachado.
- * La primera conserva la variante que ya existía (SKU, historial de pedidos). Todas quedan a la
- * venta sin inventario (SELLABLE). Un producto
- * con variantes propias (Color, Talla) no se toca: sus packs quedarían mezclados.
+ * El productSet: una sola variante, la de 1 unidad, con su precio y su tachado, a la venta sin
+ * inventario (SELLABLE). Los packs NO son variantes: la tienda los vende como esa variante × N con
+ * la oferta por cantidad de EasySell (df-pack-offers). Dropify (Dropi) enlaza el producto entero con
+ * un solo id y manda la cantidad de la línea: una variante «2 unidades» llegaba a Dropi como
+ * 1 unidad (Datazo, pedido #1006). Si el producto ya tenía los packs como variantes (opción «Pack»),
+ * se conserva la de 1 unidad (SKU, historial de pedidos) y las demás se borran. Un producto con
+ * variantes propias (Color, Talla) no se toca.
  */
 export function productSetInput(input: PublishInput, existing: ExistingProduct, gids: Map<string, string>) {
   const own = existing.options.filter((o) => o.name !== "Title" && o.name !== PACK_OPTION);
@@ -115,39 +124,19 @@ export function productSetInput(input: PublishInput, existing: ExistingProduct, 
   }
   const base = existing.variants.find((v) => v.option === packValue(1)) ?? existing.variants[0];
   if (!base) throw new MappingError("El producto no tiene variantes en Shopify. Revisa que siga existiendo.");
-  const packs = input.packs.length ? input.packs : [];
   const listing = input.listing;
+  const unit = input.packs.find((p) => p.units === 1);
 
-  let productOptions;
-  let variants;
-  if (packs.length > 1) {
-    productOptions = [{ name: PACK_OPTION, values: packs.map((p) => ({ name: packValue(p.units) })) }];
-    variants = packs.map((p, i) => {
-      const same = existing.variants.find((v) => v.option === packValue(p.units)) ?? (i === 0 ? base : undefined);
-      const sku = base.sku ? (p.units === 1 ? base.sku : `${base.sku}-${p.units}x`) : undefined;
-      return {
-        ...(same ? { id: same.id } : {}),
-        optionValues: [{ optionName: PACK_OPTION, name: packValue(p.units) }],
-        price: money(p.price),
-        compareAtPrice: p.compareAt ? money(p.compareAt) : null,
-        inventoryPolicy: SELLABLE.inventoryPolicy,
-        position: i + 1,
-        inventoryItem: { tracked: SELLABLE.tracked, ...(sku ? { sku } : {}) },
-      };
-    });
-  } else {
-    const p = packs[0];
-    productOptions = [{ name: "Title", values: [{ name: "Default Title" }] }];
-    variants = [
-      {
-        id: base.id,
-        optionValues: [{ optionName: "Title", name: "Default Title" }],
-        ...(p ? { price: money(p.price), compareAtPrice: p.compareAt ? money(p.compareAt) : null } : {}),
-        inventoryPolicy: SELLABLE.inventoryPolicy,
-        inventoryItem: { tracked: SELLABLE.tracked },
-      },
-    ];
-  }
+  const productOptions = [{ name: "Title", values: [{ name: "Default Title" }] }];
+  const variants = [
+    {
+      id: base.id,
+      optionValues: [{ optionName: "Title", name: "Default Title" }],
+      ...(unit ? { price: money(unit.price), compareAtPrice: unit.compareAt ? money(unit.compareAt) : null } : {}),
+      inventoryPolicy: SELLABLE.inventoryPolicy,
+      inventoryItem: { tracked: SELLABLE.tracked },
+    },
+  ];
 
   const files = input.gallery.map((g) => gids.get(g.key)).filter((id): id is string => Boolean(id)).map((id) => ({ id }));
   return {
@@ -197,7 +186,16 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
   set.push(
     mf(SHARED_METAFIELDS.offer.key, "json", {
       offer_line: input.listing.offer_line,
-      packs: packs.map((p) => ({ units: p.units, label: p.label ?? packValue(p.units), ...(p.support ? { support: p.support } : {}), ...(p.badge ? { badge: p.badge } : {}) })),
+      // price y compare_at en centavos, como los precios de Liquid: la tarjeta de cada pack los
+      // muestra y df-pack-offers.js los compara con lo que cobra EasySell.
+      packs: packs.map((p) => ({
+        units: p.units,
+        label: p.label ?? packValue(p.units),
+        price: cents(p.price),
+        ...(p.compareAt && p.compareAt > p.price ? { compare_at: cents(p.compareAt) } : {}),
+        ...(p.support ? { support: p.support } : {}),
+        ...(p.badge ? { badge: p.badge } : {}),
+      })),
     }),
   );
   if (input.accent) set.push(mf(SHARED_METAFIELDS.accent.key, "color", input.accent.toLowerCase()));

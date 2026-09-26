@@ -223,7 +223,7 @@ Namespace `dropflex` (de comerciante, no `$app:`; ver §12). Un `json` por bloqu
 
 | Origen v2 | Metafield | Tipo | Render |
 |---|---|---|---|
-| `offer_line` + etiquetas aprobadas de los packs | `dropflex.offer` | `json` `{ offer_line, packs: [{ units, label, support, badge }] }` | `df-pack-offers`: una tarjeta por variante (los packs son variantes con su precio y tachado reales) |
+| `offer_line` + packs del plan de precios con sus etiquetas aprobadas | `dropflex.offer` | `json` `{ offer_line, packs: [{ units, label, price, compare_at, support, badge }] }` (montos en centavos) | `df-pack-offers`: una tarjeta por pack. El pack es la variante de 1 unidad × N (así llega a Dropi) y lo cobra la oferta por cantidad de EasySell |
 | `short_description` de la ficha | `dropflex.subtitle` | `single_line_text_field` | `df-subtitle`, bajo el título |
 | `benefit` (3–5, con `kind`) | `dropflex.benefits` | `json` | Sección beneficios |
 | Imágenes slot `benefit` (3:4, una por beneficio) | `dropflex.benefits_images` | `list.file_reference` | Alineadas por índice |

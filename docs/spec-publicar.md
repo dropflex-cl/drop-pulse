@@ -14,7 +14,7 @@ La ruta es `/products/[id]/publish`. La etapa tiene dos pasos independientes:
    - Lo actualiza cuando cambia el código del kit.
 2. **Tu producto.** Se repite cada vez que haga falta. Lleva a Shopify lo aprobado:
    - la ficha: título, descripción y SEO;
-   - los packs, como variantes;
+   - el precio de 1 unidad y los packs (la variante × N, que cobra la oferta por cantidad de EasySell);
    - la galería;
    - el contenido de la página, en metafields `dropflex.*`.
    
@@ -62,13 +62,15 @@ Se puede publicar el producto antes que el tema: el contenido espera en los meta
 - **`productSet`** (síncrono):
   - Envía título, `descriptionHtml` y SEO.
     - La descripción son la descripción corta y los beneficios de *Foto y razones*, en HTML escapado.
-  - **Packs = variantes** de una opción `Pack` («1 unidad», «2 unidades», «3 unidades»):
-    - El precio sale del plan de precios.
-    - El precio tachado es (tachado de 1 unidad, o su precio) × unidades, si es mayor.
-    - La variante de 1 unidad conserva la que ya existía (SKU, pedidos).
-    - Las de packs llevan SKU `-2x`/`-3x`.
-    - **Todas quedan a la venta** (`SELLABLE`, como en v1): `inventoryItem.tracked: false` y `inventoryPolicy: CONTINUE`, también la de 1 unidad y el producto sin packs. El stock lo tiene el proveedor; una variante importada con seguimiento y 0 unidades salía «Agotado». Apagar el seguimiento exige `write_inventory`: sin él Shopify rechaza el `productSet` entero, por eso Publicar lo exige.
-    - Al volver a publicar se reusa cada variante por su nombre.
+  - **Una sola variante, la de 1 unidad**, con el precio y el tachado de 1 unidad del plan de precios:
+    - Conserva la que ya existía (SKU, pedidos).
+    - **Queda a la venta** (`SELLABLE`, como en v1): `inventoryItem.tracked: false` y `inventoryPolicy: CONTINUE`. El stock lo tiene el proveedor; una variante importada con seguimiento y 0 unidades salía «Agotado» y Shopify rechazaba el pedido («Unable to reserve inventory»). Apagar el seguimiento exige `write_inventory`: sin él Shopify rechaza el `productSet` entero, por eso Publicar lo exige.
+  - **Los packs NO son variantes** (decisión del 2026-09-26, Datazo, pedido #1006). Un pack es la variante de 1 unidad × N:
+    - Dropify (la integración de Dropi) enlaza el producto entero con un solo id de Dropi (metafield `dropi._dropi_product`) y le manda la cantidad de la línea. Una variante «2 unidades» llegaba a Dropi como 1 unidad: el proveedor despachaba y cobraba una.
+    - El precio del pack lo cobra la **oferta por cantidad de EasySell**. El comerciante crea en EasySell una opción por pack con descuento fijo (N × precio de 1 unidad − precio del pack), sin preseleccionar y mostrada solo en el formulario. La pantalla Publicar le dice qué montos poner.
+    - El pedido llega como la variante × N con el descuento de EasySell (`ManualDiscountApplication` «QUANTITY DISCOUNT»), que es como se venden los packs con Dropi.
+    - Los precios de los packs van en `dropflex.offer` (en centavos). `df-pack-offers` los muestra y esconde el pack que EasySell no cobre igual.
+    - Un producto publicado antes con los packs como variantes (opción `Pack`): al volver a publicar se conserva la de 1 unidad y se borran las demás.
   - Un producto con variantes propias (Color, Talla) no se toca: da un error claro.
   - La galería son la portada, la galería y los beneficios elegidos en Imágenes, en ese orden, como archivos de Shopify Files.
 - **Metafields del producto** (`metafieldsSet` de a 25):
@@ -122,7 +124,8 @@ Migración `20261010000000_publish.sql`. Toda escritura es con `service_role`; e
 - [ ] Instalar el tema y revisar la vista previa: redirecciones, header, pie, Geist, el acento en el botón, 375 px y el editor de temas.
 - [ ] Publicar un producto sin variantes. Revisar:
   - que todas las variantes queden sin seguimiento y a la venta (nada de «Agotado»);
-  - las variantes de packs, los precios tachados y que la tarjeta cambie el carrito;
+  - que quede una sola variante, los precios tachados y que la tarjeta de cada pack abra el formulario de EasySell con su oferta;
+  - un pedido de prueba de 2 unidades que llegue a Dropi con cantidad 2 y el monto correcto;
   - la galería, los metafields (componentes, reseñas, bajada, oferta) y las políticas y plazos.
 - [ ] Publicar de nuevo tras cambiar un componente y verificar que el retirado desaparece.
 - [ ] Probar con EasySell instalado: que el app embed siga activo en el tema nuevo.

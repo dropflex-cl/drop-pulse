@@ -43,6 +43,22 @@ function Section({ step, title, hint, children, className }: { step: number; tit
   );
 }
 
+/**
+ * La oferta por cantidad que hay que crear en EasySell: cada pack es la variante de 1 unidad × N y
+ * EasySell le resta un descuento fijo (N × precio de 1 unidad − precio del pack). df-pack-offers
+ * esconde el pack que EasySell no cobre igual.
+ */
+function easySellDiscounts(packs: PublishState["plan"]["packs"], currency: string): string {
+  const unit = packs.find((p) => p.units === 1)?.price;
+  if (!unit) return packs.map((p) => `${p.units} ${p.units === 1 ? "unidad" : "unidades"}`).join(" · ");
+  return packs
+    .map((p) => {
+      const discount = p.units * unit - p.price;
+      return `${p.units} ${p.units === 1 ? "unidad" : "unidades"} ${discount > 0 ? `−${money(discount, currency)}` : "sin descuento"}`;
+    })
+    .join(" · ");
+}
+
 function Row({ icon, children }: { icon: React.ComponentProps<typeof Icon>["name"]; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2 text-body">
@@ -241,8 +257,12 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
       <Row icon="image">{plan.images === 1 ? "1 imagen en la galería" : `${plan.images} imágenes en la galería`}, en el orden que elegiste</Row>
       {plan.packs.length ? (
         <Row icon="tag">
-          {plan.packs.length} packs como variantes:{" "}
+          {plan.packs.length} packs:{" "}
           <span className="tabular-nums">{plan.packs.map((p) => `${p.units} × ${money(p.price, state.currency)}`).join(" · ")}</span>
+          <span className="mt-0.5 block text-label font-normal text-muted-foreground">
+            Los cobra EasySell. En su oferta por cantidad de este producto, crea una opción por pack con descuento fijo, sin preseleccionar:{" "}
+            <span className="tabular-nums">{easySellDiscounts(plan.packs, state.currency)}</span>. Un pack que EasySell no cobre igual no se muestra en la tienda.
+          </span>
         </Row>
       ) : (
         <Row icon="tag">Una sola variante, al precio de 1 unidad</Row>

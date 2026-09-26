@@ -6,8 +6,9 @@
   precio no hay tachado ni ahorro: nunca un descuento inventado.
   Con un evento activo (dropflex.event) suma la etiqueta del evento con ese mismo % y la cuenta
   regresiva (_event/snippets/df-event-badge y df-event-countdown).
-  Cambia con la variante (packs): los montos de cada variante van embebidos, ya formateados por la
-  tienda; df-price.js solo elige cuál mostrar (evento shopify:product:select o change del form).
+  Cambia con la variante: los montos de cada variante van embebidos, ya formateados por la tienda;
+  df-price.js solo elige cuál mostrar (evento shopify:product:select o change del form). Con packs
+  muestra el pack elegido: df-pack-offers manda sus montos, ya formateados, en el evento df:pack.
 {%- enddoc -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno

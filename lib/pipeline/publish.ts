@@ -1,7 +1,8 @@
 // Etapa Publicar (docs/spec-publicar.md): lleva a Shopify lo APROBADO de un producto.
 //   1. definiciones de metafields (una vez, PUBLIC_READ);
 //   2. imágenes a Shopify Files (caché por archivo de origen);
-//   3. productSet: título, descripción, SEO, packs como variantes y galería;
+//   3. productSet: título, descripción, SEO, la variante de 1 unidad (los packs van en el metafield
+//      dropflex.offer: la variante × N con la oferta por cantidad de EasySell) y galería;
 //   4. metafields dropflex.* del producto (y borrar los retirados) y de la tienda (políticas, plazos).
 // Corre en segundo plano (after) y deja su estado en product_publications. Publicar dos veces es
 // idempotente. El tema se instala aparte (lib/shopify/publish/theme.ts).

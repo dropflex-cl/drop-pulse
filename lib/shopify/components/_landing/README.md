@@ -84,11 +84,24 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 | `df-social-proof` | Bajo el badge de novedad | Fotos de reseñas aprobadas con 4 o 5 estrellas y la cantidad real de `dropflex.review_summary`. Los nombres nunca son el autor («Cliente», «Anónimo»): `df-social-proof.js` los elige al azar de 50 nombres de mujer y 50 de hombre y los guarda por producto en `localStorage["df:social-proof:<id>"]` |
 | `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
-| `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Se actualiza al cambiar de variante |
+| `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Con packs, los del pack elegido (evento `df:pack`) |
 | `df-social-badge` | Bajo los beneficios | Píldora con el logo de TikTok (o un ícono) y una cifra de redes («Viral en TikTok: {views} vistas»). La cifra la escribe el comerciante en el editor (ajuste `views`), nunca la IA; sin cifra no se muestra |
-| `df-pack-offers` | Sobre el botón | Una tarjeta por variante (los packs de 1, 2 y 3 unidades) con su precio real. Los textos salen de `dropflex.offer`, y sin ellos se usa el nombre de la variante. Si el producto tiene una sola variante, no se muestra |
+| `df-pack-offers` | Sobre el botón | Una tarjeta por pack de `dropflex.offer` (1, 2 y 3 unidades) con su precio, su tachado y sus textos. Se muestra solo si EasySell cobra cada pack igual (ver abajo) |
 | `df-trust-note` | Bajo la galería en computador y bajo el botón en teléfono (ajuste `visibility`) | Una política real de la tienda (pago al recibir, cambios, garantía). Si la política no está activa, no se muestra |
 
-**Packs = variantes.** Cada pack es una variante del producto («1 unidad», «2 unidades», «3 unidades»), con su precio y su precio tachado. Así el botón nativo, el carrito y cualquier app de pago contra entrega venden el pack correcto sin descuentos aparte.
+## Packs: la variante de 1 unidad × N
 
-`df-pack-offers` cambia el `input[name="id"]` del formulario y avisa con un `change`. `df-price` y `df-inventory` lo escuchan. No depende del selector de variantes del tema.
+**Un pack nunca es una variante.** Es la variante de 1 unidad con cantidad N, y su precio lo cobra la **oferta por cantidad de EasySell**. Antes cada pack era una variante («2 unidades»), pero Dropify (la integración de Dropi) enlaza el producto entero con un solo id de Dropi y manda la cantidad de la línea: el pack de 2 llegaba a Dropi como 1 unidad (Datazo, pedido #1006, 2026-09-26).
+
+- **La tarjeta elige la cantidad.** `df-pack-offers.js` deja la variante de 1 unidad en `input[name="id"]` y la cantidad del pack en `input[name="quantity"]` (el selector del tema va oculto). Lo repone en captura antes de cada clic, por si el tema lo reescribe.
+- **EasySell elige su oferta.** Al abrir su popup, EasySell lee la variante y la cantidad del formulario del producto y elige la opción de esa cantidad (`Lt` → `ES_SELECT_OFFER_BY_QUANTITY` en easysell.js). El pedido llega como la variante × N con su descuento («QUANTITY DISCOUNT»). Nunca se llama a una función de la app.
+- **La página nunca dice otro precio que el que cobra el formulario.** Cada tarjeta se compara con `window.EASYSELL_QUANTITY_OFFERS` (solo lectura, con el cálculo de EasySell: N × precio de la variante menos el descuento en % o fijo). La tarjeta sin opción de su cantidad, o con otro precio, se esconde. El bloque entero se esconde, y la cantidad queda en 1, en estos casos:
+  - quedan menos de 2 tarjetas;
+  - no hay oferta para el producto;
+  - hay una opción preseleccionada (EasySell ya no toma la cantidad de la página);
+  - la oferta se muestra junto al botón (`placement` con `button`: EasySell no lee la cantidad);
+  - el formulario no es un popup.
+  En el editor de temas un aviso dice qué cambiar; en la tienda, solo `console.warn`.
+- **Configuración en EasySell:** una oferta por cantidad para el producto con una opción por pack, **descuento fijo** = N × precio de 1 unidad − precio del pack, sin preseleccionar, solo en el formulario. La pantalla Publicar de DropFlex muestra los montos.
+- **Precios:** `dropflex.offer.packs[].price` y `compare_at`, en centavos como Liquid. Transición: un producto publicado antes (packs como variantes de una sola opción, sin `price`) toma el precio de la variante del mismo orden hasta que se vuelva a publicar.
+- `df-price` muestra el pack elegido (`df:pack`) y la barra fija del tema su precio y su nombre. `df-inventory` sigue a la variante de 1 unidad, que no cambia.
