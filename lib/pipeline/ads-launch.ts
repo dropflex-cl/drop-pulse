@@ -2,6 +2,7 @@ import "server-only";
 import { adsContext, AD_MEDIA_BUCKET, fail, getCampaignRow, getDraft, listMediaRows, type CampaignRow, type MediaRow } from "@/lib/ads/store";
 import { createAd, createAdset, createCampaign, createCreative, getAdAccount, lifetimeImpressions, setStartTime, setStatus, uploadImage, uploadVideo, videoStatus, videoThumbnailHash, waitVideoReady } from "@/lib/ads/meta/adapter";
 import { buildTargeting, dynamicCreative, needsDynamicCreative, singleCreative, type UploadedMedia } from "@/lib/ads/meta/payloads";
+import { creationDate } from "@/lib/ads/naming";
 import { planLaunch, planSteps } from "@/lib/ads/plan";
 import { nextMorning } from "@/lib/ads/schedule";
 import { engineSchema, launchSchema } from "@/lib/ads/schemas";
@@ -148,14 +149,17 @@ export async function runLaunch(campaignId: string): Promise<void> {
 
     const allMedia = await listMediaRows(c.user_id, c.product_id);
     const media = c.launch.creatives.map((id) => allMedia.find((m) => m.id === id)).filter((m): m is MediaRow => !!m);
-    const plan = planLaunch(c.structure, c.launch, media);
+    // Los nombres llevan la fecha de hoy en la cuenta: al rehacer o recrear, la del nuevo lanzamiento.
+    const plan = planLaunch(c.structure, c.launch, media, { product: product.title, date: creationDate(new Date(), account.timezone) });
     total = planSteps(plan, media.length);
     const startTime = c.launch.start === "tomorrow" ? nextMorning(new Date(), c.launch.start_hour, account.timezone) : null;
-    await update(campaignId, { timezone: account.timezone });
+    // El nombre queda en la fila desde ya: si algo falla, el aviso nombra la campaña como está en Meta.
+    c.name = plan.name;
+    await update(campaignId, { timezone: account.timezone, name: plan.name });
 
     // 1. La campaña.
     await progress("Creando la campaña");
-    const metaCampaignId = await createCampaign(token, { accountId, name: c.name, structure: c.structure, dailyBudget: plan.campaignBudget, currency: c.currency });
+    const metaCampaignId = await createCampaign(token, { accountId, name: plan.name, structure: c.structure, dailyBudget: plan.campaignBudget, currency: c.currency });
     objects.push({ level: "campaign", id: metaCampaignId });
     done++;
 
@@ -169,9 +173,10 @@ export async function runLaunch(campaignId: string): Promise<void> {
     }
 
     // 3. Cada conjunto y sus anuncios.
+    // En DropFlex cada conjunto y anuncio se ve con su etiqueta (la campaña ya dice producto, estructura y fecha).
     const setRows: { id: string; name: string; meta: string; ads: { name: string; meta: string; creative: string; mediaId: string | null; copy: unknown }[]; budget: number | null; audience: unknown; position: number }[] = [];
     for (const [i, s] of plan.adsets.entries()) {
-      await progress(`Creando ${s.name}`);
+      await progress(`Creando ${s.label}`);
       const dynamic = s.ads.some((a) => needsDynamicCreative(a.mediaIds.length, { primaryTexts: a.primaryTexts, headlines: a.headlines }));
       const adsetId = await createAdset(token, { accountId, campaignId: metaCampaignId, name: s.name, targeting: buildTargeting(c.launch, s.audience), pixelId: meta.pixel_id!, dailyBudget: s.dailyBudget, currency: c.currency, startTime, dynamic });
       objects.push({ level: "adset", id: adsetId });
@@ -182,18 +187,18 @@ export async function runLaunch(campaignId: string): Promise<void> {
         const text = { primaryTexts: a.primaryTexts, headlines: a.headlines, description: c.launch.description, link, cta: c.launch.cta };
         const payload =
           mediaList.length === 1 && a.primaryTexts.length === 1 && a.headlines.length === 1
-            ? singleCreative(`${c.name} · ${a.name}`, meta.page_id!, mediaList[0], { primaryText: a.primaryTexts[0], headline: a.headlines[0], description: c.launch.description, link, cta: c.launch.cta })
-            : dynamicCreative(`${c.name} · ${a.name}`, meta.page_id!, mediaList, text);
+            ? singleCreative(a.name, meta.page_id!, mediaList[0], { primaryText: a.primaryTexts[0], headline: a.headlines[0], description: c.launch.description, link, cta: c.launch.cta })
+            : dynamicCreative(a.name, meta.page_id!, mediaList, text);
         const creativeId = await createCreative(token, accountId, payload);
         objects.push({ level: "creative", id: creativeId });
         done++;
-        await progress(`Creando ${s.name}`);
+        await progress(`Creando ${s.label}`);
         const adId = await createAd(token, { accountId, adsetId, creativeId, name: a.name });
         objects.push({ level: "ad", id: adId });
         done++;
-        ads.push({ name: a.name, meta: adId, creative: creativeId, mediaId: a.mediaIds.length === 1 ? a.mediaIds[0] : null, copy: text });
+        ads.push({ name: a.label, meta: adId, creative: creativeId, mediaId: a.mediaIds.length === 1 ? a.mediaIds[0] : null, copy: text });
       }
-      setRows.push({ id: "", name: s.name, meta: adsetId, ads, budget: s.dailyBudget, audience: s.audience, position: i });
+      setRows.push({ id: "", name: s.label, meta: adsetId, ads, budget: s.dailyBudget, audience: s.audience, position: i });
     }
 
     // 4. El espejo local.
@@ -376,4 +381,69 @@ export async function redoCampaign(userId: string, campaignId: string): Promise<
     sync_error: null,
   });
   return (await getCampaignRow(userId, campaignId))!;
+}
+
+/** Lo que entra en la copia de una campaña: su configuración completa, tal como se lanzó. */
+const COPY_FIELDS = ["name", "structure", "template_key", "template_id", "launch", "engine", "daily_budget", "currency", "timezone", "ad_account_id", "angles_stamp", "source_campaign_id"] as const;
+
+/**
+ * «Recrear»: un borrador nuevo con la configuración exacta de una campaña ya creada (estructura,
+ * plantilla, creativos, públicos, presupuesto, horario, textos y reglas del motor), para cambiar lo que
+ * haga falta y lanzarla otra vez. La campaña original no se toca, ni aquí ni en Meta. El borrador abierto
+ * del producto cede su lugar (solo puede haber uno; la pantalla pide un segundo toque). Los creativos que
+ * ya no existen quedan fuera.
+ */
+export async function recreateCampaign(userId: string, campaignId: string): Promise<CampaignRow> {
+  const c = await getCampaignRow(userId, campaignId);
+  if (!c || !["paused", "active", "archived"].includes(c.status)) throw new ProductApiError("No encontramos esa campaña.", 404);
+  const db = adminClient();
+  // El borrador abierto que ocupa su lugar (el de testeo o, en una CBO de ganadores, el de su origen).
+  const open = await getDraft(userId, c.product_id, c.source_campaign_id);
+  if (open?.status === "launching") throw new ProductApiError("Hay otra campaña de este producto creándose en Meta. Espera a que termine.", 409);
+  if (open) fail("Descartar el borrador abierto", (await db.from("ad_campaigns").delete().eq("id", open.id)).error);
+
+  const media = new Set((await listMediaRows(userId, c.product_id)).map((m) => m.id));
+  const copy = Object.fromEntries(COPY_FIELDS.map((k) => [k, c[k]]));
+  const { data, error } = await db
+    .from("ad_campaigns")
+    .insert({ ...copy, user_id: userId, product_id: c.product_id, launch: { ...c.launch, creatives: c.launch.creatives.filter((id) => media.has(id)) }, status: "draft" })
+    .select("*")
+    .single();
+  if (error?.code === "23505") throw new ProductApiError("Se abrió otro borrador de este producto mientras tanto. Recarga la página.", 409);
+  fail("Recrear la campaña", error);
+  return data as CampaignRow;
+}
+
+/**
+ * «Eliminar»: la campaña sale de DropFlex con todo lo suyo (conjuntos, anuncios, métricas, decisiones y
+ * cambios). En Meta se PAUSA, no se borra: el historial queda en Ads Manager y nada sigue gastando sin que
+ * DropFlex lo vea. Si ya no existe en Meta (se borró en Ads Manager), se elimina igual. Si Meta no deja
+ * pausarla, no se elimina nada. Los creativos son del producto y se quedan.
+ */
+export async function deleteCampaign(userId: string, campaignId: string): Promise<{ productId: string }> {
+  const c = await getCampaignRow(userId, campaignId);
+  if (!c) throw new ProductApiError("No encontramos esa campaña.", 404);
+  if (c.status === "launching") throw new ProductApiError("La campaña se está creando en Meta. Espera a que termine.", 409);
+  const db = adminClient();
+  // Un borrador de ganadores de esta campaña no puede quedar suelto: pasaría a competir con el de testeo.
+  const { data: drafts, error: draftsError } = await db.from("ad_campaigns").select("id, status").eq("user_id", userId).eq("source_campaign_id", c.id).in("status", ["draft", "launching"]);
+  fail("Leer los borradores", draftsError);
+  if (drafts?.some((d) => d.status === "launching")) throw new ProductApiError("La CBO de ganadores de esta campaña se está creando en Meta. Espera a que termine.", 409);
+
+  if (c.meta_campaign_id && ["paused", "active"].includes(c.status)) {
+    const token = await metaToken(userId);
+    if (!token) throw new ProductApiError("Tu conexión con Meta venció. Vuelve a conectarla en Ajustes para pausar la campaña antes de eliminarla.", 409);
+    try {
+      await setStatus(token, c.meta_campaign_id, "PAUSED");
+    } catch (e) {
+      // Ya borrada en Ads Manager (código 100: el objeto no existe): no hay nada que pausar.
+      if (!(e instanceof MetaApiError && e.code === 100)) {
+        if (e instanceof MetaAuthError) await markMetaError(userId, "expired").catch(() => {});
+        throw new ProductApiError(`No pudimos pausarla en Meta: ${metaReason(e)} No eliminamos nada.`, 502);
+      }
+    }
+  }
+  if (drafts?.length) fail("Descartar la CBO de ganadores", (await db.from("ad_campaigns").delete().in("id", drafts.map((d) => d.id))).error);
+  fail("Eliminar la campaña", (await db.from("ad_campaigns").delete().eq("id", c.id).eq("user_id", userId)).error);
+  return { productId: c.product_id };
 }

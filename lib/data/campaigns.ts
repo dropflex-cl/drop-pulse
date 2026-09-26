@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { derive, sumMetrics, type Metrics } from "@/lib/ads/meta/insights";
 import { addDays, localDate } from "@/lib/ads/schedule";
-import { toAdMedia, type CampaignRow, type MediaRow } from "@/lib/ads/store";
+import { getDraft, toAdMedia, type CampaignRow, type MediaRow } from "@/lib/ads/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { sessionUser } from "@/lib/integrations/session";
 import { changeText, committedDaily, type AdRow, type ChangeRow, type DecisionRow, type SetRow } from "@/lib/pipeline/ads-engine";
@@ -173,7 +173,7 @@ export const getCampaignDetail = cache(async (id: string): Promise<CampaignDetai
 
   const today = localDate(new Date(), c.timezone);
   const yesterday = addDays(today, -1);
-  const [sets, ads, daily, decisions, changes, snaps, media, products] = await Promise.all([
+  const [sets, ads, daily, decisions, changes, snaps, media, products, openDraft] = await Promise.all([
     db.from("ad_sets").select("*").eq("campaign_id", id).order("position").then((r) => (r.data ?? []) as SetRow[]),
     db.from("ads").select("*").eq("campaign_id", id).order("created_at").then((r) => (r.data ?? []) as AdRow[]),
     db.from("ad_insights_daily").select("*").eq("campaign_id", id).then((r) => (r.data ?? []).map(toDaily)),
@@ -182,6 +182,7 @@ export const getCampaignDetail = cache(async (id: string): Promise<CampaignDetai
     db.from("ad_insights_snapshots").select("captured_at, date, today").eq("campaign_id", id).eq("level", "campaign").in("date", [today, yesterday]).order("captured_at").then((r) => r.data ?? []),
     db.from("ad_media").select("*").eq("product_id", c.product_id).then((r) => (r.data ?? []) as MediaRow[]),
     productImages(uid, [c.product_id]),
+    getDraft(uid, c.product_id, c.source_campaign_id),
   ]);
 
   const mediaViews = new Map((await toAdMedia(media)).map((m) => [m.id, m]));
@@ -251,6 +252,7 @@ export const getCampaignDetail = cache(async (id: string): Promise<CampaignDetai
     publishedAt: c.published_at,
     startsAt: c.starts_at,
     canRedo: c.status !== "archived" && !c.last_delivery_at && daily.every((d) => !(d.spend > 0)),
+    openDraft: Boolean(openDraft),
     lastSyncedAt: c.last_synced_at,
     syncError: c.sync_error,
     totals: { spend: total.spend, purchases: total.purchases, cpa: total.cpa, roas: total.roas, ctr: total.ctr },

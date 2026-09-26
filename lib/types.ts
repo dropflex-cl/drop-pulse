@@ -448,6 +448,10 @@ export interface AdMedia {
   /** URL firmada para mostrarlo. */
   url: string;
   ratio: "1:1" | "4:5" | "9:16" | null;
+  /** El ángulo de testeo del que sale; null en los subidos a mano. */
+  angleSlot: number | null;
+  /** Video UGC, de mascota o chat de WhatsApp (de Creativos); null en los subidos a mano. Para los nombres en Meta. */
+  format: import("./ads/naming").MediaFormat;
   durationS: number | null;
   status: "uploading" | "processing" | "ready" | "error";
   error: string | null;
@@ -593,6 +597,8 @@ export interface CampaignDetail {
   startsAt: string | null;
   /** Nunca entregó según nuestras lecturas: se ofrece «Rehacer» (Meta lo confirma al tocarlo). */
   canRedo: boolean;
+  /** Hay un borrador abierto que «Recrear» reemplazaría (se pide un segundo toque). */
+  openDraft: boolean;
   lastSyncedAt: string | null;
   syncError: string | null;
   totals: { spend: number; purchases: number; cpa: number | null; roas: number | null; ctr: number | null };

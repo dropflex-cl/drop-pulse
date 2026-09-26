@@ -27,7 +27,10 @@ export interface CampaignTreeProps {
 const node = "grid grid-cols-[--spacing(4)_1fr_auto] items-center gap-2 rounded-sm bg-card px-2 py-1.5 my-1 inset-ring inset-ring-border";
 const budgetTag = "rounded-sm bg-primary-soft px-1.5 py-px text-caption font-semibold whitespace-nowrap text-primary tabular-nums";
 
-/** Lo que se creará en Meta: campaña → conjuntos → anuncios, con el presupuesto marcado donde vive. */
+/**
+ * Lo que se creará en Meta: campaña → conjuntos → anuncios, con el presupuesto marcado donde vive. Los
+ * nombres van enteros (lib/ads/naming.ts: lo que distingue a un conjunto o anuncio va al final).
+ */
 export function CampaignTree({ name, structure, budget, adsets, note, className }: CampaignTreeProps) {
   const abo = structure === "abo";
   return (
@@ -37,7 +40,7 @@ export function CampaignTree({ name, structure, budget, adsets, note, className 
           <div className={cn(node, "bg-muted inset-ring-0")}>
             <Icon name="megaphone" size="sm" className="text-muted-foreground" />
             <span className="min-w-0">
-              <b className="block truncate font-medium">{name}</b>
+              <b className="block font-medium break-words">{name}</b>
               <small className="block text-micro text-muted-foreground">Campaña · Ventas · {abo ? "ABO" : "CBO"}</small>
             </span>
             {!abo && budget ? <span className={budgetTag}>{budget}/día</span> : <span />}
@@ -48,7 +51,7 @@ export function CampaignTree({ name, structure, budget, adsets, note, className 
                 <div className={node}>
                   <Icon name="box" size="sm" className="text-muted-foreground" />
                   <span className="min-w-0">
-                    <b className="block truncate font-medium">{a.name}</b>
+                    <b className="block font-medium break-words">{a.name}</b>
                     {a.audience ? <small className="block truncate text-micro text-muted-foreground">{a.audience}</small> : null}
                   </span>
                   {abo && a.budget ? <span className={budgetTag}>{a.budget}/día</span> : <span />}
@@ -60,7 +63,7 @@ export function CampaignTree({ name, structure, budget, adsets, note, className 
                         <div className={node}>
                           <Icon name="image" size="sm" className="text-muted-foreground" />
                           <span className="min-w-0">
-                            <b className="block truncate font-medium">{ad.name}</b>
+                            <b className="block font-medium break-words">{ad.name}</b>
                             <small className="block text-micro text-muted-foreground">{ad.type === "video" ? "Video" : ad.type === "image" ? "Imagen" : "Anuncio"}</small>
                           </span>
                           <span />

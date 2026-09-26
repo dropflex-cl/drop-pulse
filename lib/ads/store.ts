@@ -6,12 +6,14 @@ import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection, type MetaConnection } from "@/lib/integrations/meta/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { LISTING, type Listing } from "@/lib/copy/listing";
+import { CHAT_FAMILY } from "@/lib/creatives/catalog";
 import { activeComponents, currentContent } from "@/lib/copy/store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
 import { getMarket } from "@/lib/settings/market";
 import type { ProductRow } from "@/lib/products/store";
 import type { AdMedia, AdTemplate } from "@/lib/types";
+import type { MediaFormat } from "./naming";
 import { buildPreset, DEFAULT_PRESET, type PresetKey } from "./presets";
 import { STRUCTURES, engineSchema, launchSchema, type EngineConfig, type LaunchConfig, type Structure } from "./schemas";
 import { defaultTexts } from "./texts";
@@ -69,6 +71,8 @@ export interface MediaRow {
   name: string;
   /** El ángulo de testeo del que sale (creativos de la etapa Creativos); null en los subidos a mano. */
   angle_slot?: number | null;
+  /** El formato de Creativos del que sale (lo lee listMediaRows); null en los subidos a mano. */
+  format?: MediaFormat;
   storage_path: string;
   mime_type: string;
   width: number | null;
@@ -328,9 +332,22 @@ export async function deleteTemplate(userId: string, id: string) {
 // ---------------------------------------------------------------- Creativos
 
 export async function listMediaRows(userId: string, productId: string): Promise<MediaRow[]> {
-  const { data, error } = await adminClient().from("ad_media").select("*").eq("user_id", userId).eq("product_id", productId).order("created_at", { ascending: true });
-  fail("Leer los creativos", error);
-  return (data ?? []) as MediaRow[];
+  const db = adminClient();
+  const [media, assets, videos] = await Promise.all([
+    db.from("ad_media").select("*").eq("user_id", userId).eq("product_id", productId).order("created_at", { ascending: true }),
+    db.from("creative_assets").select("ad_media_id, creative_concepts(family)").eq("user_id", userId).eq("product_id", productId).not("ad_media_id", "is", null),
+    db.from("video_scripts").select("ad_media_id, format").eq("user_id", userId).eq("product_id", productId).not("ad_media_id", "is", null),
+  ]);
+  fail("Leer los creativos", media.error);
+  // El formato es para los nombres en Meta: si no se puede leer, el creativo va como «Video» o «Imagen».
+  if (assets.error || videos.error) console.warn("[ads] no se pudo leer el formato de los creativos:", (assets.error ?? videos.error)!.message);
+  const formats = new Map<string, MediaFormat>();
+  for (const a of (assets.data ?? []) as { ad_media_id: string; creative_concepts: { family: string } | { family: string }[] | null }[]) {
+    const concept = Array.isArray(a.creative_concepts) ? a.creative_concepts[0] : a.creative_concepts;
+    if (concept?.family === CHAT_FAMILY) formats.set(a.ad_media_id, "chat");
+  }
+  for (const v of (videos.data ?? []) as { ad_media_id: string; format: string }[]) formats.set(v.ad_media_id, v.format === "mascot" ? "mascot" : "ugc");
+  return ((media.data ?? []) as MediaRow[]).map((m) => ({ ...m, format: formats.get(m.id) ?? null }));
 }
 
 export async function toAdMedia(rows: MediaRow[]): Promise<AdMedia[]> {
@@ -343,6 +360,8 @@ export async function toAdMedia(rows: MediaRow[]): Promise<AdMedia[]> {
     name: r.name,
     url: urls.get(r.storage_path) ?? "",
     ratio: r.ratio,
+    angleSlot: r.angle_slot ?? null,
+    format: r.format ?? null,
     durationS: r.duration_s == null ? null : Number(r.duration_s),
     status: r.status,
     error: r.error,

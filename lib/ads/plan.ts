@@ -6,11 +6,18 @@
 //   Cada creativo toma un texto principal distinto, en orden (Impulso: «cambiando video y copy»).
 // - CBO `one_per_creative`: cada conjunto (uno por público) lleva un anuncio por creativo.
 // - CBO `dco`: cada conjunto lleva UN anuncio dinámico con todos los medios y textos.
+//
+// Cada objeto lleva dos nombres: `name`, el de Meta (lib/ads/naming.ts: producto, estructura, tipo de
+// creativo y fecha), y `label`, lo que lo distingue de sus hermanos, que es lo que muestra DropFlex.
 
+import { campaignName, unitName, type MediaFormat, type Naming } from "./naming";
 import { adsetCount, type Audience, type LaunchConfig, type Structure } from "./schemas";
 
 export interface PlannedAd {
+  /** En Meta: «Producto | ABO | Video | 26-09-2026 | UGC Collagen». */
   name: string;
+  /** En DropFlex: «UGC Collagen». */
+  label: string;
   mediaIds: string[];
   /** Un anuncio normal lleva un texto y un título; el dinámico, todos. */
   primaryTexts: string[];
@@ -19,6 +26,7 @@ export interface PlannedAd {
 
 export interface PlannedAdset {
   name: string;
+  label: string;
   audience: Audience;
   /** ABO: el presupuesto del conjunto. CBO: null (vive en la campaña). */
   dailyBudget: number | null;
@@ -26,6 +34,8 @@ export interface PlannedAdset {
 }
 
 export interface LaunchPlan {
+  /** El nombre de la campaña en Meta. */
+  name: string;
   campaignBudget: number | null;
   adsets: PlannedAdset[];
 }
@@ -34,7 +44,7 @@ const baseName = (name: string) => name.replace(/\.[a-z0-9]+$/i, "").slice(0, 60
 const pick = <T,>(list: T[], i: number) => list[i % list.length];
 const audienceLabel = (a: Audience) => (a.kind === "open" ? "Abierto" : `Intereses: ${a.interests.map((i) => i.name).slice(0, 2).join(", ")}`);
 
-type PlanMedia = { id: string; name: string; angle_slot?: number | null };
+type PlanMedia = { id: string; name: string; kind: "image" | "video"; format?: MediaFormat; angle_slot?: number | null };
 
 /**
  * El texto principal de un creativo: el de SU ángulo (primary_texts va en orden de slot, lib/ads/texts.ts)
@@ -45,11 +55,14 @@ export function textFor(texts: string[], m: PlanMedia, i: number): string {
   return slot >= 1 && slot <= texts.length ? texts[slot - 1] : pick(texts, i);
 }
 
-export function planLaunch(structure: Structure, launch: LaunchConfig, media: PlanMedia[]): LaunchPlan {
+export function planLaunch(structure: Structure, launch: LaunchConfig, media: PlanMedia[], naming: Omit<Naming, "structure">): LaunchPlan {
   const byId = new Map(media.map((m) => [m.id, m]));
   const creatives = launch.creatives.map((id) => byId.get(id)).filter((m): m is PlanMedia => !!m);
+  const n: Naming = { ...naming, structure };
+  const name = campaignName(n, creatives);
   const single = (m: PlanMedia, i: number): PlannedAd => ({
-    name: baseName(m.name),
+    name: unitName(n, [m], baseName(m.name)),
+    label: baseName(m.name),
     mediaIds: [m.id],
     primaryTexts: [textFor(launch.primary_texts, m, i)],
     headlines: [pick(launch.headlines, i)],
@@ -59,25 +72,25 @@ export function planLaunch(structure: Structure, launch: LaunchConfig, media: Pl
     const adsets: PlannedAdset[] = [];
     creatives.forEach((m, i) =>
       launch.audiences.forEach((a) => {
-        const n = adsets.length + 1;
-        adsets.push({
-          name: `Conjunto ${n}${m.angle_slot ? ` · Ángulo ${m.angle_slot}` : ""} · ${baseName(m.name)}${launch.audiences.length > 1 ? ` · ${a.kind === "open" ? "abierto" : "intereses"}` : ""}`,
-          audience: a,
-          dailyBudget: launch.budget,
-          ads: [single(m, i)],
-        });
+        const label = `Conjunto ${adsets.length + 1}${m.angle_slot ? ` · Ángulo ${m.angle_slot}` : ""} · ${baseName(m.name)}${launch.audiences.length > 1 ? ` · ${a.kind === "open" ? "abierto" : "intereses"}` : ""}`;
+        adsets.push({ name: unitName(n, [m], label), label, audience: a, dailyBudget: launch.budget, ads: [single(m, i)] });
       }),
     );
-    return { campaignBudget: null, adsets };
+    return { name, campaignBudget: null, adsets };
   }
 
+  const dynamic = `Dinámico · ${creatives.length} creativos`;
   const ads: PlannedAd[] =
     launch.cbo_ads === "dco"
-      ? [{ name: `Dinámico · ${creatives.length} creativos`, mediaIds: creatives.map((m) => m.id), primaryTexts: [...launch.primary_texts], headlines: [...launch.headlines] }]
+      ? [{ name: unitName(n, creatives, dynamic), label: dynamic, mediaIds: creatives.map((m) => m.id), primaryTexts: [...launch.primary_texts], headlines: [...launch.headlines] }]
       : creatives.map(single);
   return {
+    name,
     campaignBudget: launch.budget,
-    adsets: launch.audiences.map((a, i) => ({ name: `Conjunto ${i + 1} · ${audienceLabel(a)}`, audience: a, dailyBudget: null, ads: ads.map((ad) => ({ ...ad, mediaIds: [...ad.mediaIds] })) })),
+    adsets: launch.audiences.map((a, i) => {
+      const label = `Conjunto ${i + 1} · ${audienceLabel(a)}`;
+      return { name: unitName(n, creatives, label), label, audience: a, dailyBudget: null, ads: ads.map((ad) => ({ ...ad, mediaIds: [...ad.mediaIds] })) };
+    }),
   };
 }
 

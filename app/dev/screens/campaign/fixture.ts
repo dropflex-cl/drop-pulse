@@ -25,6 +25,7 @@ export function fixture(state: string): CampaignDetail {
     publishedAt: published ? inHours(-1) : null,
     startsAt,
     canRedo: !live,
+    openDraft: false,
     lastSyncedAt: null,
     syncError: null,
     totals: { spend: live ? 8200 : 0, purchases: live ? 1 : 0, cpa: live ? 8200 : null, roas: null, ctr: null },

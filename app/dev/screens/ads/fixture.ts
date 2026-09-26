@@ -17,9 +17,9 @@ const TEXTS = {
 };
 
 const MEDIA: AdMedia[] = [
-  { id: "00000000-0000-4000-8000-000000000001", kind: "video", name: "ugc-espalda.mp4", url: "", ratio: "9:16", durationS: 18, status: "ready", error: null },
-  { id: "00000000-0000-4000-8000-000000000002", kind: "image", name: "antes-despues.jpg", url: productImage(3, 1), ratio: "1:1", durationS: null, status: "ready", error: null },
-  { id: "00000000-0000-4000-8000-000000000003", kind: "image", name: "problema.jpg", url: productImage(0, 1), ratio: "4:5", durationS: null, status: "ready", error: null },
+  { id: "00000000-0000-4000-8000-000000000001", kind: "video", name: "ugc-espalda.mp4", url: "", ratio: "9:16", angleSlot: 1, format: "ugc", durationS: 18, status: "ready", error: null },
+  { id: "00000000-0000-4000-8000-000000000002", kind: "image", name: "antes-despues.jpg", url: productImage(3, 1), ratio: "1:1", angleSlot: 2, format: null, durationS: null, status: "ready", error: null },
+  { id: "00000000-0000-4000-8000-000000000003", kind: "image", name: "problema.jpg", url: productImage(0, 1), ratio: "4:5", angleSlot: null, format: null, durationS: null, status: "ready", error: null },
 ];
 
 /** Los textos de hoy cuando el borrador quedó con ángulos anteriores (?state=angles). */
@@ -32,7 +32,7 @@ const NEW_TEXTS = {
   ],
 };
 
-/** ?state=locked|meta|empty|ready|launching|failed|angles */
+/** ?state=locked|meta|empty|ready|launching|failed|angles|relaunch (el producto ya tiene una campaña) */
 export function fixture(state: string): ProductAds {
   const pageDone = state !== "locked";
   const pos = productPosition({
@@ -87,7 +87,10 @@ export function fixture(state: string): ProductAds {
     },
     media,
     templates: [],
-    campaigns: [],
+    campaigns:
+      state === "relaunch"
+        ? [{ id: "00000000-0000-4000-8000-0000000000c1", name: "Corrector de postura | ABO | Video UGC + Imagen | 20-09-2026", structure: "abo", status: "active", launchedAt: "2026-09-20T12:00:00Z", publishedAt: "2026-09-20T12:05:00Z" }]
+        : [],
     defaultTexts: state === "angles" ? NEW_TEXTS : TEXTS,
     draftAngles: state === "angles" ? { stale: true, oldCreatives: [MEDIA[1].id], newCreatives: [] } : null,
     source: null,

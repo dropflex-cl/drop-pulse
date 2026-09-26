@@ -97,6 +97,25 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
       const r = await call<{ productId: string; sourceCampaignId: string | null }>(`${base}/redo`, "POST");
       router.push(`/products/${r.productId}/ads${r.sourceCampaignId ? `?from=${r.sourceCampaignId}` : ""}`);
     }, "Campaña borrada en Meta: ajusta lo que quieras y lánzala de nuevo");
+  const recreate = () =>
+    run("recreate", async () => {
+      const r = await call<{ productId: string; sourceCampaignId: string | null }>(`${base}/recreate`, "POST");
+      router.push(`/products/${r.productId}/ads${r.sourceCampaignId ? `?from=${r.sourceCampaignId}` : ""}`);
+    }, "Campaña recreada: cambia lo que quieras y lánzala");
+  // Sin router.refresh(): esta página deja de existir. Queda ocupado hasta que llega a Campañas.
+  const remove = async () => {
+    setBusy("delete");
+    setError(undefined);
+    try {
+      await call(base, "DELETE");
+      notify("Campaña eliminada. En Meta quedó en pausa.");
+      router.replace("/campaigns");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No pudimos eliminar la campaña.");
+      setBusy(null);
+      setArmed(null);
+    }
+  };
   // Lo que gasta o borra pide un segundo toque.
   const confirmed = (key: string, fn: () => void) => () => (armed === key ? fn() : setArmed(key));
   const syncNow = () => run("sync", () => call(`${base}/sync`, "POST"), "Cifras actualizadas");
@@ -335,6 +354,26 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
   );
   const redoHint = data.canRedo ? " ¿Algo quedó mal? «Rehacer» la borra en Meta y vuelve al configurador." : "";
 
+  const manage = (
+    <section aria-labelledby="esta-campana" className="flex flex-col gap-2">
+      <SectionTitle className="px-0">
+        <span id="esta-campana">Esta campaña</span>
+      </SectionTitle>
+      <p className="m-0 text-label font-normal text-muted-foreground">
+        «Recrear» abre un borrador con la misma configuración (creativos, público, presupuesto, textos y reglas) para cambiar lo que quieras y lanzarla otra vez; esta campaña sigue igual.
+        {data.openDraft ? " Reemplaza el borrador que tienes abierto." : ""} «Eliminar» la pausa en Meta y la saca de DropFlex; en Ads Manager queda con su historial.
+      </p>
+      <span className="flex flex-wrap gap-2" aria-live="polite">
+        <Button size="sm" variant="secondary" icon="copy" loading={busy === "recreate"} disabled={busy === "delete"} onClick={data.openDraft ? confirmed("recreate", recreate) : recreate}>
+          {armed === "recreate" ? "Confirmar: reemplazar mi borrador" : "Recrear"}
+        </Button>
+        <Button size="sm" variant={armed === "delete" ? "destructive" : "ghost"} loading={busy === "delete"} disabled={busy === "recreate"} onClick={confirmed("delete", remove)}>
+          {armed === "delete" ? "Confirmar: pausar y eliminar" : "Eliminar"}
+        </Button>
+      </span>
+    </section>
+  );
+
   return (
     <div className="@container flex flex-col">
       <div className="flex flex-col @4xl:grid @4xl:grid-cols-[minmax(0,1fr)_--spacing(105)]">
@@ -373,7 +412,7 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
               }
             />
           ) : null}
-          {data.syncError ? <Notice title="No pudimos leer la campaña en Meta." body={data.syncError} /> : null}
+          {data.syncError ? <Notice title="No pudimos leer la campaña en Meta." body={`${data.syncError} Si la borraste en Ads Manager, elimínala en «Esta campaña», al final.`} /> : null}
           {notPublished ? (
             <Notice
               tone="info"
@@ -422,6 +461,7 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
           <HourlyChart today={data.hourly.today} yesterday={data.hourly.yesterday} currency={currency} />
           <div className="@4xl:hidden">{rules}</div>
           {history}
+          {manage}
           {error ? (
             <p role="alert" className="text-label font-normal text-destructive">
               {error}

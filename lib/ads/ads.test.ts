@@ -148,15 +148,16 @@ describe("plantillas", () => {
 
 describe("plan de lanzamiento", () => {
   const media = [
-    { id: "a", name: "ugc-espalda.mp4" },
-    { id: "b", name: "antes-despues.jpg" },
+    { id: "a", name: "ugc-espalda.mp4", kind: "video" as const },
+    { id: "b", name: "antes-despues.jpg", kind: "image" as const },
   ];
+  const naming = { product: "Deep Collagen", date: "26-09-2026" };
   const base = buildPreset("impulso", { country: "CL", currency: "CLP", cpaLimit: 6000, creatives: ["a", "b"], texts: { primary_texts: ["T1", "T2"], headlines: ["H1"], description: "D" } }).launch;
 
   it("ABO: un conjunto por creativo, con su presupuesto y un texto distinto cada uno", () => {
-    const plan = planLaunch("abo", base, media);
+    const plan = planLaunch("abo", base, media, naming);
     expect(plan.campaignBudget).toBeNull();
-    expect(plan.adsets.map((s) => s.name)).toEqual(["Conjunto 1 · ugc-espalda", "Conjunto 2 · antes-despues"]);
+    expect(plan.adsets.map((s) => s.label)).toEqual(["Conjunto 1 · ugc-espalda", "Conjunto 2 · antes-despues"]);
     expect(plan.adsets.map((s) => s.dailyBudget)).toEqual([5000, 5000]);
     expect(plan.adsets.map((s) => s.ads[0].primaryTexts)).toEqual([["T1"], ["T2"]]);
     expect(plan.adsets.every((s) => s.ads.length === 1 && s.ads[0].mediaIds.length === 1)).toBe(true);
@@ -165,14 +166,14 @@ describe("plan de lanzamiento", () => {
 
   it("ABO por ángulos: cada anuncio lleva el texto de SU ángulo, no por turno", () => {
     const angled = [
-      { id: "a", name: "la-crema-sella.png", angle_slot: 2 },
-      { id: "b", name: "tengo-38.png", angle_slot: 3 },
-      { id: "c", name: "subido.mp4", angle_slot: null },
+      { id: "a", name: "la-crema-sella.png", kind: "image" as const, angle_slot: 2 },
+      { id: "b", name: "tengo-38.png", kind: "image" as const, angle_slot: 3 },
+      { id: "c", name: "subido.mp4", kind: "video" as const, angle_slot: null },
     ];
-    const plan = planLaunch("abo", { ...base, creatives: ["a", "b", "c"], primary_texts: ["T1", "T2", "T3"] }, angled);
+    const plan = planLaunch("abo", { ...base, creatives: ["a", "b", "c"], primary_texts: ["T1", "T2", "T3"] }, angled, naming);
     expect(plan.adsets.map((s) => s.ads[0].primaryTexts[0])).toEqual(["T2", "T3", "T3"]);
-    expect(plan.adsets[0].name).toBe("Conjunto 1 · Ángulo 2 · la-crema-sella");
-    expect(plan.adsets[2].name).toBe("Conjunto 3 · subido");
+    expect(plan.adsets[0].label).toBe("Conjunto 1 · Ángulo 2 · la-crema-sella");
+    expect(plan.adsets[2].label).toBe("Conjunto 3 · subido");
   });
 
   it("la plantilla de temporada son conjuntos de $5.000 abiertos, como Impulso", () => {
@@ -183,13 +184,13 @@ describe("plan de lanzamiento", () => {
   });
 
   it("ABO con 2 públicos cruza cada creativo con cada público", () => {
-    const plan = planLaunch("abo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media);
+    const plan = planLaunch("abo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media, naming);
     expect(plan.adsets).toHaveLength(4);
-    expect(plan.adsets[1].name).toBe("Conjunto 2 · ugc-espalda · intereses");
+    expect(plan.adsets[1].label).toBe("Conjunto 2 · ugc-espalda · intereses");
   });
 
   it("CBO: el presupuesto en la campaña y los creativos como anuncios de cada conjunto", () => {
-    const plan = planLaunch("cbo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media);
+    const plan = planLaunch("cbo", { ...base, audiences: [{ kind: "open", interests: [] }, { kind: "interests", interests: [{ id: "1", name: "Yoga" }] }] }, media, naming);
     expect(plan.campaignBudget).toBe(5000);
     expect(plan.adsets.map((s) => [s.dailyBudget, s.ads.length])).toEqual([
       [null, 2],
@@ -198,7 +199,21 @@ describe("plan de lanzamiento", () => {
   });
 
   it("CBO dinámico: un anuncio con todos los medios y textos", () => {
-    const plan = planLaunch("cbo", { ...base, cbo_ads: "dco" }, media);
-    expect(plan.adsets[0].ads).toEqual([{ name: "Dinámico · 2 creativos", mediaIds: ["a", "b"], primaryTexts: ["T1", "T2"], headlines: ["H1"] }]);
+    const plan = planLaunch("cbo", { ...base, cbo_ads: "dco" }, media, naming);
+    expect(plan.adsets[0].ads).toEqual([
+      { name: "Deep Collagen | CBO | Video + Imagen | 26-09-2026 | Dinámico · 2 creativos", label: "Dinámico · 2 creativos", mediaIds: ["a", "b"], primaryTexts: ["T1", "T2"], headlines: ["H1"] },
+    ]);
+  });
+
+  it("los nombres en Meta: producto, estructura, tipo de creativo y fecha; lo que distingue va al final", () => {
+    const abo = planLaunch("abo", base, [{ ...media[0], format: "ugc" as const }, media[1]], naming);
+    expect(abo.name).toBe("Deep Collagen | ABO | Video UGC + Imagen | 26-09-2026");
+    expect(abo.adsets.map((s) => s.name)).toEqual(["Deep Collagen | ABO | Video UGC | 26-09-2026 | Conjunto 1 · ugc-espalda", "Deep Collagen | ABO | Imagen | 26-09-2026 | Conjunto 2 · antes-despues"]);
+    expect(abo.adsets[0].ads[0]).toMatchObject({ name: "Deep Collagen | ABO | Video UGC | 26-09-2026 | ugc-espalda", label: "ugc-espalda" });
+
+    const cbo = planLaunch("cbo", base, media, naming);
+    expect(cbo.name).toBe("Deep Collagen | CBO | Video + Imagen | 26-09-2026");
+    expect(cbo.adsets[0].name).toBe("Deep Collagen | CBO | Video + Imagen | 26-09-2026 | Conjunto 1 · Abierto");
+    expect(cbo.adsets[0].ads.map((a) => a.name)).toEqual(["Deep Collagen | CBO | Video | 26-09-2026 | ugc-espalda", "Deep Collagen | CBO | Imagen | 26-09-2026 | antes-despues"]);
   });
 });

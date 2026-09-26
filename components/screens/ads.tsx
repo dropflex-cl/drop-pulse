@@ -28,6 +28,8 @@ import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { AdsApiError, adsApi, uploadCreative } from "@/lib/ads/client";
 import { ACCEPTED_MEDIA, MEDIA_FORMATS, durationLabel } from "@/lib/ads/media";
+import { creationDate } from "@/lib/ads/naming";
+import { planLaunch } from "@/lib/ads/plan";
 import { buildPreset, countChanges, DEFAULT_PRESET_FOR, isPresetKey, PANCHO_EXCLUDED_REGIONS, presetLabel, SYSTEM_PRESETS } from "@/lib/ads/presets";
 import { nextMorning, startLabel } from "@/lib/ads/schedule";
 import { adsetCount, dailyTotal, DESCRIPTION_LIMIT, HEADLINE_LIMIT, MAX_ADSETS, MAX_HEADLINES, MAX_PRIMARY_TEXTS, PRIMARY_TEXT_LIMIT, type EngineConfig, type LaunchConfig, type Structure, type TemplateConfig } from "@/lib/ads/schemas";
@@ -218,8 +220,10 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     },
     [product.id, from],
   );
+  // Mientras se recrea una campaña, nada se guarda: pisaría el borrador nuevo.
+  const replacing = useRef(false);
   useEffect(() => {
-    if (launching || JSON.stringify(cfg) === saved.current) return;
+    if (launching || replacing.current || JSON.stringify(cfg) === saved.current) return;
     const t = window.setTimeout(() => persist(cfg), SAVE_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [cfg, persist, launching]);
@@ -243,6 +247,36 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     setAngles(null);
     void persist(cfg);
   };
+
+  // ---------------------------------------------------------------- Recrear la última campaña
+  // Copia su configuración exacta en el borrador (lib/pipeline/ads-launch.ts › recreateCampaign). Si el
+  // borrador tiene algo propio, pide un segundo toque.
+  const last = data.source ? null : (data.campaigns[0] ?? null);
+  const [recreateArmed, setRecreateArmed] = useState(false);
+  useEffect(() => {
+    if (!recreateArmed) return;
+    const t = window.setTimeout(() => setRecreateArmed(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [recreateArmed]);
+  async function recreateLast() {
+    if (!last) return;
+    if (!recreateArmed && (data.draft.id || JSON.stringify(cfg) !== saved.current)) return setRecreateArmed(true);
+    setRecreateArmed(false);
+    setBusy("recreate");
+    setError(undefined);
+    replacing.current = true;
+    try {
+      const res = await fetch(`/api/campaigns/${last.id}/recreate`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new AdsApiError(body.error ?? "No pudimos recrear la campaña. Intenta de nuevo.");
+      // Navegación completa: el configurador vuelve a leer el borrador nuevo (su estado sale de las props).
+      window.location.assign(`/products/${product.id}/ads${body.sourceCampaignId ? `?from=${body.sourceCampaignId}` : ""}`);
+    } catch (e) {
+      replacing.current = false;
+      setBusy(null);
+      setError(errorText(e, "No pudimos recrear la campaña."));
+    }
+  }
 
   // ---------------------------------------------------------------- Lanzamiento en curso (sondeo)
   useEffect(() => {
@@ -429,21 +463,22 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     return keys[k].some((f) => JSON.stringify(base.launch[f]) !== JSON.stringify(cfg.launch[f]));
   };
 
+  // Lo mismo que creará el lanzador (lib/ads/plan.ts), con los nombres que tendrá en Meta y la fecha de hoy.
+  const plan = useMemo(
+    () => planLaunch(cfg.structure, cfg.launch, chosen.map((m) => ({ id: m.id, name: m.name, kind: m.kind, format: m.format, angle_slot: m.angleSlot })), { product: product.name, date: creationDate(new Date(), timezone) }),
+    [cfg.structure, cfg.launch, chosen, product.name, timezone],
+  );
   const tree: TreeAdset[] = useMemo(() => {
     const budget = money(cfg.launch.budget, currency);
+    const kindOf = new Map(chosen.map((m) => [m.id, m.kind]));
     const aud = (a: LaunchConfig["audiences"][number]) => `${cfg.launch.countries.join(", ")} · ${cfg.launch.min_age}+ · ${a.kind === "open" ? "abierto" : "intereses"}`;
-    const adOf = (m: AdMedia) => ({ name: m.name.replace(/\.[a-z0-9]+$/i, ""), type: m.kind });
-    if (cfg.structure === "abo") {
-      const out: TreeAdset[] = [];
-      chosen.forEach((m) => cfg.launch.audiences.forEach((a) => out.push({ name: `Conjunto ${out.length + 1} · ${adOf(m).name}`, audience: aud(a), budget, ads: [adOf(m)] })));
-      return out;
-    }
-    return cfg.launch.audiences.map((a, i) => ({
-      name: `Conjunto ${i + 1} · ${a.kind === "open" ? "Abierto" : "Intereses"}`,
-      audience: aud(a),
-      ads: cfg.launch.cbo_ads === "dco" ? [{ name: `Dinámico · ${chosen.length} creativos` }] : chosen.map(adOf),
+    return plan.adsets.map((s) => ({
+      name: s.name,
+      audience: aud(s.audience),
+      budget: cfg.structure === "abo" ? budget : undefined,
+      ads: s.ads.map((a) => ({ name: a.name, type: a.mediaIds.length === 1 ? kindOf.get(a.mediaIds[0]) : undefined })),
     }));
-  }, [cfg.structure, cfg.launch, chosen, currency]);
+  }, [plan, cfg.structure, cfg.launch, chosen, currency]);
 
   const adsetOf = (id: string) => {
     if (cfg.structure !== "abo") return undefined;
@@ -931,7 +966,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
 
   const treeView = (
     <CampaignTree
-      name={cfg.name}
+      name={plan.name}
       structure={cfg.structure}
       budget={money(cfg.launch.budget, currency)}
       adsets={tree}
@@ -986,16 +1021,23 @@ export function AdsScreen({ data }: { data: ProductAds }) {
           {data.source ? (
             <Notice tone="info" icon="trend" title={`CBO con los ganadores de «${data.source}».`} body="Revisa los creativos y el presupuesto. Se crea aparte, en pausa, y la campaña de testeo sigue igual." />
           ) : null}
-          {data.campaigns.length && !data.source ? (
+          {last ? (
             <Notice
               tone="info"
               icon="megaphone"
               title={data.campaigns.length === 1 ? "Este producto ya tiene una campaña." : `Este producto ya tiene ${data.campaigns.length} campañas.`}
-              body="Una nueva se crea aparte, con su propia configuración."
-              action={
-                <Button size="sm" variant="secondary" iconEnd="chevron-right" href={`/campaigns/${data.campaigns[0].id}`}>
-                  Ver campaña
-                </Button>
+              body={
+                <>
+                  Una nueva se crea aparte. «Recrear la última» copia la configuración de <span className="break-words">«{last.name}»</span> para cambiar lo que quieras.
+                  <span className="mt-2 flex flex-wrap gap-2" aria-live="polite">
+                    <Button size="sm" variant="secondary" icon="copy" loading={busy === "recreate"} disabled={launching} onClick={recreateLast}>
+                      {recreateArmed ? "Confirmar: reemplazar este borrador" : "Recrear la última"}
+                    </Button>
+                    <Button size="sm" variant="ghost" iconEnd="chevron-right" href={`/campaigns/${last.id}`}>
+                      Ver campaña
+                    </Button>
+                  </span>
+                </>
               }
             />
           ) : null}
@@ -1045,10 +1087,10 @@ export function AdsScreen({ data }: { data: ProductAds }) {
           <DrawerTitle className="px-4 pt-3 text-heading">Revisar y lanzar</DrawerTitle>
           <DrawerDescription className="px-4 text-caption text-muted-foreground">Se crea en pausa en {data.meta.account ?? "tu cuenta"}. Nada gasta hasta que toques Publicar.</DrawerDescription>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4">
-            <Field label="Nombre de la campaña" value={cfg.name} maxLength={120} onValueChange={(v) => setCfg((c) => ({ ...c, name: v }))} />
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-label font-normal">
               {(
                 [
+                  ["Nombre en Meta", plan.name],
                   ["Creativos", summaries.creatives],
                   ["Público", summaries.audience],
                   ["Presupuesto", `${summaries.budget} · total ${money(total, currency)}/día`],
@@ -1059,7 +1101,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
               ).map(([k, v]) => (
                 <div key={k} className="contents">
                   <dt className="text-muted-foreground">{k}</dt>
-                  <dd className="m-0">{v}</dd>
+                  <dd className="m-0 min-w-0 break-words">{v}</dd>
                 </div>
               ))}
             </dl>
