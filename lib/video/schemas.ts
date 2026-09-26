@@ -24,12 +24,12 @@ import {
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). */
-export const UGC_PROMPT_VERSION = 3;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. */
-export const MASCOT_PROMPT_VERSION = 2;
-/** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. */
-export const KEYFRAME_QA_PROMPT_VERSION = 1;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. */
+export const UGC_PROMPT_VERSION = 4;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. */
+export const MASCOT_PROMPT_VERSION = 3;
+/** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). */
+export const KEYFRAME_QA_PROMPT_VERSION = 2;
 
 const keyframe = z.object({
   key: z.string().describe(`«K1» a «K${KEYFRAMES_MAX}». ${CHARACTER_KEY} es SIEMPRE el personaje solo, sin el producto.`),
@@ -74,9 +74,9 @@ export const ugcScriptSchema = z.object({
       .describe("ugc_ai: sirve para video con persona de IA. mascot: rinde más con un personaje animado (un problema físico visible que se puede personificar). static: el ángulo rinde más como imagen. real_video: necesita una persona real (testimonio, experta)."),
     why: z.string().describe("Para el comerciante, una frase."),
   }),
-  persona: z.string().describe("En inglés: quién habla. UGC: edad aparente, género y estilo según el cliente ideal (siempre una dramatización). Mascota: qué es el personaje animado («a cute 3D animated big-toe character»)."),
+  persona: z.string().describe("En inglés: quién habla. UGC: edad aparente, género y estilo según el cliente ideal (siempre una dramatización). Mascota: qué es el personaje animado, con una silueta redonda o ancha («a round, chubby 3D animated water-droplet character»)."),
   character: z.object({
-    look: z.string().describe("En inglés: rostro, pelo y rasgos de la persona. Mascota: cómo es el personaje sano (forma, piel, ojos, cejas, brazos), sin piernas si es una parte del cuerpo."),
+    look: z.string().describe("En inglés: rostro, pelo y rasgos de la persona. Mascota: cómo es el personaje sano (silueta redonda o ancha, color que no sea piel, ojos, cejas, brazos), sin piernas si es una parte del cuerpo."),
     wardrobe: z.string().describe("En inglés: ropa. Mascota: «none» (los accesorios de una escena van en su imagen clave)."),
     setting: z.string().describe("En inglés: el lugar principal y la luz."),
   }),
@@ -139,6 +139,9 @@ const SECOND_PERSON =
 const RESULT_TIMELINE = /\b(al|en|a los|en solo)\s+(\d+|un|una|dos|tres|cuatro|cinco|siete|diez|catorce|quince|treinta)\s+(d[ií]as?|semanas?|mes(es)?)\b|\bal d[ií]a\s+(\d+|uno|dos|tres|cuatro|cinco|siete)\b|\ben la semana\s+(\d+|uno|dos|tres)\b/i;
 
 /** Qué está mal en un guion (del modelo o editado). Vacío si se puede guardar. */
+/** Rasgos del personaje de mascota que dan siluetas fálicas (se revisan en persona y character.look, en inglés). */
+const RISKY_SHAPE = /\b(neck|stalk|shaft|tube|cylind\w*|elongated|finger|toe|bottom edge|patch of (?:facial )?skin|skin patch|blob of (?:\w+ )*skin)\b/i;
+
 export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc"): string[] {
   const problems: string[] = [];
   const limits = FORMAT_LIMITS[format];
@@ -153,6 +156,10 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
   const character = kf.get(CHARACTER_KEY);
   if (!character) problems.push(`Falta ${CHARACTER_KEY}, el personaje.`);
   else if (!character.uses_character || character.uses_product) problems.push(`${CHARACTER_KEY} es el personaje solo: uses_character true y uses_product false.`);
+
+  // La mascota: formas que se leen como algo sexual (la primera corrida real dio «a patch of facial skin with a small neck»).
+  if (format === "mascot" && RISKY_SHAPE.test(`${s.persona} ${s.character.look}`))
+    problems.push("La forma del personaje puede leerse como algo sexual (cuello o tallo bajo una cabeza redonda, sale del borde de abajo, parche o bulto de piel, dedo o tubo): dale una silueta redonda o ancha e inconfundible, en un color que no sea piel.");
 
   // Tomas habladas.
   if (s.a_roll.length < limits.aRollMin || s.a_roll.length > limits.aRollMax) problems.push(`Trae ${s.a_roll.length} tomas habladas; deben ser de ${limits.aRollMin} a ${limits.aRollMax}.`);
@@ -235,6 +242,7 @@ export const keyframeQaSchema = z.object({
   product_ok: z.boolean().nullable().describe("Solo si se pidió el producto: true si es igual a la foto real (forma, colores, etiqueta legible). null si no aplica."),
   same_person: z.boolean().nullable().describe("Solo si hay referencia del personaje: true si es la misma persona (cara, pelo). null si no aplica."),
   no_text: z.boolean().describe("false si hay textos, subtítulos o marcas de agua que no son la etiqueta real del producto."),
+  brand_safe: z.boolean().describe("false si una forma o una pose puede leerse como genitales o algo sexual o sugerente (Meta lo rechaza por contenido adulto). Ante la duda, false."),
   issues: z.array(z.string()).describe("Cada problema en una frase para el comerciante, en español. [] si ninguno."),
 });
 export type KeyframeQaOutput = z.infer<typeof keyframeQaSchema>;
@@ -250,6 +258,8 @@ export function keyframeQaVerdict(out: KeyframeQaOutput): KeyframeQa {
   add(out.product_ok, "El producto no se ve igual a tu foto.");
   add(out.same_person, "La persona no es la misma del personaje.");
   add(out.no_text, "Tiene textos que no pedimos.");
-  const pass = out.hands_ok && out.product_ok !== false && out.same_person !== false && out.no_text;
+  // Lo más grave va primero y siempre, aunque el modelo haya anotado otros problemas.
+  if (!out.brand_safe) issues.unshift("Su forma puede leerse como algo sexual y Meta rechazaría el anuncio: pide otra o escribe otro guion.");
+  const pass = out.hands_ok && out.product_ok !== false && out.same_person !== false && out.no_text && out.brand_safe;
   return { pass, issues: pass ? [] : issues };
 }

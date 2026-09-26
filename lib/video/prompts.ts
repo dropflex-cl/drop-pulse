@@ -101,7 +101,8 @@ const M = FORMAT_LIMITS.mascot;
 
 const MASCOT_STORY = [
   "EL FORMATO: UNA MASCOTA ANIMADA QUE CUENTA SU HISTORIA",
-  "- El personaje es lo que tiene el problema, personificado como en una película animada 3D estilo Pixar: la uña, el pie, la rodilla, el diente, el cuero cabelludo, la almohada, la mancha. Tiene cara expresiva (ojos grandes, cejas) y dos bracitos de caricatura. Si es una parte del cuerpo, es SOLO esa parte (un dedo gordo que sube desde el borde de abajo): sin piernas ni pies propios.",
+  "- El personaje es lo que tiene el problema, personificado como en una película animada 3D estilo Pixar: la uña, el diente, la rodilla, el cuero cabelludo, la almohada, la mancha. Tiene cara expresiva (ojos grandes, cejas) y dos bracitos de caricatura. Si es una parte del cuerpo, es SOLO esa parte: sin piernas ni pies propios.",
+  "- SILUETA SEGURA PARA META (antes que todo lo demás): el personaje tiene una forma redonda o ancha, inconfundible al primer vistazo (una muela entera con su corona, una uña como un escudo plano, una gota, una bolita), y entero dentro del cuadro. NUNCA una forma alargada o de tubo, una cabeza redondeada sobre un cuello o un tallo más angosto, algo que sube desde el borde de abajo, un dedo o un bulto suelto, ni un cuerpo liso color piel: se lee como algo sexual y Meta rechaza el anuncio. Si lo que tiene el problema es la piel, la cara o algo sin forma propia, personifica otra cosa con forma clara (una gota de agua, una célula redonda, un cojín), en un color pastel que no sea piel.",
   "- Habla en primera persona de SÍ MISMO («Soy la uña que mi dueño esconde en zapatos cerrados»). Su dueño o dueña va en tercera persona. Con humor y ternura: el problema da risa y pena, nunca asco.",
   `- Dura ${M.totalMin} a ${M.totalMax} s habladas (más 2 s de cierre), vertical 9:16. ${M.aRollMin} a ${M.aRollMax} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s: el personaje habla a cámara, con su voz de principio a fin.`,
   "- El arco, en este orden:",
@@ -127,7 +128,7 @@ const MASCOT_VOICE = [
 
 const MASCOT_PICTURES = [
   "LAS IMÁGENES CLAVE (keyframes)",
-  `- ${CHARACTER_KEY} es el personaje solo, SANO, de frente, sin el producto: define su cara y todas las demás lo usan de referencia. Descríbelo en persona y character.look (forma, piel, ojos, cejas, bracitos); wardrobe «none».`,
+  `- ${CHARACTER_KEY} es el personaje solo, SANO, de frente, sin el producto: define su cara y todas las demás lo usan de referencia. Descríbelo en persona y character.look (su silueta redonda o ancha y su color, ojos, cejas, bracitos); wardrobe «none».`,
   "- Toda imagen clave donde aparece el personaje (también enfermo, triste o sanando) lleva uses_character true: se genera con K1 de referencia para que sea el mismo. Las tomas habladas parten siempre de una de esas.",
   "- Cada imagen clave dice el ESTADO del personaje en su prompt: con el problema (p. ej., «its toenail is thick, yellow-green and cracked, with faint green fumes»), sanando o sano. Nunca más feo que tierno.",
   "- Una imagen clave por escena distinta: el gancho, el problema, la llegada del producto, el final. Cada B-roll parte de su propia imagen clave (un macro, un corte 3D, la bruma), nunca de K1.",
@@ -242,6 +243,7 @@ export const KEYFRAME_QA_SYSTEM = [
   "- product_ok: solo si se pidió el producto. Igual a la foto real: forma, colores, tapa, etiqueta legible y sin textos inventados. null si no se pidió.",
   "- same_person: solo si hay imagen del personaje. La misma cara y pelo (la ropa o el peinado pueden cambiar si la escena lo pide). null si no aplica.",
   "- no_text: false si hay subtítulos, textos, marcas de agua o logos que no son la etiqueta real del producto.",
+  "- brand_safe: false si el personaje, un objeto o una pose puede leerse como genitales o algo sexual o sugerente (por ejemplo, un cuerpo alargado o liso color piel con la punta redondeada, o un bulto sobre un cuello más angosto): Meta rechaza esos anuncios por contenido adulto. Míralo como un revisor de Meta que ve la imagen un segundo. Ante la duda, false.",
   "- issues: cada problema en una frase corta en español para el comerciante. Sé estricto con las manos.",
 ].join("\n");
 

@@ -50,6 +50,8 @@ const PHOTO = "Vertical 9:16 realistic smartphone UGC photo, unpolished, natural
 const ANIMATED = "Vertical 9:16 still frame from a 3D animated movie, Pixar-style render, soft cinematic lighting, shallow depth of field. No text, no captions, no subtitles, no logos, no watermark.";
 const PLAIN_PRODUCT = "The product is a plain product: no face, no eyes, no arms.";
 const CARTOON_ARMS = "Only the character's own two small cartoon arms, no extra arms or hands.";
+/** La silueta del personaje: redonda y entera en el cuadro (una forma alargada con cuello se lee como algo sexual). */
+const MASCOT_SHAPE = "Family-friendly character design: a round, chubby, instantly readable silhouette about as wide as it is tall, fully inside the frame, with no elongated or cylindrical body and no narrow neck under its head.";
 
 /** Qué imágenes de referencia lleva una imagen clave, en orden: el personaje primero y el producto después. */
 export function keyframeRefs(k: Pick<UgcKeyframe, "key" | "uses_character" | "uses_product">, characterKey: string): ("character" | "product")[] {
@@ -74,7 +76,7 @@ function whoPhrase(script: Pick<UgcScript, "persona" | "character">, format: Vid
 }
 
 function handsRule(k: UgcKeyframe, format: VideoFormat): string {
-  if (format === "mascot") return k.uses_character ? CARTOON_ARMS : "";
+  if (format === "mascot") return k.uses_character ? `${MASCOT_SHAPE} ${CARTOON_ARMS}` : "";
   return k.one_hand ? ONE_HAND : k.uses_character ? HANDS : "";
 }
 

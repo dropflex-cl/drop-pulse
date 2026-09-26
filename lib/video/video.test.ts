@@ -240,17 +240,21 @@ describe("paquete de montaje", () => {
 
 describe("QA de imágenes clave", () => {
   it("falla con manos de más aunque el modelo no lo explique", () => {
-    expect(keyframeQaVerdict({ hands_ok: false, product_ok: true, same_person: true, no_text: true, issues: [] })).toEqual({ pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] });
-    expect(keyframeQaVerdict({ hands_ok: true, product_ok: null, same_person: null, no_text: true, issues: [] }).pass).toBe(true);
+    expect(keyframeQaVerdict({ hands_ok: false, product_ok: true, same_person: true, no_text: true, brand_safe: true, issues: [] })).toEqual({ pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] });
+    expect(keyframeQaVerdict({ hands_ok: true, product_ok: null, same_person: null, no_text: true, brand_safe: true, issues: [] }).pass).toBe(true);
+    // Una forma sugerente falla siempre y va primero, aunque el modelo haya anotado otra cosa.
+    const unsafe = keyframeQaVerdict({ hands_ok: true, product_ok: null, same_person: null, no_text: true, brand_safe: false, issues: ["Los ojos quedaron chicos."] });
+    expect(unsafe.pass).toBe(false);
+    expect(unsafe.issues[0]).toMatch(/puede leerse como algo sexual/);
   });
 });
 
 // KeraPass (POC mascota 2026-09-26): el guion que se generó y el usuario aprobó (voz «perfecta»).
 const mascot = (): UgcScript => ({
   format_fit: { recommended: "mascot", why: "El hongo se ve y la uña se puede personificar con gracia." },
-  persona: "a cute 3D animated big-toe character",
+  persona: "a round, chubby 3D animated toenail character shaped like a small flat shield",
   character: {
-    look: "the whole character is a single big toe rising from the bottom edge of the frame, no legs, peachy skin, smooth pink toenail on top like a forehead, big brown eyes, thick eyebrows, two small cartoon arms",
+    look: "a palm-sized flat shield-shaped toenail, pastel pink and glossy, wider than tall, big brown eyes, thick eyebrows, two small cartoon arms, no legs",
     wardrobe: "none",
     setting: "cozy home scenes, soft cinematic light",
   },
@@ -291,6 +295,24 @@ describe("formato mascota", () => {
     expect(scriptProblems(mascot(), pricing, "ugc").join(" ")).toMatch(/suman 23 s; deben sumar de 24/);
   });
 
+  it("rechaza siluetas que se leen como algo sexual (el dedo de la POC, la piel con cuello de Deep Collagen)", () => {
+    const risky = [
+      { persona: "a cute 3D animated big-toe character", look: "a single big toe rising from the bottom edge of the frame, peachy skin" },
+      { persona: "a soft, rounded patch of facial skin with a small neck below it", look: "a rounded blob of soft peach-toned facial skin" },
+      { persona: "a cute cheek character", look: "a plump cheek that rises from the bottom edge of the frame" },
+    ];
+    for (const r of risky) {
+      const s = mascot();
+      s.persona = r.persona;
+      s.character.look = r.look;
+      expect(scriptProblems(s, pricing, "mascot").join(" ")).toMatch(/puede leerse como algo sexual/);
+    }
+    // Manos de cuatro dedos o una uña del pie no son formas riesgosas.
+    const ok = mascot();
+    ok.character.look += ", four-fingered hands, a toenail forehead";
+    expect(scriptProblems(ok, pricing, "mascot")).toEqual([]);
+  });
+
   it("no deja hablarle a quien mira de su uña ni prometer plazos", () => {
     const s = mascot();
     s.a_roll[0].line = "Hola, soy la uña de tu pie y tus uñas lo saben.";
@@ -304,7 +326,8 @@ describe("formato mascota", () => {
     const s = mascot();
     const k1 = String(keyframeRequest(s.keyframes[0], s, "K1", "mascot").input.prompt);
     expect(k1).toMatch(/3D animated movie, Pixar-style/);
-    expect(k1).toMatch(/The character: a cute 3D animated big-toe character/);
+    expect(k1).toMatch(/The character: a round, chubby 3D animated toenail character/);
+    expect(k1).toMatch(/round, chubby, instantly readable silhouette/);
     expect(k1).not.toMatch(/smartphone|wearing/);
     const k4 = String(keyframeRequest(s.keyframes[3], s, "K1", "mascot").input.prompt);
     expect(k4).toMatch(/same animated character as in the first reference image/);
