@@ -1,7 +1,7 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-const TOKENS = ["time", "ship"] as const;
+const TOKENS = ["time", "ship", "arrive"] as const;
 
 /** Texto sin dígitos (plazos y horas son reales) y solo con tokens conocidos. */
 const plain = (field: string, allowed: readonly string[] = []) =>
@@ -29,9 +29,9 @@ export const shippingTimeline = defineComponent({
   ],
   content: z.object({
     countdown_template: plain("countdown_template", TOKENS).pipe(z.string().min(12).max(50).includes("{time}"))
-      .describe("[Verbo imperativo] dentro de {time} + [consecuencia verdadera con {ship}]. {time} = tiempo al corte; {ship} = día de despacho ya con artículo («hoy», «mañana», «el viernes»). Ej.: «Pide dentro de {time} y sale {ship}»."),
-    closed_template: plain("closed_template", ["ship"]).pipe(z.string().min(10).max(50)).optional()
-      .describe("Sin contador (fin de semana, feriado o corte lejano): invitación sin urgencia con {ship}. Ej.: «Pide hoy y lo despachamos {ship}»."),
+      .describe("[Verbo imperativo] dentro de {time} + [cuándo lo recibe, con {arrive}]. {time} = tiempo al corte; {arrive} = primer día de entrega ya con artículo («mañana», «el martes»); {ship} = día de despacho, solo si suma. Ej.: «Pide dentro de {time} y recíbelo desde {arrive}»."),
+    closed_template: plain("closed_template", ["ship", "arrive"]).pipe(z.string().min(10).max(50)).optional()
+      .describe("Sin contador (fin de semana, feriado o corte lejano): invitación sin urgencia con {arrive}. Ej.: «Pide hoy y recíbelo desde {arrive}»."),
     node_ordered_label: plain("node_ordered_label").pipe(z.string().min(3).max(12))
       .describe("Hito 1, 1-2 palabras (participio o frase-beneficio). Ej.: «Pedido»."),
     node_ordered_sub: plain("node_ordered_sub").pipe(z.string().min(3).max(12))
@@ -46,11 +46,11 @@ export const shippingTimeline = defineComponent({
   realData: [
     "Días de preparación, tránsito mínimo y máximo, hora de corte, feriados, zona horaria, solo días hábiles y reparto en sábado: logística de la tienda (shop.metafields.dropflex.logistics); los ajustes del bloque son el respaldo.",
     "Fecha y hora actuales: el navegador, convertidas a la zona de la tienda (America/Santiago por defecto).",
-    "{time}, {ship} y las fechas de los hitos: calculados en df-shipping-timeline.js, nunca escritos.",
+    "{time}, {ship}, {arrive} y las fechas de los hitos: calculados en df-shipping-timeline.js, nunca escritos.",
   ],
   rules: [
     "Tuteo, cercano, sin mayúsculas sostenidas ni emojis; sin signos de exclamación en las etiquetas.",
-    "countdown_template: «[verbo] dentro de {time} y [beneficio verdadero]». Usa {ship} para el día de despacho: no escribas «hoy» salvo que la preparación sea de cero días.",
+    "countdown_template y closed_template: el título habla de cuándo lo recibe ({arrive}, siempre precedido de «desde»: es el primer día posible), no de cuándo se despacha. {ship} solo como dato secundario; no escribas «hoy» salvo que la preparación sea de cero días.",
     "Etiquetas de hito: 1-2 palabras que formen una secuencia narrativa (pedido → despacho → entrega).",
     "node_delivered_sub_suffix: solo si la tienda tiene pago contra entrega activo.",
   ],
@@ -61,8 +61,8 @@ export const shippingTimeline = defineComponent({
   ],
   examples: [
     {
-      countdown_template: "Pide dentro de {time} y sale {ship}",
-      closed_template: "Pide hoy y lo despachamos {ship}",
+      countdown_template: "Pide dentro de {time} y recíbelo desde {arrive}",
+      closed_template: "Pide hoy y recíbelo desde {arrive}",
       node_ordered_label: "Pedido",
       node_ordered_sub: "Hoy",
       node_shipped_label: "Despachado",
@@ -70,7 +70,7 @@ export const shippingTimeline = defineComponent({
       node_delivered_sub_suffix: "pagas al recibir",
     },
     {
-      countdown_template: "Compra en las próximas {time} y despachamos {ship}",
+      countdown_template: "Compra dentro de {time} y tenlo desde {arrive}",
       node_ordered_label: "Tu pedido",
       node_ordered_sub: "Hoy",
       node_shipped_label: "En camino",

@@ -10,7 +10,8 @@
   Contenido (textos): metafield `dropflex.shipping_timeline` (json) → si falta, los del bloque.
     { countdown_template ({time}, {ship}?), closed_template? ({ship}), node_ordered_label,
       node_ordered_sub, node_shipped_label, node_delivered_label, node_delivered_sub_suffix? }
-  Tokens: {time} tiempo al corte · {ship} día de despacho ("hoy", "mañana", "el viernes").
+  Tokens: {time} tiempo al corte · {ship} día de despacho ("hoy", "mañana", "el viernes") ·
+  {arrive} primer día de entrega en la ciudad principal ("mañana", "el martes").
   Logística: shop.metafields.dropflex.logistics (json) → si falta, los ajustes del bloque.
 {%- enddoc -%}
 {%- liquid
@@ -30,14 +31,22 @@
   endif
   assign biz = logistics.business_days_only | default: s.business_days_only, allow_false: true
   assign sat = logistics.saturday_delivery | default: s.saturday_delivery, allow_false: true
-  assign ship_sat = logistics.saturday_dispatch | default: false, allow_false: true
+  assign ship_sat = logistics.saturday_dispatch | default: s.saturday_dispatch, allow_false: true
 
-  # Plazo de regiones: el tránsito de arriba es el máximo de regiones (así «llega en {min} a {max}
-  # días» es verdad en todo el país); la ciudad principal tiene el suyo y regiones suma `extra`.
-  assign extra = logistics.regions_extra_days | plus: 0
-  assign city = logistics.main_city | strip
+  # Plazo de regiones: el tránsito de la logística es el máximo de regiones (así «llega en {min} a
+  # {max} días» es verdad en todo el país); la ciudad principal tiene el suyo y regiones suma `extra`.
+  # Sin logística, los ajustes del bloque: su tránsito ya es el de la ciudad principal.
+  if logistics
+    assign extra = logistics.regions_extra_days | plus: 0
+    assign city = logistics.main_city | strip
+  else
+    assign extra = s.regions_extra_days | plus: 0
+    assign city = s.main_city | strip
+  endif
   if extra > 0 and city != blank
-    assign tmax = logistics.main_city_transit_max | plus: 0
+    if logistics
+      assign tmax = logistics.main_city_transit_max | plus: 0
+    endif
     if tmax < tmin
       assign tmax = tmin
     endif
@@ -356,15 +365,15 @@
       "type": "text",
       "id": "countdown_text",
       "label": "Cuenta regresiva",
-      "info": "Debe incluir {time} (tiempo al corte). {ship} es el día de despacho: hoy, mañana, el viernes…",
-      "default": "Pide dentro de {time} y sale {ship}"
+      "info": "Debe incluir {time} (tiempo al corte). {arrive} es el primer día de entrega y {ship} el de despacho: hoy, mañana, el viernes…",
+      "default": "Pide dentro de {time} y recíbelo desde {arrive}"
     },
     {
       "type": "text",
       "id": "closed_text",
       "label": "Sin cuenta regresiva",
-      "info": "Fin de semana, feriado o corte lejano. Puedes usar {ship}. Vacío: no se muestra título.",
-      "default": "Pide hoy y lo despachamos {ship}"
+      "info": "Fin de semana, feriado o corte lejano. Puedes usar {arrive} y {ship}. Vacío: no se muestra título.",
+      "default": "Pide hoy y recíbelo desde {arrive}"
     },
     {
       "type": "text",
@@ -420,7 +429,7 @@
       "max": 23,
       "step": 1,
       "unit": "h",
-      "default": 14
+      "default": 9
     },
     {
       "type": "range",
@@ -429,7 +438,7 @@
       "min": 0,
       "max": 10,
       "step": 1,
-      "default": 1
+      "default": 0
     },
     {
       "type": "range",
@@ -438,16 +447,17 @@
       "min": 0,
       "max": 15,
       "step": 1,
-      "default": 2
+      "default": 1
     },
     {
       "type": "range",
       "id": "transit_days_max",
       "label": "Tránsito máximo (días)",
+      "info": "En la ciudad principal si hay plazo de regiones.",
       "min": 0,
       "max": 20,
       "step": 1,
-      "default": 5
+      "default": 3
     },
     {
       "type": "checkbox",
@@ -458,9 +468,32 @@
     },
     {
       "type": "checkbox",
+      "id": "saturday_dispatch",
+      "label": "Despachamos los sábados",
+      "info": "Con «Solo días hábiles», el sábado cuenta para preparar y despachar.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
       "id": "saturday_delivery",
       "label": "El courier reparte sábado",
       "default": false
+    },
+    {
+      "type": "text",
+      "id": "main_city",
+      "label": "Ciudad principal",
+      "info": "Donde rige el tránsito de arriba. Vacío: un solo plazo para todo el país.",
+      "default": "Santiago"
+    },
+    {
+      "type": "range",
+      "id": "regions_extra_days",
+      "label": "Días extra a regiones",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "default": 2
     },
     {
       "type": "text",

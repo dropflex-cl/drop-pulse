@@ -70,12 +70,13 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
   // regiones cuando hay plazo de regiones: la ciudad principal termina `extra` días antes.
   const L = facts.logistics;
   const handling = Math.max(0, L?.handling ?? (Number(s.handling_days) || 0));
-  const extra = L?.city ? Math.max(0, L.extra ?? 0) : 0;
+  const city = L ? L.city : String(s.main_city ?? "").trim();
+  const extra = city ? Math.max(0, L ? (L.extra ?? 0) : Number(s.regions_extra_days) || 0) : 0;
   const tmin = L ? Math.max(0, L.min - handling) : Math.max(0, Number(s.transit_days_min) || 0);
   const tmax = Math.max(tmin, L ? L.max - extra - handling : Number(s.transit_days_max) || 0);
   const biz = L?.businessDaysOnly ?? s.business_days_only !== false;
   const sat = L?.saturdayDelivery ?? s.saturday_delivery === true;
-  const shipSat = L?.saturdayDispatch === true;
+  const shipSat = L ? L.saturdayDispatch === true : s.saturday_dispatch === true;
 
   // Calendario del JS (sin feriados: la vista previa no los conoce).
   const weekday = (d: number) => new Date(d * DAY).getUTCDay();
@@ -107,21 +108,21 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
     if (useWeekday && diff > 1 && diff <= 6) return fmtWeekday.format(date);
     return (useWeekday ? fmtWeekdayDate : fmtShort).format(date);
   };
-  const shipInSentence = ship - today > 1 ? `el ${dayText(ship)}` : dayText(ship);
+  const inSentence = (d: number) => (d - today > 1 ? `el ${dayText(d)}` : dayText(d));
   const rangeOf = (a: number, b: number) => (a === b ? capitalize(dayText(a)) : fmtShort.formatRange(new Date(a * DAY), new Date(b * DAY)));
-  const range = extra ? `${L?.city}: ${rangeOf(from, to)}` : rangeOf(from, to);
+  const range = extra ? `${city}: ${rangeOf(from, to)}` : rangeOf(from, to);
   const sentence = (a: number, b: number) =>
     a === b
       ? `Entrega estimada el ${fmtLong.format(new Date(a * DAY))}`
       : `Entrega estimada entre el ${fmtLong.format(new Date(a * DAY))} y el ${fmtLong.format(new Date(b * DAY))}`;
   const summary = extra
-    ? `${sentence(from, to)} en ${L?.city}; ${regionsLabel.toLowerCase()}: ${sentence(regionsFrom, regionsTo).toLowerCase()}`
+    ? `${sentence(from, to)} en ${city}; ${regionsLabel.toLowerCase()}: ${sentence(regionsFrom, regionsTo).toLowerCase()}`
     : sentence(from, to);
 
-  // Título: la plantilla con {ship} y el tiempo al corte en <strong>, como lo arma el JS.
+  // Título: la plantilla con {ship}, {arrive} y el tiempo al corte en <strong>, como lo arma el JS.
   const counting = Boolean(tCountdown);
   const template = counting ? tCountdown : tClosed;
-  const [before, after = ""] = template.replaceAll("{ship}", shipInSentence).split("{time}");
+  const [before, after = ""] = template.replaceAll("{ship}", inSentence(ship)).replaceAll("{arrive}", inSentence(from)).split("{time}");
 
   return (
     <df-shipping-timeline
