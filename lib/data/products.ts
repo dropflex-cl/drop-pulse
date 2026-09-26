@@ -55,7 +55,7 @@ import {
   type ProductRow,
   type RunState,
 } from "@/lib/products/store";
-import type { AnglesState, CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews } from "@/lib/types";
+import type { AnglesState, CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductReviews, UpsellProduct } from "@/lib/types";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
 const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
@@ -219,10 +219,16 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
   });
 }
 
-/** Todos los productos del comerciante, con su posición en la ruta (la lista y Hoy). */
-const allProducts = cache(async (): Promise<Product[]> => {
+/** Las filas del comerciante, una vez por petición (las piden la lista, el conteo y los upsell). */
+const productRows = cache(async (): Promise<{ uid: string; rows: ProductRow[] }> => {
   const uid = await userId();
-  return productsWithPositions(uid, await listProductRows(uid));
+  return { uid, rows: await listProductRows(uid) };
+});
+
+/** Los productos que se optimizan, con su posición en la ruta (la lista y Hoy). Sin los upsell. */
+const allProducts = cache(async (): Promise<Product[]> => {
+  const { uid, rows } = await productRows();
+  return productsWithPositions(uid, rows.filter((r) => !r.is_upsell));
 });
 
 export async function getProducts(filter?: ProductFilter): Promise<Product[]> {
@@ -230,11 +236,25 @@ export async function getProducts(filter?: ProductFilter): Promise<Product[]> {
   return filter ? all.filter((p) => p.filter === filter) : all;
 }
 
-export async function getProductCounts(): Promise<Record<ProductFilter, number> & { total: number }> {
-  const all = await allProducts();
+export async function getProductCounts(): Promise<Record<ProductFilter, number> & { upsell: number; total: number }> {
+  const [all, { rows }] = await Promise.all([allProducts(), productRows()]);
   const count = (f: ProductFilter) => all.filter((p) => p.filter === f).length;
-  return { avanzan: count("avanzan"), detenidos: count("detenidos"), publicados: count("publicados"), total: all.length };
+  return { avanzan: count("avanzan"), detenidos: count("detenidos"), publicados: count("publicados"), upsell: rows.length - all.length, total: rows.length };
 }
+
+/** Los upsell del checkout (/products/upsell): solo nombre y miniatura, sin calcular su ruta. */
+export const getUpsellProducts = cache(async (): Promise<UpsellProduct[]> => {
+  const { uid, rows } = await productRows();
+  const upsells = rows.filter((r) => r.is_upsell);
+  if (!upsells.length) return [];
+  const images = await listImageRows(uid, upsells.map((r) => r.id));
+  const covers = upsells.map((r) => cover(images.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
+  const urls = await withDisplayUrls(covers);
+  return upsells.map((r) => {
+    const c = covers.find((i) => i.product_id === r.id);
+    return { id: r.id, name: r.title, image: c ? (urls.get(c.id) ?? "") : "" };
+  });
+});
 
 /** Un producto con su posición en la ruta. Solo lee ese producto (no el catálogo entero). */
 export const getProduct = cache(async (id: string): Promise<Product | null> => {

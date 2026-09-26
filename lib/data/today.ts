@@ -192,7 +192,7 @@ async function todayCount(uid: string): Promise<number> {
   "use cache";
   cacheLife({ stale: 30, revalidate: 30, expire: 300 });
   cacheTag(`today:${uid}`);
-  const [products, campaigns] = await Promise.all([listProductRows(uid).then((rows) => productsWithPositions(uid, rows, { images: false })), campaignEntries(uid)]);
+  const [products, campaigns] = await Promise.all([listProductRows(uid).then((rows) => productsWithPositions(uid, rows.filter((r) => !r.is_upsell), { images: false })), campaignEntries(uid)]);
   return productEntries(products).length + campaigns.length;
 }
 

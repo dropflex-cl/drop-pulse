@@ -29,6 +29,13 @@ export interface Stage {
 /** Filtro de la lista de productos: Avanzan · Detenidos · Publicados. */
 export type ProductFilter = "avanzan" | "detenidos" | "publicados";
 
+/** Producto de upsell del checkout (/products/upsell): no se optimiza, así que no tiene ruta. */
+export interface UpsellProduct {
+  id: string;
+  name: string;
+  image: string;
+}
+
 export interface Product {
   id: string;
   name: string;

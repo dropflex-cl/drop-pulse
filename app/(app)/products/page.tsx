@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
-import { Icon, ProductRow } from "@/components/df";
+import { Icon, ProductRow, rowClasses } from "@/components/df";
 import { SyncProductsButton } from "@/components/screens/actions";
 import { UrlFilter } from "@/components/screens/filters";
-import { EmptyState, PageHeader, SectionTitle } from "@/components/shell/page-header";
+import { UpsellItem } from "@/components/screens/upsell-item";
+import { EmptyState, Group, PageHeader, SectionTitle } from "@/components/shell/page-header";
 import { RowsSkeleton } from "@/components/shell/skeletons";
 import { getProductCounts, getProducts } from "@/lib/data/products";
 import { FILTER_PARAM, filterFromParam, productHref } from "@/lib/routes";
@@ -51,10 +53,10 @@ async function ProductList({ searchParams }: { searchParams: Promise<{ filter?: 
       ) : (
         <ul
           aria-label={`Productos: ${LABEL[filter].toLowerCase()}`}
-          className="mx-4 grid overflow-hidden rounded-lg border bg-card md:grid-cols-2 lg:mx-0 lg:grid-cols-1"
+          className="mx-4 grid grid-cols-1 overflow-hidden rounded-lg border bg-card md:grid-cols-2 lg:mx-0 lg:grid-cols-1"
         >
           {products.map((p) => (
-            <li key={p.id} className="border-t first:border-t-0 md:max-lg:nth-2:border-t-0 md:max-lg:odd:border-r">
+            <UpsellItem key={p.id} id={p.id} name={p.name} upsell={false} className="border-t first:border-t-0 md:max-lg:nth-2:border-t-0 md:max-lg:odd:border-r">
               <ProductRow
                 name={p.name}
                 image={p.image}
@@ -62,11 +64,27 @@ async function ProductList({ searchParams }: { searchParams: Promise<{ filter?: 
                 tone={p.tone}
                 reason={p.reason}
                 href={productHref(p.id, p.nextStage)}
+                end={<span aria-hidden className="block w-6" />}
               />
-            </li>
+            </UpsellItem>
           ))}
         </ul>
       )}
+      {counts.upsell ? (
+        <Group className="mt-4">
+          <Link href="/products/upsell" className={rowClasses}>
+            <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-sm bg-muted text-muted-foreground">
+              <Icon name="tag" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-row">Upsell del checkout</span>
+              <span className="truncate text-caption text-muted-foreground">No se optimizan ni aparecen en Hoy</span>
+            </span>
+            <span className="text-label text-muted-foreground tabular-nums">{counts.upsell}</span>
+            <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
+          </Link>
+        </Group>
+      ) : null}
       <SectionTitle>Así se leen</SectionTitle>
       <ul className="flex flex-wrap gap-3 px-4 text-caption text-muted-foreground lg:px-0">
         {LEGEND.map(([color, label]) => (

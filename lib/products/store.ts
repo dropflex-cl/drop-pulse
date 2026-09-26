@@ -33,6 +33,8 @@ export interface ProductRow {
   currency: string;
   /** Color de acento de la página del producto (#rrggbb); null si no se eligió. */
   page_accent_color: string | null;
+  /** Se vende como extra en el checkout: no se optimiza y no aparece en Productos ni en Hoy. */
+  is_upsell: boolean;
   created_at: string;
 }
 
@@ -130,6 +132,18 @@ export async function updatePageAccent(userId: string, id: string, hex: string):
     .eq("id", id)
     .select("id");
   fail("Guardar el color de la página", error);
+  if (!data?.length) throw new Error("Producto no encontrado");
+}
+
+/** Marca o desmarca el producto como upsell del checkout. */
+export async function updateUpsell(userId: string, id: string, upsell: boolean): Promise<void> {
+  const { data, error } = await adminClient()
+    .from("products")
+    .update({ is_upsell: upsell, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("id", id)
+    .select("id");
+  fail("Guardar el upsell", error);
   if (!data?.length) throw new Error("Producto no encontrado");
 }
 

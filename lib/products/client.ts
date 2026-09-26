@@ -104,6 +104,7 @@ function signedUpload<T>(file: File, onProgress: (p: number) => void, flow: (put
 }
 
 export const productsApi = {
+  setUpsell: (id: string, upsell: boolean) => send<{ upsell: boolean }>("PUT", `/${id}/upsell`, { upsell }),
   publishState: (id: string) => call<PublishState>(`/${id}/publish`),
   publish: (id: string) => send<PublishState>("POST", `/${id}/publish`),
   creatives: (id: string) => call<CreativesState>(`/${id}/creatives`),
