@@ -11,8 +11,9 @@ import type * as z from "zod/v4";
 
 export const AI_MODEL = "claude-opus-5";
 
-/** USD por millón de tokens. Lectura de caché a 0,1×; escritura a 1,25×. */
-const PRICING: Record<string, { input: number; output: number }> = {
+/** USD por millón de tokens. Escritura de caché a 1,25×; lectura a 0,1× (Opus 5.5: 0,05×). */
+const PRICING: Record<string, { input: number; output: number; cacheRead?: number }> = {
+  "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.05 },
   "claude-opus-5": { input: 5, output: 25 },
   "claude-opus-4-8": { input: 5, output: 25 },
   "claude-sonnet-5": { input: 2, output: 10 },
@@ -43,7 +44,7 @@ export class AiStepError extends Error {
 
 export function costOf(model: string, u: { input: number; output: number; cacheRead: number; cacheWrite: number }): number {
   const p = PRICING[model] ?? PRICING[AI_MODEL];
-  const usd = (u.input * p.input + u.cacheRead * p.input * 0.1 + u.cacheWrite * p.input * 1.25 + u.output * p.output) / 1_000_000;
+  const usd = (u.input * p.input + u.cacheRead * p.input * (p.cacheRead ?? 0.1) + u.cacheWrite * p.input * 1.25 + u.output * p.output) / 1_000_000;
   return Math.round(usd * 1_000_000) / 1_000_000;
 }
 
@@ -115,6 +116,7 @@ export async function generateStructured<S extends z.ZodType>({
   effort,
   maxTokens = 16000,
   model = AI_MODEL,
+  cacheSystem = true,
 }: {
   system: string;
   content: Anthropic.Beta.BetaContentBlockParam[];
@@ -123,6 +125,11 @@ export async function generateStructured<S extends z.ZodType>({
   maxTokens?: number;
   /** Por defecto AI_MODEL; un paso puede pedir otro (ver scripts/eval-models.ts). */
   model?: string;
+  /**
+   * false en una llamada que no se repite con el mismo prefijo (una corrección con otro esquema de
+   * salida): escribir la caché cuesta 1,25× y nadie la leería.
+   */
+  cacheSystem?: boolean;
 }): Promise<{ data: z.infer<S>; usage: AiUsage }> {
   const started = Date.now();
   const base = {
@@ -138,7 +145,7 @@ export async function generateStructured<S extends z.ZodType>({
     res = await client().beta.messages.parse({
       ...base,
       output_config: { effort, format: betaZodOutputFormat(schema) },
-      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+      system: [{ type: "text", text: system, ...(cacheSystem ? { cache_control: { type: "ephemeral" as const } } : {}) }],
     });
   } catch (e) {
     if (e instanceof Anthropic.BadRequestError && GRAMMAR_TOO_LARGE.test(e.message)) {

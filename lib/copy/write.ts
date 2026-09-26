@@ -45,6 +45,9 @@ export async function writePage({
       effort: "medium",
       maxTokens: 16000,
       model,
+      // La corrección por partes cambia el esquema de salida: no lee la caché del system (ai_generations,
+      // 2026-09-25: 0 leídos y 26.568 escritos) y escribirla cuesta 1,25×.
+      cacheSystem: !retry || parts.length === write.length,
     });
 
   let data: PageOutput | null = null;

@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { testAngleName, type AngleSlot } from "@/lib/angles/catalog";
@@ -185,7 +186,7 @@ export async function runScript(scriptId: string): Promise<void> {
         maxTokens: 16000,
       });
       problems = scriptProblems(result.data, input.pricing);
-      await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null });
+      await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems });
       if (!problems.length) break;
       console.warn("[video] guion inválido", problems);
     }
@@ -547,7 +548,9 @@ async function runKeyframeQa(s: ShotRow, script: ScriptRow & { payload: UgcScrip
   content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter) });
   let result;
   try {
-    result = await generateStructured({ system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
+    const qa = () => generateStructured({ system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
+    // Las imágenes clave se revisan juntas (processShots): la primera con el producto escribe su caché.
+    result = def.uses_product ? await afterCacheWarm(`video_qa:${s.product_id}`, qa) : await qa();
   } catch (e) {
     if (e instanceof AiStepError) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_qa", detail: s.key, usage: e.usage, error: e.code });
     throw e;

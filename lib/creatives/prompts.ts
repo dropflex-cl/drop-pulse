@@ -14,6 +14,7 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_LIMITS, TEXT_ROLES } from "./catalog";
 import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_MAX } from "./chat";
+import type { ConceptPayload } from "./schemas";
 
 const RULES = [
   "REGLAS QUE NO SE NEGOCIAN",
@@ -121,8 +122,8 @@ export function presetsBlock(presets: Preset[], hasRealReviews: boolean): string
   ].join("\n");
 }
 
-/** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › conceptProblems). */
-export function creativesUser(c: CreativesContext, retry: string[] = []): string {
+/** Lo que el generador necesita saber del producto: igual en la propuesta y en sus correcciones. */
+function creativesContext(c: CreativesContext): string[] {
   return [
     "La primera imagen es la IMAGEN BASE del producto (la foto que Higgsfield usa como referencia); las siguientes, si hay, lo complementan.",
     "",
@@ -138,8 +139,37 @@ export function creativesUser(c: CreativesContext, retry: string[] = []): string
     ...c.angles.flatMap((a) => [angleHeading(a), json({ ...angleMessage(a.angle), ...briefForStatics(a.payload) }), ""]),
     presetsBlock(c.presets, c.hasRealReviews),
     "",
+  ];
+}
+
+/** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › conceptProblems). */
+export function creativesUser(c: CreativesContext, retry: string[] = []): string {
+  return [
+    ...creativesContext(c),
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     "Propón los conceptos de anuncio de imagen.",
+  ].join("\n");
+}
+
+/**
+ * Corrección de algunos conceptos (lib/pipeline/creatives.ts): vuelven solo los que fallaron, con
+ * sus problemas; los que pasaron van como contexto para no repetir titulares ni ideas.
+ */
+export function creativesFixUser(c: CreativesContext, fix: { previous: ConceptPayload[]; problems: string[]; kept: ConceptPayload[]; productLook: string; kit: string[] }): string {
+  return [
+    ...creativesContext(c),
+    `CÓMO SE VE EL PRODUCTO (ya decidido): ${fix.productLook}`,
+    `KIT (ya decidido; kit_parts se escribe igual): ${JSON.stringify(fix.kit)}`,
+    "",
+    "CONCEPTOS YA APROBADOS (quedan igual; no los repitas: ni su titular ni su idea)",
+    ...fix.kept.map((k) => `- ángulo ${k.angle} · ${k.family} · «${k.name}» · titular: «${k.texts.find((t) => t.role === "headline")?.text ?? ""}»`),
+    "",
+    "TU RESPUESTA ANTERIOR (estos conceptos no cumplen las reglas)",
+    JSON.stringify(fix.previous),
+    "",
+    `No cumple las reglas: ${fix.problems.join(" ")}`,
+    "",
+    `Corrige solo eso y deja igual todo lo demás. Devuelve estos ${fix.previous.length} conceptos, en el mismo orden, con el mismo ángulo y la misma familia.`,
   ].join("\n");
 }
 

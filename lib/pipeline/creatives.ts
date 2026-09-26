@@ -1,5 +1,6 @@
 import "server-only";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
@@ -7,7 +8,7 @@ import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
 import { CHAT_FAMILY, CONCEPTS_PER_RUN, IMAGE_COST_USD, conceptRatios, type ConceptFamily, type Ratio } from "@/lib/creatives/catalog";
 import { chatBakedTexts, normalizeChat, type WhatsappChat } from "@/lib/creatives/chat";
-import { QA_SYSTEM, chatSystem, chatUser, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
+import { QA_SYSTEM, chatSystem, chatUser, creativesFixUser, creativesSystem, creativesUser, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
 import { chatRenderRequest, languageName, renderRequest } from "@/lib/creatives/render";
 import {
   CHAT_PROMPT_VERSION,
@@ -16,12 +17,14 @@ import {
   chatOutputSchema,
   chatProblems,
   conceptEditSchema,
-  conceptProblems,
+  conceptFixSchema,
+  conceptProblemsByConcept,
   creativeConceptsSchema,
   qaSchema,
   qaVerdict,
   textProblems,
   TEXT_LIMIT,
+  type CreativeConceptsOutput,
   type QaResult,
 } from "@/lib/creatives/schemas";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, activeConcepts, assetsFor, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
@@ -224,26 +227,70 @@ export async function runCreatives(runId: string): Promise<void> {
 
     const facts = { presetIds: new Set(presets.map((p) => p.id)), pricing: input.pricing, slots: angles.map((a) => a.slot) };
     let problems: string[] = [];
-    let result: Awaited<ReturnType<typeof generateStructured<typeof creativeConceptsSchema>>> | null = null;
+    let found: ReturnType<typeof conceptProblemsByConcept> = { general: [], byConcept: [] };
+    let data: CreativeConceptsOutput | null = null;
+    let usage: AiUsage | null = null;
     // Con la dirección de arte hay más reglas (largos por rol): un concepto fuera de medida no debería
-    // tumbar la propuesta, así que hay un tercer intento.
+    // tumbar la propuesta, así que hay un tercer intento. Si lo que falla son algunos conceptos (un texto
+    // largo, un preset), se corrigen solo esos: cuesta una fracción de la propuesta entera.
     for (let attempt = 0; attempt < CONCEPT_ATTEMPTS; attempt++) {
-      result = await generateStructured({
-        system: creativesSystem(input.market),
-        content: [...imageContent, { type: "text", text: creativesUser(ctx, problems) }],
-        schema: creativeConceptsSchema,
-        effort: "medium",
-        maxTokens: 16000,
-      });
+      const failing = data && !found.general.length ? found.byConcept.flatMap((p, i) => (p.length ? [i] : [])) : [];
+      const prev: CreativeConceptsOutput | null = data;
+      let next: CreativeConceptsOutput;
+      if (prev && failing.length && failing.length < prev.concepts.length) {
+        const fix = await generateStructured({
+          system: creativesSystem(input.market),
+          content: [
+            ...imageContent,
+            {
+              type: "text",
+              text: creativesFixUser(ctx, {
+                previous: failing.map((i) => prev.concepts[i]),
+                problems,
+                kept: prev.concepts.filter((_, i) => !failing.includes(i)),
+                productLook: prev.product_look,
+                kit: prev.kit,
+              }),
+            },
+          ],
+          schema: conceptFixSchema,
+          effort: "medium",
+          maxTokens: 16000,
+          // Otro esquema de salida: esta llamada no lee la caché del system, y escribirla no sirve.
+          cacheSystem: false,
+        });
+        // Cada concepto corregido reemplaza al suyo, con su ángulo y su familia (el reparto ya estaba
+        // bien); si vuelven menos, los que falten siguen fallando.
+        const concepts = [...prev.concepts];
+        fix.data.concepts.slice(0, failing.length).forEach((c, k) => {
+          const before = prev.concepts[failing[k]];
+          concepts[failing[k]] = { ...c, angle: before.angle, family: before.family };
+        });
+        next = { ...prev, concepts };
+        usage = fix.usage;
+      } else {
+        const result = await generateStructured({
+          system: creativesSystem(input.market),
+          content: [...imageContent, { type: "text", text: creativesUser(ctx, problems) }],
+          schema: creativeConceptsSchema,
+          effort: "medium",
+          maxTokens: 16000,
+        });
+        next = result.data;
+        usage = result.usage;
+      }
       // Sin presets (Gemini), un preset_id del modelo no sirve de nada: se quita antes de validar, en
       // vez de tumbar la propuesta por un id que igual no se usaría.
-      if (!presets.length) result.data.concepts = result.data.concepts.map((c) => ({ ...c, preset_id: null }));
-      problems = conceptProblems(result.data, facts);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage: result.usage, error: problems.length ? "invalid_concepts" : null });
+      if (!presets.length) next = { ...next, concepts: next.concepts.map((c) => ({ ...c, preset_id: null })) };
+      data = next;
+      found = conceptProblemsByConcept(next, facts);
+      problems = [...found.general, ...found.byConcept.flat()];
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage, error: problems.length ? "invalid_concepts" : null, problems });
       if (!problems.length) break;
       console.warn("[creatives] conceptos inválidos", problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA propuso anuncios que no cumplen las reglas. Toca Reintentar.", undefined, true);
+    if (problems.length || !data || !usage) throw new AiStepError("invalid_output", "La IA propuso anuncios que no cumplen las reglas. Toca Reintentar.", undefined, true);
+    const result = { data, usage };
 
     const presetById = new Map(presets.map((p) => [p.id, p]));
     const rows = result.data.concepts.slice(0, CONCEPTS_PER_RUN).map((c, i) => {
@@ -353,7 +400,7 @@ export async function createChat(userId: string, productId: string, body: unknow
     const { name, why, ...raw } = result.data;
     chat = normalizeChat(raw);
     problems = chatProblems(chat, ctx.pricing);
-    await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, usage: result.usage, error: problems.length ? "invalid_chat" : null });
+    await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, usage: result.usage, error: problems.length ? "invalid_chat" : null, problems });
     meta = { name, why };
     if (!problems.length) break;
     console.warn("[creatives] chat inválido", problems);
@@ -665,7 +712,7 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
   const detail = [name, a.ratio].filter(Boolean).join(" · ");
   let result;
   try {
-    result = await generateStructured({
+    result = await afterCacheWarm(`creative_qa:${a.product_id}`, async () => generateStructured({
       system: QA_SYSTEM,
       // La foto real se repite en cada QA del producto: con el punto de caché, desde la segunda pieza
       // se cobra a 0,1×. Lo propio de esta pieza va después.
@@ -679,7 +726,7 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
       schema: qaSchema,
       effort: "low",
       maxTokens: 4000,
-    });
+    }));
   } catch (e) {
     if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, usage: e.usage, error: e.code });
     throw e;

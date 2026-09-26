@@ -240,7 +240,7 @@ export async function runEventCopy(userId: string, productId: string, event: Eve
         maxTokens: 4000,
       });
       problems = eventCopyProblems(result.data, facts);
-      await recordAiGeneration({ userId, productId, step: "event_copy", detail: event.name, usage: result.usage, error: problems.length ? "invalid_copy" : null });
+      await recordAiGeneration({ userId, productId, step: "event_copy", detail: event.name, usage: result.usage, error: problems.length ? "invalid_copy" : null, problems });
       data = result.data;
       model = result.usage.model;
       if (!problems.length) break;

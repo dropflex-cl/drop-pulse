@@ -192,7 +192,7 @@ export async function runCopy(runId: string): Promise<void> {
       market: input.market,
       facts,
       onAttempt: async (a) => {
-        await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: a.usage, error: a.problems.length ? "invalid_copy" : null });
+        await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: a.usage, error: a.problems.length ? "invalid_copy" : null, problems: a.problems });
         if (a.problems.length) console.warn(`[copy] página inválida${a.partial ? ` (corrección de ${a.parts.join(", ")})` : ""}`, a.problems);
       },
     });

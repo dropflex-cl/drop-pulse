@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
@@ -204,7 +205,7 @@ export async function runPageImages(runId: string): Promise<void> {
         maxTokens: 20000,
       });
       problems = planProblems(result.data);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: result.usage, error: problems.length ? "invalid_plan" : null });
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: result.usage, error: problems.length ? "invalid_plan" : null, problems });
       if (!problems.length) break;
       console.warn("[page-images] plan inválido", problems);
     }
@@ -537,7 +538,8 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
   const detail = await imageDetail(a);
   let result;
   try {
-    result = await generateStructured({
+    // Las revisiones de una galería salen juntas: la primera escribe la caché y las demás la leen.
+    result = await afterCacheWarm(`page_qa:${a.product_id}`, async () => generateStructured({
       system: PAGE_QA_SYSTEM,
       // Primero lo que se repite en cada QA del producto (foto real y ficha), con el punto de caché:
       // desde la segunda imagen se cobra a 0,1×. Lo propio de esta imagen va después.
@@ -552,7 +554,7 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
       schema: pageQaSchema,
       effort: "low",
       maxTokens: 4000,
-    });
+    }));
   } catch (e) {
     if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_qa", detail, usage: e.usage, error: e.code });
     throw e;

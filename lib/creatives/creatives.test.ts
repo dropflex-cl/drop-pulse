@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { renderRequest, languageName, modeFor, type RenderableConcept } from "./render";
-import { conceptProblems, qaVerdict, textProblems, type ConceptPayload, type CreativeConceptsOutput } from "./schemas";
+import { conceptProblems, conceptProblemsByConcept, qaVerdict, textProblems, type ConceptPayload, type CreativeConceptsOutput } from "./schemas";
 
 const pricing = {
   currency: "CLP",
@@ -217,6 +217,20 @@ describe("conceptProblems", () => {
     expect(problems.some((p) => /«crystal glass» no está en kit/.test(p))).toBe(true);
     expect(problems.some((p) => /varias unidades del producto solo en la oferta/.test(p))).toBe(true);
     expect(problems.some((p) => /solo los callouts llevan points_to/.test(p))).toBe(true);
+  });
+
+  it("separa lo de la propuesta entera de lo de cada concepto (para corregir solo esos)", () => {
+    const base = six();
+    base.concepts[3] = concept({ angle: 2, family: "proof", texts: [{ role: "headline", text: "Un titular que se pasa de largo por mucho", placement: "top", points_to: null }, { role: "callout", text: "Elimina callos en segundos", placement: "left", points_to: "the roller" }] });
+    const split = conceptProblemsByConcept(base, facts);
+    expect(split.general).toEqual([]);
+    expect(split.byConcept.map((p) => p.length > 0)).toEqual([false, false, false, true, false, false]);
+    expect(split.byConcept[3].some((p) => /promete un resultado de salud/.test(p))).toBe(true);
+    // Lo mismo que conceptProblems, sin perder nada.
+    expect(conceptProblems(base, facts)).toEqual([...split.general, ...split.byConcept.flat()]);
+    // Un reparto roto es de la propuesta entera: se rehace completa.
+    const same = { ...base, concepts: base.concepts.map((c, i) => (i === 1 ? { ...c, family: "hero" as const, preset_id: preset } : c)) };
+    expect(conceptProblemsByConcept(same, facts).general.some((p) => /repiten familia/.test(p))).toBe(true);
   });
 });
 

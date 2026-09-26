@@ -221,7 +221,7 @@ export async function runRanking(rankingId: string): Promise<void> {
     for (let attempt = 0; attempt < 2; attempt++) {
       result = await evaluate(problems);
       problems = routerProblems(result.data);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: result.usage, error: problems.length ? "invalid_scores" : null });
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: result.usage, error: problems.length ? "invalid_scores" : null, problems });
       if (!problems.length) break;
       console.warn("[angles] puntajes inválidos", problems);
     }

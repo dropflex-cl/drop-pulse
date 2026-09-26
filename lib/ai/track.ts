@@ -20,6 +20,8 @@ export interface AiGeneration {
   usage?: AiUsage;
   /** Código de error: el intento queda como fallido (con su costo, si se cobró). */
   error?: string | null;
+  /** Las reglas que no cumplió la respuesta (con `error`): explican por qué se pagó y se descartó. */
+  problems?: string[] | null;
   /** Costo cuando el proveedor no lo informa (se marca como estimado). */
   estimatedCostUsd?: number | null;
   /** El costo de `usage` es una aproximación (p. ej., un modelo de Gemini fuera de la tabla de precios). */
@@ -34,26 +36,29 @@ export async function recordAiGeneration(g: AiGeneration): Promise<void> {
   if (g.error && !g.usage && BEFORE_CALL.has(g.error)) return;
   const u = g.usage;
   const estimated = (u?.costUsd == null && g.estimatedCostUsd != null) || Boolean(u && g.costEstimated);
-  const { error } = await adminClient()
-    .from("ai_generations")
-    .insert({
-      user_id: g.userId,
-      product_id: g.productId,
-      run_id: g.runId ?? null,
-      step: g.step,
-      detail: g.detail ?? null,
-      provider: g.provider ?? "anthropic",
-      model: g.model ?? u?.model ?? AI_MODEL,
-      status: g.error ? "failed" : "succeeded",
-      error_code: g.error ?? null,
-      input_tokens: u?.inputTokens ?? null,
-      output_tokens: u?.outputTokens ?? null,
-      cache_read_tokens: u?.cacheReadTokens ?? null,
-      cache_write_tokens: u?.cacheWriteTokens ?? null,
-      cost_usd: u?.costUsd ?? (estimated ? g.estimatedCostUsd : null),
-      cost_estimated: estimated,
-      latency_ms: u?.latencyMs ?? g.latencyMs ?? null,
-    });
+  const row = {
+    user_id: g.userId,
+    product_id: g.productId,
+    run_id: g.runId ?? null,
+    step: g.step,
+    detail: g.detail ?? null,
+    provider: g.provider ?? "anthropic",
+    model: g.model ?? u?.model ?? AI_MODEL,
+    status: g.error ? "failed" : "succeeded",
+    error_code: g.error ?? null,
+    input_tokens: u?.inputTokens ?? null,
+    output_tokens: u?.outputTokens ?? null,
+    cache_read_tokens: u?.cacheReadTokens ?? null,
+    cache_write_tokens: u?.cacheWriteTokens ?? null,
+    cost_usd: u?.costUsd ?? (estimated ? g.estimatedCostUsd : null),
+    cost_estimated: estimated,
+    latency_ms: u?.latencyMs ?? g.latencyMs ?? null,
+  };
+  const problems = g.error && g.problems?.length ? g.problems.slice(0, 20) : null;
+  const table = () => adminClient().from("ai_generations");
+  let { error } = problems ? await table().insert({ ...row, problems }) : await table().insert(row);
+  // Sin la columna (la migración 20261025000000 aún no llega a esta base), el costo se registra igual.
+  if (error && problems && /problems/.test(error.message)) ({ error } = await table().insert(row));
   // Registrar nunca rompe la generación: el error queda en los logs.
   if (error) console.error(`[ai] registrar la generación (${g.step})`, error.message);
 }

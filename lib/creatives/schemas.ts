@@ -110,19 +110,31 @@ export function claimProblems(text: string, pricing: PricingPlan, at = ""): stri
 
 /** Qué está mal en la respuesta del generador. Vacío si se puede guardar. */
 export function conceptProblems(out: CreativeConceptsOutput, facts: ConceptFacts): string[] {
-  const problems: string[] = [];
-  if (out.concepts.length !== CONCEPTS_PER_RUN) problems.push(`Trae ${out.concepts.length} conceptos y deben ser ${CONCEPTS_PER_RUN}.`);
+  const { general, byConcept } = conceptProblemsByConcept(out, facts);
+  return [...general, ...byConcept.flat()];
+}
+
+/**
+ * Los problemas separados: los de la propuesta entera (cantidad, reparto por ángulo, familias
+ * repetidas) y los de cada concepto, por posición. Si solo hay de conceptos, se corrigen esos
+ * conceptos (lib/pipeline/creatives.ts): un texto de más no obliga a pagar los 6 de nuevo.
+ */
+export function conceptProblemsByConcept(out: CreativeConceptsOutput, facts: ConceptFacts): { general: string[]; byConcept: string[][] } {
+  const general: string[] = [];
+  if (out.concepts.length !== CONCEPTS_PER_RUN) general.push(`Trae ${out.concepts.length} conceptos y deben ser ${CONCEPTS_PER_RUN}.`);
   const slots = facts.slots ?? [1, 2];
-  for (const c of out.concepts) if (!slots.includes(c.angle)) problems.push(`«${c.name}» dice venir del ángulo ${c.angle}, que no existe: usa ${slots.join(", ")}.`);
   const per = conceptsPerAngle(slots.length);
   for (const slot of slots) {
     const mine = out.concepts.filter((c) => c.angle === slot);
-    if (mine.length < per) problems.push(`El ángulo ${slot} necesita ${per} conceptos y trae ${mine.length}.`);
+    if (mine.length < per) general.push(`El ángulo ${slot} necesita ${per} conceptos y trae ${mine.length}.`);
     // Formatos distintos dentro del mismo ángulo: Meta premia la variación y el mercado decide.
-    if (new Set(mine.map((c) => c.family)).size < mine.length) problems.push(`Los conceptos del ángulo ${slot} repiten familia: usa formatos distintos.`);
+    if (new Set(mine.map((c) => c.family)).size < mine.length) general.push(`Los conceptos del ángulo ${slot} repiten familia: usa formatos distintos.`);
   }
-  out.concepts.forEach((c, i) => {
+  const kit = new Set(out.kit.map((k) => k.trim().toLowerCase()));
+  const byConcept = out.concepts.map((c, i) => {
+    const problems: string[] = [];
     const where = `El concepto ${i + 1} («${c.name}»)`;
+    if (!slots.includes(c.angle)) problems.push(`«${c.name}» dice venir del ángulo ${c.angle}, que no existe: usa ${slots.join(", ")}.`);
     const direct = !FAMILY_DEFS[c.family].presetGroups.length;
     if (c.preset_id && direct) problems.push(`${where} es de una familia sin preset (${c.family}): preset_id va null.`);
     else if (c.preset_id && !facts.presetIds.has(c.preset_id)) problems.push(`${where} usa un preset_id que no está en PRESETS.`);
@@ -130,12 +142,18 @@ export function conceptProblems(out: CreativeConceptsOutput, facts: ConceptFacts
     if (!c.preset_id && !direct && facts.presetIds.size) problems.push(`${where} es de una familia con presets: elige uno de PRESETS.`);
     problems.push(...textProblems(c.texts, facts.pricing, where, c.family));
     if (c.product_units > 1 && c.family !== "offer") problems.push(`${where}: varias unidades del producto solo en la oferta de pack.`);
-    const kit = new Set(out.kit.map((k) => k.trim().toLowerCase()));
     for (const part of c.kit_parts) if (!kit.has(part.trim().toLowerCase())) problems.push(`${where}: «${part}» no está en kit (escríbelo igual que en kit).`);
     for (const t of c.texts) if (t.role !== "callout" && t.points_to) problems.push(`${where}: solo los callouts llevan points_to («${t.text}»).`);
+    return problems;
   });
-  return problems;
+  return { general, byConcept };
 }
+
+/** La corrección de algunos conceptos: vuelven solo esos, en el mismo orden en que se pidieron. */
+export const conceptFixSchema = z.object({
+  concepts: z.array(concept).describe("Los conceptos corregidos, uno por cada concepto pedido y en el mismo orden, con el mismo ángulo y la misma familia."),
+});
+export type ConceptFixOutput = z.infer<typeof conceptFixSchema>;
 
 // ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
 
