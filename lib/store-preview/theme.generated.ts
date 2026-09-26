@@ -186,6 +186,24 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_top": 0,
     "margin_bottom": 0
   },
+  "review-wall": {
+    "heading": "Lo que dicen quienes ya lo tienen",
+    "more_label": "Ver más testimonios",
+    "min_reviews": 4,
+    "initial_posts": 6,
+    "author_names": "random",
+    "show_rating": true,
+    "show_date": true,
+    "show_engagement": true,
+    "show_actions": true,
+    "columns_mobile": 2,
+    "columns_desktop": 3,
+    "text_lines": 4,
+    "photo_ratio": "square",
+    "background": "feed",
+    "padding_top": 48,
+    "padding_bottom": 48
+  },
   "scrolling-benefits": {
     "show_heading": false,
     "speed": 50,

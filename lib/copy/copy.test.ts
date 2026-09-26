@@ -48,7 +48,9 @@ describe("qué escribir", () => {
     expect(none).not.toContain("review-slider");
     expect(none).not.toContain("review-stars");
     expect(toWrite([], 2)).not.toContain("review-stars");
-    expect(toWrite([], 3)).toEqual(["listing", ...ids]);
+    // review-wall pide 4: un muro de 2 por fila con menos se ve vacío.
+    expect(toWrite([], 3)).toEqual(["listing", ...ids.filter((id) => id !== "review-wall")]);
+    expect(toWrite([], 4)).toEqual(["listing", ...ids]);
   });
 
   it("al reescribir, sin lo aprobado", () => {

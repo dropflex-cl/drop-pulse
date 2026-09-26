@@ -54,6 +54,7 @@ const PITCH: Record<string, string> = {
   "scrolling-benefits": "¿Es seguro comprar aquí? Una cinta con el pago, el envío y los cambios.",
   "image-with-benefits": "¿Qué tiene de especial? La foto con sus razones alrededor.",
   "insta-story": "¿Cómo es en la vida real? Historias con fotos de uso.",
+  "review-wall": "¿A otros les sirvió? Reseñas con foto como publicaciones de Facebook.",
   "comparison-table": "¿Por qué aquí y no algo genérico? Una tabla comparativa.",
   "faq-and-text": "Las últimas dudas antes de pedir, respondidas.",
 };

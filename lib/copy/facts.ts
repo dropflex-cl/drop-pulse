@@ -63,6 +63,7 @@ export async function storeFacts(userId: string, productId: string): Promise<Sto
       body: displayText(r),
       country: r.country ?? undefined,
       date: reviewDate(r.reviewed_at),
+      iso: r.reviewed_at?.slice(0, 10) ?? undefined,
       photos: r.photos.map((p) => photos.get(p.path)).filter((u): u is string => Boolean(u)),
     })),
     rating: averageRating(reviews),

@@ -16,8 +16,14 @@ import { SHARED_METAFIELDS } from "@/lib/shopify/components/define";
 export const PACK_OPTION = "Pack";
 /** Tope de reseñas publicadas (las mismas que ve la IA, lib/copy/prompts.ts › REVIEWS_MAX). */
 export const REVIEWS_MAX = 30;
-/** Tope de fotos de reseñas publicadas: pesan y el carrusel no muestra más. */
-export const REVIEW_PHOTOS_MAX = 40;
+/**
+ * Tope de fotos de reseñas publicadas: las de las 30 reseñas (3 por reseña al importar,
+ * lib/reviews/aliexpress.ts › REVIEW_MAX_PHOTOS). Con 40, las reseñas del final quedaban sin fotos y
+ * el muro de testimonios (review-wall) elige cualquiera de las 30. Subir más archivos no cuesta:
+ * Publicar ya sube las fotos de todas las reseñas aprobadas; esto solo recorta la lista (una lista
+ * de Shopify admite hasta 128).
+ */
+export const REVIEW_PHOTOS_MAX = 90;
 
 /** Metafield de archivos de cada espacio de imagen de un componente (catálogo › imageSlots). */
 export const SLOT_METAFIELD: Record<string, Record<string, { key: string; type: "file_reference" | "list.file_reference" }>> = {

@@ -178,7 +178,7 @@ const NOT_COPY = /(^|\.)(icon|policy|requires|topic|basis|fact|review_id|excerpt
 
 /** Los ids de reseña que usa un componente. */
 function reviewIdsIn(id: string, value: unknown): string[] {
-  if (id === "review-slider") return ((value as { items?: { review_id?: string }[] })?.items ?? []).map((i) => i.review_id ?? "");
+  if (id === "review-slider" || id === "review-wall") return ((value as { items?: { review_id?: string }[] })?.items ?? []).map((i) => i.review_id ?? "");
   if (id === "stats-with-image") {
     const r = (value as { review_id?: string })?.review_id;
     return r ? [r] : [];

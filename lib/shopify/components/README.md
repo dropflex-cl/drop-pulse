@@ -23,6 +23,7 @@ Los patrones vienen del análisis funcional de una demo comercial (Sternify). **
 | `comparison-table` | sección | cuerpo de la landing | `dropflex.comparison_table` | aprobación humana |
 | `faq-and-text` | sección | antes del cierre | `dropflex.faq_and_text` | políticas (plazos, cobertura) |
 | `insta-story` | sección | cuerpo de la landing | `dropflex.insta_story` | imágenes y videos subidos |
+| `review-wall` | sección | cuerpo de la landing, tras las historias | `dropflex.review_wall` | reseñas aprobadas y sus fotos (publicaciones de Facebook, 2 por fila en el teléfono) |
 
 Fuera del catálogo, `_landing/` tiene lo que hace de la tienda la landing de un producto (modo landing, design system de DropFlex y los bloques de la ficha: prueba social, bajada, precio, packs y nota de confianza). No lleva contenido de la IA; ver su `README.md`.
 

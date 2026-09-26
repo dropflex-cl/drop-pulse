@@ -134,6 +134,14 @@ describe("metafields", () => {
     expect(JSON.parse(by.get("reviews_images")!.value)).toHaveLength(2);
   });
 
+  it("publica las fotos de las 30 reseñas (3 por reseña), no solo las de las primeras", () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, author: "M***a", rating: 5, body: "Bien", photos: [0, 1, 2].map((k) => `product-references/r${i}-${k}.jpg`) }));
+    const all = new Map(many.flatMap((r) => r.photos).map((k, i) => [k, `gid://shopify/MediaImage/${100 + i}`]));
+    const by = new Map(productMetafields(input({ reviews: many }), all).set.map((m) => [m.key, m]));
+    expect(JSON.parse(by.get("reviews_images")!.value)).toHaveLength(90);
+    expect(JSON.parse(by.get("reviews")!.value).items[29]).toMatchObject({ id: "r29", image_from: 87, image_count: 3 });
+  });
+
   it("borra lo que ya no va: componentes retirados, reseñas y acento vacíos", () => {
     const { set, remove } = productMetafields(input({ components: [], reviews: [], accent: null }), gids);
     expect(set.map((m) => m.key).sort()).toEqual(["offer", "subtitle"]);

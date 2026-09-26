@@ -2557,6 +2557,526 @@ a.df-review-stars__row:focus-visible {
   font-weight: 500;
 }
 
+/* review-wall/sections/df-review-wall.liquid */
+/* La paleta es la de Facebook, NO la del tema: una publicación teñida como el resto de la
+   página deja de leerse como publicación. */
+.df-review-wall {
+  --df-fb-card: #ffffff;
+  --df-fb-ink: #050505;
+  --df-fb-muted: #65676b;
+  --df-fb-line: #ced0d4;
+  --df-fb-edge: #dddfe2;
+  --df-fb-avatar: #e4e6eb;
+  --df-fb-avatar-ink: #bcc0c4;
+  --df-fb-feed: #f0f2f5;
+  --df-fb-like: #1877f2;
+  --df-fb-love: #f33e58;
+  --df-fb-font: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  display: block;
+  padding-block: calc(var(--df-rw-pt, 48px) * var(--df-space, 1)) calc(var(--df-rw-pb, 48px) * var(--df-space, 1));
+}
+
+.df-review-wall--feed {
+  background: var(--df-fb-feed);
+}
+
+.df-review-wall__inner {
+  max-width: calc(var(--df-container) + var(--df-gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--df-gutter);
+}
+
+.df-review-wall__head {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 40rem;
+  margin: 0 auto calc(var(--df-title-gap) * 0.75);
+  text-align: center;
+}
+
+.df-review-wall__heading {
+  margin: 0;
+  font-size: var(--df-title-size);
+  text-wrap: balance;
+}
+
+.df-review-wall__rating {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 8px;
+  margin: 0;
+  color: var(--df-muted);
+  font-size: 0.9375rem;
+}
+
+.df-review-wall__score {
+  color: var(--df-fg);
+  font-weight: 600;
+}
+
+/* El muro: 2 por fila en el teléfono (ajuste columns_mobile), 3 en tableta y el ajuste en
+   escritorio. Las tarjetas de una fila se estiran al mismo alto y el pie queda abajo. */
+.df-review-wall__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--df-rw-cols-m, 2), minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.df-review-wall__cell {
+  display: flex;
+  min-width: 0;
+}
+
+.df-review-wall__cell[hidden],
+.df-review-wall__expand[hidden],
+.df-review-wall__more[hidden] {
+  display: none;
+}
+
+.df-review-wall__post {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  container: df-rw-post / inline-size;
+  border: 1px solid var(--df-fb-edge);
+  border-radius: 8px;
+  background: var(--df-fb-card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  color: var(--df-fb-ink);
+  font-family: var(--df-fb-font);
+  text-align: start;
+}
+
+.df-review-wall__post:focus {
+  outline: none;
+}
+
+.df-review-wall__post:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
+}
+
+/* Cabecera: avatar · nombre sobre la fecha · los tres puntos. Tamaños de tarjeta angosta
+   (media pantalla de teléfono); desde 260 px de tarjeta, los de v1. */
+.df-review-wall__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 6px;
+}
+
+.df-review-wall__avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--df-fb-avatar);
+  color: var(--df-fb-avatar-ink);
+}
+
+.df-review-wall__avatar svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.df-review-wall__who {
+  flex: 1;
+  min-width: 0;
+}
+
+.df-review-wall__name {
+  margin: 0;
+  overflow: hidden;
+  color: var(--df-fb-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.df-review-wall .df-review-wall__date {
+  display: flex;
+  align-items: center;
+  margin: 1px 0 0;
+  overflow: hidden;
+  color: var(--df-fb-muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.df-review-wall__date time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Fecha corta en la tarjeta angosta («1 dic 2025»), larga desde 260 px («1 de diciembre de 2025»). */
+.df-review-wall__date-long {
+  display: none;
+}
+
+.df-review-wall__globe {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.df-review-wall__dots {
+  flex: none;
+  align-self: flex-start;
+  color: var(--df-fb-muted);
+}
+
+.df-review-wall__dots svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* Margen y no relleno: bajo un line-clamp, el relleno deja asomar la línea cortada. Con
+   .df-review-wall delante: el `p { margin: 0 }` del tema no se lo come. */
+.df-review-wall .df-review-wall__text {
+  display: -webkit-box;
+  margin: 0 10px 8px;
+  padding: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--df-rw-lines, 4);
+  line-clamp: var(--df-rw-lines, 4);
+  color: var(--df-fb-ink);
+  font-size: 0.8125rem;
+  line-height: 1.34;
+  overflow-wrap: anywhere;
+}
+
+.df-review-wall .df-review-wall__text.is-expanded {
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+}
+
+/* «Ver más» como el de Facebook: texto gris en negrita; el área táctil crece con ::after sin
+   sumar alto a la tarjeta. Con .df-review-wall delante: los botones del tema no le pisan la fuente. */
+.df-review-wall .df-review-wall__expand {
+  position: relative;
+  align-self: flex-start;
+  margin: -4px 10px 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--df-fb-muted);
+  font: 600 0.8125rem/1.34 var(--df-fb-font);
+  cursor: pointer;
+}
+
+.df-review-wall__expand::after {
+  content: '';
+  position: absolute;
+  inset: -12px -10px;
+}
+
+.df-review-wall__expand:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Fotos: un cuadro de proporción fija (ajuste photo_ratio) para que las filas calcen. Una foto
+   lo llena; dos van lado a lado; tres, una grande y dos apiladas, como Facebook. */
+.df-review-wall__photos {
+  display: grid;
+  gap: 2px;
+  aspect-ratio: var(--df-rw-ratio, 1 / 1);
+  background: var(--df-fb-edge);
+}
+
+.df-review-wall__photos--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.df-review-wall__photos--3 {
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.df-review-wall__photos--3 .df-review-wall__photo:first-child {
+  grid-row: span 2;
+}
+
+.df-review-wall__photo {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--df-fb-avatar);
+}
+
+.df-review-wall__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.df-review-wall__foot {
+  margin-top: auto;
+}
+
+.df-review-wall__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  color: var(--df-fb-muted);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.df-review-wall__reactions,
+.df-review-wall__comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.df-review-wall__emojis {
+  display: inline-flex;
+}
+
+.df-review-wall__emojis svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--df-fb-card);
+  border-radius: 50%;
+}
+
+.df-review-wall__emojis svg + svg {
+  margin-left: -5px;
+}
+
+.df-review-wall__react-bg--like {
+  fill: var(--df-fb-like);
+}
+
+.df-review-wall__react-bg--love {
+  fill: var(--df-fb-love);
+}
+
+.df-review-wall__react-fg {
+  fill: var(--df-fb-card);
+}
+
+.df-review-wall__comments-label {
+  display: none;
+}
+
+.df-review-wall__comments-icon svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+/* La barra de acciones: solo íconos en la tarjeta angosta; con etiqueta desde 300 px. El filete
+   va dentro del relleno, como bajo los contadores de una publicación. */
+.df-review-wall__actions {
+  display: flex;
+  margin: 0 10px;
+  border-top: 1px solid var(--df-fb-line);
+}
+
+.df-review-wall__action {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 0 8px;
+  color: var(--df-fb-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.df-review-wall__action svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.df-review-wall__action-label {
+  display: none;
+}
+
+@container df-rw-post (min-width: 260px) {
+  .df-review-wall__top {
+    gap: 8px;
+    padding: 12px 12px 8px;
+  }
+
+  .df-review-wall__avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .df-review-wall__name {
+    font-size: 0.9375rem;
+  }
+
+  .df-review-wall .df-review-wall__date {
+    font-size: 0.8125rem;
+  }
+
+  .df-review-wall__date-short {
+    display: none;
+  }
+
+  .df-review-wall__date-long {
+    display: inline;
+  }
+
+  .df-review-wall__globe {
+    width: 12px;
+    height: 12px;
+  }
+
+  .df-review-wall__dots svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .df-review-wall .df-review-wall__text {
+    margin: 0 12px 12px;
+    font-size: 0.9375rem;
+  }
+
+  .df-review-wall .df-review-wall__expand {
+    font-size: 0.9375rem;
+  }
+
+  .df-review-wall .df-review-wall__expand {
+    margin: -8px 12px 12px;
+  }
+
+  .df-review-wall__stats {
+    padding: 9px 12px;
+    font-size: 0.875rem;
+  }
+
+  .df-review-wall__emojis svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .df-review-wall__comments-label {
+    display: inline;
+  }
+
+  .df-review-wall__comments-icon {
+    display: none;
+  }
+
+  .df-review-wall__actions {
+    margin: 0 12px;
+  }
+}
+
+@container df-rw-post (min-width: 300px) {
+  .df-review-wall__action {
+    padding: 9px 0;
+  }
+
+  .df-review-wall__action svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .df-review-wall__action-label {
+    display: inline;
+  }
+}
+
+@container df-rw-post (min-width: 360px) {
+  .df-review-wall__action {
+    font-size: 0.875rem;
+  }
+}
+
+.df-review-wall__more {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.df-review-wall .df-review-wall__more-button {
+  min-height: 44px;
+  padding: 0 24px;
+  border: 1px solid var(--df-hairline);
+  border-radius: var(--df-radius-pill);
+  background: var(--df-bg);
+  color: var(--df-fg);
+  font: 600 0.9375rem/1.2 var(--df-font-body);
+  cursor: pointer;
+}
+
+.df-review-wall--feed .df-review-wall__more-button.df-review-wall__more-button {
+  background: var(--df-fb-card);
+}
+
+.df-review-wall__more-button:hover {
+  border-color: color-mix(in srgb, var(--df-fg) 30%, transparent);
+}
+
+.df-review-wall__more-button:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
+}
+
+@container store (min-width: 750px) {
+  .df-review-wall__grid {
+    grid-template-columns: repeat(var(--df-rw-cols-t, 3), minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .df-review-wall__more {
+    margin-top: 28px;
+  }
+}
+
+@container store (min-width: 990px) {
+  .df-review-wall__grid {
+    grid-template-columns: repeat(var(--df-rw-cols-d, 3), minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
 /* scrolling-benefits/sections/df-scrolling-benefits.liquid */
 .df-scrolling-benefits {
   display: block;

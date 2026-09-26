@@ -16,6 +16,7 @@ declare module "react" {
       "df-inventory": StoreElement;
       "df-review-slider": StoreElement;
       "df-review-stars": StoreElement;
+      "df-review-wall": StoreElement;
       "df-scrolling-benefits": StoreElement;
       "df-shipping-timeline": StoreElement;
       "df-ugc-slider": StoreElement;

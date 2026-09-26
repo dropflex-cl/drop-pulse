@@ -98,6 +98,8 @@ export interface PromptReview {
   rating: number;
   text: string;
   country?: string;
+  /** Fotos del comprador: review-wall pone primero las reseñas con foto. */
+  photos?: number;
 }
 
 export interface CopyContext {
@@ -142,7 +144,9 @@ function reviewsBlock(c: CopyContext): string {
   if (!c.reviews.length) return "RESEÑAS APROBADAS\n(ninguna: no escribas componentes que citen reseñas)";
   return [
     `RESEÑAS APROBADAS (${c.reviews.length}; cita por id, con las palabras del autor)`,
-    ...c.reviews.slice(0, REVIEWS_MAX).map((r) => `- ${r.id} · ${r.rating}★${r.country ? ` · ${r.country}` : ""}: ${r.text.length > REVIEW_CHARS ? `${r.text.slice(0, REVIEW_CHARS)}…` : r.text}`),
+    ...c.reviews
+      .slice(0, REVIEWS_MAX)
+      .map((r) => `- ${r.id} · ${r.rating}★${r.country ? ` · ${r.country}` : ""}${r.photos ? ` · ${r.photos} ${r.photos === 1 ? "foto" : "fotos"}` : ""}: ${r.text.length > REVIEW_CHARS ? `${r.text.slice(0, REVIEW_CHARS)}…` : r.text}`),
   ].join("\n");
 }
 

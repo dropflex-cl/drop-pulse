@@ -98,7 +98,12 @@ export function fixture(requested: string): ProductCopy {
     run,
     components: list,
     images: IMAGES,
-    facts: { ...FIXTURE_FACTS, productImage: productImage(1, 1) },
+    facts: {
+      ...FIXTURE_FACTS,
+      productImage: productImage(1, 1),
+      // Fotos de comprador de ejemplo (1, 2 o 3 por reseña, una sin fotos) para el muro de testimonios.
+      reviews: FIXTURE_FACTS.reviews.map((r, i) => ({ ...r, photos: Array.from({ length: [1, 3, 2, 1, 0, 1][i] ?? 1 }, (_, k) => productImage(i + k, (i + k) % 4)) })),
+    },
     stale: state === "stale" || requested === "context",
     staleReasons: state === "stale" ? ["angles"] : requested === "context" ? ["angles", "differentiator", "prompt"] : [],
   };

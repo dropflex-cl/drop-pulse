@@ -14,6 +14,7 @@ import { inventory } from "./inventory/content";
 import { painBlock } from "./pain-block/content";
 import { reviewSlider } from "./review-slider/content";
 import { reviewStars } from "./review-stars/content";
+import { reviewWall } from "./review-wall/content";
 import { scrollingBenefits } from "./scrolling-benefits/content";
 import { shippingTimeline } from "./shipping-timeline/content";
 import { statsWithImage } from "./stats-with-image/content";
@@ -35,6 +36,7 @@ export const CATALOG: ConversionComponent[] = [
   scrollingBenefits,
   imageWithBenefits,
   instaStory,
+  reviewWall,
   comparisonTable,
   faqAndText,
 ];

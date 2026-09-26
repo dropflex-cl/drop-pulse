@@ -307,6 +307,10 @@
       "type": "df-insta-story",
       "settings": {}
     },
+    "review_wall": {
+      "type": "df-review-wall",
+      "settings": {}
+    },
     "comparison_table": {
       "type": "df-comparison-table",
       "settings": {}
@@ -323,6 +327,7 @@
     "scrolling_benefits",
     "image_with_benefits",
     "insta_story",
+    "review_wall",
     "comparison_table",
     "faq_and_text"
   ]

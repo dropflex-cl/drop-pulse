@@ -12,6 +12,8 @@ export interface StoreReview {
   country?: string;
   /** «ago 2026». */
   date?: string;
+  /** La misma fecha como YYYY-MM-DD (la de dropflex.reviews): la usa el muro de testimonios. */
+  iso?: string;
   photos: string[];
 }
 

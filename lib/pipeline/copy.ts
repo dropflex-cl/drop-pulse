@@ -181,7 +181,7 @@ export async function runCopy(runId: string): Promise<void> {
       countryCode: input.market.countryCode,
       freeShipping: input.free_shipping,
       returnDays,
-      reviews: reviews.map((v) => ({ id: v.id, rating: v.rating, text: displayText(v), country: v.country ?? undefined })),
+      reviews: reviews.map((v) => ({ id: v.id, rating: v.rating, text: displayText(v), country: v.country ?? undefined, photos: v.photos.length })),
       write,
       approved: approved.map((a) => ({ component: a.component, content: currentContent(a) })),
     };

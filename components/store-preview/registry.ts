@@ -11,6 +11,7 @@ import { ListingPreview } from "./listing";
 import { PainBlockPreview } from "./pain-block";
 import { ReviewSliderPreview } from "./review-slider";
 import { ReviewStarsPreview } from "./review-stars";
+import { ReviewWallPreview } from "./review-wall";
 import { ScrollingBenefitsPreview } from "./scrolling-benefits";
 import { ShippingTimelinePreview } from "./shipping-timeline";
 import { StatsWithImagePreview } from "./stats-with-image";
@@ -36,6 +37,7 @@ export const PREVIEWS: Record<string, ComponentType<PreviewProps<any>>> = {
   "scrolling-benefits": ScrollingBenefitsPreview,
   "image-with-benefits": ImageWithBenefitsPreview,
   "insta-story": InstaStoryPreview,
+  "review-wall": ReviewWallPreview,
   "comparison-table": ComparisonTablePreview,
   "faq-and-text": FaqAndTextPreview,
 };

@@ -23,7 +23,7 @@ export const FIXTURE_FACTS: StoreFacts = {
     { units: 2, price: 37990, compareAt: 65980, label: "2 unidades", support: "Uno para ti y otro para regalar", badge: "Más elegido" },
     { units: 3, price: 49990, compareAt: 98970, label: "3 unidades", support: "Lleva 3, paga 2" },
   ],
-  reviews: REVIEW_TEXTS.map(([id, author, rating, body, country]) => ({ id, author, rating, body, country, date: "ago 2026", photos: [] })),
+  reviews: REVIEW_TEXTS.map(([id, author, rating, body, country], i) => ({ id, author, rating, body, country, date: "ago 2026", iso: `2026-08-${String(24 - i * 3).padStart(2, "0")}`, photos: [] })),
   rating: 4.7,
   count: REVIEW_TEXTS.length,
   policies: { cod: true, free_shipping: true, return_days: 30 },
