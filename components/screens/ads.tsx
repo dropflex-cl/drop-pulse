@@ -800,7 +800,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
       {list("headlines", "Títulos", HEADLINE_LIMIT, MAX_HEADLINES, 1)}
       <Field label="Descripción" value={cfg.launch.description} maxLength={DESCRIPTION_LIMIT} onValueChange={(v) => setLaunch({ description: v })} hint={`${[...cfg.launch.description].length}/${DESCRIPTION_LIMIT}`} />
       <div className="grid gap-3 @xl:grid-cols-[1fr_--spacing(48)]">
-        <Field label="URL del producto" value={data.productUrl ?? "Sin URL: revisa la conexión con Shopify"} readOnly hint="Con UTM para saber qué anuncio vendió" />
+        <Field label="URL del producto" value={data.productUrl ?? "Sin URL: publica el producto en tu tienda"} readOnly hint="Con UTM para saber qué anuncio vendió" />
         <div className="flex flex-col gap-1.5">
           <label htmlFor="ad-cta" className="text-label">
             Botón

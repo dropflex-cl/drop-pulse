@@ -33,7 +33,7 @@ export function fixture(state: string): { product: Product; data: PublishState }
     state === "publishing"
       ? { status: "publishing", stale: false }
       : state === "published" || state === "stale"
-        ? { status: "published", publishedAt: NOW, productUrl: "https://tutienda.myshopify.com/products/corrector", stale: state === "stale" }
+        ? { status: "published", publishedAt: NOW, productUrl: "https://tutienda.cl/products/corrector", stale: state === "stale" }
         : state === "error"
           ? { status: "error", error: "Shopify rechazó una imagen: el archivo pesa más de 20 MB.", stale: false }
           : null;

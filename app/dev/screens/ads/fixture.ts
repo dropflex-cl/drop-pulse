@@ -72,7 +72,7 @@ export function fixture(state: string): ProductAds {
     country: "CL",
     cpaLimit: 6000,
     spendCap: state === "empty" ? null : 60000,
-    productUrl: "https://corrector.myshopify.com/products/corrector-de-postura",
+    productUrl: "https://corrector.cl/products/corrector-de-postura",
     draft: {
       id: state === "empty" ? null : "d1",
       name: "Corrector de postura · Testeo",

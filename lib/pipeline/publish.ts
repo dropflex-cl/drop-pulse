@@ -241,6 +241,30 @@ interface ProductQuery {
   } | null;
 }
 
+const PRODUCT_URL = /* GraphQL */ `
+  query ProductUrl($id: ID!) {
+    product(id: $id) { onlineStoreUrl }
+  }
+`;
+
+/** El GID del producto en Shopify, o null si el id guardado no es de Shopify. */
+function productGid(id: string): string | null {
+  if (id.startsWith("gid://")) return id;
+  return /^\d+$/.test(id) ? `gid://shopify/Product/${id}` : null;
+}
+
+/**
+ * La URL pública del producto hoy: Shopify la arma con el dominio principal de la tienda (el propio,
+ * no el myshopify). null si el producto no está a la venta en la tienda online o no hay conexión.
+ */
+export async function liveProductUrl(userId: string, productId: string): Promise<string | null> {
+  const [conn, row] = await Promise.all([getShopifyConnection(userId), getProductRow(userId, productId)]);
+  const gid = row ? productGid(row.shopify_product_id) : null;
+  if (!conn || conn.status !== "connected" || !gid) return null;
+  const data = await shopifyQuery<{ product: { onlineStoreUrl: string | null } | null }>(conn, PRODUCT_URL, { id: gid });
+  return data.product?.onlineStoreUrl ?? null;
+}
+
 const PRODUCT_SET = /* GraphQL */ `
   mutation ProductSet($input: ProductSetInput!) {
     productSet(input: $input, synchronous: true) {
@@ -314,10 +338,8 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     const { input, images, missing } = await preparePublish(userId, productId);
     if (missing.length) throw new PublishError(missing[0]);
 
-    const productGid = row.shopify_product_id.startsWith("gid://") ? row.shopify_product_id : `gid://shopify/Product/${row.shopify_product_id}`;
-    const found = /^\d+$/.test(row.shopify_product_id) || row.shopify_product_id.startsWith("gid://")
-      ? await shopifyQuery<ProductQuery>(conn, PRODUCT, { id: productGid })
-      : { product: null };
+    const gid = productGid(row.shopify_product_id);
+    const found = gid ? await shopifyQuery<ProductQuery>(conn, PRODUCT, { id: gid }) : { product: null };
     if (!found.product) throw new PublishError("Este producto ya no existe en tu tienda Shopify. Sincroniza tus productos.");
     const existing: ExistingProduct = {
       id: found.product.id,
@@ -344,12 +366,12 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     await deleteMetafields(conn, existing.id, meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY));
     const shopFacts = await publishShopFacts(conn);
 
-    const handle = set.productSet.product?.handle ?? found.product.handle;
     await savePublication(userId, productId, shop, {
       status: "published",
       error_message: null,
       fingerprint: fingerprint(input),
-      product_url: set.productSet.product?.onlineStoreUrl ?? `https://${shop}/products/${handle}`,
+      // Con el dominio principal. null = no está a la venta en la tienda online: no se inventa el myshopify.
+      product_url: set.productSet.product?.onlineStoreUrl ?? null,
       published_at: new Date().toISOString(),
       summary: {
         components: input.components.length,

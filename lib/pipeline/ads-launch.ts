@@ -9,6 +9,7 @@ import { launchProblems } from "@/lib/ads/validate";
 import { adminClient } from "@/lib/integrations/admin";
 import { MetaApiError, MetaAuthError, MetaPermissionError } from "@/lib/integrations/meta/client";
 import { markMetaError, metaToken } from "@/lib/integrations/meta/connection";
+import { liveProductUrl } from "@/lib/pipeline/publish";
 import { ProductApiError } from "@/lib/products/http";
 import { getProductRow } from "@/lib/products/store";
 
@@ -25,6 +26,8 @@ const VIDEO_DEADLINE_MS = 3 * 60 * 1000;
 type MetaObject = CampaignRow["meta_objects"][number];
 
 const now = () => new Date().toISOString();
+
+const NO_URL = "Tu producto no está a la venta en tu tienda online. Publícalo en Shopify (canal Tienda online) antes de lanzar.";
 
 /** Lo que Meta dijo, en una frase para el comerciante. */
 export function metaReason(e: unknown): string {
@@ -46,9 +49,9 @@ async function update(id: string, patch: Partial<CampaignRow>) {
 export async function startLaunch(userId: string, productId: string, sourceCampaignId: string | null = null): Promise<CampaignRow> {
   const product = await getProductRow(userId, productId);
   if (!product) throw new ProductApiError("No encontramos ese producto.", 404);
-  const [ctx, draft, media] = await Promise.all([adsContext(userId, product), getDraft(userId, productId, sourceCampaignId), listMediaRows(userId, productId)]);
+  const [ctx, draft, media, url] = await Promise.all([adsContext(userId, product), getDraft(userId, productId, sourceCampaignId), listMediaRows(userId, productId), liveProductUrl(userId, productId)]);
   if (!ctx.metaReady) throw new ProductApiError("Conecta Meta Ads y elige cuenta, página y píxel en Ajustes.", 409);
-  if (!ctx.productUrl) throw new ProductApiError("No tenemos la URL del producto en tu tienda. Revisa la conexión con Shopify.", 409);
+  if (!url) throw new ProductApiError(NO_URL, 409);
   if (!draft) throw new ProductApiError("No hay una campaña por lanzar. Recarga la página.", 404);
   if (draft.status === "launching") throw new ProductApiError("La campaña ya se está creando.", 409);
 
@@ -139,6 +142,10 @@ export async function runLaunch(campaignId: string): Promise<void> {
     if (account.currency !== c.currency) throw new Error(`Tu cuenta de Meta está en ${account.currency} y la campaña en ${c.currency}. Revisa los montos y lanza otra vez.`);
     if (account.accountStatus != null && account.accountStatus !== 1) throw new Error("Tu cuenta publicitaria no está activa en Meta. Revísala en Ads Manager.");
 
+    // Se lee de Shopify al lanzar: el dominio principal de hoy, aunque haya cambiado desde Publicar.
+    const link = await liveProductUrl(c.user_id, product.id);
+    if (!link) throw new Error(NO_URL);
+
     const allMedia = await listMediaRows(c.user_id, c.product_id);
     const media = c.launch.creatives.map((id) => allMedia.find((m) => m.id === id)).filter((m): m is MediaRow => !!m);
     const plan = planLaunch(c.structure, c.launch, media);
@@ -162,7 +169,6 @@ export async function runLaunch(campaignId: string): Promise<void> {
     }
 
     // 3. Cada conjunto y sus anuncios.
-    const link = ctx.productUrl!;
     const setRows: { id: string; name: string; meta: string; ads: { name: string; meta: string; creative: string; mediaId: string | null; copy: unknown }[]; budget: number | null; audience: unknown; position: number }[] = [];
     for (const [i, s] of plan.adsets.entries()) {
       await progress(`Creando ${s.name}`);

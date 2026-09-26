@@ -279,7 +279,9 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
               Ver en tu tienda
             </Button>
           </div>
-        ) : null}
+        ) : (
+          <Notice title="El producto no está a la venta en tu tienda online" body="Actívalo en Shopify, en el canal Tienda online, y vuelve a publicar. Sin eso no se pueden lanzar anuncios." />
+        )}
       </div>
     )
   ) : null;

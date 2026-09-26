@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { approvedAngles } from "@/lib/pipeline/angles";
+import { getPublications } from "@/lib/pipeline/publish";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection, type MetaConnection } from "@/lib/integrations/meta/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -98,6 +99,7 @@ export interface AdsContext {
   cpaLimit: number | null;
   spendCap: number | null;
   freeShipping: boolean;
+  /** La que guardó Publicar (dominio principal). Para mostrar; al lanzar se vuelve a leer de Shopify. */
   productUrl: string | null;
   texts: Pick<LaunchConfig, "primary_texts" | "headlines" | "description">;
   /** Los desarrollos aprobados con que salen esos textos, en orden de slot (lib/ads/angles.ts). */
@@ -115,13 +117,14 @@ async function merchantSettings(userId: string): Promise<{ ad_daily_spend_cap: n
 
 
 export async function adsContext(userId: string, product: ProductRow): Promise<AdsContext> {
-  const [meta, shop, pricing, settings, briefs, items] = await Promise.all([
+  const [meta, shop, pricing, settings, briefs, items, pubs] = await Promise.all([
     getMetaConnection(userId),
     getShopifyConnection(userId),
     getPricingPlan(userId, product.id),
     merchantSettings(userId),
     approvedAngles(userId, product.id),
     activeComponents(userId, [product.id]),
+    getPublications(userId, [product.id]),
   ]);
   const { market } = await getMarket(userId, shop);
   const listingRow = (items.get(product.id) ?? []).find((r) => r.component === LISTING && r.status === "approved");
@@ -138,7 +141,7 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
     cpaLimit,
     spendCap: settings.ad_daily_spend_cap,
     freeShipping: settings.free_shipping,
-    productUrl: shop?.shop_domain && product.handle ? `https://${shop.shop_domain}/products/${product.handle}` : null,
+    productUrl: pubs.get(product.id)?.product_url ?? null,
     texts: defaultTexts({ hooks, offerLine: listing?.offer_line ?? null, shortName: listing?.short_name ?? null, title: product.title, freeShipping: settings.free_shipping }),
     anglesStamp: (briefs ?? []).map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at ?? null })),
     angleSince: new Map((briefs ?? []).map((b) => [b.angle.slot, b.brief.created_at])),
