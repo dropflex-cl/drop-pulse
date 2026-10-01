@@ -100,6 +100,8 @@ Es una hipótesis: hay que probarla con la clave del comerciante antes de cambia
 
 El objetivo es que el video se vea natural, no hacerlo pasar por una clienta real. El rótulo «Dramatización» durante todo el video y la regla de no presentar a la persona como clienta, testimonio o experta se mantienen: los exige el propio repo (`RULES` en `lib/video/prompts.ts`, `docs/spec-video-ugc.md`) y, para personas generadas con IA, también las políticas de Meta.
 
+> **Actualización (2026-10-01):** el comerciante decidió quitar el rótulo: el video va sin «Dramatización», «Animación» ni etiqueta de IA (ver `CLAUDE.md` › Video UGC › «Sin rótulo, nunca»). La regla de no presentar a la persona de IA como clienta, testimonio o experta sigue.
+
 ## 5. Recomendación
 
 Implementar A a E juntos en una rama y dejar F como una prueba aparte.
