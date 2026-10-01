@@ -13,8 +13,13 @@ import {
   A_ROLL_MAX,
   A_ROLL_MIN,
   A_ROLL_SECONDS_MAX,
+  CAMERAS,
   FORMAT_LIMITS,
   HOOK_BEAT_MAX_WORD,
+  opensWithInsert,
+  VIDEO_OPENING_SHOTS,
+  type Camera,
+  type VideoOpeningShot,
   A_ROLL_SECONDS_MIN,
   B_ROLL_CUT_MAX,
   B_ROLL_CUT_MIN,
@@ -29,10 +34,10 @@ import {
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». 6: el gancho sale de la tríada del agente de ganchos (hook_source). */
-export const UGC_PROMPT_VERSION = 6;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. */
-export const MASCOT_PROMPT_VERSION = 6;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». 6: el gancho sale de la tríada del agente de ganchos (hook_source). 7: la apertura (opening) y la cámara de cada imagen clave (spec-video-detener-scroll). */
+export const UGC_PROMPT_VERSION = 7;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). */
+export const MASCOT_PROMPT_VERSION = 7;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). */
 export const KEYFRAME_QA_PROMPT_VERSION = 2;
 
@@ -41,6 +46,9 @@ const keyframe = z.object({
   uses_character: z.boolean().describe("true si aparece la persona o el personaje (cara, manos o cuerpo): se genera con K1 de referencia."),
   uses_product: z.boolean().describe("true si aparece el producto: se genera con la foto real de referencia."),
   one_hand: z.boolean().describe("true si la escena necesita una sola mano visible (sostener el frasco, señalar): evita manos de más."),
+  camera: z
+    .enum(CAMERAS)
+    .describe("UGC: selfie (cámara frontal a un brazo), pov (cámara trasera mirando hacia abajo, una mano en cuadro), propped (el teléfono apoyado en un mueble) o mirror (en el espejo). Mascota: animated."),
   prompt: z
     .string()
     .describe(
@@ -85,7 +93,14 @@ export const ugcScriptSchema = z.object({
     wardrobe: z.string().describe("En inglés: ropa. Mascota: «none» (los accesorios de una escena van en su imagen clave)."),
     setting: z.string().describe("En inglés: el lugar principal y la luz."),
   }),
-  hook_source: z.number().int().nullable().describe("El index del gancho del ángulo que abre el video (de GANCHOS DEL ÁNGULO), o null si ninguno servía."),
+  opening: z
+    .object({
+      hook_source: z.number().int().nullable().describe("El index del gancho de GANCHOS DEL ÁNGULO que abre el video, o null si ninguno servía."),
+      shot: z.enum(VIDEO_OPENING_SHOTS).describe("La primera toma: la del gancho elegido (opening_shot). Mascota: mascot_scene."),
+      keyframe: z.string().describe("La imagen clave del cuadro 0: la de A1 si abre con la cara (nunca K1), la de B1 si abre con un inserto."),
+      first_motion: z.string().describe("En inglés: lo que ya se está moviendo en el cuadro 0."),
+    })
+    .describe("Los primeros 3 s: el gancho elegido y su primera toma."),
   hook_why: z.string().describe("Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."),
   keyframes: z.array(keyframe).describe(`De 3 a ${KEYFRAMES_MAX}. K1 = el personaje solo; una por cada escena distinta de a_roll y b_roll.`),
   a_roll: z
@@ -104,9 +119,12 @@ export const ugcScriptSchema = z.object({
   compliance_notes: z.array(z.string()).describe("Para el comerciante: qué cuidar al montar y publicar."),
 });
 
-/** Los guiones de antes de la versión 5 no traen hook_source. */
-export type UgcScript = Omit<z.infer<typeof ugcScriptSchema>, "hook_source"> & { hook_source?: number | null };
-export type UgcKeyframe = UgcScript["keyframes"][number];
+type ScriptOut = z.infer<typeof ugcScriptSchema>;
+export type ScriptOpening = ScriptOut["opening"];
+/** Los guiones de antes no traen `camera` (versión 7). */
+export type UgcKeyframe = Omit<ScriptOut["keyframes"][number], "camera"> & { camera?: Camera };
+/** Los guiones de antes no traen `opening` (versión 7); los de la versión 6 traían `hook_source` suelto. */
+export type UgcScript = Omit<ScriptOut, "opening" | "keyframes"> & { opening?: ScriptOpening; keyframes: UgcKeyframe[]; hook_source?: number | null };
 export type UgcARoll = UgcScript["a_roll"][number];
 export type UgcBRoll = UgcScript["b_roll"][number];
 
@@ -144,11 +162,10 @@ export function firstSentence(line: string): string {
 }
 
 /**
- * `opening`: al generar, los ganchos que se le pasaron (sus index). Activa las reglas de la apertura
- * (la primera frase, el primer texto en pantalla, el pago contra entrega fuera del gancho); al editar
- * un guion de antes no se piden.
+ * `opening`: al generar, los ganchos que se le pasaron y su toma. Activa las reglas de la apertura y,
+ * en el UGC, las del aspecto de teléfono; al editar un guion de antes no se piden.
  */
-export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc", opening?: { hooks: number[] }): string[] {
+export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc", opening?: OpeningInput): string[] {
   const problems: string[] = [];
   const limits = FORMAT_LIMITS[format];
   const who = format === "mascot" ? "al personaje" : "a la persona";
@@ -215,7 +232,10 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
   });
   for (const t of [s.end_card.title, s.end_card.subtitle, s.end_card.cta, ...s.end_card.small_print]) problems.push(...claimProblems(t, pricing, "El cierre: "));
 
-  if (opening) problems.push(...openingProblems(s, opening.hooks));
+  if (opening) {
+    problems.push(...openingProblems(s, opening, format));
+    if (format === "ugc") problems.push(...phoneLookProblems(s));
+  }
 
   // Cada imagen clave se usa (no se paga una imagen que no sale en el video).
   const used = new Set([CHARACTER_KEY, ...s.a_roll.map((a) => a.keyframe), ...s.b_roll.map((b) => b.keyframe)]);
@@ -223,13 +243,52 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
   return problems;
 }
 
-/** La apertura (agentes-creativos/hook-cod-latam.md): el gancho cabe en 3 s y se lee sin sonido desde el primer segundo. */
-function openingProblems(s: UgcScript, hooks: number[]): string[] {
+/** Los ganchos que se le pasaron al guionista (`index` en el desarrollo) y la toma con que abre cada uno. */
+export interface OpeningInput {
+  hooks: { index: number; shot: VideoOpeningShot }[];
+}
+
+/**
+ * La apertura (docs/spec-video-detener-scroll.md §3): el gancho cabe en 3 s, se lee sin sonido desde el
+ * primer segundo y la primera imagen es la toma que eligió el gancho, con movimiento desde el cuadro 0.
+ */
+function openingProblems(s: UgcScript, input: OpeningInput, format: VideoFormat): string[] {
   const problems: string[] = [];
+  const o = s.opening;
   const a1 = s.a_roll[0];
-  if (s.hook_source != null && !hooks.includes(s.hook_source))
-    problems.push(`hook_source es ${s.hook_source}, que no está en GANCHOS DEL ÁNGULO${hooks.length ? ` (${hooks.join(", ")})` : ""}: usa uno de la lista o null.`);
+  if (!o) return ["Falta opening: el gancho elegido y su primera toma."];
+  const offered = input.hooks.map((h) => h.index);
+  const hook = o.hook_source == null ? null : input.hooks.find((h) => h.index === o.hook_source);
+  if (o.hook_source != null && !hook)
+    problems.push(`opening.hook_source es ${o.hook_source}, que no está en GANCHOS DEL ÁNGULO${offered.length ? ` (${offered.join(", ")})` : ""}: usa uno de la lista o null.`);
+  if (format === "mascot" && o.shot !== "mascot_scene") problems.push("La mascota abre con su escena: opening.shot es mascot_scene.");
+  if (format === "ugc" && o.shot === "mascot_scene") problems.push("El video con persona no abre con mascot_scene: usa la toma del gancho.");
+  if (hook && format === "ugc" && o.shot !== hook.shot) problems.push(`El gancho ${hook.index} abre con ${hook.shot}: opening.shot es ${hook.shot}.`);
+  if (!o.first_motion.trim()) problems.push("Falta opening.first_motion: qué se mueve en el cuadro 0.");
   if (!a1) return problems;
+
+  const k = s.keyframes.find((x) => x.key === o.keyframe);
+  if (!k) problems.push(`opening.keyframe es ${o.keyframe}, que no está en keyframes.`);
+  if (!opensWithInsert(o.shot)) {
+    // Abre con la cara: A1 parte de la escena del gancho, no del retrato que fija la cara (en la mascota, K1 es el personaje SANO).
+    if (o.keyframe === CHARACTER_KEY) problems.push(`La apertura no parte de ${CHARACTER_KEY} (el retrato que fija la cara): crea otra imagen clave con el gesto del gancho y úsala en A1.`);
+    if (a1.keyframe !== o.keyframe) problems.push(`Abre con ${o.shot}: A1 parte de opening.keyframe (${o.keyframe}), no de ${a1.keyframe}.`);
+    if (k && !k.uses_character) problems.push(`La imagen clave de la apertura (${o.keyframe}) tiene que mostrar ${format === "mascot" ? "al personaje" : "a la persona"}.`);
+    if (k && o.shot === "mirror" && k.camera !== "mirror") problems.push(`Abre con mirror: ${o.keyframe} va con camera mirror.`);
+    if (k && o.shot === "selfie_talk" && k.camera !== "selfie") problems.push(`Abre con selfie_talk: ${o.keyframe} va con camera selfie.`);
+  } else {
+    // Abre con un inserto: B1 tapa el comienzo de A1.
+    const b1 = s.b_roll[0];
+    const head = words(a1.line).slice(0, HOOK_BEAT_MAX_WORD);
+    if (!b1) problems.push(`Abre con ${o.shot}: falta B1, el inserto del gancho.`);
+    else {
+      if (b1.keyframe !== o.keyframe) problems.push(`Abre con ${o.shot}: B1 parte de opening.keyframe (${o.keyframe}), no de ${b1.keyframe}.`);
+      if (!head.includes(wordKey(b1.anchor))) problems.push(`B1 abre el video: se ancla a una de las primeras ${HOOK_BEAT_MAX_WORD} palabras de A1, no a «${b1.anchor}».`);
+    }
+    if (k && o.shot === "pov_hands" && k.camera !== "pov") problems.push(`Abre con pov_hands: ${o.keyframe} va con camera pov.`);
+    if (k && o.shot === "product_in_place" && !k.uses_product) problems.push(`Abre con product_in_place: ${o.keyframe} muestra el producto (uses_product true).`);
+  }
+
   const opening = firstSentence(a1.line);
   const n = words(opening).length;
   if (n > SPOKEN_MAX_WORDS) problems.push(`La primera frase de A1 («${opening}») tiene ${n} palabras: el gancho cabe en 3 s, máximo ${SPOKEN_MAX_WORDS}.`);
@@ -241,6 +300,30 @@ function openingProblems(s: UgcScript, hooks: number[]): string[] {
     if (wordCount(first.text) > ON_SCREEN_MAX_WORDS) problems.push(`El primer texto en pantalla («${first.text}») tiene ${wordCount(first.text)} palabras; el del gancho va hasta ${ON_SCREEN_MAX_WORDS}.`);
   }
   if (COD_IN_HOOK.test(`${opening} ${first?.text ?? ""}`)) problems.push("El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.");
+  return problems;
+}
+
+/**
+ * Que el UGC parezca grabado con un teléfono (§4.3): cada imagen clave declara su cámara, el B-roll no
+ * es una selfie y lo que escribe el modelo no habla como una foto de estudio. Solo al generar.
+ */
+function phoneLookProblems(s: UgcScript): string[] {
+  const problems: string[] = [];
+  const bKeys = new Set(s.b_roll.map((b) => b.keyframe));
+  for (const k of s.keyframes) {
+    if (!k.camera || k.camera === "animated") problems.push(`La imagen clave ${k.key} no dice su cámara: selfie, pov, propped o mirror.`);
+    else if (bKeys.has(k.key) && k.uses_character && k.camera === "selfie") problems.push(`La imagen clave ${k.key} es de un B-roll: va en pov (la otra mano, mirando hacia abajo) o propped, no en selfie.`);
+    const w = studioWord(k.prompt);
+    if (w) problems.push(`La imagen clave ${k.key} habla como una foto de estudio («${w}»): descríbela como una foto de teléfono en una casa.`);
+  }
+  for (const [what, t] of [["character.setting", s.character.setting], ["character.look", s.character.look]] as const) {
+    const w = studioWord(t);
+    if (w) problems.push(`${what} habla como una foto de estudio («${w}»): un lugar y una persona comunes, con la luz de la casa.`);
+  }
+  for (const x of [...s.a_roll, ...s.b_roll]) {
+    const w = studioWord(x.motion);
+    if (w) problems.push(`El movimiento de ${x.key} habla como un comercial («${w}»): cámara en mano de teléfono.`);
+  }
   return problems;
 }
 

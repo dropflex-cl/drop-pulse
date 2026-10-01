@@ -37,10 +37,9 @@ import {
   type ShotKind,
   type VideoFormat,
 } from "@/lib/video/catalog";
-import { usableHooks } from "@/lib/hooks/select";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
-import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
+import { KEYFRAME_QA_SYSTEM, keyframeQaUser, openingInput, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
   MASCOT_PROMPT_VERSION,
@@ -198,8 +197,8 @@ export async function runScript(scriptId: string): Promise<void> {
       angle: angles[0],
       format,
     };
-    // Los ganchos que se le pasan (lib/hooks/select.ts): hook_source tiene que ser uno de estos.
-    const opening = { hooks: usableHooks(angles[0].payload).map((h) => h.index) };
+    // Los ganchos que se le pasan y su toma (lib/hooks/select.ts): opening.hook_source tiene que ser uno de estos.
+    const opening = openingInput(angles[0].payload, format);
     let problems: string[] = [];
     let result: Awaited<ReturnType<typeof generateStructured<typeof ugcScriptSchema>>> | null = null;
     for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {

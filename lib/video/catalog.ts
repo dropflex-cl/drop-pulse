@@ -33,6 +33,23 @@ export const HOOK_BEAT_PROMPT_WORDS = 3;
 /** La imagen clave del personaje: todas las demás la usan de referencia para la cara. */
 export const CHARACTER_KEY = "K1";
 
+/**
+ * Con qué cámara se grabó cada imagen clave (docs/spec-video-detener-scroll.md §4.1): el render arma un
+ * bloque fijo por cámara para que el UGC parezca de teléfono. `animated` es la mascota.
+ */
+export const CAMERAS = ["selfie", "pov", "propped", "mirror", "animated"] as const;
+export type Camera = (typeof CAMERAS)[number];
+export type PhoneCamera = Exclude<Camera, "animated">;
+
+/**
+ * La primera toma del video: las del agente de ganchos que se hacen con IA (lib/hooks/catalog.ts) y la
+ * escena de la mascota. Las de la cara abren con A1; las demás, con B1 encima de la voz.
+ */
+export const VIDEO_OPENING_SHOTS = ["selfie_talk", "pov_hands", "problem_scene", "product_in_place", "mirror", "mascot_scene"] as const;
+export type VideoOpeningShot = (typeof VIDEO_OPENING_SHOTS)[number];
+export const FACE_SHOTS: readonly VideoOpeningShot[] = ["selfie_talk", "mirror", "mascot_scene"];
+export const opensWithInsert = (shot: VideoOpeningShot) => !FACE_SHOTS.includes(shot);
+
 /** Palabras que Seedance pronuncia mal de forma consistente (POC: «Rinde» → «Ride»). */
 export const MISPRONOUNCED: { word: string; instead: string }[] = [{ word: "rinde", instead: "«te dura» o «alcanza para»" }];
 
