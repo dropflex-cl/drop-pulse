@@ -103,6 +103,64 @@
       },
       {
         "type": "header",
+        "content": "Reseñas flotantes"
+      },
+      {
+        "type": "paragraph",
+        "content": "Una tarjeta abajo a la izquierda muestra, de a una, reseñas aprobadas en DropFlex con 4 o 5 estrellas (primero las que tienen foto), en el teléfono y en el computador. Se detiene con el mouse encima y espera mientras el formulario de compra está abierto. Si el comprador la cierra, no vuelve en su visita. Nunca muestra compras inventadas."
+      },
+      {
+        "type": "checkbox",
+        "id": "df_review_popup",
+        "label": "Reseñas flotantes",
+        "default": true
+      },
+      {
+        "type": "range",
+        "id": "df_review_popup_delay",
+        "label": "Primera reseña a los",
+        "min": 3,
+        "max": 30,
+        "step": 1,
+        "unit": "s",
+        "default": 8,
+        "visible_if": "{{ settings.df_review_popup }}"
+      },
+      {
+        "type": "range",
+        "id": "df_review_popup_duration",
+        "label": "Tiempo a la vista",
+        "min": 4,
+        "max": 12,
+        "step": 1,
+        "unit": "s",
+        "default": 6,
+        "visible_if": "{{ settings.df_review_popup }}"
+      },
+      {
+        "type": "range",
+        "id": "df_review_popup_gap",
+        "label": "Pausa entre reseñas",
+        "min": 5,
+        "max": 60,
+        "step": 5,
+        "unit": "s",
+        "default": 15,
+        "visible_if": "{{ settings.df_review_popup }}"
+      },
+      {
+        "type": "range",
+        "id": "df_review_popup_max",
+        "label": "Reseñas por visita",
+        "info": "Nunca repite una reseña en la misma visita: con menos reseñas, muestra las que hay.",
+        "min": 2,
+        "max": 12,
+        "step": 1,
+        "default": 6,
+        "visible_if": "{{ settings.df_review_popup }}"
+      },
+      {
+        "type": "header",
         "content": "Oferta de salida"
       },
       {
