@@ -1,7 +1,8 @@
-# Video UGC que detiene el scroll: la apertura manda y el video parece de teléfono
+# Videos que detienen el scroll: el gancho manda en la apertura y el UGC parece de teléfono
 
-> Estado: **spec** (2026-10-01). Nada implementado.
-> Base: `docs/spec-ganchos.md` (el agente de ganchos COD LatAm, rama `feat/hook-cod-latam`), `docs/spec-video-ugc.md` y el análisis «Humanizar el video UGC» (2026-10-01).
+> Estado: **spec** (2026-10-01). Nada implementado. Rama `feat/video-apertura` (desde `main`).
+> Base: `docs/spec-ganchos.md` (el agente de ganchos COD LatAm), `docs/spec-video-ugc.md` y el análisis «Humanizar el video UGC» (2026-10-01).
+> **Depende de `feat/hook-cod-latam`** (el agente de ganchos, `lib/hooks/`), que todavía no está en `main`: la implementación parte cuando esa rama se mezcle, o la trae con un merge. Los dos formatos de video, persona (`ugc`) y mascota (`mascot`), abren con un gancho de ese agente.
 > Toca: `lib/hooks/`, `lib/video/` (`catalog.ts`, `prompts.ts`, `schemas.ts`, `render.ts`, `package.ts`), `lib/pipeline/video.ts`, `scripts/ugc-montage.py`, `lib/ads/meta/insights.ts`, la pestaña Videos y una migración.
 
 ## 1. El problema
@@ -23,8 +24,9 @@ Y hay un tercer problema, técnico, que afecta a los dos: **Seedance y Kling son
 1. **La apertura es un contrato, no una sugerencia.** El gancho elige la primera toma; el guion la ejecuta; el código lo comprueba en cada capa (gancho → guion → imagen clave → clip → montaje → métrica).
 2. **Solo se promete lo que la IA puede hacer sin mentir.** Una demostración del efecto (el vaso que deja de vibrar, la mancha que desaparece) hecha con IA es una prueba inventada: es engañosa y sube el rechazo en la puerta. Esos ganchos piden grabación real y no van al video con IA.
 3. **El aspecto de teléfono lo fija el código, en positivo.** Bloques fijos que describen lo que la foto *es* (el modelo dibuja lo que se nombra, aunque vaya negado: lección de la mascota). Lo que el modelo no debe escribir se rechaza en código, como `RISKY_SHAPE`.
-4. **Natural no es engañoso.** El objetivo es que el video se vea como un video de teléfono, no hacer pasar a la persona de IA por una clienta (ver §9, D1).
-5. **Se mide.** La tasa de gancho (reproducciones de 3 s / impresiones) decide, no el ojo.
+4. **Sin rótulo.** El video no lleva rótulo («Dramatización», «Animación» ni etiqueta de IA): decisión del comerciante del 2026-10-01 (`spec-video-ugc.md` §8). Sigue la regla de fondo: la persona de IA no se presenta como clienta, testimonio ni experta, ni dice su edad.
+5. **La mascota también abre con un gancho del agente.** El agente escribe, para cada gancho que encaja, su versión dicha por el personaje y su escena (§3.7); la apertura de la mascota se orquesta y se comprueba igual que la del UGC.
+6. **Se mide.** La tasa de gancho (reproducciones de 3 s / impresiones) decide, no el ojo.
 
 ## 3. La apertura (0–3 s)
 
@@ -45,13 +47,13 @@ Una lista cerrada (`OPENING_SHOTS`, `lib/hooks/catalog.ts`). Cada una sabe con q
 | `mirror` | Selfie en el espejo, cuerpo entero o medio cuerpo | A1 desde su imagen clave | prueba puesta, identidad |
 | `real_footage` | Algo que la IA no puede mostrar sin inventar: el efecto o el resultado, una prueba de estrés, la bodega, un testimonio | Grabación real | demostración del efecto, bastidores, confesión |
 
-`real_footage` no entra al video con IA (§3.3). La mascota no usa `shot`: su apertura es siempre el personaje con el problema en una escena graciosa (arco de `mascotSystem`), dicho con el gancho que elija.
+`real_footage` no entra al video con IA (§3.3). La mascota tiene su propia toma, `mascot_scene` (§3.7).
 
 ### 3.3 El agente de ganchos decide la toma (`lib/hooks`)
 
 - Cada gancho suma `opening_shot` (uno de §3.2) y `first_motion` (qué se mueve en el cuadro 0, en español, para el comerciante). `visual_first_3s` sigue siendo la descripción de la toma.
 - El prompt explica las tomas posibles y la regla del principio 2: **una demostración que muestra el efecto o el resultado es `real_footage`**; una que muestra el uso (la mano aplicando, poniendo, abriendo) sí se puede hacer con IA. El lenguaje de la primera toma es de teléfono (cámara frontal, POV, en la casa), nunca «macro», «plano cenital de estudio» ni «cámara lenta».
-- `hookProblems` suma: `opening_shot` válido; `real_footage` obligatorio cuando `needs_real_material` no es null; los patrones Bastidores y Confesión sin reseñas reales no pueden declarar otra toma; palabras de estudio en `visual_first_3s` (la lista de §5.3).
+- `hookProblems` suma: `opening_shot` válido; `real_footage` obligatorio cuando `needs_real_material` no es null; los patrones Bastidores y Confesión sin reseñas reales no pueden declarar otra toma; palabras de estudio en `visual_first_3s` (la lista de §4.3).
 - `usableHooks(src, "ai_video")` deja fuera `real_footage`; los estáticos y el texto del anuncio siguen igual. Los ganchos de antes (sin `opening_shot`) valen como `selfie_talk`.
 - Sube `HOOKS_PROMPT_VERSION`. La pantalla de Ángulos muestra la toma («Primera toma · POV de las manos») y marca «Necesita grabación real» en vez de «Falta material real» cuando corresponde.
 
@@ -62,7 +64,7 @@ Una lista cerrada (`OPENING_SHOTS`, `lib/hooks/catalog.ts`). Cada una sabe con q
 ```ts
 opening: {
   hook_source: number | null; // el index del gancho (o null si ninguno servía)
-  shot: "selfie_talk" | "pov_hands" | "problem_scene" | "product_in_place" | "mirror";
+  shot: "selfie_talk" | "pov_hands" | "problem_scene" | "product_in_place" | "mirror" | "mascot_scene";
   keyframe: string;           // la imagen clave del cuadro 0
   first_motion: string;       // EN: qué se mueve desde el cuadro 0
 }
@@ -75,7 +77,7 @@ Reglas nuevas en `openingProblems` (solo al generar, como hoy):
 - `pov_hands`, `problem_scene` y `product_in_place`: existe B1, parte de `opening.keyframe`, se ancla a la **primera** palabra de A1 y tapa entre `B_ROLL_CUT_MIN` y `B_ROLL_CUT_MAX` (1–2 s). Después entra la cara.
 - El primer texto en pantalla se ancla a la primera palabra de A1 (hoy: una de las 5 primeras).
 - La primera frase de A1 tiene ≤ 9 palabras y no lleva muletillas (§4.2).
-- Sube `UGC_PROMPT_VERSION` y `MASCOT_PROMPT_VERSION` (la mascota solo cambia `hook_source` → `opening.hook_source`; su `shot` no se valida).
+- Sube `UGC_PROMPT_VERSION` y `MASCOT_PROMPT_VERSION` (las reglas propias de la mascota, en §3.7).
 
 `hookBlock` (`lib/video/prompts.ts`) cambia «la primera imagen es el visual del gancho» por la receta de su `shot`, y el gancho llega con `opening_shot` y `first_motion`.
 
@@ -90,6 +92,39 @@ Reglas nuevas en `openingProblems` (solo al generar, como hoy):
 - **Abrir con la cara** (`selfie_talk`, `mirror`): Seedance abre desde la foto. El prompt de A1 pide la acción en marcha desde el primer cuadro (`first_motion`) y el montaje suma un *punch-in* (zoom 1,15 → 1,0 en 7 cuadros, el mismo del cierre) y la sacudida que ya tiene la apertura.
 - El texto del gancho está en pantalla desde el cuadro 0, no desde que se dice su palabra.
 - El paquete sube a `PACKAGE_VERSION` 2 y trae `opening` (`shot`, B-roll de apertura si hay). `scripts/ugc-montage.py` acepta 1 y 2.
+
+### 3.7 La mascota abre con el gancho
+
+Hoy la mascota recibe los ganchos del ángulo, pero son de una persona: «Pensé que era puro cuento» o «Como dermatóloga…» no los puede decir una uña. Su apertura la inventa el guionista con el arco de `mascotSystem` («el personaje YA con el problema, en una escena graciosa»). Desde ahora sale del agente de ganchos, como la del UGC.
+
+**El agente de ganchos escribe la versión de la mascota** (`lib/hooks`):
+
+- Cada gancho suma `mascot`: `{ text, on_screen, scene, first_motion }`, o `null` si el patrón no encaja.
+  - `text`: el mismo gancho dicho por el personaje sobre sí mismo o «mi dueño», en primera persona, como mucho 9 palabras (el prompt pide 8). Por ejemplo: «Soy la uña que mi dueño esconde en zapatos cerrados».
+  - `on_screen`: como mucho 6 palabras.
+  - `scene`: la escena graciosa del cuadro 0, con el personaje YA con el problema (asomándose de un zapato cerrado, escondido bajo el pelo).
+  - `first_motion`: qué se mueve desde el cuadro 0.
+- Encajan dolor, curiosidad, contrario, vergüenza con humor, miedo, identidad y oferta. No encajan los que piden una persona o material real: confesión, autoridad, bastidores, respuesta a comentario y `real_footage`.
+- El prompt del agente explica el formato: la parte del cuerpo o la cosa con el problema, personificada, con humor y ternura, nunca asco. La escena describe la situación, no la forma del personaje: la silueta la fija el guionista con sus reglas (`RISKY_SHAPE`, `MASCOT_SHAPE`).
+- `hookProblems` suma:
+  - al menos 3 ganchos con versión de mascota, en al menos 2 patrones;
+  - largos de `text` y `on_screen`;
+  - `hookTextProblems` sobre `text` y `on_screen`, más la regla de la mascota: no le habla a quien mira de su cuerpo («tu uña», «tus pies»);
+  - `riskyShape` sobre `scene`, ignorando lo negado;
+  - `mascot` en `null` en los patrones que no encajan.
+- `usableHooks(src, "mascot")` devuelve los usables con versión de mascota, en el mismo orden. Ángulos muestra un chip «También mascota» en esos ganchos.
+
+**El guion de la mascota la ejecuta** (`mascotSystem`, `openingProblems(…, "mascot")`):
+
+- El paso 1 del arco (GANCHO) deja de ser libre: es el gancho elegido. El paso 4 (FINAL FELIZ) sigue retomando el gancho («si se escondía en zapatos, ahora va en sandalias»).
+- `opening.shot` es `mascot_scene` y `opening.hook_source` es uno de los ganchos de mascota.
+- A1 abre con el `mascot.text` del gancho, con la primera frase de 9 palabras como mucho. El primer texto en pantalla es su `mascot.on_screen` y se ancla a la primera palabra de A1.
+- **`opening.keyframe` es la imagen clave de A1 y nunca es K1.** En la mascota, K1 es el personaje SANO que fija su cara. La apertura necesita al personaje con el problema en la escena del gancho: otra imagen clave con `uses_character`, generada con K1 de referencia.
+- La imagen clave de la apertura lleva `FIRST_FRAME` con el `first_motion`, y el QA suma `matches_hook`, que bloquea igual que en el UGC.
+
+**El montaje** abre con la mascota hablando (A1). Seedance también parte de la imagen quieta, así que va con el *punch-in* y la sacudida de la apertura (§3.6).
+
+**No cambia:** el estilo de animación (`ANIMATED`), la voz (`voiceBlock(…, "mascot")`), la silueta segura y los límites de `FORMAT_LIMITS.mascot`. La parte de «que parezca de teléfono» (§4) es solo para el UGC.
 
 ## 4. Que parezca de teléfono (solo formato `ugc`)
 
@@ -140,6 +175,7 @@ Más un bloque común `HOME_PHONE` que reemplaza `PHOTO`: luz mezclada de la cas
 - **Imagen:** nitidez y saturación un poco más bajas y una leve respiración de la exposición. Grano solo muy leve y con `-tune grain`: a CRF 25 y con la recompresión de Meta, el grano fuerte sale manchado y pesa más.
 - **Audio:** micrófono de teléfono (pasa-altos ~150 Hz, pasa-bajos ~8 kHz, una compresión suave) y un ruido de habitación bajo. Sin eco marcado: sobre una voz generada suena más artificial.
 - `both` deja `…-telefono.mp4` y `…-limpio.mp4`, del mismo material.
+- En un paquete de mascota, `--look` no aplica: la animación no se ensucia.
 
 ## 5. Medición
 
@@ -152,7 +188,7 @@ Más un bloque común `HOME_PHONE` que reemplaza `PHOTO`: luz mezclada de la cas
 ### 5.2 Cómo
 
 - `lib/ads/meta/insights.ts`: `actions` ya se pide; se lee `video_view` (reproducciones de 3 s) y se suma el campo `video_thruplay_watched_actions`. `Metrics` y `ad_insights_daily` ganan `video_views_3s` y `thruplays` (migración).
-- `ad_media.creative_meta jsonb` (misma migración): para un video, `{ format, hook: { pattern, text, shot }, look }`. Lo llena «Aprobar» del video final (el guion sabe su gancho; el `look` lo dice el comerciante al subir: «Versión: Teléfono | Limpia», precargado por el nombre del archivo). Se borra con el producto (`ad_media` ya cae en cascada).
+- `ad_media.creative_meta jsonb` (misma migración): para un video, `{ format, hook: { pattern, text, shot }, look }` (en la mascota, `text` es el de su versión y `shot` es `mascot_scene`). Lo llena «Aprobar» del video final (el guion sabe su gancho; el `look` lo dice el comerciante al subir: «Versión: Teléfono | Limpia», precargado por el nombre del archivo). Se borra con el producto (`ad_media` ya cae en cascada).
 - Videos: un guion acepta hasta 2 videos finales (uno por `look`), para el A/B.
 - Anuncios y la pantalla de la campaña muestran «Tasa de gancho» y «Retención» por anuncio de video, con el patrón del gancho.
 
@@ -165,9 +201,9 @@ Con datos de varios productos, la tasa de gancho por patrón y por toma alimenta
 | Archivo | Cambio |
 |---|---|
 | `lib/hooks/catalog.ts` | `OPENING_SHOTS`, `STUDIO_WORDS` (compartida con video) |
-| `lib/hooks/prompts.ts`, `schemas.ts`, `select.ts` | `opening_shot`, `first_motion`, reglas, `usableHooks(…, "ai_video")` |
+| `lib/hooks/prompts.ts`, `schemas.ts`, `select.ts` | `opening_shot`, `first_motion`, versión `mascot` de cada gancho, reglas, `usableHooks(…, "ai_video" \| "mascot")` |
 | `lib/video/catalog.ts` | `CAMERAS`, tope de corte del B-roll de apertura |
-| `lib/video/prompts.ts` | `hookBlock` por toma, `PICTURES`, `STRUCTURE`, persona, actuación, muletillas |
+| `lib/video/prompts.ts` | `hookBlock` por toma (también `mascot_scene`), el GANCHO del arco de la mascota desde el agente, `PICTURES`, `STRUCTURE`, persona, actuación, muletillas |
 | `lib/video/schemas.ts` | `opening`, `camera`, `openingProblems`, `STUDIO_WORDS`, `phone_look` y `matches_hook` en el QA |
 | `lib/video/render.ts` | `HOME_PHONE`, bloques por cámara, variante de belleza, `FIRST_FRAME`, Seedance y Kling |
 | `lib/video/package.ts`, `scripts/ugc-montage.py` | Paquete v2 (`opening`), apertura en el segundo 0, punch-in, `--look` |
@@ -182,7 +218,7 @@ Con datos de varios productos, la tasa de gancho por patrón y por toma alimenta
 |---|---|---|
 | H0 · Medir | Tasa de gancho y retención en Anuncios; `creative_meta`. Sin esto no se sabe si lo demás sirve | — |
 | H1 · Montaje | `--look`, apertura en el segundo 0, punch-in. Se prueba sobre un video que ya existe: dos versiones del mismo material en Meta | Solo el pauteo |
-| H2 · Apertura | `opening_shot` en el agente de ganchos, `opening` en el guion, `matches_hook` | Un guion (~US$0,25) + imágenes clave (centavos) |
+| H2 · Apertura | `opening_shot` y la versión de mascota en el agente de ganchos, `opening` en los dos guiones, `matches_hook` | Un guion por formato (~US$0,25 cada uno) + imágenes clave (centavos) |
 | H3 · Aspecto de teléfono | Bloques por cámara, `STUDIO_WORDS`, Kling, Seedance, `phone_look` | Imágenes clave primero; clips solo si convencen (~US$11 por video) |
 | H4 · Modelo (aparte) | K1 con Soul 2 frente a Flare, con la clave del comerciante | Centavos (Soul ID US$2,50 si se adopta) |
 
@@ -199,14 +235,11 @@ Mismo producto, mismo ángulo, mismo público, mismo presupuesto, en un conjunto
 
 Tamaño mínimo antes de decidir: ~5.000 impresiones por variante para la tasa de gancho; el costo por pedido necesita más y se lee aparte. Crear y publicar en Meta gasta dinero real: cada prueba con autorización del comerciante.
 
-## 9. Decisiones abiertas
+## 9. Decisiones
 
-- **D1 · El rótulo «Dramatización».** El commit `cfcde35` (2026-09-26) lo sacó del montaje, pero el paquete todavía manda `label` (`lib/video/package.ts`), el prompt dice que «el montaje la rotula todo el video» (`lib/video/prompts.ts`) y `docs/spec-video-ugc.md` §8.1 lo declara obligatorio. Con un video que parece de teléfono, una persona de IA hablando en primera persona se lee como clienta real: es el caso que la regla quiere evitar, y la ley de consumo de cada país lo mira. Opciones:
-  - **a) Volver a ponerlo (recomendada):** un rótulo chico y fijo dentro de la zona segura de Reels, fuera de la franja del gancho (15–26 %) y de los subtítulos (60 %), para que no compita con la apertura. Se puede medir su efecto en la tasa de gancho con el mismo A/B.
-  - **b) Sin rótulo:** cambiar la regla de forma explícita en el prompt, en `spec-video-ugc.md` y en `CLAUDE.md`, con la razón.
-  Cualquiera de las dos corrige la contradicción de hoy.
-- **D2 · `--look` por defecto** después de la prueba: `phone` si gana; si empata, `phone` igual (no cuesta y se ve menos IA).
-- **D3 · `phone_look` bloquea o avisa:** empieza avisando; se decide con lo que registre `ai_generations`.
+- **Tomada · Sin rótulo** (2026-10-01): el video no lleva «Dramatización», «Animación» ni etiqueta de IA. En esta rama ya se sacó del paquete (`label`), de los prompts del guionista y del agente de ángulo, y de `CLAUDE.md`, `spec-video-ugc.md` y `spec-creativos.md`. No se vuelve a proponer.
+- **Abierta · D1 · `--look` por defecto** después de la prueba: `phone` si gana; si empata, `phone` igual (no cuesta y se ve menos IA).
+- **Abierta · D2 · `phone_look` bloquea o avisa:** empieza avisando; se decide con lo que registre `ai_generations`.
 
 ## 10. Fuera de esta versión
 

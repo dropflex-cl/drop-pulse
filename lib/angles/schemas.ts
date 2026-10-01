@@ -8,8 +8,8 @@ import { ANGLE_CANDIDATES, modelCriteria, SALES_ANGLES, type SalesAngle } from "
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. */
 export const ANGLE_ROUTER_PROMPT_VERSION = 6;
-/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. */
-export const ANGLE_BRIEF_PROMPT_VERSION = 3;
+/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. */
+export const ANGLE_BRIEF_PROMPT_VERSION = 4;
 
 const text = z.string();
 const maybe = z.string().nullable();

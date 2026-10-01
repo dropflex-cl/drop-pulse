@@ -15,8 +15,6 @@ export interface MontagePackage {
   language: string;
   /** Color de la palabra activa en los subtítulos (el acento de la página, o el de DropFlex). */
   accent_color: string;
-  /** Rótulo que va durante todo el video: «Dramatización» si habla una persona de IA, «Animación» si es una mascota. */
-  label: string;
   /**
    * Marca de agua (el dominio de la tienda) que el script mueve por el video para que otra tienda no
    * pueda reusarlo recortando una esquina. Null si no se pudo leer: el script avisa.
@@ -73,12 +71,6 @@ export function captionAccent(hex: string | null): string {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.4 ? hex.toUpperCase() : DEFAULT_ACCENT;
 }
 
-export function videoLabel(format: VideoFormat, language: string): string {
-  const pt = language.startsWith("pt");
-  if (format === "mascot") return pt ? "Animação" : "Animación";
-  return pt ? "Dramatização" : "Dramatización";
-}
-
 export function buildPackage(p: PackageInput): MontagePackage {
   const url = (key: string) => {
     const u = p.clipUrls.get(key);
@@ -93,7 +85,6 @@ export function buildPackage(p: PackageInput): MontagePackage {
     format: p.format ?? "ugc",
     language: p.language,
     accent_color: captionAccent(p.accentColor),
-    label: videoLabel(p.format ?? "ugc", p.language),
     watermark: p.watermark ?? null,
     a_roll: p.script.a_roll.map((a) => ({ key: a.key, line: a.line, seconds: a.seconds, url: url(a.key) })),
     b_roll: p.script.b_roll.map((b) => ({ key: b.key, anchor: b.anchor, cut_s: b.cut_s, url: url(b.key) })),

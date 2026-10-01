@@ -33,7 +33,7 @@ const script: UgcScript = {
     { anchor: "dura", until: null, text: "Lleva 3, paga 2 · $18.663 c/u" },
   ],
   end_card: { title: "Deep Collagen", subtitle: "Pagas al recibir", cta: "Comprar", small_print: ["Prueba primero en una zona pequeña."] },
-  compliance_notes: ["El rótulo «Dramatización» va durante todo el video.", "Sin antes y después de la piel."],
+  compliance_notes: ["La persona no se presenta como clienta ni como experta.", "Sin antes y después de la piel."],
 };
 
 const STEPS: VideoStep[] = ["script", "keyframes", "clips", "montage", "final"];

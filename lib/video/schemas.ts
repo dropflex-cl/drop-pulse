@@ -24,10 +24,10 @@ import {
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. */
-export const UGC_PROMPT_VERSION = 4;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. */
-export const MASCOT_PROMPT_VERSION = 4;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». */
+export const UGC_PROMPT_VERSION = 5;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». */
+export const MASCOT_PROMPT_VERSION = 5;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). */
 export const KEYFRAME_QA_PROMPT_VERSION = 2;
 

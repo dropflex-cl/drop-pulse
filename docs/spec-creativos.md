@@ -206,7 +206,7 @@ Tope por defecto: **$20 por producto** (editable en Ajustes). Al llegar al 80%, 
 ## 5. Guardrails (heredados de los agentes + nuevos)
 
 1. **Fidelidad del producto.** Referencia real en cada pieza con producto, más el QA de §3.3.
-2. **Personas de IA.** Solo narrador, demostrador o dramatización etiquetada. Nunca cliente con testimonio, experto con credencial ni antes/después de una persona. `ai_disclosure_required` se propaga a Anuncios y la etiqueta "AI-generated" se compone en el video.
+2. **Personas de IA.** Solo narrador, demostrador o dramatización. Nunca cliente con testimonio, experto con credencial ni antes/después de una persona. Sin rótulo ni etiqueta de IA en el video (decisión del comerciante, 2026-10-01; ver `spec-video-ugc.md` §8).
 3. **El texto horneado es texto publicitario.** Pasa por las mismas reglas que el copy:
    - claims de salud solo con "ayuda a", "apoya" o "diseñado para";
    - sin atributos personales en segunda persona;

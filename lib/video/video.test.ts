@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, fileSlug, montageName } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
-import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, videoLabel, watermarkText } from "./package";
+import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, watermarkText } from "./package";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
 import { applyScriptEdit, changedLines, keyframeQaVerdict, scriptProblems, words, type UgcScript } from "./schemas";
 
@@ -198,7 +198,8 @@ describe("paquete de montaje", () => {
     expect(p.a_roll.map((a) => a.url)).toHaveLength(5);
     expect(p.b_roll[0]).toMatchObject({ anchor: "minutos", cut_s: 1.2, url: "https://x/B1.mp4" });
     expect(p.end_card).toMatchObject({ image_url: "https://x/base.jpg", cta: "Comprar" });
-    expect(p.label).toBe("Dramatización");
+    // Sin rótulo de dramatización ni de animación (decisión del comerciante, 2026-10-01).
+    expect(p).not.toHaveProperty("label");
     expect(p.accent_color).toBe(DEFAULT_ACCENT);
   });
 
@@ -206,7 +207,7 @@ describe("paquete de montaje", () => {
     const ugc = buildPackage({ ...base, script: script(), clipUrls: urls });
     expect(ugc).toMatchObject({ format: "ugc", name: "deep-collagen-ugc-angulo-3" });
     const mascot = buildPackage({ ...base, format: "mascot", script: script(), clipUrls: urls });
-    expect(mascot).toMatchObject({ format: "mascot", label: "Animación", name: "deep-collagen-mascota-angulo-3" });
+    expect(mascot).toMatchObject({ format: "mascot", name: "deep-collagen-mascota-angulo-3" });
   });
 
   it("arma el nombre del archivo sin tildes ni símbolos y sin cortar palabras", () => {
@@ -353,11 +354,5 @@ describe("formato mascota", () => {
     expect(prompt).toContain("animated-movie character voice");
     expect(prompt).not.toMatch(/selfie/);
     expect(String(bRollRequest(mascot().b_roll[0], false, "mascot").input.prompt)).not.toMatch(/smartphone/);
-  });
-
-  it("el montaje la rotula como animación", () => {
-    expect(videoLabel("mascot", "es")).toBe("Animación");
-    expect(videoLabel("ugc", "es")).toBe("Dramatización");
-    expect(videoLabel("mascot", "pt-BR")).toBe("Animação");
   });
 });

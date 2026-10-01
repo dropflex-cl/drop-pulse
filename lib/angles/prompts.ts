@@ -18,7 +18,7 @@ import { ANGLE_CANDIDATES, ANGLES, modelCriteria, SALES_ANGLES, slotLabel, testA
 const COMMON_RULES = [
   "REGLAS QUE NO SE NEGOCIAN",
   "- Nada inventado que se presente como real: ni expertos, ni reseñas, ni historias, ni cifras, ni estudios, ni plazos. Si falta la prueba, dilo y propón cómo conseguirla o usa otro camino.",
-  "- Los avatares de IA no se presentan como clientes ni como expertos: pueden demostrar, explicar o actuar una dramatización etiquetada.",
+  "- Los avatares de IA no se presentan como clientes ni como expertos: pueden demostrar, explicar o actuar una dramatización (sin rótulo: el video no lo lleva).",
   "- Política de atributos personales de Meta: no afirmes ni insinúes en segunda persona la edad, salud, peso o situación del espectador. ✗ «¿Tienes más de 40 y te duele la espalda?» ✓ «Tengo 47 y mi espalda…» / «Quienes pasan 8 horas sentados…».",
   "- Salud: «ayuda a», «diseñado para», «alivia la sensación de». Nunca «cura», «trata», «elimina» ni plazos médicos.",
   "- Urgencia solo si la ficha trae una fecha real (real_deadline_or_event). Precio «antes» solo si es el tachado de PRECIO Y OFERTA.",
@@ -229,7 +229,7 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     aida: ["Atención: el peor momento con un detalle.", "Interés: contexto, escalada y giro.", "Deseo: descubrimiento y resolución.", "Acción: «si te suena, esto es lo que usó»."],
     hooks: ["«Gasté $[monto exacto] en [alternativas] antes de [evento].»", "«[Día y lugar concretos], [el mal momento]. Ahí supe que algo tenía que cambiar.»", "«[Persona inesperada] me hizo UNA pregunta que cambió cómo [manejo el problema].»", "«Casi [dejo / cancelo / pierdo] [algo que ama] por culpa de [problema].»", "«Mi [perro / mamá / pareja] ya no podía [actividad]. Esto fue lo que cambiamos.»", "«Nadie me creyó hasta que vieron [resultado].»"],
     visuals: ["Texto largo sobre una foto cotidiana (9:16), sin estética publicitaria.", "Selfie narrado por la persona real, en un solo plano.", "Estático tipo unboxing con el copy largo."],
-    guardrails: ["Solo historias reales con consentimiento, o dramatizaciones etiquetadas como tales.", "Si no hay reseñas reales en la ficha: story_is_real = false, go = false, las preguntas de entrevista en interview_questions y otro ángulo recomendado en fit_reason.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
+    guardrails: ["Solo historias reales con consentimiento, o dramatizaciones que no se presentan como el testimonio de una clienta.", "Si no hay reseñas reales en la ficha: story_is_real = false, go = false, las preguntas de entrevista en interview_questions y otro ángulo recomendado en fit_reason.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
   },
   offer: {
     role: "Eres especialista en ofertas: el pack es el mensaje (lleva 3 y paga 2, precio ancla, una fecha real). Con pago contra entrega, cada pedido paga el anuncio y el despacho una vez: el pack es lo que sostiene el CPA.",

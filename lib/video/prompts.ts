@@ -64,7 +64,7 @@ const PICTURES = [
 
 const RULES = [
   "REGLAS QUE NO SE NEGOCIAN",
-  "- La persona es de IA: es una DRAMATIZACIÓN (el montaje la rotula todo el video). Habla en primera persona como alguien del segmento, nunca como clienta real, testimonio, experta ni con credenciales. No dice su edad («tengo cuarenta y dos»): la edad del segmento se nombra en plural («las que pasamos los cuarenta») o se ve en la imagen.",
+  "- La persona es de IA. Habla en primera persona como alguien del segmento, nunca como clienta real, testimonio, experta ni con credenciales. No dice su edad («tengo cuarenta y dos»): la edad del segmento se nombra en plural («las que pasamos los cuarenta») o se ve en la imagen.",
   "- Sin antes/después de la piel o del cuerpo, sin plazos de resultado, sin cifras de estudios o ventas. El B-roll muestra el problema y la aplicación, nunca un resultado.",
   "- Salud y bienestar: «ayuda a», «apoya». Nunca «cura», «trata», «elimina», «borra», ni resultados garantizados.",
   "- Política de atributos personales de Meta: nunca la piel, la edad o el cuerpo de quien mira en segunda persona («tu piel», «a tu edad»). Primera persona («a mí se me marcaba») o plural inclusivo («las que nos maquillamos apuradas»). Hablarle de lo que HACE sí vale («¿Te maquillas en siete minutos?»).",
@@ -91,7 +91,7 @@ export function ugcSystem(market: Market): string {
     "- format_fit: si el ángulo sirve para un video con persona de IA (ugc_ai), rinde más como imagen (static) o necesita una persona real (real_video, p. ej., un testimonio o una experta). Escribe el guion igual.",
     "- El gancho sale de los hooks del desarrollo (con policy_ok true), adaptado a la voz. hook_why explica por qué detiene el scroll.",
     "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
-    "- compliance_notes: para el comerciante, qué cuidar al montar y publicar.",
+    "- compliance_notes: para el comerciante, qué cuidar al montar y publicar. Nunca pidas un rótulo de dramatización, de animación ni de IA: el video no lleva rótulo (decisión del comerciante).",
   ].join("\n");
 }
 
@@ -113,7 +113,7 @@ const MASCOT_STORY = [
   `- B-ROLL: hasta ${B_ROLL_MAX} insertos de ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX} s sobre la voz, sobre todo en el problema y el mecanismo: la crema que resbala, un corte 3D estilizado de cómo actúa por dentro (esporas, capas, fibras con caritas), la bruma del spray cayendo. Entra en una palabra dicha (anchor).`,
   "- Nada de escenas reales: todo es animación, también el B-roll. Sin pies, piel ni cuerpos reales, sin antes/después real.",
   "- TEXT_BEATS: el texto grande arriba, uno por idea (el gancho, el problema, el mecanismo en 3 a 5 palabras, la oferta). 2 a 6 palabras.",
-  "- END_CARD: 2 s finales con la foto del producto, el nombre, una línea y el botón. La letra chica no rotula la animación (el montaje pone «Animación» todo el video) ni habla de resultados, ni siquiera para negarlos («no garantiza resultados»).",
+  "- END_CARD: 2 s finales con la foto del producto, el nombre, una línea y el botón. La letra chica no rotula la animación ni habla de resultados, ni siquiera para negarlos («no garantiza resultados»).",
 ].join("\n");
 
 const MASCOT_VOICE = [
@@ -163,7 +163,7 @@ export function mascotSystem(market: Market): string {
     "- format_fit: mascot si el problema es físico y visible y se puede personificar con gracia; ugc_ai si rinde más una persona hablando; static o real_video si corresponde. Escribe el guion de mascota igual.",
     "- El gancho adapta los hooks del desarrollo (con policy_ok true) a la voz del personaje. hook_why explica por qué detiene el scroll.",
     "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
-    "- compliance_notes: para el comerciante, qué cuidar al publicar.",
+    "- compliance_notes: para el comerciante, qué cuidar al publicar. Nunca pidas un rótulo de dramatización, de animación ni de IA: el video no lleva rótulo (decisión del comerciante).",
   ].join("\n");
 }
 
