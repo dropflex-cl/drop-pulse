@@ -160,6 +160,8 @@ export const productsApi = {
   decideAngleBrief: (id: string, briefId: string, action: "approve" | "reopen") => send<AnglesState>("PATCH", `/${id}/angles/briefs/${briefId}`, { action }),
   editAngleBrief: (id: string, briefId: string, edit: AngleBriefEdit, approve: boolean) => send<AnglesState>("PUT", `/${id}/angles/briefs/${briefId}`, { edit, approve }),
   regenerateAngleBrief: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}`),
+  /** «Otros ganchos»: solo los ganchos del desarrollo, en la misma solicitud (~1 min). */
+  moreAngleHooks: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}?part=hooks`),
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
   writeCopy: (id: string, redo = false, mode?: "all" | { component: string }) => send<CopyState>("POST", `/${id}/copy`, { redo, mode }),

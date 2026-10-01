@@ -1,11 +1,13 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
-import type { AngleBriefView, AngleCandidateView, AngleOption, AngleRankingView, RunStatus, TestAngleView } from "@/lib/types";
+import type { AngleBriefView, AngleCandidateView, AngleHookView, AngleOption, AngleRankingView, RunStatus, TestAngleView } from "@/lib/types";
 import { ANGLES, testAngleName, type AngleSlot, type SalesAngle, type TestAngle } from "./catalog";
 import type { AngleBriefPayload, AngleRouterOutput } from "./schemas";
 import { rankCandidates, type ScoredAngle } from "./score";
 import { angleForPrompt, type AngleForPrompt } from "./approved";
+import { ARCHETYPE_NAMES, PATTERN_NAMES } from "@/lib/hooks/catalog";
+import type { AngleHook } from "@/lib/hooks/schemas";
 
 // angle_rankings y angle_briefs: lecturas y escrituras de la etapa Ángulos. Siempre con service_role
 // filtrando por el dueño (como lib/products/store.ts).
@@ -236,6 +238,19 @@ export function toRankingView(r: RankingRow, currentAvatarId: string | undefined
   };
 }
 
+function hookView(h: AngleHook): AngleHookView {
+  return {
+    pattern: h.pattern ? PATTERN_NAMES[h.pattern] : undefined,
+    followUp: h.follow_up ?? undefined,
+    onScreen: h.on_screen || undefined,
+    visual: h.visual_first_3s || undefined,
+    needsMaterial: h.needs_real_material?.trim() || undefined,
+    // Los ganchos que agregaba a mano el comerciante antes (sin patrón ni visual) quedaban en policy_ok false sin revisar.
+    highRisk: h.risk === "high" ? h.risk_reason || "Riesgo alto" : h.policy_ok === false && (h.pattern || h.visual_first_3s || h.edited) ? "Roza las políticas de Meta" : undefined,
+    edited: h.edited || undefined,
+  };
+}
+
 export function toBriefView(b: BriefRow, angle?: TestAngle): AngleBriefView {
   const p = b.payload;
   return {
@@ -251,6 +266,9 @@ export function toBriefView(b: BriefRow, angle?: TestAngle): AngleBriefView {
       ? {
           coreMessage: p.core_message,
           hooks: p.hooks.map((h) => h.text),
+          hookDetails: p.hooks.map(hookView),
+          hookDiagnosis: p.hook_diagnosis ? { archetype: ARCHETYPE_NAMES[p.hook_diagnosis.archetype] ?? p.hook_diagnosis.archetype, objection: p.hook_diagnosis.main_objection } : undefined,
+          hooksError: !p.hooks.length ? (p.hooks_error ?? undefined) : undefined,
           recommendedHook: Math.min(Math.max(0, p.recommended_hook), Math.max(0, p.hooks.length - 1)),
           aida: p.aida_summary,
           objections: p.objection_handling,

@@ -56,7 +56,7 @@ Un ángulo puede quedarse en «Imagen» o «Video real» (sin guion de IA): la m
 
 Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 
-- Brief del ángulo aprobado (`angle_briefs.payload`): `handoff_to_ugc`, `hooks` (con `visual_first_3s` y `policy_ok`), `recommended_hook`, `body_beats`, `objection_handling`, `proof_to_show`, `compliance_flags`, `details`.
+- Brief del ángulo aprobado (`angle_briefs.payload`): `handoff_to_ugc` (solo UGC), los ganchos usables con su tríada (`hooksForPrompt`, ver `docs/spec-ganchos.md`), `body_beats`, `objection_handling`, `proof_to_show`, `compliance_flags`, `details`.
 - Mensaje del ángulo (`chosen_angles`): dolor o deseo, segmento, promesa, momento gatillo.
 - Cliente ideal aprobado: `voice_of_customer`, `problems.trigger_moments`, objeciones, identidad.
 - **Diferenciador confirmado** (`getDifferentiator`). Hoy Creativos no lo lee: se agrega aquí y en los estáticos.

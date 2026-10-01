@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { WORDS_PER_SECOND_MAX, WORDS_PER_SECOND_PROMPT } from "./catalog";
-import { scriptSystem, ugcTail } from "./prompts";
+import type { AngleForPrompt } from "@/lib/angles/approved";
+import type { AngleBriefPayload } from "@/lib/angles/schemas";
+import type { PricingPlan } from "@/lib/pricing/plan";
+import { scriptSystem, ugcContextText, ugcTail, type UgcContext } from "./prompts";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 
@@ -23,5 +26,43 @@ describe("guion en dos bloques (lo fijo en caché)", () => {
     const retry = ugcTail(["La toma A5 tiene 17 palabras para 5 s (máximo 15)."]);
     expect(retry).toMatch(/^Tu respuesta anterior no cumple las reglas: La toma A5/);
     expect(retry).toMatch(/Escribe el guion del video UGC\.$/);
+  });
+});
+
+describe("guion: el gancho sale de la tríada", () => {
+  const payload = {
+    core_message: "c",
+    handoff_to_ugc: "Vocera de 40, cálida",
+    hooks: [
+      { text: "Pensé que era puro cuento.", visual_first_3s: "Mujer escéptica", policy_ok: true, pattern: "confession", needs_real_material: "Un testimonio real" },
+      { text: "Mira lo que pasa con el vaso.", on_screen: "PRUEBA DEL VASO", visual_first_3s: "Vaso sobre la lavadora", policy_ok: true, pattern: "demo", needs_real_material: null },
+    ],
+    recommended_hook: 1,
+  } as unknown as AngleBriefPayload;
+  const ctx = (format: "ugc" | "mascot"): UgcContext => ({
+    brief: {} as UgcContext["brief"],
+    avatar: {} as UgcContext["avatar"],
+    differentiator: null,
+    pricing: { currency: "CLP", salePrice: 1, compareAtPrice: null, packs: [], recommended: null } as unknown as PricingPlan,
+    angle: { slot: 1, name: "A", frameName: "Mecanismo único", angle: { slot: 1, frame: "unique_mechanism" }, payload } as unknown as AngleForPrompt,
+    format,
+  });
+
+  it("solo pasa los ganchos usables, con su tríada, y la mascota sin el vocero humano", () => {
+    const ugc = ugcContextText(ctx("ugc"));
+    expect(ugc).toContain("GANCHOS DEL ÁNGULO");
+    expect(ugc).toContain("PRUEBA DEL VASO");
+    expect(ugc).not.toContain("Pensé que era puro cuento");
+    expect(ugc).toContain("Vocera de 40");
+    expect(ugcContextText(ctx("mascot"))).not.toContain("Vocera de 40");
+  });
+
+  it("los dos formatos piden abrir con el gancho y su texto en pantalla", () => {
+    for (const format of ["ugc", "mascot"] as const) {
+      const sys = scriptSystem(format, CL);
+      expect(sys).toContain("EL GANCHO (los primeros 3 s");
+      expect(sys).toContain("hook_source");
+      expect(sys).toContain("primeras 3 palabras de A1");
+    }
   });
 });

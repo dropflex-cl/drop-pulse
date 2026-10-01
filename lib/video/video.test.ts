@@ -116,6 +116,46 @@ describe("scriptProblems", () => {
     s.text_beats[2].text = "Hoy $9.990";
     expect(scriptProblems(s, pricing).join(" ")).toMatch(/monto/);
   });
+
+  it("los textos en pantalla tampoco le hablan del cuerpo a quien mira", () => {
+    const s = script();
+    s.text_beats[1].text = "TUS ARRUGAS";
+    expect(scriptProblems(s, pricing).join(" ")).toMatch(/texto en pantalla 2 .* le habla a quien mira/);
+  });
+});
+
+describe("scriptProblems: la apertura del gancho", () => {
+  const opening = { hooks: [1, 0, 2] };
+
+  it("acepta el guion de la POC con el gancho de la lista", () => {
+    expect(scriptProblems({ ...script(), hook_source: 1 }, pricing, "ugc", opening)).toEqual([]);
+    expect(scriptProblems({ ...script(), hook_source: null }, pricing, "ugc", opening)).toEqual([]);
+  });
+
+  it("hook_source tiene que ser uno de los ganchos que se le pasaron", () => {
+    expect(scriptProblems({ ...script(), hook_source: 7 }, pricing, "ugc", opening).join(" ")).toMatch(/hook_source es 7, que no está/);
+  });
+
+  it("la primera frase de A1 cabe en 3 s", () => {
+    const s = script();
+    s.a_roll[0].line = "¿Te maquillas apurada en siete minutos todas las mañanas antes del trabajo? Entonces seguro cometes estos tres errores.";
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/primera frase de A1 .* tiene 12 palabras/);
+    expect(scriptProblems(s, pricing).join(" ")).not.toMatch(/primera frase/);
+  });
+
+  it("el primer texto en pantalla se lee desde el primer segundo", () => {
+    const s = script();
+    s.text_beats[0] = { ...s.text_beats[0], anchor: "errores" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/primeras 5 palabras de A1/);
+    s.text_beats[0] = { anchor: "maquillas", until: null, text: "MAQUILLAJE EN SIETE MINUTOS ANTES DEL TRABAJO" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/tiene 7 palabras; el del gancho va hasta 6/);
+  });
+
+  it("el pago contra entrega no va en el gancho", () => {
+    const s = script();
+    s.text_beats[0] = { anchor: "maquillas", until: null, text: "PAGAS AL RECIBIR" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no van en el gancho/);
+  });
 });
 
 describe("edición", () => {

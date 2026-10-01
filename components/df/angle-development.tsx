@@ -5,6 +5,7 @@ import { Button } from "./button";
 import { Icon } from "./icon";
 import { AiChip, RoleChip } from "./role-chip";
 import { StatusBadge } from "./status-badge";
+import type { AngleHookView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export type AngleDevelopmentStatus = "generando" | "generado" | "revision" | "aprobado" | "error";
@@ -25,6 +26,16 @@ export interface AngleDevelopmentValue {
 }
 
 export interface AngleDevelopmentProps extends Partial<AngleDevelopmentValue> {
+  /** El detalle de cada gancho (patrón, texto en pantalla, primera toma, avisos), en el orden de `hooks`. */
+  hookDetails?: AngleHookView[];
+  /** Arquetipo del producto y objeción principal, bajo el título de los ganchos. */
+  hookDiagnosis?: { archetype: string; objection: string };
+  /** El paso de ganchos falló: qué pasó y qué hacer. */
+  hooksError?: string;
+  /** «Otros ganchos»: reescribe solo los ganchos. */
+  onMoreHooks?: () => void;
+  /** Cuánto cuesta «Otros ganchos» («≈ $75»). */
+  moreHooksCost?: string | null;
   /** El ángulo de testeo (1, 2 o 3). */
   slot: number;
   angle: string;
@@ -36,7 +47,7 @@ export interface AngleDevelopmentProps extends Partial<AngleDevelopmentValue> {
   /** Las acciones viven en la barra fija (móvil). */
   hideActions?: boolean;
   editing?: boolean;
-  busy?: "approve" | "regenerate" | "save" | "reopen" | null;
+  busy?: "approve" | "regenerate" | "save" | "reopen" | "hooks" | null;
   onApprove?: () => void;
   onRegenerate?: () => void;
   onEdit?: () => void;
@@ -153,11 +164,41 @@ function Editor({ initial, saving, onSave, onCancel }: { initial: AngleDevelopme
         <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
           Cancelar
         </Button>
-        <Button type="submit" variant="primary" icon="check" loading={saving} disabled={!lines.length || !offer.trim() || AIDA.some(([k]) => !aida[k].trim())}>
+        <Button type="submit" variant="primary" icon="check" loading={saving} disabled={!offer.trim() || AIDA.some(([k]) => !aida[k].trim())}>
           Guardar y aprobar
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Un gancho: el hablado y, debajo, su patrón y el texto en pantalla. El recomendado muestra además la
+ * primera toma. Los que piden material real o tienen riesgo alto lo dicen: los anuncios con IA no los usan.
+ */
+function HookItem({ text, detail, recommended }: { text: string; detail?: AngleHookView; recommended: boolean }) {
+  const meta = [detail?.pattern, detail?.onScreen ? `En pantalla: «${detail.onScreen}»` : null, detail?.edited ? "Editado" : null].filter(Boolean).join(" · ");
+  const warning = detail?.needsMaterial ? `Falta material real: ${detail.needsMaterial}` : detail?.highRisk ? `Riesgo alto: ${detail.highRisk}` : null;
+  return (
+    <li>
+      <span className={cn(recommended && "font-semibold")}>
+        {text}
+        {detail?.followUp ? <span className="font-normal text-muted-foreground"> {detail.followUp}</span> : null}
+      </span>
+      {recommended ? (
+        <AiChip icon={false} className="ml-1.5 align-middle">
+          Recomendado
+        </AiChip>
+      ) : null}
+      {meta ? <span className="block text-caption text-muted-foreground">{meta}</span> : null}
+      {recommended && detail?.visual ? <span className="block text-caption text-muted-foreground">Primera toma: {detail.visual}</span> : null}
+      {warning ? (
+        <span className="mt-0.5 flex gap-1 text-caption text-warning">
+          <Icon name="alert" size="sm" className="mt-px shrink-0" />
+          {warning}. Los anuncios con IA no lo usan.
+        </span>
+      ) : null}
+    </li>
   );
 }
 
@@ -167,7 +208,7 @@ function Editor({ initial, saving, onSave, onCancel }: { initial: AngleDevelopme
  * propio estado; mientras uno genera (esqueleto), los otros ya se pueden revisar.
  */
 export function AngleDevelopment(props: AngleDevelopmentProps) {
-  const { slot, angle, frame, status = "revision", error, hooks = [], pickedHook = 0, aida, objections, offer, hideActions, editing, busy, onSave, onCancelEdit, className } = props;
+  const { slot, angle, frame, status = "revision", error, hooks = [], pickedHook = 0, hookDetails, hookDiagnosis, hooksError, onMoreHooks, moreHooksCost, aida, objections, offer, hideActions, editing, busy, onSave, onCancelEdit, className } = props;
   const [allHooks, setAllHooks] = useState(false);
 
   if (status === "generando") {
@@ -209,23 +250,35 @@ export function AngleDevelopment(props: AngleDevelopmentProps) {
         <>
           <div className="flex flex-col gap-2">
             <SectionTitle hint="abren el anuncio de este ángulo">Ganchos</SectionTitle>
-            <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-body">
+            {hookDiagnosis ? (
+              <p className="text-caption text-muted-foreground">
+                {hookDiagnosis.archetype} · Objeción principal: «{hookDiagnosis.objection}»
+              </p>
+            ) : null}
+            {hooksError ? (
+              <p role="alert" className="flex gap-2 text-small text-destructive">
+                <Icon name="alert" size="sm" className="mt-0.5 shrink-0" />
+                {hooksError}
+              </p>
+            ) : null}
+            <ol className="flex list-decimal flex-col gap-2.5 pl-5 text-body">
               {shown.map((h, i) => (
-                <li key={`${i}-${h}`} className={cn(i === pickedHook && "font-semibold")}>
-                  <span>{h}</span>
-                  {i === pickedHook ? (
-                    <AiChip icon={false} className="ml-1.5 align-middle">
-                      Recomendado
-                    </AiChip>
-                  ) : null}
-                </li>
+                <HookItem key={`${i}-${h}`} text={h} detail={hookDetails?.[i]} recommended={i === pickedHook} />
               ))}
             </ol>
-            {hooks.length > HOOKS_VISIBLE ? (
-              <button type="button" onClick={() => setAllHooks((v) => !v)} className="relative self-start py-1 text-caption text-primary underline underline-offset-3 before:absolute before:inset-x-0 before:-inset-y-2.5">
-                {allHooks ? "Ver menos" : `Ver ${hooks.length - HOOKS_VISIBLE} más`}
-              </button>
-            ) : null}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {hooks.length > HOOKS_VISIBLE ? (
+                <button type="button" onClick={() => setAllHooks((v) => !v)} className="relative py-1 text-caption text-primary underline underline-offset-3 before:absolute before:inset-x-0 before:-inset-y-2.5">
+                  {allHooks ? "Ver menos" : `Ver ${hooks.length - HOOKS_VISIBLE} más`}
+                </button>
+              ) : null}
+              {/* Solo los ganchos: el resto del desarrollo y su aprobación no cambian. Aprobado, se vuelve a revisar primero. */}
+              {onMoreHooks && status !== "aprobado" ? (
+                <Button variant="ghost" size="sm" icon="sparkle" loading={busy === "hooks"} disabled={!!busy} onClick={onMoreHooks} className="ml-auto">
+                  {moreHooksCost ? `Otros ganchos ${moreHooksCost}` : "Otros ganchos"}
+                </Button>
+              ) : null}
+            </div>
           </div>
           {aida ? (
             <div className="flex flex-col gap-2 border-t pt-3">

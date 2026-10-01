@@ -9,7 +9,10 @@ import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import type { Differentiator } from "@/lib/ai/schemas";
+import { ON_SCREEN_PROMPT_WORDS, SPOKEN_PROMPT_WORDS } from "@/lib/hooks/catalog";
+import { hooksForPrompt } from "@/lib/hooks/select";
 import {
+  HOOK_BEAT_PROMPT_WORDS,
   A_ROLL_MAX,
   A_ROLL_MIN,
   A_ROLL_SECONDS_MAX,
@@ -73,6 +76,28 @@ const RULES = [
   "- Respeta los compliance_flags y el handoff_to_ugc del desarrollo del ángulo.",
 ].join("\n");
 
+/**
+ * El gancho de 0 a 3 s (agentes-creativos/hook-cod-latam.md): sale de los ganchos del desarrollo, que
+ * ya pasaron el filtro de calidad y las reglas de código (lib/hooks). Igual en los dos formatos salvo
+ * dónde va el visual.
+ */
+function hookBlock(format: VideoFormat): string {
+  return [
+    "EL GANCHO (los primeros 3 s deciden si se ve el resto)",
+    "- Elige UNO de los GANCHOS del ángulo (vienen del mejor al peor; el primero es el recomendado) y pon su index en hook_source. Cada uno es una tríada que ya pasó el filtro: hablado (spoken), texto en pantalla (on_screen) y primera toma (visual_first_3s). Si ninguno sirve para este formato, hook_source null y escribe uno con el mismo método: saliencia (algo que mirar en medio segundo), relevancia (el cliente se reconoce en 2 s) y credibilidad (algo verificable).",
+    format === "mascot"
+      ? "- Elige un gancho que funcione dicho por el personaje sobre sí mismo (dolor, curiosidad, contrario, vergüenza con humor, demostración). La confesión de una persona o la autoridad de un experto no encajan en una mascota."
+      : "- La persona es de IA: un gancho que necesita material real (un testimonio, la bodega, un experto) no viene en la lista y no se inventa.",
+    `- A1 ABRE con el hablado del gancho, adaptado a la voz: su primera frase tiene como mucho ${SPOKEN_PROMPT_WORDS} palabras (≈3 s). El follow_up puede ser la frase siguiente. Si el hablado trae un monto, el monto va solo en pantalla: la voz no dice montos.`,
+    `- El PRIMER text_beat es el texto en pantalla del gancho (hasta ${ON_SCREEN_PROMPT_WORDS} palabras) y se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1: se lee desde el primer segundo, sin sonido.`,
+    format === "mascot"
+      ? "- La imagen clave de A1 es la escena del gancho: el personaje YA con el problema, haciendo lo que dice el visual del gancho."
+      : `- La primera imagen es el visual del gancho: si es la persona, va en la imagen clave de A1; si es un objeto, una mano, el problema o una demo, es B1, anclado a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1.`,
+    "- El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.",
+    "- Un gancho con edited_by_merchant lo escribió el comerciante: respeta su hablado.",
+  ].join("\n");
+}
+
 export function ugcSystem(market: Market): string {
   return [
     "Eres el guionista de videos UGC de una operación de dropshipping con pago contra entrega en Latinoamérica: videos cortos para anuncios de Meta, 100 % enfocados en UN ángulo de venta y hechos con IA (imagen y video generados).",
@@ -87,9 +112,11 @@ export function ugcSystem(market: Market): string {
     "",
     RULES,
     "",
+    hookBlock("ugc"),
+    "",
     "QUÉ ENTREGAS",
     "- format_fit: si el ángulo sirve para un video con persona de IA (ugc_ai), rinde más como imagen (static) o necesita una persona real (real_video, p. ej., un testimonio o una experta). Escribe el guion igual.",
-    "- El gancho sale de los hooks del desarrollo (con policy_ok true), adaptado a la voz. hook_why explica por qué detiene el scroll.",
+    "- hook_source: el index del gancho que usaste (o null). hook_why explica por qué detiene el scroll de su cliente.",
     "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
     "- compliance_notes: para el comerciante, qué cuidar al montar y publicar. Nunca pidas un rótulo de dramatización, de animación ni de IA: el video no lleva rótulo (decisión del comerciante).",
   ].join("\n");
@@ -159,9 +186,11 @@ export function mascotSystem(market: Market): string {
     "",
     MASCOT_RULES,
     "",
+    hookBlock("mascot"),
+    "",
     "QUÉ ENTREGAS",
     "- format_fit: mascot si el problema es físico y visible y se puede personificar con gracia; ugc_ai si rinde más una persona hablando; static o real_video si corresponde. Escribe el guion de mascota igual.",
-    "- El gancho adapta los hooks del desarrollo (con policy_ok true) a la voz del personaje. hook_why explica por qué detiene el scroll.",
+    "- hook_source: el index del gancho que usaste (o null), dicho por el personaje. hook_why explica por qué detiene el scroll.",
     "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
     "- compliance_notes: para el comerciante, qué cuidar al publicar. Nunca pidas un rótulo de dramatización, de animación ni de IA: el video no lleva rótulo (decisión del comerciante).",
   ].join("\n");
@@ -182,11 +211,14 @@ export interface UgcContext {
   pricing: PricingPlan;
   labels?: PackLabel[];
   angle: AngleForPrompt;
+  /** El formato cambia lo que se pasa del ángulo: la mascota no lleva el vocero humano (handoff_to_ugc). */
+  format?: VideoFormat;
 }
 
 /** Lo fijo del guion: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
 export function ugcContextText(c: UgcContext): string {
   const b = c.angle.payload;
+  const hooks = hooksForPrompt(b);
   return [
     "La imagen es la foto real del producto (la referencia de todas las tomas con producto).",
     "",
@@ -207,17 +239,18 @@ export function ugcContextText(c: UgcContext): string {
       ...angleMessage(c.angle.angle),
       core_message: b.core_message,
       psychological_lever: b.psychological_lever,
-      hooks: b.hooks,
-      recommended_hook: b.hooks[b.recommended_hook]?.text,
       aida_summary: b.aida_summary,
       body_beats: b.body_beats,
       objection_handling: b.objection_handling,
       proof_to_show: b.proof_to_show,
       offer_layer: b.offer_layer,
       compliance_flags: b.compliance_flags,
-      handoff_to_ugc: b.handoff_to_ugc,
+      ...(c.format === "mascot" ? {} : { handoff_to_ugc: b.handoff_to_ugc }),
       details: b.details,
     }),
+    "",
+    "GANCHOS DEL ÁNGULO (del mejor al peor; el primero es el recomendado)",
+    ...(hooks.length ? [json(hooks)] : ["Ninguno usable: hook_source null y escribe el gancho con el método de EL GANCHO."]),
     "",
   ].join("\n");
 }
