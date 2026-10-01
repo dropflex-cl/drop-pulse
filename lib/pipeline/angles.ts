@@ -26,8 +26,10 @@ import type { Market } from "@/lib/market";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
+import { hooksToPayload, hookTextOk, type HooksMeta } from "@/lib/hooks/schemas";
 import { getProductRow, latestAvatars, latestBrief } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
+import { baseImageBlock, HOOK_ATTEMPTS_AFTER_BRIEF, regenerateHooks, writeHooks } from "./hooks";
 import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md y
@@ -449,13 +451,33 @@ export async function runBrief(briefId: string): Promise<void> {
       maxTokens: 20000,
     });
     await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: `${b.slot} · ${ANGLES[b.angle].name}`, usage });
+    // Los ganchos, con su propio agente (lib/hooks). Si no salen, el desarrollo se guarda igual: no se
+    // vuelve a pagar el desarrollo por los ganchos, que se piden aparte con «Otros ganchos».
+    let hookFields: { hooks: AngleBriefPayload["hooks"]; recommended_hook: number } & HooksMeta;
+    try {
+      const out = await writeHooks({
+        userId: b.user_id,
+        productId: b.product_id,
+        market: r.input.market as Market,
+        ctx,
+        angle: { ...angle, frame: b.angle },
+        payload: data as Omit<AngleBriefPayload, "hooks" | "recommended_hook">,
+        others,
+        image: await baseImageBlock(b.user_id, b.product_id),
+        attempts: HOOK_ATTEMPTS_AFTER_BRIEF,
+      });
+      hookFields = hooksToPayload(out);
+    } catch (e) {
+      if (!(e instanceof AiStepError)) console.error("[angles] ganchos", e);
+      hookFields = { hooks: [], recommended_hook: 0, hooks_error: e instanceof AiStepError ? e.message : "No pudimos escribir los ganchos. Toca Otros ganchos." };
+    }
     const now = new Date().toISOString();
     fail(
       "Guardar el desarrollo",
       (
         await db
           .from("angle_briefs")
-          .update({ generation: "succeeded", payload: data, status: "generated", prompt_version: ANGLE_BRIEF_PROMPT_VERSION, model: usage.model, input_key: inputKey, finished_at: now, updated_at: now })
+          .update({ generation: "succeeded", payload: { ...data, ...hookFields }, status: "generated", prompt_version: ANGLE_BRIEF_PROMPT_VERSION, model: usage.model, input_key: inputKey, finished_at: now, updated_at: now })
           .eq("id", b.id)
           .eq("generation", "running") // si se reemplazó mientras generaba, no se pisa
       ).error,
@@ -478,6 +500,11 @@ export async function runBrief(briefId: string): Promise<void> {
       .eq("generation", "running");
     if (error) console.error("[angles] guardar la falla", error.message);
   }
+}
+
+/** «Otros ganchos»: solo los ganchos de un desarrollo (lib/pipeline/hooks.ts). */
+export function regenerateBriefHooks(userId: string, productId: string, briefId: string): Promise<void> {
+  return regenerateHooks(userId, productId, briefId, (r) => contextFor(r, r.input));
 }
 
 /** “Regenerar”: un desarrollo nuevo del mismo ángulo y papel; el anterior queda descartado. */
@@ -516,16 +543,23 @@ export async function decideBrief(userId: string, productId: string, briefId: st
   fail("Guardar tu decisión", (await adminClient().from("angle_briefs").update({ ...patch, updated_at: now }).eq("id", briefId)).error);
 }
 
-/** Aplica lo editado sobre el brief guardado (lo demás del brief no cambia). */
+/**
+ * Aplica lo editado sobre el brief guardado (lo demás del brief no cambia). Un gancho igual a uno que
+ * ya estaba lo conserva entero; uno cambiado conserva el patrón, el texto en pantalla y el visual del
+ * que estaba en esa posición, pero queda `edited` y su `policy_ok` sale de las reglas en código: el
+ * del modelo era de otro texto.
+ */
 export function applyEdit(payload: AngleBriefPayload, edit: AngleBriefEdit): AngleBriefPayload {
   const hooks = edit.hooks.map((text, i) => {
-    const before = payload.hooks.find((h) => h.text === text) ?? payload.hooks[i];
-    return before ? { ...before, text } : { text, visual_first_3s: "", policy_ok: false };
+    const same = payload.hooks.find((h) => h.text === text);
+    if (same) return same;
+    const before = payload.hooks[i];
+    return { ...(before ?? { visual_first_3s: "" }), text, edited: true, policy_ok: hookTextOk(text) };
   });
   return {
     ...payload,
     hooks,
-    recommended_hook: Math.min(edit.recommended_hook, hooks.length - 1),
+    recommended_hook: Math.max(0, Math.min(edit.recommended_hook, hooks.length - 1)),
     aida_summary: edit.aida_summary,
     objection_handling: edit.objection_handling,
     offer_layer: edit.offer_layer,

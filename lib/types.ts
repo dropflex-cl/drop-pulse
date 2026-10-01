@@ -219,10 +219,38 @@ export interface AngleRankingView {
   avatarChanged: boolean;
 }
 
+/** Un gancho del agente de ganchos (lib/hooks), como lo ve el comerciante. Los de antes solo traen el texto. */
+export interface AngleHookView {
+  /** El nombre del patrón («Demostración»). */
+  pattern?: string;
+  followUp?: string;
+  onScreen?: string;
+  /** La primera toma (0–3 s). */
+  visual?: string;
+  /** Qué material real falta para usarlo (los pasos con IA no lo usan). */
+  needsMaterial?: string;
+  /** Riesgo alto de rechazo de Meta o en la entrega, con su razón (los pasos con IA no lo usan). */
+  highRisk?: string;
+  /** El comerciante cambió el hablado. */
+  edited?: boolean;
+  /** La primera toma del video («Las manos con el producto»). */
+  openingShot?: string;
+  /** La primera toma necesita grabación real: los videos con IA no lo usan (los estáticos sí). */
+  realFootage?: boolean;
+  /** Tiene versión para el video de mascota. */
+  mascot?: boolean;
+}
+
 /** Lo que el comerciante revisa y edita de un desarrollo (AngleDevelopment). */
 export interface AngleBriefContent {
   coreMessage: string;
   hooks: string[];
+  /** El detalle de cada gancho, en el mismo orden que `hooks`. */
+  hookDetails?: AngleHookView[];
+  /** El arquetipo del producto y la objeción principal (diagnóstico del agente de ganchos). */
+  hookDiagnosis?: { archetype: string; objection: string };
+  /** El paso de ganchos falló: se piden con «Otros ganchos». */
+  hooksError?: string;
   recommendedHook: number;
   aida: { attention: string; interest: string; desire: string; action: string };
   objections: { objection: string; answer: string }[];

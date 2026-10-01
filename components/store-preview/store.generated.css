@@ -205,6 +205,9 @@
 }
 
 .df-stars__row svg {
+  /* Sin encogerse: la fila llena se recorta al % de la calificación (4,6 → 92 %); si las estrellas
+     se encogieran para caber, quedarían corridas sobre las vacías. */
+  flex: none;
   width: var(--df-stars-size);
   height: var(--df-stars-size);
 }
@@ -1370,6 +1373,177 @@ df-social-proof:not(:defined) {
   stroke-width: 22;
   stroke-linejoin: round;
   paint-order: stroke;
+}
+
+/* _landing/snippets/df-review-popup.liquid */
+.df-rp {
+  position: fixed;
+  z-index: 30;
+  inset-inline-start: 12px;
+  inset-block-end: calc(var(--df-rp-lift, 0px) + 12px + env(safe-area-inset-bottom, 0px));
+  inline-size: min(340px, calc(100vw - 24px));
+  font-family: var(--df-font-body);
+  color: var(--df-fg);
+  opacity: 0;
+  translate: 0 12px;
+  pointer-events: none;
+}
+
+.df-rp[data-state='in'] {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-df-motion='off']) .df-rp {
+    transition:
+      opacity var(--df-dur-base) var(--df-ease-exit),
+      translate var(--df-dur-base) var(--df-ease-exit),
+      inset-block-end var(--df-dur-slow) var(--df-ease-standard);
+  }
+
+  :root:not([data-df-motion='off']) .df-rp[data-state='in'] {
+    transition-duration: var(--df-dur-slow), var(--df-dur-slow), var(--df-dur-slow);
+    transition-timing-function: var(--df-ease-enter), var(--df-ease-enter), var(--df-ease-standard);
+  }
+}
+
+.df-rp__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--df-bg);
+  border: 1px solid var(--df-hairline);
+  border-radius: var(--df-radius-lg);
+  /* La sombra de las hojas flotantes de df-downsell, más corta. */
+  box-shadow: 0 8px 24px -4px rgba(21, 23, 28, 0.18);
+  padding: 12px;
+  padding-inline-end: 40px;
+}
+
+.df-rp__review {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.df-rp__photo {
+  flex: none;
+  inline-size: 64px;
+  block-size: 64px;
+  border-radius: var(--df-radius-sm);
+  overflow: hidden;
+  background: var(--df-surface);
+}
+
+.df-rp__photo img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.df-rp__photo--initial {
+  display: grid;
+  place-items: center;
+  background: var(--df-accent-soft);
+  color: var(--df-accent-ink);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.df-rp__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.df-rp__name {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+}
+
+/* Sin estirarse: el relleno parcial es un % del ancho de la fila. */
+.df-rp__content .df-stars {
+  align-self: flex-start;
+}
+
+.df-rp__text {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: var(--df-muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Área táctil de 44 px; el texto se alinea con el contenido de la reseña. */
+.df-rp__more {
+  align-self: flex-start;
+  min-block-size: 44px;
+  margin: -8px 0 -12px 64px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--df-accent-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.df-rp__close {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--df-muted);
+  cursor: pointer;
+}
+
+.df-rp__close svg {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.df-rp__close:hover {
+  color: var(--df-fg);
+}
+
+@media screen and (min-width: 750px) {
+  .df-rp {
+    inset-inline-start: 24px;
+    inset-block-end: calc(var(--df-rp-lift, 0px) + 24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .df-rp__photo {
+    inline-size: 80px;
+    block-size: 80px;
+  }
+
+  .df-rp__more {
+    margin-inline-start: 80px;
+  }
+
+  .df-rp__text {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
 }
 
 /* benefit-double-box/blocks/df-benefit-double-box.liquid */

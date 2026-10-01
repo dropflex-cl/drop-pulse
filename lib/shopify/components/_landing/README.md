@@ -85,6 +85,20 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 - **Respaldo:** si algo no calza (sin estado legible, otra versión de EasySell, un descuento de monto fijo, montos que no cuadran), no oculta nada y queda el popup de EasySell con el diseño de `df-easysell`.
 - **Probado** con una página local que reproduce el `DownsellPopup` de EasySell (easysell-cod-form-523: DOM, clases, estilos inline y la config de Datazo), con los snippets reales: aceptar, rechazar, X, Esc, velo, una vez por sesión, producto extra, salida por el borde y respaldo. **Falta:** un pedido de prueba en una tienda de desarrollo para confirmar el monto que cobra el servidor de EasySell.
 
+## Reseñas flotantes
+
+`snippets/df-review-popup.liquid` + `assets/df-review-popup.js` (al final del `<body>`, solo en la ficha): una tarjeta abajo a la izquierda que muestra reseñas aprobadas de a una, en el teléfono y en el computador. Es la función del popup de reseñas de Loox (lo usa, por ejemplo, Importaciones Barber Chile sobre Horizon), con nuestro código. Lo controla el ajuste `df_review_popup`, **encendido por defecto**: en el schema, en `config/settings_data.json` del kit y en el Liquid, que solo lo apaga con un `false` explícito (una tienda cuyo `settings_data` no tiene la clave la muestra igual).
+
+- **Solo reseñas reales:** las de `dropflex.reviews` con 4 o 5 estrellas y texto, primero las que tienen foto (la primera de cada reseña, de `dropflex.reviews_images`; sin foto, la inicial en el acento). Nunca «Juan compró hace 3 minutos»: la tienda no tiene esos datos y una compra inventada es prueba social falsa. Tampoco dice «compra verificada».
+- **Nombre:** el mismo que esa reseña lleva en el muro de testimonios (`df-review-wall`): semilla del producto, posición de la reseña y las mismas listas. `lib/store-preview/review-wall.test.ts` exige que no se separen.
+- **Ritmo** (ajustes del tema): la primera a los `df_review_popup_delay` s (8), cada una `df_review_popup_duration` s a la vista (6) y `df_review_popup_gap` s de pausa (15). Hasta `df_review_popup_max` por visita (6), sin repetir; al recargar sigue con la próxima (`sessionStorage['df:review-popup:<id>']`).
+- **Se detiene** con el mouse encima o el foco dentro, y **espera** con la pestaña oculta, con un `<dialog>` abierto o con el formulario de EasySell abierto (`.es-modal` en pantalla); si se bloquea con una reseña a la vista, la oculta.
+- **Cerrar** con la X la apaga por la sesión (`sessionStorage['df:review-popup'] = 'closed'`).
+- **Barra fija de compra:** cuando aparece (`.sticky-add-to-cart__bar[data-stuck="true"]`), la tarjeta sube sobre ella (`--df-rp-lift`, medido en cada vuelta del reloj).
+- «Ver reseñas» lleva al muro de testimonios; solo aparece si el producto lo tiene y está en la página.
+- **Accesibilidad:** `<aside>` con nombre, sin `aria-live` (no interrumpe al lector de pantalla cada pocos segundos), X de 44 px. Entra subiendo 12 px con un fundido (320 ms) y sale en 200 ms; sin movimiento con `prefers-reduced-motion` o `df_motion` apagado. No se dibuja en el editor de temas.
+- **Probado** con una página local con el CSS y el JS reales (390 y 1280 px): ritmo, mouse encima, barra fija, EasySell abierto, cerrar, recarga y movimiento reducido. **Falta:** verla en una tienda de desarrollo con reseñas publicadas.
+
 ## Galería de la ficha
 
 - **Miniaturas también en móvil** (`slideshow_mobile_controls_style: thumbnails`, en `templates/product.json` y como default del bloque): una tira de miniaturas bajo la foto que se desliza, desde el margen de 16 px, con snap (CSS en `df-design-system`).

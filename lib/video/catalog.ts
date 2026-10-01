@@ -24,8 +24,31 @@ export const B_ROLL_MAX = 10;
 export const B_ROLL_CUT_MIN = 1;
 export const B_ROLL_CUT_MAX = 2;
 export const KEYFRAMES_MAX = 9;
+/**
+ * El primer texto en pantalla (el del gancho) se ancla a una de las primeras palabras de A1: a 2,7
+ * palabras por segundo, la quinta se dice antes de los 2 s. El prompt pide las 3 primeras.
+ */
+export const HOOK_BEAT_MAX_WORD = 5;
+export const HOOK_BEAT_PROMPT_WORDS = 3;
 /** La imagen clave del personaje: todas las demás la usan de referencia para la cara. */
 export const CHARACTER_KEY = "K1";
+
+/**
+ * Con qué cámara se grabó cada imagen clave (docs/spec-video-detener-scroll.md §4.1): el render arma un
+ * bloque fijo por cámara para que el UGC parezca de teléfono. `animated` es la mascota.
+ */
+export const CAMERAS = ["selfie", "pov", "propped", "mirror", "animated"] as const;
+export type Camera = (typeof CAMERAS)[number];
+export type PhoneCamera = Exclude<Camera, "animated">;
+
+/**
+ * La primera toma del video: las del agente de ganchos que se hacen con IA (lib/hooks/catalog.ts) y la
+ * escena de la mascota. Las de la cara abren con A1; las demás, con B1 encima de la voz.
+ */
+export const VIDEO_OPENING_SHOTS = ["selfie_talk", "pov_hands", "problem_scene", "product_in_place", "mirror", "mascot_scene"] as const;
+export type VideoOpeningShot = (typeof VIDEO_OPENING_SHOTS)[number];
+export const FACE_SHOTS: readonly VideoOpeningShot[] = ["selfie_talk", "mirror", "mascot_scene"];
+export const opensWithInsert = (shot: VideoOpeningShot) => !FACE_SHOTS.includes(shot);
 
 /** Palabras que Seedance pronuncia mal de forma consistente (POC: «Rinde» → «Ride»). */
 export const MISPRONOUNCED: { word: string; instead: string }[] = [{ word: "rinde", instead: "«te dura» o «alcanza para»" }];
@@ -56,8 +79,8 @@ export const FINAL_MAX_BYTES = 100 * 1024 * 1024;
 export const FINAL_SECONDS_MIN = 10;
 export const FINAL_SECONDS_MAX = 60;
 
-/** Versión del paquete de montaje (scripts/ugc-montage.py la valida). */
-export const PACKAGE_VERSION = 1;
+/** Versión del paquete de montaje (scripts/ugc-montage.py la valida). 2: la apertura (`opening`) y el aspecto (`look`). */
+export const PACKAGE_VERSION = 2;
 
 export type ShotKind = "keyframe" | "a_roll" | "b_roll";
 

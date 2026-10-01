@@ -4,11 +4,13 @@ import { describe, expect, it } from "vitest";
 import { FEM_MARKS, INITIALS, MASC_MARKS, MEN, MONTHS, SHORT_MONTHS, WOMEN, wallAuthor, wallCounters, wallDate } from "./review-wall";
 
 const LIQUID = readFileSync(join(__dirname, "../shopify/components/review-wall/sections/df-review-wall.liquid"), "utf8");
+// Las reseñas flotantes ponen a cada reseña el mismo nombre que el muro.
+const POPUP = readFileSync(join(__dirname, "../shopify/components/_landing/snippets/df-review-popup.liquid"), "utf8");
 
 /** La lista de un `assign <name> = '…' | split: '|'` del Liquid. */
-function liquidList(name: string): string[] {
-  const m = LIQUID.match(new RegExp(`assign ${name} = '([^']*)' \\| split: '\\|'`));
-  if (!m) throw new Error(`df-review-wall.liquid no tiene la lista ${name}`);
+function liquidList(name: string, source = LIQUID): string[] {
+  const m = source.match(new RegExp(`assign ${name} = '([^']*)' \\| split: '\\|'`));
+  if (!m) throw new Error(`el Liquid no tiene la lista ${name}`);
   return m[1].split("|");
 }
 
@@ -21,6 +23,25 @@ describe("review-wall: espejo del Liquid", () => {
     expect(MASC_MARKS).toEqual(liquidList("masc_marks"));
     expect(MONTHS).toEqual(liquidList("months"));
     expect(SHORT_MONTHS).toEqual(liquidList("short_months"));
+  });
+
+  it("las reseñas flotantes usan las mismas listas, semilla y fórmula", () => {
+    for (const name of ["women", "men", "initials", "fem_marks", "masc_marks"]) {
+      expect(liquidList(name, POPUP), name).toEqual(liquidList(name));
+    }
+    for (const line of [
+      "assign seed = product.id | modulo: 9973",
+      "assign ni = ri | times: 37 | plus: seed | modulo: 50",
+      "assign ii = ri | times: 7 | plus: seed | modulo: initials.size",
+      "assign parity = seed | plus: ri | modulo: 2",
+    ]) {
+      expect(LIQUID, line).toContain(line);
+      expect(POPUP, line).toContain(line);
+    }
+    // El texto limpio con el que se buscan las marcas de mujer u hombre.
+    const clean = LIQUID.match(/assign t = review\.body[^\n]*/)?.[0];
+    expect(clean).toBeTruthy();
+    expect(POPUP).toContain(clean);
   });
 
   it("50 nombres por lista: el índice (ri × 37 + semilla) % 50 no repite en 30 reseñas", () => {

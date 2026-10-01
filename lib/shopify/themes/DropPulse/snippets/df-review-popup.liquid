@@ -1,0 +1,344 @@
+{%- doc -%}
+  DropFlex · reseñas flotantes: una tarjeta abajo a la izquierda que muestra, de a una, reseñas
+  aprobadas del producto (foto, nombre, estrellas y el comienzo del texto). Es la función del popup
+  de reseñas de Loox, con nuestro código. Va al final del <body>, solo en la ficha. Lógica en
+  assets/df-review-popup.js.
+
+  REGLA: solo reseñas reales. Salen de product.metafields.dropflex.reviews (las aprobadas que
+  publica DropFlex), con 4 o 5 estrellas y texto; primero las que tienen foto. Nunca «Juan compró
+  hace 3 minutos»: la tienda no tiene esos datos y una compra inventada es prueba social falsa.
+  Tampoco dice «compra verificada» ni las presenta como clientes de la tienda.
+
+  - El nombre es el mismo que muestra el muro de testimonios (df-review-wall) para esa reseña: un
+    nombre de pila y una inicial con la semilla del producto y la posición de la reseña. Las
+    importadas traen «Cliente», «Anónimo» o «M***a». Las listas y la fórmula son las del muro (lo
+    revisa lib/store-preview/review-wall.test.ts).
+  - Ritmo (ajustes del tema): la primera a los `df_review_popup_delay` s, cada una a la vista
+    `df_review_popup_duration` s y una pausa de `df_review_popup_gap` s entre ellas. Hasta
+    `df_review_popup_max` por visita y nunca la misma dos veces en la visita.
+  - Cerrar con la X la apaga por la sesión. Se detiene con el mouse encima o el foco dentro, y
+    espera con la pestaña oculta, con un diálogo abierto o con el formulario de EasySell abierto.
+  - Va sobre la barra fija de compra cuando esta aparece.
+  - Sin aria-live: no interrumpe al lector de pantalla cada pocos segundos. Es un <aside> con nombre.
+  - «Ver reseñas» lleva al muro de testimonios, si está en la página.
+
+  Se apaga con el ajuste `df_review_popup`. No se dibuja en el editor de temas.
+{%- enddoc -%}
+{%- liquid
+  assign df_rp_show = false
+  if template.name == 'product' and settings.df_review_popup != false and request.design_mode == false
+    assign df_rp_show = true
+  endif
+
+  if df_rp_show
+    assign reviews = product.metafields.dropflex.reviews.value.items
+    assign images = product.metafields.dropflex.reviews_images.value
+    assign max_items = settings.df_review_popup_max | default: 6 | plus: 0
+
+    # Posiciones en dropflex.reviews: primero las con foto, después las sin foto.
+    assign with_photo = ''
+    assign without_photo = ''
+    for review in reviews
+      assign r_rating = review.rating | plus: 0
+      if r_rating < 4 or review.body == blank
+        continue
+      endif
+      assign r_count = review.image_count | plus: 0
+      assign ri = forloop.index0 | append: ','
+      if r_count > 0
+        assign with_photo = with_photo | append: ri
+      else
+        assign without_photo = without_photo | append: ri
+      endif
+    endfor
+    assign picks = with_photo | append: without_photo | split: ','
+    if picks.size == 0
+      assign df_rp_show = false
+    endif
+  endif
+
+  if df_rp_show
+    # Semilla, listas y fórmula del muro de testimonios (sections/df-review-wall.liquid): la misma
+    # reseña lleva el mismo nombre en el muro y aquí.
+    assign seed = product.id | modulo: 9973
+    assign women = 'María|Camila|Valentina|Daniela|Fernanda|Javiera|Catalina|Constanza|Francisca|Sofía|Isidora|Antonia|Paula|Carolina|Andrea|Natalia|Gabriela|Paola|Claudia|Lorena|Patricia|Verónica|Macarena|Bárbara|Karina|Pamela|Alejandra|Marcela|Carla|Tamara|Nicole|Josefa|Florencia|Martina|Agustina|Trinidad|Emilia|Ignacia|Rocío|Lucía|Elena|Sandra|Mónica|Cecilia|Soledad|Ximena|Viviana|Romina|Belén|Ana' | split: '|'
+    assign men = 'Juan|José|Carlos|Luis|Jorge|Diego|Felipe|Sebastián|Matías|Nicolás|Tomás|Benjamín|Cristóbal|Ignacio|Francisco|Rodrigo|Gonzalo|Andrés|Pablo|Javier|Álvaro|Eduardo|Ricardo|Fernando|Manuel|Alejandro|Daniel|Marcelo|Mauricio|Claudio|Patricio|Cristián|Héctor|Raúl|Sergio|Víctor|Hernán|Óscar|Gustavo|Martín|Joaquín|Vicente|Agustín|Maximiliano|Esteban|Rafael|Samuel|Gabriel|Emilio|Pedro' | split: '|'
+    assign initials = 'A|B|C|D|E|F|G|H|I|J|L|M|N|O|P|R|S|T|V|Z' | split: '|'
+    assign fem_marks = ' encantada | contenta | satisfecha | enamorada | sorprendida | agradecida | cansada | embarazada | mi esposo | mi marido | mi novio ' | split: '|'
+    assign masc_marks = ' encantado | contento | satisfecho | enamorado | sorprendido | agradecido | cansado | mi esposa | mi señora | mi mujer | mi novia ' | split: '|'
+
+    assign has_wall = false
+    if product.metafields.dropflex.review_wall.value != blank
+      assign has_wall = true
+    endif
+  endif
+-%}
+{%- if df_rp_show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-review-popup.js' | asset_url }}" defer></script>
+  <df-review-popup
+    class="df df-rp"
+    style="{% render 'df-accent-vars', product: product %}"
+    data-product-id="{{ product.id }}"
+    data-delay="{{ settings.df_review_popup_delay | default: 8 }}"
+    data-duration="{{ settings.df_review_popup_duration | default: 6 }}"
+    data-gap="{{ settings.df_review_popup_gap | default: 15 }}"
+    data-max="{{ max_items }}"
+    hidden
+  >
+    <aside class="df-rp__card" aria-label="Reseñas de compradores">
+      <div class="df-rp__slot" data-df-rp-slot></div>
+      {%- if has_wall -%}
+        <button type="button" class="df-rp__more df-press" data-df-rp-more hidden>Ver reseñas</button>
+      {%- endif -%}
+      <button type="button" class="df-rp__close" data-df-rp-close aria-label="Cerrar reseñas">
+        {%- render 'df-icon', name: 'x' -%}
+      </button>
+    </aside>
+
+    {%- for pick in picks limit: max_items -%}
+      {%- liquid
+        assign ri = pick | plus: 0
+        assign review = reviews[ri]
+
+        assign t = review.body | downcase | replace: '.', ' ' | replace: ',', ' ' | replace: '!', ' ' | replace: '¡', ' ' | replace: '?', ' ' | replace: '¿', ' ' | replace: ';', ' ' | replace: ':', ' ' | replace: '(', ' ' | replace: ')', ' ' | replace: '"', ' ' | newline_to_br | replace: '<br />', ' ' | strip_newlines
+        assign t = ' ' | append: t | append: ' '
+        assign gender = ''
+        for mark in fem_marks
+          if t contains mark
+            assign gender = 'f'
+            break
+          endif
+        endfor
+        if gender == ''
+          for mark in masc_marks
+            if t contains mark
+              assign gender = 'm'
+              break
+            endif
+          endfor
+        endif
+        if gender == ''
+          assign parity = seed | plus: ri | modulo: 2
+          if parity == 0
+            assign gender = 'f'
+          else
+            assign gender = 'm'
+          endif
+        endif
+        assign ni = ri | times: 37 | plus: seed | modulo: 50
+        assign ii = ri | times: 7 | plus: seed | modulo: initials.size
+        if gender == 'f'
+          assign author = women[ni]
+        else
+          assign author = men[ni]
+        endif
+        assign author = author | append: ' ' | append: initials[ii] | append: '.'
+
+        assign photo = nil
+        assign r_count = review.image_count | plus: 0
+        if r_count > 0
+          assign from = review.image_from | plus: 0
+          for img in images
+            if forloop.index0 == from
+              assign photo = img
+              break
+            endif
+          endfor
+        endif
+
+        assign r_rating = review.rating | plus: 0
+        assign stars_label = r_rating | append: ' de 5 estrellas'
+        assign body = review.body | newline_to_br | replace: '<br />', ' ' | strip_newlines | strip | truncate: 140
+      -%}
+      <template data-df-rp-item="{{ ri }}">
+        <div class="df-rp__review">
+          {%- if photo != blank -%}
+            <span class="df-rp__photo">
+              {{- photo | image_url: width: 160 | image_tag: widths: '80, 160', sizes: '80px', alt: '', loading: 'lazy' -}}
+            </span>
+          {%- else -%}
+            <span class="df-rp__photo df-rp__photo--initial" aria-hidden="true">{{ author | slice: 0 }}</span>
+          {%- endif -%}
+          <div class="df-rp__content">
+            <p class="df-rp__name">{{ author | escape }}</p>
+            {%- render 'df-stars', rating: r_rating, size: '0.875rem', label: stars_label -%}
+            <p class="df-rp__text">“{{ body | escape }}”</p>
+          </div>
+        </div>
+      </template>
+    {%- endfor -%}
+  </df-review-popup>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-rp {
+    position: fixed;
+    z-index: 30;
+    inset-inline-start: 12px;
+    inset-block-end: calc(var(--df-rp-lift, 0px) + 12px + env(safe-area-inset-bottom, 0px));
+    inline-size: min(340px, calc(100vw - 24px));
+    font-family: var(--df-font-body);
+    color: var(--df-fg);
+    opacity: 0;
+    translate: 0 12px;
+    pointer-events: none;
+  }
+
+  .df-rp[data-state='in'] {
+    opacity: 1;
+    translate: 0 0;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-df-motion='off']) .df-rp {
+      transition:
+        opacity var(--df-dur-base) var(--df-ease-exit),
+        translate var(--df-dur-base) var(--df-ease-exit),
+        inset-block-end var(--df-dur-slow) var(--df-ease-standard);
+    }
+
+    :root:not([data-df-motion='off']) .df-rp[data-state='in'] {
+      transition-duration: var(--df-dur-slow), var(--df-dur-slow), var(--df-dur-slow);
+      transition-timing-function: var(--df-ease-enter), var(--df-ease-enter), var(--df-ease-standard);
+    }
+  }
+
+  .df-rp__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--df-bg);
+    border: 1px solid var(--df-hairline);
+    border-radius: var(--df-radius-lg);
+    /* La sombra de las hojas flotantes de df-downsell, más corta. */
+    box-shadow: 0 8px 24px -4px rgba(21, 23, 28, 0.18);
+    padding: 12px;
+    padding-inline-end: 40px;
+  }
+
+  .df-rp__review {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .df-rp__photo {
+    flex: none;
+    inline-size: 64px;
+    block-size: 64px;
+    border-radius: var(--df-radius-sm);
+    overflow: hidden;
+    background: var(--df-surface);
+  }
+
+  .df-rp__photo img {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .df-rp__photo--initial {
+    display: grid;
+    place-items: center;
+    background: var(--df-accent-soft);
+    color: var(--df-accent-ink);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .df-rp__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-inline-size: 0;
+  }
+
+  .df-rp__name {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+  }
+
+  /* Sin estirarse: el relleno parcial es un % del ancho de la fila. */
+  .df-rp__content .df-stars {
+    align-self: flex-start;
+  }
+
+  .df-rp__text {
+    margin: 2px 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    color: var(--df-muted);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* Área táctil de 44 px; el texto se alinea con el contenido de la reseña. */
+  .df-rp__more {
+    align-self: flex-start;
+    min-block-size: 44px;
+    margin: -8px 0 -12px 64px;
+    padding: 0 12px;
+    border: 0;
+    background: none;
+    color: var(--df-accent-ink);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .df-rp__close {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    display: grid;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--df-muted);
+    cursor: pointer;
+  }
+
+  .df-rp__close svg {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  .df-rp__close:hover {
+    color: var(--df-fg);
+  }
+
+  @media screen and (min-width: 750px) {
+    .df-rp {
+      inset-inline-start: 24px;
+      inset-block-end: calc(var(--df-rp-lift, 0px) + 24px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .df-rp__photo {
+      inline-size: 80px;
+      block-size: 80px;
+    }
+
+    .df-rp__more {
+      margin-inline-start: 80px;
+    }
+
+    .df-rp__text {
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+    }
+  }
+{% endstylesheet %}

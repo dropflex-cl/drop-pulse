@@ -161,6 +161,9 @@
 }
 
 .df-stars__row svg {
+  /* Sin encogerse: la fila llena se recorta al % de la calificación (4,6 → 92 %); si las estrellas
+     se encogieran para caber, quedarían corridas sobre las vacías. */
+  flex: none;
   width: var(--df-stars-size);
   height: var(--df-stars-size);
 }
