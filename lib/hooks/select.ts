@@ -1,7 +1,7 @@
 // Qué ganchos de un desarrollo se pueden usar y cómo llegan a los pasos siguientes (video, estáticos,
 // chat y el texto del anuncio). Puro, con tests.
 
-import { PATTERN_NAMES } from "./catalog";
+import { PATTERN_NAMES, type AiOpeningShot } from "./catalog";
 import type { AngleHook, HooksMeta } from "./schemas";
 
 /** Lo de un desarrollo que leen los ganchos (los de antes no traen el meta). */
@@ -16,13 +16,32 @@ export function isUsable(h: AngleHook): boolean {
   return h.policy_ok !== false && h.risk !== "high" && !h.needs_real_material?.trim() && Boolean(h.text.trim());
 }
 
+/**
+ * Para qué se usa: `any` (estáticos, chat, texto del anuncio), `ai_video` (el video con una persona de
+ * IA: sin los que piden grabación real) o `mascot` (solo los que tienen versión de mascota).
+ */
+export type HookUse = "any" | "ai_video" | "mascot";
+
+/** La primera toma de un gancho para el video con IA (los de antes de la versión 2 abren con la persona). */
+export const openingShotOf = (h: AngleHook): AiOpeningShot | null => {
+  const shot = h.opening_shot ?? "selfie_talk";
+  return shot === "real_footage" ? null : shot;
+};
+
+function fits(h: AngleHook, use: HookUse): boolean {
+  if (!isUsable(h)) return false;
+  if (use === "ai_video") return openingShotOf(h) !== null;
+  if (use === "mascot") return Boolean(h.mascot);
+  return true;
+}
+
 const total = (h: AngleHook) => (h.scores ? h.scores.salience + h.scores.relevance + h.scores.credibility + h.scores.verifiability : 0);
 
 /**
  * Los ganchos que se pueden usar, del mejor al peor: el recomendado, después el resto del top (en su
  * orden) y después los demás por puntaje. `index` es su posición en el desarrollo.
  */
-export function usableHooks(src: HookSource): { index: number; hook: AngleHook }[] {
+export function usableHooks(src: HookSource, use: HookUse = "any"): { index: number; hook: AngleHook }[] {
   const order = [src.recommended_hook, ...(src.hook_top ?? []).map((t) => t.hook)];
   const rank = (i: number) => {
     const k = order.indexOf(i);
@@ -30,7 +49,7 @@ export function usableHooks(src: HookSource): { index: number; hook: AngleHook }
   };
   return src.hooks
     .map((hook, index) => ({ index, hook }))
-    .filter(({ hook }) => isUsable(hook))
+    .filter(({ hook }) => fits(hook, use))
     .sort((a, b) => rank(a.index) - rank(b.index) || total(b.hook) - total(a.hook) || a.index - b.index);
 }
 
@@ -45,8 +64,23 @@ export function adHookText(src: HookSource | null | undefined): string {
   return h ? [h.text, h.follow_up].filter((t) => t?.trim()).join(" ") : "";
 }
 
-/** Un gancho como lo lee un prompt: la tríada, su patrón y si lo escribió el comerciante. */
-export function hookForPrompt(index: number, h: AngleHook) {
+/**
+ * Un gancho como lo lee un prompt: la tríada, su patrón y si lo escribió el comerciante. Para el video,
+ * también su primera toma; para la mascota, su versión (lo que dice el personaje y su escena).
+ */
+export function hookForPrompt(index: number, h: AngleHook, use: HookUse = "any") {
+  if (use === "mascot" && h.mascot) {
+    return {
+      index,
+      ...(h.pattern ? { pattern: `${PATTERN_NAMES[h.pattern]} (${h.pattern})` } : {}),
+      ...(h.mechanism ? { mechanism: h.mechanism } : {}),
+      spoken: h.mascot.text,
+      on_screen: h.mascot.on_screen,
+      scene: h.mascot.scene,
+      first_motion: h.mascot.first_motion,
+    };
+  }
+  const video = use === "ai_video" ? { opening_shot: openingShotOf(h), ...(h.first_motion ? { first_motion: h.first_motion } : {}) } : {};
   return {
     index,
     ...(h.pattern ? { pattern: `${PATTERN_NAMES[h.pattern]} (${h.pattern})` } : {}),
@@ -55,11 +89,12 @@ export function hookForPrompt(index: number, h: AngleHook) {
     ...(h.follow_up ? { follow_up: h.follow_up } : {}),
     ...(h.on_screen ? { on_screen: h.on_screen } : {}),
     ...(h.visual_first_3s ? { visual_first_3s: h.visual_first_3s } : {}),
+    ...video,
     ...(h.edited ? { edited_by_merchant: true } : {}),
   };
 }
 
 /** Los ganchos usables listos para un prompt, el recomendado primero. */
-export function hooksForPrompt(src: HookSource) {
-  return usableHooks(src).map(({ index, hook }) => hookForPrompt(index, hook));
+export function hooksForPrompt(src: HookSource, use: HookUse = "any") {
+  return usableHooks(src, use).map(({ index, hook }) => hookForPrompt(index, hook, use));
 }

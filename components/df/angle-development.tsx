@@ -177,8 +177,14 @@ function Editor({ initial, saving, onSave, onCancel }: { initial: AngleDevelopme
  * primera toma. Los que piden material real o tienen riesgo alto lo dicen: los anuncios con IA no los usan.
  */
 function HookItem({ text, detail, recommended }: { text: string; detail?: AngleHookView; recommended: boolean }) {
-  const meta = [detail?.pattern, detail?.onScreen ? `En pantalla: «${detail.onScreen}»` : null, detail?.edited ? "Editado" : null].filter(Boolean).join(" · ");
-  const warning = detail?.needsMaterial ? `Falta material real: ${detail.needsMaterial}` : detail?.highRisk ? `Riesgo alto: ${detail.highRisk}` : null;
+  const meta = [detail?.pattern, detail?.onScreen ? `En pantalla: «${detail.onScreen}»` : null, detail?.mascot ? "También mascota" : null, detail?.edited ? "Editado" : null].filter(Boolean).join(" · ");
+  const warning = detail?.needsMaterial
+    ? `Necesita grabación real: ${detail.needsMaterial}. Los anuncios con IA no lo usan.`
+    : detail?.highRisk
+      ? `Riesgo alto: ${detail.highRisk}. Los anuncios con IA no lo usan.`
+      : detail?.realFootage
+        ? "Necesita grabación real: los videos con IA no lo usan."
+        : null;
   return (
     <li>
       <span className={cn(recommended && "font-semibold")}>
@@ -191,11 +197,15 @@ function HookItem({ text, detail, recommended }: { text: string; detail?: AngleH
         </AiChip>
       ) : null}
       {meta ? <span className="block text-caption text-muted-foreground">{meta}</span> : null}
-      {recommended && detail?.visual ? <span className="block text-caption text-muted-foreground">Primera toma: {detail.visual}</span> : null}
+      {recommended && detail?.visual ? (
+        <span className="block text-caption text-muted-foreground">
+          Primera toma{detail.openingShot ? ` (${detail.openingShot.toLowerCase()})` : ""}: {detail.visual}
+        </span>
+      ) : null}
       {warning ? (
         <span className="mt-0.5 flex gap-1 text-caption text-warning">
           <Icon name="alert" size="sm" className="mt-px shrink-0" />
-          {warning}. Los anuncios con IA no lo usan.
+          {warning}
         </span>
       ) : null}
     </li>

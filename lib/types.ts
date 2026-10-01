@@ -228,6 +228,12 @@ export interface AngleHookView {
   highRisk?: string;
   /** El comerciante cambió el hablado. */
   edited?: boolean;
+  /** La primera toma del video («Las manos con el producto»). */
+  openingShot?: string;
+  /** La primera toma necesita grabación real: los videos con IA no lo usan (los estáticos sí). */
+  realFootage?: boolean;
+  /** Tiene versión para el video de mascota. */
+  mascot?: boolean;
 }
 
 /** Lo que el comerciante revisa y edita de un desarrollo (AngleDevelopment). */

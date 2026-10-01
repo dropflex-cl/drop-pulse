@@ -12,6 +12,10 @@ import {
   FOLLOW_UP_MAX_WORDS,
   HOOK_PATTERNS,
   HOOKS_PER_ANGLE,
+  MASCOT_PATTERNS,
+  MIN_MASCOT_HOOKS,
+  MIN_MASCOT_PATTERNS,
+  OPENING_SHOTS,
   MAX_PER_PATTERN,
   MIN_PATTERNS,
   ON_SCREEN_MAX_WORDS,
@@ -23,11 +27,12 @@ import {
   type Archetype,
   type HookPattern,
   type HookRisk,
+  type OpeningShot,
 } from "./catalog";
-import { COD_IN_HOOK, RESULT_TIMELINE, SECOND_PERSON_BODY } from "./policy";
+import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "./policy";
 
-/** Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). */
-export const HOOKS_PROMPT_VERSION = 1;
+/** Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera toma (opening_shot) y la versión de mascota. */
+export const HOOKS_PROMPT_VERSION = 2;
 
 const text = z.string();
 
@@ -50,6 +55,17 @@ const hookOut = z.object({
   risk_reason: text.describe("La razón del riesgo en 5 palabras."),
   needs_real_material: text.nullable().describe("Qué material real hace falta para usarlo sin inventar nada («Un testimonio real en video», «Grabar la bodega con los pedidos»), o null si se puede hacer con lo que hay."),
   policy_ok: z.boolean().describe("false si roza la política de atributos personales de Meta o promete un resultado de salud."),
+  opening_shot: z.enum(OPENING_SHOTS).describe("La primera toma de un video hecho con IA. real_footage si muestra el efecto o el resultado, o si necesita grabar algo real."),
+  first_motion: text.describe("Qué ya se está moviendo en el cuadro 0, en una frase."),
+  mascot: z
+    .object({
+      text: text.describe("El mismo gancho dicho por el personaje sobre sí mismo o «mi dueño», en primera persona."),
+      on_screen: text.describe("Su texto en pantalla."),
+      scene: text.describe("La escena graciosa del cuadro 0: el personaje YA con el problema, haciendo algo que muestra el gancho. La situación, no la forma del personaje."),
+      first_motion: text.describe("Qué hace el personaje desde el cuadro 0."),
+    })
+    .nullable()
+    .describe("La versión para el video de mascota, o null si el patrón no encaja (confesión, autoridad, bastidores, comentario, prueba puesta, demostración)."),
 });
 
 export const hooksOutputSchema = z.object({
@@ -98,7 +114,14 @@ export interface AngleHook {
   needs_real_material?: string | null;
   /** El comerciante cambió el hablado: el puntaje y el visual eran del texto anterior. */
   edited?: boolean;
+  /** Desde la versión 2 del agente. Los de antes valen como `selfie_talk`. */
+  opening_shot?: OpeningShot;
+  first_motion?: string;
+  /** La versión del gancho para la mascota, o null si no encaja. */
+  mascot?: MascotHook | null;
 }
+
+export type MascotHook = NonNullable<HooksOutput["hooks"][number]["mascot"]>;
 
 /** Lo que el paso de ganchos deja en el desarrollo (además de `hooks` y `recommended_hook`). */
 export interface HooksMeta {
@@ -186,7 +209,19 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     const missing = need === "always" || (need === "reviews" && !facts.hasRealReviews) || (need === "expert" && !facts.hasRealExpert);
     if (missing && !h.needs_real_material?.trim())
       problems.push(`${at}es de ${PATTERN_NAMES[h.pattern]} y la ficha no trae ese material real: dilo en needs_real_material (nunca lo inventes).`);
+    // La primera toma (docs/spec-video-detener-scroll.md §3.3).
+    if (h.needs_real_material?.trim() && h.opening_shot !== "real_footage") problems.push(`${at}pide material real: su opening_shot es real_footage.`);
+    if (need === "always" && h.opening_shot !== "real_footage") problems.push(`${at}es de ${PATTERN_NAMES[h.pattern]}: se graba de verdad, su opening_shot es real_footage.`);
+    if (!h.first_motion.trim()) problems.push(`${at}no dice qué se mueve en el cuadro 0 (first_motion).`);
+    const studio = studioWord(`${h.visual_first_3s} ${h.first_motion}`);
+    if (studio) problems.push(`${at}la primera toma usa lenguaje de estudio («${studio}»): descríbela como un video de teléfono en una casa.`);
+    problems.push(...mascotProblems(h, facts.pricing, at));
   });
+
+  const mascots = hooks.filter((h) => h.mascot);
+  const mascotPatterns = new Set(mascots.map((h) => h.pattern));
+  if (mascots.length < MIN_MASCOT_HOOKS || mascotPatterns.size < MIN_MASCOT_PATTERNS)
+    problems.push(`Trae ${mascots.length} ganchos con versión de mascota en ${mascotPatterns.size} patrones; deben ser al menos ${MIN_MASCOT_HOOKS} en ${MIN_MASCOT_PATTERNS} patrones distintos.`);
 
   if (out.top.length !== TOP_HOOKS) problems.push(`top trae ${out.top.length}; deben ser ${TOP_HOOKS}.`);
   const tops = new Set<number>();
@@ -199,6 +234,23 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     if (!t.variant.text.trim()) problems.push(`top ${i + 1} no trae su variante A/B.`);
     else if (t.variant.changes !== "visual") problems.push(...hookTextProblems(t.variant.text, facts.pricing, `La variante del top ${i + 1}: `));
   });
+  return problems;
+}
+
+/** La versión de mascota de un gancho: solo en los patrones que encajan, con sus largos y reglas. */
+function mascotProblems(h: HooksOutput["hooks"][number], pricing: PricingPlan, at: string): string[] {
+  const m = h.mascot;
+  if (!m) return [];
+  const problems: string[] = [];
+  const where = `${at}la versión de mascota `;
+  if (!MASCOT_PATTERNS.includes(h.pattern) || h.opening_shot === "real_footage") return [`${at}es de ${PATTERN_NAMES[h.pattern]}: no encaja en la mascota, mascot es null.`];
+  if (!m.text.trim() || !m.on_screen.trim() || !m.scene.trim() || !m.first_motion.trim()) problems.push(`${where}tiene campos vacíos.`);
+  if (wordCount(m.text) > SPOKEN_MAX_WORDS) problems.push(`${where}tiene ${wordCount(m.text)} palabras habladas; el máximo es ${SPOKEN_MAX_WORDS}.`);
+  if (wordCount(m.on_screen) > ON_SCREEN_MAX_WORDS) problems.push(`${where}tiene ${wordCount(m.on_screen)} palabras en pantalla; el máximo es ${ON_SCREEN_MAX_WORDS}.`);
+  for (const t of [m.text, m.on_screen]) problems.push(...hookTextProblems(t, pricing, where));
+  if (COD_IN_HOOK.test(`${m.text} ${m.on_screen}`)) problems.push(`${where}habla del pago contra entrega: va al final, no en el gancho.`);
+  const shape = riskyShape(m.scene);
+  if (shape) problems.push(`${where}describe una forma que puede leerse como algo sexual («${shape}»): la escena cuenta la situación, no la forma del personaje.`);
   return problems;
 }
 

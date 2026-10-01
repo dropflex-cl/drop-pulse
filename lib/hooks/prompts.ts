@@ -15,8 +15,13 @@ import {
   HOOK_PATTERNS,
   HOOKS_PER_ANGLE,
   LOCAL_NOTES,
+  MASCOT_PATTERNS,
   MAX_PER_PATTERN,
+  MIN_MASCOT_HOOKS,
+  MIN_MASCOT_PATTERNS,
   MIN_PATTERNS,
+  OPENING_SHOT_DEFS,
+  OPENING_SHOTS,
   ON_SCREEN_PROMPT_WORDS,
   PATTERN_DEFS,
   PATTERN_NAMES,
@@ -94,6 +99,25 @@ const WRITE = [
   `PASO 5. ELIGE EL TOP ${TOP_HOOKS} para probar primero (ninguno con riesgo alto ni policy_ok false), del mejor al tercero, con una línea de por qué y una variante A/B que cambia UNA sola variable: el hablado (spoken), el texto en pantalla (on_screen) o la primera toma (visual).`,
 ].join("\n");
 
+const OPENING = [
+  "LA PRIMERA TOMA (opening_shot): el gancho la decide y el video la cumple",
+  "Los videos se hacen con IA: una persona de IA que habla a cámara o una mascota animada, y clips cortos generados desde una imagen. El gancho no sirve si la primera imagen no lo acompaña, así que cada gancho dice con qué toma abre:",
+  ...OPENING_SHOTS.map((s) => `- ${s} (${OPENING_SHOT_DEFS[s].name}): ${OPENING_SHOT_DEFS[s].frame0}`),
+  "- Una demostración que muestra el EFECTO o el resultado (el vaso que deja de vibrar, la mancha que desaparece) hecha con IA sería una prueba inventada: engaña y sube el rechazo en la puerta. Es real_footage. Una que muestra el USO (la mano aplicando, poniendo, abriendo) sí se hace con IA: pov_hands.",
+  "- Todo gancho con needs_real_material es real_footage.",
+  "- visual_first_3s y first_motion hablan como un video de teléfono en una casa (cámara frontal, la otra mano, el baño, la cocina). Nada de «macro», «cámara lenta», «estudio», «cinematográfico» ni «luz dorada»: delatan a la IA y no detienen a nadie.",
+  "- first_motion: lo que YA se está moviendo en el cuadro 0 (la lavadora temblando, la mano bajando el frasco, la persona inclinándose hacia la cámara). Un cuadro quieto pierde el primer medio segundo.",
+].join("\n");
+
+const MASCOT = [
+  "LA VERSIÓN DE MASCOTA (mascot)",
+  "El otro video del ángulo lo cuenta una mascota 3D animada: la parte del cuerpo o la cosa que tiene el problema, personificada (la uña, el diente, la lavadora), que habla de sí misma o de «mi dueño», con humor y ternura, nunca asco.",
+  `- Escribe la versión de mascota de cada gancho que encaje, y al menos ${MIN_MASCOT_HOOKS} en ${MIN_MASCOT_PATTERNS} patrones distintos. Encajan: ${MASCOT_PATTERNS.map((p) => PATTERN_NAMES[p].toLowerCase()).join(", ")}. Los demás (y los real_footage) llevan mascot null.`,
+  `- text: el mismo gancho dicho por el personaje en primera persona («Soy la uña que mi dueño esconde en zapatos cerrados»), máximo ${SPOKEN_PROMPT_WORDS} palabras. on_screen: máximo ${ON_SCREEN_PROMPT_WORDS} palabras.`,
+  "- scene: la escena graciosa del cuadro 0, con el personaje YA con el problema y haciendo lo que muestra el gancho (asomándose de un zapato cerrado, escondido bajo el pelo). Describe la situación, no la forma del personaje: su silueta la decide el guionista.",
+  "- El personaje nunca le habla a quien mira de su cuerpo («tu uña», «tus pies»): habla de sí mismo o de su dueño.",
+].join("\n");
+
 const LIMITS = [
   "LÍMITES Y POLÍTICAS (no se negocian)",
   "- Atributos personales de Meta: nunca afirmes ni insinúes que quien mira tiene una condición médica, física, financiera o de identidad. ✗ «¿Te estás quedando calvo?», «¿Te levantas a orinar en la noche?», «tu piel», «a tu edad» → ✓ «Me estaba quedando calva y…» (primera persona) o «Esto es lo que hace la gente con caída del cabello…» (tercera). Hablarle de un OBJETO o de lo que HACE sí vale («tu lavadora», «¿Te maquillas apurada?»).",
@@ -109,21 +133,21 @@ const LIMITS = [
 const DELIVER = [
   "QUÉ ENTREGAS",
   "- diagnosis: el arquetipo principal y el secundario (o null), el dolor o deseo central con las palabras del cliente, la objeción principal («¿será estafa?», «¿sí funciona?», «¿me va a quedar?») y el riesgo de política de la categoría.",
-  `- hooks: los ${HOOKS_PER_ANGLE} ganchos con su patrón, mecanismo, tríada, puntajes, riesgo y material real que falta.`,
+  `- hooks: los ${HOOKS_PER_ANGLE} ganchos con su patrón, mecanismo, tríada, puntajes, riesgo, material real que falta, primera toma (opening_shot y first_motion) y versión de mascota (o null).`,
   `- top: los ${TOP_HOOKS} para probar primero.`,
   "- production_notes: qué hay que grabar si el video del proveedor no sirve y qué material real falta (testimonios, comentarios, tienda). Recuerda que «Pago contra entrega + envío gratis» va en el título del anuncio y la franja inferior, no en el gancho hablado.",
-  "- text, follow_up, on_screen y la variante en el idioma del mercado; mechanism, visual_first_3s, why, risk_reason, diagnosis y production_notes en español, para el comerciante.",
+  "- text, follow_up, on_screen, mascot.text, mascot.on_screen y la variante en el idioma del mercado; mechanism, visual_first_3s, first_motion, mascot.scene, mascot.first_motion, why, risk_reason, diagnosis y production_notes en español, para el comerciante.",
 ].join("\n");
 
 const EXAMPLE = [
   "EJEMPLO RESUELTO (otro producto; no lo copies)",
   "Almohadillas antivibración para lavadora, set de 4. Reducen la vibración y el ruido y evitan que la lavadora «camine». Mujeres de 30 a 55, hogar. Colombia, $59.900, contraentrega. Hay video del proveedor con demo.",
   "Diagnóstico: visible_problem + protection. Dolor: «la lavadora se mueve y suena horrible». Objeción: «¿de verdad funciona?». Riesgo de política: bajo.",
-  "1. pain · Pérdida o daño · «Esta vibración está dañando tu lavadora.» · ¿TU LAVADORA CAMINA? · Lavadora centrifugando y temblando, plano medio · 5/5/4/5 · low",
-  "2. demo · Ciclo abierto · «Mira lo que pasa con el vaso.» · PRUEBA DEL VASO · Vaso de agua sobre la lavadora vibrando → con las almohadillas, quieto · 5/4/5/5 · low si la prueba es real",
-  "3. pain (falso culpable) · Reencuadre · «No es tu lavadora, es el piso.» · NO ES LA LAVADORA · Las patas deslizándose sobre la cerámica · 4/4/4/5 · low",
-  "4. offer · Anclaje · «Un técnico te cobra más por visita.» · 4 POR $59.900 · Mano colocando las 4 almohadillas · 4/4/4/5 · low",
-  "5. contrarian · Expectativa rota · «No cambies tu lavadora todavía.» · ANTES DE COMPRAR OTRA · Mujer mirando una lavadora nueva en el celular · 4/4/3/4 · low",
+  "1. pain · Pérdida o daño · «Esta vibración está dañando tu lavadora.» · ¿TU LAVADORA CAMINA? · Lavadora centrifugando y temblando, grabada con el teléfono desde la puerta de la cocina · problem_scene · 5/5/4/5 · low · mascota: «Soy la lavadora que camina sola por la cocina.» · YO NO ME QUEDO QUIETA · la lavadora con cara, temblando y avanzando por la cocina mientras el dueño la persigue",
+  "2. demo · Ciclo abierto · «Mira lo que pasa con el vaso.» · PRUEBA DEL VASO · Vaso de agua sobre la lavadora vibrando → con las almohadillas, quieto · real_footage (muestra el efecto: con IA sería una prueba inventada) · 5/4/5/5 · low si la prueba es real · mascota: null",
+  "3. pain (falso culpable) · Reencuadre · «No es tu lavadora, es el piso.» · NO ES LA LAVADORA · Las patas deslizándose sobre la cerámica, el teléfono a la altura del piso · problem_scene · 4/4/4/5 · low · mascota: «Me culpan a mí, pero el piso resbala.» · NO ES MI CULPA · la lavadora ofendida, de brazos cruzados, resbalando sobre la cerámica",
+  "4. offer · Anclaje · «Un técnico te cobra más por visita.» · 4 POR $59.900 · La mano coloca las 4 almohadillas bajo las patas · pov_hands · 4/4/4/5 · low · mascota: null",
+  "5. contrarian · Expectativa rota · «No cambies tu lavadora todavía.» · ANTES DE COMPRAR OTRA · Una mujer frente a su lavadora, a la cámara frontal, levantando la mano para frenar · selfie_talk · 4/4/3/4 · low · mascota: «No me cambies todavía, dueña.» · ANTES DE COMPRAR OTRA · la lavadora asustada mirando un folleto de lavadoras nuevas",
   "Top 1: el 2 (movimiento, ciclo abierto y prueba verificable). Variante A/B: el mismo visual con el hablado del 1.",
 ].join("\n");
 
@@ -145,6 +169,10 @@ export function hooksSystem(market: Market): string {
     PATTERNS_BLOCK,
     "",
     WRITE,
+    "",
+    OPENING,
+    "",
+    MASCOT,
     "",
     LIMITS,
     "",

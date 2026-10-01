@@ -6,7 +6,7 @@ import { ANGLES, testAngleName, type AngleSlot, type SalesAngle, type TestAngle 
 import type { AngleBriefPayload, AngleRouterOutput } from "./schemas";
 import { rankCandidates, type ScoredAngle } from "./score";
 import { angleForPrompt, type AngleForPrompt } from "./approved";
-import { ARCHETYPE_NAMES, PATTERN_NAMES } from "@/lib/hooks/catalog";
+import { ARCHETYPE_NAMES, OPENING_SHOT_DEFS, PATTERN_NAMES } from "@/lib/hooks/catalog";
 import type { AngleHook } from "@/lib/hooks/schemas";
 
 // angle_rankings y angle_briefs: lecturas y escrituras de la etapa Ángulos. Siempre con service_role
@@ -248,6 +248,9 @@ function hookView(h: AngleHook): AngleHookView {
     // Los ganchos que agregaba a mano el comerciante antes (sin patrón ni visual) quedaban en policy_ok false sin revisar.
     highRisk: h.risk === "high" ? h.risk_reason || "Riesgo alto" : h.policy_ok === false && (h.pattern || h.visual_first_3s || h.edited) ? "Roza las políticas de Meta" : undefined,
     edited: h.edited || undefined,
+    openingShot: h.opening_shot && h.opening_shot !== "real_footage" ? OPENING_SHOT_DEFS[h.opening_shot].name : undefined,
+    realFootage: h.opening_shot === "real_footage" || undefined,
+    mascot: Boolean(h.mascot) || undefined,
   };
 }
 

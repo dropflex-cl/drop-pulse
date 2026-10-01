@@ -5,7 +5,8 @@
 import * as z from "zod/v4";
 import { claimProblems } from "@/lib/creatives/schemas";
 import { ON_SCREEN_MAX_WORDS, SPOKEN_MAX_WORDS } from "@/lib/hooks/catalog";
-import { COD_IN_HOOK, RESULT_TIMELINE, SECOND_PERSON_BODY } from "@/lib/hooks/policy";
+import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "@/lib/hooks/policy";
+export { riskyShape };
 import { wordCount } from "@/lib/hooks/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import {
@@ -140,20 +141,6 @@ const OWN_AGE = /\btengo\s+(\d+|veinti\w*|treinta|cuarenta|cincuenta|sesenta|set
 /** La primera frase de una línea (hasta el primer punto, cierre de pregunta o exclamación, o puntos suspensivos). */
 export function firstSentence(line: string): string {
   return line.trim().split(/(?<=[.?!…])\s/)[0] ?? "";
-}
-
-/** Qué está mal en un guion (del modelo o editado). Vacío si se puede guardar. */
-/** Rasgos del personaje de mascota que dan siluetas fálicas (se revisan en persona y character.look, en inglés). */
-const RISKY_SHAPE = /\b(neck|stalk|shaft|tube|cylind\w*|elongated|finger|toe|bottom edge|patch of (?:facial )?skin|skin patch|blob of (?:\w+ )*skin)\b/i;
-/**
- * Lo que el personaje NO es no cuenta: el modelo repite las prohibiciones («no neck», «never rising from
- * the bottom edge») y la primera versión de la regla rechazó así todos los intentos en producción. Se
- * quita cada tramo negado hasta la siguiente coma o punto.
- */
-const NEGATED = /\b(?:no|not|never|without|nor|instead of|rather than|free of|avoid\w*)\b[^.,;:()]*/gi;
-
-export function riskyShape(text: string): string | null {
-  return text.replace(NEGATED, " ").match(RISKY_SHAPE)?.[0] ?? null;
 }
 
 /**

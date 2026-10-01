@@ -220,6 +220,35 @@ export const PATTERN_DEFS: Record<HookPattern, PatternDef> = {
   },
 };
 
+/**
+ * La primera toma del gancho (docs/spec-video-detener-scroll.md §3.2): lo que la IA puede mostrar en el
+ * cuadro 0 sin inventar nada, o `real_footage` si hace falta grabarlo de verdad. El gancho la elige y el
+ * guion del video la ejecuta.
+ */
+export const OPENING_SHOTS = ["selfie_talk", "pov_hands", "problem_scene", "product_in_place", "mirror", "real_footage"] as const;
+export type OpeningShot = (typeof OPENING_SHOTS)[number];
+/** Las que se hacen con IA (el video con persona). */
+export type AiOpeningShot = Exclude<OpeningShot, "real_footage">;
+
+export const OPENING_SHOT_DEFS: Record<OpeningShot, { name: string; frame0: string }> = {
+  selfie_talk: { name: "La persona a cámara", frame0: "La persona habla a la cámara frontal, YA en medio del gesto del gancho (se inclina, levanta una ceja, levanta el producto)." },
+  pov_hands: { name: "Las manos con el producto", frame0: "Cámara trasera mirando hacia abajo: una mano con el producto o haciendo la acción (aplicar, poner, abrir), en la casa." },
+  problem_scene: { name: "El problema en su lugar", frame0: "El problema donde ocurre (la lavadora que tiembla, la manguera tensa), sin mostrar ningún resultado." },
+  product_in_place: { name: "El producto donde se usa", frame0: "El producto en su lugar de uso, en una mano o sobre el lavamanos; nunca en pose de catálogo." },
+  mirror: { name: "Selfie en el espejo", frame0: "La persona se graba en el espejo del baño o la pieza, cuerpo entero o medio cuerpo." },
+  real_footage: { name: "Necesita grabación real", frame0: "Algo que la IA no puede mostrar sin inventar: el efecto o el resultado, una prueba de estrés, la bodega, un testimonio." },
+};
+
+/**
+ * Los patrones que puede decir una mascota (la uña, el diente, la lavadora: lo que tiene el problema,
+ * personificado). Los que piden una persona o material real (confesión, autoridad, bastidores,
+ * respuesta a comentario, prueba puesta, demostración del efecto) no.
+ */
+export const MASCOT_PATTERNS: readonly HookPattern[] = ["pain", "curiosity", "contrarian", "social_shame", "fear", "identity", "offer"];
+/** Ganchos con versión de mascota como mínimo, y en cuántos patrones distintos. */
+export const MIN_MASCOT_HOOKS = 3;
+export const MIN_MASCOT_PATTERNS = 2;
+
 export const ARCHETYPE_NAMES = Object.fromEntries(ARCHETYPES.map((a) => [a, ARCHETYPE_DEFS[a].name])) as Record<Archetype, string>;
 export const PATTERN_NAMES = Object.fromEntries(HOOK_PATTERNS.map((p) => [p, PATTERN_DEFS[p].name])) as Record<HookPattern, string>;
 
