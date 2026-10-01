@@ -538,7 +538,7 @@ df-slider {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  padding-block: 10px;
+  padding-block: 12px;
   text-align: start;
 }
 
@@ -703,6 +703,11 @@ df-slider {
 }
 
 @container store (min-width: 750px) {
+  /* Las cajas crecen en escritorio: el aire arriba y abajo crece con ellas. */
+  .df.df-event-bar--clock {
+    padding-block: 16px;
+  }
+
   .df-event-bar__headline {
     font-size: 17px;
   }
