@@ -14,6 +14,7 @@ import { ProductApiClientError, productsApi, uploadPageImage } from "@/lib/produ
 import { productHref } from "@/lib/routes";
 import type { PageImageOptionView, PageImageSlotView, PageImagesState, ProductPageImages, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AI_SETTINGS_HREF } from "./connect-anthropic";
 import { ImageProviderPicker } from "./image-provider-picker";
 
 // Etapa Imágenes (docs/spec-imagenes.md, design-system imagenes.md): las imágenes de la página del
@@ -150,8 +151,9 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
             title="Por ahora puedes elegir tus fotos o subir otras."
             body={state.cannotGenerate}
             action={
-              !state.connected ? (
-                <Button size="sm" variant="secondary" icon="settings" href="/settings#creativos">
+              state.aiConnected === false || !state.connected ? (
+                // Falta Anthropic (la IA que propone y revisa) o un proveedor de imágenes: cada uno en su sección.
+                <Button size="sm" variant="secondary" icon="settings" href={state.aiConnected === false ? AI_SETTINGS_HREF : "/settings#creativos"}>
                   Ir a Ajustes
                 </Button>
               ) : undefined

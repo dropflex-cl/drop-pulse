@@ -9,7 +9,7 @@ import { getProductRow, latestBrief } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { saveUsageTip } from "@/lib/whatsapp/store";
 import { tipFactText, tipOutputSchema, tipProblems, USAGE_TIP_PROMPT_VERSION, usageTipContext, usageTipSystem, usageTipTail, type UsageTip } from "@/lib/whatsapp/tip";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // El consejo de uso del mensaje «Entregado» (etapa WhatsApp): una llamada chica a Claude desde la ficha
 // y la información del producto. Si no cumple las reglas (lib/whatsapp/tip.ts › tipProblems), un
@@ -21,6 +21,7 @@ const DAILY_LIMIT = 30;
 const ATTEMPTS = 2;
 
 export async function writeUsageTip(userId: string, productId: string): Promise<UsageTip> {
+  await requireAiKey(userId);
   const [row, brief, pricing, shop] = await Promise.all([getProductRow(userId, productId), latestBrief(userId, productId), getPricingPlan(userId, productId), getShopifyConnection(userId)]);
   if (!row) throw new OptimizeError("No encontramos ese producto.", 404);
   if (!brief) throw new OptimizeError("Optimiza con IA primero: el consejo sale de la ficha del producto.", 409);
@@ -39,6 +40,7 @@ export async function writeUsageTip(userId: string, productId: string): Promise<
     let result;
     try {
       result = await generateStructured({
+        userId,
         system: usageTipSystem(market),
         content: retryableContent([], context, usageTipTail(previous, problems)),
         schema: tipOutputSchema,

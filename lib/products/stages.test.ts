@@ -255,3 +255,48 @@ describe("etapa WhatsApp", () => {
     expect(stage(approved).position.nextStage).toBe("angulos");
   });
 });
+
+describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
+  const approvedAvatar = { ...base, avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
+  const anglesDone = {
+    ...approvedAvatar,
+    angles: {
+      ranking: { status: "succeeded" as const, confirmed: true },
+      briefs: [
+        { slot: 1, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
+        { slot: 2, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
+      ],
+    },
+  };
+  const byKey = (f: Parameters<typeof productPosition>[0], key: string) => productPosition(f).stages.find((s) => s.key === key)!;
+
+  it("Información base nunca se bloquea: dice que falta conectar Anthropic para optimizar", () => {
+    const p = productPosition({ ...base, ai: false });
+    expect(p.stages[0]).toMatchObject({ state: "current", desc: "Conecta Anthropic en Ajustes para optimizar" });
+    expect(p.reason).toBe("Sin optimizar · conecta Anthropic en Ajustes");
+  });
+
+  it("la etapa de IA que no ha empezado queda bloqueada con el motivo", () => {
+    expect(byKey({ ...approvedAvatar, ai: false }, "angulos")).toMatchObject({ state: "locked", desc: "Conecta Anthropic en Ajustes" });
+    expect(productPosition({ ...approvedAvatar, ai: false }).reason).toBe("Conecta Anthropic en Ajustes");
+    expect(byKey({ ...anglesDone, ai: false }, "imagenes")).toMatchObject({ state: "locked", desc: "Conecta Anthropic en Ajustes" });
+    const imagesDone = { ...anglesDone, images: { running: false, rendering: 0, options: 8, cover: true, gallery: 5 }, ai: false };
+    expect(byKey(imagesDone, "textos")).toMatchObject({ state: "locked", desc: "Conecta Anthropic en Ajustes" });
+    expect(byKey({ ...anglesDone, creatives: { connected: true, running: false, concepts: 0, rendering: 0, pending: 0, approved: 0 }, ai: false }, "creativos")).toMatchObject({
+      state: "locked",
+      desc: "Conecta Anthropic en Ajustes",
+    });
+  });
+
+  it("lo ya generado se sigue viendo y decidiendo", () => {
+    const ranking = { ...approvedAvatar, angles: { ranking: { status: "succeeded" as const, confirmed: false }, briefs: [] }, ai: false };
+    expect(byKey(ranking, "angulos")).toMatchObject({ state: "review" });
+    const images = { ...anglesDone, images: { running: false, rendering: 0, options: 3, cover: false, gallery: 0 }, ai: false };
+    expect(byKey(images, "imagenes")).toMatchObject({ state: "review" });
+    expect(byKey({ ...anglesDone, creatives: { connected: true, running: false, concepts: 6, rendering: 0, pending: 2, approved: 0 }, ai: false }, "creativos")).toMatchObject({ state: "review" });
+  });
+
+  it("sin el dato, se asume conectada", () => {
+    expect(byKey(approvedAvatar, "angulos")).toMatchObject({ state: "current" });
+  });
+});

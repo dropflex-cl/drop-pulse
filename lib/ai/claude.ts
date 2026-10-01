@@ -3,13 +3,19 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { toJSONSchema } from "zod/v4";
 import type * as z from "zod/v4";
+import { accountError, anthropicClient } from "@/lib/integrations/anthropic/client";
+import { anthropicKey, markAnthropicInvalid, NO_ANTHROPIC_KEY } from "@/lib/integrations/anthropic/connection";
+import { AI_MODEL } from "./model";
 
 // Una llamada estructurada a Claude: system estable (se cachea), contenido del producto en el
 // mensaje del usuario, salida validada con zod. Modelo: Claude Opus 5 con pensamiento adaptativo y
 // `fallbacks: "default"` (si el modelo declina por política, la API reintenta con el recomendado
 // dentro de la misma llamada).
+//
+// Cada llamada usa la clave de Anthropic del comerciante (Ajustes › Inteligencia artificial, en Vault),
+// como Higgsfield y Gemini. No hay clave del servidor de respaldo: sin clave conectada, la IA no corre.
 
-export const AI_MODEL = "claude-opus-5";
+export { AI_MODEL };
 
 /** USD por millón de tokens. Escritura de caché a 1,25×; lectura a 0,1× (Opus 5.5: 0,05×). */
 const PRICING: Record<string, { input: number; output: number; cacheRead?: number }> = {
@@ -48,14 +54,16 @@ export function costOf(model: string, u: { input: number; output: number; cacheR
   return Math.round(usd * 1_000_000) / 1_000_000;
 }
 
-function client(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY?.trim()) {
-    throw new AiStepError("config", "Falta configurar la IA en el servidor (ANTHROPIC_API_KEY). Avísanos para activarla.");
-  }
-  // Una key de organización (no creada dentro de un workspace) exige decir el workspace en cada
-  // llamada; sin él, la API responde 400. Con una key de workspace, esta variable queda vacía.
-  const workspace = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
-  return new Anthropic({ maxRetries: 2, defaultHeaders: workspace ? { "anthropic-workspace-id": workspace } : undefined });
+/**
+ * Con qué clave se llama: la del comerciante (`userId`, leída de Vault) o, solo en scripts locales
+ * (scripts/eval-models.ts), una explícita (`apiKey`). La app siempre pasa `userId`.
+ */
+export type AiAuth = { userId: string; apiKey?: never } | { apiKey: string; userId?: never };
+
+async function client(auth: AiAuth): Promise<Anthropic> {
+  const key = auth.userId ? await anthropicKey(auth.userId) : auth.apiKey;
+  if (!key) throw new AiStepError("no_key", NO_ANTHROPIC_KEY);
+  return anthropicClient(key);
 }
 
 /** La API no compila esquemas muy grandes a gramática: se reintenta sin ella (ver generateStructured). */
@@ -90,10 +98,18 @@ function checkStop(res: Message, usage: AiUsage) {
   }
 }
 
-function apiError(e: unknown): AiStepError {
+async function apiError(e: unknown, auth: AiAuth): Promise<AiStepError> {
   if (e instanceof AiStepError) return e;
+  // La clave, el saldo o el acceso del comerciante: lo arregla él en Ajustes o en su consola.
+  const account = accountError(e);
+  if (account) {
+    // Clave rechazada: queda inválida y la IA no se ofrece hasta que pegue otra (como Higgsfield y Gemini).
+    if (account.code === "invalid_key" && auth.userId) {
+      await markAnthropicInvalid(auth.userId, account.message).catch((err) => console.error("[ai] marcar la clave de Anthropic", err));
+    }
+    return new AiStepError(account.code, account.message);
+  }
   if (e instanceof Anthropic.RateLimitError) return new AiStepError("rate_limited", "La IA está con mucha demanda. Intenta de nuevo en un minuto.");
-  if (e instanceof Anthropic.AuthenticationError) return new AiStepError("config", "La IA no está bien configurada en el servidor. Avísanos para revisarla.");
   // El motivo real queda en los logs (Vercel): la pantalla solo muestra el mensaje en español.
   if (e instanceof Anthropic.APIError) console.error(`[ai] ${e.status ?? "?"} ${e.requestID ?? ""}`, e.message);
   if (e instanceof Anthropic.BadRequestError) return new AiStepError("bad_request", "La IA no pudo procesar este producto. Reintenta en un momento; si vuelve a pasar, avísanos.");
@@ -117,7 +133,8 @@ export async function generateStructured<S extends z.ZodType>({
   maxTokens = 16000,
   model = AI_MODEL,
   cacheSystem = true,
-}: {
+  ...auth
+}: AiAuth & {
   system: string;
   content: Anthropic.Beta.BetaContentBlockParam[];
   schema: S;
@@ -140,9 +157,10 @@ export async function generateStructured<S extends z.ZodType>({
     thinking: { type: "adaptive" as const },
     messages: [{ role: "user" as const, content }],
   };
+  const anthropic = await client(auth);
   let res;
   try {
-    res = await client().beta.messages.parse({
+    res = await anthropic.beta.messages.parse({
       ...base,
       output_config: { effort, format: betaZodOutputFormat(schema) },
       system: [{ type: "text", text: system, ...(cacheSystem ? { cache_control: { type: "ephemeral" as const } } : {}) }],
@@ -152,9 +170,9 @@ export async function generateStructured<S extends z.ZodType>({
       // Red de seguridad: sin gramática, el modelo devuelve el JSON como texto y se valida aquí
       // con el mismo esquema. Un esquema que llega a esto se debe achicar (ver lib/angles/schemas.ts).
       console.warn(`[ai] esquema demasiado grande para la salida estructurada (${e.requestID ?? ""}); se reintenta sin gramática`);
-      return generateUnconstrained({ base, system, schema, effort, started });
+      return generateUnconstrained({ anthropic, auth, base, system, schema, effort, started });
     }
-    throw apiError(e);
+    throw await apiError(e, auth);
   }
 
   const usage = usageOf(res, started);
@@ -166,12 +184,16 @@ export async function generateStructured<S extends z.ZodType>({
 }
 
 async function generateUnconstrained<S extends z.ZodType>({
+  anthropic,
+  auth,
   base,
   system,
   schema,
   effort,
   started,
 }: {
+  anthropic: Anthropic;
+  auth: AiAuth;
   base: Omit<Anthropic.Beta.Messages.MessageCreateParamsNonStreaming, "system" | "output_config">;
   system: string;
   schema: S;
@@ -185,7 +207,7 @@ async function generateUnconstrained<S extends z.ZodType>({
   ].join("\n");
   let res: Message;
   try {
-    res = await client().beta.messages.create({
+    res = await anthropic.beta.messages.create({
       ...base,
       output_config: { effort },
       system: [
@@ -194,7 +216,7 @@ async function generateUnconstrained<S extends z.ZodType>({
       ],
     });
   } catch (e) {
-    throw apiError(e);
+    throw await apiError(e, auth);
   }
   const usage = usageOf(res, started);
   checkStop(res, usage);

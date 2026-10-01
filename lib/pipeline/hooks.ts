@@ -14,7 +14,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import type { Market } from "@/lib/market";
 import { imagesForGeneration, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { imageBlock } from "./images";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // El agente de ganchos COD LatAm (agentes-creativos/hook-cod-latam.md, lib/hooks/): escribe los 10
 // ganchos de un ángulo justo después de su desarrollo (runBrief) y otra vez con «Otros ganchos». Lo
@@ -77,6 +77,7 @@ export async function writeHooks(w: WriteHooksInput): Promise<HooksOutput> {
     let result;
     try {
       result = await generateStructured({
+        userId: w.userId,
         system: hooksSystem(w.market),
         // La foto y el contexto con punto de caché: un reintento los lee a 0,1×.
         content: retryableContent(w.image ? [w.image] : [], hooksContextText(hooksCtx), hooksTail(problems, w.avoid)),
@@ -101,6 +102,7 @@ export async function writeHooks(w: WriteHooksInput): Promise<HooksOutput> {
 
 /** «Otros ganchos»: reescribe solo los ganchos de un desarrollo. No cambia su aprobación ni lo demás. */
 export async function regenerateHooks(userId: string, productId: string, briefId: string, contextFor: (r: RankingRow) => Promise<AngleContext>): Promise<void> {
+  await requireAiKey(userId);
   const b = await getBriefRow(userId, productId, briefId);
   if (!b || b.status === "rejected") throw new OptimizeError("Ese desarrollo ya no está vigente. Actualiza la página.", 409);
   if (b.generation !== "succeeded" || !b.payload) throw new OptimizeError("Este desarrollo todavía no está listo.", 409);

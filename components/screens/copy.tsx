@@ -21,6 +21,7 @@ import { productHref } from "@/lib/routes";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import type { CopyState, ImagePick, ProductCopy, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ConnectAnthropic } from "./connect-anthropic";
 import { PageAccent } from "./page-accent";
 import { ComponentCard } from "./page/component-card";
 import { ComponentEditor, imagesBySlot } from "./page/component-editor";
@@ -372,6 +373,9 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         />
       )
     );
+  } else if ((view === "start" || view === "failed") && product.aiConnected === false) {
+    // Como Creativos sin Higgsfield: sin la clave de Anthropic, en vez de «Escribir la página».
+    body = <ConnectAnthropic what="escribe la página de tu producto" />;
   } else if (view === "start" || view === "failed") {
     const failed = view === "failed";
     body = (

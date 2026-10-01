@@ -29,6 +29,7 @@ import { ProductApiClientError, productsApi, type TestAngleInput } from "@/lib/p
 import { productHref } from "@/lib/routes";
 import type { AngleBriefView, AngleCandidateView, AngleRankingView, AnglesState, ProductAngles, RunStatus, TestAngleView } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ConnectAnthropic } from "./connect-anthropic";
 
 // Etapa Ángulos (docs/spec-angulos-testeo.md §4): el cliente ideal aprobado y el diferenciador
 // confirmado → “Elegir ángulos con IA” → 5 ángulos candidatos (mensaje + forma) con la sugerencia de 3
@@ -455,6 +456,14 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           Ir a Información base
         </Button>
       </StickyActions>
+    );
+  } else if ((view === "start" || view === "failed") && product.aiConnected === false) {
+    // Como Creativos sin Higgsfield: sin la clave de Anthropic, en vez de «Elegir ángulos con IA».
+    body = (
+      <div className="flex flex-col gap-4 lg:max-w-content">
+        {icp}
+        <ConnectAnthropic what="propone y desarrolla tus ángulos" />
+      </div>
     );
   } else if (view === "start" || view === "failed") {
     body = (

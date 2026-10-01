@@ -9,6 +9,7 @@ import { activationExtras, effectiveWindow, eventPhase, resolveProductEvents, th
 import { copyOf, listActivations, listEventCopies, listEvents } from "@/lib/events/store";
 import { tickerPolicyItems } from "@/lib/events/ticker";
 import { dateInput, phaseLabel, rangeLabel } from "@/lib/events/view";
+import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
 import { sessionUser } from "@/lib/integrations/session";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { countryName, DEFAULT_MARKET } from "@/lib/market";
@@ -123,13 +124,16 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
   if (!event || !view) return null;
 
   const ids = rows.map((r) => r.id);
-  const [components, copies, images, pricing, policies] = await Promise.all([
+  const [components, copies, images, pricing, policies, anthropic] = await Promise.all([
     activeComponents(ctx.userId, ids),
     listEventCopies(ctx.userId, { eventId: event.id }),
     listImageRows(ctx.userId, ids),
     Promise.all(rows.map((r) => getPricingPlan(ctx.userId, r.id))),
     getStorePolicies(ctx.userId),
+    getAnthropicConnection(ctx.userId),
   ]);
+  // Los textos del evento los escribe Claude: sin la clave de Anthropic, se pide conectarla (como Higgsfield).
+  const aiConnected = anthropic?.status === "connected";
   const thumbs = rows.map((r) => baseImage(images.filter((i) => i.product_id === r.id))).filter((i): i is NonNullable<typeof i> => Boolean(i));
   const urls = await withDisplayUrls(thumbs);
 
@@ -149,7 +153,8 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
       effective: resolved ? { scope: resolved.scope, intensity: resolved.intensity } : null,
       override: own ? activationView(own, ctx.timezone) : null,
       copy: copy ? { status: copy.status, text: copyOf(copy), error: copy.error_message } : null,
-      copyLocked: listing ? null : "Aprueba la ficha en Página del producto para adaptar sus textos.",
+      copyLocked: !listing ? "Aprueba la ficha en Página del producto para adaptar sus textos." : !aiConnected && !copy ? "Conecta tu cuenta de Anthropic en Ajustes para que la IA adapte sus textos." : null,
+      copyNeedsAi: Boolean(listing) && !aiConnected && !copy,
       preview: {
         title: listing?.title ?? r.title,
         subtitle: listing?.short_description ?? "",

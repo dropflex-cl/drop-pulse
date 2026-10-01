@@ -179,9 +179,11 @@ export const productsApi = {
 };
 
 /** Los proveedores de imágenes con clave propia del comerciante (Ajustes › Anuncios con IA). */
-export type ApiKeyProvider = "higgsfield" | "gemini";
+export type ApiKeyProvider = "anthropic" | "higgsfield" | "gemini";
 
-/** Ajustes › Anuncios con IA › Higgsfield o Gemini (/api/settings/<proveedor>). Mismo contrato de errores que /api/products. */
+const API_KEY_NAMES: Record<ApiKeyProvider, string> = { anthropic: "Anthropic", higgsfield: "Higgsfield", gemini: "Gemini" };
+
+/** Ajustes › Anthropic, Higgsfield o Gemini (/api/settings/<proveedor>). Mismo contrato de errores que /api/products. */
 export const apiKeyApi = {
   connect: async (provider: ApiKeyProvider, key: string) => {
     const res = await fetch(`/api/settings/${provider}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }), cache: "no-store" }).catch(() => null);
@@ -192,7 +194,7 @@ export const apiKeyApi = {
   },
   disconnect: async (provider: ApiKeyProvider) => {
     const res = await fetch(`/api/settings/${provider}`, { method: "DELETE", cache: "no-store" }).catch(() => null);
-    if (!res?.ok) throw new ProductApiClientError(`No pudimos desconectar ${provider === "gemini" ? "Gemini" : "Higgsfield"}. Intenta de nuevo.`);
+    if (!res?.ok) throw new ProductApiClientError(`No pudimos desconectar ${API_KEY_NAMES[provider]}. Intenta de nuevo.`);
   },
 };
 

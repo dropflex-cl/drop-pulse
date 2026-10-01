@@ -9,7 +9,7 @@ import { latestPackLabels, saveGeneratedPackLabels } from "@/lib/pricing/labels-
 import { getPricingPlan } from "@/lib/pricing/store";
 import { latestAvatars, latestBrief } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // “Otras etiquetas” en Precio y packs: una llamada chica, solo con las etiquetas, que parte de la
 // ficha, el cliente ideal y el precio vigentes. Las primeras salen con el cliente ideal (optimize.ts).
@@ -19,6 +19,7 @@ const DAILY_LIMIT = 40;
 
 
 export async function regeneratePackLabels(userId: string, productId: string) {
+  await requireAiKey(userId);
   const [brief, pricing, avatars, previous] = await Promise.all([
     latestBrief(userId, productId),
     getPricingPlan(userId, productId),
@@ -42,6 +43,7 @@ export async function regeneratePackLabels(userId: string, productId: string) {
   let result;
   try {
     result = await generateStructured({
+      userId,
       system: packLabelsSystem(market),
       content: [
         {

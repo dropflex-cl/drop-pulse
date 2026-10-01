@@ -27,6 +27,7 @@ import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
 import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { VIDEO_FORMATS } from "@/lib/video/catalog";
 import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
+import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
@@ -150,6 +151,7 @@ function toProduct(
   creatives?: CreativeFacts,
   images?: ImageFacts,
   publish?: PublishFacts | null,
+  ai = true,
 ): Product {
   const position = productPosition({
     price: Number(row.price),
@@ -163,6 +165,7 @@ function toProduct(
     creatives,
     images,
     publish,
+    ai,
   });
   return {
     id: row.id,
@@ -179,6 +182,7 @@ function toProduct(
     status: position.status,
     anglesPhase: position.anglesPhase,
     copyPhase: position.copyPhase,
+    aiConnected: ai,
     supplierCost: row.cost == null ? 0 : Number(row.cost),
     price: Number(row.price),
     currency: row.currency,
@@ -193,7 +197,7 @@ function toProduct(
 export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [imageRows, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications] = await Promise.all([
+  const [imageRows, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic] = await Promise.all([
     images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
     latestRunStates(uid, ids),
     latestAvatarStates(uid, ids),
@@ -205,7 +209,9 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
     creativeFacts(uid, ids),
     pageImageCounts(uid, ids),
     getPublications(uid, ids),
+    getAnthropicConnection(uid),
   ]);
+  const ai = anthropic?.status === "connected";
   const covers = rows.map((r) => cover(imageRows.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
   const [briefs, urls] = await Promise.all([
     currentBriefStates(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id)),
@@ -217,7 +223,7 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
     const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen, ranking);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)));
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai);
   });
 }
 
@@ -485,7 +491,7 @@ export const getProductPageImages = cache(async (id: string): Promise<ProductPag
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/page-images). */
 export async function pageImagesState(uid: string, productId: string): Promise<PageImagesState> {
-  const [choice, briefStamp, runs, shots, rows, refs, blocker] = await Promise.all([
+  const [choice, briefStamp, runs, shots, rows, refs, blocker, anthropic] = await Promise.all([
     imageProviderChoice(uid, "page_images"),
     approvedBriefStamp(uid, productId),
     latestPageImageRuns(uid, [productId]),
@@ -493,8 +499,11 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     pageImageRows(uid, [productId]),
     listImageRows(uid, [productId]),
     generationBlocker(uid, productId),
+    getAnthropicConnection(uid),
   ]);
   const inUse = refs.filter((r) => !r.excluded);
+  // El director de galería y el QA de cada imagen son de Claude: sin la clave de Anthropic no se genera.
+  const aiConnected = anthropic?.status === "connected";
   const [urls, refUrls] = await Promise.all([signedPageUrls([...new Set(rows.map((r) => r.storage_path).filter((p): p is string => Boolean(p)))]), withDisplayUrls(inUse)]);
   for (const [id, src] of refUrls) urls.set(`ref:${id}`, src);
   const run = runs.get(productId);
@@ -505,8 +514,9 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   return {
     locked: briefStamp ? null : "Aprueba los desarrollos de tus ángulos para preparar las imágenes.",
     connected,
+    aiConnected,
     imageProvider: choice,
-    cannotGenerate: blocker ?? (connected ? null : noProvider),
+    cannotGenerate: blocker ?? (!aiConnected ? "Conecta tu cuenta de Anthropic en Ajustes: la IA propone las tomas y revisa cada imagen." : connected ? null : noProvider),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),

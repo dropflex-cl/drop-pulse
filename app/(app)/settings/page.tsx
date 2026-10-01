@@ -7,7 +7,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAiCostSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
+import { getAdSettings, getAiCostSettings, getAnthropicSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
 import { PolicySettings } from "@/components/screens/policy-settings";
 import { AiCostSettings } from "@/components/screens/ai-cost-settings";
 import { ApiKeySettings } from "@/components/screens/api-key-settings";
@@ -27,10 +27,11 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, higgsfield, gemini, aiCost, policies] = await Promise.all([
+  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies] = await Promise.all([
     getAssumptions(),
     getMarketSettings(),
     getAdSettings(),
+    getAnthropicSettings(),
     getHiggsfieldSettings(),
     getGeminiSettings(),
     getAiCostSettings(),
@@ -65,6 +66,11 @@ export default async function AjustesPage() {
             </div>
           </Suspense>
         </Section>
+        {anthropic ? (
+          <Section id="ia" title="Inteligencia artificial" description="Tu cuenta de Anthropic (Claude): la IA de DropFlex escribe y revisa con tu clave y tu saldo. Sin ella, la IA no corre.">
+            <ApiKeySettings provider="anthropic" keyHint={anthropic.keyHint} status={anthropic.status} error={anthropic.error} />
+          </Section>
+        ) : null}
         {higgsfield && gemini ? (
           <Section id="creativos" title="Anuncios con IA" description="Tus cuentas de Higgsfield y Gemini: generas las imágenes de tus anuncios y de tu página con tu clave y tus créditos. En cada pantalla eliges con cuál.">
             <div className="flex flex-col gap-3">

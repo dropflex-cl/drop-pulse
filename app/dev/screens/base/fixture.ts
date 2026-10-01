@@ -74,6 +74,8 @@ export function fixture(state: string): ProductBase {
     currency: "CLP",
     run: run ? { status: run.status, error: run.error, createdAt: run.createdAt } : null,
     avatar: avatar ? { status: avatar.status, createdAt: avatar.createdAt } : null,
+     // ?state=ai: sin la clave de Anthropic.
+    ai: state !== "ai",
   });
   return {
     product: {
@@ -89,6 +91,7 @@ export function fixture(state: string): ProductBase {
       stages: pos.stages,
       summary: pos.summary,
       status: pos.status,
+      aiConnected: state !== "ai",
       supplierCost: 6900,
       price: 24990,
       currency: "CLP",

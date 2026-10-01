@@ -8,6 +8,9 @@
 // --repair: la página pasa por writePage (lib/copy/write.ts), con las correcciones de la app; sin él
 // se mide solo el primer intento.
 //
+// La clave de Anthropic va explícita en ANTHROPIC_API_KEY (.env.local): solo este script la lee del
+// entorno; la app usa siempre la clave del comerciante (Ajustes › Inteligencia artificial).
+//
 // Cada llamada cuesta dinero real (Opus ~US$0,30 la página, Sonnet ~40% de eso). --dry solo arma
 // los prompts. El JSON de entrada: por producto, product, brief, avatar, copyInput (copy_runs.input),
 // optimizeInput (pipeline_runs.input), angles (angle_briefs aprobados) y reviews (aprobadas).
@@ -29,6 +32,7 @@ import { displayText } from "@/lib/reviews/rows";
 
 const MODELS = (process.argv.includes("--models") ? process.argv[process.argv.indexOf("--models") + 1] : "claude-opus-5,claude-sonnet-5").split(",");
 const REPAIR = process.argv.includes("--repair");
+const API_KEY = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
 
 interface ProdInput {
   product: { id: string; title: string; description: string | null; base_info: string | null };
@@ -98,10 +102,10 @@ function copyJobs(d: ProdInput, samples: number): Job[] {
       run: REPAIR
         ? async () => {
             const attempts: PageAttempt[] = [];
-            const r = await writePage({ ctx, market: input.market, facts, model, onAttempt: (a) => void attempts.push(a) });
+            const r = await writePage({ auth: { apiKey: API_KEY }, ctx, market: input.market, facts, model, onAttempt: (a) => void attempts.push(a) });
             return { data: r.data, usage: sumUsage(attempts.map((a) => a.usage)), attempts };
           }
-        : () => generateStructured({ system, content: [{ type: "text", text: user }], schema, effort: "medium", maxTokens: 16000, model }),
+        : () => generateStructured({ apiKey: API_KEY, system, content: [{ type: "text", text: user }], schema, effort: "medium", maxTokens: 16000, model }),
       check: (data: unknown) => pageProblems(data as PageOutput, write, facts),
     })),
   );
@@ -117,7 +121,7 @@ function avatarJobs(d: ProdInput): Job[] {
     model,
     sample: 0,
     prompt: `${system}\n\n=====\n\n${user}`,
-    run: () => generateStructured({ system, content: [{ type: "text", text: user }], schema: avatarStepSchema, effort: "high", model }),
+    run: () => generateStructured({ apiKey: API_KEY, system, content: [{ type: "text", text: user }], schema: avatarStepSchema, effort: "high", model }),
     // La app no valida el cliente ideal más allá del esquema: la calidad se lee a mano.
     check: () => [],
   }));
