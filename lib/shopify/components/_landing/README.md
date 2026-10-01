@@ -87,7 +87,7 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 
 ## Reseñas flotantes
 
-`snippets/df-review-popup.liquid` + `assets/df-review-popup.js` (al final del `<body>`, solo en la ficha): una tarjeta abajo a la izquierda que muestra reseñas aprobadas de a una, en el teléfono y en el computador. Es la función del popup de reseñas de Loox (lo usa, por ejemplo, Importaciones Barber Chile sobre Horizon), con nuestro código. Lo controla el ajuste `df_review_popup`, encendido por defecto.
+`snippets/df-review-popup.liquid` + `assets/df-review-popup.js` (al final del `<body>`, solo en la ficha): una tarjeta abajo a la izquierda que muestra reseñas aprobadas de a una, en el teléfono y en el computador. Es la función del popup de reseñas de Loox (lo usa, por ejemplo, Importaciones Barber Chile sobre Horizon), con nuestro código. Lo controla el ajuste `df_review_popup`, **encendido por defecto**: en el schema, en `config/settings_data.json` del kit y en el Liquid, que solo lo apaga con un `false` explícito (una tienda cuyo `settings_data` no tiene la clave la muestra igual).
 
 - **Solo reseñas reales:** las de `dropflex.reviews` con 4 o 5 estrellas y texto, primero las que tienen foto (la primera de cada reseña, de `dropflex.reviews_images`; sin foto, la inicial en el acento). Nunca «Juan compró hace 3 minutos»: la tienda no tiene esos datos y una compra inventada es prueba social falsa. Tampoco dice «compra verificada».
 - **Nombre:** el mismo que esa reseña lleva en el muro de testimonios (`df-review-wall`): semilla del producto, posición de la reseña y las mismas listas. `lib/store-preview/review-wall.test.ts` exige que no se separen.
