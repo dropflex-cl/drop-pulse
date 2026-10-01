@@ -28,6 +28,12 @@ openai-whisper`). Sin Whisper, los tiempos se estiman por el largo de cada palab
 
 El texto de los subtítulos sale del guion; Whisper solo aporta los tiempos (escribe «7» por «siete»
 y a veces oye mal una palabra).
+
+La apertura (paquete versión 2, docs/spec-video-detener-scroll.md §3.6): el texto del gancho está en
+pantalla desde el cuadro 0; si el gancho abre con un inserto, ese B-roll entra en el segundo 0, y si abre
+con la cara, con un zoom de entrada. El aspecto (--look) es «phone» en el UGC (imagen algo menos nítida y
+saturada, una leve respiración de la exposición, grano fino y audio de micrófono de teléfono con ruido de
+habitación) y «clean» en la mascota; el paquete trae el que corresponde y --look lo cambia.
 """
 from __future__ import annotations
 
@@ -44,7 +50,9 @@ import unicodedata
 import urllib.request
 from pathlib import Path
 
-PACKAGE_VERSION = 1
+PACKAGE_VERSION = 2
+# El script sigue leyendo los paquetes de antes (sin apertura ni aspecto).
+PACKAGE_VERSIONS = (1, 2)
 W, H, FPS = 720, 1280, 24
 END_CARD_S = 2.0
 # Los planos de una toma se reutilizan si su video dura lo mismo que la toma (redondeo de cuadros incluido).
@@ -314,8 +322,8 @@ def end_card_png(path: Path, card: dict, image: Path | None, accent: tuple[int, 
 # ---------------------------------------------------------------- Movimiento
 
 
-def motion(kind: str, idx: int, frames: int, flash: bool, shake: bool) -> str:
-    """Zoom por plano (zoompan sobre 2x para que no tiemble)."""
+def motion(kind: str, idx: int, frames: int, flash: bool, shake: bool, punch: bool = False) -> str:
+    """Zoom por plano (zoompan sobre 2x para que no tiemble). `punch`: zoom de entrada de la apertura con la cara."""
     n = max(frames, 1)
     if kind == "B":
         z = f"if(lt(on,6),1.35-0.30*on/6,1.05+0.05*(on-6)/{n})"  # entrada de golpe
@@ -323,11 +331,29 @@ def motion(kind: str, idx: int, frames: int, flash: bool, shake: bool) -> str:
         z = f"1.04+0.08*on/{n}"  # se acerca
     else:
         z = f"1.14-0.10*on/{n}"  # se aleja
+    if punch:
+        # Seedance abre desde la imagen clave, casi quieta: el primer medio segundo se mueve igual.
+        z = f"if(lt(on,7),1.20-0.16*on/7,{z})"
     sx, sy = ("+10*sin(on*2.1)", "+8*cos(on*1.7)") if shake else ("", "")
     vf = f"fps={FPS},scale={2 * W}:{2 * H},setsar=1,zoompan=z='{z}':x='iw/2-(iw/zoom/2){sx}':y='ih/2-(ih/zoom/2){sy}':d=1:s={W}x{H}:fps={FPS}"
     if flash:
         vf += ",fade=t=in:st=0:d=0.14:color=white"
     return vf
+
+
+# El aspecto de teléfono (--look phone). Imagen: un poco menos nítida y saturada que un render, la
+# exposición que respira y un grano fino (más fuerte, la compresión de Meta lo mancha). Audio: el
+# micrófono de un teléfono (sin graves ni agudos, algo comprimido) con ruido de habitación debajo; va
+# sobre la voz, antes de la música, que en TikTok se agrega limpia.
+PHONE_VIDEO = "unsharp=5:5:-0.35,eq=saturation=0.93:contrast=0.97:brightness='0.012*sin(2*PI*t/3.7)':eval=frame,noise=alls=3:allf=t"
+
+
+def phone_audio(src: str, out: str, duration: float) -> str:
+    return (
+        f"[{src}]highpass=f=150,lowpass=f=8000,acompressor=threshold=-20dB:ratio=3:attack=5:release=60[voice];"
+        f"anoisesrc=d={duration + 1:.2f}:c=pink:r=48000:a=0.004,aformat=channel_layouts=stereo[room];"
+        f"[voice][room]amix=inputs=2:duration=first:normalize=0[{out}]"
+    )
 
 
 def file_slug(text: str) -> str:
@@ -418,6 +444,7 @@ def main() -> None:
     ap.add_argument("--no-watermark", action="store_true", help="Sin marca de agua.")
     ap.add_argument("--work", help="Carpeta de un montaje anterior (clips, transcripciones y planos) para reutilizar lo que tenga. Por defecto, <paquete>-montaje junto al paquete.")
     ap.add_argument("--fresh", action="store_true", help="Rehace los planos con zoom aunque ya existan (los clips y las transcripciones se reutilizan igual).")
+    ap.add_argument("--look", choices=("phone", "clean"), help="Aspecto: phone (imagen y audio de teléfono) o clean. Por defecto, el que trae el paquete (phone en el UGC, clean en la mascota).")
     args = ap.parse_args()
 
     for tool in ("ffmpeg", "ffprobe"):
@@ -430,8 +457,13 @@ def main() -> None:
 
     pkg_path = Path(args.package).expanduser().resolve()
     pkg = json.loads(pkg_path.read_text())
-    if pkg.get("version") != PACKAGE_VERSION:
-        fail(f"este script lee paquetes versión {PACKAGE_VERSION}; el paquete es versión {pkg.get('version')}. Actualiza el script.")
+    if pkg.get("version") not in PACKAGE_VERSIONS:
+        fail(f"este script lee paquetes versión {', '.join(map(str, PACKAGE_VERSIONS))}; el paquete es versión {pkg.get('version')}. Actualiza el script.")
+    opening = pkg.get("opening") or None
+    look = args.look or pkg.get("look") or "clean"
+    if pkg.get("format") == "mascot" and look == "phone":
+        print("Aviso: la mascota es una animación; --look phone no se aplica.")
+        look = "clean"
     work = Path(args.work).expanduser().resolve() if args.work else pkg_path.with_suffix("").with_name(pkg_path.stem + "-montaje")
     if args.work and not work.is_dir():
         fail(f"no encuentro la carpeta {work}")
@@ -475,7 +507,7 @@ def main() -> None:
             continue
         pos = i + 1
         ci, wi, _ = timeline[i]
-        brolls.append({"clip": ci, "start": clips[ci]["words"][wi]["s"], "cut": float(b["cut_s"]), "path": b_paths[b["key"]]})
+        brolls.append({"clip": ci, "start": clips[ci]["words"][wi]["s"], "cut": float(b["cut_s"]), "path": b_paths[b["key"]], "opening": bool(opening and opening.get("insert") == b["key"])})
     beats, pos = [], 0
     for t in pkg["text_beats"]:
         i = locate(t["anchor"], pos)
@@ -497,6 +529,12 @@ def main() -> None:
         c["t0"] = max(0.0, c["words"][0]["s"] - 0.08)
         c["t1"] = min(c["dur"], c["words"][-1]["e"] + 0.18)
         c["cut_len"] = c["t1"] - c["t0"]
+    # La apertura: el inserto del gancho tapa desde el cuadro 0 (la voz sigue debajo).
+    for b in brolls:
+        if b["opening"]:
+            b["clip"], b["start"] = 0, clips[0]["t0"]
+            print(f"Apertura: el inserto del gancho entra en el segundo 0 ({b['cut']:.1f} s).")
+    punch_open = bool(opening and not opening.get("insert"))
     beat_windows = []
     for bi, b in enumerate(beats):
         start = global_time(b["idx"])
@@ -504,7 +542,8 @@ def main() -> None:
         end = global_time(b["until"]) if b["until"] is not None else nxt
         png = work / f"beat{bi}.png"
         beat_png(png, b["text"])
-        beat_windows.append((start, end, png, bi > 0))
+        # El texto del gancho se lee desde el cuadro 0, sin sonido (paquete versión 2).
+        beat_windows.append((0.0 if opening and bi == 0 else start, end, png, bi > 0))
 
     parts, offset, piece_n = [], 0.0, 0
     for ci, c in enumerate(clips):
@@ -541,7 +580,7 @@ def main() -> None:
                 used[src] = used.get(src, 0.0) + d
                 srcf = src
             sh("ffmpeg", "-y", "-loglevel", "error", "-ss", f"{ss:.3f}", "-i", str(srcf), "-t", f"{d:.3f}", "-an", "-vf",
-               motion("A" if src == "A" else "B", piece_n, round(d * FPS), False, ci == 0 and s - t0 < 1.5), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(outp))
+               motion("A" if src == "A" else "B", piece_n, round(d * FPS), False, ci == 0 and s - t0 < 1.5, punch_open and ci == 0 and src == "A" and s <= t0), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(outp))
             vids.append(outp)
         if not reused:
             listf = work / f"{c['key']}_list.txt"
@@ -599,7 +638,11 @@ def main() -> None:
     joined = work / "joined.mp4"
     inputs = [x for p in parts for x in ("-i", str(p))]
     fc = "".join(f"[{i}:v][{i}:a]" for i in range(len(parts))) + f"concat=n={len(parts)}:v=1:a=1[v][a]"
-    sh("ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", fc, "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", str(joined))
+    if look == "phone":
+        fc += ";" + phone_audio("a", "ap", sum(probe_duration(p) for p in parts))
+    sh("ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", fc, "-map", "[v]", "-map", "[ap]" if look == "phone" else "[a]",
+       "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", str(joined))
+    print(f"Aspecto: {'teléfono' if look == 'phone' else 'limpio'} (--look {look}).")
     source = joined
     if args.music:
         music = Path(args.music).expanduser()
@@ -610,13 +653,19 @@ def main() -> None:
         mix_music(joined, music, first_hit, mixed, work)
         source = mixed
         print("Música: recuerda usar una pista con licencia comercial para anuncios.")
-    encode = ["-c:v", "libx264", "-preset", "slow", "-crf", str(args.crf), "-profile:v", "high", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out)]
+    tune = ["-tune", "grain"] if look == "phone" else []
+    encode = ["-c:v", "libx264", "-preset", "slow", *tune, "-crf", str(args.crf), "-profile:v", "high", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out)]
+    # El aspecto de la imagen va antes de la marca de agua, que queda nítida.
+    graded = f"[0:v]{PHONE_VIDEO}[g];" if look == "phone" else ""
+    base = "[g]" if look == "phone" else "[0:v]"
     if watermark:
         # En esta última pasada (ya se recodifica todo): cubre también el cierre, sin otra codificación.
         mark = work / "watermark.png"
         watermark_png(mark, watermark)
         x, y = watermark_xy(probe_duration(source) - END_CARD_S)
-        sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), "-i", str(mark), "-filter_complex", f"[0:v][1:v]overlay=x='{x}':y='{y}'[v]", "-map", "[v]", "-map", "0:a", *encode)
+        sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), "-i", str(mark), "-filter_complex", f"{graded}{base}[1:v]overlay=x='{x}':y='{y}'[v]", "-map", "[v]", "-map", "0:a", *encode)
+    elif look == "phone":
+        sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), "-vf", PHONE_VIDEO, "-map", "0:v", "-map", "0:a", *encode)
     else:
         sh("ffmpeg", "-y", "-loglevel", "error", "-i", str(source), *encode)
     print(f"Listo: {out} · {probe_duration(out):.1f} s · {out.stat().st_size / 1024 / 1024:.1f} MB")

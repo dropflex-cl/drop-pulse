@@ -1,7 +1,7 @@
 // El paquete de montaje (docs/spec-video-ugc.md §5.1): todo lo que scripts/ugc-montage.py necesita
 // para armar el video en el equipo del comerciante. Puro.
 
-import { PACKAGE_VERSION, montageName, type VideoFormat } from "./catalog";
+import { PACKAGE_VERSION, montageName, opensWithInsert, type VideoFormat, type VideoOpeningShot } from "./catalog";
 import type { UgcScript } from "./schemas";
 
 export interface MontagePackage {
@@ -20,6 +20,14 @@ export interface MontagePackage {
    * pueda reusarlo recortando una esquina. Null si no se pudo leer: el script avisa.
    */
   watermark: string | null;
+  /**
+   * La apertura (docs/spec-video-detener-scroll.md §3.6): el script pone el primer texto en pantalla
+   * desde el cuadro 0 y, si abre con un inserto, ese B-roll en el segundo 0; si abre con la cara, un
+   * zoom de entrada. Null en los guiones de antes.
+   */
+  opening: { shot: VideoOpeningShot; insert: string | null } | null;
+  /** El aspecto del montaje: `phone` (el UGC, imagen y audio de teléfono) o `clean` (la mascota). */
+  look: "phone" | "clean";
   a_roll: { key: string; line: string; seconds: number; url: string }[];
   b_roll: { key: string; anchor: string; cut_s: number; url: string }[];
   text_beats: { anchor: string; until: string | null; text: string }[];
@@ -55,6 +63,14 @@ export function watermarkText(host: string | null | undefined, shopName: string 
   return name ?? h;
 }
 
+/** La apertura del guion para el montaje: qué B-roll va en el segundo 0, si abre con un inserto. */
+export function openingOf(script: UgcScript): MontagePackage["opening"] {
+  const o = script.opening;
+  if (!o) return null;
+  const b1 = script.b_roll[0];
+  return { shot: o.shot, insert: opensWithInsert(o.shot) && b1 && b1.keyframe === o.keyframe ? b1.key : null };
+}
+
 /** Falta un clip: el paquete no se arma hasta que estén todos. */
 export class PackageNotReady extends Error {}
 
@@ -86,6 +102,8 @@ export function buildPackage(p: PackageInput): MontagePackage {
     language: p.language,
     accent_color: captionAccent(p.accentColor),
     watermark: p.watermark ?? null,
+    opening: openingOf(p.script),
+    look: (p.format ?? "ugc") === "mascot" ? "clean" : "phone",
     a_roll: p.script.a_roll.map((a) => ({ key: a.key, line: a.line, seconds: a.seconds, url: url(a.key) })),
     b_roll: p.script.b_roll.map((b) => ({ key: b.key, anchor: b.anchor, cut_s: b.cut_s, url: url(b.key) })),
     text_beats: p.script.text_beats.map((t) => ({ anchor: t.anchor, until: t.until, text: t.text })),

@@ -372,13 +372,24 @@ describe("paquete de montaje", () => {
 
   it("lleva cada clip con su URL, los textos y el cierre", () => {
     const p = buildPackage({ ...base, script: script(), clipUrls: urls });
-    expect(p.version).toBe(1);
+    expect(p.version).toBe(2);
+    expect(p.opening).toBeNull();
+    expect(p.look).toBe("phone");
     expect(p.a_roll.map((a) => a.url)).toHaveLength(5);
     expect(p.b_roll[0]).toMatchObject({ anchor: "minutos", cut_s: 1.2, url: "https://x/B1.mp4" });
     expect(p.end_card).toMatchObject({ image_url: "https://x/base.jpg", cta: "Comprar" });
     // Sin rótulo de dramatización ni de animación (decisión del comerciante, 2026-10-01).
     expect(p).not.toHaveProperty("label");
     expect(p.accent_color).toBe(DEFAULT_ACCENT);
+  });
+
+  it("lleva la apertura: el inserto del gancho si abre con uno, y el aspecto por formato", () => {
+    const s = script();
+    s.opening = { hook_source: 0, shot: "pov_hands", keyframe: "K3", first_motion: "x" };
+    expect(buildPackage({ ...base, script: s, clipUrls: urls }).opening).toEqual({ shot: "pov_hands", insert: "B1" });
+    s.opening = { hook_source: 1, shot: "selfie_talk", keyframe: "K1", first_motion: "x" };
+    expect(buildPackage({ ...base, script: s, clipUrls: urls }).opening).toEqual({ shot: "selfie_talk", insert: null });
+    expect(buildPackage({ ...base, format: "mascot", script: s, clipUrls: urls }).look).toBe("clean");
   });
 
   it("dice su formato y se llama por el producto, el formato y el ángulo", () => {
