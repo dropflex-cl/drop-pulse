@@ -215,6 +215,36 @@
     display: none;
   }
 
+  /* Teléfono: junto a las cajas solo cabe una línea corta. El texto de la antesala sigue bajo el
+     precio (df-event-countdown) y el adorno sale para que el título no se parta por él. */
+  @media (max-width: 749px) {
+    .df-event-bar__sub[data-df-clock-early],
+    .df-event-bar--clock .df-event-bar__headline .df-event-decor {
+      display: none;
+    }
+
+    /* Un título de una sola palabra larga («CYBERMONDAY») cabe junto a las cajas en 375 px; si
+       igual no cabe, se parte antes que montarse sobre el reloj. */
+    .df-event-bar__headline {
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      overflow-wrap: anywhere;
+    }
+
+    /* Sin los «:» en el teléfono: las cajas ya separan las cifras y el título gana ~30 px. */
+    .df-event-bar__sep {
+      display: none;
+    }
+
+    .df-event-bar__boxes {
+      gap: 5px;
+    }
+
+    .df-event-bar__box {
+      min-width: 42px;
+    }
+  }
+
   .df-event-bar__boxes {
     display: flex;
     align-items: center;
