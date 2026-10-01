@@ -59,6 +59,10 @@ export interface ResolvedEvent {
   to: number;
   /** Cuándo empieza el evento en sí (el contador cuenta hasta aquí antes, y hasta `to` durante). */
   start: number;
+  /** Título de la barra con cuenta regresiva (el del comerciante o el nombre del evento). */
+  headline: string;
+  /** Mensajes propios de la cinta de avisos (lo demás de la cinta sale del aviso y de las políticas). */
+  tickerItems: string[];
 }
 
 export type EventPhase = "upcoming" | "teaser" | "live" | "ended";
@@ -96,6 +100,13 @@ export function themeWithOverrides(event: EventRow, overrides: unknown): EventTh
   };
 }
 
+/** Lo que el comerciante suma a la barra y a la cinta: título y mensajes propios. Overrides inválidos = nada. */
+export function activationExtras(event: Pick<EventRow, "name">, overrides: unknown): { headline: string; tickerItems: string[] } {
+  const parsed = activationOverridesSchema.safeParse(overrides ?? {});
+  const o = parsed.success ? parsed.data : {};
+  return { headline: o.headline || event.name, tickerItems: o.ticker_items ?? [] };
+}
+
 /**
  * Los eventos que le tocan a un producto, que no terminaron, del de mayor prioridad al de menor
  * (a igual prioridad, el que empieza antes). Reglas:
@@ -117,7 +128,7 @@ export function resolveProductEvents(events: EventRow[], activations: Activation
     if (!event || !a.enabled) continue;
     const w = effectiveWindow(event, a);
     if (w.to <= now) continue;
-    out.push({ event, scope, activationId: a.id, intensity: a.intensity, theme: themeWithOverrides(event, a.overrides), ...w });
+    out.push({ event, scope, activationId: a.id, intensity: a.intensity, theme: themeWithOverrides(event, a.overrides), ...w, ...activationExtras(event, a.overrides) });
   }
   return out.sort((x, y) => y.event.priority - x.event.priority || x.from - y.from);
 }
@@ -158,6 +169,13 @@ export interface EventMetafieldEntry {
   /** Antesala: texto sin reloj («Precio Cyber adelantado · ya disponible»). */
   early_label?: string;
   countdown_during?: string;
+  /**
+   * Capa de cuenta regresiva: la barra pasa a título + ahorro real + reloj en cajas
+   * (df-event-bar) y debajo va la cinta de avisos (df-event-ticker): el aviso, estos mensajes
+   * propios y las políticas reales de la tienda (shop.metafields.dropflex.policies).
+   */
+  headline?: string;
+  ticker_items?: string[];
   decor?: DecorKey;
   /** Bajada del evento (reemplaza a dropflex.subtitle mientras dura). */
   subtitle?: string;
@@ -186,7 +204,9 @@ export function metafieldEntry(r: ResolvedEvent, copy: ApprovedEventCopy | null)
     on_surface: t.on_surface,
     badge_label: useCopy?.badge_label || t.badge_label,
     ...(layers.tokens ? { accent: t.accent, on_accent: accentCheck(t.accent).onAccent } : {}),
-    ...(layers.countdown ? { early_label: t.early_label, countdown_during: t.countdown_during } : {}),
+    ...(layers.countdown
+      ? { early_label: t.early_label, countdown_during: t.countdown_during, headline: r.headline, ...(r.tickerItems.length ? { ticker_items: r.tickerItems } : {}) }
+      : {}),
     ...(layers.decor ? { decor: t.decor } : {}),
     ...(useCopy?.subtitle ? { subtitle: useCopy.subtitle } : {}),
   };

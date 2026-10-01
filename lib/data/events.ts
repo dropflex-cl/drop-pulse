@@ -5,8 +5,9 @@ import { accentCheck } from "@/lib/copy/accent";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { activeComponents, currentContent } from "@/lib/copy/store";
 import { KIND_LABEL } from "@/lib/events/catalog";
-import { effectiveWindow, eventPhase, resolveProductEvents, themeWithOverrides, type ActivationRow, type EventRow } from "@/lib/events/resolve";
+import { activationExtras, effectiveWindow, eventPhase, resolveProductEvents, themeWithOverrides, type ActivationRow, type EventRow } from "@/lib/events/resolve";
 import { copyOf, listActivations, listEventCopies, listEvents } from "@/lib/events/store";
+import { tickerPolicyItems } from "@/lib/events/ticker";
 import { dateInput, phaseLabel, rangeLabel } from "@/lib/events/view";
 import { sessionUser } from "@/lib/integrations/session";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -16,6 +17,7 @@ import { connectionProblem, getPublications } from "@/lib/pipeline/publish";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { baseImage, listImageRows, listProductRows, withDisplayUrls } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
+import { getStorePolicies } from "@/lib/settings/policies-store";
 import type { EventActivationView, EventDetail, EventLook, EventProductView, EventsOverview, EventView } from "@/lib/types";
 
 async function context() {
@@ -49,6 +51,7 @@ function look(event: EventRow, overrides: unknown): EventLook {
     decor: t.decor,
     earlyLabel: t.early_label,
     countdownDuring: t.countdown_during,
+    ...activationExtras(event, overrides),
   };
 }
 
@@ -120,11 +123,12 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
   if (!event || !view) return null;
 
   const ids = rows.map((r) => r.id);
-  const [components, copies, images, pricing] = await Promise.all([
+  const [components, copies, images, pricing, policies] = await Promise.all([
     activeComponents(ctx.userId, ids),
     listEventCopies(ctx.userId, { eventId: event.id }),
     listImageRows(ctx.userId, ids),
     Promise.all(rows.map((r) => getPricingPlan(ctx.userId, r.id))),
+    getStorePolicies(ctx.userId),
   ]);
   const thumbs = rows.map((r) => baseImage(images.filter((i) => i.product_id === r.id))).filter((i): i is NonNullable<typeof i> => Boolean(i));
   const urls = await withDisplayUrls(thumbs);
@@ -157,5 +161,7 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
   });
   // Primero los publicados (son los que ve el comprador).
   products.sort((a, b) => Number(b.published) - Number(a.published));
-  return { ...base, event: view, products };
+  // Sin Ajustes › Envíos y políticas guardados, la tienda no tiene el metafield: la cinta no suma nada.
+  const tickerPolicies = policies ? tickerPolicyItems(policies.policies, policies.currency) : [];
+  return { ...base, event: view, products, tickerPolicies };
 }

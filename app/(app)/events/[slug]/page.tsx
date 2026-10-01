@@ -18,11 +18,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <PublishEvents data={data} />
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
           <div className="flex flex-col gap-4">
-            <StoreActivation slug={slug} event={event} />
-            <ProductEvents slug={slug} event={event} products={data.products} />
+            <StoreActivation slug={slug} event={event} tickerPolicies={data.tickerPolicies} />
+            <ProductEvents slug={slug} event={event} products={data.products} tickerPolicies={data.tickerPolicies} />
           </div>
           <div className="lg:sticky lg:top-6">
-            <EventPreview event={event} products={data.products} />
+            <EventPreview event={event} products={data.products} tickerPolicies={data.tickerPolicies} />
           </div>
         </div>
       </div>

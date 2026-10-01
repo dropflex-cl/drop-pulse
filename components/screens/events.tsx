@@ -6,9 +6,10 @@ import { Button, Field, Icon, Notice, notify, SegmentedControl, StateChip, Switc
 import { EventLayerPreview } from "@/components/store-preview/event-layer";
 import { StoreFrame } from "@/components/store-preview/store-frame";
 import { ACCENT_PALETTE, accentCheck } from "@/lib/copy/accent";
-import { ANNOUNCEMENT_MAX, BADGE_MAX, INTENSITY_LABEL, INTENSITY_LAYERS } from "@/lib/events/catalog";
+import { ANNOUNCEMENT_MAX, BADGE_MAX, HEADLINE_MAX, INTENSITY_LABEL, INTENSITY_LAYERS, TICKER_ITEM_MAX, TICKER_ITEMS_MAX } from "@/lib/events/catalog";
 import { eventsApi, type ActivationPatch } from "@/lib/events/client";
 import { EVENT_COPY_FIELDS } from "@/lib/events/copy";
+import { tickerItems, type TickerItem } from "@/lib/events/ticker";
 import { ProductApiClientError } from "@/lib/products/client";
 import type { EventActivationView, EventDetail, EventIntensityUi, EventProductView, EventView } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -28,9 +29,12 @@ function remaining(event: EventView): { label: string; time: string; phase: "ear
   return { label: event.look.countdownDuring, time: "1 día 08:15:42", phase: "urgent" };
 }
 
+/** El reloj de la barra en la vista previa: el mismo momento que `remaining`; null en la antesala. */
+const previewClock = (event: EventView): [string, string, string, string] | null => (event.phase === "live" ? ["01", "08", "15", "42"] : null);
+
 // ---------------------------------------------------------------- Vista previa
 
-export function EventPreview({ event, products }: { event: EventView; products: EventProductView[] }) {
+export function EventPreview({ event, products, tickerPolicies }: { event: EventView; products: EventProductView[]; tickerPolicies: TickerItem[] }) {
   const [on, setOn] = useState("on");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const product = products.find((p) => p.id === productId) ?? products[0];
@@ -69,6 +73,8 @@ export function EventPreview({ event, products }: { event: EventView; products: 
             look={look}
             layers={layers}
             countdown={layers.countdown ? remaining(event) : null}
+            clock={previewClock(event)}
+            ticker={look ? tickerItems(look.announcement, look.tickerItems, tickerPolicies) : []}
             product={{
               title: product?.preview.title ?? "Tu producto",
               subtitle: product?.preview.subtitle ?? "",
@@ -81,18 +87,36 @@ export function EventPreview({ event, products }: { event: EventView; products: 
           />
         </StoreFrame>
       </div>
-      <p className="text-caption text-muted-foreground">El % de la etiqueta sale de tu precio tachado real. Sin tachado, la etiqueta va sin %. La cuenta regresiva llega hasta la fecha real del evento.</p>
+      <p className="text-caption text-muted-foreground">
+        El % de la etiqueta y de la barra sale de tu precio tachado real. Sin tachado, van sin %. La cuenta regresiva llega hasta la fecha real del evento y en la tienda corre cada segundo; la cinta se desplaza sola.
+      </p>
     </section>
   );
 }
 
 // ---------------------------------------------------------------- Ajustes (tienda o producto)
 
-function ActivationForm({ slug, event, productId, initial, onSaved }: { slug: string; event: EventView; productId: string | null; initial: EventActivationView | null; onSaved: () => void }) {
+function ActivationForm({
+  slug,
+  event,
+  productId,
+  initial,
+  tickerPolicies,
+  onSaved,
+}: {
+  slug: string;
+  event: EventView;
+  productId: string | null;
+  initial: EventActivationView | null;
+  tickerPolicies: TickerItem[];
+  onSaved: () => void;
+}) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [announcement, setAnnouncement] = useState(initial?.overrides.announcement ?? "");
   const [badge, setBadge] = useState(initial?.overrides.badge_label ?? "");
+  const [headline, setHeadline] = useState(initial?.overrides.headline ?? "");
+  const [ticker, setTicker] = useState<string[]>(() => Array.from({ length: TICKER_ITEMS_MAX }, (_, i) => initial?.overrides.ticker_items?.[i] ?? ""));
   const [startsOn, setStartsOn] = useState(initial?.startsOn ?? "");
   const [endsOn, setEndsOn] = useState(initial?.endsOn ?? "");
   const accent = initial?.overrides.accent ?? null;
@@ -116,8 +140,10 @@ function ActivationForm({ slug, event, productId, initial, onSaved }: { slug: st
 
   const overrides = (next: Partial<EventActivationView["overrides"]>) => {
     const o = { ...(initial?.overrides ?? {}), ...next };
-    return Object.fromEntries(Object.entries(o).filter(([, v]) => v));
+    return Object.fromEntries(Object.entries(o).filter(([, v]) => (Array.isArray(v) ? v.length : v)));
   };
+  // Con la cuenta regresiva, la barra lleva título y reloj, y el aviso va en la cinta de debajo.
+  const withClock = initial ? INTENSITY_LAYERS[initial.intensity].countdown : false;
 
   return (
     <div className="flex flex-col gap-4">
@@ -167,7 +193,47 @@ function ActivationForm({ slug, event, productId, initial, onSaved }: { slug: st
           ) : null}
 
           <div className="flex flex-col gap-3">
-            <Field label="Barra de aviso" value={announcement} onValueChange={setAnnouncement} placeholder={event.look.announcement} maxLength={ANNOUNCEMENT_MAX} hint="Vacío: el texto del evento." error={errors.announcement} />
+            {withClock ? (
+              <Field
+                label="Título de la barra"
+                value={headline}
+                onValueChange={setHeadline}
+                placeholder={event.name}
+                maxLength={HEADLINE_MAX}
+                hint="Va junto a la cuenta regresiva, con el ahorro real debajo. Vacío: el nombre del evento."
+                error={errors.headline}
+              />
+            ) : null}
+            <Field
+              label={withClock ? "Aviso de la cinta" : "Barra de aviso"}
+              value={announcement}
+              onValueChange={setAnnouncement}
+              placeholder={event.look.announcement}
+              maxLength={ANNOUNCEMENT_MAX}
+              hint={withClock ? "El primer mensaje de la cinta que se desplaza bajo la barra. Vacío: el texto del evento." : "Vacío: el texto del evento."}
+              error={errors.announcement}
+            />
+            {withClock ? (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-label">Tus mensajes en la cinta (opcional)</legend>
+                {ticker.map((value, i) => (
+                  <Field
+                    key={i}
+                    label={`Mensaje ${i + 1}`}
+                    value={value}
+                    onValueChange={(v) => setTicker(ticker.map((t, j) => (j === i ? v : t)))}
+                    placeholder={i === 0 ? "Stock limitado" : undefined}
+                    maxLength={TICKER_ITEM_MAX}
+                  />
+                ))}
+                {errors.ticker_items ? <p className="text-caption text-destructive">{errors.ticker_items}</p> : null}
+                <p className="text-caption text-muted-foreground">
+                  {tickerPolicies.length
+                    ? `La cinta suma sola lo que declaraste en Ajustes › Envíos y políticas: ${tickerPolicies.map((t) => t.text).join(" · ")}.`
+                    : "Completa Ajustes › Envíos y políticas y la cinta suma sola el pago al recibir, el envío, los cambios y la garantía."}
+                </p>
+              </fieldset>
+            ) : null}
             <Field label="Etiqueta del precio" value={badge} onValueChange={(v) => setBadge(v.toUpperCase())} placeholder={event.look.badge} maxLength={BADGE_MAX} hint="Sin %: la tienda agrega el ahorro real." error={errors.badge_label} />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Se ve desde" type="date" value={startsOn || event.defaultStartsOn} onValueChange={setStartsOn} error={errors.startsOn} />
@@ -180,7 +246,12 @@ function ActivationForm({ slug, event, productId, initial, onSaved }: { slug: st
               onClick={() =>
                 save(
                   {
-                    overrides: overrides({ announcement: announcement.trim() || undefined, badge_label: badge.trim() || undefined }),
+                    overrides: overrides({
+                      announcement: announcement.trim() || undefined,
+                      badge_label: badge.trim() || undefined,
+                      headline: headline.trim() || undefined,
+                      ticker_items: ticker.map((t) => t.trim()).filter(Boolean),
+                    }),
                     startsOn: startsOn && startsOn !== event.defaultStartsOn ? startsOn : null,
                     endsOn: endsOn && endsOn !== event.defaultEndsOn ? endsOn : null,
                   },
@@ -197,7 +268,7 @@ function ActivationForm({ slug, event, productId, initial, onSaved }: { slug: st
   );
 }
 
-export function StoreActivation({ slug, event }: { slug: string; event: EventView }) {
+export function StoreActivation({ slug, event, tickerPolicies }: { slug: string; event: EventView; tickerPolicies: TickerItem[] }) {
   const router = useRouter();
   return (
     <section aria-labelledby="tu-tienda" className="flex flex-col gap-3 rounded-lg border bg-card p-4">
@@ -209,7 +280,7 @@ export function StoreActivation({ slug, event }: { slug: string; event: EventVie
           Se ve del {event.windowLabel} ({event.phaseLabel.toLowerCase()}). El evento es del {event.eventLabel}.
         </p>
       </div>
-      <ActivationForm key={JSON.stringify(event.store)} slug={slug} event={event} productId={null} initial={event.store} onSaved={() => router.refresh()} />
+      <ActivationForm key={JSON.stringify(event.store)} slug={slug} event={event} productId={null} initial={event.store} tickerPolicies={tickerPolicies} onSaved={() => router.refresh()} />
     </section>
   );
 }
@@ -298,7 +369,7 @@ function CopyEditor({ slug, product, onChange }: { slug: string; product: EventP
   );
 }
 
-function ProductEvent({ slug, event, product }: { slug: string; event: EventView; product: EventProductView }) {
+function ProductEvent({ slug, event, product, tickerPolicies }: { slug: string; event: EventView; product: EventProductView; tickerPolicies: TickerItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const refresh = useMemo(() => () => router.refresh(), [router]);
@@ -333,7 +404,7 @@ function ProductEvent({ slug, event, product }: { slug: string; event: EventView
               </Button>
             </div>
           ) : null}
-          <ActivationForm key={JSON.stringify(product.override)} slug={slug} event={event} productId={product.id} initial={product.override ?? (event.store ? { ...event.store, overrides: {} } : null)} onSaved={refresh} />
+          <ActivationForm key={JSON.stringify(product.override)} slug={slug} event={event} productId={product.id} initial={product.override ?? (event.store ? { ...event.store, overrides: {} } : null)} tickerPolicies={tickerPolicies} onSaved={refresh} />
           {showCopy ? (
             <div className="flex flex-col gap-2 border-t pt-3">
               <h3 className="text-label font-semibold">Textos del evento</h3>
@@ -346,7 +417,7 @@ function ProductEvent({ slug, event, product }: { slug: string; event: EventView
   );
 }
 
-export function ProductEvents({ slug, event, products }: { slug: string; event: EventView; products: EventProductView[] }) {
+export function ProductEvents({ slug, event, products, tickerPolicies }: { slug: string; event: EventView; products: EventProductView[]; tickerPolicies: TickerItem[] }) {
   return (
     <section aria-labelledby="por-producto" className="flex flex-col gap-1 rounded-lg border bg-card p-4">
       <h2 id="por-producto" className="text-heading">
@@ -356,7 +427,7 @@ export function ProductEvents({ slug, event, products }: { slug: string; event: 
       {products.length ? (
         <ul className="mt-2">
           {products.map((p) => (
-            <ProductEvent key={p.id} slug={slug} event={event} product={p} />
+            <ProductEvent key={p.id} slug={slug} event={event} product={p} tickerPolicies={tickerPolicies} />
           ))}
         </ul>
       ) : (

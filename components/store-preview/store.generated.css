@@ -533,6 +533,127 @@ df-slider {
   height: 18px;
 }
 
+/* Con cuenta regresiva: título y ahorro a la izquierda, reloj en cajas a la derecha. */
+.df.df-event-bar--clock {
+  padding-block: 10px;
+  text-align: start;
+}
+
+.df-event-bar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 40rem;
+}
+
+.df-event-bar__lead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Antesala: sin reloj, el texto centrado. */
+.df-event-bar--early .df-event-bar__inner {
+  justify-content: center;
+  text-align: center;
+}
+
+.df-event-bar--early .df-event-bar__lead {
+  align-items: center;
+}
+
+.df-event-bar__headline {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* El adorno sigue a la última palabra aunque el título use dos líneas. */
+.df-event-bar__headline .df-event-decor {
+  display: inline-block;
+  margin-inline-start: 6px;
+  vertical-align: -3px;
+}
+
+.df-event-bar__sub {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.df-event-bar__sub[hidden],
+.df-event-bar__clock[hidden] {
+  display: none;
+}
+
+.df-event-bar__boxes {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.df-event-bar__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 5px 4px 4px;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.df-event-bar__num {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.df-event-bar__unit {
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.df-event-bar__sep {
+  font-weight: 800;
+  opacity: 0.6;
+}
+
+@container store (min-width: 750px) {
+  .df-event-bar__headline {
+    font-size: 17px;
+  }
+
+  .df-event-bar__box {
+    min-width: 52px;
+  }
+
+  .df-event-bar__num {
+    font-size: 24px;
+  }
+
+  .df-event-bar__boxes {
+    gap: 6px;
+  }
+}
+
 /* _event/snippets/df-event-countdown.liquid */
 .df-event-countdown {
   display: flex;
@@ -569,6 +690,67 @@ df-slider {
 
 .df-event-countdown--urgent [data-df-countdown-label] {
   font-weight: 600;
+}
+
+/* _event/snippets/df-event-ticker.liquid */
+/* .df.df-event-ticker: le gana a .df de df-components.css, que se carga después. Colores del
+   acento del evento (contraste AA probado en DropFlex); sin capa de color, los de la barra. */
+.df.df-event-ticker {
+  --df-fg: var(--df-event-on-accent, var(--df-event-on-surface));
+  --df-accent-ink: var(--df-fg);
+  --df-sb-bg: var(--df-event-accent, var(--df-event-surface));
+  color: var(--df-fg);
+}
+
+.df-event-ticker .df-scrolling-benefits__viewport {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.df-event-ticker .df-scrolling-benefits__item {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.df-event-ticker__pause {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: var(--df-sb-bg);
+  box-shadow: -12px 0 12px var(--df-sb-bg);
+  color: inherit;
+  cursor: pointer;
+}
+
+.df-event-ticker__pause .df-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.df-event-ticker__pause[aria-pressed='true'] .df-event-ticker__icon-pause,
+.df-event-ticker__pause[aria-pressed='false'] .df-event-ticker__icon-play {
+  display: none;
+}
+
+.df-event-ticker__pause:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-event-ticker__pause {
+    display: none;
+  }
+
+  .df-event-ticker .df-scrolling-benefits__set {
+    padding-block: 8px;
+  }
 }
 
 /* _landing/blocks/df-hype-badge.liquid */

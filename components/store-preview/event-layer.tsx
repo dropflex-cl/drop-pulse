@@ -1,10 +1,14 @@
+import { Fragment } from "react";
 import { DECOR_PATHS } from "@/lib/events/decor";
+import type { TickerItem } from "@/lib/events/ticker";
 import { formatMoney } from "@/lib/store-preview/facts";
 import type { EventDecorUi, EventLook } from "@/lib/types";
+import { DfIcon } from "./primitives";
 
-// La ficha con la capa del evento (docs/spec-eventos.md): la barra de aviso, la bajada del evento,
-// la etiqueta con el % real y la cuenta regresiva. Repite el marcado de
-// lib/shopify/components/_event (df-event-bar, df-event-badge, df-event-countdown) y de los bloques
+// La ficha con la capa del evento (docs/spec-eventos.md): la barra (aviso, o título + ahorro + reloj
+// en cajas), la cinta de avisos, la bajada del evento, la etiqueta con el % real y la cuenta
+// regresiva. Repite el marcado de lib/shopify/components/_event (df-event-bar, df-event-ticker,
+// df-event-badge, df-event-countdown) y de los bloques
 // de _landing para que el CSS generado del tema lo dibuje igual. Sin las clases df-ev-only/df-ev-off:
 // aquí se ve siempre lo que la pantalla pide («Con evento» o «Normal»). Va dentro de StoreFrame.
 
@@ -14,6 +18,10 @@ export interface EventLayerPreviewProps {
   layers: { tokens: boolean; countdown: boolean; decor: boolean };
   /** Lo que muestra df-event.js: antesala sin reloj, o «Termina en» y lo que falta; null sin contador. */
   countdown: { label: string; time: string; phase: "early" | "calm" | "urgent" } | null;
+  /** Reloj de la barra (días, horas, minutos, segundos); null en la antesala (va el texto sin reloj). */
+  clock?: [string, string, string, string] | null;
+  /** La cinta de avisos: aviso, mensajes propios y políticas (lib/events/ticker.ts). */
+  ticker?: TickerItem[];
   product: { title: string; subtitle: string; eventSubtitle?: string | null; price: number | null; compareAt: number | null; currency: string; image?: string };
 }
 
@@ -25,7 +33,85 @@ function Decor({ name }: { name: EventDecorUi }) {
   );
 }
 
-export function EventLayerPreview({ look, layers, countdown, product }: EventLayerPreviewProps) {
+const UNITS = ["Días", "Hrs", "Min", "Seg"];
+
+/** snippets/df-event-bar.liquid con la capa de la cuenta regresiva. */
+function ClockBar({ look, decor, clock, saving }: { look: EventLook; decor: EventDecorUi | null; clock: [string, string, string, string] | null; saving: string | null }) {
+  return (
+    <aside className={`df df-event-bar df-event-bar--clock${clock ? "" : " df-event-bar--early"}`} aria-label={look.headline}>
+      <div className="df-event-bar__inner">
+        <div className="df-event-bar__lead">
+          <p className="df-event-bar__headline">
+            <span>{look.headline}</span>
+            {decor ? <Decor name={decor} /> : null}
+          </p>
+          {!clock ? <p className="df-event-bar__sub">{look.earlyLabel}</p> : saving ? <p className="df-event-bar__sub">{saving}</p> : null}
+        </div>
+        {clock ? (
+          <div className="df-event-bar__clock">
+            <div className="df-event-bar__boxes" aria-hidden="true">
+              {clock.map((n, i) => (
+                <Fragment key={UNITS[i]}>
+                  {i > 0 ? <span className="df-event-bar__sep">:</span> : null}
+                  <span className="df-event-bar__box">
+                    <span className="df-event-bar__num">{n}</span>
+                    <span className="df-event-bar__unit">{UNITS[i]}</span>
+                  </span>
+                </Fragment>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </aside>
+  );
+}
+
+/** snippets/df-event-ticker.liquid, quieta en su primer cuadro (como la vista previa de la cinta de beneficios). */
+function Ticker({ items }: { items: TickerItem[] }) {
+  const isStatic = items.length < 2;
+  const set = items.map((it, i) => (
+    <li key={i} className="df-scrolling-benefits__item">
+      <span className="df-scrolling-benefits__icon">
+        <DfIcon name={it.icon} />
+      </span>
+      <span className="df-scrolling-benefits__text">{it.text}</span>
+    </li>
+  ));
+  return (
+    <df-scrolling-benefits
+      className={`df df-scrolling-benefits df-scrolling-benefits--hover-pause df-event-ticker${isStatic ? " df-scrolling-benefits--static" : ""}`}
+      style={{ "--df-sb-pt": "0px", "--df-sb-pb": "0px", "--df-sb-gap": "40px", "--df-sb-text": "13px", "--df-sb-icon": "18px" } as React.CSSProperties}
+      data-static={isStatic ? "" : undefined}
+      // Como la vista previa de la cinta de beneficios: detenida en su primer cuadro.
+      data-paused={isStatic ? undefined : ""}
+    >
+      <div className="df-scrolling-benefits__bar">
+        <div className="df-scrolling-benefits__viewport">
+          <div className="df-scrolling-benefits__track">
+            <ul className="df-scrolling-benefits__set" role="list">
+              {set}
+            </ul>
+            {isStatic ? null : (
+              <ul className="df-scrolling-benefits__set" role="list" aria-hidden="true">
+                {set}
+              </ul>
+            )}
+          </div>
+        </div>
+        {isStatic ? null : (
+          <span className="df-event-ticker__pause" aria-hidden="true">
+            <span className="df-event-ticker__icon-pause">
+              <DfIcon name="pause" />
+            </span>
+          </span>
+        )}
+      </div>
+    </df-scrolling-benefits>
+  );
+}
+
+export function EventLayerPreview({ look, layers, countdown, clock = null, ticker = [], product }: EventLayerPreviewProps) {
   const { price, compareAt, currency } = product;
   const save = price != null && compareAt != null && compareAt > price ? compareAt - price : 0;
   const percent = save > 0 && compareAt ? Math.round((save * 100) / compareAt) : 0;
@@ -42,7 +128,12 @@ export function EventLayerPreview({ look, layers, countdown, product }: EventLay
 
   return (
     <div className="df flex flex-col pb-4" style={vars}>
-      {look ? (
+      {look && layers.countdown ? (
+        <>
+          <ClockBar look={look} decor={decor} clock={clock} saving={percent > 0 ? `Ahorra ${percent} %` : null} />
+          {ticker.length ? <Ticker items={ticker} /> : null}
+        </>
+      ) : look ? (
         <aside className="df df-event-bar">
           {decor ? <Decor name={decor} /> : null}
           <p className="df-event-bar__text">{look.announcement}</p>

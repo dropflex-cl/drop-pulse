@@ -907,12 +907,16 @@ export interface EventLook {
   decor: EventDecorUi;
   earlyLabel: string;
   countdownDuring: string;
+  /** Título de la barra con cuenta regresiva. */
+  headline: string;
+  /** Mensajes propios de la cinta de avisos. */
+  tickerItems: string[];
 }
 
 export interface EventActivationView {
   enabled: boolean;
   intensity: EventIntensityUi;
-  overrides: { accent?: string; announcement?: string; badge_label?: string };
+  overrides: { accent?: string; announcement?: string; badge_label?: string; headline?: string; ticker_items?: string[] };
   /** AAAA-MM-DD en la zona de la tienda; null = la del evento. */
   startsOn: string | null;
   endsOn: string | null;
@@ -968,6 +972,8 @@ export interface EventsOverview {
 export interface EventDetail extends EventsOverview {
   event: EventView;
   products: EventProductView[];
+  /** Lo que la cinta de avisos suma solo, de Ajustes › Envíos y políticas (lib/events/ticker.ts). */
+  tickerPolicies: { icon: string; text: string }[];
 }
 
 // ---------------------------------------------------------------- Diferenciador y competencia

@@ -1,0 +1,177 @@
+{%- doc -%}
+  DropFlex · Eventos: la cinta de avisos del evento, justo bajo la barra con cuenta regresiva
+  (layout/theme.liquid). Solo con intensidad media o total (la capa de la cuenta regresiva).
+
+  Se desplaza sola, con los colores del acento del evento:
+    1. el aviso del evento (o el adaptado al producto, con intensidad total);
+    2. los mensajes propios del comerciante (`ticker_items`, hasta 3);
+    3. las políticas REALES de la tienda (shop.metafields.dropflex.policies y .logistics): pago al
+       recibir, envío gratis, plazo, cambios, garantía y WhatsApp. La que falta no se promete.
+  Los textos de las políticas son los de lib/events/ticker.ts (la vista previa; un test los compara).
+
+  Movimiento: el mismo de la cinta de beneficios (<df-scrolling-benefits>, sus clases y su JS):
+  velocidad constante, botón de pausa (WCAG 2.2.2), pausa con puntero o foco, fuera de pantalla y
+  con la pestaña oculta. Con prefers-reduced-motion queda quieta. Con un solo aviso, quieta y centrada.
+{%- enddoc -%}
+{%- if request.page_type == 'product' and product != blank -%}
+  {%- capture df_i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
+  {%- if df_i != blank -%}
+    {%- liquid
+      assign df_i = df_i | plus: 0
+      assign ev = product.metafields.dropflex.event.value.events[df_i]
+    -%}
+    {%- if ev.countdown_during != blank -%}
+      {%- liquid
+        assign policies = shop.metafields.dropflex.policies.value
+        assign logistics = shop.metafields.dropflex.logistics.value
+        assign days_min = blank
+        assign days_max = blank
+        if logistics != blank
+          assign handling = logistics.handling_days | plus: 0
+          assign tmin = logistics.transit_days_min | plus: 0
+          assign tmax = logistics.transit_days_max | plus: 0
+          if tmax < tmin
+            assign tmax = tmin
+          endif
+          assign days_min = handling | plus: tmin
+          assign days_max = handling | plus: tmax
+        endif
+
+        if policies.free_shipping_threshold > 0
+          assign df_shipping = 'Envío gratis desde {threshold}'
+        else
+          assign df_shipping = 'Envío gratis'
+        endif
+        if days_min == days_max
+          assign df_delivery = 'Llega en {max} días hábiles'
+        else
+          assign df_delivery = 'Llega en {min} a {max} días hábiles'
+        endif
+        if policies.warranty_months == 1
+          assign df_warranty = 'Garantía de 1 mes'
+        else
+          assign df_warranty = 'Garantía de {warranty_months} meses'
+        endif
+
+        capture items_html
+          render 'df-scrolling-benefits-item', icon: 'sparkles', text: ev.announcement
+          for df_own in ev.ticker_items limit: 3
+            render 'df-scrolling-benefits-item', icon: 'check', text: df_own
+          endfor
+          render 'df-scrolling-benefits-item', icon: 'cash', text: 'Pagas al recibir', requires: 'cod', policies: policies
+          render 'df-scrolling-benefits-item', icon: 'truck', text: df_shipping, requires: 'free_shipping', policies: policies
+          render 'df-scrolling-benefits-item', icon: 'calendar', text: df_delivery, requires: 'delivery', policies: policies, days_min: days_min, days_max: days_max
+          render 'df-scrolling-benefits-item', icon: 'return', text: '{return_days} días para cambios', requires: 'returns', policies: policies
+          render 'df-scrolling-benefits-item', icon: 'shield', text: df_warranty, requires: 'warranty', policies: policies
+          render 'df-scrolling-benefits-item', icon: 'chat', text: 'Atención por WhatsApp', requires: 'whatsapp', policies: policies
+        endcapture
+
+        assign count = items_html | split: '<li ' | size | minus: 1
+        assign is_static = false
+        if count < 2
+          assign is_static = true
+        endif
+        # Duración estimada sin JS (~260 px por aviso a 40 px/s); el JS la corrige con el ancho real.
+        assign estimate = count | times: 260 | divided_by: 40
+        if estimate < 8
+          assign estimate = 8
+        endif
+      -%}
+      {%- if count > 0 -%}
+        {{ 'df-components.css' | asset_url | stylesheet_tag }}
+        {%- unless is_static -%}
+          <script src="{{ 'df-scrolling-benefits.js' | asset_url }}" defer></script>
+        {%- endunless -%}
+        <df-scrolling-benefits
+          class="df df-scrolling-benefits df-scrolling-benefits--hover-pause df-event-ticker df-ev-only{% if is_static %} df-scrolling-benefits--static{% endif %}"
+          style="--df-sb-pt: 0px; --df-sb-pb: 0px; --df-sb-gap: 40px; --df-sb-text: 13px; --df-sb-icon: 18px; --df-marquee-duration: {{ estimate }}s;"
+          data-speed="40"
+          {% if is_static %}data-static{% endif %}
+        >
+          <div class="df-scrolling-benefits__bar">
+            <div class="df-scrolling-benefits__viewport">
+              <div class="df-scrolling-benefits__track" data-df-track>
+                <ul class="df-scrolling-benefits__set" role="list" data-df-set>
+                  {{ items_html }}
+                </ul>
+                {%- unless is_static -%}
+                  <ul class="df-scrolling-benefits__set" role="list" aria-hidden="true" inert>
+                    {{ items_html }}
+                  </ul>
+                {%- endunless -%}
+              </div>
+            </div>
+            {%- unless is_static -%}
+              <button type="button" class="df-event-ticker__pause" data-df-pause aria-pressed="false" aria-label="Pausar avisos">
+                <span class="df-event-ticker__icon-pause">{% render 'df-icon', name: 'pause' %}</span>
+                <span class="df-event-ticker__icon-play">{% render 'df-icon', name: 'play' %}</span>
+              </button>
+            {%- endunless -%}
+          </div>
+        </df-scrolling-benefits>
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endif -%}
+
+{% stylesheet %}
+  /* .df.df-event-ticker: le gana a .df de df-components.css, que se carga después. Colores del
+     acento del evento (contraste AA probado en DropFlex); sin capa de color, los de la barra. */
+  .df.df-event-ticker {
+    --df-fg: var(--df-event-on-accent, var(--df-event-on-surface));
+    --df-accent-ink: var(--df-fg);
+    --df-sb-bg: var(--df-event-accent, var(--df-event-surface));
+    color: var(--df-fg);
+  }
+
+  .df-event-ticker .df-scrolling-benefits__viewport {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .df-event-ticker .df-scrolling-benefits__item {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .df-event-ticker__pause {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: var(--df-sb-bg);
+    box-shadow: -12px 0 12px var(--df-sb-bg);
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .df-event-ticker__pause .df-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .df-event-ticker__pause[aria-pressed='true'] .df-event-ticker__icon-pause,
+  .df-event-ticker__pause[aria-pressed='false'] .df-event-ticker__icon-play {
+    display: none;
+  }
+
+  .df-event-ticker__pause:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .df-event-ticker__pause {
+      display: none;
+    }
+
+    .df-event-ticker .df-scrolling-benefits__set {
+      padding-block: 8px;
+    }
+  }
+{% endstylesheet %}

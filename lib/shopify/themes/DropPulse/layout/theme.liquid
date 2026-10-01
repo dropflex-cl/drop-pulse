@@ -49,8 +49,9 @@
     {% render 'chat-drawer' %}
 
     <div class="page-wrapper">
-      {%- comment -%} DropFlex: barra de aviso del evento, sobre el header. {%- endcomment -%}
+      {%- comment -%} DropFlex: barra del evento (aviso o cuenta regresiva) y su cinta de avisos, sobre el header. {%- endcomment -%}
       {%- render 'df-event-bar' -%}
+      {%- render 'df-event-ticker' -%}
       <div id="header-group">
         {% sections 'header-group' %}
       </div>

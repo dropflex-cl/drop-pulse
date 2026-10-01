@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { accentCheck, contrast, MIN_CONTRAST } from "@/lib/copy/accent";
-import { EVENT_KINDS, EVENT_THEMES, eventTheme, eventThemeSchema } from "./catalog";
+import { activationOverridesSchema, EVENT_KINDS, EVENT_THEMES, eventTheme, eventThemeSchema } from "./catalog";
 import {
+  activationExtras,
   activeEvent,
   effectiveWindow,
   eventMetafield,
@@ -104,6 +105,15 @@ describe("overrides", () => {
     expect(themeWithOverrides(event(), { accent: "#1F4BD8" }).accent).toBe("#1f4bd8");
     expect(themeWithOverrides(event(), { announcement: "Solo este finde" }).announcement).toBe("Solo este finde");
   });
+
+  it("título de la barra y mensajes de la cinta: los del comerciante o los del evento", () => {
+    expect(activationExtras(event(), {})).toEqual({ headline: "Black Friday", tickerItems: [] });
+    expect(activationExtras(event(), { headline: "Black Week", ticker_items: ["Stock limitado"] })).toEqual({ headline: "Black Week", tickerItems: ["Stock limitado"] });
+    // Inválidos (largo, cantidad): no se usan.
+    expect(activationExtras(event(), { ticker_items: ["a", "b", "c", "d"] }).tickerItems).toEqual([]);
+    expect(activationOverridesSchema.safeParse({ headline: "x".repeat(25) }).success).toBe(false);
+    expect(activationOverridesSchema.safeParse({ ticker_items: ["x".repeat(41)] }).success).toBe(false);
+  });
 });
 
 describe("eventMetafield", () => {
@@ -121,6 +131,20 @@ describe("eventMetafield", () => {
     const f = eventMetafield([full], [copy], T0)!.events[0];
     expect(f).toMatchObject({ accent: "#111827", on_accent: "#ffffff", decor: "tag", subtitle: copy.subtitle, announcement: copy.announcement });
     expect(f.to).toBe(Math.floor(Date.parse("2026-11-30T23:59:59-03:00") / 1000));
+  });
+
+  it("la barra con reloj y la cinta van con la capa de la cuenta regresiva", () => {
+    const overrides = { headline: "Black Week", ticker_items: ["Stock limitado"] };
+    const [subtle] = resolveProductEvents([event()], [act({ intensity: "subtle", overrides })], "p", T0);
+    const s = eventMetafield([subtle], [], T0)!.events[0];
+    expect(s.headline).toBeUndefined();
+    expect(s.ticker_items).toBeUndefined();
+    const [medium] = resolveProductEvents([event()], [act({ intensity: "medium", overrides })], "p", T0);
+    expect(eventMetafield([medium], [], T0)!.events[0]).toMatchObject({ headline: "Black Week", ticker_items: ["Stock limitado"] });
+    const [plain] = resolveProductEvents([event()], [act({ intensity: "medium" })], "p", T0);
+    const m = eventMetafield([plain], [], T0)!.events[0];
+    expect(m.headline).toBe("Black Friday");
+    expect(m.ticker_items).toBeUndefined();
   });
 
   it("sin eventos es null; con muchos, lleva los más próximos ordenados por prioridad", () => {
@@ -169,9 +193,16 @@ describe("tema de Shopify", async () => {
   });
 
   it("todo texto del metafield se imprime escapado", () => {
-    for (const f of ["df-event-bar.liquid", "df-event-badge.liquid", "df-event-countdown.liquid"]) {
+    for (const f of ["df-event-bar.liquid", "df-event-badge.liquid", "df-event-countdown.liquid", "df-event-ticker.liquid"]) {
       const src = readFileSync(join(dir, f), "utf8");
-      for (const m of src.matchAll(/\{\{\s*ev\.(announcement|badge_label|name|early_label|countdown_during|subtitle)\b[^}]*\}\}/g)) expect(m[0]).toContain("escape");
+      for (const m of src.matchAll(/\{\{-?\s*(ev\.(announcement|badge_label|name|early_label|countdown_during|subtitle|headline)|df_headline|df_early)\b[^}]*\}\}/g)) expect(m[0]).toContain("escape");
     }
+  });
+
+  it("la cinta del tema dice lo mismo que la vista previa", async () => {
+    const { TICKER_ICONS, TICKER_POLICY_TEXT } = await import("./ticker");
+    const src = readFileSync(join(dir, "df-event-ticker.liquid"), "utf8");
+    for (const text of Object.values(TICKER_POLICY_TEXT)) expect(src).toContain(`'${text}'`);
+    for (const icon of Object.values(TICKER_ICONS)) expect(src).toContain(`icon: '${icon}'`);
   });
 });

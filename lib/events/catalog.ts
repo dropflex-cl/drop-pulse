@@ -25,7 +25,7 @@ export const INTENSITY_LAYERS: Record<Intensity, { badge: boolean; announcement:
 
 export const INTENSITY_LABEL: Record<Intensity, { name: string; detail: string }> = {
   subtle: { name: "Sutil", detail: "Etiqueta en el precio y barra de aviso" },
-  medium: { name: "Media", detail: "Además, el color del evento y la cuenta regresiva" },
+  medium: { name: "Media", detail: "Además, el color del evento, la cuenta regresiva y la cinta de avisos" },
   full: { name: "Total", detail: "Además, adornos y textos adaptados al evento" },
 };
 
@@ -33,6 +33,11 @@ export const ANNOUNCEMENT_MAX = 90;
 export const BADGE_MAX = 16;
 export const COUNTDOWN_LABEL_MAX = 24;
 export const EARLY_LABEL_MAX = 48;
+/** Título de la barra con cuenta regresiva («Cyber Monday»): cabe en dos líneas junto al reloj en 375 px. */
+export const HEADLINE_MAX = 24;
+/** Mensajes propios de la cinta de avisos: se suman al aviso del evento y a las políticas reales. */
+export const TICKER_ITEMS_MAX = 3;
+export const TICKER_ITEM_MAX = 40;
 
 const hex = z.string().refine((s) => normalizeHex(s) === s.toLowerCase() && s.length === 7, { message: "color en #rrggbb" });
 
@@ -65,6 +70,10 @@ export const activationOverridesSchema = z
     accent: hex.optional(),
     announcement: z.string().trim().min(1).max(ANNOUNCEMENT_MAX).optional(),
     badge_label: z.string().trim().min(1).max(BADGE_MAX).optional(),
+    /** Título de la barra con cuenta regresiva; vacío = el nombre del evento. */
+    headline: z.string().trim().min(1).max(HEADLINE_MAX).optional(),
+    /** Mensajes propios de la cinta (sin repetir las políticas: esas salen solas de Ajustes). */
+    ticker_items: z.array(z.string().trim().min(1).max(TICKER_ITEM_MAX)).max(TICKER_ITEMS_MAX).optional(),
   })
   .strict();
 export type ActivationOverrides = z.infer<typeof activationOverridesSchema>;

@@ -11,7 +11,7 @@ Migración `supabase/migrations/20261015000000_events.sql`.
 | Tabla | Qué guarda |
 |---|---|
 | `events` | El calendario de DropFlex por mercado (`market`, hoy solo `CL`), con antesala (`campaign_starts_at`), inicio, término y `priority`. `theme` guarda solo lo que cambia respecto de `EVENT_THEMES[kind]`. Las fechas se editan aquí, sin deploy. |
-| `event_activations` | Lo que activa el comerciante. `product_id` null = toda la tienda. `intensity` (`subtle`, `medium`, `full`), `overrides` (`accent`, `announcement`, `badge_label`) y ventana propia opcional. |
+| `event_activations` | Lo que activa el comerciante. `product_id` null = toda la tienda. `intensity` (`subtle`, `medium`, `full`), `overrides` (`accent`, `announcement`, `badge_label`, `headline`, `ticker_items`) y ventana propia opcional. |
 | `event_copy` | Textos del evento por producto (IA → el comerciante aprueba). Uno por producto y evento. |
 | `product_publications.event_fingerprint` | Huella del evento publicado: si cambia, la app avisa «cambios de eventos sin publicar». |
 
@@ -25,7 +25,7 @@ Migración `supabase/migrations/20261015000000_events.sql`.
 4. Un acento de `overrides` sin contraste AA (`accentCheck`) se ignora.
 5. Capas por intensidad (`INTENSITY_LAYERS`):
    - `subtle`: etiqueta y barra.
-   - `medium`: además, el color y la cuenta regresiva.
+   - `medium`: además, el color, la cuenta regresiva (barra con reloj en cajas y bajo el precio) y la cinta de avisos.
    - `full`: además, los adornos y los textos aprobados.
 
 ## Tienda (lib/shopify/components/_event)
@@ -37,8 +37,13 @@ Migración `supabase/migrations/20261015000000_events.sql`.
   - El navegador vuelve a comprobar la hora y pone `html.df-event-on`, porque Shopify guarda el HTML en caché.
   - `df-event.js` apaga la capa al llegar al término.
 - **Dónde se ve:**
-  - `layout/theme.liquid`: `df-event-head` va en el `<head>` (color del botón) y `df-event-bar` va sobre el header.
+  - `layout/theme.liquid`: `df-event-head` va en el `<head>` (color del botón); `df-event-bar` y `df-event-ticker` van sobre el header.
   - `df-price`: `df-event-badge` y `df-event-countdown`.
+- **Barra con cuenta regresiva** (`df-event-bar`, intensidad media o total): a la izquierda el título (`headline`, por defecto el nombre del evento) y el ahorro real («Ahorra 40 %», o «Ahorra hasta 40 %» si las variantes no ahorran lo mismo; sin tachado no se dice nada); a la derecha el reloj en cajas (días, horas, minutos, segundos) hasta el término real. Con sutil, la barra sigue siendo el aviso en una línea.
+  - Las cajas se ven durante todo el evento, también con más de 48 h (lo pidió el comerciante con la referencia de Barber Chile). El aviso bajo el precio mantiene sus fases.
+  - En la antesala no hay reloj: el título y `early_label`, centrados.
+  - Para el lector de pantalla, una frase que cambia una vez por minuto («Termina en 6 días, 9 horas y 19 minutos»); las cajas van `aria-hidden`.
+- **Cinta de avisos** (`df-event-ticker`, intensidad media o total): franja con el acento del evento que se desplaza sola, con el mismo motor de `scrolling-benefits` (velocidad constante, botón de pausa, pausa con puntero o foco, quieta con `prefers-reduced-motion`). Lleva el aviso del evento, hasta 3 mensajes propios (`ticker_items`, 40 caracteres) y las políticas reales de Ajustes › Envíos y políticas (pago al recibir, envío gratis, plazo, cambios, garantía, WhatsApp; lo que falta no se promete). Textos en `lib/events/ticker.ts` (la vista previa; un test los compara con el Liquid).
 - **Aviso de tiempo por fase** (`df-event-countdown` + `df-event.js`, igual para todos los eventos):
   - Antesala: `early_label` sin reloj («Precio Cyber adelantado · ya disponible»). Nunca «Empieza en»: contar hasta el inicio invita a esperar. Es honesto porque el precio de la antesala es el mismo del evento.
   - Quedan más de 48 h: «Termina en 3 días», sin segundos.

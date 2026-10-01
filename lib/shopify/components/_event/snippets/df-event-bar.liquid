@@ -1,8 +1,20 @@
 {%- doc -%}
-  DropFlex · Eventos: la barra de aviso del evento, arriba de todo (layout/theme.liquid, antes del
-  header). Texto del evento o, con intensidad total y textos aprobados, el adaptado al producto.
-  Con adorno (intensidad total), un dibujo chico de df-event-decor. Colores del evento, con
-  contraste AA probado en DropFlex (lib/events/catalog.ts).
+  DropFlex · Eventos: la barra del evento, arriba de todo (layout/theme.liquid, antes del header).
+  Colores del evento, con contraste AA probado en DropFlex (lib/events/catalog.ts).
+
+  Dos formas, según la intensidad (lib/events/catalog.ts › INTENSITY_LAYERS):
+    sutil          El aviso del evento en una línea (con adorno si la intensidad es total).
+    media o total  Título («CYBER MONDAY») + el ahorro REAL del producto a la izquierda y la cuenta
+                   regresiva en cajas (días, horas, minutos, segundos) a la derecha. El aviso pasa
+                   a la cinta de debajo (df-event-ticker).
+
+  REGLAS:
+  - El reloj cuenta hasta el término REAL del evento, el mismo para todos. Nunca se reinicia.
+  - En la antesala no hay reloj: «Precio Cyber adelantado · ya disponible». Contar hasta el inicio
+    le dice al comprador que espere.
+  - El ahorro sale de compare_at_price de las variantes; sin tachado no se dice nada.
+  Liquid dibuja las cifras con la hora del servidor; df-event.js las corrige cada segundo (el HTML
+  puede venir de la caché de Shopify).
 {%- enddoc -%}
 {%- if request.page_type == 'product' and product != blank -%}
   {%- capture df_i -%}{% render 'df-event-pick', product: product %}{%- endcapture -%}
@@ -12,15 +24,96 @@
       assign ev = product.metafields.dropflex.event.value.events[df_i]
     -%}
     {{ 'df-components.css' | asset_url | stylesheet_tag }}
-    <aside class="df df-event-bar df-ev-only" aria-label="{{ ev.name | escape }}">
-      {%- if ev.decor != blank -%}
-        {% render 'df-event-decor', name: ev.decor %}
-      {%- endif -%}
-      <p class="df-event-bar__text">{{ ev.announcement | escape }}</p>
-      {%- if ev.decor != blank -%}
-        {% render 'df-event-decor', name: ev.decor %}
-      {%- endif -%}
-    </aside>
+    {%- if ev.countdown_during != blank -%}
+      {%- liquid
+        assign df_now = 'now' | date: '%s' | plus: 0
+        assign df_start = ev.start | plus: 0
+        assign df_end = ev.to | plus: 0
+        assign df_early_fallback = 'Precio ' | append: ev.name | append: ' ya disponible'
+        assign df_early = ev.early_label | default: df_early_fallback
+        assign df_headline = ev.headline | default: ev.name
+
+        comment
+          Ahorro real: el mayor % entre las variantes con tachado. Si no todas ahorran lo mismo, «hasta».
+        endcomment
+        assign df_pc_max = 0
+        assign df_pc_min = 100
+        for v in product.variants
+          assign v_pc = 0
+          if v.compare_at_price > v.price
+            assign v_pc = v.compare_at_price | minus: v.price | times: 100.0 | divided_by: v.compare_at_price | round
+          endif
+          if v_pc > df_pc_max
+            assign df_pc_max = v_pc
+          endif
+          if v_pc < df_pc_min
+            assign df_pc_min = v_pc
+          endif
+        endfor
+
+        assign df_left = df_end | minus: df_now
+        if df_left < 0
+          assign df_left = 0
+        endif
+        assign df_d = df_left | divided_by: 86400
+        assign df_h = df_left | modulo: 86400 | divided_by: 3600
+        assign df_m = df_left | modulo: 3600 | divided_by: 60
+        assign df_s = df_left | modulo: 60
+        assign df_early_phase = false
+        if df_now < df_start
+          assign df_early_phase = true
+        endif
+      -%}
+      <aside
+        class="df df-event-bar df-event-bar--clock{% if df_early_phase %} df-event-bar--early{% endif %} df-ev-only"
+        aria-label="{{ ev.name | escape }}"
+        data-df-event-clock
+        data-start="{{ df_start }}"
+        data-end="{{ df_end }}"
+        data-during="{{ ev.countdown_during | escape }}"
+      >
+        <div class="df-event-bar__inner">
+          <div class="df-event-bar__lead">
+            <p class="df-event-bar__headline">
+              <span>{{ df_headline | escape }}</span>
+              {%- if ev.decor != blank -%}
+                {% render 'df-event-decor', name: ev.decor %}
+              {%- endif -%}
+            </p>
+            <p class="df-event-bar__sub" data-df-clock-early{% unless df_early_phase %} hidden{% endunless %}>{{ df_early | escape }}</p>
+            {%- if df_pc_max > 0 -%}
+              <p class="df-event-bar__sub" data-df-clock-saving{% if df_early_phase %} hidden{% endif %}>
+                {%- if df_pc_min < df_pc_max -%}Ahorra hasta {{ df_pc_max }} %{%- else -%}Ahorra {{ df_pc_max }} %{%- endif -%}
+              </p>
+            {%- endif -%}
+          </div>
+          <div class="df-event-bar__clock" data-df-clock-boxes{% if df_early_phase %} hidden{% endif %}>
+            <p class="df-visually-hidden" data-df-clock-sr>
+              {{- ev.countdown_during | escape }} {{ df_d }} días, {{ df_h }} horas y {{ df_m }} minutos
+            </p>
+            <div class="df-event-bar__boxes" aria-hidden="true">
+              <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="d">{{ df_d | prepend: '0' | slice: -2, 2 }}</span><span class="df-event-bar__unit">Días</span></span>
+              <span class="df-event-bar__sep">:</span>
+              <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="h">{{ df_h | prepend: '0' | slice: -2, 2 }}</span><span class="df-event-bar__unit">Hrs</span></span>
+              <span class="df-event-bar__sep">:</span>
+              <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="m">{{ df_m | prepend: '0' | slice: -2, 2 }}</span><span class="df-event-bar__unit">Min</span></span>
+              <span class="df-event-bar__sep">:</span>
+              <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="s">{{ df_s | prepend: '0' | slice: -2, 2 }}</span><span class="df-event-bar__unit">Seg</span></span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    {%- else -%}
+      <aside class="df df-event-bar df-ev-only" aria-label="{{ ev.name | escape }}">
+        {%- if ev.decor != blank -%}
+          {% render 'df-event-decor', name: ev.decor %}
+        {%- endif -%}
+        <p class="df-event-bar__text">{{ ev.announcement | escape }}</p>
+        {%- if ev.decor != blank -%}
+          {% render 'df-event-decor', name: ev.decor %}
+        {%- endif -%}
+      </aside>
+    {%- endif -%}
   {%- endif -%}
 {%- endif -%}
 
@@ -50,5 +143,126 @@
     flex: none;
     width: 18px;
     height: 18px;
+  }
+
+  /* Con cuenta regresiva: título y ahorro a la izquierda, reloj en cajas a la derecha. */
+  .df.df-event-bar--clock {
+    padding-block: 10px;
+    text-align: start;
+  }
+
+  .df-event-bar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    max-width: 40rem;
+  }
+
+  .df-event-bar__lead {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  /* Antesala: sin reloj, el texto centrado. */
+  .df-event-bar--early .df-event-bar__inner {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .df-event-bar--early .df-event-bar__lead {
+    align-items: center;
+  }
+
+  .df-event-bar__headline {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  /* El adorno sigue a la última palabra aunque el título use dos líneas. */
+  .df-event-bar__headline .df-event-decor {
+    display: inline-block;
+    margin-inline-start: 6px;
+    vertical-align: -3px;
+  }
+
+  .df-event-bar__sub {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .df-event-bar__sub[hidden],
+  .df-event-bar__clock[hidden] {
+    display: none;
+  }
+
+  .df-event-bar__boxes {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .df-event-bar__box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    padding: 5px 4px 4px;
+    border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  .df-event-bar__num {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .df-event-bar__unit {
+    margin-top: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .df-event-bar__sep {
+    font-weight: 800;
+    opacity: 0.6;
+  }
+
+  @media (min-width: 750px) {
+    .df-event-bar__headline {
+      font-size: 17px;
+    }
+
+    .df-event-bar__box {
+      min-width: 52px;
+    }
+
+    .df-event-bar__num {
+      font-size: 24px;
+    }
+
+    .df-event-bar__boxes {
+      gap: 6px;
+    }
   }
 {% endstylesheet %}
