@@ -1,5 +1,5 @@
 import "server-only";
-import { generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { generateStructured, type AiAuth, type AiUsage } from "@/lib/ai/claude";
 import type { Market } from "@/lib/market";
 import { LISTING } from "./listing";
 import { failingParts, mergeOutput, pageProblems, pageSchema, partialOutput, type PageFacts, type PageOutput } from "./page-schema";
@@ -24,12 +24,15 @@ export interface PageAttempt {
  * (para registrarla en ai_generations).
  */
 export async function writePage({
+  auth,
   ctx,
   market,
   facts,
   model,
   onAttempt,
 }: {
+  /** La clave de Anthropic: la del comerciante ({ userId }) en la app. */
+  auth: AiAuth;
   ctx: CopyContext;
   market: Market;
   facts: PageFacts;
@@ -39,6 +42,7 @@ export async function writePage({
   const write = ctx.write;
   const call = (parts: string[], retry?: CopyRetry, kept?: CopyContext["kept"]) =>
     generateStructured({
+      ...auth,
       system: copySystem(market),
       content: [{ type: "text", text: copyUser({ ...ctx, write: parts, kept }, retry) }],
       schema: pageSchema(parts),

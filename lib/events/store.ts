@@ -17,7 +17,7 @@ import { DEFAULT_MARKET, type Market } from "@/lib/market";
 import { approvedAngles } from "@/lib/pipeline/angles";
 import { getDifferentiator } from "@/lib/competitors/store";
 import { testAngleName } from "@/lib/angles/catalog";
-import { OptimizeError } from "@/lib/pipeline/optimize";
+import { OptimizeError, requireAiKey } from "@/lib/pipeline/optimize";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
@@ -199,6 +199,7 @@ async function copyContext(userId: string, productId: string) {
 
 /** Deja la escritura «generando» y la corre en segundo plano. Tocar dos veces no cobra dos veces. */
 export async function startEventCopy(userId: string, productId: string, event: EventRow): Promise<void> {
+  await requireAiKey(userId);
   await copyContext(userId, productId); // Falla antes de cobrar si falta algo.
   const db = adminClient();
   const current = (await listEventCopies(userId, { productId, eventId: event.id }))[0];
@@ -233,6 +234,7 @@ export async function runEventCopy(userId: string, productId: string, event: Eve
     let model: string | null = null;
     for (let i = 0; i < 2; i++) {
       const result = await generateStructured({
+        userId,
         system: eventCopySystem(market as Market),
         content: [{ type: "text", text: eventCopyUser(input, problems) }],
         schema: eventCopySchema,

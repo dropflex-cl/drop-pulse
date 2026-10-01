@@ -56,7 +56,7 @@ import { approvedAngles } from "./angles";
 import { onGeminiError, onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeImage } from "@/lib/media/optimize";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Imágenes (docs/spec-imagenes.md): las imágenes de la página del producto, por espacio.
 // 1. El director de galería (Claude) propone una toma por espacio con dirección de arte: portada, 5 de
@@ -135,6 +135,7 @@ export const briefStampOf = (v: unknown): string | null => stampKey(v);
 
 /** Crea la corrida del director (queued). Tocar dos veces no cobra dos veces. */
 export async function startPageImages(userId: string, productId: string): Promise<{ run: PageImageRunRow; created: boolean }> {
+  await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
@@ -201,6 +202,7 @@ export async function runPageImages(runId: string): Promise<void> {
     let result: Awaited<ReturnType<typeof generateStructured<typeof pagePlanSchema>>> | null = null;
     for (let attempt = 0; attempt < PLAN_ATTEMPTS; attempt++) {
       result = await generateStructured({
+        userId: r.user_id,
         system: pageImagesSystem(input.market),
         content: [...imageContent, { type: "text", text: pageImagesUser(ctx, problems) }],
         schema: pagePlanSchema,
@@ -291,6 +293,7 @@ async function checkDailyImages(userId: string, adding: number) {
 
 /** «Generar otra»: una imagen más de la misma toma. Devuelve la fila creada (queued). */
 export async function startShotRender(userId: string, productId: string, shotId: string): Promise<PageImageRow> {
+  await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const shot = await getShotRow(userId, productId, shotId);
   if (!shot) throw new OptimizeError("Esa toma ya no está vigente. Actualiza la página.", 409);
@@ -309,6 +312,7 @@ export async function startShotRender(userId: string, productId: string, shotId:
 export type FillScope = "required" | "benefits";
 
 export async function startFillEmpty(userId: string, productId: string, scope: FillScope = "required"): Promise<PageImageRow[]> {
+  await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const db = adminClient();
   const [shots, images] = await Promise.all([
@@ -554,6 +558,7 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
   try {
     // Las revisiones de una galería salen juntas: la primera escribe la caché y las demás la leen.
     result = await afterCacheWarm(`page_qa:${a.product_id}`, async () => generateStructured({
+      userId: a.user_id,
       system: PAGE_QA_SYSTEM,
       // Primero lo que se repite en cada QA del producto (foto real y ficha), con el punto de caché:
       // desde la segunda imagen se cobra a 0,1×. Lo propio de esta imagen va después.

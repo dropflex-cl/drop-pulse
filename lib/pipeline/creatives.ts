@@ -47,7 +47,7 @@ import { getMarket } from "@/lib/settings/market";
 import { approvedAngles } from "./angles";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeForAds } from "@/lib/media/optimize";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Creativos (docs/spec-creativos.md). Tres pasos, cada uno en segundo plano (after):
 // 1. El generador de estáticos (Claude) propone 6 conceptos desde los 2 desarrollos aprobados.
@@ -154,6 +154,7 @@ async function loadContext(userId: string, productId: string) {
 
 /** Crea la corrida del generador (queued). Tocar dos veces no cobra dos veces. */
 export async function startCreatives(userId: string, productId: string): Promise<{ run: CreativeRunRow; created: boolean }> {
+  await requireAiKey(userId);
   const provider = await requireProvider(userId, "creatives");
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
@@ -246,6 +247,7 @@ export async function runCreatives(runId: string): Promise<void> {
       let next: CreativeConceptsOutput;
       if (prev && failing.length && failing.length < prev.concepts.length) {
         const fix = await generateStructured({
+          userId: r.user_id,
           system: creativesSystem(input.market),
           content: [
             ...imageContent,
@@ -277,6 +279,7 @@ export async function runCreatives(runId: string): Promise<void> {
         usage = fix.usage;
       } else {
         const result = await generateStructured({
+          userId: r.user_id,
           system: creativesSystem(input.market),
           // Fotos y contexto con punto de caché: un reintento completo los lee a 0,1×.
           content: retryableContent(imageContent, creativesContextText(ctx), creativesTail(problems)),
@@ -372,6 +375,7 @@ const CHAT_ATTEMPTS = 2;
  * `acknowledged`: el comerciante aceptó que es una conversación armada (se lo dice la pantalla).
  */
 export async function createChat(userId: string, productId: string, body: unknown): Promise<void> {
+  await requireAiKey(userId);
   const { angle, acknowledged } = (body ?? {}) as { angle?: number; acknowledged?: boolean };
   if (!acknowledged) throw new OptimizeError("Confirma que entiendes que el chat es una conversación armada.", 400);
   await requireProvider(userId, "creatives");
@@ -400,7 +404,7 @@ export async function createChat(userId: string, productId: string, body: unknow
   for (let attempt = 0; attempt < CHAT_ATTEMPTS; attempt++) {
     let result;
     try {
-      result = await generateStructured({ system: chatSystem(input.market), content: [{ type: "text", text: chatUser(chatCtx, problems) }], schema: chatOutputSchema, effort: "low", maxTokens: 6000 });
+      result = await generateStructured({ userId, system: chatSystem(input.market), content: [{ type: "text", text: chatUser(chatCtx, problems) }], schema: chatOutputSchema, effort: "low", maxTokens: 6000 });
     } catch (e) {
       if (e instanceof AiStepError) await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, usage: e.usage, error: e.code });
       throw new OptimizeError(e instanceof AiStepError ? e.message : "No pudimos escribir el chat. Intenta de nuevo.", 502);
@@ -465,6 +469,7 @@ export async function editChat(userId: string, productId: string, conceptId: str
 
 /** Crea la pieza (queued) de un concepto en una proporción. Si ya hay una generándose, la devuelve. */
 export async function startRender(userId: string, productId: string, conceptId: string, ratio: Ratio, prefer?: ImageProvider): Promise<{ asset: AssetRow; created: boolean }> {
+  await requireAiKey(userId);
   const provider = await requireProvider(userId, "creatives", "anuncios", prefer);
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
@@ -721,6 +726,7 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
   let result;
   try {
     result = await afterCacheWarm(`creative_qa:${a.product_id}`, async () => generateStructured({
+      userId: a.user_id,
       system: QA_SYSTEM,
       // La foto real se repite en cada QA del producto: con el punto de caché, desde la segunda pieza
       // se cobra a 0,1×. Lo propio de esta pieza va después.

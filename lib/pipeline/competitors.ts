@@ -18,6 +18,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { ProductApiError } from "@/lib/products/http";
 import { getProductRow } from "@/lib/products/store";
+import { requireAiKey } from "./optimize";
 import { getMarket } from "@/lib/settings/market";
 
 // Tiendas de la competencia (Información base, docs/spec-angulos-testeo.md › §3.2): el comerciante
@@ -30,6 +31,7 @@ const DAILY_LIMIT = 60;
 
 /** Valida, deduplica y pone en cola un link. Devuelve la fila creada. */
 export async function startCompetitor(userId: string, productId: string, rawUrl: string): Promise<CompetitorRow> {
+  await requireAiKey(userId);
   const url = normalizeCompetitorUrl(typeof rawUrl === "string" ? rawUrl : "");
   if (!url) throw new ProductApiError("Pega el link de la página de la tienda, por ejemplo https://tienda.com/products/…", 400, "url");
 
@@ -98,6 +100,7 @@ export async function runCompetitor(id: string): Promise<void> {
     let result;
     try {
       result = await generateStructured({
+        userId,
         system: competitorSystem(market),
         content: [{ type: "text", text: competitorUser({ productName: product.title, differentiator: differentiator.value, url: row.url, title: page.title, text: page.text }) }],
         schema: competitorAnalysisSchema,

@@ -27,7 +27,7 @@ import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { getMarket } from "@/lib/settings/market";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import type { ImagePick } from "@/lib/types";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Página del producto (docs/spec-pagina-componentes.md). Con los 2 desarrollos de ángulo
 // aprobados, UNA llamada a Claude escribe la ficha y el contenido de cada componente de conversión
@@ -76,6 +76,7 @@ export type CopyMode = { kind: "missing" } | { kind: "all" } | { kind: "only"; c
  * está escrita, nada nuevo: tocar dos veces no cobra dos veces.
  */
 export async function startCopy(userId: string, productId: string, redo = false, mode: CopyMode = { kind: "missing" }): Promise<{ run: CopyRunRow | null; created: boolean }> {
+  await requireAiKey(userId);
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
   const active = await db.from("copy_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
@@ -188,6 +189,7 @@ export async function runCopy(runId: string): Promise<void> {
     // Los números de uso que puede citar la pregunta de duración: los que dio el comerciante.
     const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: reviews.map((v) => v.id), factText: productFactText(brief, product.base_info) };
     const written = await writePage({
+      auth: { userId: r.user_id },
       ctx,
       market: input.market,
       facts,

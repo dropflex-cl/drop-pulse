@@ -28,7 +28,7 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { getProductRow, latestAvatars, latestBrief } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md y
 // docs/spec-angulos-testeo.md §4):
@@ -106,6 +106,7 @@ async function loadContext(userId: string, productId: string) {
 
 /** Crea la evaluación (queued). Devuelve la activa si ya había una: tocar dos veces no cobra dos veces. */
 export async function startRanking(userId: string, productId: string): Promise<{ ranking: RankingRow; created: boolean }> {
+  await requireAiKey(userId);
   const ctx = await loadContext(userId, productId);
   // El método parte del diferenciador: sin él no hay ángulo que sirva (spec §3.1).
   if (!ctx.differentiator.confirmed) throw new OptimizeError("Antes de elegir ángulos: confirma en Información base en qué se diferencia tu producto de lo que tu cliente ya usa.", 409);
@@ -212,6 +213,7 @@ export async function runRanking(rankingId: string): Promise<void> {
     // nunca se completa con ceros.
     const evaluate = (retry: string[]) =>
       generateStructured({
+        userId: r.user_id,
         system: angleRouterSystem(r.input.market as Market),
         // El contexto con punto de caché: el segundo intento lo lee a 0,1×.
         content: retryableContent([], angleRouterContext(ctx), angleRouterTail(retry)),
@@ -316,6 +318,7 @@ const sameAngle = (a: TestAngle, b: TestAngle | undefined) =>
  * desarrollos. Confirmar otra vez completa lo que falte.
  */
 export async function confirmSelection(userId: string, productId: string, rawAngles: unknown): Promise<string[]> {
+  await requireAiKey(userId);
   const angles = normalizeChoice(rawAngles);
   const ranking = (await latestRankings(userId, [productId])).get(productId);
   if (!ranking || ranking.status !== "succeeded") throw new OptimizeError("Primero elige ángulos con IA.", 409);
@@ -426,6 +429,7 @@ export async function runBrief(briefId: string): Promise<void> {
     const others = chosen.filter((a) => a.slot !== b.slot);
     const inputKey = briefInputKey(ctx, r.input.market, { ...angle, slot: 1 }, others);
     const { data, usage } = await generateStructured({
+      userId: b.user_id,
       system: angleSystem(b.angle, r.input.market as Market),
       content: [
         {
@@ -478,6 +482,7 @@ export async function runBrief(briefId: string): Promise<void> {
 
 /** “Regenerar”: un desarrollo nuevo del mismo ángulo y papel; el anterior queda descartado. */
 export async function regenerateBrief(userId: string, productId: string, briefId: string): Promise<string> {
+  await requireAiKey(userId);
   const b = await getBriefRow(userId, productId, briefId);
   if (!b || b.status === "rejected") throw new OptimizeError("Ese desarrollo ya no está vigente. Actualiza la página.", 409);
   if (b.generation === "queued" || b.generation === "running") throw new OptimizeError("Este desarrollo todavía se está generando.", 409);

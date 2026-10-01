@@ -57,7 +57,7 @@ import {
 import { activeScripts, getScriptRow, getShotRow, isShotRecoverable, latestByKey, purgeSupersededVideos, shotsFor, videoStep, type ScriptRow, type ShotRow } from "@/lib/video/store";
 import { approvedAngles } from "./angles";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
-import { OptimizeError } from "./optimize";
+import { OptimizeError, requireAiKey } from "./optimize";
 
 // Video UGC en Creativos (docs/spec-video-ugc.md). Cada paso en segundo plano (after), como Creativos:
 // 1. El guionista (Claude) escribe el guion de un ángulo; el comerciante lo edita y lo aprueba.
@@ -126,6 +126,7 @@ async function angleFor(userId: string, productId: string, slot: number) {
  * anterior del mismo ángulo y formato («Otro guion», «Reintentar»): sus tomas se borran.
  */
 export async function startScript(userId: string, productId: string, slot: number, format: VideoFormat = "ugc"): Promise<{ script: ScriptRow; created: boolean }> {
+  await requireAiKey(userId);
   await requireHiggsfield(userId);
   const angle = await angleFor(userId, productId, slot);
   const [brief, avatars, pricing, labels] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), getPricingPlan(userId, productId), latestPackLabels(userId, productId)]);
@@ -200,6 +201,7 @@ export async function runScript(scriptId: string): Promise<void> {
     let result: Awaited<ReturnType<typeof generateStructured<typeof ugcScriptSchema>>> | null = null;
     for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {
       result = await generateStructured({
+        userId: s.user_id,
         system: scriptSystem(format, input.market),
         // La foto y el contexto con punto de caché: un reintento (hasta 3) los lee a 0,1×.
         content: retryableContent([image], ugcContextText(ctx), ugcTail(problems, format)),
@@ -307,6 +309,7 @@ function missingKeys(keys: string[], shots: ShotRow[]): string[] {
 
 /** «Generar imágenes clave»: crea las que faltan (K1 primero; las demás esperan su cara). */
 export async function startKeyframes(userId: string, productId: string, scriptId: string): Promise<string[]> {
+  await requireAiKey(userId);
   await requireHiggsfield(userId);
   const s = await readyScript(userId, productId, scriptId);
   if (!s.approved_at) throw new OptimizeError("Aprueba el guion antes de generar las imágenes.", 409);
@@ -575,7 +578,7 @@ async function runKeyframeQa(s: ShotRow, script: ScriptRow & { payload: UgcScrip
   content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter, scriptFormat(script)) });
   let result;
   try {
-    const qa = () => generateStructured({ system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
+    const qa = () => generateStructured({ userId: s.user_id, system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
     // Las imágenes clave se revisan juntas (processShots): la primera con el producto escribe su caché.
     result = def.uses_product ? await afterCacheWarm(`video_qa:${s.product_id}`, qa) : await qa();
   } catch (e) {

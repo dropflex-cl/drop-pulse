@@ -12,6 +12,7 @@ import {
   type ProductBrief,
 } from "@/lib/ai/schemas";
 import { adminClient } from "@/lib/integrations/admin";
+import { getAnthropicConnection, NO_ANTHROPIC_KEY } from "@/lib/integrations/anthropic/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
 import { getMarket } from "@/lib/settings/market";
@@ -46,6 +47,14 @@ function fail(what: string, error: { message: string } | null) {
   if (error) throw new Error(`${what}: ${error.message}`);
 }
 
+/**
+ * Toda acción que llama a Claude parte con la clave de Anthropic del comerciante conectada: sin ella
+ * falla al tocar, antes de crear la corrida o de gastar créditos de imágenes cuyo QA no podría correr.
+ */
+export async function requireAiKey(userId: string): Promise<void> {
+  if ((await getAnthropicConnection(userId))?.status !== "connected") throw new OptimizeError(NO_ANTHROPIC_KEY, 409);
+}
+
 
 async function setRun(id: string, patch: Record<string, unknown>) {
   fail("Guardar la corrida", (await adminClient().from("pipeline_runs").update(patch).eq("id", id)).error);
@@ -56,6 +65,7 @@ async function setRun(id: string, patch: Record<string, unknown>) {
  * Pide al menos una imagen en uso (design-system/arquitectura.md › 8).
  */
 export async function startOptimization(userId: string, productId: string): Promise<{ run: RunRow; created: boolean }> {
+  await requireAiKey(userId);
   const db = adminClient();
   const product = await getProductRow(userId, productId);
   if (!product) throw new OptimizeError("No encontramos ese producto.", 404);
@@ -155,7 +165,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
     },
   ];
 
-  const { data, usage } = await generateStructured({ system: productBriefSystem(market), content, schema: productBriefSchema, effort: "medium" });
+  const { data, usage } = await generateStructured({ userId: run.user_id, system: productBriefSystem(market), content, schema: productBriefSchema, effort: "medium" });
   await recordAiGeneration({ userId: run.user_id, productId: run.product_id, runId: run.id, step: "product_brief", usage });
   const { data: saved, error } = await adminClient()
     .from("product_briefs")
@@ -175,6 +185,7 @@ async function briefStep(run: RunRow, market: Market): Promise<{ brief: ProductB
 
 async function avatarStep(run: RunRow, market: Market, brief: ProductBrief, briefId: string, baseInfo: string) {
   const { data, usage } = await generateStructured({
+    userId: run.user_id,
     system: customerAvatarSystem(market),
     content: [{ type: "text", text: customerAvatarUser(JSON.stringify(brief, null, 2), baseInfo, run.input.pricing as PricingPlan) }],
     // Una sola llamada: el perfil y las etiquetas de los packs (se guardan y se deciden por separado).
