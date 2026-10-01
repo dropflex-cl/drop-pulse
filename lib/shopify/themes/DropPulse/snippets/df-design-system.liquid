@@ -110,6 +110,39 @@
       border-radius: var(--gallery-media-border-radius, 12px);
     }
 
+    /* Barra fija de compra: el precio de venta manda (más grande, en negrita y del acento del
+       producto como texto, ya ajustado a 4.5:1 por df-accent-vars) y el tachado va siempre en rojo
+       (--df-negative de df-components.css, 6.5:1 sobre blanco), también la línea. Sin acento, el
+       color del botón del tema. */
+    .sticky-add-to-cart__bar {
+      {%- if request.page_type == 'product' %}
+        {% render 'df-accent-vars', product: product %}
+      {%- endif %}
+      --df-ds-sticky-price: var(--df-product-accent-ink, var(--color-primary-button-background));
+      --df-ds-sticky-was: #b91c1c;
+    }
+
+    .sticky-add-to-cart__price [ref='priceContainer'] {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 6px;
+    }
+
+    .sticky-add-to-cart__price .price {
+      color: var(--df-ds-sticky-price);
+      font-size: 1.25em;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+    }
+
+    .sticky-add-to-cart__price .compare-at-price {
+      color: var(--df-ds-sticky-was);
+      font-weight: 400;
+      text-decoration-color: var(--df-ds-sticky-was);
+    }
+
     /* El header se funde con la página: sin la línea de abajo (el ajuste «borde» del header es del
        comerciante y no llega a las tiendas instaladas, por eso va aquí). */
     #header-component .header__row,
