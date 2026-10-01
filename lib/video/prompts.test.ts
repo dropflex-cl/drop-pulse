@@ -66,3 +66,26 @@ describe("guion: el gancho sale de la tríada", () => {
     }
   });
 });
+
+describe("guion: tamaño del esquema", () => {
+  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»): el guion con la
+  // apertura y las cámaras no puede pasar el del cliente ideal, que funciona en producción.
+  it("no es más grande que el del cliente ideal", async () => {
+    const { toJSONSchema } = await import("zod/v4");
+    const { avatarStepSchema } = await import("@/lib/ai/schemas");
+    const { ugcScriptSchema } = await import("./schemas");
+    const size = (schema: unknown) => {
+      let n = 0;
+      const walk = (node: unknown) => {
+        if (!node || typeof node !== "object") return;
+        const o = node as Record<string, unknown>;
+        if (o.type === "object") n += 1 + Object.keys((o.properties as object) ?? {}).length;
+        if (Array.isArray(o.enum)) n += o.enum.length;
+        for (const v of Object.values(o)) walk(v);
+      };
+      walk(schema);
+      return n;
+    };
+    expect(size(toJSONSchema(ugcScriptSchema))).toBeLessThanOrEqual(size(toJSONSchema(avatarStepSchema)));
+  });
+});

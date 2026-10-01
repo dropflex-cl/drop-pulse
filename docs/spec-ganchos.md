@@ -30,6 +30,8 @@ video (UGC y mascota) · estáticos · chat · texto del anuncio
 | `scores` | Saliencia, relevancia, credibilidad y verificabilidad, de 1 a 5 |
 | `risk`, `risk_reason` | Riesgo de Meta o de rechazo en la entrega |
 | `needs_real_material` | Qué material real falta (testimonio, bodega, experto), o null |
+| `opening_shot`, `first_motion` | La primera toma de un video con IA y qué se mueve en el cuadro 0 (`docs/spec-video-detener-scroll.md` §3). `real_footage` si muestra el efecto o pide material real: el video con IA no la usa |
+| `mascot` | La versión del gancho para el video de mascota (lo que dice el personaje, su texto en pantalla y su escena), o null si el patrón no encaja (§3.7 del mismo spec) |
 | `policy_ok` | Del modelo; en un gancho editado, de las reglas de código |
 | `edited` | El comerciante cambió el hablado |
 
@@ -68,4 +70,4 @@ Cada gancho muestra el hablado (y la segunda frase), el patrón y el texto en pa
 
 ## Versiones
 
-`HOOKS_PROMPT_VERSION` (1), `ANGLE_BRIEF_PROMPT_VERSION` (5: sin ganchos), `UGC_PROMPT_VERSION` y `MASCOT_PROMPT_VERSION` (6), `CREATIVES_PROMPT_VERSION` (6) y `CHAT_PROMPT_VERSION` (3).
+`HOOKS_PROMPT_VERSION` (2: la primera toma y la versión de mascota), `ANGLE_BRIEF_PROMPT_VERSION` (5: sin ganchos), `UGC_PROMPT_VERSION` y `MASCOT_PROMPT_VERSION` (7), `CREATIVES_PROMPT_VERSION` (6) y `CHAT_PROMPT_VERSION` (3).

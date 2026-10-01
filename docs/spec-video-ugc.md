@@ -117,12 +117,15 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 
 ### 5.1 `GET /api/products/[id]/videos/[scriptId]/package`
 
-JSON (versión `1`), solo con el guion aprobado y todos los clips listos:
+JSON (versión `2`; la `1` no traía `opening` ni `look` y el script la sigue leyendo), solo con el guion aprobado y todos los clips listos:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "name": "deep-collagen-ugc-angulo-3",
+  "format": "ugc",
+  "opening": { "shot": "pov_hands", "insert": "B1" },
+  "look": "phone",
   "product": { "id": "…", "title": "Deep Collagen" },
   "angle": { "slot": 3, "title": "…" },
   "language": "es",
@@ -136,7 +139,7 @@ JSON (versión `1`), solo con el guion aprobado y todos los clips listos:
 }
 ```
 
-URLs firmadas de `creative-media` por 24 h (el paquete se descarga de nuevo si vencen).
+URLs firmadas de `creative-media` por 24 h (el paquete se descarga de nuevo si vencen). `opening` y `look`: la apertura y el aspecto de teléfono (`docs/spec-video-detener-scroll.md` §3.6 y §4.6).
 
 ### 5.2 `scripts/ugc-montage.py`
 

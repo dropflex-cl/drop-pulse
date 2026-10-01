@@ -34,6 +34,8 @@ import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWor
 /** Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera toma (opening_shot) y la versión de mascota. */
 export const HOOKS_PROMPT_VERSION = 2;
 
+const VARIANT_CHANGES = ["spoken", "on_screen", "visual"];
+
 const text = z.string();
 
 const scores = z.object({
@@ -71,7 +73,8 @@ const hookOut = z.object({
 export const hooksOutputSchema = z.object({
   diagnosis: z.object({
     archetype: z.enum(ARCHETYPES),
-    secondary_archetype: z.enum(ARCHETYPES).nullable(),
+    // Texto validado en código (hookProblems): un enum más agranda la gramática de la salida estructurada.
+    secondary_archetype: text.nullable().describe(`Otro arquetipo (${ARCHETYPES.join(", ")}) o null.`),
     core_pain: text.describe("El dolor o deseo central, con las palabras del cliente."),
     main_objection: text.describe("La objeción principal (casi siempre «¿será estafa?», «¿sí funciona?» o «¿me va a quedar?»)."),
     policy_risk: z.enum(RISKS).describe("Riesgo de política de la categoría."),
@@ -83,7 +86,7 @@ export const hooksOutputSchema = z.object({
         hook: z.number().int().describe("Índice (desde 0) del gancho en hooks."),
         why: text.describe("Por qué probarlo primero, en una línea."),
         variant: z.object({
-          changes: z.enum(["spoken", "on_screen", "visual"]).describe("La única variable que cambia la variante A/B."),
+          changes: text.describe("La única variable que cambia la variante A/B: spoken, on_screen o visual."),
           text: text.describe("El nuevo valor de esa variable."),
         }),
       }),
@@ -223,6 +226,8 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
   if (mascots.length < MIN_MASCOT_HOOKS || mascotPatterns.size < MIN_MASCOT_PATTERNS)
     problems.push(`Trae ${mascots.length} ganchos con versión de mascota en ${mascotPatterns.size} patrones; deben ser al menos ${MIN_MASCOT_HOOKS} en ${MIN_MASCOT_PATTERNS} patrones distintos.`);
 
+  const second = out.diagnosis.secondary_archetype;
+  if (second != null && !(ARCHETYPES as readonly string[]).includes(second)) problems.push(`secondary_archetype es «${second}»: usa uno de ${ARCHETYPES.join(", ")} o null.`);
   if (out.top.length !== TOP_HOOKS) problems.push(`top trae ${out.top.length}; deben ser ${TOP_HOOKS}.`);
   const tops = new Set<number>();
   out.top.forEach((t, i) => {
@@ -231,6 +236,7 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     if (tops.has(t.hook)) problems.push(`top ${i + 1} repite el gancho ${t.hook + 1}.`);
     tops.add(t.hook);
     if (!h.policy_ok || h.risk === "high") problems.push(`top ${i + 1} es el gancho ${t.hook + 1}, que tiene riesgo alto o roza la política: elige otro para probar primero.`);
+    if (!VARIANT_CHANGES.includes(t.variant.changes)) problems.push(`top ${i + 1}: variant.changes es «${t.variant.changes}»; usa spoken, on_screen o visual.`);
     if (!t.variant.text.trim()) problems.push(`top ${i + 1} no trae su variante A/B.`);
     else if (t.variant.changes !== "visual") problems.push(...hookTextProblems(t.variant.text, facts.pricing, `La variante del top ${i + 1}: `));
   });

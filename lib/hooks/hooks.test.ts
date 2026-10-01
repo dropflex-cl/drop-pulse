@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toJSONSchema } from "zod/v4";
 import { AVATAR } from "@/app/dev/screens/base/fixture";
-import type { ProductBrief } from "@/lib/ai/schemas";
+import { avatarStepSchema, type ProductBrief } from "@/lib/ai/schemas";
 import { angleForPrompt } from "@/lib/angles/approved";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
@@ -276,5 +276,32 @@ describe("prompt del agente de ganchos", () => {
 
   it("el esquema compila a JSON schema", () => {
     expect(toJSONSchema(hooksOutputSchema)).toHaveProperty("properties.hooks");
+  });
+
+  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»). El paso del cliente
+  // ideal funciona en producción: el de los ganchos no puede ser más grande (mismo criterio que Ángulos).
+  it("no es más grande que el del cliente ideal", () => {
+    const size = (schema: unknown) => {
+      let n = 0;
+      const walk = (node: unknown) => {
+        if (!node || typeof node !== "object") return;
+        const o = node as Record<string, unknown>;
+        if (o.type === "object") n += 1 + Object.keys((o.properties as object) ?? {}).length;
+        if (Array.isArray(o.enum)) n += o.enum.length;
+        for (const v of Object.values(o)) walk(v);
+      };
+      walk(schema);
+      return n;
+    };
+    expect(size(toJSONSchema(hooksOutputSchema))).toBeLessThanOrEqual(size(toJSONSchema(avatarStepSchema)));
+  });
+
+  it("valida en código lo que no es enum", () => {
+    const o = output();
+    o.diagnosis = { ...o.diagnosis, secondary_archetype: "otro" };
+    o.top[0] = { ...o.top[0], variant: { changes: "musica", text: "x" } };
+    const p = hookProblems(o, facts).join(" ");
+    expect(p).toMatch(/secondary_archetype es «otro»/);
+    expect(p).toMatch(/variant.changes es «musica»/);
   });
 });
