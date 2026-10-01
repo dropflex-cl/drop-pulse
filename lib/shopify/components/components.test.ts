@@ -71,6 +71,39 @@ describe("base compartida", () => {
   });
 });
 
+// docs/spec-movimiento-tienda.md: nada se mueve solo en bucle sin pausa (WCAG 2.2.2) y el revelado
+// al desplazar necesita su script (sin él, nada se oculta, pero tampoco entra).
+describe("movimiento", () => {
+  const all = readdirSync(ROOT)
+    .filter((d) => statSync(join(ROOT, d)).isDirectory())
+    .flatMap((d) => files(d))
+    .filter((f) => /\.(liquid|css|js)$/.test(f));
+
+  it("ninguna animación infinita, salvo la marquesina (tiene botón de pausa)", () => {
+    for (const f of all) {
+      if (f.endsWith("/df-scrolling-benefits.liquid")) continue;
+      expect(readFileSync(f, "utf8"), f).not.toMatch(/animation(-iteration-count)?:[^;]*\binfinite\b/);
+    }
+  });
+
+  it("todo lo que usa data-df-reveal o data-df-count carga df-motion.js", () => {
+    for (const f of all.filter((f) => f.endsWith(".liquid") && !f.includes("/snippets/"))) {
+      const src = readFileSync(f, "utf8");
+      if (/data-df-(reveal|count)/.test(src)) expect(src, f).toContain("'df-motion.js' | asset_url");
+    }
+  });
+
+  it("los snippets con data-df-reveal los usa una sección o bloque que carga df-motion.js", () => {
+    for (const f of all.filter((f) => f.includes("/snippets/") && f.endsWith(".liquid"))) {
+      if (!/data-df-reveal/.test(readFileSync(f, "utf8"))) continue;
+      const name = f.split("/").pop()!.replace(".liquid", "");
+      const users = all.filter((u) => u !== f && readFileSync(u, "utf8").includes(`render '${name}'`));
+      expect(users.length, f).toBeGreaterThan(0);
+      for (const u of users) expect(readFileSync(u, "utf8"), u).toContain("'df-motion.js' | asset_url");
+    }
+  });
+});
+
 describe("catálogo", () => {
   it("registra todas las carpetas, sin repetir", () => {
     expect(CATALOG.map((c) => c.id).sort()).toEqual([...ids].sort());

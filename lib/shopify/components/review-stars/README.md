@@ -31,7 +31,7 @@ No hay modo manual: ni la IA ni el editor pueden escribir la nota o la cantidad.
 
 - Render en Liquid (sin salto de diseño): las estrellas son SVG con recorte del ancho, nunca redondeadas hacia arriba.
 - Sin resumen, con nota 0 o con menos reseñas que el mínimo (3 por defecto) no se dibuja nada: nunca «0 reseñas». En el editor aparece un aviso.
-- Con ancla: es un `<a href="#resenas">` que funciona sin JS. El JS compensa el encabezado fijo (80 px por defecto), respeta `prefers-reduced-motion` y deja el foco en las reseñas. Si el ancla no existe en la página, el enlace se desactiva. Sin ancla: la fila es solo informativa.
+- Con ancla: es un `<a href="#resenas">` que funciona sin JS. El JS compensa el encabezado fijo (80 px por defecto), respeta `prefers-reduced-motion` y deja el foco en las reseñas. Al llegar, las reseñas hacen un destello del acento suave (900 ms, `dfMotion.flash`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)): el comprador ve dónde quedó. Si el ancla no existe en la página, el enlace se desactiva. Sin ancla: la fila es solo informativa.
 - Un solo `aria-label` para lectores de pantalla: «Calificación 4,6 de 5, basada en 19 reseñas. Ir a las reseñas»; estrellas y texto visible van `aria-hidden`.
 - Es por producto, no por variante: no se redibuja al cambiar de variante.
 - No emite JSON-LD `AggregateRating` (le toca al bloque de reseñas completo, para no duplicarlo).

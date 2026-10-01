@@ -271,12 +271,37 @@
     opacity: 0.6;
   }
 
-  .df-shipping-timeline--animate .df-shipping-timeline__steps::before {
-    animation: df-shipping-timeline-march 0.9s linear infinite;
+  /* «Línea animada»: el tramo Pedido → Despachado va en el acento, sólido (lo que ya está en marcha)
+     y el resto punteado (lo que falta). df-shipping-timeline.js lo dibuja una sola vez al entrar en
+     pantalla y el hito 2 hace un pequeño pop; después todo queda quieto (nunca un bucle). Sin JS o
+     con movimiento reducido se ve el estado final. */
+  .df-shipping-timeline--animate .df-shipping-timeline__steps::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--df-st-circle) / 2 - 1px);
+    left: calc(100% / 6);
+    width: calc(100% / 3);
+    height: 2px;
+    border-radius: 1px;
+    background: var(--df-accent);
+    transform-origin: left center;
   }
 
-  @keyframes df-shipping-timeline-march {
-    to { background-position: 12px 0; }
+  .df-shipping-timeline--animate.is-armed .df-shipping-timeline__steps::after {
+    transform: scaleX(0);
+  }
+
+  .df-shipping-timeline--animate.is-run .df-shipping-timeline__steps::after {
+    transform: scaleX(1);
+    transition: transform 600ms var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+  }
+
+  .df-shipping-timeline--animate.is-run .df-shipping-timeline__step:nth-child(2) .df-shipping-timeline__circle {
+    animation: df-shipping-timeline-pop 240ms var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)) 560ms backwards;
+  }
+
+  @keyframes df-shipping-timeline-pop {
+    from { transform: scale(0.88); }
   }
 
   .df-shipping-timeline__step {
@@ -290,6 +315,7 @@
 
   .df-shipping-timeline__circle {
     position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
     width: var(--df-st-circle);
@@ -342,7 +368,11 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .df-shipping-timeline--animate .df-shipping-timeline__steps::before {
+    .df-shipping-timeline--animate.is-armed .df-shipping-timeline__steps::after {
+      transform: none;
+    }
+
+    .df-shipping-timeline--animate.is-run .df-shipping-timeline__step:nth-child(2) .df-shipping-timeline__circle {
       animation: none;
     }
   }
@@ -572,6 +602,7 @@
       "type": "checkbox",
       "id": "animate_line",
       "label": "Línea animada",
+      "info": "El tramo hasta el despacho se dibuja una vez, al aparecer en pantalla.",
       "default": true
     },
     {

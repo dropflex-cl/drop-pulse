@@ -137,7 +137,7 @@
         assign o1_text = parts[2]
         assign o2_text = parts[3]
       -%}
-      <tr class="df-comparison-table__row" {{ row_attrs }}>
+      <tr class="df-comparison-table__row" data-df-reveal="fade" {{ row_attrs }}>
         <th scope="row" class="df-comparison-table__feature">{{ feature | escape }}</th>
         <td class="df-comparison-table__us">{% render 'df-comparison-table-cell', value: us_val, text: us_text %}</td>
         <td class="df-comparison-table__other">{% render 'df-comparison-table-cell', value: o1_val, text: o1_text %}</td>
@@ -153,6 +153,7 @@
 
 {%- if rows_html != blank or request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
   {%- if s.pulse -%}
     <script src="{{ 'df-comparison-table.js' | asset_url }}" defer></script>
   {%- endif -%}
@@ -168,7 +169,7 @@
         </p>
       {%- else -%}
         {%- if heading != blank -%}
-          <h2 id="{{ heading_id }}" class="df-heading df-comparison-table__heading{% if s.heading_italic %} df-comparison-table__heading--italic{% endif %}">
+          <h2 id="{{ heading_id }}" class="df-heading df-comparison-table__heading{% if s.heading_italic %} df-comparison-table__heading--italic{% endif %}" data-df-reveal>
             {{- heading | escape -}}
           </h2>
         {%- endif -%}
@@ -432,7 +433,8 @@
 
   @media (prefers-reduced-motion: no-preference) {
     .df-comparison-table--pulse.is-visible .df-comparison-table__us .df-comparison-table__mark {
-      animation: df-comparison-table-beat 0.9s var(--df-ease) 3;
+      /* Después de que las filas terminan de aparecer (df-motion.js). */
+      animation: df-comparison-table-beat 0.9s var(--df-ease) 0.4s 3;
     }
   }
 

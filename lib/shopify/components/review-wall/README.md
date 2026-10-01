@@ -43,8 +43,8 @@ Reales: el texto, las fotos, la fecha y el promedio.
 
 ## Comportamiento
 
-- Las primeras `initial_posts` publicaciones a la vista; las demás salen del servidor con `hidden`. «Ver más testimonios» descubre la siguiente tanda del mismo tamaño y lleva el foco a la primera nueva sin mover la pantalla.
-- «Ver más» aparece solo en los textos que de verdad quedaron cortados (se mide con `ResizeObserver`, al cargar la fuente y al descubrir publicaciones). Al tocarlo, el texto se abre entero y el foco pasa a la publicación.
+- Las primeras `initial_posts` publicaciones a la vista; las demás salen del servidor con `hidden`. «Ver más testimonios» descubre la siguiente tanda del mismo tamaño, que entra escalonada, y lleva el foco a la primera nueva sin mover la pantalla. Las publicaciones también entran al desplazar, fila por fila (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)).
+- «Ver más» aparece solo en los textos que de verdad quedaron cortados (se mide con `ResizeObserver`, al cargar la fuente y al descubrir publicaciones). Al tocarlo, el texto crece hasta su alto entero (320 ms) y el foco pasa a la publicación.
 - Cada publicación es un `<article>` con el nombre como etiqueta. Fotos con `image_url` + `image_tag`, `loading="lazy"` y `sizes` calculado por columnas.
 - Sin JSON-LD `Review`.
 

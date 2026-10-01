@@ -28,7 +28,7 @@ Sin calificación real (o bajo el mínimo), la línea no aparece: nunca «0 estr
 
 ## Comportamiento
 
-- Estática: sin carrusel ni autoplay. La única animación es la flecha del botón al pasar el puntero (se apaga con `prefers-reduced-motion`).
+- Sin carrusel ni autoplay. Movimiento (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)): las fotos entran creciendo apenas y el texto escalonado al desplazar; las cifras **reales** del metafield cuentan desde 0 una sola vez (900 ms, ancho fijo, la cifra animada `aria-hidden` y una copia oculta con el valor final para el lector). Las cifras escritas en el editor no cuentan. El botón se hunde al tocarlo y su flecha avanza con el puntero. Todo se apaga con `prefers-reduced-motion` y con «Animaciones de DropFlex».
 - Fotos con `image_url` + `image_tag` (`widths` y `sizes` según el collage). Si la sección es de las dos primeras de la página (`section.index`), cargan de inmediato y la primera con `fetchpriority="high"`; si no, diferidas.
 - Botón: un solo `<a>`. Con enlace propio, va ahí. Sin enlace, apunta a la ficha del producto y, en la ficha, `<df-buy-link>` desplaza hasta el formulario `/cart/add` de la página y le pasa el foco al botón de compra.
 - Estrellas decorativas (`aria-hidden`) junto a su texto; el testimonio es `figure` + `blockquote` + `figcaption`.

@@ -32,7 +32,7 @@ Una fila cuyo texto conserva un token sin dato real no se muestra. Sin filas vá
 
 ## Comportamiento
 
-- Sin interacción: es contenido estático. Sin JS salvo con «Latido al aparecer»: `<df-comparison-table>` agrega `is-visible` al entrar un 40 % en pantalla y los íconos de nuestra columna laten tres veces y se detienen. Con `prefers-reduced-motion` no hay animación.
+- Sin interacción. Las filas entran con un fundido escalonado al desplazar (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)). Con «Latido al aparecer»: `<df-comparison-table>` agrega `is-visible` al entrar un 40 % en pantalla y los íconos de nuestra columna laten tres veces y se detienen. Con `prefers-reduced-motion` no hay animación.
 - La tabla se nombra con el título (`aria-labelledby`). Nuestra columna nunca depende solo del color: los valores se leen como texto.
 - Con fondo propio oscuro, el texto pasa a blanco y el acento se ajusta a contraste AA contra ese fondo (`df-accent-vars`).
 - Logo con `image_url` + `image_tag` (hasta 360 px, perezoso) y `alt` = nombre de nuestra columna.

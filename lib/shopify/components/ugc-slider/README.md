@@ -39,7 +39,8 @@ Bajo el botón de compra. El tráfico llega desde anuncios en video (Meta, TikTo
 - **Vista previa en movimiento** (apagada por defecto): crea un `<video muted>` con la rendición más chica solo en las tarjetas visibles al 50 %, y lo pausa al salir. Nunca con `prefers-reduced-motion` ni con ahorro de datos.
 - **Sonido:** el toque que abre el video es la acción del comprador, así que arranca con sonido; si el navegador lo impide, sigue en silencio y el botón de sonido lo activa. Un solo video suena a la vez; todo se pausa con la pestaña oculta.
 - **Teclado y foco:** cada tarjeta es un `<button>` («Ver video 2 de 5: …»). Al abrir, el foco va a «Cerrar»; Esc cierra (también en flotante) y el foco vuelve a la tarjeta. En pantalla completa el resto de la página queda inerte. Sonido y pausa son botones de alternancia con `aria-pressed`.
-- **Flotante:** se mueve a `<body>` mientras está abierto para quedar sobre el tema; tocar otra tarjeta cambia de video sin cerrarlo.
+- **Flotante:** se mueve a `<body>` mientras está abierto para quedar sobre el tema; tocar otra tarjeta cambia de video sin cerrarlo. Vuelve a su lugar cuando termina de desvanecerse.
+- **Movimiento** ([`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)): el reproductor entra y sale con `df-dialog-motion` (pantalla completa: fundido y escala; flotante: sube 16 px desde su esquina). Las tarjetas se hunden al tocarlas y los pósters aparecen con un fundido al cargar.
 - Sin videos: no se dibuja nada (aviso en el editor). Con 1: sin paginación ni flechas.
 
 ## Psicología de venta

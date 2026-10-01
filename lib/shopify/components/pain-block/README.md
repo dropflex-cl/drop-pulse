@@ -26,7 +26,7 @@ No hay datos reales: es solo texto, sin cifras, plazos ni tokens. Sin imagen en 
 
 ## Comportamiento
 
-- Estática, sin JS y sin animaciones (nada que apagar con `prefers-reduced-motion`).
+- Sin JS propio. Movimiento (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)): el título y los momentos entran al desplazar, escalonados si entran juntos; en el remate el filete se dibuja desde el centro y después aparece el texto. Sin JS, con `prefers-reduced-motion` o con «Animaciones de DropFlex» apagado, todo quieto y a la vista.
 - Orden del DOM = orden de lectura: título → momentos → remate. La marca es decorativa (`aria-hidden`).
 - Texto mínimo de 15 px; el texto del momento usa `--df-muted` sobre `--df-surface` (contraste AA del design system).
 - Todo texto del metafield se imprime escapado; la negrita sale de `**…**` convertido en Liquid.

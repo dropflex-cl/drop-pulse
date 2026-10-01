@@ -35,7 +35,7 @@ El detalle de cada uno (datos que necesita, comportamiento, psicología y reglas
 lib/shopify/components/
   define.ts              contrato TypeScript (ConversionComponent, ICON_KEYS)
   catalog.ts             registro de todos los componentes (lo usa la app y el test)
-  _shared/               base común: tokens, íconos, estrellas, carrusel
+  _shared/               base común: tokens, íconos, estrellas, carrusel, movimiento (df-motion.js)
   <id>/
     blocks/df-<id>.liquid | sections/df-<id>.liquid
     snippets/df-<id>-*.liquid        (opcional)
@@ -61,6 +61,12 @@ Las carpetas `sections/`, `blocks/`, `snippets/` y `assets/` replican las de un 
 11. **Rendimiento:** imágenes con `image_url` + `image_tag` con `widths`/`sizes` y `loading: 'lazy'` salvo arriba del pliegue; videos con `preload="none"` y póster; JS con `defer`, sin dependencias.
 12. **CSS y JS en el nivel superior:** `{% stylesheet %}`, `{% javascript %}` y `{% schema %}` nunca van dentro de un `{% if %}` o un `{% for %}`. Shopify descarta el archivo al importar y se lleva cada template que lo usa (todas las fichas en 404); `shopify theme check` no lo avisa. Lo revisa `lib/shopify/publish/template-rules.test.ts`.
 13. **Schema:** nombre de sección, preset y bloque ≤ 25 caracteres; **nunca `"default": ""`** (se omite); textos del editor en español neutro. Estas dos reglas dejaron en 404 todas las fichas en v1: las revisa el test de catálogo.
+14. **Movimiento** ([`docs/spec-movimiento-tienda.md`](../../../docs/spec-movimiento-tienda.md)): el movimiento informa (qué cambió, dónde estoy, lo toqué, qué sigue), no decora.
+    - Tokens `--df-dur-fast|base|slow|reveal` y `--df-ease-standard|enter|exit` de `df-components.css`; nada de duraciones escritas a mano en lo nuevo.
+    - **Ningún bucle infinito** salvo con botón de pausa (la marquesina): lo que se repite, 3 veces o 5 s. Lo revisa `components.test.ts`.
+    - Nada se mueve solo arriba del pliegue al cargar (salvo la galería y el brillo del botón de EasySell). Solo `translate`, `scale` y `opacity` (propiedades sueltas, para no pisar el `transform` del componente); el alto, solo en lo que se expande.
+    - **Revelado:** `data-df-reveal` (`fade`, `scale`, `left`, `right`) y cargar `df-motion.js`. Solo se oculta lo que está bajo la ventana cuando corre el script: sin JS, todo a la vista. **Respuesta al toque:** clase `df-press`. **Visores:** clase `df-dialog-motion` en el `<dialog>`. **Cifras reales:** `data-df-count` (nunca precios).
+    - Se apaga con `prefers-reduced-motion` y con el ajuste del tema «Animaciones de DropFlex» (`df_motion` → `<html data-df-motion="off">`); el JS lo pregunta con `dfMotion.ok()` o su propio `canAnimate()`. En el editor de temas no hay revelado.
 
 ## Cómo agregar uno
 

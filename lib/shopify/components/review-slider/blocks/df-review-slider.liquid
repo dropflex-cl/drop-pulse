@@ -325,6 +325,34 @@
     line-height: 1.45;
   }
 
+  /* «ver completa» se abre creciendo (::details-content + interpolate-size, como el FAQ); donde el
+     navegador no lo soporta, abre sin animar. */
+  .df-review-slider {
+    interpolate-size: allow-keywords;
+  }
+
+  .df-review-slider__full::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size var(--df-dur-slow) var(--df-ease-standard),
+      content-visibility var(--df-dur-slow) allow-discrete;
+  }
+
+  .df-review-slider__full[open]::details-content {
+    block-size: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .df-review-slider__full::details-content {
+      transition: none;
+    }
+  }
+
+  [data-df-motion='off'] .df-review-slider__full::details-content {
+    transition: none;
+  }
+
 
   @media (min-width: 750px) {
     .df-review-slider__avatar {

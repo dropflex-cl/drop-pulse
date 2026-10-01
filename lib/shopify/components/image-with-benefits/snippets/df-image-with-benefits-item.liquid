@@ -15,7 +15,7 @@
   assign df_body = body | strip | escape
 -%}
 {%- if df_title != blank -%}
-  <li class="df-image-with-benefits__item" {{ attributes }}>
+  <li class="df-image-with-benefits__item" data-df-reveal {{ attributes }}>
     <span class="df-image-with-benefits__icon">{% render 'df-icon', name: icon %}</span>
     <div>
       <h3 class="df-image-with-benefits__title">{{ df_title }}</h3>

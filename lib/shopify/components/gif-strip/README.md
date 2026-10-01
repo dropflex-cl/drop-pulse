@@ -24,7 +24,7 @@ Bajo el botón, después de la doble tarjeta y antes de las reseñas. Responde �
 ## Comportamiento
 
 - El `src` va **sin `width`**: toda variante que Shopify transforma se re-codifica y una animación re-codificada conserva un solo cuadro. El `width`/`height` intrínseco va en la etiqueta para reservar el espacio.
-- `loading="lazy"` y `decoding="async"`: el bloque está bajo el pliegue.
+- `loading="lazy"` y `decoding="async"`: el bloque está bajo el pliegue. Cada fila entra al desplazar y el GIF aparece con un fundido al cargar, sobre el fondo de reserva (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)).
 - Sin GIF, no se dibuja nada (aviso en el editor). Un texto vacío no se dibuja (ni párrafo en blanco ni espacio reservado).
 - Todo texto se imprime con `escape`; la lista es estructura (`icon`, `text`), nunca HTML del modelo.
 

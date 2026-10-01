@@ -90,6 +90,7 @@
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <script src="{{ 'df-slider.js' | asset_url }}" defer></script>
   <script src="{{ 'df-ugc-slider.js' | asset_url }}" defer></script>
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
 
   {%- capture accent_vars -%}{% render 'df-accent-vars', product: product %}{%- endcapture -%}
 
@@ -185,7 +186,7 @@
     {%- endif -%}
 
     <dialog
-      class="df df-ugc-slider__dialog"
+      class="df df-ugc-slider__dialog df-dialog-motion"
       data-df-ugc-dialog
       aria-label="Videos de clientes"
       style="{{ accent_vars }}"
@@ -311,6 +312,7 @@
     text-align: left;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: scale var(--df-dur-fast) var(--df-ease-standard);
   }
 
   .df-ugc-slider--circle .df-ugc-slider__card {

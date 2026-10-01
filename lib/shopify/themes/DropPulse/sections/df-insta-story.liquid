@@ -118,8 +118,8 @@
     -%}
 
     {%- capture circle -%}
-      <li class="df-insta-story__item" data-df-story="{{ idx }}" {{ blk_attrs }}>
-        <button type="button" class="df-insta-story__circle" data-df-open="{{ idx }}" aria-haspopup="dialog">
+      <li class="df-insta-story__item" data-df-story="{{ idx }}" data-df-reveal="scale" {{ blk_attrs }}>
+        <button type="button" class="df-insta-story__circle df-press" data-df-open="{{ idx }}" aria-haspopup="dialog">
           <span class="df-insta-story__ring">
             {%- if thumb != blank -%}
               {{
@@ -185,6 +185,7 @@
 {%- if count > 0 or request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <script src="{{ 'df-insta-story.js' | asset_url }}" defer></script>
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
 
   <df-insta-story
     class="df df-insta-story df-insta-story--ring-{{ s.ring_style }}{% if s.card %} df-insta-story--card{% endif %}"
@@ -200,7 +201,7 @@
         </p>
       {%- else -%}
         {%- if heading != blank or s.subheading != blank -%}
-          <div class="df-insta-story__header">
+          <div class="df-insta-story__header" data-df-reveal>
             {%- if heading != blank -%}
               <h2 class="df-heading df-insta-story__heading">{{ heading | escape }}</h2>
             {%- endif -%}
@@ -214,7 +215,7 @@
           {{ circles_html }}
         </ul>
 
-        <dialog class="df-insta-story__viewer" aria-label="{{ heading | default: 'Historias' | escape }}">
+        <dialog class="df-insta-story__viewer df-dialog-motion" aria-label="{{ heading | default: 'Historias' | escape }}">
           <div class="df-insta-story__stage" data-df-stage>
             <div class="df-insta-story__bars" aria-hidden="true">{{ bars_html }}</div>
 

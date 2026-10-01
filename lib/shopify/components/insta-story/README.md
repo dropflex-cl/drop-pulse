@@ -8,7 +8,7 @@ En la parte alta de la landing, bajo el hero, o a mitad de página como «produc
 
 ## Anatomía
 
-- **En la página:** título y bajada centrados («Toca una historia para verla»); una fila de círculos (80 px por defecto, 60–112) con aro degradado, sólido o sin aro, la miniatura recortada en círculo y una etiqueta de 12 px de hasta 2 líneas. La fila se centra si cabe y se desplaza en horizontal si no. Tarjeta de fondo opcional. Un círculo ya visto pierde el color del aro.
+- **En la página:** título y bajada centrados («Toca una historia para verla»); una fila de círculos (80 px por defecto, 60–112) con aro degradado, sólido o sin aro, la miniatura recortada en círculo y una etiqueta de 12 px de hasta 2 líneas. La fila se centra si cabe y se desplaza en horizontal si no. Tarjeta de fondo opcional. Un círculo ya visto pierde el color del aro: al cerrar el visor, con un pequeño latido para que se note el avance. Los círculos entran al desplazar y se hunden al tocarlos (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)).
 - **Visor:** en móvil ocupa toda la pantalla; en escritorio, un lienzo 9:16 centrado (hasta 960 px de alto) sobre un fondo oscuro con desenfoque.
   - Arriba: barras segmentadas (una por historia: las vistas llenas, la actual avanza) y los controles de pausa/reproducir, sonido (solo en videos) y cerrar, de 44 px.
   - El medio a sangre (`object-fit: cover`) con degradados arriba y abajo para leer.
@@ -32,6 +32,7 @@ Medios: si existe `insta_story_media` manda sobre los bloques. Textos: la histor
 - Los círculos son `<button>`; abren el visor con `showModal()` (trampa de foco, Esc y fondo nativos). El foco inicial va a «Cerrar» y al cerrar vuelve al círculo. El scroll de la página queda bloqueado mientras está abierto.
 - Avance automático: imágenes según «Duración de imágenes» (5 s por defecto) con la barra animada por Web Animations; el fin de la animación es el avance (sin temporizadores sueltos). Videos: la barra sigue al video y `ended` avanza. Al terminar la última, se cierra (o queda completa si «Cerrar al terminar» está apagado).
 - Gestos: toque en el tercio izquierdo = anterior, resto = siguiente; mantener = pausa (los controles se esconden mientras); deslizar hacia abajo = cerrar; deslizar en horizontal = anterior/siguiente. Teclado: ← y →, Esc. Clic fuera del lienzo = cerrar.
+- El visor entra y sale con un fundido y una escala corta (`df-dialog-motion` de `_shared`, 200 ms; sin `@starting-style`, abre sin animar).
 - Pausa visible (WCAG 2.2.2) y automática con la pestaña oculta. `prefers-reduced-motion`: sin avance automático; la barra marca el paso sin animarse.
 - Videos: el `<video>` se crea desde un `<template>` recién al abrir su historia (`preload="none"`, póster, `playsinline`, sin `loop`), silenciado por defecto con botón de sonido. Si el navegador bloquea `play()`, queda en pausa con ▶ visible.
 - Imágenes del visor con `image_tag` (540–1080 px) y `loading="lazy"`: no se descargan hasta abrir; se adelanta solo la imagen siguiente.

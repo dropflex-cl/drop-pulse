@@ -39,6 +39,7 @@ Sin metafield, el bloque toma las primeras reseñas aprobadas con la calificaci�
 - La tienda une cada `review_id` con `dropflex.reviews`; si la reseña ya no existe (despublicada), el ítem se omite. Nunca un extracto huérfano.
 - Menos reseñas que el mínimo (3 por defecto) o ninguna válida: no se dibuja nada. Con una sola: tarjeta fija, sin controles ni autoplay.
 - Carrusel `<df-slider>`: scroll-snap nativo (arrastre, inercia y teclado del navegador), en bucle. Autoplay cada 5 s que se pausa con puntero encima, foco dentro, pestaña oculta, fuera de pantalla y siempre con `prefers-reduced-motion`.
+- «ver completa» se abre creciendo (`::details-content` + `interpolate-size`, como el FAQ; sin soporte, abre sin animar).
 - Botón de pausa visible (WCAG 2.2.2). La primera interacción (arrastrar, flecha, punto, «ver completa») detiene la rotación para siempre; el botón la reanuda.
 - `role="region"` + `aria-roledescription="carrusel"`; cada tarjeta es un grupo «1 de 5». Estrellas con texto oculto «4 de 5 estrellas».
 - El bloque lleva `id="resenas"` (ajustable): las estrellas (`review-stars`) llevan aquí.

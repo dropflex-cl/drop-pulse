@@ -26,6 +26,10 @@
   El nombre elige lista de mujer u hombre por el texto («encantada», «mi esposo»…) para que no
   firme «Juan» una reseña que dice «quedé encantada».
   Espejo en React: components/store-preview/review-wall.tsx + lib/store-preview/review-wall.ts.
+
+  Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): las publicaciones entran por fila al
+  desplazar, fila por fila y escalonadas por columna (las que entran juntas); «Ver más
+  testimonios» hace entrar las nuevas y «Ver más» abre el texto creciendo, no de golpe. Sin JS, todo a la vista.
 {%- endcomment -%}
 {%- liquid
   if product == blank
@@ -152,6 +156,7 @@
   -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <script src="{{ 'df-review-wall.js' | asset_url }}" defer></script>
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
 
   <df-review-wall
     class="df df-review-wall df-review-wall--{{ s.background }}"
@@ -159,7 +164,7 @@
   >
     <div class="df-review-wall__inner">
       {%- if heading != blank or s.show_rating -%}
-        <div class="df-review-wall__head">
+        <div class="df-review-wall__head" data-df-reveal>
           {%- if heading != blank -%}
             <h2 class="df-heading df-review-wall__heading">{{ heading | escape }}</h2>
           {%- endif -%}
@@ -266,7 +271,7 @@
               endif
             endif
           -%}
-          <li class="df-review-wall__cell" data-df-rw-post {% if forloop.index > initial %}hidden{% endif %}>
+          <li class="df-review-wall__cell" data-df-rw-post data-df-reveal {% if forloop.index > initial %}hidden{% endif %}>
             <article class="df-review-wall__post" id="{{ post_id }}" aria-labelledby="{{ post_id }}-name" tabindex="-1">
               <div class="df-review-wall__top">
                 <span class="df-review-wall__avatar" aria-hidden="true">{{ avatar_svg }}</span>
@@ -344,7 +349,7 @@
 
       {%- if total > initial -%}
         <div class="df-review-wall__more">
-          <button type="button" class="df-review-wall__more-button" data-df-rw-more data-step="{{ initial }}">
+          <button type="button" class="df-review-wall__more-button df-press" data-df-rw-more data-step="{{ initial }}">
             {{- s.more_label | default: 'Ver más testimonios' | escape -}}
           </button>
         </div>

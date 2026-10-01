@@ -30,7 +30,7 @@ Tokens: `{return_days}`, `{warranty_months}`, `{threshold}` (monto del envío gr
 
 ## Comportamiento
 
-- Estático: sin JS, sin animación.
+- Sin JS propio. Las tarjetas entran al desplazar (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)); sin JS, a la vista.
 - **Filtro de verdad:** cada tarjeta del metafield declara la política que afirma y se oculta si no está activa; una tarjeta con un token cuyo dato falta tampoco se muestra (también las del editor). Sin tarjetas, el bloque no ocupa espacio; en el editor muestra un aviso.
 - Ícono desconocido → `check`.
 - Accesibilidad: `<ul role="list">`, íconos `aria-hidden`; la imagen usa el texto alternativo del archivo (los nombres de los medios de pago) o `alt=""` si no tiene. Textos de 12 px o más; `hyphens: auto` con el `lang` de la tienda para cortar bien en la columna estrecha.

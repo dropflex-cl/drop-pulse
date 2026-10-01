@@ -15,6 +15,8 @@
     { gifs: [{ heading (≤ 70), text? (párrafo, ≤ 160) | bullets?: [{ icon (IconKey), text (≤ 40) }] }]
       (5, en orden; bajo cada GIF, el párrafo o la lista) }
   Texto plano: todo se imprime con escape.
+  Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): cada fila entra al desplazar y el GIF
+  aparece con un fundido al cargar, sobre el fondo de reserva. Sin JS, todo a la vista.
 {%- enddoc -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
@@ -28,6 +30,7 @@
 
 {%- if product != blank and gifs != blank -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
   <div
     class="df df-gif-strip"
     style="{% render 'df-accent-vars', product: product %} --df-gif-radius: {{ s.radius }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
@@ -46,7 +49,7 @@
           assign heading = item.heading
           assign alt = heading | default: product.title
         -%}
-        <li class="df-gif-strip__item">
+        <li class="df-gif-strip__item" data-df-reveal>
           <figure class="df-gif-strip__figure">
             {%- if heading != blank -%}
               <p class="df-gif-strip__lead">{{ heading | escape }}</p>

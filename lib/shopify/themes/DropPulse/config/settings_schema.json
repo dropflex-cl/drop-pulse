@@ -64,6 +64,13 @@
       },
       {
         "type": "checkbox",
+        "id": "df_motion",
+        "label": "Animaciones de DropFlex",
+        "info": "Movimientos cortos que acompañan al comprador: las secciones aparecen al bajar, el precio y el pack elegido responden al toque, y las historias y los videos se abren con una transición. Sin movimiento para quien lo desactiva en su teléfono.",
+        "default": true
+      },
+      {
+        "type": "checkbox",
         "id": "df_gallery_autoplay",
         "label": "Galería con avance automático",
         "info": "Las fotos del producto cambian solas con un fundido y se detienen mientras el cliente usa la galería. Sin movimiento para quien lo desactiva en su teléfono.",

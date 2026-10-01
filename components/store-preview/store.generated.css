@@ -80,6 +80,17 @@
   --df-info: #0e7490;
   --df-urgent: #c2410c;
   --df-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Movimiento (design system: 120/200/320 ms y sus curvas; docs/spec-movimiento-tienda.md). Todo lo
+     nuevo usa estos tokens; --df-ease queda para lo que ya existía. */
+  --df-dur-fast: 120ms;
+  --df-dur-base: 200ms;
+  --df-dur-slow: 320ms;
+  --df-dur-reveal: 480ms;
+  --df-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --df-ease-enter: cubic-bezier(0, 0, 0, 1);
+  --df-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --df-reveal-distance: 12px;
+  --df-stagger: 60ms;
   /* Layout común de las secciones (design system, grilla de 4 px): el mismo contenedor y los mismos
      márgenes que la ficha del tema (--page-margin), el mismo ritmo vertical y una sola escala de
      títulos. En móvil el espacio entre secciones baja a 2/3. */
@@ -258,7 +269,13 @@ df-slider {
   background: var(--df-bg);
   color: var(--df-fg);
   cursor: pointer;
-  transition: opacity 0.2s var(--df-ease);
+  transition:
+    opacity 0.2s var(--df-ease),
+    scale var(--df-dur-fast) var(--df-ease-standard);
+}
+
+:root:not([data-df-motion='off']) .df-slider__arrow:not([disabled]):active {
+  scale: 0.94;
 }
 
 .df-slider__arrow[disabled] {
@@ -306,13 +323,150 @@ df-slider {
   text-align: center;
 }
 
+/* ---------- Movimiento compartido (df-motion.js; docs/spec-movimiento-tienda.md §3) ----------
+   Todo es mejora progresiva: sin JS, con movimiento reducido, con <html data-df-motion="off"> o en el
+   editor de temas, nada queda oculto ni se mueve. Se usan las propiedades sueltas `translate` y
+   `scale` (no `transform`) para no pisar el transform propio de cada componente. */
+
+/* Revelado al desplazar: df-motion.js marca `df-reveal-pending` solo en lo que está bajo la ventana
+   y lo quita al entrar; `df-reveal-run` lleva la transición mientras dura. --df-i (lo pone el script:
+   el orden entre lo que entra junto) escalona, hasta 5. */
+.df-reveal-pending {
+  opacity: 0;
+  translate: 0 var(--df-reveal-distance, 12px);
+}
+
+.df-reveal-pending[data-df-reveal='fade'] {
+  translate: none;
+}
+
+.df-reveal-pending[data-df-reveal='scale'] {
+  translate: none;
+  scale: 0.98;
+}
+
+.df-reveal-pending[data-df-reveal='left'] {
+  translate: -8px 0;
+}
+
+.df-reveal-pending[data-df-reveal='right'] {
+  translate: 8px 0;
+}
+
+.df-reveal-run {
+  transition:
+    opacity var(--df-dur-reveal, 480ms) var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)),
+    translate var(--df-dur-reveal, 480ms) var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)),
+    scale var(--df-dur-reveal, 480ms) var(--df-ease-enter, cubic-bezier(0, 0, 0, 1));
+  transition-delay: calc(min(var(--df-i, 0), 5) * var(--df-stagger, 60ms));
+}
+
+/* Fundido de imágenes diferidas: df-motion.js marca las que todavía no cargaron. */
+.df img.df-img-loading {
+  opacity: 0;
+}
+
+.df img.df-img-fading {
+  transition: opacity var(--df-dur-slow, 320ms) var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* Respuesta al toque: el control se hunde un poco mientras se presiona. Con :where() (especificidad
+   0): un componente que ya tenga su `transition` agrega `scale var(--df-dur-fast)` a su lista. */
+:where(.df-press) {
+  transition: scale var(--df-dur-fast, 120ms) var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+:root:not([data-df-motion='off']) :where(.df-press):active {
+  scale: var(--df-press-scale, 0.97);
+}
+
+/* Visores (<dialog>): entran y salen con @starting-style. Sin soporte, abren y cierran como antes.
+   Hoja en móvil (sube) y modal en escritorio (escala). El componente pone `df-dialog-motion` en el
+   <dialog>; `--sheet` fuerza la hoja y `--float` el flotante. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-df-motion='off']) .df-dialog-motion {
+    transition:
+      opacity var(--df-dur-base, 200ms) var(--df-ease-exit, cubic-bezier(0.4, 0, 1, 1)),
+      translate var(--df-dur-base, 200ms) var(--df-ease-exit, cubic-bezier(0.4, 0, 1, 1)),
+      scale var(--df-dur-base, 200ms) var(--df-ease-exit, cubic-bezier(0.4, 0, 1, 1)),
+      overlay var(--df-dur-base, 200ms) allow-discrete,
+      display var(--df-dur-base, 200ms) allow-discrete;
+    opacity: 0;
+    scale: 0.98;
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion[open] {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    transition-timing-function: var(--df-ease-enter, cubic-bezier(0, 0, 0, 1));
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion[open] {
+      opacity: 0;
+      scale: 0.98;
+    }
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion::backdrop {
+    transition:
+      opacity var(--df-dur-base, 200ms) var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+      overlay var(--df-dur-base, 200ms) allow-discrete,
+      display var(--df-dur-base, 200ms) allow-discrete;
+    opacity: 0;
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* Flotante: sube 16px desde su esquina. */
+  :root:not([data-df-motion='off']) .df-dialog-motion--float {
+    scale: 1;
+    translate: 0 16px;
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion--float[open] {
+      scale: 1;
+      translate: 0 16px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 749px) {
+  /* Hoja: sube 24px en 320ms y baja en 200ms. */
+  :root:not([data-df-motion='off']) .df-dialog-motion--sheet {
+    scale: 1;
+    translate: 0 24px;
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion--sheet[open] {
+    transition-duration: var(--df-dur-slow, 320ms);
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion--sheet[open] {
+      scale: 1;
+      translate: 0 24px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .df *,
   .df *::before,
   .df *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0ms !important;
     scroll-behavior: auto !important;
   }
 }
@@ -521,14 +675,58 @@ df-slider {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-height: 72px;
-  padding: 12px 16px;
+  padding: 12px 16px 12px 14px;
   border: 1px solid var(--df-hairline);
   border-radius: var(--df-radius);
   background: var(--df-bg);
   cursor: pointer;
-  transition: border-color 120ms var(--df-ease), background-color 120ms var(--df-ease);
+  --df-press-scale: 0.985;
+  transition:
+    border-color var(--df-dur-base) var(--df-ease-standard),
+    background-color var(--df-dur-base) var(--df-ease-standard),
+    box-shadow var(--df-dur-base) var(--df-ease-standard),
+    scale var(--df-dur-fast) var(--df-ease-standard);
+}
+
+/* La marca de la tarjeta elegida: un círculo que se llena con el acento y un check que entra. */
+.df-pack-offers__mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid color-mix(in srgb, var(--df-fg) 35%, transparent);
+  border-radius: 50%;
+  color: var(--df-on-accent);
+  transition:
+    background-color var(--df-dur-base) var(--df-ease-standard),
+    border-color var(--df-dur-base) var(--df-ease-standard);
+}
+
+.df-pack-offers__mark .df-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity var(--df-dur-base) var(--df-ease-enter),
+    scale var(--df-dur-base) var(--df-ease-enter);
+}
+
+.df-pack-offers__card:has(:checked) .df-pack-offers__mark {
+  border-color: var(--df-accent);
+  background: var(--df-accent);
+}
+
+.df-pack-offers__card:has(:checked) .df-pack-offers__mark .df-icon {
+  opacity: 1;
+  scale: 1;
+}
+
+.df-pack-offers__card:has(:disabled) .df-pack-offers__mark {
+  border-color: var(--df-hairline);
 }
 
 .df-pack-offers__card--badge {
@@ -639,9 +837,17 @@ df-slider {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .df-pack-offers__card {
+  .df-pack-offers__card,
+  .df-pack-offers__mark,
+  .df-pack-offers__mark .df-icon {
     transition: none;
   }
+}
+
+[data-df-motion='off'] .df-pack-offers__card,
+[data-df-motion='off'] .df-pack-offers__mark,
+[data-df-motion='off'] .df-pack-offers__mark .df-icon {
+  transition: none;
 }
 
 /* _landing/blocks/df-price.liquid */
@@ -1259,7 +1465,8 @@ df-comparison-table {
 
 @media (prefers-reduced-motion: no-preference) {
   .df-comparison-table--pulse.is-visible .df-comparison-table__us .df-comparison-table__mark {
-    animation: df-comparison-table-beat 0.9s var(--df-ease) 3;
+    /* Después de que las filas terminan de aparecer (df-motion.js). */
+    animation: df-comparison-table-beat 0.9s var(--df-ease) 0.4s 3;
   }
 }
 
@@ -1394,7 +1601,9 @@ df-faq-and-text {
   color: var(--df-on-accent);
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s var(--df-ease);
+  transition:
+    transform 0.2s var(--df-ease),
+    scale var(--df-dur-fast) var(--df-ease-standard);
 }
 
 .df-faq-and-text__cta:hover {
@@ -1795,6 +2004,15 @@ df-faq-and-text {
 
   .df-image-with-benefits__body {
     font-size: 1rem;
+  }
+
+  /* Revelado (df-motion.js): con la foto al centro, cada lado llega desde su costado hacia ella. */
+  .df-image-with-benefits--image .df-image-with-benefits__list--left .df-reveal-pending {
+    translate: -8px 0;
+  }
+
+  .df-image-with-benefits--image .df-image-with-benefits__list--right .df-reveal-pending {
+    translate: 8px 0;
   }
 }
 
@@ -2237,13 +2455,19 @@ df-insta-story {
   background: var(--df-inventory-color);
 }
 
+/* Tres latidos y se detiene (WCAG 2.2.2: nada se mueve solo más de 5 s). df-inventory.js agrega
+   `is-ping` al entrar en pantalla y lo repite al cambiar de variante. Sin JS, el punto queda quieto. */
 .df-inventory--pulse .df-inventory__dot::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: inherit;
-  animation: df-inventory-ping 1.4s var(--df-ease) infinite;
+  opacity: 0;
+}
+
+.df-inventory--pulse.is-ping .df-inventory__dot::after {
+  animation: df-inventory-ping 1.4s var(--df-ease) 3;
 }
 
 @keyframes df-inventory-ping {
@@ -2252,7 +2476,7 @@ df-insta-story {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .df-inventory--pulse .df-inventory__dot::after { animation: none; }
+  .df-inventory--pulse.is-ping .df-inventory__dot::after { animation: none; }
 }
 
 /* pain-block/sections/df-pain-block.liquid */
@@ -2343,6 +2567,28 @@ df-insta-story {
   margin: 0 auto 16px;
   border-radius: var(--df-radius-pill);
   background: var(--df-accent);
+}
+
+/* Revelado del remate (df-motion.js): el filete se dibuja desde el centro y después aparece el
+   texto; con opacidad el filete se vería recién al final, por eso el texto va con color. */
+.df-pain-block__bridge.df-reveal-pending,
+.df-pain-block__bridge.df-reveal-pending strong {
+  opacity: 1;
+  translate: none;
+  color: transparent;
+}
+
+.df-pain-block__bridge.df-reveal-pending::before {
+  scale: 0 1;
+}
+
+.df-pain-block__bridge.df-reveal-run,
+.df-pain-block__bridge.df-reveal-run strong {
+  transition: color var(--df-dur-slow) var(--df-ease-standard) 250ms;
+}
+
+.df-pain-block__bridge.df-reveal-run::before {
+  transition: scale 400ms var(--df-ease-enter);
 }
 
 /* Escritorio, diseño en tarjetas: 3 columnas con la marca arriba. */
@@ -2497,6 +2743,34 @@ df-insta-story {
   color: var(--df-fg);
   font-size: 0.8125rem;
   line-height: 1.45;
+}
+
+/* «ver completa» se abre creciendo (::details-content + interpolate-size, como el FAQ); donde el
+   navegador no lo soporta, abre sin animar. */
+.df-review-slider {
+  interpolate-size: allow-keywords;
+}
+
+.df-review-slider__full::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--df-dur-slow) var(--df-ease-standard),
+    content-visibility var(--df-dur-slow) allow-discrete;
+}
+
+.df-review-slider__full[open]::details-content {
+  block-size: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-review-slider__full::details-content {
+    transition: none;
+  }
+}
+
+[data-df-motion='off'] .df-review-slider__full::details-content {
+  transition: none;
 }
 
 
@@ -3280,12 +3554,37 @@ a.df-review-stars__row:focus-visible {
   opacity: 0.6;
 }
 
-.df-shipping-timeline--animate .df-shipping-timeline__steps::before {
-  animation: df-shipping-timeline-march 0.9s linear infinite;
+/* «Línea animada»: el tramo Pedido → Despachado va en el acento, sólido (lo que ya está en marcha)
+   y el resto punteado (lo que falta). df-shipping-timeline.js lo dibuja una sola vez al entrar en
+   pantalla y el hito 2 hace un pequeño pop; después todo queda quieto (nunca un bucle). Sin JS o
+   con movimiento reducido se ve el estado final. */
+.df-shipping-timeline--animate .df-shipping-timeline__steps::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--df-st-circle) / 2 - 1px);
+  left: calc(100% / 6);
+  width: calc(100% / 3);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--df-accent);
+  transform-origin: left center;
 }
 
-@keyframes df-shipping-timeline-march {
-  to { background-position: 12px 0; }
+.df-shipping-timeline--animate.is-armed .df-shipping-timeline__steps::after {
+  transform: scaleX(0);
+}
+
+.df-shipping-timeline--animate.is-run .df-shipping-timeline__steps::after {
+  transform: scaleX(1);
+  transition: transform 600ms var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.df-shipping-timeline--animate.is-run .df-shipping-timeline__step:nth-child(2) .df-shipping-timeline__circle {
+  animation: df-shipping-timeline-pop 240ms var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)) 560ms backwards;
+}
+
+@keyframes df-shipping-timeline-pop {
+  from { transform: scale(0.88); }
 }
 
 .df-shipping-timeline__step {
@@ -3299,6 +3598,7 @@ a.df-review-stars__row:focus-visible {
 
 .df-shipping-timeline__circle {
   position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: var(--df-st-circle);
@@ -3351,7 +3651,11 @@ a.df-review-stars__row:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .df-shipping-timeline--animate .df-shipping-timeline__steps::before {
+  .df-shipping-timeline--animate.is-armed .df-shipping-timeline__steps::after {
+    transform: none;
+  }
+
+  .df-shipping-timeline--animate.is-run .df-shipping-timeline__step:nth-child(2) .df-shipping-timeline__circle {
     animation: none;
   }
 }
@@ -3574,7 +3878,9 @@ a.df-review-stars__row:focus-visible {
   color: var(--df-on-accent);
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s var(--df-ease);
+  transition:
+    transform 0.2s var(--df-ease),
+    scale var(--df-dur-fast) var(--df-ease-standard);
 }
 
 .df-stats-with-image__cta svg {
@@ -3729,6 +4035,7 @@ a.df-review-stars__row:focus-visible {
   text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: scale var(--df-dur-fast) var(--df-ease-standard);
 }
 
 .df-ugc-slider--circle .df-ugc-slider__card {

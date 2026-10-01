@@ -15,6 +15,9 @@
     10 le dan 5 estrellas» (snippets/df-review-proof).
   Fotos: ajustes image_1..4 → metafield `dropflex.stats_with_image_images` (list.file_reference)
   → imágenes del producto (la destacada primero).
+  Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): las fotos y el texto entran
+  escalonados al desplazar y las cifras reales cuentan desde 0 una vez (la cifra animada va
+  aria-hidden; el lector oye la copia oculta con el valor final). Sin JS, todo quieto y a la vista.
 {%- endcomment -%}
 {%- liquid
   if product == blank
@@ -156,7 +159,7 @@
         -%}
         {%- if value != blank and label != blank -%}
           <li class="df-stats-with-image__stat">
-            <span class="df-stats-with-image__stat-value">{{ value | escape }}</span>
+            <span class="df-stats-with-image__stat-value"><span aria-hidden="true" data-df-count>{{ value | escape }}</span><span class="df-visually-hidden">{{ value | escape }}</span></span>
             <span class="df-stats-with-image__stat-label">{{ label }}</span>
           </li>
         {%- endif -%}
@@ -221,6 +224,7 @@
 
 {%- if heading != blank -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
   {%- if scroll_to_form and cta_label != blank -%}
     <script src="{{ 'df-stats-with-image.js' | asset_url }}" defer></script>
   {%- endif -%}
@@ -272,24 +276,24 @@
           {%- else -%}
             {%- assign rating_line = rating_label | escape | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
           {%- endif -%}
-          <div class="df-stats-with-image__rating">
+          <div class="df-stats-with-image__rating" data-df-reveal>
             <span aria-hidden="true">{% render 'df-stars', rating: summary.rating, size: '1.125rem' %}</span>
             <p class="df-stats-with-image__rating-text">{{ rating_line }}</p>
           </div>
         {%- endif -%}
 
-        <h2 class="df-heading df-stats-with-image__heading">{{ heading_html }}</h2>
+        <h2 class="df-heading df-stats-with-image__heading" data-df-reveal>{{ heading_html }}</h2>
 
         {%- if description != blank -%}
-          <p class="df-text df-stats-with-image__description">{{ description_html }}</p>
+          <p class="df-text df-stats-with-image__description" data-df-reveal>{{ description_html }}</p>
         {%- endif -%}
 
         {%- if bullets_html != blank -%}
-          <ul class="df-stats-with-image__bullets" role="list">{{ bullets_html }}</ul>
+          <ul class="df-stats-with-image__bullets" role="list" data-df-reveal>{{ bullets_html }}</ul>
         {%- endif -%}
 
         {%- if stats_html != blank -%}
-          <ul class="df-stats-with-image__stats" role="list">{{ stats_html }}</ul>
+          <ul class="df-stats-with-image__stats" role="list" data-df-reveal>{{ stats_html }}</ul>
         {%- endif -%}
 
         {%- if review != blank and review.body != blank -%}
@@ -299,7 +303,7 @@
             assign review_country = review.country | escape
             assign initial = review.author | strip | slice: 0 | upcase | escape
           -%}
-          <figure class="df-stats-with-image__review">
+          <figure class="df-stats-with-image__review" data-df-reveal>
             <span class="df-stats-with-image__avatar" aria-hidden="true">{{ initial }}</span>
             <div class="df-stats-with-image__review-body">
               <blockquote class="df-stats-with-image__quote"><p>«{{ review_body }}»</p></blockquote>
@@ -313,7 +317,7 @@
 
         {%- if cta_label != blank -%}
           {%- capture cta -%}
-            <a class="df-stats-with-image__cta" href="{{ cta_href }}">
+            <a class="df-stats-with-image__cta df-press" href="{{ cta_href }}">
               <span>{{ cta_label | escape }}</span>
               {% render 'df-icon', name: 'arrow-right' %}
             </a>
@@ -554,7 +558,9 @@
     color: var(--df-on-accent);
     font-weight: 600;
     text-decoration: none;
-    transition: transform 0.2s var(--df-ease);
+    transition:
+      transform 0.2s var(--df-ease),
+      scale var(--df-dur-fast) var(--df-ease-standard);
   }
 
   .df-stats-with-image__cta svg {

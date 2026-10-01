@@ -149,13 +149,19 @@
     background: var(--df-inventory-color);
   }
 
+  /* Tres latidos y se detiene (WCAG 2.2.2: nada se mueve solo más de 5 s). df-inventory.js agrega
+     `is-ping` al entrar en pantalla y lo repite al cambiar de variante. Sin JS, el punto queda quieto. */
   .df-inventory--pulse .df-inventory__dot::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: inherit;
     background: inherit;
-    animation: df-inventory-ping 1.4s var(--df-ease) infinite;
+    opacity: 0;
+  }
+
+  .df-inventory--pulse.is-ping .df-inventory__dot::after {
+    animation: df-inventory-ping 1.4s var(--df-ease) 3;
   }
 
   @keyframes df-inventory-ping {
@@ -164,7 +170,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .df-inventory--pulse .df-inventory__dot::after { animation: none; }
+    .df-inventory--pulse.is-ping .df-inventory__dot::after { animation: none; }
   }
 {% endstylesheet %}
 

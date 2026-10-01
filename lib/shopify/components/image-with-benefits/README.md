@@ -29,7 +29,7 @@ Los beneficios se reparten mitad y mitad (con un número impar, la izquierda lle
 
 ## Comportamiento
 
-- Estática, sin JS.
+- Sin JS propio. Movimiento (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)): al desplazar entra el título, la foto crece apenas y los beneficios llegan escalonados; en escritorio, cada lado desde su costado hacia la foto. Sin JS, todo a la vista.
 - Orden del DOM = orden de lectura: título → foto → beneficios 1..n (lista izquierda y luego derecha). La grilla solo los ubica en pantalla.
 - Foto con `image_url` + `image_tag` (`widths` 360–1200, `sizes` según el ancho), `loading="lazy"` (está bajo el pliegue) y ancho y alto explícitos (sin saltos de diseño).
 - Íconos decorativos (`aria-hidden`), textos escapados.

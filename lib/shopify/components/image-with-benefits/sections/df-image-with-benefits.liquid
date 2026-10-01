@@ -12,7 +12,9 @@
     { heading ({count} = cantidad de beneficios), benefits: [{ icon, title, body }] }
 
   Orden de lectura: título → foto → beneficios 1..n (una lista por lado; en móvil se leen seguidas).
-  Sin JS.
+  Sin JS propio. Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): al desplazar entra el
+  título, la foto crece apenas y los beneficios llegan escalonados; en escritorio, cada lado desde
+  su costado hacia la foto. Sin JS, todo quieto y a la vista.
 {%- endcomment -%}
 {%- liquid
   if product == blank
@@ -69,6 +71,7 @@
 
 {%- if left_html != blank -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
 
   {%- capture color_style -%}
     {%- if s.background_color != blank -%}--df-bg: {{ s.background_color }}; --df-iwb-bg: {{ s.background_color }};{%- endif -%}
@@ -81,12 +84,12 @@
   >
     <div class="df-image-with-benefits__inner">
       {%- if heading != blank -%}
-        <h2 class="df-heading df-image-with-benefits__heading">{{ heading | escape }}</h2>
+        <h2 class="df-heading df-image-with-benefits__heading" data-df-reveal>{{ heading | escape }}</h2>
       {%- endif -%}
 
       <div class="df-image-with-benefits__grid">
         {%- if image != blank -%}
-          <div class="df-image-with-benefits__media">
+          <div class="df-image-with-benefits__media" data-df-reveal="scale">
             {{-
               image
               | image_url: width: 1200
@@ -291,6 +294,15 @@
 
     .df-image-with-benefits__body {
       font-size: 1rem;
+    }
+
+    /* Revelado (df-motion.js): con la foto al centro, cada lado llega desde su costado hacia ella. */
+    .df-image-with-benefits--image .df-image-with-benefits__list--left .df-reveal-pending {
+      translate: -8px 0;
+    }
+
+    .df-image-with-benefits--image .df-image-with-benefits__list--right .df-reveal-pending {
+      translate: 8px 0;
     }
   }
 {% endstylesheet %}

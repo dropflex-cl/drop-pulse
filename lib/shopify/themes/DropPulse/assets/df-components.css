@@ -36,6 +36,17 @@
   --df-info: #0e7490;
   --df-urgent: #c2410c;
   --df-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Movimiento (design system: 120/200/320 ms y sus curvas; docs/spec-movimiento-tienda.md). Todo lo
+     nuevo usa estos tokens; --df-ease queda para lo que ya existía. */
+  --df-dur-fast: 120ms;
+  --df-dur-base: 200ms;
+  --df-dur-slow: 320ms;
+  --df-dur-reveal: 480ms;
+  --df-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --df-ease-enter: cubic-bezier(0, 0, 0, 1);
+  --df-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --df-reveal-distance: 12px;
+  --df-stagger: 60ms;
   /* Layout común de las secciones (design system, grilla de 4 px): el mismo contenedor y los mismos
      márgenes que la ficha del tema (--page-margin), el mismo ritmo vertical y una sola escala de
      títulos. En móvil el espacio entre secciones baja a 2/3. */
@@ -214,7 +225,13 @@ df-slider {
   background: var(--df-bg);
   color: var(--df-fg);
   cursor: pointer;
-  transition: opacity 0.2s var(--df-ease);
+  transition:
+    opacity 0.2s var(--df-ease),
+    scale var(--df-dur-fast) var(--df-ease-standard);
+}
+
+:root:not([data-df-motion='off']) .df-slider__arrow:not([disabled]):active {
+  scale: 0.94;
 }
 
 .df-slider__arrow[disabled] {
@@ -262,13 +279,150 @@ df-slider {
   text-align: center;
 }
 
+/* ---------- Movimiento compartido (df-motion.js; docs/spec-movimiento-tienda.md §3) ----------
+   Todo es mejora progresiva: sin JS, con movimiento reducido, con <html data-df-motion="off"> o en el
+   editor de temas, nada queda oculto ni se mueve. Se usan las propiedades sueltas `translate` y
+   `scale` (no `transform`) para no pisar el transform propio de cada componente. */
+
+/* Revelado al desplazar: df-motion.js marca `df-reveal-pending` solo en lo que está bajo la ventana
+   y lo quita al entrar; `df-reveal-run` lleva la transición mientras dura. --df-i (lo pone el script:
+   el orden entre lo que entra junto) escalona, hasta 5. */
+.df-reveal-pending {
+  opacity: 0;
+  translate: 0 var(--df-reveal-distance, 12px);
+}
+
+.df-reveal-pending[data-df-reveal='fade'] {
+  translate: none;
+}
+
+.df-reveal-pending[data-df-reveal='scale'] {
+  translate: none;
+  scale: 0.98;
+}
+
+.df-reveal-pending[data-df-reveal='left'] {
+  translate: -8px 0;
+}
+
+.df-reveal-pending[data-df-reveal='right'] {
+  translate: 8px 0;
+}
+
+.df-reveal-run {
+  transition:
+    opacity var(--df-dur-reveal, 480ms) var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)),
+    translate var(--df-dur-reveal, 480ms) var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)),
+    scale var(--df-dur-reveal, 480ms) var(--df-ease-enter, cubic-bezier(0, 0, 0, 1));
+  transition-delay: calc(min(var(--df-i, 0), 5) * var(--df-stagger, 60ms));
+}
+
+/* Fundido de imágenes diferidas: df-motion.js marca las que todavía no cargaron. */
+.df img.df-img-loading {
+  opacity: 0;
+}
+
+.df img.df-img-fading {
+  transition: opacity var(--df-dur-slow, 320ms) var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* Respuesta al toque: el control se hunde un poco mientras se presiona. Con :where() (especificidad
+   0): un componente que ya tenga su `transition` agrega `scale var(--df-dur-fast)` a su lista. */
+:where(.df-press) {
+  transition: scale var(--df-dur-fast, 120ms) var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+:root:not([data-df-motion='off']) :where(.df-press):active {
+  scale: var(--df-press-scale, 0.97);
+}
+
+/* Visores (<dialog>): entran y salen con @starting-style. Sin soporte, abren y cierran como antes.
+   Hoja en móvil (sube) y modal en escritorio (escala). El componente pone `df-dialog-motion` en el
+   <dialog>; `--sheet` fuerza la hoja y `--float` el flotante. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-df-motion='off']) .df-dialog-motion {
+    transition:
+      opacity var(--df-dur-base, 200ms) var(--df-ease-exit, cubic-bezier(0.4, 0, 1, 1)),
+      translate var(--df-dur-base, 200ms) var(--df-ease-exit, cubic-bezier(0.4, 0, 1, 1)),
+      scale var(--df-dur-base, 200ms) var(--df-ease-exit, cubic-bezier(0.4, 0, 1, 1)),
+      overlay var(--df-dur-base, 200ms) allow-discrete,
+      display var(--df-dur-base, 200ms) allow-discrete;
+    opacity: 0;
+    scale: 0.98;
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion[open] {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    transition-timing-function: var(--df-ease-enter, cubic-bezier(0, 0, 0, 1));
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion[open] {
+      opacity: 0;
+      scale: 0.98;
+    }
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion::backdrop {
+    transition:
+      opacity var(--df-dur-base, 200ms) var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+      overlay var(--df-dur-base, 200ms) allow-discrete,
+      display var(--df-dur-base, 200ms) allow-discrete;
+    opacity: 0;
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* Flotante: sube 16px desde su esquina. */
+  :root:not([data-df-motion='off']) .df-dialog-motion--float {
+    scale: 1;
+    translate: 0 16px;
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion--float[open] {
+      scale: 1;
+      translate: 0 16px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 749px) {
+  /* Hoja: sube 24px en 320ms y baja en 200ms. */
+  :root:not([data-df-motion='off']) .df-dialog-motion--sheet {
+    scale: 1;
+    translate: 0 24px;
+  }
+
+  :root:not([data-df-motion='off']) .df-dialog-motion--sheet[open] {
+    transition-duration: var(--df-dur-slow, 320ms);
+  }
+
+  @starting-style {
+    :root:not([data-df-motion='off']) .df-dialog-motion--sheet[open] {
+      scale: 1;
+      translate: 0 24px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .df *,
   .df *::before,
   .df *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0ms !important;
     scroll-behavior: auto !important;
   }
 }

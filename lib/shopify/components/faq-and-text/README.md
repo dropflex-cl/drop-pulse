@@ -31,7 +31,7 @@ Una pregunta cuyo texto conserva un token sin dato real no se muestra (ni en la 
 
 - `<details>`/`<summary>` nativos: teclado, lector de pantalla y búsqueda en la página sin JS. Controles de 44 px de alto como mínimo y foco visible.
 - «Una abierta a la vez»: atributo `name` compartido (nativo en navegadores actuales) y `<df-faq-and-text>` como respaldo que cierra las demás de la misma sección.
-- La apertura se anima con `::details-content` + `interpolate-size` donde el navegador lo soporta; en el resto abre sin animar. `prefers-reduced-motion` quita la transición.
+- La apertura se anima con `::details-content` + `interpolate-size` donde el navegador lo soporta; en el resto abre sin animar. `prefers-reduced-motion` quita la transición. La columna de texto y las preguntas entran al desplazar (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)) y el botón se hunde al tocarlo.
 - «Primera abierta» opcional (la referencia arrancaba todo cerrado).
 - JSON-LD `FAQPage` opcional (apagado por defecto para no duplicar el de otra app), con los textos ya reemplazados y serializados con `| json`.
 - Con fondo propio oscuro, el texto pasa a blanco y el acento se ajusta a contraste AA contra ese fondo.

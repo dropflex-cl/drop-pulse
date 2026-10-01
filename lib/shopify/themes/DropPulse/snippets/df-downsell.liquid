@@ -358,29 +358,69 @@
       }
     }
 
+    /* Entrada y salida (docs/spec-movimiento-tienda.md §3.6): hoja que sube en móvil (320 ms) y modal
+       que escala en escritorio (200 ms); al cerrar sale en 200 ms y el velo se desvanece. Con
+       @starting-style y display/overlay discretos; sin soporte, abre y cierra sin animar. */
+    @media (prefers-reduced-motion: no-preference) {
+      :root:not([data-df-motion='off']) .df-dso {
+        opacity: 0;
+        scale: 0.98;
+        transition:
+          opacity 200ms cubic-bezier(0.4, 0, 1, 1),
+          translate 200ms cubic-bezier(0.4, 0, 1, 1),
+          scale 200ms cubic-bezier(0.4, 0, 1, 1),
+          overlay 200ms allow-discrete,
+          display 200ms allow-discrete;
+      }
+
+      :root:not([data-df-motion='off']) .df-dso[open] {
+        opacity: 1;
+        scale: 1;
+        translate: 0 0;
+        transition-timing-function: cubic-bezier(0, 0, 0, 1);
+      }
+
+      @starting-style {
+        :root:not([data-df-motion='off']) .df-dso[open] {
+          opacity: 0;
+          scale: 0.98;
+        }
+      }
+
+      :root:not([data-df-motion='off']) .df-dso::backdrop {
+        opacity: 0;
+        transition:
+          opacity 200ms cubic-bezier(0.2, 0, 0, 1),
+          overlay 200ms allow-discrete,
+          display 200ms allow-discrete;
+      }
+
+      :root:not([data-df-motion='off']) .df-dso[open]::backdrop {
+        opacity: 1;
+      }
+
+      @starting-style {
+        :root:not([data-df-motion='off']) .df-dso[open]::backdrop {
+          opacity: 0;
+        }
+      }
+    }
+
     @media (prefers-reduced-motion: no-preference) and (max-width: 749px) {
-      .df-dso[open] {
-        animation: df-dso-up 320ms cubic-bezier(0, 0, 0, 1);
+      :root:not([data-df-motion='off']) .df-dso {
+        scale: 1;
+        translate: 0 24px;
       }
-    }
 
-    @media (prefers-reduced-motion: no-preference) and (min-width: 750px) {
-      .df-dso[open] {
-        animation: df-dso-in 200ms cubic-bezier(0, 0, 0, 1);
+      :root:not([data-df-motion='off']) .df-dso[open] {
+        transition-duration: 320ms;
       }
-    }
 
-    @keyframes df-dso-up {
-      from {
-        transform: translateY(24px);
-        opacity: 0;
-      }
-    }
-
-    @keyframes df-dso-in {
-      from {
-        transform: scale(0.98);
-        opacity: 0;
+      @starting-style {
+        :root:not([data-df-motion='off']) .df-dso[open] {
+          scale: 1;
+          translate: 0 24px;
+        }
       }
     }
   {% endstyle %}

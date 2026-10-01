@@ -3,6 +3,10 @@
   {% if request.design_mode %}
     class="shopify-design-mode"
   {% endif %}
+  {%- comment -%} DropFlex: «Animaciones de DropFlex» apagado → los componentes df-* quedan quietos. {%- endcomment -%}
+  {% if settings.df_motion == false %}
+    data-df-motion="off"
+  {% endif %}
   lang="{{ request.locale.iso_code }}"
   dir="{{ request.locale.direction | default: 'ltr' }}"
 >

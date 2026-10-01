@@ -91,7 +91,7 @@
           endif
         -%}
         {%- if valid -%}
-        <label class="df-pack-offers__card{% if badge != blank %} df-pack-offers__card--badge{% endif %}">
+        <label class="df-pack-offers__card df-press{% if badge != blank %} df-pack-offers__card--badge{% endif %}">
           <input
             type="radio"
             class="df-pack-offers__radio"
@@ -107,6 +107,8 @@
             {% unless unit.available %}disabled{% endunless %}
           >
           {%- assign checked_done = true -%}
+          {%- comment -%} La marca de la elegida (como un radio): el check entra al elegir. {%- endcomment -%}
+          <span class="df-pack-offers__mark" aria-hidden="true">{% render 'df-icon', name: 'check' %}</span>
           {%- if badge != blank -%}
             <span class="df-pack-offers__badge">{{ badge | escape }}</span>
           {%- endif -%}
@@ -212,14 +214,58 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-height: 72px;
-    padding: 12px 16px;
+    padding: 12px 16px 12px 14px;
     border: 1px solid var(--df-hairline);
     border-radius: var(--df-radius);
     background: var(--df-bg);
     cursor: pointer;
-    transition: border-color 120ms var(--df-ease), background-color 120ms var(--df-ease);
+    --df-press-scale: 0.985;
+    transition:
+      border-color var(--df-dur-base) var(--df-ease-standard),
+      background-color var(--df-dur-base) var(--df-ease-standard),
+      box-shadow var(--df-dur-base) var(--df-ease-standard),
+      scale var(--df-dur-fast) var(--df-ease-standard);
+  }
+
+  /* La marca de la tarjeta elegida: un círculo que se llena con el acento y un check que entra. */
+  .df-pack-offers__mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid color-mix(in srgb, var(--df-fg) 35%, transparent);
+    border-radius: 50%;
+    color: var(--df-on-accent);
+    transition:
+      background-color var(--df-dur-base) var(--df-ease-standard),
+      border-color var(--df-dur-base) var(--df-ease-standard);
+  }
+
+  .df-pack-offers__mark .df-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0;
+    scale: 0.6;
+    transition:
+      opacity var(--df-dur-base) var(--df-ease-enter),
+      scale var(--df-dur-base) var(--df-ease-enter);
+  }
+
+  .df-pack-offers__card:has(:checked) .df-pack-offers__mark {
+    border-color: var(--df-accent);
+    background: var(--df-accent);
+  }
+
+  .df-pack-offers__card:has(:checked) .df-pack-offers__mark .df-icon {
+    opacity: 1;
+    scale: 1;
+  }
+
+  .df-pack-offers__card:has(:disabled) .df-pack-offers__mark {
+    border-color: var(--df-hairline);
   }
 
   .df-pack-offers__card--badge {
@@ -330,9 +376,17 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .df-pack-offers__card {
+    .df-pack-offers__card,
+    .df-pack-offers__mark,
+    .df-pack-offers__mark .df-icon {
       transition: none;
     }
+  }
+
+  [data-df-motion='off'] .df-pack-offers__card,
+  [data-df-motion='off'] .df-pack-offers__mark,
+  [data-df-motion='off'] .df-pack-offers__mark .df-icon {
+    transition: none;
   }
 {% endstylesheet %}
 

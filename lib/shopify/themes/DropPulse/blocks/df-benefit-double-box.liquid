@@ -133,7 +133,7 @@
         assign image_alt = image.alt
       endif
     -%}
-    <li class="df-benefit-double-box__card">
+    <li class="df-benefit-double-box__card" data-df-reveal>
       <span class="df-benefit-double-box__media">
         {%- if image != blank -%}
           {{ image | image_url: width: 320 | image_tag: widths: '160, 320', sizes: '160px', alt: image_alt, class: 'df-benefit-double-box__img' }}
@@ -151,6 +151,7 @@
 
 {%- if cards_html != blank -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
   <ul
     class="df df-benefit-double-box{% if s.border %} df-benefit-double-box--border{% endif %}{% if s.stack_on_mobile %} df-benefit-double-box--stack{% endif %}"
     style="{% render 'df-accent-vars', product: product %} --df-dbox-radius: {{ s.card_radius }}px; --df-dbox-padding: {{ s.card_padding }}px; --df-dbox-icon: {{ s.icon_height }}px; --df-dbox-title: {{ s.title_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"

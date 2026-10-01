@@ -1,6 +1,6 @@
 # shipping-timeline — Envío
 
-Bloque de la columna del producto: una línea «Pide dentro de 3 h 05 min y sale hoy» y tres hitos (Pedido → Despachado → Entregado) con fechas reales, unidos por una línea punteada en movimiento. Archivo: `blocks/df-shipping-timeline.liquid` + `assets/df-shipping-timeline.js`. Contrato: [`content.ts`](content.ts).
+Bloque de la columna del producto: una línea «Pide dentro de 3 h 05 min y sale hoy» y tres hitos (Pedido → Despachado → Entregado) con fechas reales, unidos por una línea: sólida en el acento hasta el despacho y punteada hasta la entrega. Archivo: `blocks/df-shipping-timeline.liquid` + `assets/df-shipping-timeline.js`. Contrato: [`content.ts`](content.ts).
 
 ## Dónde va y por qué
 
@@ -12,7 +12,7 @@ Igual en móvil y escritorio:
 
 1. **Título** (opcional), centrado, 14 px: el tiempo en negrita con el acento del producto (o verde, ajuste). Se reserva su línea hasta que el JS lo llena.
 2. **Tres hitos** en una grilla de 3 columnas (`<ol>`): círculo de 56 px (60 px en escritorio) con ícono de línea (`cart`, `truck`, `package`) o imagen propia; etiqueta 13 px semibold; subtexto 12 px atenuado (hito 1: «Hoy»; hito 2: día de despacho; hito 3: rango de entrega y, opcional, una nota como «pagas al recibir»).
-3. **Conector punteado** detrás de los círculos, del centro del primero al centro del último; sus trazos avanzan hacia la derecha.
+3. **Conector** detrás de los círculos, del centro del primero al centro del último: punteado, con el tramo Pedido → Despachado sólido en el acento (lo que ya está en marcha). Con «Línea animada», ese tramo se dibuja una vez al entrar en pantalla (600 ms) y el hito 2 hace un pequeño pop; después queda quieto.
 
 Círculos neutros (`--df-surface`) o con el acento suave (`--df-accent-soft` + `--df-accent-ink`).
 
@@ -38,7 +38,7 @@ Tokens: `{time}` (tiempo hasta el corte, «3 h 05 min»), `{arrive}` (primer dí
   - corte = la hora de corte del día del pedido; con corte 0, la medianoche que lo cierra.
 - **Cuenta regresiva viva**, refrescada al cambio de cada minuto (no cada segundo) y al volver a la pestaña; al vencer recalcula: el despacho pasa al siguiente día hábil. Solo se muestra si el corte llega dentro de 24 h; si no (fin de semana, feriado, pasado el corte del viernes) usa el texto sin contador («Pide hoy y lo despachamos el lunes») o se oculta. Nunca un contador sin corte real.
 - Fechas en el idioma de la tienda (`es-CL`): «hoy», «mañana», el día de la semana si cae esta semana (o siempre día y mes, ajuste), rangos «30 de sept al 3 de oct».
-- Accesibilidad: `<ol>` de tres `<li>`, íconos `aria-hidden`, textos de 12 px o más; el contador no está en `aria-live` (cambiaría cada minuto) y un resumen oculto dice «Entrega estimada entre el 30 de septiembre y el 3 de octubre». `prefers-reduced-motion` detiene la línea.
+- Accesibilidad: `<ol>` de tres `<li>`, íconos `aria-hidden`, textos de 12 px o más; el contador no está en `aria-live` (cambiaría cada minuto) y un resumen oculto dice «Entrega estimada entre el 30 de septiembre y el 3 de octubre». La cifra del contador hace un fundido corto al cambiar el minuto. `prefers-reduced-motion` y el ajuste «Animaciones de DropFlex» dejan la línea dibujada y quieta ([`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)).
 - Varias instancias: cada una lee solo su propio JSON. Sin fetch ni dependencias.
 
 ## Psicología de venta
@@ -47,7 +47,7 @@ Tokens: `{time}` (tiempo hasta el corte, «3 h 05 min»), `{arrive}` (primer dí
 - **Especificidad y *future pacing*:** una fecha concreta hace imaginar el día en que se tiene el producto.
 - **Urgencia legítima:** el corte es real; pedir después cuesta un día. Aversión a la pérdida sin mentir.
 - **Fluidez:** tres pasos e íconos universales, un vistazo.
-- **Proceso visible:** la línea en marcha señala una operación profesional y baja el riesgo percibido de una tienda desconocida.
+- **Proceso visible:** el tramo que se dibuja hasta el despacho señala una operación profesional y baja el riesgo percibido de una tienda desconocida.
 - **Compromiso:** «Pedido · Hoy» ya pone al comprador en el paso 1.
 
 La referencia calculaba una sola vez (el contador no avanzaba), con la hora del navegador en vez de la de la tienda, fechas en inglés, sin feriados, con un nombre de ajuste invertido para los fines de semana y un «colchón» sumado dos veces. Aquí: hora de la tienda, contador vivo, feriados y días hábiles, un solo modelo de plazos.

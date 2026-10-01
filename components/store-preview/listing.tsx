@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Listing } from "@/lib/copy/listing";
 import type { ListingSlot } from "@/lib/copy/page-ui";
 import { formatMoney, type StorePack } from "@/lib/store-preview/facts";
+import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
 
 // La ficha en la tienda, en el orden de la PDP del tema (templates/product.json): foto, título, la
@@ -26,8 +27,11 @@ function PackOffers({ heading, packs, currency }: { heading?: string; packs: Sto
           const save = p.compareAt && p.compareAt > p.price ? p.compareAt - p.price : 0;
           const support = p.support || (save > 0 ? `Ahorras ${formatMoney(save, currency)}` : undefined);
           return (
-            <label key={p.units} className={`df-pack-offers__card${badge ? " df-pack-offers__card--badge" : ""}`}>
+            <label key={p.units} className={`df-pack-offers__card df-press${badge ? " df-pack-offers__card--badge" : ""}`}>
               <input type="radio" className="df-pack-offers__radio" name="df-pack-preview" defaultChecked={i === 0} tabIndex={-1} />
+              <span className="df-pack-offers__mark" aria-hidden="true">
+                <DfIcon name="check" />
+              </span>
               {badge ? <span className="df-pack-offers__badge">{badge}</span> : null}
               <span className="df-pack-offers__body">
                 <span className="df-pack-offers__label">{p.label || `${p.units} ${p.units === 1 ? "unidad" : "unidades"}`}</span>

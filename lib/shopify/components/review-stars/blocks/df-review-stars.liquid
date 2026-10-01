@@ -72,6 +72,7 @@
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   {%- if anchor != blank -%}
     <script src="{{ 'df-review-stars.js' | asset_url }}" defer></script>
+    <script src="{{ 'df-motion.js' | asset_url }}" defer></script>
   {%- endif -%}
 
   <df-review-stars

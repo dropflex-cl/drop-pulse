@@ -8,7 +8,7 @@ Entre el precio y el botón. El comprador acaba de ver el precio y evalúa si co
 
 ## Anatomía
 
-Igual en móvil y escritorio: una fila con un punto de 10 px (con halo que se expande y desvanece en 1,4 s) y el texto de 14 px del mismo color. Sin fondo ni borde.
+Igual en móvil y escritorio: una fila con un punto de 10 px (con un halo que se expande y desvanece en 1,4 s, tres veces, y se detiene) y el texto de 14 px del mismo color. Sin fondo ni borde.
 
 | Estado | Cuándo | Color |
 |---|---|---|
@@ -33,7 +33,7 @@ Tokens: `{qty}` (cantidad real), `{min}` y `{max}` (días hábiles). Con «mostr
 - El primer render ya trae el estado correcto de la variante elegida (sin parpadeo).
 - Al cambiar de variante recalcula en el navegador con el JSON embebido: escucha `shopify:product:select` y, como respaldo, el `change` del formulario. Sin fetch ni sondeo.
 - `role="status"` + `aria-live="polite"` anuncia el cambio; el punto es decorativo. El color nunca es la única señal: el texto dice el estado.
-- `prefers-reduced-motion` apaga el halo.
+- **Movimiento** ([`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)): el halo late 3 veces cuando el bloque se ve al 50 % y otras 3 al cambiar de estado, nunca en bucle (WCAG 2.2.2: nada se mueve solo más de 5 s, y el bucle le quitaba atención al botón). El texto nuevo entra con un fundido de 200 ms. Sin JS el punto queda quieto. `prefers-reduced-motion` y el ajuste «Animaciones de DropFlex» apagan todo.
 - La página puede venir cacheada por el CDN: la cantidad puede estar desfasada unos minutos, por eso el texto dice «quedan» y no «exactamente».
 
 ## Psicología de venta
