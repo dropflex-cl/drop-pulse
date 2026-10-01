@@ -226,6 +226,16 @@ El modo se elige **por campaña** (`SegmentedControl` "Cómo actúa").
 - **Hoy, hora a hora:** una curva acumulada desde `ad_insights_snapshots`, que muestra cómo va el día frente a ayer.
 - **Implementación:** el gráfico del kit de shadcn (Recharts) con los tokens `chart-1…5` (costos en grises, ganancia en `chart-4`). La línea del límite es punteada, y el color no es la única señal: la leyenda nombra cada serie.
 
+### 6.3 Exportar CSV (detalle de la campaña)
+
+«Exportar CSV», junto al título de Conjuntos (o Anuncios en CBO), descarga `GET /api/campaigns/[id]/export`:
+
+- **Filas:** la campaña, y cada conjunto (por posición) seguido de sus anuncios. Un anuncio sin conjunto va al final.
+- **Columnas:** nivel, campaña, conjunto, anuncio, id en Meta, estado (en español), presupuesto diario, gasto, impresiones, clics en el enlace, CTR, CPC, CPM, pagos iniciados, compras, valor de las compras, CPA y ROAS. Lo acumulado desde el inicio (`ad_insights_daily` sumado); vacío donde no hay base (CPA sin ventas).
+- **Sin alcance ni frecuencia:** Meta da el alcance por día y la suma de días no son personas únicas.
+- **Formato:** para abrir con doble clic en Excel en español: separador «;», coma decimal, sin separador de miles, BOM UTF-8. Montos con los decimales de la moneda. Un texto que empieza con `=`, `+`, `-` o `@` va con «'» delante (inyección de fórmulas).
+- **Archivo:** `<campaña sin acentos>-<AAAA-MM-DD>.csv` (fecha de la cuenta). Se descarga con `fetch` para mostrar el error en la pantalla.
+
 ---
 
 ## 7. Lanzar (configurador)

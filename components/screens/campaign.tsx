@@ -119,6 +119,33 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
   // Lo que gasta o borra pide un segundo toque.
   const confirmed = (key: string, fn: () => void) => () => (armed === key ? fn() : setArmed(key));
   const syncNow = () => run("sync", () => call(`${base}/sync`, "POST"), "Cifras actualizadas");
+  // «Exportar CSV»: se descarga con fetch para que un error se vea aquí y no como una página en blanco.
+  async function exportCsv() {
+    setBusy("export");
+    setError(undefined);
+    try {
+      let res: Response;
+      try {
+        res = await fetch(`${base}/export`);
+      } catch {
+        throw new Error("No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.");
+      }
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "No pudimos exportar la campaña. Intenta de nuevo.");
+      const filename = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "campana.csv";
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      // Safari cancela la descarga si la URL se libera en el mismo instante.
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify("CSV descargado");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No pudimos exportar la campaña.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   // ---------------------------------------------------------------- Decisiones por unidad
   const unitWord = cbo ? "anuncio" : "conjunto";
@@ -452,9 +479,14 @@ export function CampaignScreen({ data }: { data: CampaignDetail }) {
           <MetricGrid metrics={metrics} wide />
           {campaignDecision}
           <section aria-labelledby="decisiones" className="flex flex-col gap-3">
-            <h2 id="decisiones" className="text-heading">
-              {cbo ? "Anuncios" : "Conjuntos"}
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="decisiones" className="text-heading">
+                {cbo ? "Anuncios" : "Conjuntos"}
+              </h2>
+              <Button size="sm" variant="ghost" icon="download" loading={busy === "export"} onClick={exportCsv}>
+                Exportar CSV
+              </Button>
+            </div>
             {data.units.map(decisionRow)}
           </section>
           <DailyChart series={data.daily} units={data.units.map((u) => ({ id: u.id, name: u.name }))} cpaLimit={limit} currency={currency} />
