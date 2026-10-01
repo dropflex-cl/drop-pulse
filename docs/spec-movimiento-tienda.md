@@ -97,7 +97,7 @@ Las tarjetas de pack, los círculos, las tarjetas de video, las flechas y los pu
    - ¿qué sigue?
 
    Si no responde ninguna, no va.
-2. **Nada se mueve solo arriba del pliegue al cargar,** salvo la galería y el brillo del botón (ya existen). El primer pantallazo (social proof, estrellas, título, precio, beneficios) se pinta quieto: no afecta el LCP ni distrae del precio.
+2. **Nada se mueve solo arriba del pliegue al cargar,** salvo la galería, el brillo del botón y, durante un evento, el brillo de su barra con cuenta regresiva (mismo patrón y topes que el del botón; ver `docs/spec-eventos.md`). El primer pantallazo (social proof, estrellas, título, precio, beneficios) se pinta quieto: no afecta el LCP ni distrae del precio.
 3. **Presupuesto: un movimiento continuo por pantalla.** Cuentan como continuos el autoplay de un carrusel, la marquesina, el avance de la galería y el brillo del botón. Los GIF y los videos son contenido y no cuentan. Todo lo demás es transitorio: dura 500 ms o menos y termina.
 4. **Ningún bucle infinito sin pausa.** Lo que se repite tiene un tope: 3 repeticiones o 5 s. Si dura más, lleva un botón de pausa (regla 10).
 5. **Solo `transform` y `opacity`.** La excepción es la altura de lo que se expande (`interpolate-size` o FLIP de alto). Así no hay saltos de diseño (CLS = 0) ni repintados caros en teléfonos de gama baja.
@@ -335,6 +335,7 @@ Implementado en `lib/shopify/components/` y copiado al tema con `npm run shopify
 - **Fase 1:** `df-inventory` (3 latidos al verse y al cambiar de estado, fundido del texto), `df-shipping-timeline` (tramo hasta el despacho que se dibuja una vez, pop del hito 2, fundido del minuto), `df-price` (monto, tachado y sello) y `df-pack-offers` (marca con check, `.df-press`; también en la vista previa `components/store-preview/listing.tsx`).
 - **Fase 2:** revelado en `pain-block` (filete del remate), `stats-with-image`, `image-with-benefits` (desde los costados en escritorio), `insta-story`, `review-wall` (más «Ver más testimonios» y el texto que crece), `gif-strip`, `benefit-double-box`, `comparison-table` y `faq-and-text`; visores de `insta-story` y `ugc-slider` con `df-dialog-motion`; destello de `review-stars`; `.df-press` en tarjetas, círculos, flechas y botones.
 - **Fase 3:** contador de cifras en `stats-with-image`, aro visto al cerrar las historias, «ver completa» de `review-slider`, salida y velo del downsell.
+- **Eventos** (2026-10-01, pedido del comerciante con la referencia de Barber Chile): brillo de la barra con cuenta regresiva (`_event/df-event-bar`) con el patrón del brillo de EasySell: dos pasadas de 900 ms al verse, hasta 3 veces por visita, la curva del brillo de EasySell (pareja; `ease-standard` lo convertía en destello). En las últimas 48 h, 3 latidos de las cajas con la primera pasada y el borde marcado. Cada vuelta dura menos de 5 s. La cinta de avisos del evento es el movimiento continuo de esa pantalla (marquesina con pausa).
 - **Tests** (`components.test.ts` › movimiento): ningún `infinite` salvo la marquesina; todo lo que usa `data-df-reveal` o `data-df-count` carga `df-motion.js`.
 
 Cambios respecto de la propuesta:
