@@ -12,8 +12,9 @@ import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX
  * Bump cuando cambie el prompt o el esquema del generador. 2: dirección de arte (spec §7.4).
  * 4: el esquema y el system dejan de pedir principal/secundario y retargeting (2 o 3 ángulos por igual).
  * 5: el prompt pide los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS.
+ * 6: los ganchos llegan con su tríada (on_screen, visual) y sin los que piden material real (lib/hooks).
  */
-export const CREATIVES_PROMPT_VERSION = 5;
+export const CREATIVES_PROMPT_VERSION = 6;
 /** Bump cuando cambie el prompt o el esquema del QA. 2: texto inventado sobre el producto y textos que la imagen contradice. */
 export const QA_PROMPT_VERSION = 2;
 
@@ -105,8 +106,13 @@ export function claimProblems(text: string, pricing: PricingPlan, at = ""): stri
   const problems: string[] = [];
   const allowed = allowedAmounts(pricing);
   for (const n of amountsIn(text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${text}» trae un monto que no está en PRECIO Y OFERTA.`);
-  for (const re of FORBIDDEN) if (re.test(text)) problems.push(`${at}«${text}» promete un resultado de salud (usa «ayuda a», «apoya»).`);
+  problems.push(...healthProblems(text, at));
   return problems;
+}
+
+/** Promesas de salud en un texto (también los ganchos editados, que no se revisan contra el precio). */
+export function healthProblems(text: string, at = ""): string[] {
+  return FORBIDDEN.some((re) => re.test(text)) ? [`${at}«${text}» promete un resultado de salud (usa «ayuda a», «apoya»).`] : [];
 }
 
 /** Qué está mal en la respuesta del generador. Vacío si se puede guardar. */
@@ -158,8 +164,8 @@ export type ConceptFixOutput = z.infer<typeof conceptFixSchema>;
 
 // ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
 
-/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). */
-export const CHAT_PROMPT_VERSION = 2;
+/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). 3: el gancho puede partir de los del ángulo (lib/hooks). */
+export const CHAT_PROMPT_VERSION = 3;
 
 const chatTime = z.string().describe("«HH:MM», 24 h.");
 

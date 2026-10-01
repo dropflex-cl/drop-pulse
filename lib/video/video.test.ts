@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, fileSlug, montageName } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
-import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, videoLabel, watermarkText } from "./package";
-import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
-import { applyScriptEdit, changedLines, keyframeQaVerdict, scriptProblems, words, type UgcScript } from "./schemas";
+import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, watermarkText } from "./package";
+import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
+import { applyScriptEdit, changedLines, keyframeQaVerdict, scriptProblems, words, type OpeningInput, type UgcScript } from "./schemas";
+import { keyframeQaUser } from "./prompts";
 
 // Deep Collagen (POC 2026-09-26, variante E, ángulo 3): el guion que el usuario aprobó.
 const pricing = {
@@ -116,6 +117,134 @@ describe("scriptProblems", () => {
     s.text_beats[2].text = "Hoy $9.990";
     expect(scriptProblems(s, pricing).join(" ")).toMatch(/monto/);
   });
+
+  it("los textos en pantalla tampoco le hablan del cuerpo a quien mira", () => {
+    const s = script();
+    s.text_beats[1].text = "TUS ARRUGAS";
+    expect(scriptProblems(s, pricing).join(" ")).toMatch(/texto en pantalla 2 .* le habla a quien mira/);
+  });
+});
+
+describe("scriptProblems: la apertura del gancho", () => {
+  const opening: OpeningInput = { hooks: [{ index: 1, shot: "selfie_talk" }, { index: 0, shot: "pov_hands" }, { index: 2, shot: "problem_scene" }] };
+  /** El guion de la POC como sale ahora: con cámaras, la apertura y la imagen clave del gesto del gancho (K5). */
+  const generated = (): UgcScript => {
+    const s = script();
+    const cams = { K1: "selfie", K2: "selfie", K3: "propped", K4: "pov" } as const;
+    s.keyframes = s.keyframes.map((k) => ({ ...k, camera: cams[k.key as keyof typeof cams] }));
+    s.keyframes[3] = { ...s.keyframes[3], prompt: "The product dropper over the fingertips, seen from above by the phone held in the other hand." };
+    s.keyframes.push({ key: "K5", uses_character: true, uses_product: false, one_hand: false, camera: "selfie", prompt: "The person at the bathroom mirror leans toward the phone, eyebrows raised, sponge in hand." });
+    s.a_roll[0] = { ...s.a_roll[0], keyframe: "K5" };
+    s.opening = { hook_source: 1, shot: "selfie_talk", keyframe: "K5", first_motion: "She is already leaning toward the lens." };
+    return s;
+  };
+  /** La misma apertura con un inserto: B1 (las manos con el gotario) tapa el comienzo de A1. */
+  const pov = (): UgcScript => {
+    const s = generated();
+    s.a_roll[0] = { ...s.a_roll[0], keyframe: "K1" };
+    s.keyframes = s.keyframes.filter((k) => k.key !== "K5");
+    s.b_roll = [{ key: "B1", keyframe: "K4", anchor: "maquillas", cut_s: 1.6, motion: "The drops fall onto the fingertips." }, { ...s.b_roll[0], key: "B2" }];
+    s.opening = { hook_source: 0, shot: "pov_hands", keyframe: "K4", first_motion: "Drops are already falling." };
+    return s;
+  };
+
+  it("acepta la apertura con la cara y con un inserto", () => {
+    expect(scriptProblems(generated(), pricing, "ugc", opening)).toEqual([]);
+    expect(scriptProblems(pov(), pricing, "ugc", opening)).toEqual([]);
+    expect(scriptProblems({ ...generated(), opening: { ...generated().opening!, hook_source: null } }, pricing, "ugc", opening)).toEqual([]);
+  });
+
+  it("el gancho elige la toma y tiene que ser uno de la lista", () => {
+    const s = generated();
+    expect(scriptProblems({ ...s, opening: { ...s.opening!, hook_source: 7 } }, pricing, "ugc", opening).join(" ")).toMatch(/hook_source es 7, que no está/);
+    expect(scriptProblems({ ...s, opening: { ...s.opening!, hook_source: 2 } }, pricing, "ugc", opening).join(" ")).toMatch(/El gancho 2 abre con problem_scene/);
+    expect(scriptProblems({ ...s, opening: undefined }, pricing, "ugc", opening).join(" ")).toMatch(/Falta opening/);
+  });
+
+  it("abrir con la cara no parte del retrato K1", () => {
+    const s = generated();
+    s.a_roll[0] = { ...s.a_roll[0], keyframe: "K1" };
+    s.opening = { ...s.opening!, keyframe: "K1" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no parte de K1/);
+  });
+
+  it("abrir con un inserto pone B1 al comienzo, desde la imagen clave de la apertura", () => {
+    const s = pov();
+    s.b_roll[0] = { ...s.b_roll[0], anchor: "errores", keyframe: "K3" };
+    const p = scriptProblems(s, pricing, "ugc", opening).join(" ");
+    expect(p).toMatch(/B1 parte de opening.keyframe \(K4\)/);
+    expect(p).toMatch(/B1 abre el video: se ancla a una de las primeras 5 palabras/);
+  });
+
+  it("la mascota abre con su escena, nunca con el personaje sano", () => {
+    const s = generated();
+    expect(scriptProblems(s, pricing, "mascot", { hooks: [{ index: 1, shot: "mascot_scene" }] }).join(" ")).toMatch(/la mascota abre con su escena/i);
+    s.opening = { ...s.opening!, shot: "mascot_scene", keyframe: "K1" };
+    s.a_roll[0] = { ...s.a_roll[0], keyframe: "K1" };
+    expect(scriptProblems(s, pricing, "mascot", { hooks: [{ index: 1, shot: "mascot_scene" }] }).join(" ")).toMatch(/no parte de K1/);
+  });
+
+  it("la primera frase de A1 cabe en 3 s", () => {
+    const s = generated();
+    s.a_roll[0].line = "¿Te maquillas apurada en siete minutos todas las mañanas antes del trabajo? Entonces seguro cometes estos tres errores.";
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/primera frase de A1 .* tiene 12 palabras/);
+    expect(scriptProblems(s, pricing).join(" ")).not.toMatch(/primera frase/);
+  });
+
+  it("el primer texto en pantalla se lee desde el primer segundo", () => {
+    const s = generated();
+    s.text_beats[0] = { ...s.text_beats[0], anchor: "errores" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/primeras 5 palabras de A1/);
+    s.text_beats[0] = { anchor: "maquillas", until: null, text: "MAQUILLAJE EN SIETE MINUTOS ANTES DEL TRABAJO" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/tiene 7 palabras; el del gancho va hasta 6/);
+  });
+
+  it("el pago contra entrega no va en el gancho", () => {
+    const s = generated();
+    s.text_beats[0] = { anchor: "maquillas", until: null, text: "PAGAS AL RECIBIR" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no van en el gancho/);
+  });
+});
+
+describe("scriptProblems: que parezca de teléfono", () => {
+  const opening: OpeningInput = { hooks: [] };
+  const base = (): UgcScript => {
+    const s = script();
+    s.keyframes = s.keyframes.map((k) => ({ ...k, camera: k.key === "K3" ? "propped" : k.key === "K4" ? "pov" : "selfie", prompt: k.key === "K4" ? "The product dropper over the fingertips, seen from above." : k.prompt }));
+    s.keyframes.push({ key: "K5", uses_character: true, uses_product: false, one_hand: false, camera: "selfie", prompt: "The person leans toward the phone in her bathroom." });
+    s.a_roll[0] = { ...s.a_roll[0], keyframe: "K5" };
+    s.opening = { hook_source: null, shot: "selfie_talk", keyframe: "K5", first_motion: "She leans in." };
+    return s;
+  };
+
+  it("cada imagen clave dice su cámara y el B-roll no es selfie", () => {
+    expect(scriptProblems(base(), pricing, "ugc", opening)).toEqual([]);
+    const s = base();
+    s.keyframes[2] = { ...s.keyframes[2], camera: undefined, uses_character: true };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/K3 no dice su cámara/);
+    s.keyframes[2] = { ...s.keyframes[2], camera: "selfie" };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/K3 es de un B-roll: va en pov/);
+  });
+
+  it("rechaza el lenguaje de estudio, salvo lo negado", () => {
+    const s = base();
+    s.keyframes[3] = { ...s.keyframes[3], prompt: "Macro of the dropper, shallow depth of field, soft morning light." };
+    s.character.setting = "a cozy studio with golden hour light";
+    s.b_roll[1] = { ...s.b_roll[1], motion: "Cinematic slow motion of the drops." };
+    const p = scriptProblems(s, pricing, "ugc", opening).join(" ");
+    expect(p).toMatch(/K4 habla como una foto de estudio \(«Macro»\)/);
+    expect(p).toMatch(/character.setting habla como una foto de estudio/);
+    expect(p).toMatch(/El movimiento de B2 habla como un comercial/);
+    s.keyframes[3] = { ...s.keyframes[3], prompt: "The dropper over the fingertips, no bokeh, everything in focus." };
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).not.toMatch(/K4 habla/);
+  });
+
+  it("la mascota no pasa por las reglas del teléfono", () => {
+    const s = base();
+    s.keyframes = s.keyframes.map((k) => ({ ...k, camera: "animated", prompt: `${k.prompt} Soft cinematic lighting.` }));
+    s.opening = { ...s.opening!, shot: "mascot_scene" };
+    expect(scriptProblems(s, pricing, "mascot", { hooks: [] }).join(" ")).not.toMatch(/cámara|estudio/);
+  });
 });
 
 describe("edición", () => {
@@ -172,6 +301,55 @@ describe("render", () => {
   });
 });
 
+describe("render: que parezca de teléfono y que abra con el gancho", () => {
+  const opened = (): UgcScript => {
+    const s = script();
+    s.keyframes = s.keyframes.map((k) => ({ ...k, camera: k.key === "K4" ? "pov" : k.key === "K3" ? "propped" : "selfie" }));
+    s.opening = { hook_source: 0, shot: "selfie_talk", keyframe: "K2", first_motion: "She is already lifting the product to her cheek." };
+    return s;
+  };
+
+  it("la imagen clave describe un teléfono en una casa, con su cámara, y la persona es común", () => {
+    const s = opened();
+    const k1 = String(keyframeRequest(s.keyframes[0], s, "K1").input.prompt);
+    expect(k1).toMatch(/photo taken with a phone at home/);
+    expect(k1).toMatch(/front camera at arm's length/);
+    expect(k1).toMatch(/not a model: natural skin texture with visible pores/);
+    expect(k1).not.toMatch(/natural light, like a frame/);
+    expect(String(keyframeRequest(s.keyframes[3], s, "K1").input.prompt)).toMatch(/rear camera held in one hand/);
+    // En belleza, la persona no muestra el problema que el producto promete arreglar.
+    expect(String(keyframeRequest(s.keyframes[0], s, "K1", "ugc", { appearance: true }).input.prompt)).not.toMatch(/pores|uneven/);
+    expect(isAppearanceCategory("Belleza y cuidado de la piel")).toBe(true);
+    expect(isAppearanceCategory("hogar")).toBe(false);
+  });
+
+  it("la imagen de la apertura es el cuadro 0, con la acción en marcha; las demás no", () => {
+    const s = opened();
+    expect(String(keyframeRequest(s.keyframes[1], s, "K1").input.prompt)).toMatch(/very first frame of the video: the action is already happening \(She is already lifting the product to her cheek\)/);
+    expect(String(keyframeRequest(s.keyframes[2], s, "K1").input.prompt)).not.toMatch(/first frame/);
+  });
+
+  it("la toma hablada que abre arranca en movimiento y con el pulso de una mano", () => {
+    const s = opened();
+    const a1 = { ...s.a_roll[0], keyframe: "K2" };
+    const p = String(aRollRequest(a1, "es", true, "ugc", s.opening).input.prompt);
+    expect(p).toMatch(/^Handheld vertical phone video recorded by the person: small natural hand shake/);
+    expect(p).toMatch(/already happening from the very first frame/);
+    expect(String(aRollRequest(s.a_roll[1], "es", false, "ugc", s.opening).input.prompt)).not.toMatch(/very first frame/);
+  });
+
+  it("el B-roll del UGC sigue su cámara, abre en movimiento y excluye lo cinematográfico", () => {
+    const s = opened();
+    s.opening = { hook_source: 0, shot: "pov_hands", keyframe: "K4", first_motion: "Drops are already falling." };
+    const b1 = { ...s.b_roll[1], key: "B1" };
+    const r = bRollRequest(b1, true, "ugc", "pov", s.opening);
+    expect(String(r.input.prompt)).toMatch(/^The action is already happening from the very first frame: Drops are already falling\./);
+    expect(String(r.input.prompt)).toMatch(/rear camera looking down at the hands/);
+    expect(String(r.input.negative_prompt)).toMatch(/cinematic, bokeh, shallow depth of field, slow motion/);
+    expect(String(bRollRequest(mascot().b_roll[0], false, "mascot").input.negative_prompt)).not.toMatch(/cinematic/);
+  });
+});
+
 describe("costos", () => {
   it("Seedance 2.0 a 720p 9:16 ≈ US$0,30 por segundo", () => {
     expect(seedanceCostUsd(1)).toBeCloseTo(0.3024, 3);
@@ -194,19 +372,31 @@ describe("paquete de montaje", () => {
 
   it("lleva cada clip con su URL, los textos y el cierre", () => {
     const p = buildPackage({ ...base, script: script(), clipUrls: urls });
-    expect(p.version).toBe(1);
+    expect(p.version).toBe(2);
+    expect(p.opening).toBeNull();
+    expect(p.look).toBe("phone");
     expect(p.a_roll.map((a) => a.url)).toHaveLength(5);
     expect(p.b_roll[0]).toMatchObject({ anchor: "minutos", cut_s: 1.2, url: "https://x/B1.mp4" });
     expect(p.end_card).toMatchObject({ image_url: "https://x/base.jpg", cta: "Comprar" });
-    expect(p.label).toBe("Dramatización");
+    // Sin rótulo de dramatización ni de animación (decisión del comerciante, 2026-10-01).
+    expect(p).not.toHaveProperty("label");
     expect(p.accent_color).toBe(DEFAULT_ACCENT);
+  });
+
+  it("lleva la apertura: el inserto del gancho si abre con uno, y el aspecto por formato", () => {
+    const s = script();
+    s.opening = { hook_source: 0, shot: "pov_hands", keyframe: "K3", first_motion: "x" };
+    expect(buildPackage({ ...base, script: s, clipUrls: urls }).opening).toEqual({ shot: "pov_hands", insert: "B1" });
+    s.opening = { hook_source: 1, shot: "selfie_talk", keyframe: "K1", first_motion: "x" };
+    expect(buildPackage({ ...base, script: s, clipUrls: urls }).opening).toEqual({ shot: "selfie_talk", insert: null });
+    expect(buildPackage({ ...base, format: "mascot", script: s, clipUrls: urls }).look).toBe("clean");
   });
 
   it("dice su formato y se llama por el producto, el formato y el ángulo", () => {
     const ugc = buildPackage({ ...base, script: script(), clipUrls: urls });
     expect(ugc).toMatchObject({ format: "ugc", name: "deep-collagen-ugc-angulo-3" });
     const mascot = buildPackage({ ...base, format: "mascot", script: script(), clipUrls: urls });
-    expect(mascot).toMatchObject({ format: "mascot", label: "Animación", name: "deep-collagen-mascota-angulo-3" });
+    expect(mascot).toMatchObject({ format: "mascot", name: "deep-collagen-mascota-angulo-3" });
   });
 
   it("arma el nombre del archivo sin tildes ni símbolos y sin cortar palabras", () => {
@@ -239,13 +429,27 @@ describe("paquete de montaje", () => {
 });
 
 describe("QA de imágenes clave", () => {
+  const ok = { hands_ok: true, product_ok: null, same_person: null, no_text: true, brand_safe: true, matches_hook: null, phone_look: null, issues: [] as string[] };
   it("falla con manos de más aunque el modelo no lo explique", () => {
-    expect(keyframeQaVerdict({ hands_ok: false, product_ok: true, same_person: true, no_text: true, brand_safe: true, issues: [] })).toEqual({ pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] });
-    expect(keyframeQaVerdict({ hands_ok: true, product_ok: null, same_person: null, no_text: true, brand_safe: true, issues: [] }).pass).toBe(true);
+    expect(keyframeQaVerdict({ ...ok, hands_ok: false, product_ok: true, same_person: true })).toEqual({ pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] });
+    expect(keyframeQaVerdict(ok).pass).toBe(true);
     // Una forma sugerente falla siempre y va primero, aunque el modelo haya anotado otra cosa.
-    const unsafe = keyframeQaVerdict({ hands_ok: true, product_ok: null, same_person: null, no_text: true, brand_safe: false, issues: ["Los ojos quedaron chicos."] });
+    const unsafe = keyframeQaVerdict({ ...ok, brand_safe: false, issues: ["Los ojos quedaron chicos."] });
     expect(unsafe.pass).toBe(false);
     expect(unsafe.issues[0]).toMatch(/puede leerse como algo sexual/);
+  });
+
+  it("la apertura tiene que mostrar el gancho; parecer de estudio solo avisa", () => {
+    expect(keyframeQaVerdict({ ...ok, matches_hook: false })).toEqual({ pass: false, issues: ["No muestra la primera toma del gancho: pide otra."] });
+    expect(keyframeQaVerdict({ ...ok, matches_hook: true }).pass).toBe(true);
+    expect(keyframeQaVerdict({ ...ok, phone_look: false })).toEqual({ pass: true, issues: ["Parece foto de estudio: si no te convence, pide otra."] });
+    expect(keyframeQaVerdict({ ...ok, phone_look: true })).toEqual({ pass: true, issues: [] });
+  });
+
+  it("el QA sabe si es la apertura y si es la mascota", () => {
+    const k = { key: "K5", prompt: "x", uses_product: false };
+    expect(keyframeQaUser(k, true, "ugc", { first_motion: "She leans in.", hook: "No compres otra." })).toMatch(/APERTURA[\s\S]*She leans in\.[\s\S]*«No compres otra\.»[\s\S]*revisa phone_look/);
+    expect(keyframeQaUser(k, true, "mascot")).toMatch(/matches_hook = null[\s\S]*phone_look = null/);
   });
 });
 
@@ -353,11 +557,5 @@ describe("formato mascota", () => {
     expect(prompt).toContain("animated-movie character voice");
     expect(prompt).not.toMatch(/selfie/);
     expect(String(bRollRequest(mascot().b_roll[0], false, "mascot").input.prompt)).not.toMatch(/smartphone/);
-  });
-
-  it("el montaje la rotula como animación", () => {
-    expect(videoLabel("mascot", "es")).toBe("Animación");
-    expect(videoLabel("ugc", "es")).toBe("Dramatización");
-    expect(videoLabel("mascot", "pt-BR")).toBe("Animação");
   });
 });

@@ -4,12 +4,22 @@
 
 import * as z from "zod/v4";
 import { claimProblems } from "@/lib/creatives/schemas";
+import { ON_SCREEN_MAX_WORDS, SPOKEN_MAX_WORDS } from "@/lib/hooks/catalog";
+import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "@/lib/hooks/policy";
+export { riskyShape };
+import { wordCount } from "@/lib/hooks/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import {
   A_ROLL_MAX,
   A_ROLL_MIN,
   A_ROLL_SECONDS_MAX,
+  CAMERAS,
   FORMAT_LIMITS,
+  HOOK_BEAT_MAX_WORD,
+  opensWithInsert,
+  VIDEO_OPENING_SHOTS,
+  type Camera,
+  type VideoOpeningShot,
   A_ROLL_SECONDS_MIN,
   B_ROLL_CUT_MAX,
   B_ROLL_CUT_MIN,
@@ -24,18 +34,21 @@ import {
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. */
-export const UGC_PROMPT_VERSION = 4;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. */
-export const MASCOT_PROMPT_VERSION = 4;
-/** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). */
-export const KEYFRAME_QA_PROMPT_VERSION = 2;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». 6: el gancho sale de la tríada del agente de ganchos (hook_source). 7: la apertura (opening) y la cámara de cada imagen clave (spec-video-detener-scroll). */
+export const UGC_PROMPT_VERSION = 7;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). */
+export const MASCOT_PROMPT_VERSION = 7;
+/** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). 3: matches_hook (la apertura) y phone_look (aviso). */
+export const KEYFRAME_QA_PROMPT_VERSION = 3;
 
 const keyframe = z.object({
   key: z.string().describe(`«K1» a «K${KEYFRAMES_MAX}». ${CHARACTER_KEY} es SIEMPRE el personaje solo, sin el producto.`),
   uses_character: z.boolean().describe("true si aparece la persona o el personaje (cara, manos o cuerpo): se genera con K1 de referencia."),
   uses_product: z.boolean().describe("true si aparece el producto: se genera con la foto real de referencia."),
   one_hand: z.boolean().describe("true si la escena necesita una sola mano visible (sostener el frasco, señalar): evita manos de más."),
+  camera: z
+    .enum(CAMERAS)
+    .describe("UGC: selfie (cámara frontal a un brazo), pov (cámara trasera mirando hacia abajo, una mano en cuadro), propped (el teléfono apoyado en un mueble) o mirror (en el espejo). Mascota: animated."),
   prompt: z
     .string()
     .describe(
@@ -80,6 +93,14 @@ export const ugcScriptSchema = z.object({
     wardrobe: z.string().describe("En inglés: ropa. Mascota: «none» (los accesorios de una escena van en su imagen clave)."),
     setting: z.string().describe("En inglés: el lugar principal y la luz."),
   }),
+  opening: z
+    .object({
+      hook_source: z.number().int().nullable().describe("El index del gancho de GANCHOS DEL ÁNGULO que abre el video, o null si ninguno servía."),
+      shot: z.enum(VIDEO_OPENING_SHOTS).describe("La primera toma: la del gancho elegido (opening_shot). Mascota: mascot_scene."),
+      keyframe: z.string().describe("La imagen clave del cuadro 0: la de A1 si abre con la cara (nunca K1), la de B1 si abre con un inserto."),
+      first_motion: z.string().describe("En inglés: lo que ya se está moviendo en el cuadro 0."),
+    })
+    .describe("Los primeros 3 s: el gancho elegido y su primera toma."),
   hook_why: z.string().describe("Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."),
   keyframes: z.array(keyframe).describe(`De 3 a ${KEYFRAMES_MAX}. K1 = el personaje solo; una por cada escena distinta de a_roll y b_roll.`),
   a_roll: z
@@ -98,8 +119,12 @@ export const ugcScriptSchema = z.object({
   compliance_notes: z.array(z.string()).describe("Para el comerciante: qué cuidar al montar y publicar."),
 });
 
-export type UgcScript = z.infer<typeof ugcScriptSchema>;
-export type UgcKeyframe = UgcScript["keyframes"][number];
+type ScriptOut = z.infer<typeof ugcScriptSchema>;
+export type ScriptOpening = ScriptOut["opening"];
+/** Los guiones de antes no traen `camera` (versión 7). */
+export type UgcKeyframe = Omit<ScriptOut["keyframes"][number], "camera"> & { camera?: Camera };
+/** Los guiones de antes no traen `opening` (versión 7); los de la versión 6 traían `hook_source` suelto. */
+export type UgcScript = Omit<ScriptOut, "opening" | "keyframes"> & { opening?: ScriptOpening; keyframes: UgcKeyframe[]; hook_source?: number | null };
 export type UgcARoll = UgcScript["a_roll"][number];
 export type UgcBRoll = UgcScript["b_roll"][number];
 
@@ -131,28 +156,16 @@ const SPOKEN_AMOUNT = /\d|\b(mil|miles|millones?|pesos|d[oó]lares|reais|reales|
 /** Una persona de IA que afirma su edad («tengo cuarenta y dos»): la presenta como alguien real. */
 const OWN_AGE = /\btengo\s+(\d+|veinti\w*|treinta|cuarenta|cincuenta|sesenta|setenta)\b|\b(mis|a mis)\s+(\d+|treinta|cuarenta|cincuenta|sesenta)\b/i;
 
-/** Condición del lector en segunda persona (política de atributos personales de Meta). */
-const SECOND_PERSON =
-  /\b(tu|tus) (piel|cara|rostro|edad|cuerpo|arrugas|manchas|l[ií]neas|cuello|papada|acn[eé]|flacidez|u[ñn]as?|pies?|dedos?|dientes?|enc[ií]as|rodillas?|articulaciones|espalda|pelo|cabello|calvicie|barriga|panza|grasa|hongos?)\b|\ba tu edad\b|\btienes (arrugas|manchas|acn[eé]|hongos?|dolor)/i;
-
-/** Un plazo de resultado («al día tres», «en dos semanas»): promesa de salud que Meta rechaza. */
-const RESULT_TIMELINE = /\b(al|en|a los|en solo)\s+(\d+|un|una|dos|tres|cuatro|cinco|siete|diez|catorce|quince|treinta)\s+(d[ií]as?|semanas?|mes(es)?)\b|\bal d[ií]a\s+(\d+|uno|dos|tres|cuatro|cinco|siete)\b|\ben la semana\s+(\d+|uno|dos|tres)\b/i;
-
-/** Qué está mal en un guion (del modelo o editado). Vacío si se puede guardar. */
-/** Rasgos del personaje de mascota que dan siluetas fálicas (se revisan en persona y character.look, en inglés). */
-const RISKY_SHAPE = /\b(neck|stalk|shaft|tube|cylind\w*|elongated|finger|toe|bottom edge|patch of (?:facial )?skin|skin patch|blob of (?:\w+ )*skin)\b/i;
-/**
- * Lo que el personaje NO es no cuenta: el modelo repite las prohibiciones («no neck», «never rising from
- * the bottom edge») y la primera versión de la regla rechazó así todos los intentos en producción. Se
- * quita cada tramo negado hasta la siguiente coma o punto.
- */
-const NEGATED = /\b(?:no|not|never|without|nor|instead of|rather than|free of|avoid\w*)\b[^.,;:()]*/gi;
-
-export function riskyShape(text: string): string | null {
-  return text.replace(NEGATED, " ").match(RISKY_SHAPE)?.[0] ?? null;
+/** La primera frase de una línea (hasta el primer punto, cierre de pregunta o exclamación, o puntos suspensivos). */
+export function firstSentence(line: string): string {
+  return line.trim().split(/(?<=[.?!…])\s/)[0] ?? "";
 }
 
-export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc"): string[] {
+/**
+ * `opening`: al generar, los ganchos que se le pasaron y su toma. Activa las reglas de la apertura y,
+ * en el UGC, las del aspecto de teléfono; al editar un guion de antes no se piden.
+ */
+export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc", opening?: OpeningInput): string[] {
   const problems: string[] = [];
   const limits = FORMAT_LIMITS[format];
   const who = format === "mascot" ? "al personaje" : "a la persona";
@@ -183,7 +196,7 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
     const n = words(a.line).length;
     if (n > a.seconds * WORDS_PER_SECOND_MAX) problems.push(`${at} tiene ${n} palabras para ${a.seconds} s (máximo ${Math.floor(a.seconds * WORDS_PER_SECOND_MAX)}): acórtala o dale más segundos.`);
     if (SPOKEN_AMOUNT.test(a.line)) problems.push(`${at} dice un número o un monto («${a.line}»): los precios van solo en pantalla y los números, en palabras.`);
-    if (SECOND_PERSON.test(a.line))
+    if (SECOND_PERSON_BODY.test(a.line))
       problems.push(
         format === "mascot"
           ? `${at} habla del cuerpo de quien mira en segunda persona («tu uña», «tus pies»): el personaje habla de sí mismo («a mí me salió…») o de «mi dueño».`
@@ -214,13 +227,103 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
     if (!spoken.has(wordKey(t.anchor))) problems.push(`${at} se ancla a «${t.anchor}», que nadie dice.`);
     if (t.until && !spoken.has(wordKey(t.until))) problems.push(`${at} se quita en «${t.until}», que nadie dice.`);
     if (RESULT_TIMELINE.test(t.text)) problems.push(`${at} promete un plazo de resultado: quítalo.`);
+    if (SECOND_PERSON_BODY.test(t.text)) problems.push(`${at} le habla a quien mira de su cuerpo, su edad o su salud: usa primera persona o «las que…».`);
     problems.push(...claimProblems(t.text, pricing, `${at}: `));
   });
   for (const t of [s.end_card.title, s.end_card.subtitle, s.end_card.cta, ...s.end_card.small_print]) problems.push(...claimProblems(t, pricing, "El cierre: "));
 
+  if (opening) {
+    problems.push(...openingProblems(s, opening, format));
+    if (format === "ugc") problems.push(...phoneLookProblems(s));
+  }
+
   // Cada imagen clave se usa (no se paga una imagen que no sale en el video).
   const used = new Set([CHARACTER_KEY, ...s.a_roll.map((a) => a.keyframe), ...s.b_roll.map((b) => b.keyframe)]);
   for (const k of kfKeys) if (!used.has(k)) problems.push(`La imagen clave ${k} no la usa ninguna toma: quítala.`);
+  return problems;
+}
+
+/** Los ganchos que se le pasaron al guionista (`index` en el desarrollo) y la toma con que abre cada uno. */
+export interface OpeningInput {
+  hooks: { index: number; shot: VideoOpeningShot }[];
+}
+
+/**
+ * La apertura (docs/spec-video-detener-scroll.md §3): el gancho cabe en 3 s, se lee sin sonido desde el
+ * primer segundo y la primera imagen es la toma que eligió el gancho, con movimiento desde el cuadro 0.
+ */
+function openingProblems(s: UgcScript, input: OpeningInput, format: VideoFormat): string[] {
+  const problems: string[] = [];
+  const o = s.opening;
+  const a1 = s.a_roll[0];
+  if (!o) return ["Falta opening: el gancho elegido y su primera toma."];
+  const offered = input.hooks.map((h) => h.index);
+  const hook = o.hook_source == null ? null : input.hooks.find((h) => h.index === o.hook_source);
+  if (o.hook_source != null && !hook)
+    problems.push(`opening.hook_source es ${o.hook_source}, que no está en GANCHOS DEL ÁNGULO${offered.length ? ` (${offered.join(", ")})` : ""}: usa uno de la lista o null.`);
+  if (format === "mascot" && o.shot !== "mascot_scene") problems.push("La mascota abre con su escena: opening.shot es mascot_scene.");
+  if (format === "ugc" && o.shot === "mascot_scene") problems.push("El video con persona no abre con mascot_scene: usa la toma del gancho.");
+  if (hook && format === "ugc" && o.shot !== hook.shot) problems.push(`El gancho ${hook.index} abre con ${hook.shot}: opening.shot es ${hook.shot}.`);
+  if (!o.first_motion.trim()) problems.push("Falta opening.first_motion: qué se mueve en el cuadro 0.");
+  if (!a1) return problems;
+
+  const k = s.keyframes.find((x) => x.key === o.keyframe);
+  if (!k) problems.push(`opening.keyframe es ${o.keyframe}, que no está en keyframes.`);
+  if (!opensWithInsert(o.shot)) {
+    // Abre con la cara: A1 parte de la escena del gancho, no del retrato que fija la cara (en la mascota, K1 es el personaje SANO).
+    if (o.keyframe === CHARACTER_KEY) problems.push(`La apertura no parte de ${CHARACTER_KEY} (el retrato que fija la cara): crea otra imagen clave con el gesto del gancho y úsala en A1.`);
+    if (a1.keyframe !== o.keyframe) problems.push(`Abre con ${o.shot}: A1 parte de opening.keyframe (${o.keyframe}), no de ${a1.keyframe}.`);
+    if (k && !k.uses_character) problems.push(`La imagen clave de la apertura (${o.keyframe}) tiene que mostrar ${format === "mascot" ? "al personaje" : "a la persona"}.`);
+    if (k && o.shot === "mirror" && k.camera !== "mirror") problems.push(`Abre con mirror: ${o.keyframe} va con camera mirror.`);
+    if (k && o.shot === "selfie_talk" && k.camera !== "selfie") problems.push(`Abre con selfie_talk: ${o.keyframe} va con camera selfie.`);
+  } else {
+    // Abre con un inserto: B1 tapa el comienzo de A1.
+    const b1 = s.b_roll[0];
+    const head = words(a1.line).slice(0, HOOK_BEAT_MAX_WORD);
+    if (!b1) problems.push(`Abre con ${o.shot}: falta B1, el inserto del gancho.`);
+    else {
+      if (b1.keyframe !== o.keyframe) problems.push(`Abre con ${o.shot}: B1 parte de opening.keyframe (${o.keyframe}), no de ${b1.keyframe}.`);
+      if (!head.includes(wordKey(b1.anchor))) problems.push(`B1 abre el video: se ancla a una de las primeras ${HOOK_BEAT_MAX_WORD} palabras de A1, no a «${b1.anchor}».`);
+    }
+    if (k && o.shot === "pov_hands" && k.camera !== "pov") problems.push(`Abre con pov_hands: ${o.keyframe} va con camera pov.`);
+    if (k && o.shot === "product_in_place" && !k.uses_product) problems.push(`Abre con product_in_place: ${o.keyframe} muestra el producto (uses_product true).`);
+  }
+
+  const opening = firstSentence(a1.line);
+  const n = words(opening).length;
+  if (n > SPOKEN_MAX_WORDS) problems.push(`La primera frase de A1 («${opening}») tiene ${n} palabras: el gancho cabe en 3 s, máximo ${SPOKEN_MAX_WORDS}.`);
+  const first = s.text_beats[0];
+  if (!first) problems.push("Falta el primer texto en pantalla: el del gancho.");
+  else {
+    const head = words(a1.line).slice(0, HOOK_BEAT_MAX_WORD);
+    if (!head.includes(wordKey(first.anchor))) problems.push(`El primer texto en pantalla («${first.text}») se ancla a «${first.anchor}»: tiene que aparecer en una de las primeras ${HOOK_BEAT_MAX_WORD} palabras de A1 para leerse sin sonido desde el primer segundo.`);
+    if (wordCount(first.text) > ON_SCREEN_MAX_WORDS) problems.push(`El primer texto en pantalla («${first.text}») tiene ${wordCount(first.text)} palabras; el del gancho va hasta ${ON_SCREEN_MAX_WORDS}.`);
+  }
+  if (COD_IN_HOOK.test(`${opening} ${first?.text ?? ""}`)) problems.push("El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.");
+  return problems;
+}
+
+/**
+ * Que el UGC parezca grabado con un teléfono (§4.3): cada imagen clave declara su cámara, el B-roll no
+ * es una selfie y lo que escribe el modelo no habla como una foto de estudio. Solo al generar.
+ */
+function phoneLookProblems(s: UgcScript): string[] {
+  const problems: string[] = [];
+  const bKeys = new Set(s.b_roll.map((b) => b.keyframe));
+  for (const k of s.keyframes) {
+    if (!k.camera || k.camera === "animated") problems.push(`La imagen clave ${k.key} no dice su cámara: selfie, pov, propped o mirror.`);
+    else if (bKeys.has(k.key) && k.uses_character && k.camera === "selfie") problems.push(`La imagen clave ${k.key} es de un B-roll: va en pov (la otra mano, mirando hacia abajo) o propped, no en selfie.`);
+    const w = studioWord(k.prompt);
+    if (w) problems.push(`La imagen clave ${k.key} habla como una foto de estudio («${w}»): descríbela como una foto de teléfono en una casa.`);
+  }
+  for (const [what, t] of [["character.setting", s.character.setting], ["character.look", s.character.look]] as const) {
+    const w = studioWord(t);
+    if (w) problems.push(`${what} habla como una foto de estudio («${w}»): un lugar y una persona comunes, con la luz de la casa.`);
+  }
+  for (const x of [...s.a_roll, ...s.b_roll]) {
+    const w = studioWord(x.motion);
+    if (w) problems.push(`El movimiento de ${x.key} habla como un comercial («${w}»): cámara en mano de teléfono.`);
+  }
   return problems;
 }
 
@@ -254,11 +357,14 @@ export const keyframeQaSchema = z.object({
   same_person: z.boolean().nullable().describe("Solo si hay referencia del personaje: true si es la misma persona (cara, pelo). null si no aplica."),
   no_text: z.boolean().describe("false si hay textos, subtítulos o marcas de agua que no son la etiqueta real del producto."),
   brand_safe: z.boolean().describe("false si una forma o una pose puede leerse como genitales o algo sexual o sugerente (Meta lo rechaza por contenido adulto). Ante la duda, false."),
+  matches_hook: z.boolean().nullable().describe("Solo en la imagen de la apertura: true si muestra lo que pide la primera toma del gancho, con la acción ya en marcha. null si no es la apertura."),
+  phone_look: z.boolean().nullable().describe("Solo en el video con persona: true si parece una foto de teléfono en una casa; false si parece de estudio, de campaña o de banco de imágenes. null en la mascota."),
   issues: z.array(z.string()).describe("Cada problema en una frase para el comerciante, en español. [] si ninguno."),
 });
 export type KeyframeQaOutput = z.infer<typeof keyframeQaSchema>;
 export interface KeyframeQa {
   pass: boolean;
+  /** Si no pasa, por qué. Si pasa, los avisos que no bloquean (`phone_look`). */
   issues: string[];
 }
 
@@ -269,8 +375,11 @@ export function keyframeQaVerdict(out: KeyframeQaOutput): KeyframeQa {
   add(out.product_ok, "El producto no se ve igual a tu foto.");
   add(out.same_person, "La persona no es la misma del personaje.");
   add(out.no_text, "Tiene textos que no pedimos.");
+  add(out.matches_hook ?? null, "No muestra la primera toma del gancho: pide otra.");
   // Lo más grave va primero y siempre, aunque el modelo haya anotado otros problemas.
   if (!out.brand_safe) issues.unshift("Su forma puede leerse como algo sexual y Meta rechazaría el anuncio: pide otra o escribe otro guion.");
-  const pass = out.hands_ok && out.product_ok !== false && out.same_person !== false && out.no_text && out.brand_safe;
-  return { pass, issues: pass ? [] : issues };
+  const pass = out.hands_ok && out.product_ok !== false && out.same_person !== false && out.no_text && out.brand_safe && out.matches_hook !== false;
+  // phone_look no bloquea (spec-video-detener-scroll §4.5): si pasa lo demás, queda como aviso.
+  if (pass) return { pass, issues: out.phone_look === false ? ["Parece foto de estudio: si no te convence, pide otra."] : [] };
+  return { pass, issues };
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { adHookText } from "@/lib/hooks/select";
 import { approvedAngles } from "@/lib/pipeline/angles";
 import { getPublications } from "@/lib/pipeline/publish";
 import { adminClient } from "@/lib/integrations/admin";
@@ -134,7 +135,8 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
   const listingRow = (items.get(product.id) ?? []).find((r) => r.component === LISTING && r.status === "approved");
   const listing = listingRow ? (currentContent(listingRow) as Listing) : null;
   // Un texto por ángulo, en orden de slot: el anuncio de un creativo del ángulo N lleva el texto N (lib/ads/plan.ts).
-  const hooks = briefs ? briefs.map((b) => b.brief.payload?.hooks[b.brief.payload?.recommended_hook ?? 0]?.text ?? "") : [];
+  // El mejor gancho usable (lib/hooks/select.ts): sin los que piden material real ni los de riesgo alto.
+  const hooks = briefs ? briefs.map((b) => adHookText(b.brief.payload)) : [];
   const cpaLimit = pricing?.maxCpa && pricing.maxCpa > 0 ? pricing.maxCpa : pricing?.purchaseCostLimit && pricing.purchaseCostLimit > 0 ? pricing.purchaseCostLimit : null;
   return {
     meta,

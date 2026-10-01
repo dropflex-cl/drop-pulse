@@ -5,7 +5,7 @@
 import { DESCRIPTION_LIMIT, HEADLINE_LIMIT, MAX_HEADLINES, MAX_PRIMARY_TEXTS, PRIMARY_TEXT_LIMIT, type LaunchConfig } from "./schemas";
 
 export interface TextSources {
-  /** El gancho recomendado de cada ángulo aprobado, en orden de slot: el texto N es el del ángulo N. */
+  /** El mejor gancho usable de cada ángulo aprobado (adHookText), en orden de slot: el texto N es el del ángulo N. */
   hooks: string[];
   /** La frase de la oferta aprobada en la página («2 por $39.990 · Paga al recibir»). */
   offerLine: string | null;

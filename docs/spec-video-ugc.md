@@ -14,7 +14,7 @@ Un video UGC de ~30 s por ángulo, hecho con IA y listo para Meta:
 2. **Imágenes clave** (Flare, centavos): el personaje, cada escena y las tomas con el producto real. Claude las revisa (manos, producto idéntico, misma cara, sin texto) y el comerciante las aprueba o pide otra.
 3. **Clips** (~$10): tomas habladas en Seedance 2.0 con voz y labios sincronizados, B-roll en Kling 2.5 Turbo sin audio.
 4. **Paquete de montaje**: un JSON con todo lo que el script local necesita (URLs firmadas de los clips, guion, anclas, textos, cierre, color).
-5. **Montaje local** (`scripts/ugc-montage.py`): Whisper para los tiempos, cortes con zoom, B-roll encima de la voz, subtítulos palabra por palabra, destellos, rótulo «Dramatización», cierre, música opcional y compresión para Meta.
+5. **Montaje local** (`scripts/ugc-montage.py`): Whisper para los tiempos, cortes con zoom, B-roll encima de la voz, subtítulos palabra por palabra, destellos, cierre, música opcional y compresión para Meta. Sin rótulo (ver §8).
 6. **Video final**: se sube a la misma tarjeta del guion; aprobarlo lo copia a `ad_media` (`kind = 'video'`, 9:16, con su `angle_slot`) y queda listo en Anuncios.
 
 ## 1. Lo que aprendió la POC (es la base de los prompts)
@@ -56,7 +56,7 @@ Un ángulo puede quedarse en «Imagen» o «Video real» (sin guion de IA): la m
 
 Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 
-- Brief del ángulo aprobado (`angle_briefs.payload`): `handoff_to_ugc`, `hooks` (con `visual_first_3s` y `policy_ok`), `recommended_hook`, `body_beats`, `objection_handling`, `proof_to_show`, `compliance_flags`, `details`.
+- Brief del ángulo aprobado (`angle_briefs.payload`): `handoff_to_ugc` (solo UGC), los ganchos usables con su tríada (`hooksForPrompt`, ver `docs/spec-ganchos.md`), `body_beats`, `objection_handling`, `proof_to_show`, `compliance_flags`, `details`.
 - Mensaje del ángulo (`chosen_angles`): dolor o deseo, segmento, promesa, momento gatillo.
 - Cliente ideal aprobado: `voice_of_customer`, `problems.trigger_moments`, objeciones, identidad.
 - **Diferenciador confirmado** (`getDifferentiator`). Hoy Creativos no lo lee: se agrega aquí y en los estáticos.
@@ -93,7 +93,7 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 - Promesas prohibidas y regex de salud de `lib/creatives/schemas.ts` (`FORBIDDEN`) sobre líneas, textos y cierre.
 - Cada `anchor` de B-roll y de texto existe en alguna línea; los B-roll de una misma toma no se pisan.
 - Cada `keyframe` referido existe; `K1` es el personaje (`uses_character`, sin producto); toda toma con producto tiene `uses_product`.
-- Si hay persona de IA: el rótulo «Dramatización» es obligatorio (lo pone el montaje), ninguna línea en segunda persona sobre la edad o la piel de quien mira (heurística: `tu piel`, `tus arrugas`, `a tu edad`…) y la persona no dice su edad («tengo cuarenta y dos», «a mis 42»): la primera corrida real lo hizo, y el desarrollo del ángulo lo prohíbe.
+- Si hay persona de IA: ninguna línea en segunda persona sobre la edad o la piel de quien mira (heurística: `tu piel`, `tus arrugas`, `a tu edad`…) y la persona no dice su edad («tengo cuarenta y dos», «a mis 42»): la primera corrida real lo hizo, y el desarrollo del ángulo lo prohíbe.
 - Palabras que Seedance pronuncia mal (`MISPRONOUNCED`, empieza con `rinde`): se piden cambiar.
 - Si falla: hasta 2 correcciones con la lista de problemas (patrón de `writePage`). Nunca se recorta en silencio.
 
@@ -117,17 +117,19 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 
 ### 5.1 `GET /api/products/[id]/videos/[scriptId]/package`
 
-JSON (versión `1`), solo con el guion aprobado y todos los clips listos:
+JSON (versión `2`; la `1` no traía `opening` ni `look` y el script la sigue leyendo), solo con el guion aprobado y todos los clips listos:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "name": "deep-collagen-ugc-angulo-3",
+  "format": "ugc",
+  "opening": { "shot": "pov_hands", "insert": "B1" },
+  "look": "phone",
   "product": { "id": "…", "title": "Deep Collagen" },
   "angle": { "slot": 3, "title": "…" },
   "language": "es",
   "accent_color": "#F2C230",
-  "label": "Dramatización",
   "watermark": "tutienda.cl",
   "script": { "a_roll": [ { "key": "A1", "line": "…", "url": "https://…signed…" } ],
               "b_roll": [ { "key": "B1", "anchor": "minutos", "cut_s": 1.2, "url": "…" } ],
@@ -137,7 +139,7 @@ JSON (versión `1`), solo con el guion aprobado y todos los clips listos:
 }
 ```
 
-URLs firmadas de `creative-media` por 24 h (el paquete se descarga de nuevo si vencen).
+URLs firmadas de `creative-media` por 24 h (el paquete se descarga de nuevo si vencen). `opening` y `look`: la apertura y el aspecto de teléfono (`docs/spec-video-detener-scroll.md` §3.6 y §4.6).
 
 ### 5.2 `scripts/ugc-montage.py`
 
@@ -148,7 +150,7 @@ python3 scripts/ugc-montage.py paquete.json --music pista.mp3 --out video.mp4
 ```
 
 - Descarga los clips, transcribe cada toma con `mlx_whisper` (o `openai-whisper` si no es Mac) y alinea al guion.
-- Recorta, zoom alterno por frase, B-roll con entrada de golpe, destellos en los `text_beats` que empiezan con número, sacudida en el hook, subtítulos (grupos de 3, activa en `accent_color`), rótulo, cierre con zoom.
+- Recorta, zoom alterno por frase, B-roll con entrada de golpe, destellos en los `text_beats` que empiezan con número, sacudida en el hook, subtítulos (grupos de 3, activa en `accent_color`), cierre con zoom.
 - Música opcional: −14 LUFS la voz, bajada automática bajo la voz (`sidechaincompress`), golpe alineado al primer destello (tempo por autocorrelación), sube en el cierre.
 - **Nombres** (2026-09-26): el paquete se descarga como `<name>.json` y el video sale junto a él como `<name>.mp4` (`--out` lo cambia). `name` = `montageName`: el producto sin tildes ni símbolos (hasta 40 caracteres, sin cortar palabras), `ugc` o `mascota` y el ángulo, porque un producto puede tener seis videos. Los paquetes anteriores, sin `name`, usan la misma regla en el script (`package_name`).
 - **Cierre**: el nombre y la línea se achican hasta caber en dos líneas, el botón crece con su texto y la letra chica se parte en hasta 6 líneas; la foto usa el alto que queda. Nada se sale del cuadro.
@@ -230,7 +232,7 @@ scripts/ugc-montage.py
 
 Los de `spec-creativos.md` §5, más:
 
-1. Persona de IA solo como **dramatización**, rotulada durante todo el video. Nunca como clienta, testimonio ni experta.
+1. Persona de IA: nunca como clienta, testimonio ni experta, y nunca dice su edad. **El video no lleva rótulo** («Dramatización», «Animación» ni etiqueta de IA): decisión del comerciante del 2026-10-01, que reemplaza a la regla anterior. No se vuelve a proponer.
 2. Nada de antes/después de la piel o del cuerpo; el B-roll muestra aplicación, no resultado.
 3. Ningún monto hablado; los montos en pantalla solo de precio y packs aprobados.
 4. El producto sale siempre de la foto base (nunca inventado); lo que no está en la foto no aparece impreso.
@@ -268,7 +270,7 @@ Un segundo formato de video, con el mismo flujo, las mismas tablas y los mismos 
 | Silueta segura (2026-09-26) | La primera corrida real en producción (Deep Collagen) dio «un parche de piel de la cara con un cuello pequeño», color durazno: se leía como un pene, y Meta rechaza eso por contenido adulto. La regla de la POC («un dedo que sube desde el borde de abajo») llevaba a lo mismo. Ahora: `mascotSystem` pide una silueta redonda o ancha e inconfundible, entera en el cuadro y en un color que no sea piel (si el problema es la piel, se personifica otra cosa: una gota, una célula, un cojín), y prohíbe formas alargadas, cabeza sobre cuello o tallo, salir del borde de abajo, dedos, bultos y cuerpos lisos color piel. `scriptProblems` rechaza esos rasgos en `persona` y `character.look` (`RISKY_SHAPE`). `keyframeRequest` pide la silueta redonda en positivo (`MASCOT_SHAPE`). El QA de toda imagen clave suma `brand_safe`: si una forma o una pose se puede leer como algo sexual, no pasa y ese problema va primero. `MASCOT_PROMPT_VERSION` 3, `UGC_PROMPT_VERSION` 4 (el ejemplo del esquema) y `KEYFRAME_QA_PROMPT_VERSION` 2. |
 | QA | `keyframeQaUser(…, "mascot")`: acepta manos de caricatura de 4 o 5 dedos; «la misma persona» es el mismo personaje aunque cambie su estado. |
 | Voz | `voiceBlock(…, "mascot")`: voz de personaje animado, femenina joven, juguetona, timing de comedia. Igual en todas las tomas; en la POC sonó consistente aunque el personaje cambiara de enfermo a sano. |
-| Montaje | El paquete lleva `label: "Animación"` en lugar de «Dramatización». El resto del script es el mismo (los textos largos ahora se achican o se parten en dos líneas). |
+| Montaje | El mismo script, sin rótulo (§8); deduce el formato de `format` (los paquetes viejos traían `label`). Los textos largos ahora se achican o se parten en dos líneas. |
 | Anuncios | `ad_media.name` = «Video mascota · <ángulo>». Los dos videos de un ángulo pueden estar en Anuncios a la vez, en el conjunto de ese ángulo. |
 | Paquete | Lleva `format`, y su `name` dice `ugc` o `mascota` (§5.1), para no pisar el de la persona. |
 

@@ -39,14 +39,15 @@ import {
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
-import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
-import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
+import { KEYFRAME_QA_SYSTEM, keyframeQaUser, openingInput, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
+import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
   MASCOT_PROMPT_VERSION,
   UGC_PROMPT_VERSION,
   applyScriptEdit,
   changedLines,
   keyframeQaSchema,
+  firstSentence,
   keyframeQaVerdict,
   scriptEditSchema,
   scriptProblems,
@@ -108,6 +109,8 @@ type ScriptInput = {
   brief_id: string;
   brief_edited_at: string | null;
   angle_name: string;
+  /** Producto de belleza o cuidado personal: la persona no muestra el problema (lib/video/render.ts). */
+  appearance?: boolean;
 };
 
 const scriptFormat = (s: Pick<ScriptRow, "format">) => formatOf(s.format);
@@ -154,6 +157,7 @@ export async function startScript(userId: string, productId: string, slot: numbe
     brief_id: angle.brief.id,
     brief_edited_at: angle.brief.edited_at,
     angle_name: testAngleName(angle.angle),
+    appearance: isAppearanceCategory(brief.category),
   };
   const { data, error } = await db.from("video_scripts").insert({ product_id: productId, user_id: userId, angle_slot: slot, format, status: "queued", input }).select("*").single();
   if (error?.code === "23505") {
@@ -195,7 +199,10 @@ export async function runScript(scriptId: string): Promise<void> {
       pricing: input.pricing,
       labels: input.labels ?? undefined,
       angle: angles[0],
+      format,
     };
+    // Los ganchos que se le pasan y su toma (lib/hooks/select.ts): opening.hook_source tiene que ser uno de estos.
+    const opening = openingInput(angles[0].payload, format);
     let problems: string[] = [];
     let result: Awaited<ReturnType<typeof generateStructured<typeof ugcScriptSchema>>> | null = null;
     for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {
@@ -207,7 +214,7 @@ export async function runScript(scriptId: string): Promise<void> {
         effort: "medium",
         maxTokens: 16000,
       });
-      problems = scriptProblems(result.data, input.pricing, format);
+      problems = scriptProblems(result.data, input.pricing, format, opening);
       await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems });
       if (!problems.length) break;
       console.warn("[video] guion inválido", problems);
@@ -268,19 +275,20 @@ export async function approveScript(userId: string, productId: string, scriptId:
 
 // ---------------------------------------------------------------- 2 y 3. Tomas
 
-function requestFor(script: UgcScript, key: string, language: string, format: VideoFormat): { kind: ShotKind; req: ShotRequest } {
-  const kf = script.keyframes.find((k) => k.key === key);
-  if (kf) return { kind: "keyframe", req: keyframeRequest(kf, script, CHARACTER_KEY, format) };
+function requestFor(script: UgcScript, key: string, input: ScriptInput, format: VideoFormat): { kind: ShotKind; req: ShotRequest } {
+  const language = input.market?.language ?? "es";
+  const kfOf = (k: string) => script.keyframes.find((x) => x.key === k);
+  const kf = kfOf(key);
+  if (kf) return { kind: "keyframe", req: keyframeRequest(kf, script, CHARACTER_KEY, format, { appearance: input.appearance }) };
   const a = script.a_roll.find((x) => x.key === key);
-  if (a) return { kind: "a_roll", req: aRollRequest(a, language, Boolean(script.keyframes.find((k) => k.key === a.keyframe)?.uses_product), format) };
+  if (a) return { kind: "a_roll", req: aRollRequest(a, language, Boolean(kfOf(a.keyframe)?.uses_product), format, script.opening) };
   const b = script.b_roll.find((x) => x.key === key);
-  if (b) return { kind: "b_roll", req: bRollRequest(b, Boolean(script.keyframes.find((k) => k.key === b.keyframe)?.uses_product), format) };
+  if (b) return { kind: "b_roll", req: bRollRequest(b, Boolean(kfOf(b.keyframe)?.uses_product), format, kfOf(b.keyframe)?.camera, script.opening) };
   throw new OptimizeError(`La toma ${key} no está en el guion.`, 409);
 }
 
 async function insertShot(s: ScriptRow & { payload: UgcScript }, key: string, attempt: number): Promise<ShotRow> {
-  const language = ((s.input as ScriptInput).market?.language ?? "es") as string;
-  const { kind, req } = requestFor(s.payload, key, language, scriptFormat(s));
+  const { kind, req } = requestFor(s.payload, key, s.input as ScriptInput, scriptFormat(s));
   const { data, error } = await adminClient()
     .from("video_shots")
     .insert({ script_id: s.id, product_id: s.product_id, user_id: s.user_id, key, kind, attempt, endpoint: req.endpoint, input: req.input, render_status: "queued" })
@@ -572,7 +580,9 @@ async function runKeyframeQa(s: ShotRow, script: ScriptRow & { payload: UgcScrip
     const k1 = await keyframeShot(script.id, s.user_id, CHARACTER_KEY, false);
     if (k1) content.push({ type: "text", text: "Personaje (referencia de la cara):" }, await imageBlockFromBytes(await storedBytes(k1.storage_path!)));
   }
-  content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter, scriptFormat(script)) });
+  const o = script.payload.opening;
+  const opening = o && o.keyframe === def.key ? { first_motion: o.first_motion, hook: script.payload.a_roll[0] ? firstSentence(script.payload.a_roll[0].line) : undefined } : null;
+  content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter, scriptFormat(script), opening) });
   let result;
   try {
     const qa = () => generateStructured({ system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
