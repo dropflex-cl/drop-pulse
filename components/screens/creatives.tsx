@@ -41,6 +41,7 @@ import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { CreativeAssetView, CreativeConceptView, CreativesState, ProductCreatives, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ConnectAnthropic } from "./connect-anthropic";
 import { CreativesSheet } from "./creatives-sheet";
 import { VideosPanel } from "./creatives-videos";
 import { useImageProviderPick } from "./image-provider-picker";
@@ -531,6 +532,11 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
+  } else if (product.aiConnected === false && !concepts.length) {
+    // Como «Conecta un proveedor de imágenes»: Claude propone los conceptos y revisa cada pieza.
+    body = <ConnectAnthropic what="propone tus anuncios y revisa cada pieza" />;
+    footer = <StickyActions>{skip}</StickyActions>;
+    footerMobileOnly = true;
   } else if (needsKey) {
     body = (
       <div className="flex flex-col gap-4">
@@ -839,7 +845,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
       {showTabs ? <div className="px-4 pb-2 lg:hidden">{tabs}</div> : null}
 
       {tab === "videos" ? (
-        <VideosPanel productId={product.id} productName={product.name} initial={data.videos} desktop={desktop} layout={!desktop ? "stack" : width >= VIDEO_THREE_MIN ? "three" : width >= VIDEO_TWO_MIN ? "two" : "stack"} />
+        <VideosPanel productId={product.id} productName={product.name} initial={data.videos} aiConnected={product.aiConnected !== false} desktop={desktop} layout={!desktop ? "stack" : width >= VIDEO_THREE_MIN ? "three" : width >= VIDEO_TWO_MIN ? "two" : "stack"} />
       ) : (
         <div className={cn("flex flex-1 flex-col", aside && "lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(100)]")}>
           <div className="@container flex min-w-0 flex-1 flex-col">

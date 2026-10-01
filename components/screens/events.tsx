@@ -13,6 +13,7 @@ import { tickerItems, type TickerItem } from "@/lib/events/ticker";
 import { ProductApiClientError } from "@/lib/products/client";
 import type { EventActivationView, EventDetail, EventIntensityUi, EventProductView, EventView } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AI_SETTINGS_HREF } from "./connect-anthropic";
 
 // Eventos (docs/spec-eventos.md › UX): cómo se ve el evento, activarlo en toda la tienda o por
 // producto, adaptar los textos con IA y publicarlo. Guardar no cambia la tienda: «Publicar en la
@@ -318,7 +319,20 @@ function CopyEditor({ slug, product, onChange }: { slug: string; product: EventP
     }
   };
 
-  if (product.copyLocked) return <p className="text-caption text-muted-foreground">{product.copyLocked}</p>;
+  if (product.copyLocked) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-caption text-muted-foreground">{product.copyLocked}</p>
+        {product.copyNeedsAi ? (
+          <div>
+            <Button icon="settings" href={AI_SETTINGS_HREF}>
+              Ir a Ajustes
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
   if (!copy || copy.status === "failed") {
     return (
       <div className="flex flex-col gap-2">

@@ -11,6 +11,7 @@ import { productHref } from "@/lib/routes";
 import type { ProductMessages } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EMPTY_ORDER, MESSAGE_GROUPS, MESSAGES, TIP_MESSAGE, areaLabel, missingPolicies, orderTotal, renderMessage, type MessageTemplate, type OrderFields, type RenderedMessage } from "@/lib/whatsapp/messages";
+import { AI_SETTINGS_HREF } from "./connect-anthropic";
 
 // Etapa WhatsApp: los mensajes para confirmar y seguir los pedidos, con los datos del producto y de
 // Ajustes › Envíos y políticas. Los datos del cliente se escriben arriba (no se guardan) y cada mensaje
@@ -154,6 +155,8 @@ export function MessagesScreen({ data }: { data: ProductMessages }) {
     }
   }
 
+  // Sin la clave de Anthropic, el consejo se pide en Ajustes (como Creativos sin Higgsfield); los mensajes siguen igual.
+  const tipBlocked = data.tipBlocked ?? (product.aiConnected === false ? "Conecta tu cuenta de Anthropic en Ajustes para que la IA escriba el consejo." : null);
   const tipControls = (
     <div className="flex flex-col gap-2 border-t pt-3">
       {tip ? (
@@ -162,9 +165,13 @@ export function MessagesScreen({ data }: { data: ProductMessages }) {
           <span>Consejo escrito por la IA · fuente: {tip.basis}</span>
         </p>
       ) : (
-        <p className="text-caption text-muted-foreground">{data.tipBlocked ?? "La IA escribe un consejo de uso con la información del producto y lo suma a este mensaje."}</p>
+        <p className="text-caption text-muted-foreground">{tipBlocked ?? "La IA escribe un consejo de uso con la información del producto y lo suma a este mensaje."}</p>
       )}
-      {data.tipBlocked ? null : (
+      {!data.tipBlocked && product.aiConnected === false ? (
+        <Button size="sm" icon="settings" href={AI_SETTINGS_HREF} className="self-start">
+          Ir a Ajustes
+        </Button>
+      ) : tipBlocked ? null : (
         <Button size="sm" icon={tip ? "refresh" : "sparkle"} loading={writing} onClick={writeTip} className="self-start">
           {tip ? "Otro consejo" : "Escribir consejo con IA"}
           {tipCost ? <span className="font-normal text-muted-foreground">{tipCost}</span> : null}

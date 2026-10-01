@@ -47,7 +47,16 @@ export interface ProductFacts {
   images?: ImageFacts | null;
   /** La última publicación en la tienda (etapa Publicar). */
   publish?: PublishFacts | null;
+  /**
+   * La clave de Anthropic del comerciante está conectada (Ajustes › Inteligencia artificial). Sin ella,
+   * las etapas de IA que aún no empiezan quedan bloqueadas con el motivo, como Creativos sin Higgsfield.
+   * Sin el dato (undefined), se asume conectada.
+   */
+  ai?: boolean;
 }
+
+/** El motivo en la ruta de una etapa de IA sin la clave de Anthropic (como «Conecta Higgsfield en Ajustes»). */
+export const CONNECT_AI = "Conecta Anthropic en Ajustes";
 
 export interface ImageFacts {
   /** El director de galería está proponiendo las tomas. */
@@ -287,11 +296,13 @@ function messagesStage(baseDone: boolean): Stage {
  * Creativos: opcional, entre Publicar y Anuncios (docs/spec-creativos.md §6.5). Se habilita con los 2
  * desarrollos de Ángulos aprobados y un proveedor de imágenes (Higgsfield o Gemini); nunca bloquea Publicar.
  */
-function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined): { stage: Stage; meter: MeterStage } {
+function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined, ai = true): { stage: Stage; meter: MeterStage } {
   const base = { key: "creativos", title: "Creativos", optional: true } as const;
   const optional = (state: Stage["state"], desc: string) => ({ stage: { ...base, state, desc }, meter: "optional" as MeterStage });
   // Como Anuncios: bloqueada, su rayita sigue siendo «opcional» (no cuenta como pendiente).
   if (!anglesDone) return optional("locked", "Después de aprobar los ángulos");
+  // Sin Anthropic no hay conceptos que generar; lo ya propuesto se sigue viendo.
+  if (!ai && !c?.concepts) return optional("locked", CONNECT_AI);
   if (!c?.connected) return optional("locked", "Conecta Higgsfield en Ajustes");
   if (c.running) return optional("current", "La IA está pensando tus anuncios");
   if (c.rendering) return optional("current", c.rendering === 1 ? "Generando 1 imagen" : `Generando ${c.rendering} imágenes`);
@@ -305,7 +316,7 @@ function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined
  * Imágenes (docs/spec-imagenes.md): se habilita con la página del producto aprobada y queda lista con
  * la portada y al menos GALLERY_MIN imágenes de galería elegidas.
  */
-function imagesStage(anglesDone: boolean, i: ImageFacts | null | undefined): { stage: Stage; meter: MeterStage; done: boolean } {
+function imagesStage(anglesDone: boolean, i: ImageFacts | null | undefined, ai = true): { stage: Stage; meter: MeterStage; done: boolean } {
   const base = { key: "imagenes", title: "Imágenes" } as const;
   if (!anglesDone) return { stage: { ...base, state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" }, meter: "locked", done: false };
   const done = Boolean(i?.cover) && (i?.gallery ?? 0) >= GALLERY_MIN;
@@ -316,6 +327,7 @@ function imagesStage(anglesDone: boolean, i: ImageFacts | null | undefined): { s
     const missing = [i.cover ? null : "la portada", (i.gallery ?? 0) < GALLERY_MIN ? `${GALLERY_MIN - (i.gallery ?? 0)} de galería` : null].filter(Boolean).join(" y ");
     return { stage: { ...base, state: "review", desc: `Elige ${missing}` }, meter: "review", done };
   }
+  if (!ai) return { stage: { ...base, state: "locked", desc: CONNECT_AI }, meter: "locked", done };
   return { stage: { ...base, state: "current", desc: "Genera las imágenes de tu página" }, meter: "current", done };
 }
 
@@ -341,26 +353,30 @@ function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter:
 export function productPosition(f: ProductFacts): ProductPosition {
   const phase = basePhase(f);
   const angles = anglesPhase(f, phase);
-  const images = imagesStage(angles === "done", f.images);
+  const ai = f.ai !== false;
+  const images = imagesStage(angles === "done", f.images, ai);
   const copy = copyPhase(f, angles, images.done);
   const pageDone = copy === "done";
   const reviews = reviewsStage(f.reviews);
-  const creatives = creativesStage(angles === "done", f.creatives);
+  const creatives = creativesStage(angles === "done", f.creatives, ai);
+  // Sin la clave de Anthropic, la etapa de IA que no ha empezado queda bloqueada con el motivo.
+  const aiLocked = (state: Stage["state"], desc: string): Pick<Stage, "state" | "desc"> => (ai ? { state, desc } : { state: "locked", desc: CONNECT_AI });
   const publish = publishStage(pageDone, f.publish);
   const stages: Stage[] = [
     {
       key: "importado",
       title: "Información base",
       state: BASE_STATE[phase],
-      desc: phase === "failed" && f.run?.error ? f.run.error : BASE_DESC[phase],
+      // Información base nunca se bloquea (ahí se escribe lo del producto): solo dice qué falta para optimizar.
+      desc: phase === "failed" && f.run?.error ? f.run.error : phase === "new" && !ai ? `${CONNECT_AI} para optimizar` : BASE_DESC[phase],
     },
     // Reseñas es opcional: nunca bloquea ni se bloquea (arquitectura.md › 9).
     reviews.stage,
-    { key: "angulos", title: "Ángulos", state: ANGLES_STATE[angles], desc: anglesDesc(angles, f.angles) },
+    { key: "angulos", title: "Ángulos", ...(angles === "new" ? aiLocked(ANGLES_STATE[angles], anglesDesc(angles, f.angles)) : { state: ANGLES_STATE[angles], desc: anglesDesc(angles, f.angles) }) },
     // Imágenes va antes de la Página del producto: sus componentes usan las imágenes elegidas. El
     // precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
     images.stage,
-    { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy, angles === "done") },
+    { key: "textos", title: COPY_STAGE_TITLE, ...(copy === "new" ? aiLocked(COPY_STATE[copy], copyDesc(copy, f.copy, angles === "done")) : { state: COPY_STATE[copy], desc: copyDesc(copy, f.copy, angles === "done") }) },
     publish.stage,
     // Creativos es opcional y alimenta Anuncios: nunca bloquea Publicar (spec-creativos §6.5).
     creatives.stage,
@@ -374,7 +390,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
 
   switch (phase) {
     case "new":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Sin optimizar · agrega lo que sabes", nextStage: "importado", summary: `Importado de Shopify · sin optimizar${price}` };
+      return { ...common, filter: "avanzan", tone: "primary", reason: ai ? "Sin optimizar · agrega lo que sabes" : "Sin optimizar · conecta Anthropic en Ajustes", nextStage: "importado", summary: `Importado de Shopify · sin optimizar${price}` };
     case "optimizing":
       return { ...common, filter: "avanzan", tone: "primary", reason: "Optimizando con IA", nextStage: "importado", summary: `Optimizando con IA${price}` };
     case "failed":
@@ -397,12 +413,12 @@ export function productPosition(f: ProductFacts): ProductPosition {
     case "done":
       break;
     default:
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: ángulos de venta", nextStage: "angulos", summary: `Información base lista${price}`, status: "aprobado" };
+      return { ...common, filter: "avanzan", tone: "primary", reason: ai ? "Siguiente: ángulos de venta" : CONNECT_AI, nextStage: "angulos", summary: `Información base lista${price}`, status: "aprobado" };
   }
 
   if (!images.done) {
     if (images.stage.state === "review") return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · imágenes", nextStage: "imagenes", summary: `Imágenes por elegir${price}`, status: "revision" };
-    return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: imágenes", nextStage: "imagenes", summary: `Ángulos listos${price}`, status: "aprobado" };
+    return { ...common, filter: "avanzan", tone: "primary", reason: images.stage.state === "locked" ? CONNECT_AI : "Siguiente: imágenes", nextStage: "imagenes", summary: `Ángulos listos${price}`, status: "aprobado" };
   }
 
   switch (copy) {
@@ -418,7 +434,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
       if (f.publish?.status === "error") return { ...common, filter: "detenidos", tone: "danger", reason: "No se pudo publicar · reintenta", nextStage: "publicar", summary: `Error al publicar${price}`, status: "error" };
       return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: publicar", nextStage: "publicar", summary: `Página lista${price}`, status: "aprobado" };
     default:
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: página del producto", nextStage: "textos", summary: `Imágenes listas${price}`, status: "aprobado" };
+      return { ...common, filter: "avanzan", tone: "primary", reason: ai ? "Siguiente: página del producto" : CONNECT_AI, nextStage: "textos", summary: `Imágenes listas${price}`, status: "aprobado" };
   }
 }
 

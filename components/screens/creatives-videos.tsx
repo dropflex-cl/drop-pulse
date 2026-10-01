@@ -32,6 +32,7 @@ import { formatOf, montageName, type VideoFormat } from "@/lib/video/catalog";
 import { shotCost } from "@/lib/video/cost";
 import type { UgcScript } from "@/lib/video/schemas";
 import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
+import { ConnectAnthropic } from "./connect-anthropic";
 
 // Pestaña Videos de Creativos (design-system/creativos.md › 3, docs/spec-video-ugc.md §2): por ángulo, un
 // video con persona (UGC de ~30 s) y otro con mascota animada (~25 s), cada uno con su propio avance en 5
@@ -88,8 +89,11 @@ export function VideosPanel({
   initial,
   desktop,
   layout,
+  aiConnected = true,
 }: {
   productId: string;
+  /** La clave de Anthropic está conectada: los guiones y el QA de las imágenes clave son de Claude. */
+  aiConnected?: boolean;
   /** Para el nombre del paquete (montageName): el mismo con que lo descarga la API. */
   productName: string;
   initial: VideosState;
@@ -161,6 +165,15 @@ export function VideosPanel({
             ) : null
           }
         />
+      </div>
+    );
+  }
+
+  // Como «Conecta Higgsfield»: sin la clave de Anthropic no hay guion que escribir. Lo ya escrito se sigue viendo.
+  if (!aiConnected && !state.cards.some((c) => c.script)) {
+    return (
+      <div className="flex flex-1 flex-col justify-center px-4 py-4 lg:mx-auto lg:w-full lg:max-w-content lg:justify-start lg:px-7 lg:pt-8">
+        <ConnectAnthropic what="escribe el guion de tus videos y revisa cada imagen" />
       </div>
     );
   }

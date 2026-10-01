@@ -177,6 +177,8 @@ export function fixture(state: string, video = "none"): ProductCreatives {
       pending: assets.filter((a) => a.render === "succeeded" && a.status === "generado").length,
       approved: assets.filter((a) => a.status === "aprobado").length,
     },
+     // ?state=ai: sin la clave de Anthropic.
+    ai: state !== "ai",
   });
   return {
     product: {
@@ -192,6 +194,7 @@ export function fixture(state: string, video = "none"): ProductCreatives {
       stages: pos.stages,
       summary: pos.summary,
       status: pos.status,
+      aiConnected: state !== "ai",
       supplierCost: 6000,
       price: 24990,
       currency: "CLP",

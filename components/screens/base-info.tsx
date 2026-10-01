@@ -33,6 +33,7 @@ import { productHref } from "@/lib/routes";
 import type { AvatarProposal, OptimizationRun, ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
 import { AvatarProposalCard } from "./avatar-proposal";
 import { CompetitorsSection } from "./competitors-section";
+import { AI_SETTINGS_HREF, CONNECT_AI_NOTE } from "./connect-anthropic";
 import { DifferentiatorSection } from "./differentiator-section";
 import { PricingSection } from "./pricing-section";
 
@@ -483,6 +484,14 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
       </Button>
     );
     summary = "Cliente ideal aprobado. Con él, la IA evalúa cómo vender el producto.";
+  } else if (product.aiConnected === false) {
+    // Como Creativos sin Higgsfield: la acción de IA lleva a Ajustes a conectar la clave.
+    primary = (
+      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="settings" href={AI_SETTINGS_HREF}>
+        Ir a Ajustes
+      </Button>
+    );
+    summary = CONNECT_AI_NOTE;
   } else {
     primary = (
       <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={starting} disabled={inUse === 0 || !pricing} onClick={optimize}>

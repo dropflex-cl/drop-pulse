@@ -58,6 +58,11 @@ export interface Product {
   anglesPhase?: "locked" | "new" | "evaluating" | "failed" | "choose" | "developing" | "review" | "done";
   /** Fase de la etapa Textos, la página del producto (lib/products/stages.ts › copyPhase). */
   copyPhase?: "locked" | "new" | "writing" | "failed" | "review" | "done";
+  /**
+   * La clave de Anthropic del comerciante está conectada: sin ella, cada pantalla pide conectarla
+   * (ConnectAnthropic) donde arrancaría la IA, como Creativos sin Higgsfield.
+   */
+  aiConnected?: boolean;
   supplierCost: number;
   /** Precio actual en la tienda y su moneda (ISO 4217). */
   price?: number;
@@ -785,6 +790,8 @@ export interface PageImagesState {
   locked: string | null;
   /** Hay un proveedor de imágenes: sin él se puede elegir y subir, pero no generar. */
   connected: boolean;
+  /** La clave de Anthropic está conectada (el director de galería y el QA): sin ella, tampoco se genera. */
+  aiConnected?: boolean;
   /** Con qué se genera y qué más se puede elegir (la elección queda guardada). */
   imageProvider: ImageProviderChoice;
   /** Por qué no se puede generar (sin proveedor, sin ángulos aprobados). */
@@ -954,6 +961,8 @@ export interface EventProductView {
   copy: { status: "generating" | "generated" | "approved" | "failed"; text: { announcement: string; subtitle: string; badge_label: string } | null; error: string | null } | null;
   /** Por qué no se pueden escribir textos del evento todavía, o null. */
   copyLocked: string | null;
+  /** El motivo es la clave de Anthropic: se ofrece «Ir a Ajustes». */
+  copyNeedsAi?: boolean;
   /** Para la vista previa. */
   preview: { title: string; subtitle: string; price: number | null; compareAt: number | null; currency: string };
 }

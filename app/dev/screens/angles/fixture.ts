@@ -184,7 +184,7 @@ const chosenOf = (c: AngleCandidateView, slot: 1 | 2 | 3): TestAngleView => ({
 });
 
 function ranking(state: string): AngleRankingView | undefined {
-  if (state === "start" || state === "locked" || state === "nodiff") return undefined;
+  if (state === "start" || state === "locked" || state === "nodiff" || state === "ai") return undefined;
   const ready = state !== "evaluating" && state !== "failed";
   const base: AngleRankingView = {
     id: "rk1",
@@ -303,6 +303,8 @@ export function fixture(state: string): ProductAngles {
     currency: "CLP",
     avatar: { status: state === "locked" ? "revision" : "aprobado", createdAt: NOW },
     angles: facts,
+     // ?state=ai: sin la clave de Anthropic.
+    ai: state !== "ai",
   });
   return {
     product: {
@@ -318,6 +320,7 @@ export function fixture(state: string): ProductAngles {
       stages: pos.stages,
       summary: pos.summary,
       status: pos.status,
+      aiConnected: state !== "ai",
       supplierCost: 6900,
       price: 24990,
       currency: "CLP",
