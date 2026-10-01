@@ -24,6 +24,12 @@ export const B_ROLL_MAX = 10;
 export const B_ROLL_CUT_MIN = 1;
 export const B_ROLL_CUT_MAX = 2;
 export const KEYFRAMES_MAX = 9;
+/**
+ * El primer texto en pantalla (el del gancho) se ancla a una de las primeras palabras de A1: a 2,7
+ * palabras por segundo, la quinta se dice antes de los 2 s. El prompt pide las 3 primeras.
+ */
+export const HOOK_BEAT_MAX_WORD = 5;
+export const HOOK_BEAT_PROMPT_WORDS = 3;
 /** La imagen clave del personaje: todas las demás la usan de referencia para la cara. */
 export const CHARACTER_KEY = "K1";
 

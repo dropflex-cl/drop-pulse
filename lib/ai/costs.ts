@@ -11,6 +11,7 @@ export const AI_STEPS = {
   competitor_analysis: { stage: "importado", label: "Análisis de competencia" },
   angle_ranking: { stage: "angulos", label: "Ranking de ángulos" },
   angle_brief: { stage: "angulos", label: "Desarrollo" },
+  angle_hooks: { stage: "angulos", label: "Ganchos" },
   page_copy: { stage: "textos", label: "Página del producto" },
   event_copy: { stage: "textos", label: "Textos del evento" },
   page_plan: { stage: "imagenes", label: "Ideas de imágenes" },
@@ -36,6 +37,7 @@ export type AiStep = keyof typeof AI_STEPS;
 const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   angle_ranking: 0.15,
   angle_brief: 0.3,
+  angle_hooks: 0.08,
   page_copy: 0.2,
   event_copy: 0.03,
   creative_concepts: 0.2,

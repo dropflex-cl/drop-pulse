@@ -251,6 +251,11 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
   },
 };
 
+/** Las plantillas de gancho de una forma: las adapta el agente de ganchos (lib/hooks/prompts.ts). */
+export function frameHookTemplates(angle: SalesAngle): string[] {
+  return GUIDES[angle].hooks;
+}
+
 export function angleSystem(angle: SalesAngle, market: Market): string {
   const g = GUIDES[angle];
   const list = (items: string[]) => items.map((i) => `- ${i}`);
@@ -273,9 +278,6 @@ export function angleSystem(angle: SalesAngle, market: Market): string {
     "MAPA AIDA",
     ...list(g.aida),
     "",
-    "PLANTILLAS DE GANCHO (adáptalas; no las copies)",
-    ...list(g.hooks),
-    "",
     "FORMATOS VISUALES",
     ...list(g.visuals),
     "",
@@ -285,7 +287,7 @@ export function angleSystem(angle: SalesAngle, market: Market): string {
     COMMON_RULES,
     "",
     "ENTREGA",
-    "- 10 ganchos de al menos 3 tipos, cortos y hablados, en recommended_hook el que abrirías hoy. Cada uno debe entenderse sin sonido con su visual de 0–3 s.",
+    "- Los ganchos no van aquí: los escribe después un agente de ganchos a partir de este desarrollo. En aida_summary.attention di qué tiene que lograr la apertura.",
     "- aida_summary: una frase por etapa, lo que el comerciante lee para aprobar.",
     "- 3 a 5 objeciones con respuesta; al menos una sobre comprar online o el pago contra entrega (usa cash_on_delivery_concerns del cliente ideal).",
     "- offer_layer: la oferta en una línea con los números exactos de PRECIO Y OFERTA y «Paga al recibir».",

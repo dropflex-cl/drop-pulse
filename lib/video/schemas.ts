@@ -4,12 +4,16 @@
 
 import * as z from "zod/v4";
 import { claimProblems } from "@/lib/creatives/schemas";
+import { ON_SCREEN_MAX_WORDS, SPOKEN_MAX_WORDS } from "@/lib/hooks/catalog";
+import { COD_IN_HOOK, RESULT_TIMELINE, SECOND_PERSON_BODY } from "@/lib/hooks/policy";
+import { wordCount } from "@/lib/hooks/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import {
   A_ROLL_MAX,
   A_ROLL_MIN,
   A_ROLL_SECONDS_MAX,
   FORMAT_LIMITS,
+  HOOK_BEAT_MAX_WORD,
   A_ROLL_SECONDS_MIN,
   B_ROLL_CUT_MAX,
   B_ROLL_CUT_MIN,
@@ -24,10 +28,10 @@ import {
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. */
-export const UGC_PROMPT_VERSION = 4;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. */
-export const MASCOT_PROMPT_VERSION = 4;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: el gancho sale de la tríada del agente de ganchos (hook_source). */
+export const UGC_PROMPT_VERSION = 5;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: el gancho de la tríada, sin el vocero humano. */
+export const MASCOT_PROMPT_VERSION = 5;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). */
 export const KEYFRAME_QA_PROMPT_VERSION = 2;
 
@@ -80,6 +84,7 @@ export const ugcScriptSchema = z.object({
     wardrobe: z.string().describe("En inglés: ropa. Mascota: «none» (los accesorios de una escena van en su imagen clave)."),
     setting: z.string().describe("En inglés: el lugar principal y la luz."),
   }),
+  hook_source: z.number().int().nullable().describe("El index del gancho del ángulo que abre el video (de GANCHOS DEL ÁNGULO), o null si ninguno servía."),
   hook_why: z.string().describe("Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."),
   keyframes: z.array(keyframe).describe(`De 3 a ${KEYFRAMES_MAX}. K1 = el personaje solo; una por cada escena distinta de a_roll y b_roll.`),
   a_roll: z
@@ -98,7 +103,8 @@ export const ugcScriptSchema = z.object({
   compliance_notes: z.array(z.string()).describe("Para el comerciante: qué cuidar al montar y publicar."),
 });
 
-export type UgcScript = z.infer<typeof ugcScriptSchema>;
+/** Los guiones de antes de la versión 5 no traen hook_source. */
+export type UgcScript = Omit<z.infer<typeof ugcScriptSchema>, "hook_source"> & { hook_source?: number | null };
 export type UgcKeyframe = UgcScript["keyframes"][number];
 export type UgcARoll = UgcScript["a_roll"][number];
 export type UgcBRoll = UgcScript["b_roll"][number];
@@ -131,12 +137,10 @@ const SPOKEN_AMOUNT = /\d|\b(mil|miles|millones?|pesos|d[oó]lares|reais|reales|
 /** Una persona de IA que afirma su edad («tengo cuarenta y dos»): la presenta como alguien real. */
 const OWN_AGE = /\btengo\s+(\d+|veinti\w*|treinta|cuarenta|cincuenta|sesenta|setenta)\b|\b(mis|a mis)\s+(\d+|treinta|cuarenta|cincuenta|sesenta)\b/i;
 
-/** Condición del lector en segunda persona (política de atributos personales de Meta). */
-const SECOND_PERSON =
-  /\b(tu|tus) (piel|cara|rostro|edad|cuerpo|arrugas|manchas|l[ií]neas|cuello|papada|acn[eé]|flacidez|u[ñn]as?|pies?|dedos?|dientes?|enc[ií]as|rodillas?|articulaciones|espalda|pelo|cabello|calvicie|barriga|panza|grasa|hongos?)\b|\ba tu edad\b|\btienes (arrugas|manchas|acn[eé]|hongos?|dolor)/i;
-
-/** Un plazo de resultado («al día tres», «en dos semanas»): promesa de salud que Meta rechaza. */
-const RESULT_TIMELINE = /\b(al|en|a los|en solo)\s+(\d+|un|una|dos|tres|cuatro|cinco|siete|diez|catorce|quince|treinta)\s+(d[ií]as?|semanas?|mes(es)?)\b|\bal d[ií]a\s+(\d+|uno|dos|tres|cuatro|cinco|siete)\b|\ben la semana\s+(\d+|uno|dos|tres)\b/i;
+/** La primera frase de una línea (hasta el primer punto, cierre de pregunta o exclamación, o puntos suspensivos). */
+export function firstSentence(line: string): string {
+  return line.trim().split(/(?<=[.?!…])\s/)[0] ?? "";
+}
 
 /** Qué está mal en un guion (del modelo o editado). Vacío si se puede guardar. */
 /** Rasgos del personaje de mascota que dan siluetas fálicas (se revisan en persona y character.look, en inglés). */
@@ -152,7 +156,12 @@ export function riskyShape(text: string): string | null {
   return text.replace(NEGATED, " ").match(RISKY_SHAPE)?.[0] ?? null;
 }
 
-export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc"): string[] {
+/**
+ * `opening`: al generar, los ganchos que se le pasaron (sus index). Activa las reglas de la apertura
+ * (la primera frase, el primer texto en pantalla, el pago contra entrega fuera del gancho); al editar
+ * un guion de antes no se piden.
+ */
+export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc", opening?: { hooks: number[] }): string[] {
   const problems: string[] = [];
   const limits = FORMAT_LIMITS[format];
   const who = format === "mascot" ? "al personaje" : "a la persona";
@@ -183,7 +192,7 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
     const n = words(a.line).length;
     if (n > a.seconds * WORDS_PER_SECOND_MAX) problems.push(`${at} tiene ${n} palabras para ${a.seconds} s (máximo ${Math.floor(a.seconds * WORDS_PER_SECOND_MAX)}): acórtala o dale más segundos.`);
     if (SPOKEN_AMOUNT.test(a.line)) problems.push(`${at} dice un número o un monto («${a.line}»): los precios van solo en pantalla y los números, en palabras.`);
-    if (SECOND_PERSON.test(a.line))
+    if (SECOND_PERSON_BODY.test(a.line))
       problems.push(
         format === "mascot"
           ? `${at} habla del cuerpo de quien mira en segunda persona («tu uña», «tus pies»): el personaje habla de sí mismo («a mí me salió…») o de «mi dueño».`
@@ -214,13 +223,37 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
     if (!spoken.has(wordKey(t.anchor))) problems.push(`${at} se ancla a «${t.anchor}», que nadie dice.`);
     if (t.until && !spoken.has(wordKey(t.until))) problems.push(`${at} se quita en «${t.until}», que nadie dice.`);
     if (RESULT_TIMELINE.test(t.text)) problems.push(`${at} promete un plazo de resultado: quítalo.`);
+    if (SECOND_PERSON_BODY.test(t.text)) problems.push(`${at} le habla a quien mira de su cuerpo, su edad o su salud: usa primera persona o «las que…».`);
     problems.push(...claimProblems(t.text, pricing, `${at}: `));
   });
   for (const t of [s.end_card.title, s.end_card.subtitle, s.end_card.cta, ...s.end_card.small_print]) problems.push(...claimProblems(t, pricing, "El cierre: "));
 
+  if (opening) problems.push(...openingProblems(s, opening.hooks));
+
   // Cada imagen clave se usa (no se paga una imagen que no sale en el video).
   const used = new Set([CHARACTER_KEY, ...s.a_roll.map((a) => a.keyframe), ...s.b_roll.map((b) => b.keyframe)]);
   for (const k of kfKeys) if (!used.has(k)) problems.push(`La imagen clave ${k} no la usa ninguna toma: quítala.`);
+  return problems;
+}
+
+/** La apertura (agentes-creativos/hook-cod-latam.md): el gancho cabe en 3 s y se lee sin sonido desde el primer segundo. */
+function openingProblems(s: UgcScript, hooks: number[]): string[] {
+  const problems: string[] = [];
+  const a1 = s.a_roll[0];
+  if (s.hook_source != null && !hooks.includes(s.hook_source))
+    problems.push(`hook_source es ${s.hook_source}, que no está en GANCHOS DEL ÁNGULO${hooks.length ? ` (${hooks.join(", ")})` : ""}: usa uno de la lista o null.`);
+  if (!a1) return problems;
+  const opening = firstSentence(a1.line);
+  const n = words(opening).length;
+  if (n > SPOKEN_MAX_WORDS) problems.push(`La primera frase de A1 («${opening}») tiene ${n} palabras: el gancho cabe en 3 s, máximo ${SPOKEN_MAX_WORDS}.`);
+  const first = s.text_beats[0];
+  if (!first) problems.push("Falta el primer texto en pantalla: el del gancho.");
+  else {
+    const head = words(a1.line).slice(0, HOOK_BEAT_MAX_WORD);
+    if (!head.includes(wordKey(first.anchor))) problems.push(`El primer texto en pantalla («${first.text}») se ancla a «${first.anchor}»: tiene que aparecer en una de las primeras ${HOOK_BEAT_MAX_WORD} palabras de A1 para leerse sin sonido desde el primer segundo.`);
+    if (wordCount(first.text) > ON_SCREEN_MAX_WORDS) problems.push(`El primer texto en pantalla («${first.text}») tiene ${wordCount(first.text)} palabras; el del gancho va hasta ${ON_SCREEN_MAX_WORDS}.`);
+  }
+  if (COD_IN_HOOK.test(`${opening} ${first?.text ?? ""}`)) problems.push("El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.");
   return problems;
 }
 

@@ -20,7 +20,7 @@ import {
   type AngleDevelopmentValue,
 } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { AiCostButton, useAiEstimate } from "@/components/shell/ai-cost-provider";
+import { AiCostButton, useAiEstimate, useStepCost } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type SalesAngle } from "@/lib/angles/catalog";
@@ -188,6 +188,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   const [askReeval, setAskReeval] = useState(false);
   const rankingCost = useAiEstimate("angle_ranking");
   const briefCost = useAiEstimate("angle_brief");
+  const hooksCost = useStepCost("angle_hooks");
   const evaluate = () => (hasBriefs ? setAskReeval(true) : runEvaluate());
 
   const confirm = async () => {
@@ -227,6 +228,13 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         "No pudimos crear este desarrollo. Intenta de nuevo.",
         slot,
       );
+  };
+
+  const moreHooks = (b: AngleBriefView) => {
+    setEditing(null);
+    run("hooks", () => productsApi.moreAngleHooks(product.id, b.id), "No pudimos escribir otros ganchos. Intenta de nuevo.", b.slot).then((next) => {
+      if (next) notify(`Ganchos nuevos para el ángulo ${b.slot}`);
+    });
   };
 
   const save = (b: AngleBriefView, v: AngleDevelopmentValue) => {
@@ -732,9 +740,14 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           status={devStatus(b)}
           error={b.error}
           {...devValue(b)}
+          hookDetails={b.content?.hookDetails}
+          hookDiagnosis={b.content?.hookDiagnosis}
+          hooksError={b.content?.hooksError}
+          onMoreHooks={() => moreHooks(b)}
+          moreHooksCost={hooksCost}
           hideActions={hideActions}
           editing={editing === b.slot}
-          busy={busy?.slot === b.slot ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
+          busy={busy?.slot === b.slot ? (busy.what as "approve" | "regenerate" | "save" | "reopen" | "hooks") : null}
           onApprove={() => decide(b, "approve")}
           onReopen={() => decide(b, "reopen")}
           onRegenerate={() => regenerate(b.slot)}
@@ -850,7 +863,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         ) : (
           <AngleDevelopmentActions
             status={currentStatus}
-            busy={busy?.slot === current.slot ? (busy.what as "approve" | "regenerate" | "save" | "reopen") : null}
+            busy={busy?.slot === current.slot ? (busy.what as "approve" | "regenerate" | "save" | "reopen" | "hooks") : null}
             onApprove={() => decide(current, "approve")}
             onReopen={() => decide(current, "reopen")}
             onRegenerate={() => regenerate(current.slot)}

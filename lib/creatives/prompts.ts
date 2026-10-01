@@ -8,6 +8,7 @@ import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { angleHeading, angleMessage, type AngleForPrompt } from "@/lib/angles/approved";
+import { hooksForPrompt } from "@/lib/hooks/select";
 import type { Preset } from "@/lib/integrations/higgsfield/client";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -70,7 +71,8 @@ export function creativesSystem(market: Market): string {
     `- ${CONCEPTS_PER_RUN} conceptos repartidos por igual entre los ÁNGULOS DE VENTA (angle = el número del ángulo): cada ángulo va en su propio conjunto de anuncios, así que cada concepto es 100 % su ángulo, sin mezclarlo con otro.`,
     "- Los conceptos de un mismo ángulo van en familias (formatos) distintas: Meta premia la variación y el mercado decide cuál funciona.",
     "- La oferta (el pack recomendado de PRECIO Y OFERTA) va como capa dentro de un concepto, no como concepto de retargeting.",
-    "- Parte de los ganchos, el mensaje central y los static_ad_concepts de cada desarrollo, pero reescríbelos para que funcionen como texto de imagen.",
+    "- Parte de los ganchos, el mensaje central y los static_ad_concepts de cada desarrollo, pero reescríbelos para que funcionen como texto de imagen. Cada gancho trae su texto en pantalla (on_screen), que ya está pensado para leerse sin sonido en un vistazo, y su primera imagen (visual_first_3s): son el mejor punto de partida para el headline y la escena. Varía el patrón del gancho entre los conceptos de un mismo ángulo.",
+    "- El pago contra entrega y el envío gratis no van en el headline: van como callout o badge.",
     "- El headline del concepto no repite el de otro concepto.",
     "- why: para el comerciante, qué palanca usa y por qué detiene el scroll.",
     "",
@@ -87,8 +89,8 @@ function briefForStatics(b: AngleBriefPayload) {
   return {
     core_message: b.core_message,
     psychological_lever: b.psychological_lever,
-    hooks: b.hooks.map((h) => h.text),
-    recommended_hook: b.hooks[b.recommended_hook]?.text,
+    // Del mejor al peor, el primero es el recomendado; sin los que piden material real (lib/hooks/select.ts).
+    hooks: hooksForPrompt(b),
     static_ad_concepts: b.static_ad_concepts,
     visual_concepts: b.visual_concepts,
     offer_layer: b.offer_layer,
@@ -192,7 +194,7 @@ export function chatSystem(market: Market): string {
     marketBlock(market),
     "",
     "LA HISTORIA (en este orden)",
-    "1. GANCHO: el amigo abre entusiasmado con lo que le está pasando con ESTE producto («Amiga, no sabes lo que me pasó con…»).",
+    "1. GANCHO: el amigo abre entusiasmado con lo que le está pasando con ESTE producto («Amiga, no sabes lo que me pasó con…»). Puede partir de uno de los ganchos del ángulo (el primero es el recomendado), dicho como lo escribiría un amigo: la primera burbuja es lo que detiene el scroll.",
     "2. PRUEBA: manda UNA foto del producto (photo: true) con un pie que cuenta su experiencia concreta y personal con él.",
     "3. RECONOCIMIENTO: el lector («me») dice que lo ha visto en TikTok o Instagram y pregunta si de verdad funciona: es la duda del propio lector.",
     "4. RESPUESTA: el amigo confirma con un detalle específico más y una razón por la que es un sí fácil (lo fácil que es de usar, que pagó al recibirlo, que llegó rápido).",
@@ -237,7 +239,7 @@ export function chatUser(c: ChatContext, retry: string[] = []): string {
     "",
     "ÁNGULO DE VENTA",
     angleHeading(c.angle),
-    json({ ...angleMessage(c.angle.angle), core_message: c.angle.payload.core_message, hooks: c.angle.payload.hooks.map((h) => h.text), details: c.angle.payload.details }),
+    json({ ...angleMessage(c.angle.angle), core_message: c.angle.payload.core_message, hooks: hooksForPrompt(c.angle.payload), details: c.angle.payload.details }),
     "",
     ...(c.reviews.length
       ? ["RESEÑAS REALES (de compradores del mismo producto; la experiencia del amigo sale de aquí, con otras palabras y sin inventar nada más)", ...c.reviews.map((r, i) => `${i + 1}. ${r}`)]

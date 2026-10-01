@@ -37,6 +37,7 @@ import {
   type ShotKind,
   type VideoFormat,
 } from "@/lib/video/catalog";
+import { usableHooks } from "@/lib/hooks/select";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
 import { KEYFRAME_QA_SYSTEM, keyframeQaUser, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
@@ -195,7 +196,10 @@ export async function runScript(scriptId: string): Promise<void> {
       pricing: input.pricing,
       labels: input.labels ?? undefined,
       angle: angles[0],
+      format,
     };
+    // Los ganchos que se le pasan (lib/hooks/select.ts): hook_source tiene que ser uno de estos.
+    const opening = { hooks: usableHooks(angles[0].payload).map((h) => h.index) };
     let problems: string[] = [];
     let result: Awaited<ReturnType<typeof generateStructured<typeof ugcScriptSchema>>> | null = null;
     for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {
@@ -207,7 +211,7 @@ export async function runScript(scriptId: string): Promise<void> {
         effort: "medium",
         maxTokens: 16000,
       });
-      problems = scriptProblems(result.data, input.pricing, format);
+      problems = scriptProblems(result.data, input.pricing, format, opening);
       await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems });
       if (!problems.length) break;
       console.warn("[video] guion inválido", problems);

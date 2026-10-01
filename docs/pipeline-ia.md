@@ -111,6 +111,7 @@ Cliente ideal aprobado + ficha + precio (y etiquetas de packs aprobadas)
  El comerciante confirma o cambia   PUT /api/products/[id]/angles/selection
                  ▼
  angulo-<principal> ∥ angulo-<secundario> (effort high) → angle_briefs.payload (generated)
+                 │   y en cada uno, después: agente de ganchos (effort medium) → payload.hooks (docs/spec-ganchos.md)
                  ▼
  Aprobar, editar o regenerar cada uno; con los 2 aprobados se habilita Textos
 ```
@@ -149,6 +150,7 @@ Desempates: si los dos primeros están a menos de 5 puntos, gana el que tiene la
 | `PATCH /api/products/[id]/angles/briefs/[briefId]` | `{ action: "approve" \| "reopen" }` |
 | `PUT /api/products/[id]/angles/briefs/[briefId]` | `{ edit, approve? }`: ganchos, argumento por etapa, objeciones y oferta |
 | `POST /api/products/[id]/angles/briefs/[briefId]` | Regenera |
+| `POST /api/products/[id]/angles/briefs/[briefId]?part=hooks` | «Otros ganchos»: solo los ganchos, en la misma solicitud |
 
 Topes: 20 evaluaciones y 60 desarrollos por comerciante cada 24 horas. `/dev/screens/angles?state=locked|start|evaluating|failed|ranking|developing|review|approved` muestra la etapa con datos de ejemplo.
 
@@ -205,7 +207,7 @@ Tope: 20 escrituras por comerciante cada 24 horas. `/dev/screens/copy?state=lock
 
 ## Anuncios y motor de decisión
 
-Spec: `docs/spec-anuncios.md`. Diseño: `design-system/anuncios.md` (PantallasAnuncios1/2 y AnunciosEscritorio1/2). Esta etapa no llama a la IA: los textos del anuncio por defecto salen de lo aprobado (`lib/ads/texts.ts`). Cada texto principal es el gancho recomendado de un desarrollo más la frase de la oferta; los títulos, el nombre corto y la oferta; la descripción, "Envío gratis · Paga al recibir".
+Spec: `docs/spec-anuncios.md`. Diseño: `design-system/anuncios.md` (PantallasAnuncios1/2 y AnunciosEscritorio1/2). Esta etapa no llama a la IA: los textos del anuncio por defecto salen de lo aprobado (`lib/ads/texts.ts`). Cada texto principal es el mejor gancho usable de un desarrollo (`adHookText`: el hablado y su segunda frase, sin los que piden material real ni los de riesgo alto) más la frase de la oferta; los títulos, el nombre corto y la oferta; la descripción, "Envío gratis · Paga al recibir".
 
 | Pieza | Dónde |
 |---|---|

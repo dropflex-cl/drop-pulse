@@ -4,12 +4,13 @@
 
 import * as z from "zod/v4";
 import { AWARENESS_LEVELS } from "@/lib/ai/schemas";
+import type { AngleHook, HooksMeta } from "@/lib/hooks/schemas";
 import { ANGLE_CANDIDATES, modelCriteria, SALES_ANGLES, type SalesAngle } from "./catalog";
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. */
 export const ANGLE_ROUTER_PROMPT_VERSION = 6;
-/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. */
-export const ANGLE_BRIEF_PROMPT_VERSION = 3;
+/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: los ganchos los escribe su propio agente (lib/hooks). */
+export const ANGLE_BRIEF_PROMPT_VERSION = 4;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -113,19 +114,13 @@ export const AIDA_STAGES = ["attention", "interest", "desire", "action"] as cons
 export type AidaStage = (typeof AIDA_STAGES)[number];
 
 // Compactos por la misma razón que el orquestador: lo que no se muestra ni se valida va como texto.
-const hook = z.object({
-  text: text.describe("El gancho tal como se dice o se lee, en el idioma del mercado y con tuteo."),
-  visual_first_3s: text.describe("Qué se ve en los primeros 3 segundos."),
-  policy_ok: z.boolean().describe("false si roza la política de atributos personales de Meta."),
-});
-
+// Los ganchos no van aquí: los escribe el agente de ganchos (lib/hooks) justo después, con sus reglas
+// en código, y se guardan en el mismo payload.
 const briefBase = {
   go: z.boolean().describe("false si este ángulo no se puede sostener con lo que hay (explica por qué en fit_reason)."),
   fit_reason: text,
   psychological_lever: text.describe("Qué palanca concreta usas y por qué."),
   core_message: text.describe("El mensaje central en una frase."),
-  hooks: z.array(hook).describe("10 ganchos de al menos 3 tipos."),
-  recommended_hook: z.number().int().describe("Índice (desde 0) del gancho que abrirías hoy."),
   aida_summary: z
     .object({ attention: text, interest: text, desire: text, action: text })
     .describe("Una frase por etapa: qué hace el anuncio en cada una (lo que ve el comerciante)."),
@@ -169,13 +164,17 @@ export function angleBriefSchema(a: SalesAngle) {
   return z.object({ ...briefBase, details: DETAILS[a] });
 }
 
-/** Lo común a los 6 briefs (lo que leen la pantalla y los pasos siguientes). */
+/** Lo común a los 6 briefs, como lo entrega el agente de ángulo. */
 export const angleBriefBaseSchema = z.object({ ...briefBase, details: z.record(z.string(), z.unknown()) });
-export type AngleBriefPayload = z.infer<typeof angleBriefBaseSchema>;
+/**
+ * El desarrollo como se guarda (lo que leen la pantalla y los pasos siguientes): lo del agente de
+ * ángulo más los ganchos de su agente. `hooks` vacío: el paso de ganchos falló (`hooks_error`).
+ */
+export type AngleBriefPayload = z.infer<typeof angleBriefBaseSchema> & { hooks: AngleHook[]; recommended_hook: number } & HooksMeta;
 
 /** Lo que el comerciante puede editar de un desarrollo. */
 export const angleBriefEditSchema = z.object({
-  hooks: z.array(z.string().trim().min(1)).min(1).max(12),
+  hooks: z.array(z.string().trim().min(1)).max(12),
   recommended_hook: z.number().int().min(0),
   aida_summary: z.object({ attention: z.string().trim().min(1), interest: z.string().trim().min(1), desire: z.string().trim().min(1), action: z.string().trim().min(1) }),
   objection_handling: z.array(z.object({ objection: z.string().trim().min(1), answer: z.string().trim().min(1) })).max(8),
