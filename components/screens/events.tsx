@@ -29,8 +29,8 @@ function remaining(event: EventView): { label: string; time: string; phase: "ear
   return { label: event.look.countdownDuring, time: "1 día 08:15:42", phase: "urgent" };
 }
 
-/** El reloj de la barra en la vista previa: el mismo momento que `remaining`; null en la antesala. */
-const previewClock = (event: EventView): [string, string, string, string] | null => (event.phase === "live" ? ["01", "08", "15", "42"] : null);
+/** El reloj de la barra en la vista previa (hasta el término, también en la antesala): el mismo momento que `remaining`. */
+const previewClock = (event: EventView): [string, string, string, string] | null => (event.phase === "ended" ? null : ["01", "08", "15", "42"]);
 
 // ---------------------------------------------------------------- Vista previa
 
@@ -74,6 +74,7 @@ export function EventPreview({ event, products, tickerPolicies }: { event: Event
             layers={layers}
             countdown={layers.countdown ? remaining(event) : null}
             clock={previewClock(event)}
+            early={event.phase !== "live"}
             ticker={look ? tickerItems(look.announcement, look.tickerItems, tickerPolicies) : []}
             product={{
               title: product?.preview.title ?? "Tu producto",

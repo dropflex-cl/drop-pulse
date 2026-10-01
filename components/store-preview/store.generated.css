@@ -560,16 +560,6 @@ df-slider {
   min-width: 0;
 }
 
-/* Antesala: sin reloj, el texto centrado. */
-.df-event-bar--early .df-event-bar__inner {
-  justify-content: center;
-  text-align: center;
-}
-
-.df-event-bar--early .df-event-bar__lead {
-  align-items: center;
-}
-
 .df-event-bar__headline {
   margin: 0;
   font-size: 15px;
@@ -597,8 +587,7 @@ df-slider {
   opacity: 0.9;
 }
 
-.df-event-bar__sub[hidden],
-.df-event-bar__clock[hidden] {
+.df-event-bar__sub[hidden] {
   display: none;
 }
 

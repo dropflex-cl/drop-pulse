@@ -18,8 +18,10 @@ export interface EventLayerPreviewProps {
   layers: { tokens: boolean; countdown: boolean; decor: boolean };
   /** Lo que muestra df-event.js: antesala sin reloj, o «Termina en» y lo que falta; null sin contador. */
   countdown: { label: string; time: string; phase: "early" | "calm" | "urgent" } | null;
-  /** Reloj de la barra (días, horas, minutos, segundos); null en la antesala (va el texto sin reloj). */
+  /** Reloj de la barra (días, horas, minutos, segundos) hasta el término; null sin evento. */
   clock?: [string, string, string, string] | null;
+  /** Antesala: sin ahorro, la barra dice el texto de la antesala bajo el título. */
+  early?: boolean;
   /** La cinta de avisos: aviso, mensajes propios y políticas (lib/events/ticker.ts). */
   ticker?: TickerItem[];
   product: { title: string; subtitle: string; eventSubtitle?: string | null; price: number | null; compareAt: number | null; currency: string; image?: string };
@@ -36,16 +38,16 @@ function Decor({ name }: { name: EventDecorUi }) {
 const UNITS = ["Días", "Hrs", "Min", "Seg"];
 
 /** snippets/df-event-bar.liquid con la capa de la cuenta regresiva. */
-function ClockBar({ look, decor, clock, saving }: { look: EventLook; decor: EventDecorUi | null; clock: [string, string, string, string] | null; saving: string | null }) {
+function ClockBar({ look, decor, clock, early, saving }: { look: EventLook; decor: EventDecorUi | null; clock: [string, string, string, string] | null; early: boolean; saving: string | null }) {
   return (
-    <aside className={`df df-event-bar df-event-bar--clock${clock ? "" : " df-event-bar--early"}`} aria-label={look.headline}>
+    <aside className="df df-event-bar df-event-bar--clock" aria-label={look.headline}>
       <div className="df-event-bar__inner">
         <div className="df-event-bar__lead">
           <p className="df-event-bar__headline">
             <span>{look.headline}</span>
             {decor ? <Decor name={decor} /> : null}
           </p>
-          {!clock ? <p className="df-event-bar__sub">{look.earlyLabel}</p> : saving ? <p className="df-event-bar__sub">{saving}</p> : null}
+          {saving ? <p className="df-event-bar__sub">{saving}</p> : early ? <p className="df-event-bar__sub">{look.earlyLabel}</p> : null}
         </div>
         {clock ? (
           <div className="df-event-bar__clock">
@@ -111,7 +113,7 @@ function Ticker({ items }: { items: TickerItem[] }) {
   );
 }
 
-export function EventLayerPreview({ look, layers, countdown, clock = null, ticker = [], product }: EventLayerPreviewProps) {
+export function EventLayerPreview({ look, layers, countdown, clock = null, early = false, ticker = [], product }: EventLayerPreviewProps) {
   const { price, compareAt, currency } = product;
   const save = price != null && compareAt != null && compareAt > price ? compareAt - price : 0;
   const percent = save > 0 && compareAt ? Math.round((save * 100) / compareAt) : 0;
@@ -130,7 +132,7 @@ export function EventLayerPreview({ look, layers, countdown, clock = null, ticke
     <div className="df flex flex-col pb-4" style={vars}>
       {look && layers.countdown ? (
         <>
-          <ClockBar look={look} decor={decor} clock={clock} saving={percent > 0 ? `Ahorra ${percent} %` : null} />
+          <ClockBar look={look} decor={decor} clock={clock} early={early} saving={percent > 0 ? `Ahorra ${percent} %` : null} />
           {ticker.length ? <Ticker items={ticker} /> : null}
         </>
       ) : look ? (

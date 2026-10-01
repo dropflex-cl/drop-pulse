@@ -10,8 +10,10 @@
 
   REGLAS:
   - El reloj cuenta hasta el término REAL del evento, el mismo para todos. Nunca se reinicia.
-  - En la antesala no hay reloj: «Precio Cyber adelantado · ya disponible». Contar hasta el inicio
-    le dice al comprador que espere.
+  - En la antesala el reloj también cuenta hasta el TÉRMINO (nunca hasta el inicio: eso le dice al
+    comprador que espere). Es honesto porque el precio de la antesala es el mismo del evento y
+    termina con él. Sin ahorro que mostrar, la antesala dice «Precio Cyber adelantado · ya
+    disponible» bajo el título.
   - El ahorro sale de compare_at_price de las variantes; sin tachado no se dice nada.
   Liquid dibuja las cifras con la hora del servidor; df-event.js las corrige cada segundo (el HTML
   puede venir de la caché de Shopify).
@@ -68,12 +70,13 @@
         assign df_urgent = false
         if df_now < df_start
           assign df_early_phase = true
-        elsif df_left <= 172800
+        endif
+        if df_left <= 172800
           assign df_urgent = true
         endif
       -%}
       <aside
-        class="df df-event-bar df-event-bar--clock{% if df_early_phase %} df-event-bar--early{% endif %}{% if df_urgent %} df-event-bar--urgent{% endif %} df-ev-only"
+        class="df df-event-bar df-event-bar--clock{% if df_urgent %} df-event-bar--urgent{% endif %} df-ev-only"
         aria-label="{{ ev.name | escape }}"
         data-df-event-clock
         data-start="{{ df_start }}"
@@ -88,19 +91,20 @@
                 {% render 'df-event-decor', name: ev.decor %}
               {%- endif -%}
             </p>
-            <p class="df-event-bar__sub" data-df-clock-early{% unless df_early_phase %} hidden{% endunless %}>{{ df_early | escape }}</p>
             {%- if df_pc_max > 0 -%}
-              <p class="df-event-bar__sub" data-df-clock-saving{% if df_early_phase %} hidden{% endif %}>
+              <p class="df-event-bar__sub">
                 {%- if df_pc_min < df_pc_max -%}Ahorra hasta {{ df_pc_max }} %{%- else -%}Ahorra {{ df_pc_max }} %{%- endif -%}
               </p>
+            {%- else -%}
+              <p class="df-event-bar__sub" data-df-clock-early{% unless df_early_phase %} hidden{% endunless %}>{{ df_early | escape }}</p>
             {%- endif -%}
           </div>
-          <div class="df-event-bar__clock" data-df-clock-boxes{% if df_early_phase %} hidden{% endif %}>
+          <div class="df-event-bar__clock">
             <p class="df-visually-hidden" data-df-clock-sr>
               {{- ev.countdown_during | escape }} {{ df_d }} días, {{ df_h }} horas y {{ df_m }} minutos
             </p>
             <div class="df-event-bar__boxes" aria-hidden="true">
-              <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="d">{{ df_d | prepend: '0' | slice: -2, 2 }}</span><span class="df-event-bar__unit">Días</span></span>
+              <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="d">{% if df_d < 10 %}0{% endif %}{{ df_d }}</span><span class="df-event-bar__unit">Días</span></span>
               <span class="df-event-bar__sep">:</span>
               <span class="df-event-bar__box"><span class="df-event-bar__num" data-unit="h">{{ df_h | prepend: '0' | slice: -2, 2 }}</span><span class="df-event-bar__unit">Hrs</span></span>
               <span class="df-event-bar__sep">:</span>
@@ -180,16 +184,6 @@
     min-width: 0;
   }
 
-  /* Antesala: sin reloj, el texto centrado. */
-  .df-event-bar--early .df-event-bar__inner {
-    justify-content: center;
-    text-align: center;
-  }
-
-  .df-event-bar--early .df-event-bar__lead {
-    align-items: center;
-  }
-
   .df-event-bar__headline {
     margin: 0;
     font-size: 15px;
@@ -217,8 +211,7 @@
     opacity: 0.9;
   }
 
-  .df-event-bar__sub[hidden],
-  .df-event-bar__clock[hidden] {
+  .df-event-bar__sub[hidden] {
     display: none;
   }
 
