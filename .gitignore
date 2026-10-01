@@ -44,3 +44,7 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# Python (scripts/ugc-montage.py)
+__pycache__/
+*.pyc
