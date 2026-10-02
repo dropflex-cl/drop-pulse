@@ -50,9 +50,21 @@ describe("normalizeKey", () => {
     expect(normalizeKey(`Bearer ${KEY}`)).toBe(KEY);
   });
 
+  it("quita lo invisible que se cuela al copiar: saltos de línea, espacios sin ancho, comillas tipográficas", () => {
+    expect(normalizeKey(`${KEY.slice(0, 30)}\n${KEY.slice(30)}`)).toBe(KEY);
+    expect(normalizeKey(`​${KEY} `)).toBe(KEY);
+    expect(normalizeKey(`“${KEY}”`)).toBe(KEY);
+  });
+
+  it("no rechaza un prefijo nuevo de la consola: lo decide Anthropic", () => {
+    expect(normalizeKey(`sk-ant-api04-${"a".repeat(40)}`)).not.toBeNull();
+    expect(normalizeKey(`sk-ant-key01-${"a".repeat(40)}`)).not.toBeNull();
+  });
+
   it("rechaza lo que no es una API key de Claude", () => {
     expect(normalizeKey("sk-ant-api03-corta")).toBeNull();
     expect(normalizeKey(`sk-ant-admin01-${"a".repeat(40)}`)).toBeNull();
     expect(normalizeKey(`AIza${"a".repeat(35)}`)).toBeNull();
+    expect(normalizeKey("sk-ant-api03-Ab1cD...xYz9")).toBeNull();
   });
 });

@@ -17,8 +17,13 @@ export interface AnthropicConnection {
 }
 
 const TABLE = "anthropic_connections";
-// Las claves de la consola: «sk-ant-api03-…». Las de administración («sk-ant-admin…») no llaman a Claude.
-const KEY_SHAPE = /^sk-ant-api\d*-[A-Za-z0-9_-]{20,}$/;
+// Las claves de la consola: «sk-ant-api03-…». La forma solo descarta lo que claramente no es una clave;
+// quien decide es Anthropic (checkKey), así que un prefijo nuevo no se rechaza aquí.
+const KEY_SHAPE = /^sk-ant-[a-z]+\d*-[A-Za-z0-9_-]{20,}$/;
+// Las de administración («sk-ant-admin01-…») no llaman a Claude.
+const ADMIN_KEY = /^sk-ant-admin/i;
+// Lo que se cuela al copiar: espacios y saltos de línea en cualquier parte, espacios sin ancho, BOM.
+const INVISIBLE = /[\s ​-‍⁠﻿]/g;
 
 /** El mensaje de toda acción de IA cuando el comerciante no conectó su clave (o Anthropic la rechazó). */
 export const NO_ANTHROPIC_KEY = "Conecta tu clave de Anthropic en Ajustes › Inteligencia artificial para usar la IA.";
@@ -45,8 +50,18 @@ export function normalizeKey(raw: string): string | null {
   const key = raw
     .trim()
     .replace(/^Bearer\s+/i, "")
-    .replace(/^["']|["']$/g, "");
-  return KEY_SHAPE.test(key) ? key : null;
+    .replace(INVISIBLE, "")
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, "");
+  return KEY_SHAPE.test(key) && !ADMIN_KEY.test(key) ? key : null;
+}
+
+/** Por qué no sirve lo que se pegó, en palabras del comerciante. */
+function keyShapeMessage(raw: string): string {
+  if (ADMIN_KEY.test(raw.trim())) return "Esa es una clave de administración. Crea una API key normal en la consola de Anthropic.";
+  // La lista de la consola muestra la clave abreviada («sk-ant-api03-Ab1…xYz»): esa no sirve.
+  if (/\.\.\.|…|\*{3}/.test(raw))
+    return "Esa es la clave abreviada que muestra la lista de la consola. Anthropic muestra la clave completa una sola vez, al crearla: crea una nueva y cópiala en ese momento.";
+  return "Pega la clave completa, tal como la copia la consola de Anthropic (empieza con sk-ant-).";
 }
 
 /**
@@ -55,13 +70,7 @@ export function normalizeKey(raw: string): string | null {
  */
 export async function connectAnthropic(userId: string, raw: string): Promise<AnthropicConnection> {
   const key = normalizeKey(raw);
-  if (!key) {
-    const admin = /sk-ant-admin/i.test(raw);
-    throw new AnthropicError(
-      "invalid_key",
-      admin ? "Esa es una clave de administración. Crea una API key normal en la consola de Anthropic." : "Pega la clave completa, tal como la copia la consola de Anthropic (empieza con sk-ant-api).",
-    );
-  }
+  if (!key) throw new AnthropicError("invalid_key", keyShapeMessage(raw));
   await checkKey(key, AI_MODEL);
   await setToken("anthropic", userId, key);
   const now = new Date().toISOString();
