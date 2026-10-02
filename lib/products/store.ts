@@ -35,6 +35,8 @@ export interface ProductRow {
   page_accent_color: string | null;
   /** Se vende como extra en el checkout: no se optimiza y no aparece en Productos ni en Hoy. */
   is_upsell: boolean;
+  /** Cada imagen generada pasa por el QA con Claude (y su reintento). Apagado por defecto. */
+  image_qa: boolean;
   /** El consejo de uso del mensaje «Entregado» (etapa WhatsApp); null si no se escribió. */
   usage_tip?: import("@/lib/whatsapp/tip").UsageTip | null;
   created_at: string;
@@ -147,6 +149,32 @@ export async function updateUpsell(userId: string, id: string, upsell: boolean):
     .select("id");
   fail("Guardar el upsell", error);
   if (!data?.length) throw new Error("Producto no encontrado");
+}
+
+/** Información base › «Revisar cada imagen con IA». */
+export async function updateImageQa(userId: string, id: string, enabled: boolean): Promise<void> {
+  const { data, error } = await adminClient()
+    .from("products")
+    .update({ image_qa: enabled, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("id", id)
+    .select("id");
+  fail("Guardar la revisión de imágenes", error);
+  if (!data?.length) throw new Error("Producto no encontrado");
+}
+
+/**
+ * Toda imagen generada pasa por aquí antes de su QA: sin el interruptor encendido no se llama a Claude
+ * (ni se reintenta). Se lee al terminar la imagen, no al pedirla. Si no se puede leer, no se revisa: la
+ * imagen ya está pagada y guardarla no depende de esto.
+ */
+export async function imageQaEnabled(userId: string, productId: string): Promise<boolean> {
+  const { data, error } = await adminClient().from("products").select("image_qa").eq("user_id", userId).eq("id", productId).maybeSingle();
+  if (error) {
+    console.error("[products] leer la revisión de imágenes", error.message);
+    return false;
+  }
+  return (data as { image_qa: boolean } | null)?.image_qa === true;
 }
 
 // ---------------------------------------------------------------- Imágenes de referencia

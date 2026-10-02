@@ -329,6 +329,7 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     hasBrief: brief !== null,
     differentiator: differentiatorState(differentiator, brief),
     competitors,
+    imageQa: row.image_qa === true,
   };
 });
 

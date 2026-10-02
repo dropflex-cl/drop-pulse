@@ -42,7 +42,7 @@ import { latestPackLabels } from "@/lib/pricing/labels-store";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { reviewsForPrompt } from "@/lib/reviews/rows";
-import { imagesForGeneration, latestAvatars, latestBrief, listImageRows, withDisplayUrls } from "@/lib/products/store";
+import { imageQaEnabled, imagesForGeneration, latestAvatars, latestBrief, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { approvedAngles } from "./angles";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
@@ -689,7 +689,10 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
   await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
 }
 
-/** La imagen lograda (de cualquier proveedor): se guarda, se registra, pasa el QA y, si falla, un reintento. */
+/**
+ * La imagen lograda (de cualquier proveedor): se guarda, se registra y, si el producto tiene encendida la
+ * revisión de imágenes (`products.image_qa`), pasa el QA y, si falla, un reintento.
+ */
 async function storeAndReview(a: AssetRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
   // Va a Meta Ads (copyToAds): JPEG optimizado, que /adimages acepta siempre. El QA mira el original.
   const img = await optimizeForAds(bytes);
@@ -698,10 +701,12 @@ async function storeAndReview(a: AssetRow, bytes: Buffer, log: () => Promise<voi
   fail("Guardar la imagen", up.error);
   await log();
 
-  const qa = await runQa(a, bytes).catch((e) => {
-    console.error("[creatives] QA", e);
-    return null;
-  });
+  const qa = (await imageQaEnabled(a.user_id, a.product_id))
+    ? await runQa(a, bytes).catch((e) => {
+        console.error("[creatives] QA", e);
+        return null;
+      })
+    : null;
   await patchAsset(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, finished_at: new Date().toISOString() });
 
   // Un solo reintento automático: sin preset, que respeta mejor el texto (spec §7.2).

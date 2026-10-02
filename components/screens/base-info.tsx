@@ -13,6 +13,7 @@ import {
   ReferenceAddTile,
   ReferenceImage,
   StageMeter,
+  Switch,
   TopBar,
   notify,
   notifyUndo,
@@ -21,9 +22,10 @@ import {
 } from "@/components/df";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { AiCostButton } from "@/components/shell/ai-cost-provider";
+import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
+import { IMAGE_QA_USD } from "@/lib/ai/costs";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { count } from "@/lib/format";
 import { pickBase } from "@/lib/products/base";
@@ -113,6 +115,39 @@ function useAutosave(productId: string, initial: string, initialSavedAt?: string
   }, [productId]);
 
   return { text, change, save, saving, error, topics, saved: savedLabel(savedAt, now) };
+}
+
+/**
+ * «Revisar cada imagen con IA»: el QA con Claude de cada imagen generada (página, creativos e imágenes
+ * clave) y su reintento. Apagado por defecto; se guarda al tocarlo y vale para lo que termine después.
+ */
+function ImageQaSection({ productId, initial }: { productId: string; initial: boolean }) {
+  const [enabled, setEnabled] = useState(initial);
+  const [saving, setSaving] = useState(false);
+  const localCost = useLocalCost();
+  const change = async (next: boolean) => {
+    setEnabled(next);
+    setSaving(true);
+    try {
+      await productsApi.setImageQa(productId, next);
+    } catch (e) {
+      setEnabled(!next);
+      notify(errorText(e, "No pudimos guardar el cambio. Intenta de nuevo."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <section aria-label="Revisión de imágenes" className="rounded-lg border bg-card px-4 py-1">
+      <Switch
+        label="Revisar cada imagen con IA"
+        hint={`La compara con la foto real y la genera otra vez si falla. ${localCost(IMAGE_QA_USD)} por imagen.`}
+        checked={enabled}
+        disabled={saving}
+        onChange={change}
+      />
+    </section>
+  );
 }
 
 /** “Optimizando”: los dos pasos de la corrida, con el mismo avance que el onboarding. */
@@ -538,6 +573,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
           <CompetitorsSection productId={product.id} currency={product.currency ?? "CLP"} initial={base.competitors} />
           <div className="lg:hidden">{reviewsCta}</div>
           <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
+          <ImageQaSection productId={product.id} initial={base.imageQa} />
         </div>
         {/* Escritorio: referencias y carga a la derecha. */}
         <aside aria-label="Imágenes de referencia" className="hidden flex-col gap-4 lg:flex">

@@ -47,6 +47,12 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   usage_tip: 0.02,
 };
 
+/**
+ * USD por imagen de la revisión con IA (page_qa, creative_qa, video_qa): promedio observado en
+ * ai_generations, 24 sep–2 oct 2026 (US$0,017–0,033 por llamada), sin contar el reintento.
+ */
+export const IMAGE_QA_USD = 0.03;
+
 /** Etapas que gastan IA, en el orden de la ruta. */
 export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "imagenes", "creativos", "mensajes"];
 

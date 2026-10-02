@@ -145,6 +145,8 @@ export interface ProductBase {
   differentiator: DifferentiatorView;
   /** Tiendas de la competencia pegadas por el comerciante. */
   competitors: CompetitorView[];
+  /** «Revisar cada imagen con IA»: el QA con Claude de cada imagen generada. Apagado por defecto. */
+  imageQa: boolean;
 }
 
 /** Un ángulo del ranking del orquestador, con su puntaje calculado en código (AngleCard). */

@@ -21,7 +21,7 @@ import { optimizeForAds } from "@/lib/media/optimize";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
-import { imagesForGeneration, latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
+import { imageQaEnabled, imagesForGeneration, latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import {
   CHARACTER_KEY,
@@ -540,19 +540,23 @@ async function finishShot(s: ShotRow, state: RequestState, started: number): Pro
   await patchShot(s.id, { render_status: "succeeded", storage_path: path, size_bytes: bytes.byteLength, duration_s: Number(s.input.duration ?? 0) || null, finished_at: stamp() });
 }
 
-/** La imagen clave: se guarda, pasa el QA y, si falla, un segundo intento. Al terminar K1, siguen las demás. */
+/**
+ * La imagen clave: se guarda y, si el producto tiene encendida la revisión de imágenes
+ * (`products.image_qa`), pasa el QA y, si falla, un segundo intento. Al terminar K1, siguen las demás.
+ */
 async function storeKeyframe(s: ShotRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
   const img = await optimizeForAds(bytes);
   const path = `${s.user_id}/${s.product_id}/video-${s.id}.${img.ext}`;
   fail("Guardar la imagen clave", (await adminClient().storage.from(CREATIVES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true })).error);
   await log();
   const script = await readyScript(s.user_id, s.product_id, s.script_id).catch(() => null);
-  const qa = script
-    ? await runKeyframeQa(s, script, bytes).catch((e) => {
-        console.error("[video] QA", e);
-        return null;
-      })
-    : null;
+  const qa =
+    script && (await imageQaEnabled(s.user_id, s.product_id))
+      ? await runKeyframeQa(s, script, bytes).catch((e) => {
+          console.error("[video] QA", e);
+          return null;
+        })
+      : null;
   await patchShot(s.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, status: "in_review", finished_at: stamp() });
   if (!script) return;
   if (qa && !qa.pass && s.attempt === 1) {

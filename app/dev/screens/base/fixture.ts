@@ -130,6 +130,7 @@ export function fixture(state: string): ProductBase {
           ]
         : [],
     hasBrief: Boolean(avatar),
+    imageQa: false,
     differentiator: {
       value: state === "approved" ? DIFFERENTIATOR : avatar ? DIFFERENTIATOR : null,
       confirmed: state === "approved",

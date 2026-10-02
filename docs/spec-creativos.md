@@ -155,6 +155,8 @@ Es un mapeo desde los campos que ya entregan los agentes. No hace falta cambiar 
 
 ### 3.3 Selección de tomas (QA automático + humano)
 
+> Solo con «Revisar cada imagen con IA» encendido en Información base (`products.image_qa`, apagado por defecto desde el 2026-10-02); apagado, no hay QA ni reintento y la imagen queda sin revisión.
+
 Cada imagen o clip generado pasa por un chequeo con Claude (visión) antes de mostrarse. Es el `take_checklist` de `productor-clips` y el checklist de `generador-estaticos`:
 
 - producto idéntico a la foto de referencia (forma, color, piezas y **etiqueta legible**);

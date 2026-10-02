@@ -50,7 +50,7 @@ import {
 } from "@/lib/page-images/store";
 import { ProductApiError } from "@/lib/products/http";
 import { download as downloadFromLink } from "@/lib/products/images";
-import { latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
+import { imageQaEnabled, latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { approvedAngles } from "./angles";
 import { onGeminiError, onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
@@ -513,7 +513,10 @@ async function finishImage(a: PageImageRow, state: RequestState, started: number
   await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
 }
 
-/** La imagen lograda (de cualquier proveedor): se guarda, se registra, pasa el QA y, si falla, un reintento. */
+/**
+ * La imagen lograda (de cualquier proveedor): se guarda, se registra y, si el producto tiene encendida la
+ * revisión de imágenes (`products.image_qa`), pasa el QA y, si falla, un reintento.
+ */
 async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
   // Va a la landing: se guarda como WebP optimizado. El QA mira el original, sin re-comprimir.
   const img = await optimizeImage(bytes);
@@ -522,10 +525,12 @@ async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise
   fail("Guardar la imagen", up.error);
   await log();
 
-  const qa = await runQa(a, bytes).catch((e) => {
-    console.error("[page-images] QA", e);
-    return null;
-  });
+  const qa = (await imageQaEnabled(a.user_id, a.product_id))
+    ? await runQa(a, bytes).catch((e) => {
+        console.error("[page-images] QA", e);
+        return null;
+      })
+    : null;
   await patchImage(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, finished_at: stamp() });
   // El reintento salió: el intento que el QA rechazó se descarta (se borra pasado el plazo), salvo que
   // el comerciante ya lo haya elegido.

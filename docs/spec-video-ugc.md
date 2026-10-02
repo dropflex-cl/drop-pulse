@@ -110,7 +110,7 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 - K1 primero; las demás imágenes clave esperan a K1 (usan su URL). Los clips esperan a que su imagen clave esté aprobada.
 - Mismo mecanismo que hoy: `after()` + sondeo con lease sobre `updated_at`, sin webhooks. Seedance tarda 3–6 min: el sondeo de la pantalla termina lo que quedó esperando.
 - Costo: Seedance por tokens con el alto y ancho reales del resultado; Kling por el precio de `/estimate` (texto) guardado como constante; Flare con `IMAGE_COST_USD`. Todo con `recordAiGeneration` (`step: "video_keyframe" | "video_clip"`, `cost_estimated`).
-- QA de imágenes clave (Claude visión, `effort: "low"`): cantidad de manos y dedos, producto idéntico a la foto base, misma cara que K1, sin texto impreso. Una repetición automática si falla (como los estáticos).
+- QA de imágenes clave (Claude visión, `effort: "low"`): cantidad de manos y dedos, producto idéntico a la foto base, misma cara que K1, sin texto impreso. Una repetición automática si falla (como los estáticos). Solo con «Revisar cada imagen con IA» encendido en Información base (`products.image_qa`, apagado por defecto desde el 2026-10-02); apagado, no hay QA ni reintento y la imagen queda sin revisión.
 - Topes por comerciante en 24 h: 6 guiones, 60 imágenes clave, 40 clips. Tope por producto: `merchant_settings.ai_cost_cap` si existe.
 
 ## 5. Paquete de montaje y script local
