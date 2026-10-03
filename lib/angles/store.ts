@@ -1,10 +1,9 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
-import type { AngleBriefView, AngleCandidateView, AngleHookView, AngleOption, AngleRankingView, RunStatus, TestAngleView } from "@/lib/types";
+import type { AngleBriefView, AngleCandidateView, AngleHookView, AngleRankingView, RunStatus, TestAngleView } from "@/lib/types";
 import { ANGLES, testAngleName, type AngleSlot, type SalesAngle, type TestAngle } from "./catalog";
-import type { AngleBriefPayload, AngleRouterOutput } from "./schemas";
-import { rankCandidates, type ScoredAngle } from "./score";
+import { isStrategy, type AngleBriefPayload, type LegacyScoredAngle, type RankingPayload } from "./schemas";
 import { angleForPrompt, type AngleForPrompt } from "./approved";
 import { ARCHETYPE_NAMES, OPENING_SHOT_DEFS, PATTERN_NAMES } from "@/lib/hooks/catalog";
 import type { AngleHook } from "@/lib/hooks/schemas";
@@ -23,9 +22,11 @@ export interface RankingRow {
   status: RunStatus;
   error_message: string | null;
   input: Record<string, unknown>;
-  payload: AngleRouterOutput | null;
-  scores: ScoredAngle[] | null;
-  /** Índices de payload.test_angles que sugiere el código. */
+  /** La propuesta del orquestador (v7) o, en las de antes, su evaluación de las 6 formas. */
+  payload: RankingPayload | null;
+  /** Solo en las evaluaciones de antes del orquestador v7: el puntaje de las 6 formas. */
+  scores: LegacyScoredAngle[] | null;
+  /** Índices de los candidatos que sugiere el orquestador. */
   suggested_slots: number[] | null;
   /** La elección confirmada: 2 o 3 ángulos, uno por slot. */
   chosen_angles: TestAngle[] | null;
@@ -155,10 +156,6 @@ export async function getBriefRow(userId: string, productId: string, briefId: st
 
 // ---------------------------------------------------------------- A la pantalla
 
-function toOption(s: ScoredAngle, i: number): AngleOption {
-  return { angle: s.angle, name: ANGLES[s.angle].name, rank: i + 1, score: s.score, why: s.why, risks: s.risks, breakdown: s.breakdown };
-}
-
 /** Los ángulos elegidos, en orden de slot. */
 export function chosenAngles(r: Pick<RankingRow, "chosen_angles" | "confirmed_at">): TestAngle[] {
   if (!r.confirmed_at) return [];
@@ -182,18 +179,38 @@ export function toTestAngleView(a: TestAngle): TestAngleView {
     promise: a.promise,
     triggerMoment: a.trigger_moment,
     competition: a.competition,
+    hook: a.hook || undefined,
+    aida: a.aida,
+    speaksTo: a.speaks_to,
+    tone: a.tone || undefined,
+    why: a.why || undefined,
   };
 }
 
-/** Los candidatos del orquestador con su puntaje (forma + competencia), calculado en código. */
-export function candidateViews(r: Pick<RankingRow, "payload" | "scores" | "input">): AngleCandidateView[] {
-  const list = r.payload?.test_angles ?? [];
-  if (!list.length) return [];
-  const competitors = Number((r.input as { competitors?: number }).competitors ?? 0);
-  const { candidates } = rankCandidates(list, r.scores ?? [], competitors);
-  return list.map((c, i) => ({
+/** Los candidatos del orquestador, en su orden (las evaluaciones de antes traen otros campos). */
+export function candidateViews(r: Pick<RankingRow, "payload">): AngleCandidateView[] {
+  const p = r.payload;
+  if (isStrategy(p))
+    return p.angles.map((a, i) => ({
+      index: i,
+      title: a.title,
+      hook: a.hook,
+      aida: a.aida,
+      speaksTo: a.speaks_to,
+      tone: a.tone,
+      why: a.why,
+      painOrDesire: a.pain_or_desire,
+      segment: a.segment,
+      promise: a.promise,
+      frame: a.frame,
+      frameName: ANGLES[a.frame]?.name ?? a.frame,
+      triggerMoment: a.trigger_moment,
+      competition: "",
+    }));
+  return (p?.test_angles ?? []).map((c, i) => ({
     index: i,
     title: c.title,
+    hook: "",
     painOrDesire: c.pain_or_desire,
     segment: c.segment,
     promise: c.promise,
@@ -201,35 +218,37 @@ export function candidateViews(r: Pick<RankingRow, "payload" | "scores" | "input
     frameName: ANGLES[c.frame]?.name ?? c.frame,
     triggerMoment: c.trigger_moment,
     competition: c.competition,
-    competitorsUsing: candidates[i].competitorsUsing,
-    score: candidates[i].score,
-    frameScore: candidates[i].frameScore,
-    competitionDelta: candidates[i].competition,
   }));
 }
 
 /** `currentAvatarId`: el cliente ideal aprobado hoy; si es otro, la evaluación quedó vieja. */
 export function toRankingView(r: RankingRow, currentAvatarId: string | undefined): AngleRankingView {
-  const scores = r.scores ?? [];
+  const p = r.payload;
+  const strategy = isStrategy(p) ? p : null;
   const missing: AngleRankingView["missing"] = [];
-  const potential = (r.input.potential ?? {}) as Partial<Record<"reviews" | "expert", number>>;
-  if (scores.some((s) => s.risks.some((k) => k.fix === "reviews"))) {
-    missing.push({ text: `Reseñas reales: subirían Historia personal hasta ~${potential.reviews ?? 70}`, fix: "reviews" });
+  if (strategy) {
+    if (!((r.input.reviews as string[] | undefined) ?? []).length) missing.push({ text: "Reseñas reales: con reseñas aprobadas la IA puede contar historias de compradores", fix: "reviews" });
+  } else {
+    // Evaluaciones de antes: el puntaje de las 6 formas y lo que subirían con la prueba que falta.
+    const scores = r.scores ?? [];
+    const potential = (r.input.potential ?? {}) as Partial<Record<"reviews" | "expert", number>>;
+    if (scores.some((s) => s.risks.some((k) => k.fix === "reviews"))) missing.push({ text: `Reseñas reales: subirían Historia personal hasta ~${potential.reviews ?? 70}`, fix: "reviews" });
+    if (scores.some((s) => s.risks.some((k) => k.fix === "expert"))) missing.push({ text: `Un experto real que lo recomiende: subiría Autoridad hasta ~${potential.expert ?? 70}`, fix: "expert" });
+    // Evaluaciones de la versión 1 guardaban { text, gain }.
+    if (p && !isStrategy(p)) for (const m of p.missing_inputs ?? []) missing.push({ text: typeof m === "string" ? m : m.gain ? `${m.text}: ${m.gain}` : m.text });
   }
-  if (scores.some((s) => s.risks.some((k) => k.fix === "expert"))) {
-    missing.push({ text: `Un experto real que lo recomiende: subiría Autoridad hasta ~${potential.expert ?? 70}`, fix: "expert" });
-  }
-  // Evaluaciones de la versión 1 guardaban { text, gain }.
-  for (const m of (r.payload?.missing_inputs ?? []) as (string | { text: string; gain?: string })[]) missing.push({ text: typeof m === "string" ? m : m.gain ? `${m.text}: ${m.gain}` : m.text });
   const chosen = chosenAngles(r);
   return {
     id: r.id,
     status: r.status,
     error: r.error_message ?? undefined,
     createdAt: r.created_at,
-    angles: scores.map(toOption),
     candidates: candidateViews(r),
     suggested: r.suggested_slots ?? [],
+    suggestedReason: strategy?.test_first_reason || undefined,
+    buyerAndUser: strategy?.buyer_and_user || undefined,
+    doubts: strategy?.doubts.filter((d) => d.trim()) ?? [],
+    watchOut: strategy?.watch_out.filter((w) => w.trim()) ?? [],
     chosen: chosen.length ? chosen.map(toTestAngleView) : undefined,
     confirmedAt: r.confirmed_at ?? undefined,
     competitors: Number((r.input as { competitors?: number }).competitors ?? 0),

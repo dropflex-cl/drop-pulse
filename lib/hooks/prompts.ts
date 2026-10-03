@@ -88,6 +88,7 @@ const WRITE = [
   `- on_screen (texto en pantalla): máximo ${ON_SCREEN_PROMPT_WORDS} palabras, legible sin sonido. Puede ser distinto del hablado.`,
   "- visual_first_3s: la primera toma concreta (qué se ve, el plano, la acción). Nunca «logo» ni «producto girando sin contexto».",
   "- Los 10 son de ESTE ángulo: su dolor o deseo, su segmento y su promesa. La variedad está en el patrón, no en el mensaje. Las PLANTILLAS DE LA FORMA del ángulo son un patrón más que puedes adaptar.",
+  "- Si el ángulo trae hook, es la frase con que el comerciante lo eligió y la idea que más vende: al menos 3 de los 10 son esa misma idea dicha para video (más corta, con su primera toma), y el top 3 incluye una de ellas. Respeta también su tono y a quién le habla (speaks_to).",
   "",
   "PASO 4. FILTRO DE CALIDAD (puntúa cada uno de 1 a 5 y descarta y reemplaza el que tenga " + DISCARD_SCORE + " o menos en alguno)",
   "- salience: ¿la primera toma tiene movimiento, cara, mano en acción o texto grande?",

@@ -129,29 +129,56 @@ create table public.product_competitors (
 | **Ángulo** | El mensaje: qué dolor o deseo destacas, para quién y con qué promesa | «La crema sella; lo que faltaba va antes», para la que ya usa crema y amanece tirante |
 | **Forma** (`frame`) | Cómo se cuenta: los 6 de `catalog.ts`, que no cambian | Mecanismo único |
 
-Los 6 actuales pasan a ser **formas**. Sus criterios, penalizaciones, guías (`GUIDES`) y el puntaje en código (`score.ts`) se reutilizan para decidir **con qué forma contar cada ángulo**.
+Los 6 actuales pasan a ser **formas**. Sus guías (`GUIDES`) deciden **con qué especialista se desarrolla cada ángulo**. Desde el orquestador v7 (§4.2) ya no se puntúan: la forma la propone el modelo después de escribir el ángulo y el comerciante la puede cambiar.
 
-### 4.2 El orquestador
+### 4.2 El orquestador (v7, 2026-10-03)
 
-Entrada nueva: el diferenciador confirmado y el análisis de la competencia.
+**Por qué cambió.** Con el audífono amplificador (producción, 2026-10-03), la evaluación v6 propuso ángulos como «Lo que cuesta oír bien en Chile» o «El ajuste que cada oído necesita» (con «pesa 76 gramos», sacado del diferenciador pegado del proveedor). Un chat con un prompt de una línea («eres un experto en ventas AIDA, dime los ángulos más efectivos») propuso, con menos datos, «Si la tele de tu papá se escucha desde la calle, esto es para ustedes», un ángulo de regalo para Navidad y otro que le habla al usuario y no al comprador, y advirtió que los 76 g y «origen Japón» no eran creíbles. Las causas, en orden:
 
-Salida (sube `ANGLE_ROUTER_PROMPT_VERSION`):
+1. **Se le pedía clasificar y puntuar, no vender.** Evaluar 6 formas con 3 criterios cada una y llenar un JSON de ~70 campos se llevaba la atención; los ángulos eran la cola del formulario y salían como etiquetas.
+2. **Las 6 formas eran una jaula.** `frame` era obligatorio y todas las formas son de respuesta directa seria: el humor cotidiano o el regalo de temporada no cabían.
+3. **Se elegía el ángulo sin ver el gancho.** El gancho lo escribía otro agente dos pasos después.
+4. **Las reglas iban antes de crear**, no después: el modelo jugaba a la defensiva.
+5. **Se premiaba ser distinto** (+10 si ninguna tienda lo usaba, con 1 tienda analizada), no lo que ya vende en la categoría.
+6. **Datos obligatorios y sin crítica**: «al menos uno debe salir del DIFERENCIADOR», aunque el diferenciador fuera el texto del proveedor.
+7. **Un dato viejo**: la ficha se generó antes de importar las reseñas y la evaluación castigó Historia personal por «sin reseñas» con 14 aprobadas.
+
+**Cómo es ahora: divergir primero, revisar después.**
+
+- **System corto** (`angleStrategySystem`): un experto en respuesta directa con pago contra entrega que responde «¿cuáles son los ángulos más efectivos?». Piensa primero en quién compra y quién usa, prefiere lo que ya vende en la categoría, usa las fechas comerciales cercanas y desconfía de los datos del proveedor. Los límites (salud, atributos personales de Meta, nada inventado, precios exactos, pago al recibir) van en 5 líneas.
+- **Contexto corto en texto** (`angleStrategyContext`), no la ficha y el cliente ideal en JSON: lo que un experto necesita para decidir. Incluye las **reseñas aprobadas al evaluar** (`input.reviews`) y las **fechas del calendario `events`** del mercado en los próximos 120 días (`input.events`).
+- **Salida** (`angleStrategySchema`):
 
 ```ts
-test_angles: z.array(z.object({
-  pain_or_desire: text,            // «amanecer con la cara tirante aunque use crema»
-  segment: text,                   // «la que ya tiene rutina básica y siente que no le alcanza»
-  promise: text,                   // la promesa, dentro de forbidden_claims
-  frame: z.enum(SALES_ANGLES),     // la forma recomendada
-  frame_scores: { c1, c2, c3, penalty },   // los criterios de esa forma, como hoy
-  competition: text,               // cuántas tiendas lo usan y por qué este es distinto
-  trigger_moment: text,            // el momento del cliente ideal que abre el anuncio y el bloque de dolor
-})).describe("5 candidatos distintos entre sí: distinto dolor o distinto segmento, no la misma idea contada de otra forma."),
+buyer_and_user: text,                 // quién compra y quién usa
+angles: z.array(z.object({            // 5, del que más vende al que menos
+  title, hook,                        // el gancho: la frase que abre el anuncio (≤ 24 palabras)
+  speaks_to: "buyer" | "user", tone,
+  aida: { attention, interest, desire, action },
+  why,                                // por qué va a vender
+  pain_or_desire, segment, promise, trigger_moment,
+  frame: z.enum(SALES_ANGLES),        // la forma más parecida: solo elige al especialista
+})),
+test_first: number[], test_first_reason: text,   // los 2 o 3 que testearía primero
+doubts: text[],                       // datos que no son creíbles
+watch_out: text[],                    // cuidados propios del producto
 ```
 
-- **El código elige los 3 sugeridos** (`score.ts`): puntaje de la forma, más un bono si **ninguna tienda de la competencia lo usa**, menos una penalización si 3 o más lo usan. Regla de variedad: no más de 2 con la misma forma.
-- El comerciante **elige 3 de 5**, puede cambiar la forma de cada uno y editar dolor, segmento y promesa. No hay principal: los 3 valen lo mismo.
-- Sin competencia cargada, el bono no se aplica y la pantalla lo dice.
+- **El código revisa lo comprobable** (`strategyProblems`, con tests): ganchos de hasta `ANGLE_HOOK_MAX_WORDS`; gancho y AIDA con `hookTextProblems` (segunda persona sobre el cuerpo, salud, plazos, montos fuera de PRECIO Y OFERTA); Autoridad solo con un experto real e Historia personal solo con reseñas reales; títulos sin repetir. Con problemas se pide otra una vez con el contexto en caché. Los sugeridos son `test_first` validado (`suggestedFrom`) o, si no sirve, los primeros.
+- **La pantalla** muestra el gancho y el AIDA en cada candidato, a quién le habla y el tono, los datos dudosos arriba («Revisa estos datos antes de usarlos») y los cuidados abajo. El comerciante puede editar el gancho.
+- **La forma es una guía, no un molde.** El agente de ángulo recibe el gancho, el AIDA, el tono y a quién le habla, y si chocan con la forma mandan ellos. `angleMessage` lleva el gancho, el tono y `speaks_to` a los pasos siguientes, y el agente de ganchos escribe al menos 3 versiones de video del gancho del ángulo.
+
+**Lo que se retiró y qué pasa con lo de antes.**
+
+| Retirado | Dónde estaba | Qué pasa con lo guardado |
+|---|---|---|
+| Puntaje de las 6 formas (criterios, pesos, penalizaciones, desempates, «Cómo se calculó») | `lib/angles/score.ts`, `ANGLES[].criteria` y `.penalty` en `catalog.ts`, `AngleOption`, el panel «Ver las 6 formas» | `angle_rankings.scores` queda en las filas viejas (se lee para el «por qué» de sus desarrollos); las nuevas lo dejan en null |
+| Bono y castigo por competencia (`rankCandidates`, `COMPETITION_*`) | `score.ts`, la tarjeta del candidato | La competencia sigue en el contexto, sin puntaje |
+| Diagnóstico del router (consciencia, sofisticación, `result_visible`, `available_proof`, `aida_emphasis`, `compliance_flags`, `missing_inputs`) | `angleRouterSchema` | Las filas viejas los conservan; sus desarrollos siguen leyendo `aida_emphasis` y `compliance_flags`. Los nuevos usan el AIDA de cada ángulo y `watch_out` |
+| «Puntaje posible con la prueba que falta» (`input.potential`) | `potentialScore` | Solo se muestra en evaluaciones viejas; las nuevas dicen «Reseñas reales…» si no hay aprobadas |
+| `competition` y `competitors_using` por candidato | `test_angles` | `TestAngle.competition` queda vacío en los nuevos; los viejos lo muestran |
+
+Las columnas `scores`, `suggested_primary`, `suggested_secondary`, `primary_angle` y `secondary_angle` de `angle_rankings` quedan sin uso nuevo; no se borran para no perder el historial. Una evaluación vieja se sigue viendo y confirmando (`isStrategy` distingue las dos) hasta que se vuelva a evaluar. Vista de ejemplo: `/dev/screens/angles?state=ranking` (v7) y `?state=ranking-v6`.
 
 ### 4.3 Los desarrollos
 
@@ -310,7 +337,7 @@ Cuando llegue la Fase 3, los productos con 2 desarrollos aprobados **no se bloqu
 
 ## 9. Tests
 
-- `lib/angles/score.test.ts`: bono y penalización por competencia; variedad de formas (no más de 2 iguales); sugerencia de 3.
+- `lib/angles/prompts.test.ts`: el orquestador v7 (system corto sin puntajes, contexto en texto con reseñas y fechas, reintento solo en el cierre) y `strategyProblems` (ganchos, Meta, montos, prueba real de Autoridad e Historia personal) y `suggestedFrom`. `score.test.ts` se retiró con `score.ts`.
 - `lib/copy/copy.test.ts`: el prompt no contiene «ángulo PRINCIPAL»; lleva los N ángulos aprobados y el diferenciador; la regla de tono cita los campos del cliente ideal.
 - `pain-block`: esquema (3 momentos, un `slot` por momento), autoprotección del Liquid, entrada en `mapping.test.ts` y `template-rules.test.ts`.
 - `comparison-table`: al menos 3 filas `spec`; sin filas `policy` contra categorías de producto.

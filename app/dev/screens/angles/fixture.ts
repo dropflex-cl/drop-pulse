@@ -1,172 +1,118 @@
-// Datos de ejemplo para /dev/screens/angles (textos de design-system/reference/bundle.js: ANG, SUG, DEV,
-// con las 6 formas del orquestador y los ángulos de testeo de docs/spec-angulos-testeo.md). No se usan
-// fuera de desarrollo.
+// Datos de ejemplo para /dev/screens/angles (textos de design-system/reference/bundle.js: SUG, DEV, con
+// los ángulos de testeo del orquestador v7 de docs/spec-angulos-testeo.md). No se usan fuera de
+// desarrollo.
 import { productImage } from "@/lib/mock/images";
 import { productPosition, type AngleFacts } from "@/lib/products/stages";
-import type { AngleBriefView, AngleCandidateView, AngleOption, AngleRankingView, ProductAngles, TestAngleView } from "@/lib/types";
+import type { AngleBriefView, AngleCandidateView, AngleRankingView, ProductAngles, TestAngleView } from "@/lib/types";
 import { AVATAR } from "../base/fixture";
 
 const NOW = "2026-09-24T12:00:00Z";
-
-const ANGLES: AngleOption[] = [
-  {
-    angle: "unique_mechanism",
-    name: "Mecanismo único",
-    rank: 1,
-    score: 84,
-    why: "Tu cliente ideal cree que el dolor es de la silla: el ajuste cruzado que lleva los hombros atrás es un «no es la silla, es cómo te sientas» fácil de mostrar.",
-    risks: [],
-    breakdown: [
-      { label: "Se explica en una frase", value: 34 },
-      { label: "Las alternativas atacan otra causa", value: 30 },
-      { label: "Se puede mostrar en un diagrama", value: 20 },
-    ],
-  },
-  {
-    angle: "age_identity",
-    name: "Edad e identidad",
-    rank: 2,
-    score: 71,
-    why: "Oficinistas de 30 a 45 que pasan 9 horas sentados se reconocen en una línea, y el vocero puede ser uno de ellos.",
-    risks: [{ text: "Evita «¿te duele la espalda?»: habla del grupo, no del espectador" }],
-    breakdown: [
-      { label: "Problema típico de una etapa o rol", value: 34 },
-      { label: "Audiencia estrecha que se reconoce", value: 23 },
-      { label: "El vocero puede ser uno de ellos", value: 14 },
-    ],
-  },
-  {
-    angle: "common_enemy",
-    name: "Enemigo común",
-    rank: 3,
-    score: 62,
-    why: "Ya probó fajas rígidas y sillas «ergonómicas» que no sirvieron; se puede atacar la práctica, no una marca.",
-    risks: [],
-    breakdown: [
-      { label: "Hay una solución popular que falló", value: 26 },
-      { label: "El comprador ya vio muchas promesas", value: 23 },
-      { label: "Se ataca una práctica, no una marca", value: 13 },
-    ],
-  },
-  {
-    angle: "offer",
-    name: "Oferta",
-    rank: 4,
-    score: 55,
-    why: "El pack de 3 al precio de 2 es claro, aunque para un dolor diario la oferta funciona mejor como capa que como gancho.",
-    risks: [{ text: "Sin una fecha comercial real, la urgencia se lee como falsa" }],
-    breakdown: [
-      { label: "Precio bajo para su mercado y pack posible", value: 30 },
-      { label: "Impulso, consumible o con variantes", value: 10 },
-      { label: "Se entiende sin explicación", value: 15 },
-      { label: "Hay una fecha comercial real", value: 0 },
-    ],
-  },
-  {
-    angle: "personal_story",
-    name: "Historia personal",
-    rank: 5,
-    score: 25,
-    why: "Funcionaría muy bien con un antes y después real, pero hoy no hay reseñas de clientes.",
-    risks: [{ text: "No hay testimonios reales", penalty: 40, fix: "reviews" }],
-    breakdown: [
-      { label: "Hay reseñas reales con historia", value: 0 },
-      { label: "El problema tiene carga emocional", value: 27 },
-      { label: "Compra que necesita convencer", value: 13 },
-      { label: "No hay testimonios reales", value: -40 },
-    ],
-  },
-  {
-    angle: "authority",
-    name: "Autoridad (experto)",
-    rank: 6,
-    score: 21,
-    why: "Un kinesiólogo le daría credibilidad, pero no hay uno real que lo recomiende.",
-    risks: [{ text: "No hay experto real", penalty: 40, fix: "expert" }],
-    breakdown: [
-      { label: "Problema de un profesional reconocible", value: 38 },
-      { label: "Es lo que el experto usaría", value: 23 },
-      { label: "Hay un experto real", value: 0 },
-      { label: "No hay experto real", value: -40 },
-    ],
-  },
-];
 
 const CANDIDATES: AngleCandidateView[] = [
   {
     index: 0,
     title: "No es la silla",
+    hook: "Cambié la silla dos veces y a las 4 de la tarde me seguían pesando los hombros.",
+    speaksTo: "user",
+    tone: "Confesión",
+    aida: {
+      attention: "La escena de las 4 de la tarde: estirarse en la silla con el cuello tenso.",
+      interest: "El problema no es la silla: son los hombros que se van hacia adelante.",
+      desire: "El ajuste cruzado los lleva atrás bajo la ropa, sin pensar en la postura.",
+      action: "Pide el pack de 3 al precio de 2 y paga al recibir.",
+    },
+    why: "Quien ya cambió de silla y sigue igual está listo para escuchar otra causa: es el dolor más común en la categoría.",
     painOrDesire: "La espalda cargada a las 4 de la tarde aunque la silla sea buena",
     segment: "Quien ya cambió de silla y sigue con dolor",
     promise: "Los hombros vuelven atrás sin pensar en la postura",
     frame: "unique_mechanism",
     frameName: "Mecanismo único",
     triggerMoment: "Estirarse en la silla a media tarde con el cuello tenso",
-    competition: "Las 4 tiendas venden «postura perfecta»; ninguna habla de la causa.",
-    competitorsUsing: 0,
-    score: 94,
-    frameScore: 84,
-    competitionDelta: 10,
+    competition: "",
   },
   {
     index: 1,
-    title: "9 horas frente al computador",
-    painOrDesire: "Terminar la jornada encorvado y con los hombros adelante",
+    title: "Encorvado en la videollamada",
+    hook: "Me vi en la cámara de la reunión y no me reconocí: parecía un signo de pregunta.",
+    speaksTo: "user",
+    tone: "Humor cotidiano",
+    aida: {
+      attention: "La miniatura de la videollamada con la espalda en curva.",
+      interest: "Pasa a quienes trabajan 9 horas sentados: no es flojera, es el cansancio de los hombros.",
+      desire: "Verse derecho en la cámara sin pensar en la postura en cada reunión.",
+      action: "Pídelo hoy y paga al recibir.",
+    },
+    why: "La escena se reconoce en un segundo y el humor hace que se comparta.",
+    painOrDesire: "Verse encorvado frente a los demás",
     segment: "Oficinistas de 30 a 45 que trabajan sentados",
     promise: "Verse firme en las reuniones otra vez",
     frame: "age_identity",
     frameName: "Edad e identidad",
     triggerMoment: "Verse encorvado en la cámara de una videollamada",
-    competition: "Una tienda habla de oficinistas, sin vocero del grupo.",
-    competitorsUsing: 1,
-    score: 71,
-    frameScore: 71,
-    competitionDelta: 0,
+    competition: "",
   },
   {
     index: 2,
     title: "Adiós a la faja rígida",
+    hook: "Tengo tres fajas en el cajón. Ninguna me ayudó con los hombros.",
+    speaksTo: "user",
+    tone: "Choque",
+    aida: {
+      attention: "El cajón con fajas que nadie usa.",
+      interest: "La faja aprieta la cintura, pero la carga está en los hombros.",
+      desire: "Algo que sostiene donde duele y no se nota bajo la polera.",
+      action: "Pide el pack de 3 al precio de 2 y paga al recibir.",
+    },
+    why: "Muchos ya probaron la faja y la dejaron: el enemigo está a la vista y nadie lo nombra.",
     painOrDesire: "Probó fajas que aprietan la cintura y no cambiaron nada",
     segment: "Quien ya compró una faja y la dejó en el cajón",
     promise: "Sostiene los hombros, no la cintura",
     frame: "common_enemy",
     frameName: "Enemigo común",
     triggerMoment: "Sacar la faja del cajón y volver a guardarla",
-    competition: "Nadie ataca la faja: todos la venden como alternativa.",
-    competitorsUsing: 0,
-    score: 72,
-    frameScore: 62,
-    competitionDelta: 10,
+    competition: "",
   },
   {
     index: 3,
+    title: "El regalo del Día del Padre",
+    hook: "Mi papá trabaja doblado en el taller desde que tengo memoria. Este año le regalo esto.",
+    speaksTo: "buyer",
+    tone: "Emocional",
+    aida: {
+      attention: "Las manos del papá en el taller, la espalda curva.",
+      interest: "Un regalo que va a usar todos los días, no otro que queda guardado.",
+      desire: "Verlo enderezarse después de la jornada.",
+      action: "Pide el pack de 2: uno para él y otro para ti. Paga al recibir.",
+    },
+    why: "La fecha está cerca y el pack de 2 tiene una razón real: uno para él y otro para quien lo regala.",
+    painOrDesire: "Querer regalarle algo útil al papá que trabaja de pie o encorvado",
+    segment: "Hijos e hijas de 25 a 45",
+    promise: "Un regalo que se usa todos los días",
+    frame: "offer",
+    frameName: "Oferta",
+    triggerMoment: "Ver al papá estirarse la espalda al llegar del trabajo",
+    competition: "",
+  },
+  {
+    index: 4,
     title: "Uno para la casa y otro para la oficina",
+    hook: "Lo dejé en la casa justo el día de la presentación. Nunca más.",
+    speaksTo: "user",
+    tone: "Cotidiano",
+    aida: {
+      attention: "Llegar a la oficina y darse cuenta de que lo olvidó.",
+      interest: "Quien trabaja híbrido lo necesita en los dos lugares.",
+      desire: "Siempre a mano, sin cargarlo de un lado a otro.",
+      action: "Pide el pack de 2 y paga al recibir.",
+    },
+    why: "Empuja el pack con una razón concreta, pero el dolor es más débil que los otros.",
     painOrDesire: "Olvidarlo en la casa justo el día que más lo necesita",
     segment: "Quien trabaja híbrido",
     promise: "Siempre a mano, en los dos lugares",
     frame: "offer",
     frameName: "Oferta",
     triggerMoment: "Llegar a la oficina y darse cuenta de que lo dejó",
-    competition: "3 tiendas empujan el 2x1 como gancho principal.",
-    competitorsUsing: 3,
-    score: 40,
-    frameScore: 55,
-    competitionDelta: -15,
-  },
-  {
-    index: 4,
-    title: "Lo que usa un kinesiólogo",
-    painOrDesire: "Querer una recomendación de alguien que sepa",
-    segment: "Quien desconfía de lo que ve en anuncios",
-    promise: "La misma idea que te daría un profesional",
-    frame: "authority",
-    frameName: "Autoridad (experto)",
-    triggerMoment: "Buscar en Google «postura correcta oficina»",
-    competition: "Ninguna tienda tiene un experto real.",
-    competitorsUsing: 0,
-    score: 31,
-    frameScore: 21,
-    competitionDelta: 10,
+    competition: "",
   },
 ];
 
@@ -181,6 +127,11 @@ const chosenOf = (c: AngleCandidateView, slot: 1 | 2 | 3): TestAngleView => ({
   promise: c.promise,
   triggerMoment: c.triggerMoment,
   competition: c.competition,
+  hook: c.hook,
+  aida: c.aida,
+  speaksTo: c.speaksTo,
+  tone: c.tone,
+  why: c.why,
 });
 
 function ranking(state: string): AngleRankingView | undefined {
@@ -191,17 +142,30 @@ function ranking(state: string): AngleRankingView | undefined {
     status: state === "evaluating" ? "running" : state === "failed" ? "failed" : "succeeded",
     error: state === "failed" ? "La IA no respondió. Intenta de nuevo en un momento." : undefined,
     createdAt: NOW,
-    angles: ready ? ANGLES : [],
     candidates: ready ? CANDIDATES : [],
-    suggested: ready ? [0, 2, 1] : [],
+    suggested: ready ? [0, 2, 3] : [],
+    suggestedReason: ready ? "El dolor más común, el enemigo que todos ya probaron y la fecha que se viene: tres razones distintas para comprar." : undefined,
+    buyerAndUser: ready ? "Lo compra y lo usa la misma persona, salvo para regalo: ahí compra un hijo o una hija para su papá." : undefined,
+    doubts: ready ? ["«Corrige la escoliosis»: es una promesa médica que el producto no puede sostener. No la uses."] : [],
+    watchOut: ready ? ["No le atribuyas el dolor a quien mira: «tu espalda» no; «a las 4 de la tarde me pesaban los hombros», sí."] : [],
     competitors: 4,
-    missing: [
-      { text: "Reseñas reales: subirían Historia personal hasta ~70", fix: "reviews" },
-      { text: "Una fecha comercial real (CyberDay, Día del Padre): subiría Oferta" },
-    ],
+    missing: [{ text: "Reseñas reales: con reseñas aprobadas la IA puede contar historias de compradores", fix: "reviews" }],
     avatarChanged: false,
   };
-  if (state === "legacy" || state === "legacy-nodiff") return { ...base, candidates: [], suggested: [], chosen: [chosenOf({ ...CANDIDATES[0], title: "" }, 1), chosenOf({ ...CANDIDATES[1], title: "" }, 2)].map((a) => ({ ...a, name: a.frameName })), confirmedAt: NOW };
+  const bare = (c: AngleCandidateView): AngleCandidateView => ({ ...c, hook: "", aida: undefined, speaksTo: undefined, tone: undefined, why: undefined });
+  if (state === "legacy" || state === "legacy-nodiff")
+    return { ...base, candidates: [], suggested: [], chosen: [chosenOf(bare({ ...CANDIDATES[0], title: "" }), 1), chosenOf(bare({ ...CANDIDATES[1], title: "" }), 2)].map((a) => ({ ...a, name: a.frameName })), confirmedAt: NOW };
+  // Una evaluación de antes del orquestador v7: candidatos sin gancho ni AIDA, con lo que hacía la competencia.
+  if (state === "ranking-v6")
+    return {
+      ...base,
+      candidates: CANDIDATES.map((c) => ({ ...bare(c), competition: "Las 4 tiendas venden «postura perfecta»; ninguna habla de la causa." })),
+      suggestedReason: undefined,
+      buyerAndUser: undefined,
+      doubts: [],
+      watchOut: [],
+      missing: [{ text: "Reseñas reales: subirían Historia personal hasta ~70", fix: "reviews" }],
+    };
   if (["developing", "review", "approved", "changing"].includes(state)) return { ...base, chosen: [chosenOf(CANDIDATES[0], 1), chosenOf(CANDIDATES[2], 2), chosenOf(CANDIDATES[1], 3)], confirmedAt: NOW };
   return base;
 }

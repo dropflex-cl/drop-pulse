@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  AngleCard,
   AngleDevelopment,
   AngleDevelopmentActions,
   Button,
@@ -23,7 +22,7 @@ import { AssistantButton, AssistantScope } from "@/components/shell/assistant-pr
 import { AiCostButton, useAiEstimate, useStepCost } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
-import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type SalesAngle } from "@/lib/angles/catalog";
+import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type SalesAngle, type SpeaksTo } from "@/lib/angles/catalog";
 import { money } from "@/lib/format";
 import { ProductApiClientError, productsApi, type TestAngleInput } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
@@ -32,9 +31,10 @@ import { cn } from "@/lib/utils";
 import { ConnectAnthropic } from "./connect-anthropic";
 
 // Etapa Ángulos (docs/spec-angulos-testeo.md §4): el cliente ideal aprobado y el diferenciador
-// confirmado → “Elegir ángulos con IA” → 5 ángulos candidatos (mensaje + forma) con la sugerencia de 3
-// → el comerciante elige 2 o 3 (uno por conjunto de anuncios) y la forma de cada uno → un desarrollo
-// por ángulo, en paralelo → aprobarlos habilita Imágenes y la página del producto.
+// confirmado → “Elegir ángulos con IA” → 5 ángulos candidatos, del que más vende al que menos, cada
+// uno con su gancho y su AIDA, y los 2 o 3 que la IA testearía primero → el comerciante elige 2 o 3
+// (uno por conjunto de anuncios) y la forma de cada uno → un desarrollo por ángulo, en paralelo →
+// aprobarlos habilita Imágenes y la página del producto.
 
 const POLL_MS = 2500;
 
@@ -42,15 +42,11 @@ type Pick = TestAngleInput & { key: string };
 
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 /** Lo que se manda al confirmar: sin la clave de la pantalla. */
-const toInput = (p: Pick): TestAngleInput => ({
-  title: p.title,
-  frame: p.frame,
-  pain_or_desire: p.pain_or_desire,
-  segment: p.segment,
-  promise: p.promise,
-  trigger_moment: p.trigger_moment,
-  competition: p.competition,
-});
+const toInput = (p: Pick): TestAngleInput => {
+  const angle: Partial<Pick> = { ...p };
+  delete angle.key;
+  return angle as TestAngleInput;
+};
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 
 function devStatus(b: AngleBriefView): AngleDevelopmentStatus {
@@ -80,6 +76,11 @@ const fromCandidate = (c: AngleCandidateView): Pick => ({
   promise: c.promise,
   trigger_moment: c.triggerMoment,
   competition: c.competition,
+  ...(c.hook ? { hook: c.hook } : {}),
+  ...(c.aida ? { aida: c.aida } : {}),
+  ...(c.speaksTo ? { speaks_to: c.speaksTo } : {}),
+  ...(c.tone ? { tone: c.tone } : {}),
+  ...(c.why ? { why: c.why } : {}),
 });
 
 const fromChosen = (a: TestAngleView, candidates: AngleCandidateView[]): Pick => {
@@ -93,6 +94,11 @@ const fromChosen = (a: TestAngleView, candidates: AngleCandidateView[]): Pick =>
     promise: a.promise,
     trigger_moment: a.triggerMoment,
     competition: a.competition,
+    ...(a.hook ? { hook: a.hook } : {}),
+    ...(a.aida ? { aida: a.aida } : {}),
+    ...(a.speaksTo ? { speaks_to: a.speaksTo } : {}),
+    ...(a.tone ? { tone: a.tone } : {}),
+    ...(a.why ? { why: a.why } : {}),
   };
 };
 
@@ -103,8 +109,13 @@ function initialPicks(r: AngleRankingView | undefined): Pick[] {
   return r.suggested.map((i) => r.candidates[i]).filter(Boolean).map(fromCandidate);
 }
 
-/** Riesgo que se resuelve con un dato real: las reseñas se importan en Reseñas; el experto se escribe en Información base. */
-const FIX_LABEL = { reviews: "Importar reseñas", expert: "Agregar experto" } as const;
+const SPEAKS_TO_LABEL: Record<SpeaksTo, string> = { buyer: "Le habla a quien compra", user: "Le habla a quien lo usa" };
+const AIDA_ROWS = [
+  ["attention", "Atención"],
+  ["interest", "Interés"],
+  ["desire", "Deseo"],
+  ["action", "Acción"],
+] as const;
 
 export function AnglesScreen({ data }: { data: ProductAngles }) {
   const router = useRouter();
@@ -131,8 +142,6 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   }
   const [choosing, setChoosing] = useState(false);
   const [editingPick, setEditingPick] = useState<string | null>(null);
-  const [showForms, setShowForms] = useState(false);
-  const [expandedForm, setExpandedForm] = useState<SalesAngle | null>(null);
   const [tab, setTab] = useState<number>(1);
   const [editing, setEditing] = useState<number | null>(null);
   const [busy, setBusy] = useState<{ what: string; slot?: number } | null>(null);
@@ -276,7 +285,6 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   const patchPick = (key: string, patch: Partial<Pick>) => setPicks((p) => p.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
   // ---------------------------------------------------------------- Piezas
-  const frameScore = new Map((ranking?.angles ?? []).map((a) => [a.angle, a.score]));
   const suggestedKeys = new Set((ranking?.suggested ?? []).map((i) => `c${i}`));
   const changed = Boolean(ranking && (picks.length !== ranking.suggested.length || picks.some((p, i) => p.key !== `c${ranking.suggested[i]}`)));
 
@@ -301,8 +309,8 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
       </p>
       <p className="mt-2 text-label font-normal text-muted-foreground">
         {state.competitors
-          ? `${state.competitors === 1 ? "1 tienda de la competencia analizada" : `${state.competitors} tiendas de la competencia analizadas`}: los ángulos buscan lo que no están diciendo.`
-          : "Sin tiendas de la competencia: agrégalas en Información base para que los ángulos eviten lo que ya se dice."}
+          ? `${state.competitors === 1 ? "1 tienda de la competencia analizada" : `${state.competitors} tiendas de la competencia analizadas`}: los ángulos no copian sus anuncios.`
+          : "Sin tiendas de la competencia: agrégalas en Información base para que los ángulos no copien lo que ya se dice."}
       </p>
     </section>
   ) : null;
@@ -314,12 +322,14 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
     const pick = picks[pos];
     const full = !picked && picks.length >= TEST_ANGLES;
     const edit = editingPick === key && pick;
+    const hook = pick?.hook ?? c.hook;
+    const meta = [c.tone, c.speaksTo ? SPEAKS_TO_LABEL[c.speaksTo] : ""].filter(Boolean).join(" · ");
     return (
       <article key={key} aria-labelledby={`cand-${key}`} className={cn("flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4", picked && "border-2 border-primary p-3.75")}>
         <div className="flex flex-wrap items-center gap-2">
           {picked ? <RoleChip slot={pos + 1} short /> : null}
           {suggestedKeys.has(key) ? <RoleChip role="sugerido" /> : null}
-          <span className="ml-auto text-label font-semibold tabular-nums">{c.score}/100</span>
+          {meta ? <span className="ml-auto text-label font-normal text-muted-foreground">{meta}</span> : null}
         </div>
         <h3 id={`cand-${key}`} className="text-heading">
           {pick?.title || c.title}
@@ -329,6 +339,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
             {(
               [
                 ["title", "Nombre del ángulo", 60],
+                ...(c.hook ? ([["hook", "Gancho", 300]] as const) : []),
                 ["pain_or_desire", "Dolor o deseo", 400],
                 ["segment", "Para quién", 300],
                 ["promise", "Promesa", 300],
@@ -339,7 +350,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
                 <textarea
                   rows={field === "title" ? 1 : 2}
                   maxLength={max}
-                  value={pick[field]}
+                  value={pick[field] ?? ""}
                   onChange={(e) => patchPick(key, { [field]: e.target.value })}
                   className="min-h-11 w-full resize-y rounded-md border border-input bg-background p-2.5 text-body font-normal outline-none focus:border-primary focus:ring-3 focus:ring-primary-soft"
                 />
@@ -350,38 +361,51 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
             </Button>
           </div>
         ) : (
-          <dl className="flex flex-col gap-1.5 text-small">
-            <div>
-              <dt className="inline font-semibold">Dolor o deseo: </dt>
-              <dd className="inline">{pick?.pain_or_desire || c.painOrDesire}</dd>
-            </div>
-            <div>
-              <dt className="inline font-semibold">Para quién: </dt>
-              <dd className="inline">{pick?.segment || c.segment}</dd>
-            </div>
-            <div>
-              <dt className="inline font-semibold">Promesa: </dt>
-              <dd className="inline">{pick?.promise || c.promise}</dd>
-            </div>
-            {c.triggerMoment ? (
-              <div>
-                <dt className="inline font-semibold">Abre con: </dt>
-                <dd className="inline">{c.triggerMoment}</dd>
-              </div>
+          <>
+            {hook ? <p className="border-l-2 border-muted-foreground pl-3 text-row">«{hook}»</p> : null}
+            {c.aida ? (
+              <dl className="flex flex-col gap-1.5 text-small">
+                {AIDA_ROWS.map(([k, label]) => (
+                  <div key={k}>
+                    <dt className="inline font-semibold">{label}: </dt>
+                    <dd className="inline">{c.aida![k]}</dd>
+                  </div>
+                ))}
+              </dl>
             ) : null}
-          </dl>
+            <dl className="flex flex-col gap-1.5 text-small">
+              {c.aida ? null : (
+                <div>
+                  <dt className="inline font-semibold">Dolor o deseo: </dt>
+                  <dd className="inline">{pick?.pain_or_desire || c.painOrDesire}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="inline font-semibold">Para quién: </dt>
+                <dd className="inline">{pick?.segment || c.segment}</dd>
+              </div>
+              {c.aida ? null : (
+                <div>
+                  <dt className="inline font-semibold">Promesa: </dt>
+                  <dd className="inline">{pick?.promise || c.promise}</dd>
+                </div>
+              )}
+              {!c.aida && c.triggerMoment ? (
+                <div>
+                  <dt className="inline font-semibold">Abre con: </dt>
+                  <dd className="inline">{c.triggerMoment}</dd>
+                </div>
+              ) : null}
+            </dl>
+            {c.why ? <p className="text-label font-normal text-muted-foreground">{c.why}</p> : null}
+          </>
         )}
-        <p className={cn("flex gap-2 text-label font-normal", c.competitionDelta > 0 ? "text-success" : c.competitionDelta < 0 ? "text-warning" : "text-muted-foreground")}>
-          <Icon name={c.competitionDelta < 0 ? "alert" : "sparkle"} size="sm" className="mt-0.5 shrink-0" />
-          <span>
-            {ranking?.competitors
-              ? c.competitorsUsing === 0
-                ? "Ninguna tienda de la competencia lo usa (+10)."
-                : `${c.competitorsUsing === 1 ? "Lo usa 1 tienda" : `Lo usan ${c.competitorsUsing} tiendas`} de la competencia${c.competitionDelta < 0 ? " (−15)" : ""}.`
-              : "Sin datos de competencia."}{" "}
-            {c.competition && c.competition !== "Sin datos de competencia" ? c.competition : ""}
-          </span>
-        </p>
+        {c.competition && c.competition !== "Sin datos de competencia" ? (
+          <p className="flex gap-2 text-label font-normal text-muted-foreground">
+            <Icon name="sparkle" size="sm" className="mt-0.5 shrink-0" />
+            <span>{c.competition}</span>
+          </p>
+        ) : null}
         <label className="flex flex-col gap-1 text-label">
           Forma de contarlo
           <select
@@ -393,7 +417,6 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
             {SALES_ANGLES.map((f) => (
               <option key={f} value={f}>
                 {ANGLES[f].name}
-                {frameScore.has(f) ? ` · ${frameScore.get(f)}/100` : ""}
                 {f === c.frame ? " · recomendada" : ""}
               </option>
             ))}
@@ -496,14 +519,14 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
           </h2>
           <ol className="mt-2 mb-3 flex list-decimal flex-col gap-1.5 pl-5 text-small">
             <li>
-              Propone <b>5 ángulos</b> de venta distintos: qué dolor o deseo destacar, para quién y con qué promesa.
+              Propone los <b>5 ángulos</b> que más pueden vender, cada uno con su gancho y su anuncio en AIDA.
             </li>
-            <li>Mira lo que dice tu competencia y prefiere lo que nadie está usando.</li>
+            <li>Piensa en quién compra y quién usa, en lo que ya vende en tu categoría y en las fechas comerciales que se vienen.</li>
             <li>
-              Sugiere <b>3 para testear</b>, cada uno en su propio conjunto de anuncios. Tú decides; el mercado dice cuál vende.
+              Sugiere <b>2 o 3 para testear</b>, cada uno en su propio conjunto de anuncios. Tú decides; el mercado dice cuál vende.
             </li>
           </ol>
-          <p className="text-label font-normal text-muted-foreground">No inventa pruebas: si falta un experto o reseñas reales, baja el puntaje de la forma que las necesita.</p>
+          <p className="text-label font-normal text-muted-foreground">No inventa pruebas, y si un dato del proveedor no es creíble, te lo marca.</p>
         </section>
       </div>
     );
@@ -628,6 +651,7 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
         ) : (
           <p className="text-label font-normal text-muted-foreground">Elige los ángulos que vas a testear.</p>
         )}
+        {!changed && ranking.suggestedReason ? <p className="text-label font-normal text-muted-foreground">{ranking.suggestedReason}</p> : null}
         <p className="text-label font-normal text-muted-foreground">Cada ángulo va en su propio conjunto de anuncios; la página del producto sirve a todos.</p>
         {ranking.missing.length ? (
           <ul className="mt-1 flex flex-col gap-1 border-t pt-2 text-label font-normal text-muted-foreground">
@@ -666,30 +690,32 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
               }
             />
           ) : null}
+          {ranking.doubts.length ? (
+            <Notice
+              title="Revisa estos datos antes de usarlos."
+              // Notice pone el cuerpo dentro de un <p>: una lista ahí rompe la hidratación.
+              body={ranking.doubts.map((d) => (
+                <span key={d} className="mt-1 block">
+                  {d}
+                </span>
+              ))}
+            />
+          ) : null}
           <div className="lg:hidden">{summary}</div>
+          {ranking.buyerAndUser ? <p className="text-body text-muted-foreground">{ranking.buyerAndUser}</p> : null}
           {differentiator}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">{ranking.candidates.map(candidateCard)}</div>
-          <Button variant="ghost" className="self-start" onClick={() => setShowForms((v) => !v)}>
-            {showForms ? "Ocultar las 6 formas de contarlo" : "Ver las 6 formas de contarlo"}
-          </Button>
-          {showForms ? (
-            <div className="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(--spacing(75),1fr))] lg:items-start">
-              {ranking.angles.map((a) => (
-                <AngleCard
-                  key={a.angle}
-                  rank={a.rank}
-                  name={a.name}
-                  score={a.score}
-                  fit={a.why}
-                  risks={a.risks.map((r) => ({ text: r.text, penalty: r.penalty, fix: r.fix ? FIX_LABEL[r.fix] : undefined }))}
-                  breakdown={a.breakdown}
-                  hideActions
-                  expanded={expandedForm === a.angle}
-                  onToggle={() => setExpandedForm(expandedForm === a.angle ? null : a.angle)}
-                  onFix={(r) => router.push(fixHref(a.risks.find((k) => k.text === r.text)?.fix))}
-                />
-              ))}
-            </div>
+          {ranking.watchOut.length ? (
+            <section aria-labelledby="cuidado" className="rounded-lg border bg-card p-4">
+              <h2 id="cuidado" className="text-heading">
+                Cuidado al lanzar
+              </h2>
+              <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-small">
+                {ranking.watchOut.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </section>
           ) : null}
           <div className="flex flex-wrap gap-2 lg:hidden">
             {reevalButton("m")}

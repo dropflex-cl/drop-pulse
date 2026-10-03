@@ -22,9 +22,15 @@ export function angleForPrompt(angle: TestAngle, payload: AngleBriefPayload, fra
 /** El encabezado de un ángulo en un prompt: «Ángulo 1: La crema sella (forma: Mecanismo único)». */
 export const angleHeading = (a: AngleForPrompt) => `${slotLabel(a.slot)}: ${a.name} (forma: ${a.frameName})`;
 
-/** El mensaje del ángulo (dolor, segmento, promesa, momento), sin los vacíos de los ángulos de antes. */
+/**
+ * El mensaje del ángulo (gancho, a quién le habla, tono, dolor, segmento, promesa, momento), sin los
+ * vacíos de los ángulos de antes del orquestador v7.
+ */
 export function angleMessage(a: TestAngle): Record<string, string> {
   const out: Record<string, string> = {};
+  if (a.hook) out.hook = a.hook;
+  if (a.speaks_to) out.speaks_to = a.speaks_to === "buyer" ? "quien compra (puede no ser quien lo usa)" : "quien usa el producto";
+  if (a.tone) out.tone = a.tone;
   if (a.pain_or_desire) out.pain_or_desire = a.pain_or_desire;
   if (a.segment) out.segment = a.segment;
   if (a.promise) out.promise = a.promise;

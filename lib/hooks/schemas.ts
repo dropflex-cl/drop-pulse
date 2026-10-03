@@ -31,8 +31,8 @@ import {
 } from "./catalog";
 import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "./policy";
 
-/** Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera toma (opening_shot) y la versión de mascota. */
-export const HOOKS_PROMPT_VERSION = 2;
+/** Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera toma (opening_shot) y la versión de mascota. 3: parte del gancho del ángulo (orquestador v7). */
+export const HOOKS_PROMPT_VERSION = 3;
 
 const VARIANT_CHANGES = ["spoken", "on_screen", "visual"];
 

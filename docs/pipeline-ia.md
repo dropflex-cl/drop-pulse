@@ -100,45 +100,39 @@ La plantilla de la fórmula va en el prompt: en el proyecto base solo se nombrab
 ## Etapa Ángulos
 
 ```
-Cliente ideal aprobado + ficha + precio (y etiquetas de packs aprobadas)
+Cliente ideal aprobado + diferenciador confirmado + ficha + precio (y etiquetas de packs aprobadas)
++ reseñas aprobadas hoy + competencia + fechas comerciales próximas del mercado
                  │
       “Elegir ángulos con IA”  POST /api/products/[id]/angles   (angle_rankings: queued → running)
                  ▼
- angle-router (effort medium) → criterios 0–5 y penalización por ángulo, combinaciones, datos que faltan
-                 │
- lib/angles/score.ts → puntaje 0–100 por ángulo, ranking y sugerencia (principal + secundario)
+ orquestador v7 (effort high) → 5 ángulos del que más vende al que menos, cada uno con gancho, AIDA,
+                 │             a quién le habla y tono; los 2 o 3 para testear primero; datos dudosos
+ strategyProblems (código) → si falla una regla comprobable, otra respuesta una vez
                  ▼
- El comerciante confirma o cambia   PUT /api/products/[id]/angles/selection
+ El comerciante elige 2 o 3 (ve el gancho; puede editarlo)   PUT /api/products/[id]/angles/selection
                  ▼
- angulo-<principal> ∥ angulo-<secundario> (effort high) → angle_briefs.payload (generated)
+ un agente por ángulo, el de su forma (effort high) → angle_briefs.payload (generated)
                  │   y en cada uno, después: agente de ganchos (effort medium) → payload.hooks (docs/spec-ganchos.md)
                  ▼
- Aprobar, editar o regenerar cada uno; con los 2 aprobados se habilita Textos
+ Aprobar, editar o regenerar cada uno; con todos aprobados se habilita Imágenes
 ```
 
 | Tabla | Qué guarda |
 |---|---|
-| `angle_rankings` | Una evaluación: `status`, `input` (mercado, precio, `avatar_id` y el puntaje posible con la prueba que falta), `payload` (lo que dijo el modelo), `scores` (el ranking calculado), `suggested_*`, la elección confirmada (`primary_angle`, `secondary_angle`, `confirmed_at`). Una activa por producto |
-| `angle_briefs` | Un desarrollo por intento: `angle`, `role` (`primary`/`secondary`), `generation` (estado de la llamada), `payload` (el brief), `status` (`content_status`). Regenerar crea otro y el anterior queda `rejected`. Uno activo por papel |
+| `angle_rankings` | Una evaluación: `status`, `input` (mercado, precio, `avatar_id`, diferenciador, competencia, `reviews`, `events`, `today`), `payload` (la propuesta del orquestador), `suggested_slots`, la elección confirmada (`chosen_angles`, `confirmed_at`). Una activa por producto. Las de antes de v7 traen además `scores` (el puntaje de las 6 formas) |
+| `angle_briefs` | Un desarrollo por intento: `angle` (la forma), `slot`, `generation` (estado de la llamada), `payload` (el brief y sus ganchos), `status` (`content_status`). Regenerar crea otro y el anterior queda `rejected`. Uno activo por slot |
 
-**Puntaje** (`lib/angles/score.ts`): `fit = Σ(criterio × peso) / (5 × Σpesos) × 100 − penalización`, con los pesos y castigos de `angle-router.md` (`lib/angles/catalog.ts`). El sistema pisa al modelo con lo que puede comprobar:
+**Por qué un prompt corto** (`docs/spec-angulos-testeo.md` §4.2): la versión anterior evaluaba 6 formas con 3 criterios cada una y un JSON de ~70 campos; los ángulos salían como etiquetas sin gancho y las formas dejaban fuera lo que no calzaba (humor, regalo de temporada). Ahora el modelo responde lo que preguntaría el comerciante, con el gancho y el AIDA de cada ángulo, y el código revisa después lo que se puede comprobar (`strategyProblems`): largo del gancho, gancho y AIDA con `hookTextProblems`, Autoridad solo con experto real e Historia personal solo con reseñas reales. No hay puntaje en código.
 
-- `real_expert` y la penalización de Autoridad salen de `proof.real_expert` de la ficha;
-- `narrative_reviews` y la penalización de Historia personal salen de `proof.real_reviews`;
-- la sofisticación de Enemigo común sale del cliente ideal;
-- la fecha comercial de Oferta sale de `real_deadline_or_event`;
-- Oferta se castiga si ningún pack gana más que 1 unidad.
+**Esquema compacto:** la API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled grammar is too large»). Un test impide que un esquema de ángulos sea más grande que el del cliente ideal.
 
-**Esquema compacto y validado:** la API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled grammar is too large»). Por eso los 6 ángulos comparten una forma y los criterios van como lista de puntajes en el orden de `lib/angles/catalog.ts`. `routerProblems` revisa que estén los 6, sin repetir, con un puntaje de 0 a 5 por criterio; si no, se pide otra respuesta una vez diciendo qué falló y, si vuelve a fallar, la evaluación queda con error. Nunca se completa con ceros. Un test impide que un esquema de ángulos sea más grande que el del cliente ideal.
-
-Desempates: si los dos primeros están a menos de 5 puntos, gana el que tiene la prueba real hoy; la oferta pasa a secundario si otro está a menos de 10 puntos.
-
-**Prompts** (`lib/angles/prompts.ts`): los de `agentes-creativos/*.md`, adaptados a LATAM:
+**Prompts de los agentes** (`lib/angles/prompts.ts`): los de `agentes-creativos/*.md`, adaptados a LATAM:
 
 - copy en el idioma del mercado con tuteo (`marketBlock`), no en inglés;
 - el riesgo lo quita el pago contra entrega; la garantía solo si la ficha la trae;
 - los umbrales en USD se reemplazan por `pricingBlock` (packs, ganancia, CPA máximo);
-- la ley es la del país (`consumerAuthority`), además de las políticas de Meta.
+- la ley es la del país (`consumerAuthority`), además de las políticas de Meta;
+- reciben el gancho, el AIDA y el tono del ángulo: la forma es una guía de estructura, no un molde.
 
 **Rutas**
 
@@ -146,13 +140,13 @@ Desempates: si los dos primeros están a menos de 5 puntos, gana el que tiene la
 |---|---|
 | `GET /api/products/[id]/angles` | Estado de la etapa (sondeo cada 2,5 s) |
 | `POST /api/products/[id]/angles` | Evalúa (o devuelve la evaluación activa) |
-| `PUT /api/products/[id]/angles/selection` | `{ primary, secondary }`: confirma y desarrolla los que falten |
+| `PUT /api/products/[id]/angles/selection` | `{ angles }` (2 o 3, con su gancho y AIDA si los traen): confirma y desarrolla los que falten |
 | `PATCH /api/products/[id]/angles/briefs/[briefId]` | `{ action: "approve" \| "reopen" }` |
 | `PUT /api/products/[id]/angles/briefs/[briefId]` | `{ edit, approve? }`: ganchos, argumento por etapa, objeciones y oferta |
 | `POST /api/products/[id]/angles/briefs/[briefId]` | Regenera |
 | `POST /api/products/[id]/angles/briefs/[briefId]?part=hooks` | «Otros ganchos»: solo los ganchos, en la misma solicitud |
 
-Topes: 20 evaluaciones y 60 desarrollos por comerciante cada 24 horas. `/dev/screens/angles?state=locked|start|evaluating|failed|ranking|developing|review|approved` muestra la etapa con datos de ejemplo.
+Topes: 20 evaluaciones y 90 desarrollos por comerciante cada 24 horas. `/dev/screens/angles?state=locked|start|evaluating|failed|ranking|ranking-v6|developing|review|approved` muestra la etapa con datos de ejemplo.
 
 ## Página del producto (etapa Textos)
 

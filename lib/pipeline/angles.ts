@@ -3,21 +3,21 @@ import { createHash } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
-import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
-import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type AngleSlot, type SalesAngle, type TestAngle } from "@/lib/angles/catalog";
-import { angleRouterContext, angleRouterSystem, angleRouterTail, angleSystem, angleUser, type AngleContext } from "@/lib/angles/prompts";
+import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type AngleAida, type AngleSlot, type SalesAngle, type SpeaksTo, type TestAngle } from "@/lib/angles/catalog";
+import { angleStrategyContext, angleStrategySystem, angleStrategyTail, angleSystem, angleUser, type AngleContext, type UpcomingEvent } from "@/lib/angles/prompts";
 import {
   ANGLE_BRIEF_PROMPT_VERSION,
   ANGLE_ROUTER_PROMPT_VERSION,
   angleBriefEditSchema,
   angleBriefSchema,
-  angleRouterSchema,
-  evaluationsFrom,
-  routerProblems,
+  angleStrategySchema,
+  isStrategy,
+  strategyProblems,
+  suggestedFrom,
   type AngleBriefEdit,
   type AngleBriefPayload,
 } from "@/lib/angles/schemas";
-import { potentialScore, rankAngles, rankCandidates, type ScoredAngle } from "@/lib/angles/score";
 import { allApproved, chosenAngles, currentBriefs, fail, getBriefRow, latestRankings, type BriefRow, type RankingRow } from "@/lib/angles/store";
 import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
 import { adminClient } from "@/lib/integrations/admin";
@@ -28,17 +28,19 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { hooksToPayload, hookTextOk, type HooksMeta } from "@/lib/hooks/schemas";
 import { getProductRow, latestAvatars, latestBrief } from "@/lib/products/store";
+import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { getMarket } from "@/lib/settings/market";
 import { baseImageBlock, HOOK_ATTEMPTS_AFTER_BRIEF, regenerateHooks, writeHooks } from "./hooks";
 import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md y
 // docs/spec-angulos-testeo.md §4):
-//   1. angle-router → evalúa las 6 formas y propone 5 ángulos para testear; los puntajes y la
-//      sugerencia de 3 se calculan en código (forma + competencia)
+//   1. orquestador (v7) → 5 ángulos ordenados del que más vende al que menos, cada uno con su gancho
+//      y su AIDA, y los 2 o 3 que testearía primero; el código revisa lo comprobable (strategyProblems)
 //   2. el comerciante elige 2 o 3 ángulos (uno por conjunto de anuncios) y la forma de cada uno
 //   3. un agente por ángulo (el de su forma), en paralelo → un brief por ángulo
-// Parte del cliente ideal APROBADO, el diferenciador, la competencia, la ficha y el precio.
+// Parte del cliente ideal APROBADO, el diferenciador, la competencia, la ficha, el precio, las
+// reseñas aprobadas hoy y las fechas comerciales próximas del mercado.
 
 /** Tope de evaluaciones y de desarrollos por comerciante en 24 h (cada uno es una llamada a Claude Opus). */
 const DAILY_RANKINGS = 20;
@@ -51,7 +53,7 @@ const DAILY_BRIEFS = 90;
  */
 const BREAKER_FAILURES = 2;
 const BREAKER_WINDOW_MS = 6 * 60 * 60 * 1000;
-const UNSCORABLE = ["invalid_output", "invalid_scores"];
+const UNSCORABLE = ["invalid_output", "invalid_scores", "invalid_angles"];
 
 async function breakerOpen(userId: string, productId: string): Promise<boolean> {
   const { data, error } = await adminClient()
@@ -76,6 +78,44 @@ async function dailyCount(table: "angle_rankings" | "angle_briefs", userId: stri
   const { count, error } = await adminClient().from(table).select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since);
   fail("Contar las generaciones", error);
   return count ?? 0;
+}
+
+/** Reseñas aprobadas que se le muestran al orquestador y a los agentes (las primeras, recortadas). */
+const PROMPT_REVIEWS = 12;
+const REVIEW_CHARS = 400;
+
+/**
+ * Los textos de las reseñas aprobadas HOY. La ficha guarda las que había al generarla: si el
+ * comerciante importó y aprobó reseñas después, la ficha dice que no hay (producción, 2026-10-03:
+ * 14 aprobadas y la evaluación castigó Historia personal por «sin reseñas»).
+ */
+async function approvedReviewTexts(userId: string, productId: string): Promise<string[]> {
+  const rows = await approvedReviewRows(userId, productId);
+  return rows
+    .map((r) => displayText(r).trim())
+    .filter(Boolean)
+    .slice(0, PROMPT_REVIEWS)
+    .map((t) => (t.length > REVIEW_CHARS ? `${t.slice(0, REVIEW_CHARS)}…` : t));
+}
+
+/** Fechas comerciales que empiezan en estos días: un ángulo de regalo o temporada tiene sentido. */
+const EVENTS_AHEAD_DAYS = 120;
+
+/** AAAA-MM-DD en la zona del mercado. */
+const isoDay = (d: Date, timezone?: string | null) => new Intl.DateTimeFormat("en-CA", { timeZone: timezone || "UTC" }).format(d);
+
+/** Las fechas del calendario de eventos del mercado que siguen vigentes y empiezan pronto. */
+async function upcomingEvents(market: Market, now = Date.now()): Promise<UpcomingEvent[]> {
+  const { data, error } = await adminClient()
+    .from("events")
+    .select("name, starts_at")
+    .eq("market", market.countryCode)
+    .eq("status", "published")
+    .gte("ends_at", new Date(now).toISOString())
+    .lte("starts_at", new Date(now + EVENTS_AHEAD_DAYS * 86_400_000).toISOString())
+    .order("starts_at");
+  fail("Leer el calendario de eventos", error);
+  return ((data ?? []) as { name: string; starts_at: string }[]).map((e) => ({ name: e.name, starts_on: isoDay(new Date(e.starts_at), market.timezone) }));
 }
 
 /** Lo que leen el orquestador y los agentes: ficha, cliente ideal aprobado, precio y etiquetas aprobadas. */
@@ -124,6 +164,7 @@ export async function startRanking(userId: string, productId: string): Promise<{
     throw new OptimizeError(`Llegaste al máximo de ${DAILY_RANKINGS} evaluaciones de ángulos en 24 horas. Vuelve mañana.`, 429);
   }
   const { market } = await getMarket(userId, await getShopifyConnection(userId));
+  const [reviews, events] = await Promise.all([approvedReviewTexts(userId, productId), upcomingEvents(market)]);
   const { data, error } = await db
     .from("angle_rankings")
     .insert({
@@ -139,6 +180,9 @@ export async function startRanking(userId: string, productId: string): Promise<{
         differentiator: ctx.differentiator.value,
         competitors: ctx.competitors.length,
         competitor_analyses: ctx.competitors,
+        reviews,
+        events,
+        today: isoDay(new Date(), market.timezone),
       },
     })
     .select("*")
@@ -166,8 +210,14 @@ async function contextFor(r: { user_id: string; product_id: string }, input: Rec
     avatarById(r.user_id, input.avatar_id as string),
   ]);
   if (!product || !brief) throw new AiStepError("not_found", "El producto o su ficha ya no existen.");
+  // Las reseñas aprobadas al evaluar pisan las de la ficha, que pueden ser de antes de importarlas.
+  // Las evaluaciones de antes del orquestador v7 no las guardaban: queda la ficha.
+  const reviews = Array.isArray(input.reviews) ? (input.reviews as string[]) : undefined;
   return {
-    brief,
+    brief: reviews?.length ? { ...brief, proof: { ...brief.proof, real_reviews: reviews } } : brief,
+    reviews,
+    events: (input.events as UpcomingEvent[] | undefined) ?? undefined,
+    today: (input.today as string | undefined) ?? undefined,
     avatar,
     pricing: input.pricing as PricingPlan,
     labels: (input.labels as PackLabel[] | null) ?? undefined,
@@ -187,16 +237,6 @@ function briefInputKey(ctx: AngleContext, market: unknown, angle: TestAngle, oth
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 
-function facts(brief: ProductBrief, avatar: CustomerAvatar, pricing: PricingPlan) {
-  return {
-    hasRealExpert: Boolean(brief.proof.real_expert?.trim()),
-    hasRealReviews: brief.proof.real_reviews.some((r) => r.trim()),
-    sophistication: avatar.market_sophistication,
-    hasRealEvent: Boolean(brief.real_deadline_or_event?.trim()),
-    packEarnsMore: pricing.packs.some((p) => p.units > 1 && p.earnsMoreThanPrevious && p.profit > 0),
-  };
-}
-
 /** Ejecuta la evaluación. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runRanking(rankingId: string): Promise<void> {
   const db = adminClient();
@@ -211,31 +251,33 @@ export async function runRanking(rankingId: string): Promise<void> {
   const r = claimed.data as RankingRow;
   try {
     const ctx = await contextFor(r, r.input);
-    // Si la lista de puntajes no calza con los criterios, se pide otra una vez (diciendo qué falló);
-    // nunca se completa con ceros.
-    const evaluate = (retry: string[]) =>
+    const facts = {
+      pricing: ctx.pricing,
+      hasRealReviews: (ctx.reviews ?? ctx.brief.proof.real_reviews).some((t) => t.trim()),
+      hasRealExpert: Boolean(ctx.brief.proof.real_expert?.trim()),
+    };
+    // Si la propuesta no pasa las reglas en código, se pide otra una vez diciendo qué falló; nunca se
+    // recorta ni se completa en silencio.
+    const propose = (retry: string[]) =>
       generateStructured({
         userId: r.user_id,
-        system: angleRouterSystem(r.input.market as Market),
+        system: angleStrategySystem(r.input.market as Market),
         // El contexto con punto de caché: el segundo intento lo lee a 0,1×.
-        content: retryableContent([], angleRouterContext(ctx), angleRouterTail(retry)),
-        schema: angleRouterSchema,
-        effort: "medium",
+        content: retryableContent([], angleStrategyContext(ctx), angleStrategyTail(retry)),
+        schema: angleStrategySchema,
+        effort: "high",
       });
     let problems: string[] = [];
-    let result: Awaited<ReturnType<typeof evaluate>> | null = null;
+    let result: Awaited<ReturnType<typeof propose>> | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
-      result = await evaluate(problems);
-      problems = routerProblems(result.data);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: result.usage, error: problems.length ? "invalid_scores" : null, problems });
+      result = await propose(problems);
+      problems = strategyProblems(result.data, facts);
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: result.usage, error: problems.length ? "invalid_angles" : null, problems });
       if (!problems.length) break;
-      console.warn("[angles] puntajes inválidos", problems);
+      console.warn("[angles] propuesta inválida", problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA respondió con puntajes incompletos. Toca Reintentar.", undefined, true);
+    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA propuso ángulos que no cumplen las reglas. Toca Reintentar.", undefined, true);
     const { data, usage } = result;
-    const evals = evaluationsFrom(data);
-    const ranking = rankAngles(evals, facts(ctx.brief, ctx.avatar, ctx.pricing));
-    const candidates = rankCandidates(data.test_angles ?? [], ranking.angles, ctx.competitors?.length ?? 0, TEST_ANGLES);
     const now = new Date().toISOString();
     fail(
       "Guardar la evaluación",
@@ -245,10 +287,8 @@ export async function runRanking(rankingId: string): Promise<void> {
           .update({
             status: "succeeded",
             payload: data,
-            scores: ranking.angles,
-            suggested_slots: candidates.suggested,
-            // Cuánto subirían con la prueba que falta (“Para elegir mejor, falta”).
-            input: { ...r.input, potential: { reviews: potentialScore("personal_story", evals), expert: potentialScore("authority", evals) } },
+            scores: null,
+            suggested_slots: suggestedFrom(data.test_first, data.angles.length),
             prompt_version: ANGLE_ROUTER_PROMPT_VERSION,
             model: usage.model,
             finished_at: now,
@@ -282,6 +322,24 @@ export async function runRanking(rankingId: string): Promise<void> {
 
 const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 
+/** Lo que traen los ángulos del orquestador v7 (gancho, AIDA, a quién le habla, tono, por qué); los de antes, nada. */
+function extras(a: Record<string, unknown>): Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why"> {
+  const out: Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why"> = {};
+  const hook = clip(a.hook, 300);
+  if (hook) out.hook = hook;
+  const aida = (a.aida ?? null) as Partial<Record<keyof AngleAida, unknown>> | null;
+  if (aida && typeof aida === "object") {
+    const v = { attention: clip(aida.attention, 400), interest: clip(aida.interest, 400), desire: clip(aida.desire, 400), action: clip(aida.action, 400) };
+    if (Object.values(v).some(Boolean)) out.aida = v;
+  }
+  if (SPEAKS_TO.includes(a.speaks_to as SpeaksTo)) out.speaks_to = a.speaks_to as SpeaksTo;
+  const tone = clip(a.tone, 60);
+  if (tone) out.tone = tone;
+  const why = clip(a.why, 400);
+  if (why) out.why = why;
+  return out;
+}
+
 /** Valida y normaliza lo que manda la pantalla: 2 o 3 ángulos, slots 1..n, formas válidas. */
 export function normalizeChoice(raw: unknown): TestAngle[] {
   if (!Array.isArray(raw)) throw new OptimizeError(`Elige entre ${MIN_TEST_ANGLES} y ${TEST_ANGLES} ángulos.`, 400);
@@ -299,6 +357,7 @@ export function normalizeChoice(raw: unknown): TestAngle[] {
       promise: clip(a.promise, 300),
       trigger_moment: clip(a.trigger_moment, 400),
       competition: clip(a.competition, 400),
+      ...extras(a),
     };
     if (!angle.title || !angle.pain_or_desire) throw new OptimizeError("Cada ángulo necesita un nombre y el dolor o deseo que destaca.", 400);
     return angle;
@@ -308,8 +367,11 @@ export function normalizeChoice(raw: unknown): TestAngle[] {
   return out;
 }
 
+/** Mismo ángulo = mismo desarrollo: cambiar el gancho o el AIDA también lo rehace (el agente los recibe). */
 const sameAngle = (a: TestAngle, b: TestAngle | undefined) =>
-  Boolean(b) && (["frame", "title", "pain_or_desire", "segment", "promise", "trigger_moment", "competition"] as const).every((k) => a[k] === b![k]);
+  Boolean(b) &&
+  (["frame", "title", "pain_or_desire", "segment", "promise", "trigger_moment", "competition", "hook", "speaks_to", "tone"] as const).every((k) => (a[k] ?? "") === (b![k] ?? "")) &&
+  JSON.stringify(a.aida ?? null) === JSON.stringify(b!.aida ?? null);
 
 /**
  * Guarda los ángulos elegidos y crea los desarrollos que falten. Un desarrollo que ya existe para el
@@ -425,7 +487,9 @@ export async function runBrief(briefId: string): Promise<void> {
     fail("Leer la evaluación", error);
     const r = rankingData as RankingRow;
     const ctx = await contextFor(r, r.input);
-    const scored = (r.scores ?? []).find((s: ScoredAngle) => s.angle === b.angle);
+    // Las evaluaciones de antes del orquestador v7 traían el puntaje de cada forma (por qué y riesgos).
+    const scored = (r.scores ?? []).find((s) => s.angle === b.angle);
+    const legacy = isStrategy(r.payload) ? null : r.payload;
     const chosen = chosenAngles(r);
     const angle = chosen.find((a) => a.slot === b.slot) ?? { slot: b.slot, frame: b.angle, title: "", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "" };
     const others = chosen.filter((a) => a.slot !== b.slot);
@@ -439,10 +503,10 @@ export async function runBrief(briefId: string): Promise<void> {
           text: angleUser(b.angle, ctx, {
             angle: { ...angle, frame: b.angle },
             others,
-            why: scored?.why ?? ANGLES[b.angle].gist,
+            why: angle.why || scored?.why || ANGLES[b.angle].gist,
             risks: scored?.risks.map((k) => k.text) ?? [],
-            aidaEmphasis: r.payload?.aida_emphasis ?? "",
-            complianceFlags: r.payload?.compliance_flags ?? [],
+            aidaEmphasis: legacy?.aida_emphasis,
+            complianceFlags: isStrategy(r.payload) ? r.payload.watch_out : (legacy?.compliance_flags ?? []),
           }),
         },
       ],

@@ -11,7 +11,7 @@ import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import type { ImageProvider, ImageProviderChoice } from "@/lib/image-provider";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 import type { StoreFacts } from "@/lib/store-preview/facts";
-import type { AngleSlot, SalesAngle } from "@/lib/angles/catalog";
+import type { AngleAida, AngleSlot, SalesAngle, SpeaksTo } from "@/lib/angles/catalog";
 
 export type { ContentStatus, Verdict };
 
@@ -149,23 +149,18 @@ export interface ProductBase {
   imageQa: boolean;
 }
 
-/** Un ángulo del ranking del orquestador, con su puntaje calculado en código (AngleCard). */
-export interface AngleOption {
-  angle: SalesAngle;
-  name: string;
-  rank: number;
-  score: number;
-  why: string;
-  /** La penalización fuerte trae sus puntos; `fix` dice qué dato la resuelve. */
-  risks: { text: string; penalty?: number; fix?: "reviews" | "expert" }[];
-  breakdown: { label: string; value: number }[];
-}
-
-/** Un ángulo candidato del orquestador para testear, con su puntaje calculado en código. */
+/** Un ángulo candidato del orquestador para testear, en el orden en que lo propuso (del que más vende al que menos). */
 export interface AngleCandidateView {
   /** Posición en la lista del orquestador (lo que se guarda como sugerido). */
   index: number;
   title: string;
+  /** La frase que abre el anuncio. Vacía en las evaluaciones de antes del orquestador v7. */
+  hook: string;
+  aida?: AngleAida;
+  speaksTo?: SpeaksTo;
+  tone?: string;
+  /** Por qué va a vender, según el orquestador. */
+  why?: string;
   painOrDesire: string;
   segment: string;
   promise: string;
@@ -173,13 +168,8 @@ export interface AngleCandidateView {
   frame: SalesAngle;
   frameName: string;
   triggerMoment: string;
+  /** Solo en las evaluaciones de antes: qué hacía la competencia con el ángulo. */
   competition: string;
-  /** Tiendas de la competencia que ya lo usan (0 sin datos). */
-  competitorsUsing: number;
-  score: number;
-  frameScore: number;
-  /** Lo que sumó o restó la competencia. */
-  competitionDelta: number;
 }
 
 /** Un ángulo de testeo elegido (uno por conjunto de anuncios). */
@@ -196,6 +186,11 @@ export interface TestAngleView {
   promise: string;
   triggerMoment: string;
   competition: string;
+  hook?: string;
+  aida?: AngleAida;
+  speaksTo?: SpeaksTo;
+  tone?: string;
+  why?: string;
 }
 
 /** La evaluación del orquestador y la elección del comerciante. */
@@ -204,12 +199,18 @@ export interface AngleRankingView {
   status: RunStatus;
   error?: string;
   createdAt: string;
-  /** Las 6 formas, de mayor a menor (vacío mientras evalúa o si falló). */
-  angles: AngleOption[];
   /** Los ángulos candidatos para testear (vacío en las evaluaciones de antes). */
   candidates: AngleCandidateView[];
-  /** Índices de candidates que sugiere el código (hasta 3). */
+  /** Índices de candidates que sugiere el orquestador (2 o 3). */
   suggested: number[];
+  /** Por qué sugiere esos. */
+  suggestedReason?: string;
+  /** Quién compra y quién usa el producto, según el orquestador. */
+  buyerAndUser?: string;
+  /** Datos de la información que no son creíbles: revisarlos antes de usarlos. */
+  doubts: string[];
+  /** Cuidados de cumplimiento propios del producto. */
+  watchOut: string[];
   /** Lo que confirmó el comerciante (2 o 3 ángulos). */
   chosen?: TestAngleView[];
   confirmedAt?: string;

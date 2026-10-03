@@ -3,110 +3,122 @@
 // validación y los tipos. Claves en inglés; textos para el comerciante en español con tuteo.
 
 import * as z from "zod/v4";
-import { AWARENESS_LEVELS } from "@/lib/ai/schemas";
-import type { AngleHook, HooksMeta } from "@/lib/hooks/schemas";
-import { ANGLE_CANDIDATES, modelCriteria, SALES_ANGLES, type SalesAngle } from "./catalog";
+import { hookTextProblems, type AngleHook, type HooksMeta } from "@/lib/hooks/schemas";
+import type { PricingPlan } from "@/lib/pricing/plan";
+import { ANGLE_CANDIDATES, ANGLE_HOOK_MAX_WORDS, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type SalesAngle } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del orquestador. */
-export const ANGLE_ROUTER_PROMPT_VERSION = 6;
-/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. 5: los ganchos los escribe su propio agente (lib/hooks). */
-export const ANGLE_BRIEF_PROMPT_VERSION = 5;
+/** Con menos ángulos que estos, la respuesta se pide otra vez. */
+const MIN_STRATEGY_ANGLES = 4;
+
+/** Bump cuando cambie el prompt o el esquema del orquestador. 7: un experto que propone ángulos con su gancho y AIDA, sin puntuar formas. */
+export const ANGLE_ROUTER_PROMPT_VERSION = 7;
+/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. 5: los ganchos los escribe su propio agente (lib/hooks). 6: reciben el gancho, el AIDA y el tono del ángulo. */
+export const ANGLE_BRIEF_PROMPT_VERSION = 6;
 
 const text = z.string();
 const maybe = z.string().nullable();
 
-// ---------------------------------------------------------------- Orquestador
-// Esquema compacto a propósito: la salida estructurada compila el esquema a una gramática y la API
-// rechaza las demasiado grandes (400 «compiled grammar is too large»). Los 6 ángulos comparten una
-// forma y los criterios van como c1, c2, c3 en el orden de lib/angles/catalog.ts (el prompt lo dice).
-// Campos fijos y no una lista: la gramática no fija el largo de una lista y un puntaje de más o de
-// menos se cobraba y se rechazaba después. Con campos, el modelo no puede mandar otra cantidad.
+// ---------------------------------------------------------------- Orquestador (v7)
+// Una sola pregunta, como se la haría el comerciante a un experto: ¿cuáles son los ángulos que más
+// venden? Cada ángulo trae su gancho y su AIDA para elegirlo viéndolo; la forma (`frame`) solo dice
+// qué especialista lo desarrolla. Sin puntajes por forma: el orden y los sugeridos los decide el
+// modelo, y el código revisa lo que se puede comprobar (strategyProblems). Esquema compacto: la API
+// rechaza las gramáticas demasiado grandes (un test lo compara con el del cliente ideal).
 
-/** Un puntaje por criterio del modelo; todos los ángulos tienen 3 (lo comprueba prompts.test.ts). */
-export const SCORE_KEYS = ["c1", "c2", "c3"] as const;
-const score = z.number().int();
-
-const angleItem = z.object({
-  angle: z.enum(SALES_ANGLES),
-  scores: z
-    .object({ c1: score, c2: score, c3: score })
-    .describe("Un número de 0 a 5 por criterio: c1 es el criterio 1 de ese ángulo, c2 el 2 y c3 el 3, en el orden en que el sistema los lista."),
-  penalty: z.boolean().describe("Si aplica la penalización del ángulo."),
-  why: text.describe("Para el comerciante, una o dos frases en tuteo: por qué encaja o no con SU cliente ideal y SU producto."),
-  risks: z.array(text).describe("0 a 3 riesgos concretos, en frases cortas. Sin repetir la penalización."),
+const strategyAngle = z.object({
+  title: text.describe("Nombre corto del ángulo, 2 a 5 palabras, en el idioma del mercado."),
+  hook: text.describe("La frase que abre el anuncio y para el scroll, como la diría o la leería la gente."),
+  speaks_to: z.enum(SPEAKS_TO).describe("A quién le habla: buyer (quien paga) o user (quien lo usa)."),
+  tone: text.describe("El tono en 1 a 3 palabras («humor cotidiano», «emocional», «choque»)."),
+  aida: z.object({ attention: text, interest: text, desire: text, action: text }).describe("El anuncio en AIDA, una frase por etapa."),
+  why: text.describe("Por qué este ángulo va a vender, en 1 o 2 frases en tuteo para el comerciante."),
+  pain_or_desire: text.describe("El dolor o deseo que mueve, con las palabras de la gente."),
+  segment: text.describe("Para quién, en una línea."),
+  promise: text.describe("La promesa, dentro de lo permitido."),
+  trigger_moment: text.describe("La escena concreta que abre el anuncio."),
+  frame: z.enum(SALES_ANGLES).describe("La forma que más se le parece (solo elige al especialista que lo desarrolla)."),
 });
+export type StrategyAngle = z.infer<typeof strategyAngle>;
 
-/** Un ángulo candidato para testear: el mensaje, contado con una de las 6 formas. */
-const candidate = z.object({
-  title: text.describe("Nombre corto del ángulo, 2 a 5 palabras, en el idioma del mercado («La crema sella»)."),
-  pain_or_desire: text.describe("El dolor o deseo que destaca, con las palabras del cliente ideal."),
-  segment: text.describe("Para quién, dentro del cliente ideal («la que ya tiene rutina y siente que no le alcanza»)."),
-  promise: text.describe("La promesa, dentro de lo permitido (forbidden_claims)."),
-  frame: z.enum(SALES_ANGLES).describe("La forma con que conviene contarlo (una de las 6)."),
-  trigger_moment: text.describe("El momento concreto del cliente ideal que abre el anuncio."),
-  competition: text.describe("Qué hace la competencia con este ángulo y por qué este es distinto. Sin competencia cargada: «Sin datos de competencia»."),
-  competitors_using: z.number().int().describe("Cuántas de las tiendas de COMPETENCIA ya usan este ángulo (0 si ninguna o si no hay datos)."),
+export const angleStrategySchema = z.object({
+  buyer_and_user: text.describe("Quién compra y quién usa el producto, en una frase."),
+  angles: z.array(strategyAngle).describe(`${ANGLE_CANDIDATES} ángulos, del que más va a vender al que menos.`),
+  test_first: z.array(z.number().int()).describe("Las posiciones (desde 0) de los 2 o 3 ángulos que testearías primero."),
+  test_first_reason: text.describe("Por qué esos, en una frase."),
+  doubts: z.array(text).describe("Datos de la información que no son creíbles o no se pueden usar, y por qué. Vacío si no hay."),
+  watch_out: z.array(text).describe("Hasta 4 cuidados para no perder la cuenta publicitaria ni el pedido en la puerta, propios de este producto."),
 });
-export type AngleCandidate = z.infer<typeof candidate>;
+export type AngleStrategyOutput = z.infer<typeof angleStrategySchema>;
 
-export const angleRouterSchema = z.object({
-  awareness_level: z.enum(AWARENESS_LEVELS),
-  sophistication: z.number().int().describe("De 1 a 5."),
-  // Campos propios (y no solo el texto): obligan a revisar cada punto del diagnóstico.
-  result_visible: z.boolean().describe("true si el resultado se ve en 3 segundos de video; false si es invisible (alivio, bienestar)."),
-  available_proof: z.array(text).describe("Pruebas reales que hay hoy en la ficha (reseñas, experto, estudios, cifras). Vacío si no hay."),
-  diagnosis: text.describe("Tipo de problema y qué permite la economía de PRECIO Y OFERTA, en 1 o 2 frases."),
-  angles: z.array(angleItem).describe("Las 6 formas, una por elemento."),
-  aida_emphasis: text.describe("Qué etapa AIDA necesita más espacio con este nivel de consciencia, y por qué."),
-  test_angles: z.array(candidate).describe(`${ANGLE_CANDIDATES} ángulos candidatos para testear, distintos entre sí: distinto dolor o distinto segmento, no la misma idea contada de otra forma.`),
-  missing_inputs: z.array(text).describe("Hasta 3 datos que subirían la precisión, cada uno con qué ángulo mejoraría («Una fecha comercial real: subiría Oferta»). Sin reseñas ni expertos."),
-  compliance_flags: z.array(text),
-});
-
-export type AngleRouterOutput = z.infer<typeof angleRouterSchema>;
-
-/** La evaluación de un ángulo, con los criterios por nombre (lo que usa lib/angles/score.ts). */
-export interface AngleEvaluation {
-  criteria: Record<string, number>;
-  penalty_applies: boolean;
-  why: string;
-  risks: string[];
+/** Lo comprobable que el modelo no puede pisar: las pruebas que existen hoy. */
+export interface StrategyFacts {
+  pricing: PricingPlan;
+  hasRealReviews: boolean;
+  hasRealExpert: boolean;
 }
-export type AngleEvaluations = Record<SalesAngle, AngleEvaluation>;
+
+const words = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
 
 /**
- * Qué está mal en la lista del modelo: ángulos que faltan o se repiten, o puntajes que no calzan con
- * los criterios (cantidad o rango). Vacío si se puede puntuar. Con problemas, la respuesta se
- * rechaza y se pide otra: completar con 0 bajaría un puntaje sin que nadie lo note.
+ * Qué está mal en la respuesta del orquestador. Vacío si se puede guardar. Con problemas se pide otra
+ * una vez, diciendo cuáles: nunca se recorta ni se completa en silencio.
  */
-export function routerProblems(output: Pick<AngleRouterOutput, "angles"> & Partial<Pick<AngleRouterOutput, "test_angles">>): string[] {
+export function strategyProblems(out: Pick<AngleStrategyOutput, "angles">, facts: StrategyFacts): string[] {
   const problems: string[] = [];
-  const candidates = output.test_angles ?? [];
-  if (candidates.length < 3) problems.push(`Faltan ángulos candidatos: vienen ${candidates.length} y se piden ${ANGLE_CANDIDATES}.`);
-  if (candidates.some((c) => !c.title?.trim() || !c.pain_or_desire?.trim() || !c.promise?.trim())) problems.push("Hay candidatos sin título, dolor o promesa.");
-  for (const a of SALES_ANGLES) {
-    const items = output.angles.filter((x) => x.angle === a);
-    if (!items.length) {
-      problems.push(`Falta el ángulo ${a}.`);
-      continue;
-    }
-    if (items.length > 1) problems.push(`El ángulo ${a} viene ${items.length} veces.`);
-    const scores = SCORE_KEYS.slice(0, modelCriteria(a).length).map((k) => items[0].scores[k]);
-    if (scores.some((n) => !Number.isInteger(n) || n < 0 || n > 5)) problems.push(`${a} tiene puntajes fuera de 0 a 5.`);
-  }
+  if (out.angles.length < MIN_STRATEGY_ANGLES) problems.push(`Vienen ${out.angles.length} ángulos y se piden ${ANGLE_CANDIDATES}.`);
+  const titles = new Set<string>();
+  out.angles.forEach((a, i) => {
+    const at = `Ángulo ${i + 1} («${a.title.trim() || "sin título"}»): `;
+    if (!a.title.trim() || !a.hook.trim() || !a.pain_or_desire.trim() || !a.promise.trim()) problems.push(`${at}le falta el título, el gancho, el dolor o la promesa.`);
+    const key = a.title.trim().toLowerCase();
+    if (key && titles.has(key)) problems.push(`${at}repite el título de otro ángulo.`);
+    titles.add(key);
+    if (words(a.hook) > ANGLE_HOOK_MAX_WORDS) problems.push(`${at}el gancho tiene ${words(a.hook)} palabras; el máximo es ${ANGLE_HOOK_MAX_WORDS}.`);
+    if (a.frame === "authority" && !facts.hasRealExpert) problems.push(`${at}usa la forma Autoridad sin un experto real: elige otra forma.`);
+    if (a.frame === "personal_story" && !facts.hasRealReviews) problems.push(`${at}usa la forma Historia personal sin reseñas reales: elige otra forma.`);
+    for (const t of [a.hook, a.aida.attention, a.aida.interest, a.aida.desire, a.aida.action]) problems.push(...hookTextProblems(t, facts.pricing, at));
+  });
   return problems;
 }
 
-/** De la lista del modelo (ya validada con routerProblems) a un mapa por ángulo. Los criterios del sistema los pone lib/angles/score.ts. */
-export function evaluationsFrom(output: Pick<AngleRouterOutput, "angles">): AngleEvaluations {
-  return Object.fromEntries(
-    SALES_ANGLES.map((a) => {
-      const item = output.angles.find((x) => x.angle === a);
-      const criteria = Object.fromEntries(modelCriteria(a).map((c, i) => [c.key, item?.scores[SCORE_KEYS[i]] ?? 0]));
-      return [a, { criteria, penalty_applies: item?.penalty ?? false, why: item?.why ?? "", risks: item?.risks ?? [] }];
-    }),
-  ) as AngleEvaluations;
+/**
+ * Los sugeridos: las posiciones válidas que eligió el modelo (2 o 3, sin repetir). Si no sirven, los
+ * primeros de la lista, que viene ordenada del que más vende al que menos.
+ */
+export function suggestedFrom(testFirst: number[], count: number): number[] {
+  const picked = [...new Set(testFirst.filter((i) => Number.isInteger(i) && i >= 0 && i < count))].slice(0, TEST_ANGLES);
+  if (picked.length >= MIN_TEST_ANGLES) return picked;
+  return Array.from({ length: Math.min(TEST_ANGLES, count) }, (_, i) => i);
 }
+
+/**
+ * Lo que guardaban las evaluaciones de antes del orquestador v7 (6 formas puntuadas y candidatos con
+ * su competencia). Solo se lee: la pantalla las muestra hasta que se vuelva a evaluar.
+ */
+export interface LegacyCandidate {
+  title: string;
+  pain_or_desire: string;
+  segment: string;
+  promise: string;
+  frame: SalesAngle;
+  trigger_moment: string;
+  competition: string;
+}
+export interface LegacyRouterPayload {
+  test_angles?: LegacyCandidate[];
+  missing_inputs?: (string | { text: string; gain?: string })[];
+  aida_emphasis?: string;
+  compliance_flags?: string[];
+}
+/** El puntaje de una forma en las evaluaciones de antes (angle_rankings.scores). */
+export interface LegacyScoredAngle {
+  angle: SalesAngle;
+  why: string;
+  risks: { text: string; fix?: "reviews" | "expert" }[];
+}
+
+export type RankingPayload = AngleStrategyOutput | LegacyRouterPayload;
+export const isStrategy = (p: RankingPayload | null | undefined): p is AngleStrategyOutput => Boolean(p && Array.isArray((p as AngleStrategyOutput).angles));
 
 // ---------------------------------------------------------------- Agentes de ángulo
 
