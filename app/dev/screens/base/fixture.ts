@@ -11,7 +11,7 @@ export const PP_TEXT =
 export const AVATAR: CustomerAvatar = {
   name: "Andrés",
   summary: "Andrés, 38, analista contable en Santiago que pasa 9 horas sentado frente al computador y llega a casa con la espalda cargada.",
-  demographics: { age_range: "30-45", gender: "male", location: "Santiago y otras ciudades grandes", socioeconomic_level: "Medio", occupation_or_role: "Oficinista" },
+  demographics: { age_range: "30-45", gender: "male", gender_reason: "La ficha dice que lo usan ambos; los comentarios de oficinistas que preguntan por las 8 horas sentados son, en su mayoría, de hombres.", location: "Santiago y otras ciudades grandes", socioeconomic_level: "Medio", occupation_or_role: "Oficinista" },
   awareness_level: "problem_aware",
   awareness_reason: "Siente el dolor todos los días, pero cree que es normal del trabajo y no conoce soluciones que no le quiten tiempo.",
   market_sophistication: 3,

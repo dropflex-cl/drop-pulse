@@ -28,6 +28,19 @@ describe("prompts", () => {
     expect(customerAvatarSystem(CL)).toContain("El nombre de mi cliente ideal es [NOMBRE].");
   });
 
+  it("el género no se adivina por la categoría ni por las fotos, y el avatar dice por qué", () => {
+    expect(productBriefSystem(CL)).toContain("Una modelo en las fotos o una categoría como «belleza» no lo deciden");
+    const avatar = customerAvatarSystem(CL);
+    expect(avatar).toContain("Si dice any, elige hombre o mujer solo si un dato de la ficha");
+    expect(avatar).toContain("demographics.gender_reason");
+    expect(avatar).toContain("no el más repetido");
+  });
+
+  it("los avatares de antes, sin gender_reason, se siguen pudiendo leer y editar", () => {
+    const d = customerAvatarSchema.shape.demographics.parse({ age_range: "30-45", gender: "female", location: "Santiago", socioeconomic_level: "Medio", occupation_or_role: "Oficinista" });
+    expect(d.gender_reason).toBe("");
+  });
+
   const pricing = buildPricingPlan(
     { unitCost: 3000, avgShippingCost: 8000, purchaseCostLimit: 5000, confirmationRate: 70, deliveryRate: 70, salePrice: 24990, compareAtPrice: 32990, extraUnitDiscount: 35 },
     "CLP",

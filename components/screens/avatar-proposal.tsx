@@ -187,10 +187,11 @@ export function AvatarProposalCard({
             ))}
             <details className="group">
               <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-2 px-3 text-row [&::-webkit-details-marker]:hidden">
-                Por qué este nivel de consciencia
+                Por qué este perfil
                 <Icon name="chevron-right" size="sm" className="text-muted-foreground transition-transform duration-fast group-open:rotate-90" />
               </summary>
               <div className="flex flex-col gap-2 px-3 pb-3 text-small">
+                {a.demographics.gender_reason ? <p>{a.demographics.gender_reason}</p> : null}
                 <p>{a.awareness_reason}</p>
                 <p>{a.sophistication_reason}</p>
               </div>

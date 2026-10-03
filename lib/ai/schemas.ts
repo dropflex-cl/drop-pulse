@@ -6,9 +6,9 @@ import * as z from "zod/v4";
 // comerciante) y la UI (tipos).
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
-export const PRODUCT_BRIEF_PROMPT_VERSION = 8;
+export const PRODUCT_BRIEF_PROMPT_VERSION = 9;
 /** Bump cuando cambie el prompt o el esquema del cliente ideal. */
-export const CUSTOMER_AVATAR_PROMPT_VERSION = 4;
+export const CUSTOMER_AVATAR_PROMPT_VERSION = 5;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -29,15 +29,18 @@ export const productBriefSchema = z.object({
     .describe("Datos duros tal como aparecen en la información o las imágenes: medidas, materiales, qué incluye, modo de uso, compatibilidad. Nada inventado."),
   target_audience: z.object({
     age_range: maybe.describe("Rango de edad probable, p. ej. «30-55». null si no hay señal."),
-    gender: z.enum(["female", "male", "any"]).nullable(),
-    life_stage_or_role: maybe.describe("Etapa de vida o rol que se reconoce en una línea (oficinista, mamá, dueño de perro senior…)."),
+    gender: z
+      .enum(["female", "male", "any"])
+      .nullable()
+      .describe("female o male solo si un dato lo sostiene: el producto es para el cuerpo de un solo sexo, o las reseñas o el comerciante lo dicen. Una modelo en las fotos o la categoría («belleza», «cuidado personal») no bastan. Si lo usan ambos, any."),
+    life_stage_or_role: maybe.describe("Etapa de vida o rol que se reconoce en una línea (oficinista, mamá o papá, dueño de perro senior…)."),
     where_they_feel_it: maybe.describe("En qué momento o lugar concreto sienten el problema."),
   }),
   alternatives_already_tried: z.array(text).describe("Lo que el comprador suele usar hoy y le falla (categorías o prácticas, nunca marcas)."),
   differentiator: z
     .object({
-      versus: text.describe("Contra qué se diferencia: lo que el cliente usa hoy y no le resuelve el problema (categoría o práctica, nunca marca). Ej.: «cremas y mascarillas que no le quitan la piel tirante»."),
-      claim: text.describe("La diferencia en una frase: el problema que resuelve y por qué lo resuelve donde lo que usa hoy falla, sostenida con la información. Es la solución, no un complemento de lo que ya usa. Ej.: «resuelve la piel tirante con colágeno concentrado en gotas, donde la crema solo cubre la superficie»."),
+      versus: text.describe("Contra qué se diferencia: lo que el cliente usa hoy y no le resuelve el problema (categoría o práctica, nunca marca). Ej.: «fajas rígidas que aprietan y se dejan de usar a la semana»."),
+      claim: text.describe("La diferencia en una frase: el problema que resuelve y por qué lo resuelve donde lo que usa hoy falla, sostenida con la información. Es la solución, no un complemento de lo que ya usa. Ej.: «endereza la espalda con tirantes elásticos que se usan bajo la ropa todo el día, donde la faja rígida incomoda y queda en el cajón»."),
       basis: text.describe("De qué dato sale (how_it_works, key_facts, modo de uso…)."),
     })
     .nullable()
@@ -94,11 +97,15 @@ export type Differentiator = z.infer<typeof differentiatorSchema>;
 export const AWARENESS_LEVELS = ["unaware", "problem_aware", "solution_aware", "product_aware", "most_aware"] as const;
 
 export const customerAvatarSchema = z.object({
-  name: text.describe("Nombre de pila creíble en el país del mercado."),
+  name: text.describe("Nombre de pila creíble en el país del mercado y en su generación, pero no el más repetido: evita el primero que se te ocurra."),
   summary: text.describe("Quién es, en una frase: «Andrés, 38, oficinista que pasa 9 horas sentado…»."),
   demographics: z.object({
     age_range: text,
     gender: z.enum(["female", "male", "any"]),
+    // Los avatares de antes de la versión 5 no la traen.
+    gender_reason: text
+      .default("")
+      .describe("Por qué es mujer, hombre o cualquiera, en una frase y con el dato de la ficha que lo sostiene (target_audience.gender, el uso del producto, las reseñas, lo que escribió el comerciante)."),
     location: text.describe("Dónde vive dentro del país (ciudad grande, regiones…)."),
     socioeconomic_level: text,
     occupation_or_role: text,
