@@ -31,6 +31,9 @@ export interface PageImageRunRow {
   error_code: string | null;
   error_message: string | null;
   input: Record<string, unknown>;
+  /** El mundo visual que eligió el director y por qué (desde la versión 4 del prompt). */
+  world?: string | null;
+  world_why?: string | null;
   created_at: string;
 }
 
@@ -139,7 +142,7 @@ export async function latestPageImageRuns(userId: string, productIds: string[]):
   if (!productIds.length) return new Map();
   const { data, error } = await adminClient()
     .from("page_image_runs")
-    .select("id, product_id, user_id, status, error_code, error_message, input, created_at")
+    .select("id, product_id, user_id, status, error_code, error_message, input, world:payload->>visual_world, world_why:payload->>visual_world_why, created_at")
     .eq("user_id", userId)
     .in("product_id", productIds)
     .order("created_at", { ascending: false });
@@ -277,9 +280,10 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
   const auto = autoShotIds(shots);
   const shotsOf = (slot: string) =>
     shots.filter((s) => s.slot === slot).map((s) => ({ id: s.id, name: s.payload.name, type: SHOT_NAMES[s.payload.type] ?? s.payload.type, look: s.payload.look, auto: auto.has(s.id) }));
-  const slot = (key: string, title: string, pairs?: string): PageImageSlotView => {
+  const slot = (key: string, title: string, shot?: StoredShot): PageImageSlotView => {
     const kind = slotKind(key)!;
-    return { key, kind, title, required: kind === "cover" || kind === "gallery", format: SLOT_FORMAT[kind], ratio: SLOT_RATIO[kind], pairs, shots: shotsOf(key), options: optionsOf(key) };
+    const angle = shot?.angle ?? undefined;
+    return { key, kind, title, required: kind === "cover" || kind === "gallery", format: SLOT_FORMAT[kind], ratio: SLOT_RATIO[kind], pairs: shot?.pairs, angle, shots: shotsOf(key), options: optionsOf(key) };
   };
   return [
     slot(COVER, "Portada"),
@@ -287,7 +291,7 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
     // Los beneficios de la galería vigente del director, en su orden (benefit-1, benefit-2…).
     ...[...new Set(shots.filter((s) => slotKind(s.slot) === "benefit").map((s) => s.slot))]
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-      .map((key, i) => slot(key, `Beneficio ${i + 1}`, shots.find((s) => s.slot === key)?.payload.pairs)),
+      .map((key, i) => slot(key, `Beneficio ${i + 1}`, shots.find((s) => s.slot === key)?.payload)),
     slot(GIFS, "GIFs"),
   ];
 }

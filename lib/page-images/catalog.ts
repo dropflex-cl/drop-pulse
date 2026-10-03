@@ -64,6 +64,24 @@ export const GIF_MAX_WIDTH = 900;
 /** Lado mínimo: más chico se ve pixelado en la columna del producto. */
 export const GIF_MIN_SIDE = 240;
 
+/**
+ * El mundo visual de la galería: lo elige el director para cada producto desde el cliente ideal, la
+ * categoría y los ángulos, nunca una receta fija. En prod (2026-10-03) las 4 galerías salieron con la
+ * misma receta (fondo liso del color del producto, partículas, titular grueso): servía a la cosmética,
+ * pero un amplificador para adultos mayores quedaba como un sérum dorado y los ángulos no se veían.
+ */
+export const VISUAL_WORLDS = ["studio_color", "real_home", "clean_explainer", "native_phone"] as const;
+export type VisualWorld = (typeof VISUAL_WORLDS)[number];
+
+export const isVisualWorld = (v: unknown): v is VisualWorld => (VISUAL_WORLDS as readonly unknown[]).includes(v);
+
+export const VISUAL_WORLD_NAMES: Record<VisualWorld, string> = {
+  studio_color: "Estudio de color",
+  real_home: "Hogar real",
+  clean_explainer: "Limpio y explicativo",
+  native_phone: "Foto de teléfono",
+};
+
 /** Qué muestra una toma. Cada una cumple un papel en la venta. */
 export const SHOT_TYPES = ["hero_clean", "hero_mood", "infographic", "comparison", "in_the_box", "detail", "in_use", "scale", "benefit"] as const;
 export type ShotType = (typeof SHOT_TYPES)[number];

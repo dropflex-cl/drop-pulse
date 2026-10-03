@@ -55,6 +55,7 @@ export function fixture(state: string) {
       ? BENEFITS.map((text, i) =>
           slot(benefitSlot(i + 1), `Beneficio ${i + 1}`, {
             pairs: text,
+            angle: i < 2 ? i + 1 : undefined,
             shots: [{ id: `b${i + 1}`, name: text.split(",")[0], type: "Beneficio", look: "El rodillo en primer plano sobre la piel del talón.", auto: false }],
             options: state === "benefits" ? [option(`o-b${i + 1}`, `b${i + 1}`, i, { render: i ? "queued" : "running", src: undefined, qa: undefined })] : [],
           }),
@@ -69,6 +70,7 @@ export function fixture(state: string) {
     imageProvider: { value: "higgsfield", saved: "higgsfield", options: [{ id: "higgsfield", name: "Higgsfield", available: true }] },
     cannotGenerate: null,
     run: shots ? { id: "r1", status: "succeeded", createdAt: NOW } : undefined,
+    style: shots ? { name: "Hogar real", why: "Lo usa una mujer de 45 en su casa, de noche y sin zapatos: tus ángulos hablan del cansancio después del trabajo, no de estética." } : undefined,
     slots,
     references: [1, 2].map((i) => ({ id: `ref-${i}`, src: productImage(i + 2, 0), alt: "" })),
     imageCostUsd: IMAGE_COST_BY_PROVIDER.higgsfield,

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { AUTO_SHOTS, GALLERY_MIN, GALLERY_SHOTS, autoShotIds, benefitSlot, slotKind } from "./catalog";
 import { pageRenderRequest } from "./render";
-import { pageQaVerdict, planProblems, type PagePlan, type PlanShot, type StoredShot } from "./schemas";
+import { ANGLES, SALES_ANGLES } from "@/lib/angles/catalog";
+import { DEFAULT_MARKET } from "@/lib/market";
+import { pageImagesSystem } from "./prompts";
+import { benefitAngles, pageQaVerdict, planProblems, type PagePlan, type PlanShot, type StoredShot } from "./schemas";
 
 const art = { palette: "saturated blush pink scene, deep berry text", typography: "heavy rounded sans headline", mood: "fresh, bold, premium" };
 
@@ -27,10 +30,12 @@ const shot = (over: Partial<PlanShot> = {}): PlanShot => ({
 const plan = (benefits = 2, over: Partial<PagePlan> = {}): PagePlan => ({
   product_look: "Slim pink electric foot file with a rose-gold band and a grey quartz roller head",
   kit: ["spare grey roller head", "white USB cable"],
+  visual_world: "studio_color",
+  visual_world_why: "Lo compra para ella misma y lo usa en el baño: un estudio rosado se ve como su marca de belleza.",
   brand_art: art,
   props_allowed: ["smooth matte grey river pebbles", "floating pink silk fabric"],
   props_forbidden: ["cream jars (suggests a moisturizer is included)", "ice cubes (suggests cooling)"],
-  benefits: Array.from({ length: benefits }, (_, i) => ({ text: `Lima la piel dura en minutos, beneficio ${i + 1}` })),
+  benefits: Array.from({ length: benefits }, (_, i) => ({ text: `Lima la piel dura en minutos, beneficio ${i + 1}`, angle: null })),
   shots: [
     shot({ slot: "cover", type: "hero_clean", name: "Portada", texts: [] }),
     shot({ type: "hero_mood", name: "Ambiente", texts: [] }),
@@ -89,8 +94,8 @@ describe("planProblems", () => {
   it("el director propone sus beneficios: la cantidad justa, sin precios ni frases largas", () => {
     expect(planProblems(plan(2))).toContain("Debe haber 3 benefits; hay 2.");
     const p = plan(3);
-    p.benefits[1] = { text: "Lleva 2 y ahorra $9.990" };
-    p.benefits[2] = { text: "x".repeat(200) };
+    p.benefits[1] = { text: "Lleva 2 y ahorra $9.990", angle: null };
+    p.benefits[2] = { text: "x".repeat(200), angle: null };
     const problems = planProblems(p);
     expect(problems).toContain("El beneficio 2 menciona un precio u oferta.");
     expect(problems.some((m) => m.startsWith("El beneficio 3 pasa de"))).toBe(true);
@@ -102,6 +107,26 @@ describe("planProblems", () => {
     const problems = planProblems(p, 2);
     expect(problems).toContain(`Debe haber ${GALLERY_SHOTS} gallery; hay ${GALLERY_SHOTS - 1}.`);
     expect(problems).toContain("Falta la toma del beneficio 2.");
+  });
+
+  it("cada ángulo aprobado tiene su beneficio, en orden; el que sobra va al diferenciador", () => {
+    expect(benefitAngles([2, 1])).toEqual([1, 2, null]);
+    expect(benefitAngles([1, 2, 3])).toEqual([1, 2, 3]);
+    expect(benefitAngles([1, 3])).toEqual([1, 3, null]);
+    const p = plan(3);
+    p.benefits = p.benefits.map((b, i) => ({ ...b, angle: [1, 2, null][i] }));
+    expect(planProblems(p, 3, [1, 2])).toEqual([]);
+    p.benefits[0].angle = 2;
+    p.benefits[1].angle = null;
+    p.benefits[2].angle = 3;
+    const problems = planProblems(p, 3, [1, 2]);
+    expect(problems).toContain("El beneficio 1 es el del ángulo 1 (angle: 1); trae 2.");
+    expect(problems).toContain("El beneficio 2 es el del ángulo 2 (angle: 2); trae null.");
+    expect(problems).toContain("El beneficio 3 no es de un ángulo (angle: null); trae 3.");
+  });
+
+  it("el mundo visual se explica", () => {
+    expect(planProblems(plan(3, { visual_world_why: " " }))).toContain("Falta visual_world_why: por qué ese mundo visual.");
   });
 
   it("la portada y el ambiente van sin textos", () => {
@@ -173,6 +198,15 @@ describe("pageRenderRequest", () => {
     expect(prompt).toContain("TEXT RULES");
   });
 
+  it("el pedido abre con el mundo visual; sin mundo (tomas de antes), el estudio de siempre", () => {
+    const of = (world?: StoredShot["world"]) => String(pageRenderRequest("gallery", { ...stored(shot()), world }, "Spanish").input.prompt);
+    expect(of()).toMatch(/^Square premium brand campaign image/);
+    expect(of("studio_color")).toBe(of());
+    expect(of("real_home")).toMatch(/^Square premium lifestyle photo .* real, lived-in Latin American home/);
+    expect(of("clean_explainer")).toMatch(/^Square clean explanatory product image/);
+    expect(of("native_phone")).toMatch(/^Square authentic smartphone photo/);
+  });
+
   it("los beneficios van en 3:4 nativo (Flare no tiene 4:5)", () => {
     const req = pageRenderRequest(benefitSlot("x"), stored(shot({ slot: "benefit", benefit: 1, type: "benefit" })), "Spanish");
     expect(req.ratio).toBe("3:4");
@@ -218,5 +252,18 @@ describe("pageQaVerdict", () => {
       "Las unidades del producto no son iguales entre sí.",
       "Manos o pies deformes.",
     ]);
+  });
+});
+
+describe("pageImagesSystem", () => {
+  const system = pageImagesSystem(DEFAULT_MARKET);
+
+  it("ofrece los mundos visuales en vez de una receta fija", () => {
+    for (const w of ["studio_color", "real_home", "clean_explainer", "native_phone"]) expect(system).toContain(`- ${w}:`);
+    expect(system).not.toContain("paleta monocromática saturada que sale del color del producto");
+  });
+
+  it("da el formato del beneficio para cada forma de ángulo", () => {
+    for (const k of SALES_ANGLES) expect(system).toContain(`- ${ANGLES[k].name}: `);
   });
 });

@@ -808,6 +808,8 @@ export interface PageImageSlotView {
   ratio: "1:1" | "3:4";
   /** El texto aprobado en Textos que acompaña a este espacio (beneficios). */
   pairs?: string;
+  /** El ángulo de testeo que prueba este beneficio (1, 2 o 3). */
+  angle?: number;
   /**
    * Las tomas que propuso el director para este espacio («Generar» o «Generar otra»). `auto`: se genera
    * sola al armar la galería (la portada y las primeras de galería); las demás, a pedido.
@@ -828,6 +830,8 @@ export interface PageImagesState {
   /** Por qué no se puede generar (sin proveedor, sin ángulos aprobados). */
   cannotGenerate: string | null;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
+  /** El estilo visual que eligió la IA para la galería vigente y por qué. */
+  style?: { name: string; why: string };
   slots: PageImageSlotView[];
   /** Las fotos en uso de Información base: se pueden elegir en cualquier espacio. */
   references: { id: string; src: string; alt: string }[];

@@ -3,16 +3,18 @@
 
 import * as z from "zod/v4";
 import { HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, type TextRole } from "@/lib/creatives/catalog";
-import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES } from "./catalog";
+import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES, VISUAL_WORLDS, type VisualWorld } from "./catalog";
 
 /**
  * Sube cuando cambia el prompt del director (queda en page_image_runs.prompt_version). 3: el prompt pide
- * los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS.
+ * los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS. 4: el director elige
+ * el mundo visual (`visual_world`) en vez de una receta fija, y cada ángulo tiene su beneficio, con el
+ * formato de su forma.
  */
-export const PAGE_IMAGES_PROMPT_VERSION = 3;
+export const PAGE_IMAGES_PROMPT_VERSION = 4;
 
 const art = z.object({
-  palette: z.string().describe("En inglés: 2 a 4 colores con nombre; la escena sale del color del producto y los textos van en un acento profundo del mismo tono."),
+  palette: z.string().describe("En inglés: 2 a 4 colores con nombre, los del mundo visual elegido; el producto contrasta con el fondo y los textos van en un acento que se lee."),
   typography: z.string().describe("En inglés: el carácter de la tipografía (p. ej., heavy rounded sans for the headline, clean sans for badges)."),
   mood: z.string().describe("En inglés: 3 a 6 palabras."),
 });
@@ -42,12 +44,19 @@ const shot = z.object({
 export const pagePlanSchema = z.object({
   product_look: z.string().describe("En inglés, ≤ 20 palabras: cómo se ve el producto principal en la IMAGEN BASE (tipo, color, material, detalles). Sin textos de la caja."),
   kit: z.array(z.string()).describe("En inglés: todo lo demás que aparece en la IMAGEN BASE (caja, repuestos, cables, accesorios)."),
-  brand_art: art.describe("La línea visual común de toda la galería."),
+  visual_world: z.enum(VISUAL_WORLDS).describe("El mundo visual de toda la galería, elegido para este producto (ver MUNDOS VISUALES)."),
+  visual_world_why: z.string().describe("Por qué ese mundo, en una frase para el comerciante, en el idioma del mercado: quién compra, dónde se usa y qué piden los ángulos."),
+  brand_art: art.describe("La línea visual común de toda la galería, dentro del mundo elegido."),
   props_allowed: z.array(z.string()).describe("En inglés: props de ambiente que refuerzan la sensación del producto sin prometer nada, cada uno descrito con precisión visual."),
   props_forbidden: z.array(z.string()).describe("En inglés: props tentadores pero engañosos, cada uno con el motivo entre paréntesis."),
   benefits: z
-    .array(z.object({ text: z.string().describe("El beneficio en una frase, en el idioma del mercado, con un dato de la FICHA que lo sostiene.") }))
-    .describe(`Exactamente ${BENEFIT_SHOTS} beneficios distintos del producto, el más vendedor primero.`),
+    .array(
+      z.object({
+        text: z.string().describe("El beneficio en una frase, en el idioma del mercado, con un dato de la FICHA que lo sostiene."),
+        angle: z.number().int().nullable().describe("El número del ángulo (1, 2 o 3) que este beneficio prueba; null en el que sobra cuando hay menos ángulos que beneficios."),
+      }),
+    )
+    .describe(`Exactamente ${BENEFIT_SHOTS} beneficios distintos del producto, uno por cada ángulo en su orden y, si sobra, el que más vende del diferenciador.`),
   shots: z.array(shot),
 });
 
@@ -62,6 +71,10 @@ export type StoredShot = PlanShot & {
   props_forbidden: string[];
   /** El beneficio que prueba la toma (benefits del director), para la pantalla y la página. */
   pairs?: string;
+  /** El mundo visual de la corrida (desde la versión 4; antes, la receta de estudio de color). */
+  world?: VisualWorld;
+  /** El ángulo que prueba un beneficio (1, 2 o 3). */
+  angle?: number | null;
 };
 
 /** Largo máximo de un beneficio propuesto (una frase que se lee de un vistazo). */
@@ -73,10 +86,27 @@ export const TWO_LINES = new Set<string>(["headline", "badge", "callout"]);
 /** Precios, montos y ofertas: cambian y la página ya los muestra. Una imagen con eso queda mintiendo. */
 const OFFER = /\$|US\$|\d+\s?%|\bgratis\b|\bregalo\b|\bdescuento\b|\boferta\b|\b\d\s?x\s?\d\b|\blleva\s+\d|\bpaga\s+\d/i;
 
-/** Lo que el modelo puede hacer mal y el código puede revisar. Frases para devolverle al director. */
-export function planProblems(p: PagePlan, benefits: number = BENEFIT_SHOTS): string[] {
+/**
+ * El ángulo de cada beneficio, en orden: uno por ángulo aprobado (del 1 al 3) y null en los que sobran
+ * (van al diferenciador). Con más ángulos que beneficios, los últimos se quedan sin el suyo.
+ */
+export function benefitAngles(angles: number[], benefits: number = BENEFIT_SHOTS): (number | null)[] {
+  const slots = [...new Set(angles)].sort((a, b) => a - b);
+  return Array.from({ length: benefits }, (_, i) => slots[i] ?? null);
+}
+
+/**
+ * Lo que el modelo puede hacer mal y el código puede revisar. Frases para devolverle al director.
+ * `angles`: los números de los ángulos aprobados; cada uno necesita su beneficio, en orden.
+ */
+export function planProblems(p: PagePlan, benefits: number = BENEFIT_SHOTS, angles: number[] = []): string[] {
   const out: string[] = [];
   if (p.benefits.length !== benefits) out.push(`Debe haber ${benefits} benefits; hay ${p.benefits.length}.`);
+  if (!p.visual_world_why.trim()) out.push("Falta visual_world_why: por qué ese mundo visual.");
+  benefitAngles(angles, benefits).forEach((angle, i) => {
+    const got = p.benefits[i]?.angle ?? null;
+    if (p.benefits[i] && got !== angle) out.push(angle ? `El beneficio ${i + 1} es el del ángulo ${angle} (angle: ${angle}); trae ${got ?? "null"}.` : `El beneficio ${i + 1} no es de un ángulo (angle: null); trae ${got}.`);
+  });
   p.benefits.forEach((b, i) => {
     if (!b.text.trim()) out.push(`El beneficio ${i + 1} está vacío.`);
     else if (b.text.length > BENEFIT_MAX) out.push(`El beneficio ${i + 1} pasa de ${BENEFIT_MAX} caracteres.`);

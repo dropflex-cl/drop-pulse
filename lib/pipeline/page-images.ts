@@ -7,6 +7,7 @@ import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
+import { getDifferentiator } from "@/lib/competitors/store";
 import { fail } from "@/lib/angles/store";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
@@ -18,6 +19,7 @@ import { higgsfieldKey } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
 import {
+  BENEFIT_SHOTS,
   COVER,
   DAILY_IMAGES,
   DAILY_RUNS,
@@ -179,11 +181,12 @@ export async function runPageImages(runId: string): Promise<void> {
     const input = r.input;
     const provider = input.provider ?? "higgsfield";
     if (provider === "higgsfield" && !(await higgsfieldKey(r.user_id))) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
-    const [brief, avatarRow, angles, images] = await Promise.all([
+    const [brief, avatarRow, angles, images, differentiator] = await Promise.all([
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
       anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
       productImageUrls(r.user_id, r.product_id, 3),
+      getDifferentiator(r.user_id, r.product_id),
     ]);
     fail("Leer el cliente ideal", avatarRow.error);
     if (!brief || !avatarRow.data || !angles) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los desarrollos y reintenta.");
@@ -193,6 +196,7 @@ export async function runPageImages(runId: string): Promise<void> {
       brief,
       avatar: avatarRow.data.payload as CustomerAvatar,
       angles,
+      differentiator: differentiator.value,
     };
     const blocks = await Promise.all(images.map((u) => imageBlock(u).catch(() => null)));
     const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);
@@ -209,7 +213,7 @@ export async function runPageImages(runId: string): Promise<void> {
         effort: "medium",
         maxTokens: 20000,
       });
-      problems = planProblems(result.data);
+      problems = planProblems(result.data, BENEFIT_SHOTS, angles.map((a) => a.slot));
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: result.usage, error: problems.length ? "invalid_plan" : null, problems });
       if (!problems.length) break;
       console.warn("[page-images] plan inválido", problems);
@@ -219,7 +223,7 @@ export async function runPageImages(runId: string): Promise<void> {
     const plan = result.data;
     const rows = plan.shots.map((s, i) => {
       const benefit = s.slot === "benefit" && s.benefit ? plan.benefits[s.benefit - 1] : undefined;
-      const payload: StoredShot = { ...s, product_look: plan.product_look, kit: plan.kit, props_forbidden: plan.props_forbidden, pairs: benefit?.text };
+      const payload: StoredShot = { ...s, product_look: plan.product_look, kit: plan.kit, props_forbidden: plan.props_forbidden, world: plan.visual_world, pairs: benefit?.text, angle: benefit?.angle ?? null };
       return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, slot: s.slot === "benefit" ? benefitSlot(s.benefit!) : s.slot === "cover" ? COVER : GALLERY, position: i, payload };
     });
     const now = stamp();

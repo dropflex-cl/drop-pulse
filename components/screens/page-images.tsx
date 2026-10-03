@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Button, EmptyState, Icon, IconButton, ImageUploader, Notice, StateChip, StatusBadge, TopBar, notify, notifyUndo, type UploadItem, type UploaderMode } from "@/components/df";
+import { Button, EmptyState, Icon, IconButton, ImageUploader, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo, type UploadItem, type UploaderMode } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
@@ -163,6 +163,12 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
         {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos armar la galería." body={run.error ?? "Toca Reintentar."} /> : null}
         {proposing ? <Notice tone="info" icon="sparkle" title="La IA está armando tu galería." body="Lee tu foto base, tus ángulos y tu página. En un minuto empiezan a aparecer las imágenes; puedes salir: te avisamos." /> : null}
         {state.stale && !proposing ? <Notice tone="warning" icon="refresh" title="Cambiaron los beneficios de tu página." body="Propón otra galería para que cada beneficio tenga su imagen." /> : null}
+        {state.style && hasShots && !proposing ? (
+          <div className="rounded-md bg-muted p-3">
+            <div className="text-micro text-muted-foreground">{`Estilo de la galería: ${state.style.name}`}</div>
+            <p className="m-0 mt-0.5 text-body">{state.style.why}</p>
+          </div>
+        ) : null}
         {!hasShots && !proposing && !state.cannotGenerate ? (
           <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
             <div className="flex items-start gap-3">
@@ -172,7 +178,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
               <div>
                 <h2 className="text-row font-semibold">{run?.status === "failed" ? "Reintenta la galería" : "La IA arma la galería de tu página"}</h2>
                 <p className="mt-0.5 text-label font-normal text-muted-foreground">
-                  {`Propone la portada, ${GALLERY_SHOTS} tomas de galería y una por cada beneficio, con el estilo de una marca. Genera la portada y ${GALLERY_MIN} de galería, lo que necesita tu página: ${AUTO_SHOTS} imágenes desde tu foto base, cerca de ${cost(AUTO_SHOTS)}${costSource(state.imageProvider.value)}. Las demás las generas si las quieres.`}
+                  {`Propone la portada, ${GALLERY_SHOTS} tomas de galería y un beneficio por cada ángulo, con un estilo elegido para quien compra. Genera la portada y ${GALLERY_MIN} de galería, lo que necesita tu página: ${AUTO_SHOTS} imágenes desde tu foto base, cerca de ${cost(AUTO_SHOTS)}${costSource(state.imageProvider.value)}. Las demás las generas si las quieres.`}
                 </p>
               </div>
             </div>
@@ -349,6 +355,7 @@ function SlotList({
                       <span className="flex items-center gap-2 text-row font-semibold">
                         {s.title}
                         {s.required ? <span className="rounded-sm bg-muted px-1.5 text-micro font-medium text-muted-foreground">Obligatorio</span> : null}
+                        {s.angle ? <RoleChip slot={s.angle} short /> : null}
                       </span>
                       {s.pairs ? <span className="line-clamp-2 text-caption text-muted-foreground">{`“${s.pairs}”`}</span> : null}
                       <span className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
@@ -461,7 +468,10 @@ function SlotDetail({
 
       {s.pairs ? (
         <div className="rounded-md bg-muted p-3">
-          <div className="text-micro text-muted-foreground">Acompaña a este texto</div>
+          <div className="flex items-center gap-2 text-micro text-muted-foreground">
+            {s.angle ? "Prueba lo que promete" : "Acompaña a este texto"}
+            {s.angle ? <RoleChip slot={s.angle} short /> : null}
+          </div>
           <p className="m-0 mt-0.5 text-body">{s.pairs}</p>
         </div>
       ) : null}

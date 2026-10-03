@@ -4,10 +4,21 @@
 
 import { RENDER } from "@/lib/creatives/catalog";
 import { textRules } from "@/lib/creatives/render";
-import { SLOT_RATIO, slotKind } from "./catalog";
+import { SLOT_RATIO, slotKind, type VisualWorld } from "./catalog";
 import type { StoredShot } from "./schemas";
 
 const FORMAT: Record<"1:1" | "3:4", string> = { "1:1": "Square", "3:4": "Vertical 3:4" };
+
+/**
+ * La primera línea del pedido: qué clase de imagen es, según el mundo visual que eligió el director.
+ * Sin mundo (tomas de antes de la versión 4), la campaña de estudio de siempre.
+ */
+const WORLD_BRIEF: Record<VisualWorld, string> = {
+  studio_color: "premium brand campaign image for a product page, art-directed by a top agency: bold, editorial, rich color, product large and heroic.",
+  real_home: "premium lifestyle photo for a product page, art-directed by a top agency: the product in a real, lived-in Latin American home, natural window light, warm and authentic, product large, sharp and clearly the hero.",
+  clean_explainer: "clean explanatory product image for a product page, art-directed by a top agency: bright and crisp, clear visual hierarchy, simple diagram elements, product large and sharp.",
+  native_phone: "authentic smartphone photo for a product page, as if a real customer took it at home: ambient light, close framing, natural and unpolished but sharp, product large and in focus.",
+};
 
 /** Cada texto con su ubicación y, si es un callout, dónde termina su línea. */
 function placedTexts(s: StoredShot): string[] {
@@ -32,7 +43,7 @@ export function pageImagePrompt(s: StoredShot, ratio: "1:1" | "3:4", language: s
   const people = s.hands ? " Only hands and the body part where the product is used are visible (cropped close), never a face." : " No people, no hands.";
   const forbidden = bare(s.props_forbidden);
   return [
-    `${FORMAT[ratio]} premium brand campaign image for a product page, art-directed by a top agency: bold, editorial, rich color, product large and heroic.`,
+    `${FORMAT[ratio]} ${WORLD_BRIEF[s.world ?? "studio_color"]}`,
     `PRODUCT: ${s.product_look.trim()}, kept exactly as in the reference image (same shape, colors, logo and printed details). ${units} ${kit} Never turn an item from the reference image into a different object. Do not print any word, logo or label on the product that is not on it in the reference image; text printed on the box never goes on the product.`,
     `SCENE: ${s.scene.trim().replace(/\s+/g, " ")}${people}`,
     `Props exactly as described, nothing else decorative; no crystals or gemstones.${forbidden.length ? ` DO NOT INCLUDE: ${forbidden.join(", ")}.` : ""}`,

@@ -3,7 +3,7 @@
 // página del producto: copy_runs, page_components). Las imágenes generadas todavía no existen: esa
 // lectura devuelve vacío y la pantalla muestra su espera.
 import "server-only";
-import { GALLERY_MIN } from "@/lib/page-images/catalog";
+import { GALLERY_MIN, VISUAL_WORLD_NAMES, isVisualWorld } from "@/lib/page-images/catalog";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { ANGLES } from "@/lib/angles/catalog";
@@ -519,6 +519,7 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     imageProvider: choice,
     cannotGenerate: blocker ?? (!aiConnected ? "Conecta tu cuenta de Anthropic en Ajustes: la IA propone las tomas y revisa cada imagen." : connected ? null : noProvider),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
+    style: run?.status === "succeeded" && shots.length && isVisualWorld(run.world) && run.world_why ? { name: VISUAL_WORLD_NAMES[run.world], why: run.world_why } : undefined,
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],

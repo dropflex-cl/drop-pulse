@@ -8,7 +8,7 @@ La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel 
 |---|---|---|---|
 | Portada | 1:1 | Sí | Una toma `hero_clean` o `hero_mood`, sin textos |
 | Galería | 1:1, se eligen 4 a 6 y se ordenan | Sí (mínimo 4) | 5 tomas distintas: ambiente, infografía, comparativa, qué incluye (o detalle) y una de uso, escala o detalle |
-| Beneficio N | **3:4** | No | 3 tomas, una por cada beneficio que el director propone desde la ficha y los ángulos (`benefit-1…3`, `BENEFIT_SHOTS`) |
+| Beneficio N | **3:4** | No | 3 tomas, una por beneficio (`benefit-1…3`, `BENEFIT_SHOTS`): **uno por cada ángulo aprobado**, en orden, con el formato de su forma (§4.1); el que sobra con 2 ángulos va al diferenciador |
 | GIFs | animado, hasta 5 ordenados | No | Solo **subidos** por el comerciante (`gifs`, `GIF_MAX`); nunca generados (§1bis) |
 
 - La etapa se habilita con los 2 desarrollos de Ángulos aprobados y queda lista con portada y al menos 4 de galería (`lib/products/stages.ts › imagesStage`). Si cambian los desarrollos, la galería queda desactualizada. La Página del producto se habilita recién con las imágenes listas.
@@ -28,8 +28,9 @@ El espacio `gifs` alimenta el componente **`gif-strip`** («DropFlex · GIFs», 
 ## 2. Flujo
 
 1. **Generar la galería** (`POST /api/products/[id]/page-images`). Se muestra el costo antes: lo que se genera solo, la portada y 4 de galería (`AUTO_SHOTS` = 5 imágenes × el costo del proveedor). Crea una corrida del director (`page_image_runs`) y sigue en `after()`.
-2. **Director de galería** (Claude, `lib/page-images/prompts.ts`). Recibe la foto base y las otras imágenes en uso, la ficha, el cliente ideal, los 2 desarrollos de ángulo y los textos aprobados (nombre corto, cómo funciona y beneficios). Entrega:
-   - lo común: `product_look`, `kit`, `brand_art`, `props_allowed` y `props_forbidden`;
+2. **Director de galería** (Claude, `lib/page-images/prompts.ts`). Recibe la foto base y las otras imágenes en uso, la ficha, el cliente ideal, el diferenciador y los desarrollos de los ángulos aprobados (2 o 3). Entrega:
+   - lo común: `visual_world` y `visual_world_why` (§4.1), `product_look`, `kit`, `brand_art`, `props_allowed` y `props_forbidden`;
+   - los beneficios con su ángulo (`benefits[].angle`, en el orden de `benefitAngles`);
    - una toma por espacio (`page_image_shots`): tipo, escena, layout, arte, unidades, partes del kit, manos y textos con su ubicación.
    `planProblems` la valida en código y se reintenta hasta 3 veces con lo que falló.
 3. **Render**: solo las tomas que van solas (`autoShotIds`: la portada y las primeras 4 de galería, lo que deja la etapa lista), de a 4 en paralelo (`lib/page-images/render.ts`). Flare, 1k, `low`, directo (sin preset) y sin `enhance_prompt`, con la foto base como referencia. La quinta de galería y los beneficios quedan **propuestos, sin generar**: el comerciante los genera si los quiere («Generar» en la toma o «Generar los beneficios»). En prod (2026-09-24/25) la quinta sobró en las 2 galerías vigentes y los beneficios se usaron en 1 de 2 productos.
@@ -78,6 +79,20 @@ La dirección de arte se validó en un POC con datos de prod de solo lectura (re
   - unidades de distinto tamaño;
   - props que parecen incluidos (un power bank rosado);
   - «piedras» que el modelo volvía cristales.
+
+### 4.1 Mundo visual y beneficios por ángulo (versión 4 del prompt, 2026-10-03)
+
+Con la receta de campaña editorial como única dirección, las 4 galerías de prod salieron iguales: fondo liso del color del producto, partículas flotando, tela desenfocada y titular grueso, con la misma paleta en las 9 tomas. Servía a la cosmética (Deep Collagen, URO, el removedor), pero el amplificador de sonido, que compran los hijos para un padre de 78 años, quedó como un sérum dorado: beige sobre beige, y ninguna escena de sus ángulos (el almuerzo familiar, el aparato olvidado en un cajón) llegó a la galería. Los ángulos solo cambiaban los textos.
+
+- **El director elige un mundo visual por producto** (`VISUAL_WORLDS` en `lib/page-images/catalog.ts`) desde el cliente ideal, dónde se usa, la categoría y los ángulos, y lo explica en `visual_world_why` (la pantalla lo muestra como «Estilo de la galería»):
+  - `studio_color`: la receta de la ronda 2 (fondo de color, luz de contorno, algo suspendido). Belleza, cuidado personal, suplementos con envase de color.
+  - `real_home`: el producto en una casa real del mercado, luz de ventana, manos de quien lo usa. Lo que se usa en familia o se compra para otro.
+  - `clean_explainer`: fondo claro, diagramas, cortes y macros. Productos cuyo argumento es cómo funcionan.
+  - `native_phone`: foto de teléfono de un comprador, textos de publicación social. Gadgets de impulso, ángulos de historia o identidad.
+- El producto siempre contrasta con el fondo: uno beige, color piel, blanco o transparente nunca va sobre su mismo color. El color del producto solo inspira la paleta en `studio_color`.
+- La galería sigue siendo **común a los ángulos** (la página es una sola), pero **cada ángulo tiene su beneficio**: `benefitAngles` da el orden y `planProblems` lo exige. La imagen usa el formato de su forma (`BENEFIT_BY_FRAME`: Enemigo común = lo de antes contra lo nuevo; Mecanismo único = corte o diagrama; Edad e identidad = la persona del segmento en su momento, sin cara; Oferta = varias unidades, sin precio) y parte de las escenas de `static_ad_concepts` y `visual_concepts` del desarrollo. La pantalla marca cada beneficio con su «Ángulo N».
+- La comparativa enfrenta al producto con el enemigo de un ángulo Enemigo común si lo hay; si no, con `alternatives_already_tried` de la ficha.
+- El render abre el pedido con el tipo de imagen del mundo (`WORLD_BRIEF` en `render.ts`); las tomas guardadas antes, sin `world`, siguen con la de estudio.
 
 **Reglas de props:** se permite todo lo que dé ambiente sin prometer nada. Se prohíbe lo que sugiera un ingrediente, sabor, función o accesorio que la ficha no dice, por ejemplo frutas junto a un suplemento sin fruta. Cada prop se describe con precisión visual.
 
