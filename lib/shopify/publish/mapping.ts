@@ -41,7 +41,6 @@ export interface PublishReview {
   body: string;
   /** YYYY-MM-DD */
   date?: string;
-  country?: string;
   /** Llaves de sus fotos (ver PublishImage.key). */
   photos: string[];
 }
@@ -213,7 +212,7 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
       const mine = r.photos.map(gid).filter((g): g is string => Boolean(g)).slice(0, Math.max(0, REVIEW_PHOTOS_MAX - photos.length));
       const from = photos.length;
       photos.push(...mine);
-      return { id: r.id, author: r.author, rating: r.rating, body: r.body, ...(r.date ? { date: r.date } : {}), ...(r.country ? { country: r.country } : {}), image_from: from, image_count: mine.length };
+      return { id: r.id, author: r.author, rating: r.rating, body: r.body, ...(r.date ? { date: r.date } : {}), image_from: from, image_count: mine.length };
     });
     const rating = Math.round((reviews.reduce((n, r) => n + r.rating, 0) / reviews.length) * 10) / 10;
     set.push(mf(SHARED_METAFIELDS.reviews.key, "json", { items }));

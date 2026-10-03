@@ -167,9 +167,6 @@
               <p class="df-review-slider__meta">
                 <span class="df-review-slider__author">{{ author | escape }}</span>
                 {%- render 'df-stars', rating: r_rating, size: '0.875rem', label: stars_label -%}
-                {%- if s.show_country and review.country != blank -%}
-                  <span class="df-review-slider__country">{{ review.country | escape }}</span>
-                {%- endif -%}
               </p>
               <blockquote class="df-review-slider__text">
                 <p>{{ excerpt | escape }}</p>
@@ -272,11 +269,6 @@
   .df-review-slider__author {
     font-weight: 600;
     white-space: nowrap;
-  }
-
-  .df-review-slider__country {
-    color: var(--df-muted);
-    font-size: 0.75rem;
   }
 
   .df-review-slider__text {
@@ -465,12 +457,6 @@
       "max": 4,
       "step": 1,
       "default": 2
-    },
-    {
-      "type": "checkbox",
-      "id": "show_country",
-      "label": "Mostrar país",
-      "default": true
     },
     {
       "type": "checkbox",

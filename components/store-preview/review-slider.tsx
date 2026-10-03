@@ -88,7 +88,6 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
                   <p className="df-review-slider__meta">
                     <span className="df-review-slider__author">{author}</span>
                     <DfStars rating={review.rating || 5} size="0.875rem" />
-                    {s.show_country && review.country && <span className="df-review-slider__country">{review.country}</span>}
                   </p>
                   <blockquote className="df-review-slider__text">
                     <p>{excerpt}</p>

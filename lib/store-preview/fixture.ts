@@ -3,13 +3,13 @@
 
 import type { StoreFacts } from "./facts";
 
-const REVIEW_TEXTS: [id: string, author: string, rating: number, body: string, country: string][] = [
-  ["rv_8812", "M***a", 5, "Lo uso 2 horas en la oficina y ya no termino encorvada. Buena calidad, las correas no se sueltan.", "CL"],
-  ["rv_8840", "J***o", 4, "Llegó bien embalado en 4 días. La talla M me quedó justa, pedí según la tabla.", "CL"],
-  ["rv_8903", "C***a", 4, "Al principio incomoda un poco, después te acostumbras. Se nota la diferencia al final del día.", "MX"],
-  ["rv_1201", "P***o", 5, "Se ajusta fácil y no se nota debajo de la polera. Lo uso para manejar.", "CO"],
-  ["rv_1244", "A***a", 5, "Tal cual la foto. Lo compré para mi hijo que estudia mucho sentado y le sirvió.", "CL"],
-  ["r_1042", "L***s", 5, "Antes terminaba el día con la espalda cargada; ahora me acuerdo de enderezarme sin pensarlo.", "PE"],
+const REVIEW_TEXTS: [id: string, author: string, rating: number, body: string][] = [
+  ["rv_8812", "M***a", 5, "Lo uso 2 horas en la oficina y ya no termino encorvada. Buena calidad, las correas no se sueltan."],
+  ["rv_8840", "J***o", 4, "Llegó bien embalado en 4 días. La talla M me quedó justa, pedí según la tabla."],
+  ["rv_8903", "C***a", 4, "Al principio incomoda un poco, después te acostumbras. Se nota la diferencia al final del día."],
+  ["rv_1201", "P***o", 5, "Se ajusta fácil y no se nota debajo de la polera. Lo uso para manejar."],
+  ["rv_1244", "A***a", 5, "Tal cual la foto. Lo compré para mi hijo que estudia mucho sentado y le sirvió."],
+  ["r_1042", "L***s", 5, "Antes terminaba el día con la espalda cargada; ahora me acuerdo de enderezarme sin pensarlo."],
 ];
 
 /** Una tienda con reseñas aprobadas, envío gratis y garantía; sin plazos de entrega cargados. */
@@ -23,7 +23,7 @@ export const FIXTURE_FACTS: StoreFacts = {
     { units: 2, price: 37990, compareAt: 65980, label: "2 unidades", support: "Uno para ti y otro para regalar", badge: "Más elegido" },
     { units: 3, price: 49990, compareAt: 98970, label: "3 unidades", support: "Lleva 3, paga 2" },
   ],
-  reviews: REVIEW_TEXTS.map(([id, author, rating, body, country], i) => ({ id, author, rating, body, country, date: "ago 2026", iso: `2026-08-${String(24 - i * 3).padStart(2, "0")}`, photos: [] })),
+  reviews: REVIEW_TEXTS.map(([id, author, rating, body], i) => ({ id, author, rating, body, date: "ago 2026", iso: `2026-08-${String(24 - i * 3).padStart(2, "0")}`, photos: [] })),
   rating: 4.7,
   count: REVIEW_TEXTS.length,
   policies: { cod: true, free_shipping: true, return_days: 30 },

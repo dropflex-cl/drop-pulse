@@ -3121,11 +3121,6 @@ df-insta-story {
   white-space: nowrap;
 }
 
-.df-review-slider__country {
-  color: var(--df-muted);
-  font-size: 0.75rem;
-}
-
 .df-review-slider__text {
   margin: 0;
 }

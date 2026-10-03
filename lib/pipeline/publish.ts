@@ -180,7 +180,6 @@ export async function preparePublish(userId: string, productId: string): Promise
       rating: r.rating,
       body: displayText(r),
       date: r.reviewed_at?.slice(0, 10) ?? undefined,
-      country: r.country ?? undefined,
       photos: photos.map((p) => p.key),
     };
   });

@@ -300,7 +300,6 @@
           {%- liquid
             assign review_body = review.body | strip | truncate: 240 | escape
             assign review_author = review.author | escape
-            assign review_country = review.country | escape
             assign initial = review.author | strip | slice: 0 | upcase | escape
           -%}
           <figure class="df-stats-with-image__review" data-df-reveal>
@@ -309,7 +308,7 @@
               <blockquote class="df-stats-with-image__quote"><p>«{{ review_body }}»</p></blockquote>
               <figcaption class="df-stats-with-image__review-meta">
                 {% render 'df-stars', rating: review.rating, size: '0.875rem' %}
-                <span class="df-stats-with-image__author">{{ review_author }}{% if review_country != blank %} · {{ review_country }}{% endif %}</span>
+                <span class="df-stats-with-image__author">{{ review_author }}</span>
               </figcaption>
             </div>
           </figure>

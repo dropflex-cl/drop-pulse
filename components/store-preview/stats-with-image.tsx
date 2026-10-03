@@ -157,10 +157,7 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
                 </blockquote>
                 <figcaption className="df-stats-with-image__review-meta">
                   <DfStars rating={review.rating} size="0.875rem" />
-                  <span className="df-stats-with-image__author">
-                    {review.author}
-                    {review.country ? ` · ${review.country}` : ""}
-                  </span>
+                  <span className="df-stats-with-image__author">{review.author}</span>
                 </figcaption>
               </div>
             </figure>

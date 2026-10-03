@@ -37,8 +37,10 @@ export const SHARED_METAFIELDS = {
   /**
    * Producto · json. Reseñas APROBADAS, texto tal cual (o el editado por el comerciante):
    * { items: Array<{ id: string, author: string (enmascarado «M***a»), rating: 1..5, body: string,
-   *   date: "YYYY-MM-DD", country?: string, image_from: number, image_count: number }> }
+   *   date: "YYYY-MM-DD", image_from: number, image_count: number }> }
    * Las fotos de la reseña i son reviews_images[image_from … image_from + image_count - 1].
+   * Sin país: la tienda es chilena y las reseñas vienen de compradores de otros países (decisión del
+   * comerciante, 2026-10-03).
    */
   reviews: { owner: "product", namespace: "dropflex", key: "reviews", type: "json" },
   /** Producto · list.file_reference. Fotos de las reseñas, planas, en el orden de `reviews`. */

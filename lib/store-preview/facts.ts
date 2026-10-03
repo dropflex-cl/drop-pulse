@@ -9,7 +9,6 @@ export interface StoreReview {
   author: string;
   rating: number;
   body: string;
-  country?: string;
   /** «ago 2026». */
   date?: string;
   /** La misma fecha como YYYY-MM-DD (la de dropflex.reviews): la usa el muro de testimonios. */

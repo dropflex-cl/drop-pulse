@@ -33,7 +33,7 @@ function input(over: Partial<PublishInput> = {}): PublishInput {
       { id: "insta-story", content: example("insta-story"), images: { stories: ["page-media/s1.png", "page-media/s2.png", "page-media/s3.png"] } },
     ],
     reviews: [
-      { id: "r1", author: "M***a", rating: 5, body: "Buenísimo", date: "2026-08-01", country: "CL", photos: ["product-references/r1a.jpg", "product-references/r1b.jpg"] },
+      { id: "r1", author: "M***a", rating: 5, body: "Buenísimo", date: "2026-08-01", photos: ["product-references/r1a.jpg", "product-references/r1b.jpg"] },
       { id: "r2", author: "J***o", rating: 4, body: "Llegó bien", photos: [] },
     ],
     packs: [
