@@ -118,7 +118,12 @@ export interface LegacyScoredAngle {
 }
 
 export type RankingPayload = AngleStrategyOutput | LegacyRouterPayload;
-export const isStrategy = (p: RankingPayload | null | undefined): p is AngleStrategyOutput => Boolean(p && Array.isArray((p as AngleStrategyOutput).angles));
+/**
+ * ¿Es una propuesta del orquestador v7? Las evaluaciones de antes también traen `angles` (las 6 formas
+ * puntuadas): lo que distingue a la nueva es `test_first`, que antes no existía.
+ */
+export const isStrategy = (p: RankingPayload | null | undefined): p is AngleStrategyOutput =>
+  Boolean(p && Array.isArray((p as AngleStrategyOutput).test_first) && Array.isArray((p as AngleStrategyOutput).angles));
 
 // ---------------------------------------------------------------- Agentes de ángulo
 

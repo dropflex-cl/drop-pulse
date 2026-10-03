@@ -152,6 +152,9 @@ describe("validación del orquestador", () => {
   it("distingue la propuesta nueva de las evaluaciones de antes", () => {
     expect(isStrategy({ buyer_and_user: "", angles: five(), test_first: [0, 1], test_first_reason: "", doubts: [], watch_out: [] })).toBe(true);
     expect(isStrategy({ test_angles: [] })).toBe(false);
+    // Las de antes también traen `angles` (las 6 formas puntuadas): producción, 2026-10-03.
+    const v6 = { angles: [{ angle: "offer", scores: { c1: 4, c2: 3, c3: 4 }, penalty: false, why: "", risks: [] }], test_angles: [], aida_emphasis: "", compliance_flags: [] };
+    expect(isStrategy(v6 as never)).toBe(false);
     expect(isStrategy(null)).toBe(false);
   });
 });

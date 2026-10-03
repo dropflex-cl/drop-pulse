@@ -506,7 +506,7 @@ export async function runBrief(briefId: string): Promise<void> {
             why: angle.why || scored?.why || ANGLES[b.angle].gist,
             risks: scored?.risks.map((k) => k.text) ?? [],
             aidaEmphasis: legacy?.aida_emphasis,
-            complianceFlags: isStrategy(r.payload) ? r.payload.watch_out : (legacy?.compliance_flags ?? []),
+            complianceFlags: isStrategy(r.payload) ? (r.payload.watch_out ?? []) : (legacy?.compliance_flags ?? []),
           }),
         },
       ],
