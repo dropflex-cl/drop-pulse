@@ -23,36 +23,47 @@ import {
   PATTERN_NAMES,
   RISKS,
   SPOKEN_MAX_WORDS,
-  TOP_HOOKS,
+  HOOK_DELIVERIES,
+  MIN_QUOTED_HOOKS,
+  QUOTE_SHARED_WORDS,
   type Archetype,
+  type HookDelivery,
   type HookPattern,
   type HookRisk,
   type OpeningShot,
 } from "./catalog";
 import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "./policy";
+import { isUsable } from "./select";
 
-/** Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera toma (opening_shot) y la versión de mascota. 3: parte del gancho del ángulo (orquestador v7). */
-export const HOOKS_PROMPT_VERSION = 3;
-
-const VARIANT_CHANGES = ["spoken", "on_screen", "visual"];
+/**
+ * Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera
+ * toma (opening_shot) y la versión de mascota. 3: parte del gancho del ángulo (orquestador v7). 4: detener
+ * el scroll (tensión, el problema nombrado, MATERIA PRIMA, rank, delivery y el crítico de lib/hooks/critic.ts).
+ */
+export const HOOKS_PROMPT_VERSION = 4;
 
 const text = z.string();
 
 const scores = z.object({
-  salience: z.number().int().describe("1 a 5. ¿La primera toma tiene movimiento, cara, mano en acción o texto grande?"),
+  salience: z.number().int().describe("1 a 5. ¿En medio segundo hay algo que mirar: movimiento, una cara en medio de un gesto, una mano haciendo algo, algo raro o fuera de lugar?"),
   relevance: z.number().int().describe("1 a 5. ¿El cliente ideal se reconoce en 2 s o menos?"),
-  credibility: z.number().int().describe("1 a 5. ¿Hay algo que lo haga creíble (demo, persona hablando, precio concreto, tienda)?"),
-  verifiability: z.number().int().describe("1 a 5. ¿Lo que promete es lo que el cliente va a ver al abrir el paquete?"),
+  tension: z.number().int().describe("1 a 5. ¿Deja una pregunta abierta o algo en juego (un secreto, algo que salió mal, alguien a quien quiere)? Una descripción tranquila o una característica del producto es 1 o 2."),
+  credibility: z.number().int().describe("1 a 5. ¿Suena a alguien real y no a un anuncio (una persona hablando, una frase que diría la gente)?"),
 });
 
 const hookOut = z.object({
   pattern: z.enum(HOOK_PATTERNS),
   mechanism: text.describe("El mecanismo psicológico, en pocas palabras («Ciclo abierto», «Aversión a la pérdida»)."),
-  text: text.describe("El hablado de 0 a 3 s, en el idioma del mercado y con tuteo."),
+  text: text.describe("El hablado de 0 a 3 s, en el idioma del mercado y con tuteo. Su primera frase lleva la tensión."),
   follow_up: text.nullable().describe("La segunda frase, hasta los 6 s, o null."),
-  on_screen: text.describe("El texto en pantalla de 0 a 3 s, legible sin sonido. Puede ser distinto del hablado."),
+  on_screen: text.describe("El texto en pantalla de 0 a 3 s, legible sin sonido. Nombra el problema o la tensión, no una etiqueta."),
+  silent_read: text.describe("Qué entiende alguien en 1 s SIN sonido, solo con el texto en pantalla y la primera toma, en una frase."),
+  source_quote: text.nullable().describe("La frase de MATERIA PRIMA de la que parte, copiada textual, o null."),
+  delivery: text.describe(`Cómo se dice: ${HOOK_DELIVERIES.join(", ")}.`),
   visual_first_3s: text.describe("La primera toma concreta: qué se ve, el plano y la acción. Nunca un logo ni el producto girando sin contexto."),
   scores,
+  promises_only_what_arrives: z.boolean().describe("true si lo que promete es lo que el cliente ve al abrir el paquete. false: reemplázalo."),
+  rank: z.number().int().describe(`Su lugar entre los ${HOOKS_PER_ANGLE}, de 1 (el que más detiene el scroll) a ${HOOKS_PER_ANGLE}, sin empates.`),
   risk: z.enum(RISKS).describe("Riesgo de rechazo de Meta o de rechazo en la entrega (COD)."),
   risk_reason: text.describe("La razón del riesgo en 5 palabras."),
   needs_real_material: text.nullable().describe("Qué material real hace falta para usarlo sin inventar nada («Un testimonio real en video», «Grabar la bodega con los pedidos»), o null si se puede hacer con lo que hay."),
@@ -80,28 +91,30 @@ export const hooksOutputSchema = z.object({
     policy_risk: z.enum(RISKS).describe("Riesgo de política de la categoría."),
   }),
   hooks: z.array(hookOut).describe(`${HOOKS_PER_ANGLE} ganchos en al menos ${MIN_PATTERNS} patrones distintos, como mucho ${MAX_PER_PATTERN} por patrón.`),
-  top: z
-    .array(
-      z.object({
-        hook: z.number().int().describe("Índice (desde 0) del gancho en hooks."),
-        why: text.describe("Por qué probarlo primero, en una línea."),
-        variant: z.object({
-          changes: text.describe("La única variable que cambia la variante A/B: spoken, on_screen o visual."),
-          text: text.describe("El nuevo valor de esa variable."),
-        }),
-      }),
-    )
-    .describe(`Los ${TOP_HOOKS} para probar primero, del mejor al tercero.`),
   production_notes: z.array(text).describe("Qué grabar si no sirve el video del proveedor y qué material real falta."),
 });
 export type HooksOutput = z.infer<typeof hooksOutputSchema>;
+export type HookOut = HooksOutput["hooks"][number];
 export type HookScores = z.infer<typeof scores>;
 export type HookDiagnosis = HooksOutput["diagnosis"];
-export type HookTop = HooksOutput["top"][number];
+/** El top 3 con su variante A/B (hasta la versión 3 del agente; ahora el orden lo da `rank` y el crítico). */
+export interface HookTop {
+  hook: number;
+  why: string;
+  variant: { changes: string; text: string };
+}
+
+/** Lo que dijo el crítico de un gancho (lib/hooks/critic.ts). */
+export interface HookReview {
+  stops: boolean;
+  understood_muted: string;
+  why: string;
+}
 
 /**
  * Un gancho como se guarda en `angle_briefs.payload.hooks`. Los desarrollos de antes (hasta la versión
  * 3 del agente de ángulo) solo traen `text`, `visual_first_3s` y `policy_ok`: lo demás es opcional.
+ * Desde la versión 4 del agente de ganchos se guardan en su orden (`rank`): el primero detiene más.
  */
 export interface AngleHook {
   text: string;
@@ -111,7 +124,8 @@ export interface AngleHook {
   mechanism?: string;
   follow_up?: string | null;
   on_screen?: string;
-  scores?: HookScores;
+  /** Los criterios cambiaron entre versiones (antes: verifiability; desde la 4: tension). */
+  scores?: Partial<Record<keyof HookScores | "verifiability", number>>;
   risk?: HookRisk;
   risk_reason?: string;
   needs_real_material?: string | null;
@@ -122,6 +136,14 @@ export interface AngleHook {
   first_motion?: string;
   /** La versión del gancho para la mascota, o null si no encaja. */
   mascot?: MascotHook | null;
+  /** Desde la versión 4: lo que se entiende sin sonido, la cita de la que parte, cómo se dice y su lugar. */
+  silent_read?: string;
+  source_quote?: string | null;
+  delivery?: HookDelivery;
+  promises_only_what_arrives?: boolean;
+  rank?: number;
+  /** El crítico (versión 4), o nada si no corrió. */
+  review?: HookReview;
 }
 
 export type MascotHook = NonNullable<HooksOutput["hooks"][number]["mascot"]>;
@@ -175,6 +197,27 @@ export interface HookFacts {
   pricing: PricingPlan;
   hasRealReviews: boolean;
   hasRealExpert: boolean;
+  /** MATERIA PRIMA (rawMaterial en lib/hooks/prompts.ts): de donde salen las citas del comprador. */
+  rawMaterial: string[];
+}
+
+/** Sin tildes, en minúscula y sin signos: para comparar una cita con su fuente. */
+function plain(t: string): string {
+  return t
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9ñ]+/g, " ")
+    .trim();
+}
+
+/** Las palabras con contenido (4 letras o más) de un texto. */
+const contentWords = (t: string) => new Set(plain(t).split(" ").filter((w) => w.length >= 4));
+
+/** ¿La cita está textual en MATERIA PRIMA? (sin contar tildes, mayúsculas ni signos). */
+export function quoteFound(quote: string, raw: string[]): boolean {
+  const q = plain(quote);
+  return q.length > 0 && raw.some((r) => plain(r).includes(q));
 }
 
 /** Qué está mal en la respuesta del agente de ganchos. Vacío si se puede guardar. */
@@ -197,6 +240,9 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     if (!h.text.trim()) problems.push(`${at}no trae el hablado.`);
     if (!h.on_screen.trim()) problems.push(`${at}no trae el texto en pantalla.`);
     if (!h.visual_first_3s.trim()) problems.push(`${at}no trae el visual de 0 a 3 s.`);
+    if (!h.silent_read.trim()) problems.push(`${at}no dice qué se entiende sin sonido (silent_read).`);
+    if (!(HOOK_DELIVERIES as readonly string[]).includes(h.delivery)) problems.push(`${at}delivery es «${h.delivery}»: usa uno de ${HOOK_DELIVERIES.join(", ")}.`);
+    if (!h.promises_only_what_arrives) problems.push(`${at}promete algo que el cliente no ve al abrir el paquete: reemplázalo por otro.`);
     const spoken = wordCount(h.text);
     if (spoken > SPOKEN_MAX_WORDS) problems.push(`${at}el hablado tiene ${spoken} palabras; el máximo es ${SPOKEN_MAX_WORDS} (3 s).`);
     if (h.follow_up && wordCount(h.follow_up) > FOLLOW_UP_MAX_WORDS) problems.push(`${at}la segunda frase tiene ${wordCount(h.follow_up)} palabras; el máximo es ${FOLLOW_UP_MAX_WORDS}.`);
@@ -221,6 +267,24 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     problems.push(...mascotProblems(h, facts.pricing, at));
   });
 
+  // El orden: un lugar por gancho, sin empates (ordenar obliga a comparar; un puntaje suelto, no).
+  const ranks = hooks.map((h) => h.rank).sort((a, b) => a - b);
+  if (ranks.some((r, i) => r !== i + 1)) problems.push(`rank tiene que ir de 1 a ${hooks.length}, un lugar por gancho y sin empates; vino ${hooks.map((h) => h.rank).join(", ")}.`);
+
+  // Las citas del comprador: textuales y usadas de verdad.
+  let quoted = 0;
+  hooks.forEach((h, i) => {
+    const q = h.source_quote?.trim();
+    if (!q) return;
+    const at = `El gancho ${i + 1}: `;
+    if (!quoteFound(q, facts.rawMaterial)) return problems.push(`${at}source_quote «${q}» no está en MATERIA PRIMA: cópiala textual o pon null.`);
+    const said = contentWords(`${h.text} ${h.follow_up ?? ""} ${h.on_screen}`);
+    const shared = [...contentWords(q)].filter((w) => said.has(w)).length;
+    if (shared < QUOTE_SHARED_WORDS) return problems.push(`${at}dice partir de «${q}», pero no usa sus palabras: tómalas casi textuales o pon null.`);
+    quoted++;
+  });
+  if (facts.rawMaterial.length && quoted < MIN_QUOTED_HOOKS) problems.push(`Solo ${quoted} ganchos parten de una frase de MATERIA PRIMA; deben ser al menos ${MIN_QUOTED_HOOKS}, con su source_quote textual.`);
+
   const mascots = hooks.filter((h) => h.mascot);
   const mascotPatterns = new Set(mascots.map((h) => h.pattern));
   if (mascots.length < MIN_MASCOT_HOOKS || mascotPatterns.size < MIN_MASCOT_PATTERNS)
@@ -228,18 +292,6 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
 
   const second = out.diagnosis.secondary_archetype;
   if (second != null && !(ARCHETYPES as readonly string[]).includes(second)) problems.push(`secondary_archetype es «${second}»: usa uno de ${ARCHETYPES.join(", ")} o null.`);
-  if (out.top.length !== TOP_HOOKS) problems.push(`top trae ${out.top.length}; deben ser ${TOP_HOOKS}.`);
-  const tops = new Set<number>();
-  out.top.forEach((t, i) => {
-    const h = hooks[t.hook];
-    if (!h) return problems.push(`top ${i + 1} apunta al gancho ${t.hook}, que no existe (los índices van de 0 a ${hooks.length - 1}).`);
-    if (tops.has(t.hook)) problems.push(`top ${i + 1} repite el gancho ${t.hook + 1}.`);
-    tops.add(t.hook);
-    if (!h.policy_ok || h.risk === "high") problems.push(`top ${i + 1} es el gancho ${t.hook + 1}, que tiene riesgo alto o roza la política: elige otro para probar primero.`);
-    if (!VARIANT_CHANGES.includes(t.variant.changes)) problems.push(`top ${i + 1}: variant.changes es «${t.variant.changes}»; usa spoken, on_screen o visual.`);
-    if (!t.variant.text.trim()) problems.push(`top ${i + 1} no trae su variante A/B.`);
-    else if (t.variant.changes !== "visual") problems.push(...hookTextProblems(t.variant.text, facts.pricing, `La variante del top ${i + 1}: `));
-  });
   return problems;
 }
 
@@ -260,13 +312,29 @@ function mascotProblems(h: HooksOutput["hooks"][number], pricing: PricingPlan, a
   return problems;
 }
 
-/** Lo que se guarda en el desarrollo: los ganchos y su recomendado (el primero del top). */
-export function hooksToPayload(out: HooksOutput): { hooks: AngleHook[]; recommended_hook: number } & HooksMeta {
+/** Lo que el crítico ordenó y dijo de cada gancho (índices de `out.hooks`). */
+export interface HooksReview {
+  order: number[];
+  reviews: (HookReview & { hook: number })[];
+}
+
+/**
+ * Lo que se guarda en el desarrollo: los ganchos en su orden (el del crítico o, si no corrió, `rank`),
+ * con su lugar y lo que dijo el crítico, y el recomendado: el primero que se puede usar.
+ */
+export function hooksToPayload(out: HooksOutput, review?: HooksReview | null): { hooks: AngleHook[]; recommended_hook: number } & HooksMeta {
+  const order = review?.order.length === out.hooks.length ? review.order : out.hooks.map((_, i) => i).sort((a, b) => out.hooks[a].rank - out.hooks[b].rank || a - b);
+  const byHook = new Map(review?.reviews.map(({ hook, ...r }) => [hook, r]) ?? []);
+  const hooks: AngleHook[] = order.map((i, k) => {
+    const h = out.hooks[i];
+    const r = byHook.get(i);
+    return { ...h, delivery: h.delivery as HookDelivery, rank: k + 1, ...(r ? { review: r } : {}) };
+  });
+  const usable = hooks.findIndex(isUsable);
   return {
-    hooks: out.hooks.map((h) => ({ ...h })),
-    recommended_hook: out.top[0]?.hook ?? 0,
+    hooks,
+    recommended_hook: Math.max(0, usable),
     hook_diagnosis: out.diagnosis,
-    hook_top: out.top,
     hook_notes: out.production_notes,
     hooks_version: HOOKS_PROMPT_VERSION,
     hooks_error: null,

@@ -19,7 +19,7 @@ import {
   type AngleDevelopmentValue,
 } from "@/components/df";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { AiCostButton, useAiEstimate, useStepCost } from "@/components/shell/ai-cost-provider";
+import { AiCostButton, useAiEstimate } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, TEST_ANGLES, type SalesAngle, type SpeaksTo } from "@/lib/angles/catalog";
@@ -198,7 +198,10 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
   const [askReeval, setAskReeval] = useState(false);
   const rankingCost = useAiEstimate("angle_ranking");
   const briefCost = useAiEstimate("angle_brief");
-  const hooksCost = useStepCost("angle_hooks");
+  // «Otros ganchos» es el agente de ganchos más su crítico (lib/hooks/critic.ts).
+  const hooksEstimate = useAiEstimate("angle_hooks");
+  const criticEstimate = useAiEstimate("hook_critic");
+  const hooksCost = hooksEstimate ? `≈ ${money(hooksEstimate.amount + (criticEstimate?.amount ?? 0), hooksEstimate.currency)}` : null;
   const evaluate = () => (hasBriefs ? setAskReeval(true) : runEvaluate());
 
   const confirm = async () => {

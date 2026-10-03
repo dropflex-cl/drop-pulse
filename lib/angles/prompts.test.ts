@@ -112,7 +112,7 @@ describe("validación del orquestador", () => {
 
   // El gancho que motivó el orquestador v7 (un chat simple lo propuso; la versión de antes no podía).
   it("acepta un gancho con forma de frase que habla de un tercero", () => {
-    const hook = "Si la tele de tu papá se escucha desde la calle, esto es para ustedes.";
+    const hook = "La tele de tu papá se escucha desde la calle.";
     expect(strategyProblems({ angles: [angle(0, { hook, speaks_to: "buyer", tone: "Humor cotidiano" }), ...five().slice(1)] }, facts)).toEqual([]);
   });
 
@@ -124,7 +124,12 @@ describe("validación del orquestador", () => {
 
   it("el gancho tiene un tope de palabras", () => {
     const long = Array.from({ length: ANGLE_HOOK_MAX_WORDS + 1 }, () => "palabra").join(" ");
-    expect(strategyProblems({ angles: [angle(0, { hook: long }), ...five().slice(1)] }, facts)[0]).toMatch(/el gancho tiene 25 palabras/);
+    expect(strategyProblems({ angles: [angle(0, { hook: long }), ...five().slice(1)] }, facts)[0]).toMatch(new RegExp(`el gancho tiene ${ANGLE_HOOK_MAX_WORDS + 1} palabras.*aida.attention`));
+  });
+
+  it("el título es un nombre corto, no el gancho", () => {
+    const title = "El que antes contaba todos los chistes ahora sonríe medio segundo tarde";
+    expect(strategyProblems({ angles: [angle(0, { title }), ...five().slice(1)] }, facts)[0]).toMatch(/el título tiene 12 palabras/);
   });
 
   it("Autoridad e Historia personal piden la prueba real", () => {

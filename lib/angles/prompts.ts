@@ -45,7 +45,8 @@ export function angleStrategySystem(market: Market): string {
     "- Primero: ¿quién compra y quién usa? A veces no son la misma persona (la hija que compra para su papá, la mamá que compra para su bebé). Cada ángulo le habla a quien más se mueve con ese mensaje, y puede haber ángulos para los dos.",
     "- Lo que ya vende en esta categoría vale más que ser original. La competencia sirve para no copiar su anuncio, no para descartar un dolor que funciona.",
     "- Cada ángulo es otra razón para comprar: otro dolor, otro deseo, otra persona u otro momento. No la misma idea con otras palabras.",
-    "- El gancho es lo que detiene el scroll: una escena concreta que se ve, con las palabras de la gente, que se entiende en 2 segundos. El tono es el que mejor venda: humor, emoción, choque o curiosidad.",
+    "- El gancho es lo que detiene el scroll: lo que diría alguien, no un narrador, con las palabras de la gente. Nombra el problema y deja algo en juego o una pregunta abierta (un secreto, algo que salió mal, algo raro): quien lo lee piensa «¿qué pasó?» o «eso me pasa a mí». La escena que lo muestra va en aida.attention.",
+    "- El tono es el que mejor venda (humor, emoción, choque o curiosidad) y es el del resto del anuncio: el gancho siempre tiene tensión, aunque el tono sea cálido. Una observación tierna o tranquila no detiene a nadie.",
     "- Si hay una fecha comercial cerca (FECHAS), un ángulo de regalo o de temporada puede estar entre los mejores.",
     "- La información del proveedor muchas veces exagera o se equivoca: un peso, un origen, una marca, «médico», «inteligente». Lo que no sea creíble no lo uses: anótalo en doubts. Lo que escribe el comerciante también puede estar incompleto.",
     "- Ordena los ángulos del que más va a vender al que menos, y elige 2 o 3 para testear primero.",
@@ -60,7 +61,7 @@ export function angleStrategySystem(market: Market): string {
     marketBlock(market),
     "",
     "AL ENTREGAR",
-    `- ${ANGLE_CANDIDATES} ángulos. hook: máximo ${promptLimit(ANGLE_HOOK_MAX_WORDS)} palabras.`,
+    `- ${ANGLE_CANDIDATES} ángulos. title: 2 a 5 palabras. hook: máximo ${promptLimit(ANGLE_HOOK_MAX_WORDS)} palabras, una o dos frases cortas.`,
     "- frame: cuando el ángulo ya está escrito, la forma que más se le parece. Solo decide qué especialista lo desarrolla: no cambies el ángulo para que calce. authority solo con un experto real en PRUEBAS REALES; personal_story solo con reseñas reales.",
     ...SALES_ANGLES.map((a) => `  · ${a}: ${ANGLES[a].gist}`),
   ].join("\n");

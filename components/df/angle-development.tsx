@@ -202,6 +202,8 @@ function HookItem({ text, detail, recommended }: { text: string; detail?: AngleH
           Primera toma{detail.openingShot ? ` (${detail.openingShot.toLowerCase()})` : ""}: {detail.visual}
         </span>
       ) : null}
+      {recommended && detail?.silentRead ? <span className="block text-caption text-muted-foreground">Sin sonido se entiende: {detail.silentRead}</span> : null}
+      {detail?.noStop ? <span className="block text-caption text-muted-foreground">No detiene el scroll: {detail.noStop}</span> : null}
       {warning ? (
         <span className="mt-0.5 flex gap-1 text-caption text-warning">
           <Icon name="alert" size="sm" className="mt-px shrink-0" />

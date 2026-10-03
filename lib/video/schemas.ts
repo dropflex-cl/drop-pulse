@@ -34,10 +34,10 @@ import {
   type VideoFormat,
 } from "./catalog";
 
-/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». 6: el gancho sale de la tríada del agente de ganchos (hook_source). 7: la apertura (opening) y la cámara de cada imagen clave (spec-video-detener-scroll). */
-export const UGC_PROMPT_VERSION = 7;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). */
-export const MASCOT_PROMPT_VERSION = 7;
+/** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». 6: el gancho sale de la tríada del agente de ganchos (hook_source). 7: la apertura (opening) y la cámara de cada imagen clave (spec-video-detener-scroll). 8: A1 abre con la frase del gancho, sin nada antes, y con su delivery. */
+export const UGC_PROMPT_VERSION = 8;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). 8: A1 abre con la frase del gancho y su delivery. */
+export const MASCOT_PROMPT_VERSION = 8;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). 3: matches_hook (la apertura) y phone_look (aviso). */
 export const KEYFRAME_QA_PROMPT_VERSION = 3;
 
@@ -245,7 +245,24 @@ export function scriptProblems(s: UgcScript, pricing: PricingPlan, format: Video
 
 /** Los ganchos que se le pasaron al guionista (`index` en el desarrollo) y la toma con que abre cada uno. */
 export interface OpeningInput {
-  hooks: { index: number; shot: VideoOpeningShot }[];
+  /** `spoken`: el hablado del gancho (en la mascota, el de su versión): A1 abre con su primera frase. */
+  hooks: { index: number; shot: VideoOpeningShot; spoken?: string }[];
+}
+
+/** Lo que se tiene que oír de una frase: sus palabras de 4 letras o más, sin cifras. */
+const heard = (t: string) => new Set(words(t).filter((w) => w.length >= 4 && !/\d/.test(w)));
+/** Parte de la primera frase del gancho que A1 tiene que decir (puede ajustar una palabra o quitar un monto). */
+export const HOOK_SENTENCE_SHARE = 0.6;
+
+/**
+ * ¿A1 abre con la primera frase del gancho? En el amplificador de sonido (2026-10-03) A1 abrió con
+ * «Todos se rieron.»: tres palabras de contexto antes de lo que detiene. Sin palabras que oír, no se pide.
+ */
+export function opensWithHook(a1Line: string, spoken: string): boolean {
+  const need = heard(firstSentence(spoken));
+  if (!need.size) return true;
+  const said = heard(firstSentence(a1Line));
+  return [...need].filter((w) => said.has(w)).length >= Math.ceil(need.size * HOOK_SENTENCE_SHARE);
 }
 
 /**
@@ -292,6 +309,8 @@ function openingProblems(s: UgcScript, input: OpeningInput, format: VideoFormat)
   const opening = firstSentence(a1.line);
   const n = words(opening).length;
   if (n > SPOKEN_MAX_WORDS) problems.push(`La primera frase de A1 («${opening}») tiene ${n} palabras: el gancho cabe en 3 s, máximo ${SPOKEN_MAX_WORDS}.`);
+  if (hook?.spoken && !opensWithHook(a1.line, hook.spoken))
+    problems.push(`La primera frase de A1 («${opening}») no es la del gancho («${firstSentence(hook.spoken)}»): A1 abre con esa frase, adaptada a la voz, sin nada antes.`);
   const first = s.text_beats[0];
   if (!first) problems.push("Falta el primer texto en pantalla: el del gancho.");
   else {

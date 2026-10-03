@@ -6,7 +6,8 @@ import { angleForPrompt } from "@/lib/angles/approved";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { HOOK_PATTERNS, ON_SCREEN_PROMPT_WORDS, PATTERN_DEFS, SPOKEN_PROMPT_WORDS } from "./catalog";
-import { hooksContextText, hooksSystem, hooksTail, hooksUser } from "./prompts";
+import { critiqueFor, hookCriticProblems, hookCriticSchema, hookCriticSystem, hookCriticUser, stopsCount, toHooksReview, type HookCriticOutput } from "./critic";
+import { hooksContextText, hooksSystem, hooksTail, hooksUser, rawMaterial } from "./prompts";
 import { hookProblems, hooksOutputSchema, hooksToPayload, hookTextOk, wordCount, type AngleHook, type HooksOutput } from "./schemas";
 import { bestHook, hooksForPrompt, isUsable, usableHooks } from "./select";
 
@@ -15,7 +16,9 @@ const pricing = buildPricingPlan(
   { unitCost: 3000, avgShippingCost: 8000, purchaseCostLimit: 5000, confirmationRate: 70, deliveryRate: 70, salePrice: 24990, compareAtPrice: 32990, extraUnitDiscount: 50 },
   "CLP",
 )!;
-const facts = { pricing, hasRealReviews: false, hasRealExpert: false };
+// MATERIA PRIMA del ejemplo: lo que dice el comprador.
+const RAW = ["La lavadora se me va hasta la puerta", "Pensé que se iba a romper el piso", "Suena como si fuera a despegar"];
+const facts = { pricing, hasRealReviews: false, hasRealExpert: false, rawMaterial: RAW };
 
 const hook = (over: Partial<HooksOutput["hooks"][number]> = {}): HooksOutput["hooks"][number] => ({
   pattern: "pain",
@@ -24,7 +27,12 @@ const hook = (over: Partial<HooksOutput["hooks"][number]> = {}): HooksOutput["ho
   follow_up: null,
   on_screen: "¿TU LAVADORA CAMINA?",
   visual_first_3s: "Lavadora centrifugando y temblando, plano medio.",
-  scores: { salience: 5, relevance: 5, credibility: 4, verifiability: 5 },
+  silent_read: "Una lavadora que se mueve sola.",
+  source_quote: null,
+  delivery: "surprised",
+  scores: { salience: 5, relevance: 5, tension: 4, credibility: 4 },
+  promises_only_what_arrives: true,
+  rank: 1,
   risk: "low",
   risk_reason: "Daño a un objeto",
   needs_real_material: null,
@@ -39,21 +47,16 @@ const hook = (over: Partial<HooksOutput["hooks"][number]> = {}): HooksOutput["ho
 const output = (): HooksOutput => ({
   diagnosis: { archetype: "visible_problem", secondary_archetype: "protection", core_pain: "La lavadora se mueve y suena horrible", main_objection: "¿De verdad funciona?", policy_risk: "low" },
   hooks: [
-    hook({ mascot: { text: "Soy la lavadora que camina sola.", on_screen: "YO NO ME QUEDO QUIETA", scene: "La lavadora con cara avanza temblando por la cocina mientras su dueña la persigue.", first_motion: "La lavadora tiembla y avanza." } }),
-    hook({ pattern: "demo", mechanism: "Ciclo abierto", text: "Mira lo que pasa con el vaso.", on_screen: "PRUEBA DEL VASO", visual_first_3s: "Vaso de agua sobre la lavadora vibrando; con las almohadillas, quieto.", opening_shot: "real_footage" }),
-    hook({ text: "No es tu lavadora, es el piso.", on_screen: "NO ES LA LAVADORA", visual_first_3s: "Las patas deslizándose sobre la cerámica.", mascot: { text: "Me culpan a mí, pero el piso resbala.", on_screen: "NO ES MI CULPA", scene: "La lavadora ofendida, de brazos cruzados, resbala sobre la cerámica.", first_motion: "La lavadora tiembla y avanza." } }),
-    hook({ pattern: "offer", mechanism: "Anclaje", text: "Un técnico te cobra más por visita.", on_screen: "4 POR $24.990", visual_first_3s: "La mano coloca las 4 almohadillas.", opening_shot: "pov_hands" }),
-    hook({ pattern: "contrarian", mechanism: "Expectativa rota", text: "No cambies tu lavadora todavía.", on_screen: "ANTES DE COMPRAR OTRA", visual_first_3s: "Una mujer a la cámara frontal levanta la mano para frenar.", opening_shot: "selfie_talk", mascot: { text: "No me cambies todavía, dueña.", on_screen: "ANTES DE COMPRAR OTRA", scene: "La lavadora asustada mira un folleto de lavadoras nuevas.", first_motion: "La lavadora tiembla y avanza." } }),
-    hook({ pattern: "demo", mechanism: "Satisfacción visual", text: "Tienes que ver esto.", on_screen: "SIN ALMOHADILLAS VS CON", visual_first_3s: "Pantalla dividida: dos lavadoras centrifugando.", opening_shot: "real_footage" }),
-    hook({ pattern: "curiosity", mechanism: "Brecha de información", text: "Esto existe y casi nadie lo sabe.", on_screen: "4 PIEZAS, CERO RUIDO", visual_first_3s: "La mano saca las almohadillas de la bolsa junto a la lavadora.", opening_shot: "pov_hands" }),
-    hook({ pattern: "contrarian", mechanism: "Inoculación", text: "No te creas todo lo que ves en TikTok.", follow_up: "Yo la probé con un vaso de agua.", on_screen: "¿FUNCIONA DE VERDAD?", visual_first_3s: "Mujer cruzada de brazos frente a la lavadora.", opening_shot: "selfie_talk" }),
-    hook({ pattern: "fear", mechanism: "Detección de amenazas", text: "Una lavadora que camina puede romper la manguera.", on_screen: "OJO CON LA MANGUERA", visual_first_3s: "La manguera tensa detrás de la lavadora, el teléfono asomado por el costado." }),
-    hook({ pattern: "behind_scenes", mechanism: "Credibilidad", text: "Acá preparamos los pedidos que salen hoy.", on_screen: "PEDIDOS DE HOY", visual_first_3s: "Mesa con cajas y las almohadillas.", needs_real_material: "Grabar la bodega con los pedidos", opening_shot: "real_footage" }),
-  ],
-  top: [
-    { hook: 1, why: "Movimiento, ciclo abierto y prueba verificable.", variant: { changes: "spoken", text: "Esta vibración está dañando tu lavadora." } },
-    { hook: 0, why: "Daño concreto a algo que ya tiene.", variant: { changes: "visual", text: "Vaso cayéndose de la lavadora." } },
-    { hook: 2, why: "Falso culpable.", variant: { changes: "on_screen", text: "EL PROBLEMA ES EL PISO" } },
+    hook({ rank: 1, text: "Mi lavadora se fue sola hasta la puerta.", source_quote: "La lavadora se me va hasta la puerta", mascot: { text: "Soy la lavadora que camina sola.", on_screen: "YO NO ME QUEDO QUIETA", scene: "La lavadora con cara avanza temblando por la cocina mientras su dueña la persigue.", first_motion: "La lavadora tiembla y avanza." } }),
+    hook({ rank: 2, pattern: "demo", mechanism: "Ciclo abierto", text: "Mira lo que pasa con el vaso.", on_screen: "PRUEBA DEL VASO", visual_first_3s: "Vaso de agua sobre la lavadora vibrando; con las almohadillas, quieto.", opening_shot: "real_footage" }),
+    hook({ rank: 3, text: "Pensé que se iba a romper el piso.", follow_up: "Era otra cosa.", source_quote: "Pensé que se iba a romper el piso", on_screen: "NO ES LA LAVADORA", visual_first_3s: "Las patas deslizándose sobre la cerámica.", mascot: { text: "Me culpan a mí, pero el piso resbala.", on_screen: "NO ES MI CULPA", scene: "La lavadora ofendida, de brazos cruzados, resbala sobre la cerámica.", first_motion: "La lavadora tiembla y avanza." } }),
+    hook({ rank: 4, pattern: "offer", mechanism: "Anclaje", text: "Un técnico te cobra más por visita.", on_screen: "4 POR $24.990", visual_first_3s: "La mano coloca las 4 almohadillas.", opening_shot: "pov_hands" }),
+    hook({ rank: 5, pattern: "contrarian", mechanism: "Expectativa rota", text: "No cambies tu lavadora todavía.", on_screen: "ANTES DE COMPRAR OTRA", visual_first_3s: "Una mujer a la cámara frontal levanta la mano para frenar.", opening_shot: "selfie_talk", mascot: { text: "No me cambies todavía, dueña.", on_screen: "ANTES DE COMPRAR OTRA", scene: "La lavadora asustada mira un folleto de lavadoras nuevas.", first_motion: "La lavadora tiembla y avanza." } }),
+    hook({ rank: 6, pattern: "demo", mechanism: "Satisfacción visual", text: "Tienes que ver esto.", on_screen: "SIN ALMOHADILLAS VS CON", visual_first_3s: "Pantalla dividida: dos lavadoras centrifugando.", opening_shot: "real_footage" }),
+    hook({ rank: 7, pattern: "curiosity", mechanism: "Brecha de información", text: "Esto existe y casi nadie lo sabe.", on_screen: "4 PIEZAS, CERO RUIDO", visual_first_3s: "La mano saca las almohadillas de la bolsa junto a la lavadora.", opening_shot: "pov_hands" }),
+    hook({ rank: 8, pattern: "contrarian", mechanism: "Inoculación", text: "No te creas todo lo que ves en TikTok.", follow_up: "Yo la probé con un vaso de agua.", on_screen: "¿FUNCIONA DE VERDAD?", visual_first_3s: "Mujer cruzada de brazos frente a la lavadora.", opening_shot: "selfie_talk" }),
+    hook({ rank: 9, pattern: "fear", mechanism: "Detección de amenazas", text: "Suena como si fuera a despegar.", follow_up: "Y la manguera se tensa.", source_quote: "Suena como si fuera a despegar", on_screen: "OJO CON LA MANGUERA", visual_first_3s: "La manguera tensa detrás de la lavadora, el teléfono asomado por el costado." }),
+    hook({ rank: 10, pattern: "behind_scenes", mechanism: "Credibilidad", text: "Acá preparamos los pedidos que salen hoy.", on_screen: "PEDIDOS DE HOY", visual_first_3s: "Mesa con cajas y las almohadillas.", needs_real_material: "Grabar la bodega con los pedidos", opening_shot: "real_footage" }),
   ],
   production_notes: ["Grabar la prueba del vaso con el producto real."],
 });
@@ -83,8 +86,8 @@ describe("hookProblems", () => {
 
   it("descarta los que tienen 2 o menos en un criterio", () => {
     const o = output();
-    o.hooks[4] = hook({ pattern: "contrarian", text: "No compres otra lavadora.", scores: { salience: 4, relevance: 4, credibility: 2, verifiability: 4 } });
-    expect(hookProblems(o, facts).join(" ")).toMatch(/2 en credibility: descártalo/);
+    o.hooks[4] = hook({ pattern: "contrarian", text: "No compres otra lavadora.", scores: { salience: 4, relevance: 4, tension: 2, credibility: 4 } });
+    expect(hookProblems(o, facts).join(" ")).toMatch(/2 en tension: descártalo/);
   });
 
   it("no deja atribuirle al espectador una condición ni prometer salud o plazos", () => {
@@ -115,23 +118,41 @@ describe("hookProblems", () => {
 
   it("confesión, comentario o experto sin material real: tiene que decir qué falta", () => {
     const o = output();
-    o.hooks[8] = hook({ pattern: "confession", text: "Pensé que era puro cuento, pero…", on_screen: "PENSÉ QUE ERA CUENTO" });
+    o.hooks[7] = hook({ rank: 8, pattern: "confession", text: "Pensé que era puro cuento, pero…", on_screen: "PENSÉ QUE ERA CUENTO" });
     expect(hookProblems(o, facts).join(" ")).toMatch(/es de Confesión y la ficha no trae ese material real/);
     expect(hookProblems(o, { ...facts, hasRealReviews: true })).toEqual([]);
     o.hooks[9] = hook({ pattern: "behind_scenes", text: "Acá preparamos los pedidos de hoy.", on_screen: "PEDIDOS DE HOY", needs_real_material: null });
     expect(hookProblems(o, { ...facts, hasRealReviews: true }).join(" ")).toMatch(/Bastidores/);
   });
 
-  it("el top son 3 ganchos distintos, sin riesgo alto", () => {
+  it("un lugar por gancho, de 1 a 10 y sin empates", () => {
     const o = output();
-    o.top[2] = { ...o.top[2], hook: 9 };
-    o.hooks[9] = { ...o.hooks[9], risk: "high" };
-    o.top[1] = { ...o.top[1], hook: 1 };
+    o.hooks[1] = { ...o.hooks[1], rank: 1 };
+    expect(hookProblems(o, facts).join(" ")).toMatch(/rank tiene que ir de 1 a 10/);
+  });
+
+  it("pide lo que se entiende sin sonido, un delivery válido y que prometa lo que llega", () => {
+    const o = output();
+    o.hooks[0] = { ...o.hooks[0], silent_read: " ", delivery: "gritando", promises_only_what_arrives: false };
     const p = hookProblems(o, facts).join(" ");
-    expect(p).toMatch(/top 2 repite el gancho 2/);
-    expect(p).toMatch(/top 3 es el gancho 10, que tiene riesgo alto/);
-    o.top = o.top.slice(0, 2);
-    expect(hookProblems(o, facts).join(" ")).toMatch(/top trae 2/);
+    expect(p).toMatch(/silent_read/);
+    expect(p).toMatch(/delivery es «gritando»/);
+    expect(p).toMatch(/no ve al abrir el paquete/);
+  });
+
+  it("al menos 3 parten de MATERIA PRIMA, con la cita textual y sus palabras", () => {
+    const o = output();
+    o.hooks[8] = { ...o.hooks[8], source_quote: "Se me cae la casa" };
+    let p = hookProblems(o, facts).join(" ");
+    expect(p).toMatch(/«Se me cae la casa» no está en MATERIA PRIMA/);
+    expect(p).toMatch(/Solo 2 ganchos parten de una frase de MATERIA PRIMA/);
+    o.hooks[8] = { ...o.hooks[8], source_quote: "La lavadora se me va hasta la puerta" };
+    p = hookProblems(o, facts).join(" ");
+    expect(p).toMatch(/dice partir de «La lavadora se me va hasta la puerta», pero no usa sus palabras/);
+    // Sin tildes ni mayúsculas también vale; y sin MATERIA PRIMA no se piden.
+    o.hooks[8] = { ...o.hooks[8], source_quote: "suena como si fuera a DESPEGAR" };
+    expect(hookProblems(o, facts)).toEqual([]);
+    expect(hookProblems({ ...output(), hooks: output().hooks.map((h) => ({ ...h, source_quote: null })) }, { ...facts, rawMaterial: [] })).toEqual([]);
   });
 });
 
@@ -177,12 +198,29 @@ describe("hookProblems: la primera toma y la mascota", () => {
 });
 
 describe("hooksToPayload y la selección", () => {
-  it("el recomendado es el primero del top y se guarda el diagnóstico", () => {
-    const p = hooksToPayload(output());
-    expect(p.recommended_hook).toBe(1);
-    expect(p.hooks).toHaveLength(10);
+  it("guarda los ganchos en su orden (rank) y el recomendado es el primero que se puede usar", () => {
+    const o = output();
+    // El de grabación real (vaso) queda primero: el recomendado es el siguiente.
+    o.hooks = o.hooks.map((h, i) => ({ ...h, rank: i === 1 ? 1 : i === 0 ? 2 : h.rank }));
+    const p = hooksToPayload(o);
+    expect(p.hooks.map((h) => h.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(p.hooks[0].text).toBe("Mira lo que pasa con el vaso.");
+    expect(p.recommended_hook).toBe(0);
     expect(p.hook_diagnosis?.archetype).toBe("visible_problem");
     expect(p.hooks_error).toBeNull();
+    expect(p.hooks_version).toBe(4);
+  });
+
+  it("con el crítico, manda su orden y cada gancho guarda lo que dijo", () => {
+    const o = output();
+    const order = [6, 0, 2, 4, 3, 7, 8, 1, 5, 9];
+    const reviews = o.hooks.map((_, hook) => ({ hook, stops: hook === 6 || hook === 0, understood_muted: `gancho ${hook}`, why: hook === 6 ? "Me intriga." : "Otro anuncio más." }));
+    const p = hooksToPayload(o, { order, reviews });
+    expect(p.hooks[0].text).toBe("Esto existe y casi nadie lo sabe.");
+    expect(p.hooks[0]).toMatchObject({ rank: 1, review: { stops: true, understood_muted: "gancho 6", why: "Me intriga." } });
+    expect(p.recommended_hook).toBe(0);
+    // Fuera solo el de Bastidores (pide grabar la bodega): los de grabación real sirven para los estáticos.
+    expect(usableHooks(p).map((u) => u.hook.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it("los pasos con IA no usan los que piden material real, los de riesgo alto ni los que rozan la política", () => {
@@ -190,12 +228,30 @@ describe("hooksToPayload y la selección", () => {
     p.hooks[3] = { ...p.hooks[3], risk: "high" };
     p.hooks[4] = { ...p.hooks[4], policy_ok: false };
     const usable = usableHooks(p).map((u) => u.index);
-    expect(usable.slice(0, 3)).toEqual([1, 0, 2]);
+    expect(usable.slice(0, 3)).toEqual([0, 1, 2]);
     expect(usable).not.toContain(3);
     expect(usable).not.toContain(4);
     expect(usable).not.toContain(9);
-    expect(bestHook(p)?.text).toBe("Mira lo que pasa con el vaso.");
-    expect(hooksForPrompt(p)[0]).toMatchObject({ index: 1, pattern: "Demostración (demo)", on_screen: "PRUEBA DEL VASO" });
+    expect(bestHook(p)?.text).toBe("Mi lavadora se fue sola hasta la puerta.");
+    expect(hooksForPrompt(p)[0]).toMatchObject({ index: 0, pattern: "Dolor (pain)", on_screen: "¿TU LAVADORA CAMINA?" });
+  });
+
+  it("el comerciante elige el recomendado y después sigue el orden", () => {
+    const p = { ...hooksToPayload(output()), recommended_hook: 6 };
+    expect(usableHooks(p).map((u) => u.index).slice(0, 3)).toEqual([6, 0, 1]);
+  });
+
+  it("los de antes siguen su top y sus puntajes", () => {
+    const old = {
+      hooks: [
+        { text: "Uno", visual_first_3s: "a", policy_ok: true, scores: { salience: 3, relevance: 3, credibility: 3, verifiability: 3 } },
+        { text: "Dos", visual_first_3s: "b", policy_ok: true, scores: { salience: 5, relevance: 5, credibility: 5, verifiability: 5 } },
+        { text: "Tres", visual_first_3s: "c", policy_ok: true, scores: { salience: 4, relevance: 4, credibility: 4, verifiability: 4 } },
+      ] as AngleHook[],
+      recommended_hook: 2,
+      hook_top: [{ hook: 2, why: "", variant: { changes: "spoken", text: "x" } }],
+    };
+    expect(usableHooks(old).map((u) => u.index)).toEqual([2, 1, 0]);
   });
 
   it("el video con IA no usa los de grabación real; la mascota, solo los que tienen su versión", () => {
@@ -205,7 +261,7 @@ describe("hooksToPayload y la selección", () => {
     expect(video).not.toContain(5);
     expect(video).toContain(3);
     expect(usableHooks(p, "mascot").map((u) => u.index)).toEqual([0, 2, 4]);
-    expect(hooksForPrompt(p, "ai_video")[0]).toMatchObject({ index: 0, opening_shot: "problem_scene", first_motion: "La lavadora tiembla y avanza unos centímetros." });
+    expect(hooksForPrompt(p, "ai_video")[0]).toMatchObject({ index: 0, opening_shot: "problem_scene", first_motion: "La lavadora tiembla y avanza unos centímetros.", delivery: expect.stringMatching(/^Sorpresa \(/) });
     expect(hooksForPrompt(p, "mascot")[0]).toMatchObject({ index: 0, spoken: "Soy la lavadora que camina sola.", on_screen: "YO NO ME QUEDO QUIETA" });
     expect(hooksForPrompt(p, "mascot")[0]).toHaveProperty("scene");
   });
@@ -299,9 +355,83 @@ describe("prompt del agente de ganchos", () => {
   it("valida en código lo que no es enum", () => {
     const o = output();
     o.diagnosis = { ...o.diagnosis, secondary_archetype: "otro" };
-    o.top[0] = { ...o.top[0], variant: { changes: "musica", text: "x" } };
     const p = hookProblems(o, facts).join(" ");
     expect(p).toMatch(/secondary_archetype es «otro»/);
-    expect(p).toMatch(/variant.changes es «musica»/);
+  });
+});
+
+describe("prompt v4: detener el scroll", () => {
+  it("el system explica la tensión, el problema nombrado y deja los modismos solo en una cita", () => {
+    const sys = hooksSystem(CL);
+    expect(sys).toContain("LO QUE DETIENE EL SCROLL");
+    expect(sys).toContain("La PRIMERA frase del hablado lleva la tensión");
+    expect(sys).toContain("protege a QUIEN MIRA, no a sus seres queridos");
+    expect(sys).toContain("modismos del país solo dentro de una frase textual de MATERIA PRIMA");
+    expect(sys).toContain("es material, no molde");
+    expect(sys).not.toContain("al menos 3 de los 10 son esa misma idea");
+    expect(sys).toContain("rank");
+  });
+
+  it("MATERIA PRIMA trae lo que dice el comprador, la apertura del ángulo y las reseñas, sin repetir", () => {
+    const payload = { core_message: "", psychological_lever: "", aida_summary: { attention: "Se fue a lavar la loza", interest: "Antes era el que más hablaba", desire: "", action: "" }, proof_to_show: [], visual_concepts: [], compliance_flags: [], details: {}, hooks: [], recommended_hook: 0 } as unknown as AngleBriefPayload;
+    const ctx = {
+      brief: { product_name: "Amplificador", proof: { real_reviews: ["Mi mamá lo usa sin reclamar"] } } as unknown as ProductBrief,
+      avatar: { ...AVATAR, voice_of_customer: ["Dice ¿ah? como diez veces", "Dice ¿ah? como diez veces"] },
+      angle: angleForPrompt({ slot: 1, frame: "age_identity", title: "El almuerzo", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "", aida: { attention: "Se fue a lavar la loza", interest: "", desire: "", action: "" } }, payload),
+    };
+    const raw = rawMaterial(ctx);
+    expect(raw.filter((t) => t === "Dice ¿ah? como diez veces")).toHaveLength(1);
+    expect(raw.filter((t) => t === "Se fue a lavar la loza")).toHaveLength(1);
+    expect(raw).toContain("Antes era el que más hablaba");
+    expect(raw).toContain("Mi mamá lo usa sin reclamar");
+  });
+
+  it("la cola de la reescritura dice qué reemplazar y qué conservar", () => {
+    const tail = hooksTail([], [], { weak: ["«Todos se rieron.» / «SE RÍE TARDE»: sin sonido se entiende «alguien se ríe». Otro anuncio más."], keep: ["Mi papá finge que escucha."] });
+    expect(tail).toMatch(/NO DETIENE EL SCROLL[\s\S]*Todos se rieron[\s\S]*Conserva tal cual[\s\S]*Mi papá finge que escucha/);
+  });
+
+  it("el esquema ya no pide top ni variantes", () => {
+    expect(toJSONSchema(hooksOutputSchema)).not.toHaveProperty("properties.top");
+  });
+});
+
+describe("crítico de ganchos", () => {
+  const o = output();
+  const review = (over: Partial<HookCriticOutput> = {}): HookCriticOutput => ({
+    reviews: o.hooks.map((_, hook) => ({ hook, understood_muted: `gancho ${hook}`, stops: hook < 3, why: hook < 3 ? "Quiero saber qué pasó." : "Es una característica." })),
+    order: [2, 0, 1, 3, 4, 5, 6, 7, 8, 9],
+    ...over,
+  });
+
+  it("ve los ganchos como se ven: sin mecanismo, puntajes ni orden del autor", () => {
+    const u = hookCriticUser({ avatar: AVATAR, speaksTo: "quien compra", hooks: o.hooks });
+    expect(u).toContain("En pantalla: «¿TU LAVADORA CAMINA?»");
+    expect(u).toContain("Se dice: «Pensé que se iba a romper el piso. Era otra cosa.»");
+    expect(u).toContain("El problema en su lugar.");
+    expect(u).not.toContain("Aversión a la pérdida");
+    expect(u).not.toMatch(/rank|salience/);
+    expect(hookCriticSystem(CL)).toBe(hookCriticSystem(CL));
+    expect(hookCriticSystem(CL)).toContain("No juzgas las políticas");
+  });
+
+  it("pide un review y un lugar por gancho", () => {
+    expect(hookCriticProblems(review(), 10)).toEqual([]);
+    const p = hookCriticProblems(review({ order: [0, 0, 1, 2, 3, 4, 5, 6, 7, 8], reviews: review().reviews.slice(0, 9) }), 10).join(" ");
+    expect(p).toMatch(/un review por gancho/);
+    expect(p).toMatch(/order tiene que traer todos/);
+  });
+
+  it("cuenta cuántos detiene y arma la reescritura", () => {
+    const r = toHooksReview(review());
+    expect(stopsCount(r)).toBe(3);
+    const c = critiqueFor(o.hooks, r);
+    expect(c.keep).toEqual([o.hooks[0].text, o.hooks[1].text, o.hooks[2].text]);
+    expect(c.weak).toHaveLength(7);
+    expect(c.weak[0]).toMatch(/«Un técnico te cobra más por visita\.» \/ «4 POR \$24\.990»: sin sonido se entiende «gancho 3»\. Es una característica\./);
+  });
+
+  it("el esquema compila y es chico", () => {
+    expect(toJSONSchema(hookCriticSchema)).toHaveProperty("properties.order");
   });
 });

@@ -4,7 +4,7 @@ import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, fileSlug, montageN
 import { scriptCost, seedanceCostUsd } from "./cost";
 import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, watermarkText } from "./package";
 import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
-import { applyScriptEdit, changedLines, keyframeQaVerdict, scriptProblems, words, type OpeningInput, type UgcScript } from "./schemas";
+import { applyScriptEdit, changedLines, keyframeQaVerdict, opensWithHook, scriptProblems, words, type OpeningInput, type UgcScript } from "./schemas";
 import { keyframeQaUser } from "./prompts";
 
 // Deep Collagen (POC 2026-09-26, variante E, ángulo 3): el guion que el usuario aprobó.
@@ -197,6 +197,23 @@ describe("scriptProblems: la apertura del gancho", () => {
     expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/primeras 5 palabras de A1/);
     s.text_beats[0] = { anchor: "maquillas", until: null, text: "MAQUILLAJE EN SIETE MINUTOS ANTES DEL TRABAJO" };
     expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/tiene 7 palabras; el del gancho va hasta 6/);
+  });
+
+  it("A1 abre con la primera frase del gancho, sin contexto antes", () => {
+    const s = generated();
+    const withSpoken: OpeningInput = { hooks: [{ index: 1, shot: "selfie_talk", spoken: "¿Te maquillas en siete minutos? Mira esto." }] };
+    expect(scriptProblems(s, pricing, "ugc", withSpoken)).toEqual([]);
+    // Lo que pasó en el amplificador de sonido (2026-10-03): una frase de contexto antes de la que detiene.
+    s.a_roll[0].line = "Todos se rieron. ¿Te maquillas en siete minutos? Entonces seguro cometes estos tres errores.";
+    expect(scriptProblems(s, pricing, "ugc", withSpoken).join(" ")).toMatch(/primera frase de A1 \(«Todos se rieron\.»\) no es la del gancho/);
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).not.toMatch(/no es la del gancho/);
+  });
+
+  it("la frase del gancho se puede ajustar para la voz (sin el monto, una palabra distinta)", () => {
+    expect(opensWithHook("Tres unidades, una para cada oído.", "Tres unidades por $45.990.")).toBe(true);
+    expect(opensWithHook("Mi papá lleva meses haciendo como que escucha.", "Mi papá lleva meses fingiendo que escucha.")).toBe(true);
+    expect(opensWithHook("Todos se rieron. Mi papá, medio segundo tarde.", "Mi papá lleva meses fingiendo que escucha.")).toBe(false);
+    expect(opensWithHook("Hola.", "¿Y?")).toBe(true);
   });
 
   it("el pago contra entrega no va en el gancho", () => {

@@ -26,11 +26,11 @@ import type { Market } from "@/lib/market";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
-import { hooksToPayload, hookTextOk, type HooksMeta } from "@/lib/hooks/schemas";
+import { hooksToPayload, hookTextOk, type AngleHook, type HooksMeta } from "@/lib/hooks/schemas";
 import { getProductRow, latestAvatars, latestBrief } from "@/lib/products/store";
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { getMarket } from "@/lib/settings/market";
-import { baseImageBlock, HOOK_ATTEMPTS_AFTER_BRIEF, regenerateHooks, writeHooks } from "./hooks";
+import { baseImageBlock, HOOK_ATTEMPTS_AFTER_BRIEF, HOOKS_FUNCTION_BUDGET_MS, regenerateHooks, writeHooks } from "./hooks";
 import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md y
@@ -321,6 +321,14 @@ export async function runRanking(rankingId: string): Promise<void> {
 // ---------------------------------------------------------------- 2. Confirmar la elección
 
 const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+/** Como clip, pero sin cortar una palabra a la mitad (el título se ve entero en la pantalla y en los prompts). */
+const clipWords = (v: unknown, n: number) => {
+  const t = typeof v === "string" ? v.trim() : "";
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n + 1);
+  const space = cut.lastIndexOf(" ");
+  return (space > 0 ? cut.slice(0, space) : t.slice(0, n)).replace(/[\s,;:.\-–—]+$/, "");
+};
 
 /** Lo que traen los ángulos del orquestador v7 (gancho, AIDA, a quién le habla, tono, por qué); los de antes, nada. */
 function extras(a: Record<string, unknown>): Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why"> {
@@ -351,7 +359,7 @@ export function normalizeChoice(raw: unknown): TestAngle[] {
     const angle: TestAngle = {
       slot: (i + 1) as AngleSlot,
       frame,
-      title: clip(a.title, 60),
+      title: clipWords(a.title, 60),
       pain_or_desire: clip(a.pain_or_desire, 400),
       segment: clip(a.segment, 300),
       promise: clip(a.promise, 300),
@@ -472,6 +480,7 @@ export async function approvedAngles(userId: string, productId: string): Promise
 
 /** Ejecuta un desarrollo. Pensada para `after()`: nunca lanza. */
 export async function runBrief(briefId: string): Promise<void> {
+  const started = Date.now();
   const db = adminClient();
   const claimed = await db
     .from("angle_briefs")
@@ -519,7 +528,7 @@ export async function runBrief(briefId: string): Promise<void> {
     // vuelve a pagar el desarrollo por los ganchos, que se piden aparte con «Otros ganchos».
     let hookFields: { hooks: AngleBriefPayload["hooks"]; recommended_hook: number } & HooksMeta;
     try {
-      const out = await writeHooks({
+      const { out, review } = await writeHooks({
         userId: b.user_id,
         productId: b.product_id,
         market: r.input.market as Market,
@@ -529,8 +538,9 @@ export async function runBrief(briefId: string): Promise<void> {
         others,
         image: await baseImageBlock(b.user_id, b.product_id),
         attempts: HOOK_ATTEMPTS_AFTER_BRIEF,
+        deadline: started + HOOKS_FUNCTION_BUDGET_MS,
       });
-      hookFields = hooksToPayload(out);
+      hookFields = hooksToPayload(out, review);
     } catch (e) {
       if (!(e instanceof AiStepError)) console.error("[angles] ganchos", e);
       hookFields = { hooks: [], recommended_hook: 0, hooks_error: e instanceof AiStepError ? e.message : "No pudimos escribir los ganchos. Toca Otros ganchos." };
@@ -611,14 +621,18 @@ export async function decideBrief(userId: string, productId: string, briefId: st
  * Aplica lo editado sobre el brief guardado (lo demás del brief no cambia). Un gancho igual a uno que
  * ya estaba lo conserva entero; uno cambiado conserva el patrón, el texto en pantalla y el visual del
  * que estaba en esa posición, pero queda `edited` y su `policy_ok` sale de las reglas en código: el
- * del modelo era de otro texto.
+ * del modelo era de otro texto (igual que lo que se entiende sin sonido, la cita y el crítico).
  */
 export function applyEdit(payload: AngleBriefPayload, edit: AngleBriefEdit): AngleBriefPayload {
   const hooks = edit.hooks.map((text, i) => {
     const same = payload.hooks.find((h) => h.text === text);
     if (same) return same;
-    const before = payload.hooks[i];
-    return { ...(before ?? { visual_first_3s: "" }), text, edited: true, policy_ok: hookTextOk(text) };
+    // Lo que se dijo del texto anterior (lo que se entiende sin sonido, la cita, el crítico) no vale para este.
+    const before: AngleHook = { ...(payload.hooks[i] ?? { text, visual_first_3s: "", policy_ok: true }) };
+    delete before.review;
+    delete before.silent_read;
+    delete before.source_quote;
+    return { ...before, text, edited: true, policy_ok: hookTextOk(text) };
   });
   return {
     ...payload,

@@ -5,13 +5,13 @@
 import * as z from "zod/v4";
 import { hookTextProblems, type AngleHook, type HooksMeta } from "@/lib/hooks/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { ANGLE_CANDIDATES, ANGLE_HOOK_MAX_WORDS, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type SalesAngle } from "./catalog";
+import { ANGLE_CANDIDATES, ANGLE_HOOK_MAX_WORDS, ANGLE_TITLE_MAX_WORDS, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type SalesAngle } from "./catalog";
 
 /** Con menos ángulos que estos, la respuesta se pide otra vez. */
 const MIN_STRATEGY_ANGLES = 4;
 
-/** Bump cuando cambie el prompt o el esquema del orquestador. 7: un experto que propone ángulos con su gancho y AIDA, sin puntuar formas. */
-export const ANGLE_ROUTER_PROMPT_VERSION = 7;
+/** Bump cuando cambie el prompt o el esquema del orquestador. 7: un experto que propone ángulos con su gancho y AIDA, sin puntuar formas. 8: el gancho dicho y con tensión (14 palabras), la escena en aida.attention, el título con tope. */
+export const ANGLE_ROUTER_PROMPT_VERSION = 8;
 /** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. 5: los ganchos los escribe su propio agente (lib/hooks). 6: reciben el gancho, el AIDA y el tono del ángulo. */
 export const ANGLE_BRIEF_PROMPT_VERSION = 6;
 
@@ -27,7 +27,7 @@ const maybe = z.string().nullable();
 
 const strategyAngle = z.object({
   title: text.describe("Nombre corto del ángulo, 2 a 5 palabras, en el idioma del mercado."),
-  hook: text.describe("La frase que abre el anuncio y para el scroll, como la diría o la leería la gente."),
+  hook: text.describe("La frase que abre el anuncio y para el scroll: como la diría alguien, no un narrador, con el problema nombrado y algo en juego o una pregunta abierta."),
   speaks_to: z.enum(SPEAKS_TO).describe("A quién le habla: buyer (quien paga) o user (quien lo usa)."),
   tone: text.describe("El tono en 1 a 3 palabras («humor cotidiano», «emocional», «choque»)."),
   aida: z.object({ attention: text, interest: text, desire: text, action: text }).describe("El anuncio en AIDA, una frase por etapa."),
@@ -73,7 +73,8 @@ export function strategyProblems(out: Pick<AngleStrategyOutput, "angles">, facts
     const key = a.title.trim().toLowerCase();
     if (key && titles.has(key)) problems.push(`${at}repite el título de otro ángulo.`);
     titles.add(key);
-    if (words(a.hook) > ANGLE_HOOK_MAX_WORDS) problems.push(`${at}el gancho tiene ${words(a.hook)} palabras; el máximo es ${ANGLE_HOOK_MAX_WORDS}.`);
+    if (words(a.hook) > ANGLE_HOOK_MAX_WORDS) problems.push(`${at}el gancho tiene ${words(a.hook)} palabras; el máximo es ${ANGLE_HOOK_MAX_WORDS}: la escena va en aida.attention.`);
+    if (words(a.title) > ANGLE_TITLE_MAX_WORDS) problems.push(`${at}el título tiene ${words(a.title)} palabras; es un nombre corto de 2 a 5.`);
     if (a.frame === "authority" && !facts.hasRealExpert) problems.push(`${at}usa la forma Autoridad sin un experto real: elige otra forma.`);
     if (a.frame === "personal_story" && !facts.hasRealReviews) problems.push(`${at}usa la forma Historia personal sin reseñas reales: elige otra forma.`);
     for (const t of [a.hook, a.aida.attention, a.aida.interest, a.aida.desire, a.aida.action]) problems.push(...hookTextProblems(t, facts.pricing, at));

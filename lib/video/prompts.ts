@@ -50,6 +50,7 @@ const VOICE = [
   "LA VOZ Y LA ACTUACIÓN",
   "- La voz la genera el modelo de video desde el texto: escribe cómo se dice cada línea en delivery (qué palabra remarca, qué tono tiene cada frase) y los gestos en acting.",
   "- Tono: entusiasta y cálido, sonriendo, como contarle un descubrimiento a una amiga. NUNCA exasperada, dramática, gritada ni apurada (sale golpeada y molesta). Tampoco suave y pausada sin más (sale plana y aburrida).",
+  "- La primera frase de A1 es la excepción: se dice con el delivery del gancho (confidencia, intriga, sorpresa…), sin sonreír si el gancho no es gracioso. Un problema contado sonriendo no detiene a nadie. Igual nunca gritada.",
   "- Gestos concretos y variados por toma: se inclina a la cámara, cuenta con los dedos, se toca bajo el ojo, levanta el producto junto a la mejilla, guiña al final. Que no se vea ensayado: a veces mira un segundo fuera de cámara, se acomoda el pelo, un gesto se corta.",
   "- Desde la segunda frase de A1 valen muletillas naturales («mira», «o sea», «te juro»), dentro del tope de palabras por segundo. Nunca en la primera frase: es el gancho.",
   `- Largo: cuenta las palabras de cada línea. Máximo ${WPS} por segundo: ${WORDS_BY_SECONDS} palabras. Si no cabe, acorta la línea o súbele un segundo.`,
@@ -89,7 +90,8 @@ const RULES = [
  */
 function hookBlock(format: VideoFormat): string {
   const common = [
-    `- A1 ABRE con el hablado del gancho, adaptado a la voz: su primera frase tiene como mucho ${SPOKEN_PROMPT_WORDS} palabras (≈3 s). El follow_up puede ser la frase siguiente. Si el hablado trae un monto, el monto va solo en pantalla: la voz no dice montos.`,
+    `- A1 ABRE con el hablado del gancho, SIN NADA ANTES: su primera frase es la primera frase del gancho (puedes ajustar una palabra para la voz o quitar un monto, nunca agregar contexto antes), como mucho ${SPOKEN_PROMPT_WORDS} palabras (≈3 s). El follow_up puede ser la frase siguiente. Si el hablado trae un monto, el monto va solo en pantalla: la voz no dice montos.`,
+    "- Si el gancho trae delivery, la primera frase de A1 se dice así (escríbelo en delivery, en inglés): es lo que hace que suene a algo que pasó y no a un anuncio. Desde la segunda frase, el tono del video.",
     `- El PRIMER text_beat es el texto en pantalla del gancho (hasta ${ON_SCREEN_PROMPT_WORDS} palabras) y se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1: el montaje lo muestra desde el cuadro 0, para leerse sin sonido.`,
     "- opening.first_motion (en inglés): lo que ya se está moviendo en el cuadro 0. Los clips parten de una foto: si nada se mueve, el primer medio segundo es una foto quieta y se pierde.",
     "- El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.",
@@ -165,7 +167,7 @@ const MASCOT_STORY = [
 
 const MASCOT_VOICE = [
   "LA VOZ Y LA ACTUACIÓN",
-  "- La voz es la de un personaje animado (el modelo de video la genera igual en todas las tomas). En delivery: la emoción de cada línea y qué palabra remarca (ofendido y serio en el gancho, frustrado en el problema, asombrado y seguro en el mecanismo, feliz en el final).",
+  "- La voz es la de un personaje animado (el modelo de video la genera igual en todas las tomas). En delivery: la emoción de cada línea y qué palabra remarca (en el gancho, la del delivery del gancho o, si no trae, ofendido y serio; frustrado en el problema, asombrado y seguro en el mecanismo, feliz en el final).",
   "- acting: gestos de caricatura concretos por toma (pone los ojos en blanco, cuenta con los deditos, se toca la uña, abraza el frasco, baila).",
   `- Largo: máximo ${WPS} palabras por segundo: ${WORDS_BY_SECONDS} palabras.`,
   "- La marca, separada como se pronuncia si es una palabra inventada («Kera Pass»); en los textos en pantalla y el cierre, escrita como es.",
@@ -278,8 +280,8 @@ export function ugcContextText(c: UgcContext): string {
 
 /** Los ganchos que recibe el guionista de este formato y la toma con que abre cada uno (lo que valida scriptProblems). */
 export function openingInput(src: HookSource, format: VideoFormat = "ugc"): OpeningInput {
-  if (format === "mascot") return { hooks: usableHooks(src, "mascot").map(({ index }) => ({ index, shot: "mascot_scene" })) };
-  return { hooks: usableHooks(src, "ai_video").flatMap(({ index, hook }) => (openingShotOf(hook) ? [{ index, shot: openingShotOf(hook)! }] : [])) };
+  if (format === "mascot") return { hooks: usableHooks(src, "mascot").map(({ index, hook }) => ({ index, shot: "mascot_scene", spoken: hook.mascot?.text ?? hook.text })) };
+  return { hooks: usableHooks(src, "ai_video").flatMap(({ index, hook }) => (openingShotOf(hook) ? [{ index, shot: openingShotOf(hook)!, spoken: hook.text }] : [])) };
 }
 
 /** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (lib/video/schemas.ts › scriptProblems). */

@@ -15,8 +15,14 @@ export const TEST_ANGLES = 3;
 export const MIN_TEST_ANGLES = 2;
 /** Candidatos que propone el orquestador. */
 export const ANGLE_CANDIDATES = 5;
-/** Palabras del gancho de un ángulo (la frase que abre el anuncio; los de video los acorta lib/hooks). */
-export const ANGLE_HOOK_MAX_WORDS = 24;
+/**
+ * Palabras del gancho de un ángulo (la frase que abre el anuncio). Era 24: el orquestador escribía un
+ * párrafo de apertura («En el almuerzo del domingo todos se ríen del chiste y él sonríe medio segundo
+ * tarde: no entendió nada.») y todo lo que seguía lo heredaba. La escena larga va en `aida.attention`.
+ */
+export const ANGLE_HOOK_MAX_WORDS = 14;
+/** Palabras del título de un ángulo (el prompt pide 2 a 5; un título de 11 se cortaba en la pantalla). */
+export const ANGLE_TITLE_MAX_WORDS = 6;
 
 /** A quién le habla el ángulo: quien paga o quien usa el producto (a veces no son la misma persona). */
 export const SPEAKS_TO = ["buyer", "user"] as const;

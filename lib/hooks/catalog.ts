@@ -22,6 +22,31 @@ export const SPOKEN_PROMPT_WORDS = promptLimit(SPOKEN_MAX_WORDS);
 export const ON_SCREEN_PROMPT_WORDS = promptLimit(ON_SCREEN_MAX_WORDS);
 /** Un criterio en este puntaje o menos descarta el gancho (§5). */
 export const DISCARD_SCORE = 2;
+/**
+ * Ganchos que parten de una frase de MATERIA PRIMA (lo que dice el comprador o una reseña real). Los
+ * 20 ganchos del amplificador de sonido (2026-10-03) dejaron fuera «¿ah? como diez veces» y «se fue a
+ * lavar la loza», que estaban en el cliente ideal y el AIDA, y salieron todos planos.
+ */
+export const MIN_QUOTED_HOOKS = 3;
+/** Palabras con contenido (4 letras o más) que un gancho comparte con la cita de la que parte. */
+export const QUOTE_SHARED_WORDS = 2;
+/** El crítico: si menos de estos ganchos lo detienen, se reescriben una vez los que no. */
+export const CRITIC_MIN_STOPS = 4;
+
+/**
+ * Cómo se dice el gancho (la voz de A1 en el video). Nunca gritado ni exasperado: en las pruebas de
+ * Seedance sale golpeado. `voice` es la dirección en inglés para el modelo de video.
+ */
+export const HOOK_DELIVERIES = ["confiding", "intrigued", "surprised", "indignant", "deadpan", "playful"] as const;
+export type HookDelivery = (typeof HOOK_DELIVERIES)[number];
+export const HOOK_DELIVERY_DEFS: Record<HookDelivery, { name: string; voice: string }> = {
+  confiding: { name: "Confidencia", voice: "low and close, like telling a secret to a friend, leaning in" },
+  intrigued: { name: "Intriga", voice: "curious and a little puzzled, as if still figuring it out" },
+  surprised: { name: "Sorpresa", voice: "genuinely surprised, eyebrows up, a quick intake of breath" },
+  indignant: { name: "Indignación contenida", voice: "quietly fed up, firm and matter-of-fact, never shouting" },
+  deadpan: { name: "Seco", voice: "dry and flat on purpose, a beat of silence after the line" },
+  playful: { name: "Juguetón", voice: "teasing and amused, holding back a laugh" },
+};
 
 export const ARCHETYPES = ["visible_problem", "hidden_problem", "desire", "protection", "value", "novelty"] as const;
 export type Archetype = (typeof ARCHETYPES)[number];

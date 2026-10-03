@@ -112,7 +112,7 @@ Cliente ideal aprobado + diferenciador confirmado + ficha + precio (y etiquetas 
  El comerciante elige 2 o 3 (ve el gancho; puede editarlo)   PUT /api/products/[id]/angles/selection
                  ▼
  un agente por ángulo, el de su forma (effort high) → angle_briefs.payload (generated)
-                 │   y en cada uno, después: agente de ganchos (effort medium) → payload.hooks (docs/spec-ganchos.md)
+                 │   y en cada uno, después: agente de ganchos (effort medium) → crítico (effort low) → payload.hooks (docs/spec-ganchos.md)
                  ▼
  Aprobar, editar o regenerar cada uno; con todos aprobados se habilita Imágenes
 ```

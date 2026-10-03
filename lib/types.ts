@@ -240,6 +240,10 @@ export interface AngleHookView {
   openingShot?: string;
   /** La primera toma necesita grabación real: los videos con IA no lo usan (los estáticos sí). */
   realFootage?: boolean;
+  /** Lo que se entiende sin sonido (lo que dijo el crítico o, si no corrió, el agente). */
+  silentRead?: string;
+  /** El crítico no se detuvo con este gancho: por qué. */
+  noStop?: string;
   /** Tiene versión para el video de mascota. */
   mascot?: boolean;
 }

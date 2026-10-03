@@ -26,8 +26,10 @@ import {
   PATTERN_DEFS,
   PATTERN_NAMES,
   SPOKEN_PROMPT_WORDS,
-  TOP_HOOKS,
   DISCARD_SCORE,
+  HOOK_DELIVERIES,
+  HOOK_DELIVERY_DEFS,
+  MIN_QUOTED_HOOKS,
 } from "./catalog";
 
 const list = (items: string[]) => items.map((i) => `- ${i}`);
@@ -82,22 +84,42 @@ const PATTERNS_BLOCK = [
   }),
 ].join("\n");
 
+const STOP = [
+  "LO QUE DETIENE EL SCROLL (lo más importante de este documento)",
+  "Un gancho no describe: abre algo que hay que cerrar. En el primer segundo quien mira piensa «¿qué pasó?», «¿cómo que…?» o «eso me pasa a mí». Si no, sigue de largo, por verdadero y bien escrito que sea.",
+  "- La PRIMERA frase del hablado lleva la tensión. Nunca una frase de contexto antes («Todos se rieron.», «Les cuento algo.», «Esto es para ti.»): esas palabras son el segundo que se pierde.",
+  "- El problema se nombra en los primeros 3 s, en el hablado o en pantalla. Sin sonido, quien mira tiene que saber de qué se trata (silent_read). Esquivarlo por miedo a la política deja el gancho sin nada: ver LÍMITES, el problema de un ser querido SÍ se nombra.",
+  "- Tensión: un secreto, algo que salió mal, algo raro o fuera de lugar, algo en juego para alguien que quiere, una pregunta que necesita responder. Una observación tranquila o tierna no detiene a nadie.",
+  "- Una característica del producto (perilla, modos, material, cantidad de piezas, «se regula a mano») nunca es el gancho, salvo en el patrón offer: va en follow_up o después.",
+  "- El texto en pantalla no es una etiqueta («LA OPCIÓN DEL MEDIO», «HIJOS QUE REPITEN TODO»): es la tensión en pocas palabras, con el problema adentro.",
+  "- Las mejores frases ya existen: las dice el comprador (MATERIA PRIMA). Una frase textual del comprador vale más que una pulida.",
+  "",
+  "✗ y ✓ (otros productos; no los copies)",
+  "- ✗ «Tiene tres niveles de succión.» (característica) → ✓ «Mi suegra levantó la alfombra y no lo podía creer.»",
+  "- ✗ «En la escalera, mi mamá va medio paso atrás.» (escena tranquila, problema sin nombrar) → ✓ «Mi mamá dejó de subir al segundo piso y no nos dijo.»",
+  "- ✗ «La opción del medio.» (etiqueta) → ✓ «Gasté dos veces en lo mismo antes de saber esto.»",
+].join("\n");
+
 const WRITE = [
   `PASO 3. ESCRIBE ${HOOKS_PER_ANGLE} GANCHOS en al menos ${MIN_PATTERNS} patrones distintos (como mucho ${MAX_PER_PATTERN} del mismo). Cada gancho es una TRÍADA:`,
-  `- text (hablado, 0–3 s): máximo ${SPOKEN_PROMPT_WORDS} palabras. Cuéntalas. follow_up: una segunda frase opcional hasta los 6 s, también de ${SPOKEN_PROMPT_WORDS} palabras como mucho.`,
-  `- on_screen (texto en pantalla): máximo ${ON_SCREEN_PROMPT_WORDS} palabras, legible sin sonido. Puede ser distinto del hablado.`,
+  `- text (hablado, 0–3 s): máximo ${SPOKEN_PROMPT_WORDS} palabras. Cuéntalas. Su primera frase lleva la tensión. follow_up: una segunda frase opcional hasta los 6 s, también de ${SPOKEN_PROMPT_WORDS} palabras como mucho.`,
+  `- on_screen (texto en pantalla): máximo ${ON_SCREEN_PROMPT_WORDS} palabras, legible sin sonido, con el problema o la tensión. Puede ser distinto del hablado.`,
   "- visual_first_3s: la primera toma concreta (qué se ve, el plano, la acción). Nunca «logo» ni «producto girando sin contexto».",
+  "- silent_read: qué entiende alguien en 1 s SIN sonido, solo con on_screen y la primera toma. Si no dice el problema ni la tensión, el gancho no sirve: reescríbelo antes de entregarlo.",
+  `- delivery: cómo se dice: ${HOOK_DELIVERIES.map((d) => `${d} (${HOOK_DELIVERY_DEFS[d].name.toLowerCase()})`).join(", ")}. Nunca gritado ni exasperado.`,
+  `- source_quote: al menos ${MIN_QUOTED_HOOKS} ganchos parten de una frase de MATERIA PRIMA, casi textual (sus palabras, no un resumen); copia esa frase textual en source_quote. Los demás, null.`,
   "- Los 10 son de ESTE ángulo: su dolor o deseo, su segmento y su promesa. La variedad está en el patrón, no en el mensaje. Las PLANTILLAS DE LA FORMA del ángulo son un patrón más que puedes adaptar.",
-  "- Si el ángulo trae hook, es la frase con que el comerciante lo eligió y la idea que más vende: al menos 3 de los 10 son esa misma idea dicha para video (más corta, con su primera toma), y el top 3 incluye una de ellas. Respeta también su tono y a quién le habla (speaks_to).",
+  "- Si el ángulo trae hook, es la idea con que el comerciante lo eligió: es material, no molde. Úsala en 1 o 2 ganchos solo si la puedes decir con tensión, y no tiene que ir primero. Respeta a quién le habla (speaks_to). Su tono es el del resto del anuncio: el gancho siempre tiene tensión, aunque el tono sea cálido.",
   "",
   "PASO 4. FILTRO DE CALIDAD (puntúa cada uno de 1 a 5 y descarta y reemplaza el que tenga " + DISCARD_SCORE + " o menos en alguno)",
-  "- salience: ¿la primera toma tiene movimiento, cara, mano en acción o texto grande?",
+  "- salience: ¿en medio segundo hay algo que mirar (movimiento, una cara en medio de un gesto, una mano haciendo algo, algo raro)?",
   "- relevance: ¿el cliente ideal se reconoce en 2 s o menos?",
-  "- credibility: ¿hay algo que lo haga creíble (demo, persona hablando, precio concreto, tienda)?",
-  "- verifiability: ¿lo que promete es lo que el cliente va a ver al abrir el paquete?",
+  "- tension: ¿deja una pregunta abierta o algo en juego? Una descripción tranquila o una característica es 1 o 2.",
+  "- credibility: ¿suena a alguien real y no a un anuncio?",
+  "- promises_only_what_arrives: ¿lo que promete es lo que el cliente ve al abrir el paquete? Si no, reemplázalo.",
   "- Además, cada uno se entiende sin sonido con su texto en pantalla, respeta los largos y pasa los límites de abajo.",
   "",
-  `PASO 5. ELIGE EL TOP ${TOP_HOOKS} para probar primero (ninguno con riesgo alto ni policy_ok false), del mejor al tercero, con una línea de por qué y una variante A/B que cambia UNA sola variable: el hablado (spoken), el texto en pantalla (on_screen) o la primera toma (visual).`,
+  `PASO 5. ORDÉNALOS (rank, de 1 a ${HOOKS_PER_ANGLE}, sin empates): del que más detiene el scroll de este cliente al que menos. Compáralos entre sí, no uno por uno: una característica o una escena tranquila van al final. Los de riesgo alto, policy_ok false o con needs_real_material no van en los 3 primeros.`,
 ].join("\n");
 
 const OPENING = [
@@ -122,9 +144,11 @@ const MASCOT = [
 const LIMITS = [
   "LÍMITES Y POLÍTICAS (no se negocian)",
   "- Atributos personales de Meta: nunca afirmes ni insinúes que quien mira tiene una condición médica, física, financiera o de identidad. ✗ «¿Te estás quedando calvo?», «¿Te levantas a orinar en la noche?», «tu piel», «a tu edad» → ✓ «Me estaba quedando calva y…» (primera persona) o «Esto es lo que hace la gente con caída del cabello…» (tercera). Hablarle de un OBJETO o de lo que HACE sí vale («tu lavadora», «¿Te maquillas apurada?»).",
+  "- Esa regla protege a QUIEN MIRA, no a sus seres queridos: en tercera persona el problema se nombra con todas sus letras. ✓ «A mi papá le duele la rodilla y no lo dice», «Mi mamá dejó de subir la escalera». Lo que no se hace es afirmar que quien mira lo tiene.",
   "- Salud: nada de curar, tratar, eliminar, «evita cirugías» ni resultados garantizados o con plazo. En suplementos y cosmética, beneficios sensoriales o de apariencia («ayuda a», «se siente»).",
+  "- Español neutro con tuteo. Los modismos del país solo dentro de una frase textual de MATERIA PRIMA: son palabras del comprador. El trato es siempre tuteo neutro.",
   "- Sin antes/después corporal extremo o irreal.",
-  "- NADA INVENTADO: testimonios, comentarios, reseñas, expertos, celebridades, cifras ni «denuncias» contra terceros. Una confesión o un comentario solo salen de las reseñas reales de la ficha (proof.real_reviews); un experto, solo si la ficha trae uno real (proof.real_expert). Si no hay, escribe igual el gancho y di en needs_real_material qué hace falta (Bastidores siempre lo pide: hay que grabar la operación real). No lo pongas en el top.",
+  "- NADA INVENTADO: testimonios, comentarios, reseñas, expertos, celebridades, cifras ni «denuncias» contra terceros. Una confesión o un comentario solo salen de las reseñas reales de la ficha (proof.real_reviews); un experto, solo si la ficha trae uno real (proof.real_expert). Si no hay, escribe igual el gancho y di en needs_real_material qué hace falta (Bastidores siempre lo pide: hay que grabar la operación real). No lo pongas en los 3 primeros.",
   "- Los anuncios se hacen con IA (personas de IA que dramatizan, mascotas animadas, imágenes generadas): un visual que muestre un resultado se marca como dramatización, nunca como resultado real.",
   "- Urgencia solo si la ficha trae una fecha real. Montos SOLO los de PRECIO Y OFERTA, escritos como en la tienda; el «antes» solo si es el tachado real. Comparaciones de precio sin montos inventados.",
   "- Contenido sexual explícito: no. El doble sentido suave va con riesgo alto.",
@@ -134,22 +158,21 @@ const LIMITS = [
 const DELIVER = [
   "QUÉ ENTREGAS",
   "- diagnosis: el arquetipo principal y el secundario (o null), el dolor o deseo central con las palabras del cliente, la objeción principal («¿será estafa?», «¿sí funciona?», «¿me va a quedar?») y el riesgo de política de la categoría.",
-  `- hooks: los ${HOOKS_PER_ANGLE} ganchos con su patrón, mecanismo, tríada, puntajes, riesgo, material real que falta, primera toma (opening_shot y first_motion) y versión de mascota (o null).`,
-  `- top: los ${TOP_HOOKS} para probar primero.`,
+  `- hooks: los ${HOOKS_PER_ANGLE} ganchos con su patrón, mecanismo, tríada, silent_read, source_quote, delivery, puntajes, promises_only_what_arrives, rank, riesgo, material real que falta, primera toma (opening_shot y first_motion) y versión de mascota (o null).`,
   "- production_notes: qué hay que grabar si el video del proveedor no sirve y qué material real falta (testimonios, comentarios, tienda). Recuerda que «Pago contra entrega + envío gratis» va en el título del anuncio y la franja inferior, no en el gancho hablado.",
-  "- text, follow_up, on_screen, mascot.text, mascot.on_screen y la variante en el idioma del mercado; mechanism, visual_first_3s, first_motion, mascot.scene, mascot.first_motion, why, risk_reason, diagnosis y production_notes en español, para el comerciante.",
+  "- text, follow_up, on_screen, mascot.text y mascot.on_screen en el idioma del mercado; source_quote textual como viene; mechanism, visual_first_3s, silent_read, first_motion, mascot.scene, mascot.first_motion, risk_reason, diagnosis y production_notes en español, para el comerciante.",
 ].join("\n");
 
 const EXAMPLE = [
-  "EJEMPLO RESUELTO (otro producto; no lo copies)",
-  "Almohadillas antivibración para lavadora, set de 4. Reducen la vibración y el ruido y evitan que la lavadora «camine». Mujeres de 30 a 55, hogar. Colombia, $59.900, contraentrega. Hay video del proveedor con demo.",
+  "EJEMPLO RESUELTO (otro producto; no lo copies). Puntajes: salience/relevance/tension/credibility.",
+  "Almohadillas antivibración para lavadora, set de 4. Reducen la vibración y el ruido y evitan que la lavadora «camine». Mujeres de 30 a 55, hogar. Colombia, $59.900, contraentrega. Hay video del proveedor con demo. MATERIA PRIMA: «La lavadora se me va hasta la puerta», «Pensé que se iba a romper el piso».",
   "Diagnóstico: visible_problem + protection. Dolor: «la lavadora se mueve y suena horrible». Objeción: «¿de verdad funciona?». Riesgo de política: bajo.",
-  "1. pain · Pérdida o daño · «Esta vibración está dañando tu lavadora.» · ¿TU LAVADORA CAMINA? · Lavadora centrifugando y temblando, grabada con el teléfono desde la puerta de la cocina · problem_scene · 5/5/4/5 · low · mascota: «Soy la lavadora que camina sola por la cocina.» · YO NO ME QUEDO QUIETA · la lavadora con cara, temblando y avanzando por la cocina mientras el dueño la persigue",
-  "2. demo · Ciclo abierto · «Mira lo que pasa con el vaso.» · PRUEBA DEL VASO · Vaso de agua sobre la lavadora vibrando → con las almohadillas, quieto · real_footage (muestra el efecto: con IA sería una prueba inventada) · 5/4/5/5 · low si la prueba es real · mascota: null",
-  "3. pain (falso culpable) · Reencuadre · «No es tu lavadora, es el piso.» · NO ES LA LAVADORA · Las patas deslizándose sobre la cerámica, el teléfono a la altura del piso · problem_scene · 4/4/4/5 · low · mascota: «Me culpan a mí, pero el piso resbala.» · NO ES MI CULPA · la lavadora ofendida, de brazos cruzados, resbalando sobre la cerámica",
-  "4. offer · Anclaje · «Un técnico te cobra más por visita.» · 4 POR $59.900 · La mano coloca las 4 almohadillas bajo las patas · pov_hands · 4/4/4/5 · low · mascota: null",
-  "5. contrarian · Expectativa rota · «No cambies tu lavadora todavía.» · ANTES DE COMPRAR OTRA · Una mujer frente a su lavadora, a la cámara frontal, levantando la mano para frenar · selfie_talk · 4/4/3/4 · low · mascota: «No me cambies todavía, dueña.» · ANTES DE COMPRAR OTRA · la lavadora asustada mirando un folleto de lavadoras nuevas",
-  "Top 1: el 2 (movimiento, ciclo abierto y prueba verificable). Variante A/B: el mismo visual con el hablado del 1.",
+  "rank 1. pain · Sorpresa · «Mi lavadora se fue sola hasta la puerta.» (source_quote: «La lavadora se me va hasta la puerta») · ¿TU LAVADORA CAMINA? · sin sonido: una lavadora que se mueve sola por la cocina · La lavadora centrifugando y avanzando, grabada con el teléfono desde la puerta · problem_scene · surprised · 5/5/5/4 · low · mascota: «Soy la lavadora que se escapa por la cocina.» · YO NO ME QUEDO QUIETA · la lavadora con cara, temblando y avanzando mientras la dueña la persigue",
+  "rank 2. demo · Ciclo abierto · «Mira lo que pasa con el vaso.» · PRUEBA DEL VASO · sin sonido: un vaso que vibra sobre la lavadora · Vaso de agua sobre la lavadora vibrando → con las almohadillas, quieto · real_footage (muestra el efecto: con IA sería una prueba inventada) · intrigued · 5/4/5/5 · low si la prueba es real · mascota: null",
+  "rank 3. pain (falso culpable) · Reencuadre · «Pensé que se iba a romper el piso. Era otra cosa.» (source_quote: «Pensé que se iba a romper el piso») · NO ERA EL PISO · sin sonido: el piso con la lavadora encima, algo raro · Las patas deslizándose sobre la cerámica, el teléfono a la altura del piso · problem_scene · confiding · 4/5/5/4 · low · mascota: «Me culpan a mí, pero el piso resbala.» · NO ES MI CULPA · la lavadora ofendida, de brazos cruzados, resbalando sobre la cerámica",
+  "rank 4. contrarian · Expectativa rota · «No cambies tu lavadora todavía.» · ANTES DE COMPRAR OTRA · sin sonido: alguien frena antes de comprar otra lavadora · Una mujer frente a su lavadora, a la cámara frontal, levantando la mano para frenar · selfie_talk · indignant · 4/4/4/4 · low",
+  "rank 5. offer · Anclaje · «Un técnico te cobra más por visita.» · 4 POR $59.900 · sin sonido: cuatro piezas por un precio · La mano coloca las 4 almohadillas bajo las patas · pov_hands · deadpan · 4/4/3/5 · low",
+  "✗ Descartado: «Set de 4 almohadillas de goma.» · 4 ALMOHADILLAS · característica, tension 1.",
 ].join("\n");
 
 export function hooksSystem(market: Market): string {
@@ -169,6 +192,8 @@ export function hooksSystem(market: Market): string {
     "",
     PATTERNS_BLOCK,
     "",
+    STOP,
+    "",
     WRITE,
     "",
     OPENING,
@@ -181,7 +206,7 @@ export function hooksSystem(market: Market): string {
     "",
     EXAMPLE,
     "",
-    "La variedad de patrones vale más que pulir uno solo: el algoritmo necesita distintos ganchos para encontrar audiencias. El gancho detiene el scroll; la promesa verificable cierra la venta en la puerta.",
+    "La variedad de patrones vale más que pulir uno solo: el algoritmo necesita distintos ganchos para encontrar audiencias. El gancho detiene el scroll con tensión; la promesa verificable cierra la venta en la puerta. Lo verificable va en lo que se promete, no en lo que abre.",
   ].join("\n");
 }
 
@@ -205,9 +230,28 @@ export interface HooksContext {
   hasImage: boolean;
 }
 
+/**
+ * MATERIA PRIMA: las frases del comprador que el comerciante aprobó (cómo lo dice y sus momentos), la
+ * apertura del ángulo y las reseñas reales. De aquí salen las citas (source_quote) que valida el código.
+ */
+export function rawMaterial(c: Pick<HooksContext, "avatar" | "angle" | "brief">): string[] {
+  const a = c.avatar;
+  const items = [
+    ...(a.voice_of_customer ?? []),
+    ...(a.problems?.trigger_moments ?? []),
+    c.angle.angle.aida?.attention,
+    c.angle.angle.aida?.interest,
+    c.angle.payload.aida_summary?.attention,
+    c.angle.payload.aida_summary?.interest,
+    ...(c.brief.proof?.real_reviews ?? []).slice(0, 8),
+  ];
+  return [...new Set(items.map((t) => t?.trim()).filter((t): t is string => Boolean(t)))];
+}
+
 /** Lo fijo: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
 export function hooksContextText(c: HooksContext): string {
   const b = c.angle.payload;
+  const raw = rawMaterial(c);
   return [
     ...(c.hasImage ? ["La imagen es la foto real del producto: lo que llega en el paquete.", ""] : []),
     "FICHA DE PRODUCTO",
@@ -238,22 +282,43 @@ export function hooksContextText(c: HooksContext): string {
     ...list(c.frameTemplates),
     "",
     ...(c.others.length ? [`LOS OTROS ÁNGULOS DEL TESTEO (van en otros conjuntos de anuncios: no uses su mensaje): ${c.others.join("; ")}.`, ""] : []),
+    "MATERIA PRIMA (cómo lo dice el comprador, sus momentos, la apertura del ángulo y las reseñas reales: las frases para source_quote)",
+    ...(raw.length ? list(raw.map((t) => `«${t}»`)) : ["(sin frases: source_quote null en todos)"]),
+    "",
   ].join("\n");
+}
+
+/** Lo que dijo el crítico de la respuesta anterior (lib/hooks/critic.ts): qué reemplazar y qué conservar. */
+export interface HooksCritique {
+  /** «El gancho 3 («…») no detiene: sin sonido se entiende «…». …» */
+  weak: string[];
+  /** El hablado de los que sí detuvieron. */
+  keep: string[];
 }
 
 /**
  * Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (hookProblems). `avoid`: los
- * ganchos que ya tenía el ángulo («Otros ganchos»), para no repetirlos.
+ * ganchos que ya tenía el ángulo («Otros ganchos»), para no repetirlos. `critique`: el crítico no se
+ * detuvo con varios ganchos de la respuesta anterior (válida): se reemplazan esos y se conservan los demás.
  */
-export function hooksTail(retry: string[] = [], avoid: string[] = []): string {
+export function hooksTail(retry: string[] = [], avoid: string[] = [], critique?: HooksCritique | null): string {
   return [
     ...(avoid.length ? ["GANCHOS QUE YA TIENE ESTE ÁNGULO (escribe otros: otro hablado y, en lo posible, otra primera toma)", ...list(avoid), ""] : []),
+    ...(critique
+      ? [
+          "TU RESPUESTA ANTERIOR NO DETIENE EL SCROLL. Una persona de este cliente ideal la miró como en Reels y no se detuvo con estos:",
+          ...list(critique.weak),
+          ...(critique.keep.length ? ["Conserva tal cual (con su tríada, toma y mascota) los que sí la detuvieron:", ...list(critique.keep.map((t) => `«${t}»`))] : []),
+          "Reemplaza los demás por ganchos con tensión y el problema nombrado (otro patrón, o la misma idea dicha con algo en juego). Ordena de nuevo los 10 y responde completa.",
+          "",
+        ]
+      : []),
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     `Escribe los ${HOOKS_PER_ANGLE} ganchos de este ángulo.`,
   ].join("\n");
 }
 
 /** El mensaje entero en un solo texto (tests); la app lo manda en bloques. */
-export function hooksUser(c: HooksContext, retry: string[] = [], avoid: string[] = []): string {
-  return `${hooksContextText(c)}\n${hooksTail(retry, avoid)}`;
+export function hooksUser(c: HooksContext, retry: string[] = [], avoid: string[] = [], critique?: HooksCritique | null): string {
+  return `${hooksContextText(c)}\n${hooksTail(retry, avoid, critique)}`;
 }
