@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { renderRequest, languageName, modeFor, type RenderableConcept } from "./render";
-import { conceptProblems, conceptProblemsByConcept, qaVerdict, textProblems, type ConceptPayload, type CreativeConceptsOutput } from "./schemas";
+import { artProblems, conceptProblems, conceptProblemsByConcept, mergeConcept, qaVerdict, textProblems, type ConceptIdea, type ConceptPayload, type CreativeConceptsOutput } from "./schemas";
 
 const pricing = {
   currency: "CLP",
@@ -20,6 +20,7 @@ const concept = (over: Partial<ConceptPayload> = {}): ConceptPayload => ({
   angle: 1,
   family: "hero",
   name: "Equilibrio",
+  idea: "El frasco al centro con el titular que nombra la sensación.",
   why: "El titular nombra la sensación, no el síntoma.",
   look: "El frasco al centro sobre rosado, con cápsulas y frutas rojas.",
   preset_id: preset,
@@ -152,85 +153,89 @@ describe("textProblems", () => {
   });
 });
 
-describe("conceptProblems", () => {
-  const six = (): CreativeConceptsOutput => ({
-    product_look: "pink jar with a white logo",
-    kit: KIT,
-    concepts: [
-      concept(),
-      concept({ family: "explainer", preset_id: null, kit_parts: ["Spare grey roller head"] }),
-      concept({ family: "headline" }),
-      concept({ angle: 2, family: "proof" }),
-      concept({ angle: 2, family: "native", preset_id: null }),
-      concept({ angle: 2, family: "offer", product_units: 3 }),
-    ],
-    compliance_flags: [],
-  });
+/** La idea de un concepto (lo que escribe el paso de conceptos): sin dirección de arte. */
+const idea = (c: ConceptPayload): ConceptIdea => ({ angle: c.angle, family: c.family, name: c.name, idea: c.idea, why: c.why, texts: c.texts.map(({ role, text }) => ({ role, text })) });
+
+describe("conceptProblems (paso de conceptos: reparto y textos)", () => {
+  const payloads = (): ConceptPayload[] => [
+    concept(),
+    concept({ family: "explainer", preset_id: null, kit_parts: ["Spare grey roller head"] }),
+    concept({ family: "headline" }),
+    concept({ angle: 2, family: "proof" }),
+    concept({ angle: 2, family: "native", preset_id: null }),
+    concept({ angle: 2, family: "offer", product_units: 3 }),
+  ];
+  const six = (): CreativeConceptsOutput => ({ concepts: payloads().map(idea) });
   const facts = { presetIds: new Set([preset]), pricing };
 
   it("una respuesta completa no tiene problemas", () => {
     expect(conceptProblems(six(), facts)).toEqual([]);
   });
 
-  it("pide presets reales y un preset en las familias que lo tienen", () => {
-    const base = six();
-    const bad = { ...base, concepts: [...base.concepts.slice(0, 5), concept({ angle: 2, preset_id: "00000000-0000-0000-0000-000000000000" })] };
-    const problems = conceptProblems(bad, facts);
-    expect(problems.some((p) => /no está en PRESETS/.test(p))).toBe(true);
-    expect(conceptProblems({ ...base, concepts: [...base.concepts.slice(0, 5), concept({ angle: 2, family: "offer", preset_id: null })] }, facts).some((p) => /elige uno de PRESETS/.test(p))).toBe(true);
-  });
-
   it("reparte los conceptos por ángulo, en formatos distintos y sin concepto de retargeting obligatorio", () => {
     const base = six();
     // 3 ángulos: 2 por ángulo.
-    const three = { ...base, concepts: base.concepts.map((c, i) => ({ ...c, angle: [1, 1, 2, 2, 3, 3][i] })) };
+    const three = { concepts: base.concepts.map((c, i) => ({ ...c, angle: [1, 1, 2, 2, 3, 3][i] })) };
     expect(conceptProblems(three, { ...facts, slots: [1, 2, 3] }).filter((p) => /ángulo/.test(p))).toEqual([]);
     // Un ángulo que no existe y un ángulo corto de conceptos.
-    const wrong = { ...base, concepts: base.concepts.map((c, i) => (i === 0 ? { ...c, angle: 3 } : c)) };
+    const wrong = { concepts: base.concepts.map((c, i) => (i === 0 ? { ...c, angle: 3 } : c)) };
     const problems = conceptProblems(wrong, facts);
     expect(problems.some((p) => /ángulo 3, que no existe/.test(p))).toBe(true);
     expect(problems.some((p) => /El ángulo 1 necesita 3 conceptos y trae 2/.test(p))).toBe(true);
     // Mismo formato dos veces en un ángulo.
-    const same = { ...base, concepts: base.concepts.map((c, i) => (i === 1 ? { ...c, family: "hero" as const, preset_id: preset } : c)) };
+    const same = { concepts: base.concepts.map((c, i) => (i === 1 ? { ...c, family: "hero" as const } : c)) };
     expect(conceptProblems(same, facts).some((p) => /repiten familia/.test(p))).toBe(true);
-  });
-
-  it("sin presets (render con Gemini), todas las familias van directas", () => {
-    const base = six();
-    const direct = { ...base, concepts: base.concepts.map((c) => ({ ...c, preset_id: null })) };
-    expect(conceptProblems(direct, { ...facts, presetIds: new Set<string>() })).toEqual([]);
-    // Un preset inventado sigue siendo un problema.
-    expect(conceptProblems(base, { ...facts, presetIds: new Set<string>() }).some((p) => /no está en PRESETS/.test(p))).toBe(true);
-  });
-
-  it("las familias de escena van sin preset", () => {
-    const base = six();
-    base.concepts[1] = concept({ family: "before_after" });
-    expect(conceptProblems(base, facts).some((p) => /familia sin preset \(before_after\)/.test(p))).toBe(true);
-  });
-
-  it("partes del kit reales, unidades de más solo en la oferta y points_to solo en callouts", () => {
-    const base = six();
-    base.concepts[0] = concept({ kit_parts: ["crystal glass"], product_units: 3 });
-    base.concepts[2] = concept({ family: "headline", texts: [{ role: "headline", text: "Hola", placement: "top", points_to: "the roller" }] });
-    const problems = conceptProblems(base, facts);
-    expect(problems.some((p) => /«crystal glass» no está en kit/.test(p))).toBe(true);
-    expect(problems.some((p) => /varias unidades del producto solo en la oferta/.test(p))).toBe(true);
-    expect(problems.some((p) => /solo los callouts llevan points_to/.test(p))).toBe(true);
   });
 
   it("separa lo de la propuesta entera de lo de cada concepto (para corregir solo esos)", () => {
     const base = six();
-    base.concepts[3] = concept({ angle: 2, family: "proof", texts: [{ role: "headline", text: "Un titular que se pasa de largo por mucho", placement: "top", points_to: null }, { role: "callout", text: "Elimina callos en segundos", placement: "left", points_to: "the roller" }] });
+    base.concepts[3] = { ...base.concepts[3], texts: [{ role: "headline", text: "Un titular que se pasa de largo por mucho" }, { role: "callout", text: "Elimina callos en segundos" }] };
     const split = conceptProblemsByConcept(base, facts);
     expect(split.general).toEqual([]);
     expect(split.byConcept.map((p) => p.length > 0)).toEqual([false, false, false, true, false, false]);
     expect(split.byConcept[3].some((p) => /promete un resultado de salud/.test(p))).toBe(true);
     // Lo mismo que conceptProblems, sin perder nada.
     expect(conceptProblems(base, facts)).toEqual([...split.general, ...split.byConcept.flat()]);
-    // Un reparto roto es de la propuesta entera: se rehace completa.
-    const same = { ...base, concepts: base.concepts.map((c, i) => (i === 1 ? { ...c, family: "hero" as const, preset_id: preset } : c)) };
-    expect(conceptProblemsByConcept(same, facts).general.some((p) => /repiten familia/.test(p))).toBe(true);
+  });
+
+  describe("artProblems (paso de dirección de arte)", () => {
+    const check = (cs: ConceptPayload[], f = facts) => artProblems(cs, KIT, f, cs.map(idea));
+
+    it("una dirección de arte completa no tiene problemas", () => {
+      expect(check(payloads())).toEqual([]);
+    });
+
+    it("pide presets reales y un preset en las familias que lo tienen", () => {
+      const bad = [...payloads().slice(0, 5), concept({ angle: 2, preset_id: "00000000-0000-0000-0000-000000000000" })];
+      expect(check(bad).some((p) => /no está en PRESETS/.test(p))).toBe(true);
+      expect(check([...payloads().slice(0, 5), concept({ angle: 2, family: "offer", preset_id: null })]).some((p) => /elige uno de PRESETS/.test(p))).toBe(true);
+    });
+
+    it("sin presets (render con Gemini), todas las familias van directas", () => {
+      const direct = payloads().map((c) => ({ ...c, preset_id: null }));
+      expect(check(direct, { ...facts, presetIds: new Set<string>() })).toEqual([]);
+      expect(check(payloads(), { ...facts, presetIds: new Set<string>() }).some((p) => /no está en PRESETS/.test(p))).toBe(true);
+    });
+
+    it("las familias de escena van sin preset", () => {
+      const cs = payloads();
+      cs[1] = concept({ family: "before_after" });
+      expect(check(cs).some((p) => /familia sin preset \(before_after\)/.test(p))).toBe(true);
+    });
+
+    it("partes del kit reales, unidades de más solo en la oferta, points_to solo en callouts y una ubicación por texto", () => {
+      const cs = payloads();
+      cs[0] = concept({ kit_parts: ["crystal glass"], product_units: 3 });
+      cs[2] = concept({ family: "headline", texts: [{ role: "headline", text: "Hola", placement: "top", points_to: "the roller" }] });
+      const problems = check(cs);
+      expect(problems.some((p) => /«crystal glass» no está en kit/.test(p))).toBe(true);
+      expect(problems.some((p) => /varias unidades del producto solo en la oferta/.test(p))).toBe(true);
+      expect(problems.some((p) => /solo los callouts llevan points_to/.test(p))).toBe(true);
+      // La dirección de arte trae menos ubicaciones que textos.
+      const merged = mergeConcept(idea(concept()), { ...concept(), texts: [{ placement: "top", points_to: null }] });
+      expect(merged.texts[1]).toMatchObject({ role: "badge", placement: "", points_to: null });
+      expect(artProblems([merged], KIT, facts, [idea(concept())]).some((p) => /una por texto/.test(p))).toBe(true);
+    });
   });
 });
 

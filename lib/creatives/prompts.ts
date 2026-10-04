@@ -1,13 +1,15 @@
-// Prompts del generador de estáticos (agentes-creativos/generador-estaticos.md) adaptado a la etapa
-// Creativos (docs/spec-creativos.md): LATAM con pago contra entrega, y la pieza sale TERMINADA de
-// Higgsfield (decisión 3), así que el agente escribe los textos exactos que se hornean y la escena en
-// inglés; el prompt final lo arma lib/creatives/render.ts. También el QA de cada pieza. Puro.
-// Regla de caché: el system depende solo del mercado; el producto va en el usuario.
+// Prompts de los anuncios estáticos (agentes-creativos/generador-estaticos.md, etapa Creativos,
+// docs/spec-creativos.md) en dos pasos (docs/spec-prompts-simples.md §7): los CONCEPTOS (paso
+// creative_concepts, effort high: por ángulo, la idea, la familia, el titular y los textos horneados) y
+// la DIRECCIÓN DE ARTE (paso creative_art, effort low, con la foto: paleta, tipografía, layout, escena,
+// unidades, partes del kit y la ubicación de cada texto). La pieza sale TERMINADA del render
+// (Higgsfield o Gemini): el prompt final lo arma lib/creatives/render.ts. También el chat de WhatsApp y
+// el QA de cada pieza. Puro. Regla de caché: los system dependen solo del mercado.
 
+import { angleLine, buyerLine, buyerVoice, productFacts, proofLine, reviewQuotes } from "@/lib/ai/context";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
-import type { AngleBriefPayload } from "@/lib/angles/schemas";
-import { angleHeading, angleMessage, type AngleForPrompt } from "@/lib/angles/approved";
+import type { AngleForPrompt } from "@/lib/angles/approved";
 import { hooksForPrompt } from "@/lib/hooks/select";
 import type { Preset } from "@/lib/integrations/higgsfield/client";
 import type { Market } from "@/lib/market";
@@ -15,89 +17,31 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_PROMPT_LIMITS, TEXT_ROLES } from "./catalog";
 import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_PROMPT_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_PROMPT_MAX } from "./chat";
-import type { ConceptPayload } from "./schemas";
+import type { ConceptIdea } from "./schemas";
 
-const RULES = [
-  "REGLAS QUE NO SE NEGOCIAN",
-  "- Nada inventado que se presente como real: ni reseñas, ni estrellas, ni cifras de clientes, ni expertos, ni estudios, ni certificaciones. Solo lo que trae la ficha.",
-  "- Salud y bienestar: «ayuda a», «apoya», «diseñado para». Nunca «cura», «trata», «previene», «elimina», enfermedades ni resultados garantizados. Las promesas de la descripción del proveedor NO valen: usa lo que dice la etiqueta del producto y la ficha.",
-  "- Política de atributos personales de Meta: nunca afirmes una condición del lector en segunda persona («¿Tienes infecciones?», «Tu pH»). Habla del producto, del grupo en tercera persona o en primera persona.",
-  "- Montos: solo los de PRECIO Y OFERTA, con el formato de la moneda. Sin precio tachado si PRECIO Y OFERTA no trae uno. Urgencia solo con una fecha real de la ficha.",
-  "- Comparativas contra una práctica o categoría («lavados perfumados»), nunca contra una marca.",
-  "- Nada de personas identificables, antes/después de un cuerpo ni zooms a la parte del cuerpo con el problema.",
-].join("\n");
+const list = (items: string[]) => items.map((i) => `- ${i}`);
 
-const ART_DIRECTION = [
-  "DIRECCIÓN DE ARTE (lo que separa un anuncio de agencia de uno genérico)",
-  "El modelo de imagen es obediente: hace lo que el prompt describe y rellena lo que no (un fondo que choca, un adorno al azar, líneas que apuntan a nada). Escribe cada pieza como un director de arte que entrega un brief de diagramación completo.",
-  "- product_look: cómo se ve el producto principal en la IMAGEN BASE («pink electric foot file with a rose-gold ring and a grey roller head»). El render lo nombra para anclarlo a la foto. No inventes lo que no se ve.",
-  "- kit: lo demás que aparece en la IMAGEN BASE (caja, repuestos, cables, cepillos). En cada concepto, kit_parts dice cuáles se muestran, escritos igual que en kit; lo que no pongas no aparece. Un accesorio del kit nunca representa otro objeto (el rodillo de repuesto no es una lima manual).",
-  "- layout: la composición. Dónde está el producto, cuánto del cuadro ocupa y qué zonas quedan para el texto.",
-  "- Cada texto trae placement: posición, cuántas líneas, peso, color y contenedor (pill, tarjeta, sello, nota a mano, celda de tabla).",
-  "- Callouts: points_to es una parte que SE VE del producto en ese layout («the grey roller head», «the rose-gold ring»). Si la parte no se ve, ese texto va como badge, sin línea.",
-  "- art.palette: 2 a 4 colores que armonicen con los del producto (un producto rosado no va sobre azul frío). art.typography con carácter y coherente con la familia. art.mood en pocas palabras.",
-  "- scene cuenta la idea: en problema → solución y comparativas se ven los dos lados con objetos reales de la alternativa (una piedra pómez, una lima metálica, un frasco de crema genérico). Los props solo si apoyan el mensaje: nada decorativo que confunda (copas, unidades de más).",
-  "- Lo que un texto nombra se ve en la imagen igual: si dice «parches», la escena muestra parches.",
-  "- product_units: 1, salvo la oferta de pack (las unidades del pack recomendado, hasta 3).",
-  "- look: una frase para el comerciante que le deje imaginar la pieza antes de pagarla.",
-  "",
-  "EJEMPLO DEL NIVEL DE DETALLE (otro producto: un frasco de probióticos rosado)",
-  "- art: palette «cream background, dark navy text, soft pink accents»; typography «wide-spaced bold capitals for the title, clean sans for callouts»; mood «minimal, clinical, premium».",
-  "- layout: «the jar standing in the center, two pink capsules at its base, soft studio shadow; lots of breathing room around it».",
-  "- headline «DENTRO DE CADA CÁPSULA», placement «centered at the top, one line, dark navy»; callout «Cepas probióticas», placement «left top, bold, one line», points_to «the jar label».",
-  "- comparativa: layout «left half the jar with two capsules; right half a white rounded card with soft shadow holding a two-column table»; table_row placement «row inside the card, green check under the product column, grey cross under the other».",
-].join("\n");
+// ---------------------------------------------------------------- 1. Los conceptos
 
 export function creativesSystem(market: Market): string {
   return [
-    "Eres el director de arte y copywriter de anuncios estáticos de una operación de dropshipping con pago contra entrega en Latinoamérica, para Facebook e Instagram. Conviertes los desarrollos de ángulo aprobados (2 o 3) en conceptos de anuncio de imagen.",
+    "Eres un director creativo de anuncios de imagen para Facebook e Instagram en Latinoamérica, donde se vende con pago contra entrega. Sabes qué detiene el scroll en el feed: una idea que se entiende en un vistazo y pocas palabras.",
+    "",
+    "- Cada pieza sale de un modelo de imagen en una sola generación, con el producto real y todos los textos dentro: pocos textos y cortos (el modelo escribe mejor 3 que 8, y en el feed nadie lee más).",
+    `- Exactamente un headline de 2 a ${HEADLINE_MAX_WORDS} palabras. Roles de texto: ${TEXT_ROLES.join(", ")}. Largos: headline ≤ ${ROLE_PROMPT_LIMITS.headline} caracteres; subheadline y table_row ≤ ${ROLE_PROMPT_LIMITS.subheadline}; los demás, una línea de ≤ ${ROLE_PROMPT_LIMITS.callout}.`,
+    `- Formatos (family): ${FAMILIES.map((f) => `${f} (${FAMILY_DEFS[f].name.toLowerCase()})`).join(", ")}. Una comparativa lleva 2 table_header (el producto y la práctica que reemplaza) y 2 a 4 table_row.`,
+    "- Los ganchos del ángulo ya detienen el scroll en video: su texto en pantalla es un buen punto de partida para el titular.",
+    "",
+    "LÍMITES",
+    "- Meta no acepta que el anuncio le atribuya a quien mira una condición («¿Tienes infecciones?», «Tu pH»): habla del producto, del grupo en tercera persona o en primera.",
+    "- Nada de «cura», «trata», «previene» ni resultados garantizados. Nada inventado: reseñas, estrellas, cifras de clientes, expertos, certificaciones.",
+    "- Montos: solo los de PRECIO Y OFERTA. Urgencia, solo con una fecha real. Comparativas contra una práctica o categoría, nunca una marca. Sin personas identificables ni antes/después de un cuerpo.",
+    "- El pago contra entrega y el envío gratis no van en el titular: como badge o callout.",
     "",
     marketBlock(market),
     "",
-    "CÓMO SE PRODUCE (importante)",
-    "- Cada concepto lo renderiza Higgsfield Marketing Studio en UNA sola generación: escena, producto y TODOS los textos quedan horneados en la imagen. No hay capas ni edición posterior.",
-    "- El producto sale de la foto real (IMAGEN BASE) y se mantiene idéntico: descríbelo solo en product_look (lo que se ve), nunca le cambies forma, color ni etiqueta.",
-    "- Un preset de Marketing Studio aporta la composición, la tipografía y el estilo de su grupo: sirve cuando el producto es el protagonista. Elige el que mejor calce con la familia, el producto y su paleta. Las familias sin preset (abajo) van con preset_id null: ahí la escena y el layout mandan.",
-    `- Pocos textos y cortos: el modelo escribe mejor 3 textos que 8, y en el feed nadie lee más. Máximo 5 por concepto (7 en comparativa y oferta). Exactamente un headline de 2 a ${HEADLINE_MAX_WORDS} palabras (≤ ${ROLE_PROMPT_LIMITS.headline} caracteres); subheadline y table_row hasta ${ROLE_PROMPT_LIMITS.subheadline}; los demás, UNA línea de hasta ${ROLE_PROMPT_LIMITS.callout} caracteres. Cuenta los caracteres.`,
-    `- Roles de texto: ${TEXT_ROLES.join(", ")}. En una comparativa: 2 table_header (el producto y la práctica que reemplaza) y 2 a 4 table_row.`,
-    "- scene, layout, art, placement y points_to van en inglés; los textos, name, why y look, en el idioma del mercado.",
-    "",
-    ART_DIRECTION,
-    "",
-    "LAS 8 FAMILIAS",
-    ...FAMILIES.map((f) => `- ${f} (${FAMILY_DEFS[f].name}): ${FAMILY_DEFS[f].gist}${FAMILY_DEFS[f].presetGroups.length ? ` Presets del grupo ${FAMILY_DEFS[f].presetGroups.join(" o ")}.` : " Sin preset."}`),
-    "",
-    "QUÉ ENTREGAS",
-    `- ${CONCEPTS_PER_RUN} conceptos repartidos por igual entre los ÁNGULOS DE VENTA (angle = el número del ángulo): cada ángulo va en su propio conjunto de anuncios, así que cada concepto es 100 % su ángulo, sin mezclarlo con otro.`,
-    "- Los conceptos de un mismo ángulo van en familias (formatos) distintas: Meta premia la variación y el mercado decide cuál funciona.",
-    "- La oferta (el pack recomendado de PRECIO Y OFERTA) va como capa dentro de un concepto, no como concepto de retargeting.",
-    "- Parte de los ganchos, el mensaje central y los static_ad_concepts de cada desarrollo, pero reescríbelos para que funcionen como texto de imagen. Cada gancho trae su texto en pantalla (on_screen), que ya está pensado para leerse sin sonido en un vistazo, y su primera imagen (visual_first_3s): son el mejor punto de partida para el headline y la escena. Varía el patrón del gancho entre los conceptos de un mismo ángulo.",
-    "- El pago contra entrega y el envío gratis no van en el headline: van como callout o badge.",
-    "- El headline del concepto no repite el de otro concepto.",
-    "- why: para el comerciante, qué palanca usa y por qué detiene el scroll.",
-    "",
-    RULES,
+    "Los textos van en el idioma del mercado; name, idea y why, para el comerciante.",
   ].join("\n");
-}
-
-function json(v: unknown) {
-  return JSON.stringify(v, null, 2);
-}
-
-/** Lo del desarrollo que sirve para un estático. */
-function briefForStatics(b: AngleBriefPayload) {
-  return {
-    core_message: b.core_message,
-    psychological_lever: b.psychological_lever,
-    // Del mejor al peor, el primero es el recomendado; sin los que piden material real (lib/hooks/select.ts).
-    hooks: hooksForPrompt(b),
-    static_ad_concepts: b.static_ad_concepts,
-    visual_concepts: b.visual_concepts,
-    offer_layer: b.offer_layer,
-    proof_to_show: b.proof_to_show,
-    compliance_flags: b.compliance_flags,
-    details: b.details,
-  };
 }
 
 export interface CreativesContext {
@@ -107,9 +51,84 @@ export interface CreativesContext {
   labels?: PackLabel[];
   /** Los ángulos aprobados (2 o 3), uno por conjunto de anuncios. */
   angles: AngleForPrompt[];
-  presets: Preset[];
-  /** Sin reseñas reales aprobadas no se ofrecen los presets de prueba social. */
-  hasRealReviews: boolean;
+}
+
+/** Un gancho como texto, para partir de él: lo que se lee y lo que se dice. */
+const hookLine = (h: ReturnType<typeof hooksForPrompt>[number]) => `«${(h as { on_screen?: string }).on_screen ?? h.spoken}» (se dice: «${h.spoken}»)`;
+
+/** Lo fijo de los conceptos: igual en cada intento, va con punto de caché. Sin la ficha ni el cliente ideal en JSON. */
+export function creativesContextText(c: CreativesContext): string {
+  return [
+    productFacts(c.brief),
+    proofLine(c.brief),
+    "",
+    buyerLine(c.avatar),
+    "",
+    pricingBlock(c.pricing, c.labels),
+    "",
+    `LOS ÁNGULOS (${c.angles.length}; ${conceptsPerAngle(c.angles.length)} conceptos por ángulo, cada uno en su propio conjunto de anuncios)`,
+    ...c.angles.flatMap((a) => {
+      const hooks = hooksForPrompt(a.payload).slice(0, 4);
+      return [
+        angleLine(a.angle, c.pricing.currency),
+        ...(a.payload.core_message?.trim() ? [`- Idea central: ${a.payload.core_message.trim()}`] : []),
+        ...(hooks.length ? [`- Sus mejores ganchos: ${hooks.map(hookLine).join("; ")}`] : []),
+        ...(a.payload.offer_layer?.trim() ? [`- La oferta: ${a.payload.offer_layer.trim()}`] : []),
+        "",
+      ];
+    }),
+  ].join("\n");
+}
+
+/** La pregunta, y en un reintento lo que estuvo mal (conceptProblemsByConcept). */
+export function creativesTail(retry: string[] = []): string {
+  return [
+    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
+    `Propón ${CONCEPTS_PER_RUN} anuncios de imagen que vendan, repartidos por igual entre los ángulos y con formatos distintos dentro de cada ángulo: cada uno es 100 % su ángulo.`,
+  ].join("\n");
+}
+
+/** El mensaje entero en un solo texto (scripts y tests); la app lo manda en dos bloques. */
+export function creativesUser(c: CreativesContext, retry: string[] = []): string {
+  return `${creativesContextText(c)}\n${creativesTail(retry)}`;
+}
+
+/**
+ * Corrección de algunos conceptos: vuelven solo los que fallaron, con sus problemas; los que pasaron
+ * van como contexto para no repetir titulares ni ideas.
+ */
+export function creativesFixUser(c: CreativesContext, fix: { previous: ConceptIdea[]; problems: string[]; kept: ConceptIdea[] }): string {
+  return [
+    creativesContextText(c),
+    "CONCEPTOS YA APROBADOS (quedan igual; no los repitas: ni su titular ni su idea)",
+    ...fix.kept.map((k) => `- ángulo ${k.angle} · ${k.family} · «${k.name}» · titular: «${k.texts.find((t) => t.role === "headline")?.text ?? ""}»`),
+    "",
+    "TU RESPUESTA ANTERIOR (estos conceptos no cumplen las reglas)",
+    JSON.stringify(fix.previous),
+    "",
+    `No cumple las reglas: ${fix.problems.join(" ")}`,
+    "",
+    `Corrige solo eso y deja igual todo lo demás. Devuelve estos ${fix.previous.length} conceptos, en el mismo orden, con el mismo ángulo y la misma familia.`,
+  ].join("\n");
+}
+
+// ---------------------------------------------------------------- 2. La dirección de arte
+
+export function artSystem(market: Market): string {
+  return [
+    "Eres director de arte de anuncios de imagen. Recibes conceptos ya escritos (la idea y los textos exactos) y la foto real del producto, y para cada uno entregas el brief de diagramación que sigue un modelo de imagen. No cambias los textos.",
+    "",
+    "- El modelo de imagen es obediente: hace lo que se describe y rellena lo que no (un fondo que choca, un adorno al azar, líneas que apuntan a nada). Describe todo.",
+    "- El producto sale de la foto y se mantiene idéntico: no le cambies forma, color ni etiqueta. Un accesorio del kit nunca hace de otro objeto. Lo que un texto nombra se ve en la imagen igual.",
+    "- art: 2 a 4 colores que armonicen con los del producto (nunca el producto sobre un fondo de su mismo color), una tipografía con carácter y el mood.",
+    "- layout: dónde va el producto, cuánto ocupa y qué zonas quedan para el texto. scene: fondo, superficie, props que apoyan la idea y luz; en problema → solución y comparativas, los dos lados con objetos reales de la alternativa.",
+    "- texts: una ubicación por texto, en su orden (posición, líneas, peso, color y contenedor). Un callout apunta (points_to) a una parte que SE VE del producto; si no se ve, va sin línea.",
+    "- product_units: 1, salvo la oferta de pack (hasta 3). kit_parts: las partes del kit que aparecen, escritas igual.",
+    "- Un preset aporta composición y estilo cuando el producto es el protagonista: elige uno del grupo de la familia. Las familias sin preset van con preset_id null.",
+    "- look: una frase para el comerciante que le deje imaginar la pieza. scene, layout, art, placement y points_to en inglés.",
+    "",
+    marketBlock(market),
+  ].join("\n");
 }
 
 /** Los presets que puede usar, agrupados (sin prueba social si no hay reseñas reales). */
@@ -124,63 +143,41 @@ export function presetsBlock(presets: Preset[], hasRealReviews: boolean): string
   ].join("\n");
 }
 
-/** Lo que el generador necesita saber del producto: igual en la propuesta y en sus correcciones. */
-function creativesContext(c: CreativesContext): string[] {
+export interface ArtContext {
+  brief: ProductBrief;
+  concepts: ConceptIdea[];
+  presets: Preset[];
+  /** Sin reseñas reales aprobadas no se ofrecen los presets de prueba social. */
+  hasRealReviews: boolean;
+  /** El aspecto del producto y su kit, si ya se describieron para esta imagen base. */
+  look?: { product_look: string; kit: string[] } | null;
+}
+
+/** Lo fijo de la dirección de arte: los conceptos, los presets y, si ya se sabe, cómo se ve el producto. */
+export function artContext(c: ArtContext): string {
   return [
-    "La primera imagen es la IMAGEN BASE del producto (la foto que Higgsfield usa como referencia); las siguientes, si hay, lo complementan.",
+    "La primera imagen es la IMAGEN BASE del producto (la referencia del render); las siguientes, si hay, lo complementan.",
     "",
-    "FICHA DE PRODUCTO",
-    json(c.brief),
+    `PRODUCTO: ${c.brief.product_name}`,
+    ...(c.look
+      ? [`CÓMO SE VE (ya descrito): ${c.look.product_look}`, `KIT (ya descrito; kit_parts se escribe igual): ${c.look.kit.length ? c.look.kit.join("; ") : "(solo el producto)"}`]
+      : ["Describe primero product_look (cómo se ve el producto principal en la IMAGEN BASE) y kit (lo demás que aparece en ella). No inventes lo que no se ve."]),
     "",
-    "CLIENTE IDEAL (aprobado por el comerciante)",
-    json(c.avatar),
-    "",
-    pricingBlock(c.pricing, c.labels),
-    "",
-    `ÁNGULOS DE VENTA (${c.angles.length}, aprobados; ${conceptsPerAngle(c.angles.length)} conceptos por ángulo)`,
-    ...c.angles.flatMap((a) => [angleHeading(a), json({ ...angleMessage(a.angle), ...briefForStatics(a.payload) }), ""]),
     presetsBlock(c.presets, c.hasRealReviews),
     "",
-  ];
-}
-
-/** Lo fijo de la propuesta: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
-export function creativesContextText(c: CreativesContext): string {
-  return creativesContext(c).join("\n");
-}
-
-/** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (lib/creatives/schemas.ts › conceptProblems). */
-export function creativesTail(retry: string[] = []): string {
-  return [
-    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
-    "Propón los conceptos de anuncio de imagen.",
+    "LOS CONCEPTOS (en orden)",
+    ...c.concepts.flatMap((k, i) => [
+      `${i + 1}. ${k.family} (${FAMILY_DEFS[k.family].name}${FAMILY_DEFS[k.family].presetGroups.length ? `; presets del grupo ${FAMILY_DEFS[k.family].presetGroups.join(" o ")}` : "; sin preset"}) · «${k.name}»: ${k.idea}`,
+      ...k.texts.map((t) => `   - ${t.role}: «${t.text}»`),
+    ]),
+    "",
   ].join("\n");
 }
 
-/** El mensaje entero en un solo texto (scripts y tests); la app lo manda en dos bloques. */
-export function creativesUser(c: CreativesContext, retry: string[] = []): string {
-  return `${creativesContextText(c)}\n${creativesTail(retry)}`;
-}
-
-/**
- * Corrección de algunos conceptos (lib/pipeline/creatives.ts): vuelven solo los que fallaron, con
- * sus problemas; los que pasaron van como contexto para no repetir titulares ni ideas.
- */
-export function creativesFixUser(c: CreativesContext, fix: { previous: ConceptPayload[]; problems: string[]; kept: ConceptPayload[]; productLook: string; kit: string[] }): string {
+export function artTail(retry: string[] = []): string {
   return [
-    ...creativesContext(c),
-    `CÓMO SE VE EL PRODUCTO (ya decidido): ${fix.productLook}`,
-    `KIT (ya decidido; kit_parts se escribe igual): ${JSON.stringify(fix.kit)}`,
-    "",
-    "CONCEPTOS YA APROBADOS (quedan igual; no los repitas: ni su titular ni su idea)",
-    ...fix.kept.map((k) => `- ángulo ${k.angle} · ${k.family} · «${k.name}» · titular: «${k.texts.find((t) => t.role === "headline")?.text ?? ""}»`),
-    "",
-    "TU RESPUESTA ANTERIOR (estos conceptos no cumplen las reglas)",
-    JSON.stringify(fix.previous),
-    "",
-    `No cumple las reglas: ${fix.problems.join(" ")}`,
-    "",
-    `Corrige solo eso y deja igual todo lo demás. Devuelve estos ${fix.previous.length} conceptos, en el mismo orden, con el mismo ángulo y la misma familia.`,
+    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
+    "Entrega la dirección de arte de cada concepto, en el mismo orden.",
   ].join("\n");
 }
 
@@ -203,11 +200,11 @@ export function chatSystem(market: Market): string {
     "",
     "EL ÁNGULO MANDA",
     "- El chat es para UN ángulo de venta: el gancho y la experiencia del amigo cuentan el dolor o deseo, la promesa y el momento de ese ángulo, con las palabras de su cliente. No mezcles otro ángulo.",
-    "- contact_gender según el cliente ideal: quien le escribe al lector es alguien como él (amiga o amigo).",
+    "- contact_gender según quien compra: quien le escribe al lector es alguien como él (amiga o amigo).",
     "",
     "QUÉ PUEDE DECIR EL AMIGO",
     "- Si hay RESEÑAS REALES, su experiencia sale de ahí: elige lo que dijeron compradores reales y dilo con sus palabras. No agregues un resultado, un plazo ni una cifra que ninguna reseña mencione. Nunca copies una reseña entera.",
-    "- Sin reseñas, quédate en lo que la ficha dice que hace el producto.",
+    "- Sin reseñas, quédate en lo que hace el producto.",
     "- Vale la experiencia subjetiva y sensorial («la siento más suave», «me encanta cómo me queda»). NO valen: promesas de salud, nombrar una condición o enfermedad, resultados garantizados o con plazo («en 3 días»), porcentajes ni antes/después del cuerpo.",
     "- Nunca afirmes una condición del lector («tú que tienes hongos»): el amigo habla de SU experiencia.",
     "- Nunca nombres la tienda, una marca que el producto no trae, ni un precio o descuento: si el amigo habla de precio, dice que le pareció barato o que pagó al recibirlo, sin montos.",
@@ -224,26 +221,32 @@ export interface ChatContext {
   brief: ProductBrief;
   avatar: CustomerAvatar;
   angle: AngleForPrompt;
+  /** La moneda de la tienda (el ancla de mercado del ángulo). */
+  currency: string;
   /** Reseñas reales de 4 o 5 estrellas (primero las aprobadas); [] si no hay. */
   reviews: string[];
 }
 
-/** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › chatProblems). */
+/** Frases del cliente ideal que recibe el chat: el amigo escribe como alguien como él. */
+const CHAT_VOICE_LINES = 3;
+
+/** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › chatProblems). Sin la ficha ni el cliente ideal en JSON. */
 export function chatUser(c: ChatContext, retry: string[] = []): string {
+  const hooks = hooksForPrompt(c.angle.payload).slice(0, 4);
   return [
-    "FICHA DE PRODUCTO",
-    json(c.brief),
+    productFacts(c.brief),
     "",
-    "CLIENTE IDEAL (aprobado por el comerciante)",
-    json(c.avatar),
+    buyerLine(c.avatar),
+    ...list(buyerVoice(c.avatar, CHAT_VOICE_LINES).map((v) => `«${v}»`)),
     "",
-    "ÁNGULO DE VENTA",
-    angleHeading(c.angle),
-    json({ ...angleMessage(c.angle.angle), core_message: c.angle.payload.core_message, hooks: hooksForPrompt(c.angle.payload), details: c.angle.payload.details }),
+    "EL ÁNGULO",
+    angleLine(c.angle.angle, c.currency),
+    ...(c.angle.payload.core_message?.trim() ? [`- Idea central: ${c.angle.payload.core_message.trim()}`] : []),
+    ...(hooks.length ? [`- Sus mejores ganchos (el primero es el recomendado): ${hooks.map((h) => `«${h.spoken}»`).join("; ")}`] : []),
     "",
     ...(c.reviews.length
-      ? ["RESEÑAS REALES (de compradores del mismo producto; la experiencia del amigo sale de aquí, con otras palabras y sin inventar nada más)", ...c.reviews.map((r, i) => `${i + 1}. ${r}`)]
-      : ["RESEÑAS REALES: ninguna importada. La experiencia sale solo de la ficha."]),
+      ? ["RESEÑAS REALES (de compradores del mismo producto; la experiencia del amigo sale de aquí, con otras palabras y sin inventar nada más)", ...reviewQuotes(c.reviews, c.reviews.length).map((r, i) => `${i + 1}. ${r}`)]
+      : ["RESEÑAS REALES: ninguna importada. La experiencia sale solo de lo que hace el producto."]),
     "",
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     "Escribe la conversación de WhatsApp.",

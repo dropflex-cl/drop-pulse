@@ -362,3 +362,14 @@ con cita del comprador.
   `scripts/spike-higgsfield.ts mascots` (no se pudo sin la clave).
 - Medir después: `npm run ai:metrics -- --step ugc_script` y `--step video_plan` (rechazo frente al 50 %,
   y que no vuelva la silueta).
+
+### Fase 4 (2026-10-04): Estáticos, `CREATIVES_PROMPT_VERSION` 7
+
+- `creative_concepts` (effort high, sin fotos) escribe la idea, la familia y los textos; `creative_art`
+  (nuevo, effort low, US$0,05 por defecto) pone la dirección de arte con las fotos. `mergeConcept` arma
+  el concepto guardado de siempre.
+- `conceptProblemsByConcept` (textos) y `artProblems` (dirección de arte): cada paso corrige solo lo suyo.
+- `product_look` y `kit` una vez por imagen base (`payload.base_image_id`).
+- El chat de WhatsApp pasa al contexto corto (`CHAT_PROMPT_VERSION` 4).
+- Medir después: `npm run ai:metrics -- --step creative_concepts` y `--step creative_art` (rechazo frente
+  al 60 %).

@@ -13,8 +13,10 @@ import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX
  * 4: el esquema y el system dejan de pedir principal/secundario y retargeting (2 o 3 ángulos por igual).
  * 5: el prompt pide los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS.
  * 6: los ganchos llegan con su tríada (on_screen, visual) y sin los que piden material real (lib/hooks).
+ * 7: dos pasos (docs/spec-prompts-simples.md §7): los conceptos (idea, familia y textos) y la dirección
+ * de arte (creative_art); el aspecto del producto y su kit se piden una vez por imagen base.
  */
-export const CREATIVES_PROMPT_VERSION = 6;
+export const CREATIVES_PROMPT_VERSION = 7;
 /** Bump cuando cambie el prompt o el esquema del QA. 2: texto inventado sobre el producto y textos que la imagen contradice. */
 export const QA_PROMPT_VERSION = 2;
 
@@ -22,12 +24,34 @@ export const QA_PROMPT_VERSION = 2;
 export const TEXT_LIMIT = Math.max(...Object.values(ROLE_LIMITS));
 export const MAX_TEXTS = 7;
 
-const bakedText = z.object({
+// ---------------------------------------------------------------- 1. Los conceptos (paso creative_concepts)
+
+const conceptText = z.object({
   role: z.enum(TEXT_ROLES),
   text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_PROMPT_LIMITS.headline} caracteres; subheadline y table_row ≤ ${ROLE_PROMPT_LIMITS.subheadline}; el resto ≤ ${ROLE_PROMPT_LIMITS.callout}.`),
-  placement: z.string().describe("En inglés: dónde va y cómo se ve (posición, cuántas líneas, peso, color y contenedor: pill, card, stamp, handwritten note, table cell)."),
-  points_to: z.string().nullable().describe("Solo callouts: la parte VISIBLE del producto a la que llega su línea, en inglés («the grey roller head»). null si no apunta a nada."),
 });
+
+const conceptIdea = z.object({
+  angle: z.number().int().describe("El número del ángulo de venta del que sale: cada ángulo va en su propio conjunto de anuncios."),
+  family: z.enum(FAMILIES),
+  name: z.string().describe("Nombre corto del concepto para el comerciante («Dentro de cada cápsula»)."),
+  idea: z.string().describe("En una o dos frases, qué muestra la pieza y qué cuenta (lo que tiene que ver el director de arte)."),
+  why: z.string().describe("Para el comerciante, una frase: qué palanca usa y por qué detiene el scroll de SU cliente."),
+  texts: z.array(conceptText).describe(`Los textos horneados, de 1 a ${MAX_TEXTS} (5 salvo comparativa y oferta). Exactamente un headline.`),
+});
+
+export const creativeConceptsSchema = z.object({
+  concepts: z.array(conceptIdea).describe(`${CONCEPTS_PER_RUN} conceptos repartidos por igual entre los ángulos de venta (${conceptsPerAngle(2)} por ángulo con 2, ${conceptsPerAngle(3)} con 3), con familias distintas dentro de un mismo ángulo.`),
+});
+export type CreativeConceptsOutput = z.infer<typeof creativeConceptsSchema>;
+export type ConceptIdea = z.infer<typeof conceptIdea>;
+
+/** La corrección de algunos conceptos: vuelven solo esos, en el mismo orden en que se pidieron. */
+export const conceptFixSchema = z.object({
+  concepts: z.array(conceptIdea).describe("Los conceptos corregidos, uno por cada concepto pedido y en el mismo orden, con el mismo ángulo y la misma familia."),
+});
+
+// ---------------------------------------------------------------- 2. La dirección de arte (paso creative_art)
 
 const art = z.object({
   palette: z.string().describe("En inglés: 2 a 4 colores con nombre que armonicen con los del producto."),
@@ -35,33 +59,52 @@ const art = z.object({
   mood: z.string().describe("En inglés, 3 a 6 palabras."),
 });
 
-const concept = z.object({
-  angle: z.number().int().describe("El número del ángulo de venta del que sale (1, 2 o 3): cada ángulo va en su propio conjunto de anuncios."),
-  family: z.enum(FAMILIES),
-  name: z.string().describe("Nombre corto del concepto para el comerciante («Dentro de cada cápsula»)."),
-  why: z.string().describe("Para el comerciante, una frase: qué palanca usa y por qué detiene el scroll de SU cliente."),
-  look: z.string().describe("Para el comerciante, en su idioma y una frase: cómo se va a ver la pieza (colores, composición, qué aparece)."),
+const conceptArt = z.object({
   preset_id: z.string().nullable().describe("El id de un preset de PRESETS del grupo de la familia, o null en las familias sin preset."),
+  look: z.string().describe("Para el comerciante, en su idioma y una frase: cómo se va a ver la pieza (colores, composición, qué aparece)."),
   art,
-  scene: z.string().describe("En inglés, 30 a 70 palabras: fondo, superficie, props que APOYAN el mensaje y luz. Sin textos (van en texts), sin personas identificables."),
+  scene: z.string().describe("En inglés, 30 a 70 palabras: fondo, superficie, props que APOYAN el mensaje y luz. Sin textos, sin personas identificables."),
   layout: z.string().describe("En inglés, 20 a 50 palabras: dónde va el producto, cuánto ocupa y qué zonas quedan para el texto."),
-  product_units: z.number().int().min(1).max(3).describe("Unidades del producto en la pieza: 1, salvo la oferta de pack."),
-  kit_parts: z.array(z.string()).describe("Qué partes del kit (de kit) aparecen junto al producto, escritas igual; [] si ninguna."),
-  texts: z.array(bakedText).describe(`De 1 a ${MAX_TEXTS} textos (5 salvo comparativa y oferta). Exactamente un headline.`),
+  product_units: z.number().int().describe("Unidades del producto en la pieza: 1, salvo la oferta de pack (hasta 3)."),
+  kit_parts: z.array(z.string()).describe("Qué partes del kit aparecen junto al producto, escritas igual que en kit; [] si ninguna."),
+  texts: z
+    .array(
+      z.object({
+        placement: z.string().describe("En inglés: dónde va y cómo se ve (posición, líneas, peso, color y contenedor: pill, card, stamp, handwritten note, table cell)."),
+        points_to: z.string().nullable().describe("Solo callouts: la parte VISIBLE del producto a la que llega su línea, en inglés. null si no apunta a nada."),
+      }),
+    )
+    .describe("Uno por texto del concepto, en el mismo orden."),
 });
 
-export const creativeConceptsSchema = z.object({
+const productLookFields = {
   product_look: z.string().describe("En inglés, hasta 20 palabras: cómo se ve el producto principal en la IMAGEN BASE (tipo, color, material, detalles visibles)."),
   kit: z.array(z.string()).describe("En inglés: todo lo demás que aparece en la IMAGEN BASE (caja, repuestos, cables, accesorios). [] si solo está el producto."),
-  concepts: z.array(concept).describe(`${CONCEPTS_PER_RUN} conceptos repartidos por igual entre los ángulos de venta (${conceptsPerAngle(2)} por ángulo con 2, ${conceptsPerAngle(3)} con 3), con familias distintas dentro de un mismo ángulo.`),
-  compliance_flags: z.array(z.string()),
-});
+};
 
-export type CreativeConceptsOutput = z.infer<typeof creativeConceptsSchema>;
-export type ConceptPayload = z.infer<typeof concept>;
-export type BakedText = z.infer<typeof bakedText>;
+/** Sin `look`: el aspecto del producto se pide una vez por imagen base y se reusa (lookKnown). */
+export function creativeArtSchema(lookKnown: boolean) {
+  const concepts = z.array(conceptArt).describe("Uno por concepto, en el mismo orden.");
+  return lookKnown ? z.object({ concepts }) : z.object({ ...productLookFields, concepts });
+}
+export type ConceptArt = z.infer<typeof conceptArt>;
+export type CreativeArtOutput = { product_look?: string; kit?: string[]; concepts: ConceptArt[] };
+
+// ---------------------------------------------------------------- El concepto armado
+
+/** Un texto horneado con su ubicación: el del concepto y el de su dirección de arte, juntos. */
+export type BakedText = z.infer<typeof conceptText> & { placement: string; points_to: string | null };
 /** Un texto como se guarda: los conceptos de la versión 1 no traen ubicación. */
 export type StoredText = Pick<BakedText, "role" | "text"> & Partial<Pick<BakedText, "placement" | "points_to">>;
+
+/** El concepto con su dirección de arte: lo que lee el render (lib/creatives/render.ts). */
+export type ConceptPayload = Omit<ConceptIdea, "texts"> & Omit<ConceptArt, "texts"> & { texts: BakedText[] };
+
+/** La idea y su dirección de arte, juntas: cada texto con su ubicación, por posición. */
+export function mergeConcept(c: ConceptIdea, a: ConceptArt): ConceptPayload {
+  const { texts: placements, ...artFields } = a;
+  return { ...c, ...artFields, texts: c.texts.map((t, i) => ({ ...t, placement: placements[i]?.placement ?? "", points_to: placements[i]?.points_to ?? null })) };
+}
 
 const FORBIDDEN = [/\bcura(n|r)?\b/i, /\btrata(r|n)?\b.*\b(infecci|enfermedad)/i, /\bprevien(e|en)\b.*\binfecci/i, /\belimina(r|n)?\b/i, /\bgarantizad[oa]s?\b/i, /\bcures?\b/i, /\btreats?\b/i];
 
@@ -118,18 +161,18 @@ export function healthProblems(text: string, at = ""): string[] {
   return FORBIDDEN.some((re) => re.test(text)) ? [`${at}«${text}» promete un resultado de salud (usa «ayuda a», «apoya»).`] : [];
 }
 
-/** Qué está mal en la respuesta del generador. Vacío si se puede guardar. */
+/** Qué está mal en los conceptos (el reparto y los textos). Vacío si se pueden guardar. */
 export function conceptProblems(out: CreativeConceptsOutput, facts: ConceptFacts): string[] {
   const { general, byConcept } = conceptProblemsByConcept(out, facts);
   return [...general, ...byConcept.flat()];
 }
 
 /**
- * Los problemas separados: los de la propuesta entera (cantidad, reparto por ángulo, familias
- * repetidas) y los de cada concepto, por posición. Si solo hay de conceptos, se corrigen esos
- * conceptos (lib/pipeline/creatives.ts): un texto de más no obliga a pagar los 6 de nuevo.
+ * Los problemas de los conceptos separados: los de la propuesta entera (cantidad, reparto por ángulo,
+ * familias repetidas) y los de cada concepto (el ángulo y los textos: largos, montos, promesas), por
+ * posición. Si solo hay de conceptos, se corrigen esos (lib/pipeline/creatives.ts).
  */
-export function conceptProblemsByConcept(out: CreativeConceptsOutput, facts: ConceptFacts): { general: string[]; byConcept: string[][] } {
+export function conceptProblemsByConcept(out: CreativeConceptsOutput, facts: Pick<ConceptFacts, "pricing" | "slots">): { general: string[]; byConcept: string[][] } {
   const general: string[] = [];
   if (out.concepts.length !== CONCEPTS_PER_RUN) general.push(`Trae ${out.concepts.length} conceptos y deben ser ${CONCEPTS_PER_RUN}.`);
   const slots = facts.slots ?? [1, 2];
@@ -140,35 +183,45 @@ export function conceptProblemsByConcept(out: CreativeConceptsOutput, facts: Con
     // Formatos distintos dentro del mismo ángulo: Meta premia la variación y el mercado decide.
     if (new Set(mine.map((c) => c.family)).size < mine.length) general.push(`Los conceptos del ángulo ${slot} repiten familia: usa formatos distintos.`);
   }
-  const kit = new Set(out.kit.map((k) => k.trim().toLowerCase()));
   const byConcept = out.concepts.map((c, i) => {
     const problems: string[] = [];
     const where = `El concepto ${i + 1} («${c.name}»)`;
     if (!slots.includes(c.angle)) problems.push(`«${c.name}» dice venir del ángulo ${c.angle}, que no existe: usa ${slots.join(", ")}.`);
-    const direct = !FAMILY_DEFS[c.family].presetGroups.length;
-    if (c.preset_id && direct) problems.push(`${where} es de una familia sin preset (${c.family}): preset_id va null.`);
-    else if (c.preset_id && !facts.presetIds.has(c.preset_id)) problems.push(`${where} usa un preset_id que no está en PRESETS.`);
-    // Sin presets disponibles (render con Gemini), toda familia va directa.
-    if (!c.preset_id && !direct && facts.presetIds.size) problems.push(`${where} es de una familia con presets: elige uno de PRESETS.`);
     problems.push(...textProblems(c.texts, facts.pricing, where, c.family));
-    if (c.product_units > 1 && c.family !== "offer") problems.push(`${where}: varias unidades del producto solo en la oferta de pack.`);
-    for (const part of c.kit_parts) if (!kit.has(part.trim().toLowerCase())) problems.push(`${where}: «${part}» no está en kit (escríbelo igual que en kit).`);
-    for (const t of c.texts) if (t.role !== "callout" && t.points_to) problems.push(`${where}: solo los callouts llevan points_to («${t.text}»).`);
     return problems;
   });
   return { general, byConcept };
 }
 
-/** La corrección de algunos conceptos: vuelven solo esos, en el mismo orden en que se pidieron. */
-export const conceptFixSchema = z.object({
-  concepts: z.array(concept).describe("Los conceptos corregidos, uno por cada concepto pedido y en el mismo orden, con el mismo ángulo y la misma familia."),
-});
-export type ConceptFixOutput = z.infer<typeof conceptFixSchema>;
+/**
+ * Qué está mal en la dirección de arte de cada concepto: el preset (que exista y calce con la familia),
+ * las unidades, las partes del kit, una ubicación por texto y los callouts. Vacío si se puede guardar.
+ */
+export function artProblems(concepts: ConceptPayload[], kit: string[], facts: Pick<ConceptFacts, "presetIds">, ideas: ConceptIdea[]): string[] {
+  const kitSet = new Set(kit.map((k) => k.trim().toLowerCase()));
+  return concepts.flatMap((c, i) => {
+    const problems: string[] = [];
+    const where = `El concepto ${i + 1} («${c.name}»)`;
+    const direct = !FAMILY_DEFS[c.family].presetGroups.length;
+    if (c.preset_id && direct) problems.push(`${where} es de una familia sin preset (${c.family}): preset_id va null.`);
+    else if (c.preset_id && !facts.presetIds.has(c.preset_id)) problems.push(`${where} usa un preset_id que no está en PRESETS.`);
+    // Sin presets disponibles (render con Gemini), toda familia va directa.
+    if (!c.preset_id && !direct && facts.presetIds.size) problems.push(`${where} es de una familia con presets: elige uno de PRESETS.`);
+    if (!Number.isInteger(c.product_units) || c.product_units < 1 || c.product_units > 3) problems.push(`${where}: product_units va de 1 a 3.`);
+    else if (c.product_units > 1 && c.family !== "offer") problems.push(`${where}: varias unidades del producto solo en la oferta de pack.`);
+    for (const part of c.kit_parts) if (!kitSet.has(part.trim().toLowerCase())) problems.push(`${where}: «${part}» no está en kit (escríbelo igual que en kit).`);
+    const placed = ideas[i]?.texts.length ?? 0;
+    if (c.texts.some((t) => !t.placement.trim())) problems.push(`${where}: trae ${c.texts.filter((t) => t.placement.trim()).length} ubicaciones para ${placed} textos; va una por texto, en el mismo orden.`);
+    for (const t of c.texts) if (t.role !== "callout" && t.points_to) problems.push(`${where}: solo los callouts llevan points_to («${t.text}»).`);
+    if (!c.scene.trim() || !c.layout.trim()) problems.push(`${where}: falta la escena o el layout.`);
+    return problems;
+  });
+}
 
 // ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
 
-/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). 3: el gancho puede partir de los del ángulo (lib/hooks). */
-export const CHAT_PROMPT_VERSION = 3;
+/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). 3: el gancho puede partir de los del ángulo (lib/hooks). 4: el contexto corto de lib/ai/context.ts, sin la ficha ni el cliente ideal en JSON. */
+export const CHAT_PROMPT_VERSION = 4;
 
 const chatTime = z.string().describe("«HH:MM», 24 h.");
 

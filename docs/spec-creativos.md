@@ -406,6 +406,15 @@ Más el B-roll desde un keyframe 9:16. Es la ronda que decide si el texto se con
 - Sin preset pasaron el QA 7 de 7. Con preset y `enhance_prompt`, 4 de 9: tradujo la oferta al inglés, agregó «ODOR» de fondo, cambió «adentro» por «dentro», omitió notas del pie. La misma oferta con preset y sin `enhance_prompt`, y sin preset, pasaron las dos. Decisión: `enhance_prompt` siempre en false; el preset queda para las familias de producto protagonista.
 - El QA v2 cazó lo nuevo: «Cabezal grueso y cabezal fino» con un solo cabezal a la vista.
 
+### 7.4b Conceptos y dirección de arte en dos pasos (2026-10-04, prompt v7)
+
+**Por qué** (`docs/spec-prompts-simples.md` §7). Cada uno de los 6 conceptos traía, además de la idea y los textos, la dirección de arte completa, con la ficha y el cliente ideal en JSON (~18.000 tokens de contexto) y un ejemplo de otro producto. Rechazó el 60 % de sus respuestas (24–26 sep).
+
+1. **Los conceptos** (`creative_concepts`, effort high, sin fotos, `creativeConceptsSchema`): por ángulo, la familia, el nombre, la idea (lo que tiene que ver el director de arte), el porqué y los textos horneados con su rol. Contexto corto: los hechos, las pruebas, quién compra, el precio y cada ángulo con su idea central, sus 4 mejores ganchos como texto y la oferta. `conceptProblemsByConcept` revisa el reparto y los textos; la corrección por conceptos sigue igual.
+2. **La dirección de arte** (`creative_art`, effort low, con las fotos, `creativeArtSchema`): por concepto, el preset, `look`, la paleta, la tipografía, el `layout`, la escena, las unidades, las partes del kit y una ubicación por texto. `product_look` y `kit` se piden una vez por imagen base: la corrida guarda `base_image_id` y la siguiente con la misma base los reusa. `artProblems` revisa lo suyo; si falla, se pide otra dirección de arte, no otros conceptos.
+3. **El concepto guardado no cambia** (`mergeConcept`): el render, el QA, los dos proveedores, «Proponer otros» y la pantalla lo leen igual. Se agrega `idea`. «Proponer» muestra el costo de las dos llamadas.
+4. **El chat de WhatsApp** (`CHAT_PROMPT_VERSION` 4) recibe el mismo contexto corto y las reseñas para citar.
+
 ### 7.5 Lo descartado se borra (2026-09-24)
 
 `purgeDiscardedCreatives` (`lib/creatives/store.ts`) borra primero el archivo de `creative-media` y después la fila de `creative_assets`. Corre con la limpieza de `expireStaleCreatives` (al abrir el producto y en el sondeo de la pantalla) y al terminar una propuesta. Borra:

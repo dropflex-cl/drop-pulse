@@ -113,7 +113,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   const [rootRef, width] = useWidth<HTMLDivElement>();
   const split = desktop && width >= SPLIT_MIN;
   const localCost = useLocalCost();
-  const proposeCost = useStepCost("creative_concepts");
+  const proposeCost = useStepCost("creative_concepts", "creative_art");
   const chatCost = useStepCost("creative_chat");
   const { product } = data;
   const [state, setState] = useState<CreativesState>(data);

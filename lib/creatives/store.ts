@@ -39,8 +39,8 @@ export interface CreativeRunRow {
   created_at: string;
 }
 
-/** Lo que agregó la dirección de arte (prompt v2): los conceptos v1 no lo traen. */
-type ArtFields = "look" | "art" | "layout" | "product_units" | "kit_parts";
+/** Lo que agregó la dirección de arte (prompt v2) y la idea (v7): los conceptos de antes no lo traen. */
+type ArtFields = "look" | "art" | "layout" | "product_units" | "kit_parts" | "idea";
 
 /**
  * Lo que se guarda de un concepto: lo del generador, el preset elegido (nombre y portada) y, de la

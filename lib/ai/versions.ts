@@ -34,6 +34,7 @@ export const PROMPT_VERSIONS: Partial<Record<AiStep, number>> = {
   event_copy: EVENT_COPY_PROMPT_VERSION,
   page_plan: PAGE_IMAGES_PROMPT_VERSION,
   creative_concepts: CREATIVES_PROMPT_VERSION,
+  creative_art: CREATIVES_PROMPT_VERSION,
   creative_chat: CHAT_PROMPT_VERSION,
   creative_qa: QA_PROMPT_VERSION,
   ugc_script: UGC_PROMPT_VERSION,

@@ -1,5 +1,5 @@
 import "server-only";
-import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
+import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
@@ -9,7 +9,7 @@ import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
 import { CHAT_FAMILY, CONCEPTS_PER_RUN, IMAGE_COST_USD, conceptRatios, type ConceptFamily, type Ratio } from "@/lib/creatives/catalog";
 import { chatBakedTexts, normalizeChat, type WhatsappChat } from "@/lib/creatives/chat";
-import { QA_SYSTEM, chatSystem, chatUser, creativesContextText, creativesFixUser, creativesSystem, creativesTail, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
+import { QA_SYSTEM, artContext, artSystem, artTail, chatSystem, chatUser, creativesContextText, creativesFixUser, creativesSystem, creativesTail, qaUser, type CreativesContext } from "@/lib/creatives/prompts";
 import { chatRenderRequest, languageName, renderRequest } from "@/lib/creatives/render";
 import {
   CHAT_PROMPT_VERSION,
@@ -18,14 +18,20 @@ import {
   chatOutputSchema,
   chatProblems,
   conceptEditSchema,
+  artProblems,
   conceptFixSchema,
   conceptProblemsByConcept,
+  creativeArtSchema,
   creativeConceptsSchema,
+  mergeConcept,
   qaSchema,
   qaVerdict,
   textProblems,
   TEXT_LIMIT,
-  type CreativeConceptsOutput,
+  type ConceptArt,
+  type ConceptIdea,
+  type ConceptPayload,
+  type CreativeArtOutput,
   type QaResult,
 } from "@/lib/creatives/schemas";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, activeConcepts, assetsFor, getAssetRow, isRecoverable, purgeDiscardedCreatives, removeAdCopies, getConceptRow, type AssetRow, type ConceptRow, type CreativeRunRow, type StoredConcept } from "@/lib/creatives/store";
@@ -197,6 +203,28 @@ export async function productImageUrls(userId: string, productId: string, max: n
 /** `provider`: con qué se iban a generar (las corridas de antes no lo guardan: Higgsfield). */
 type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: unknown; provider?: ImageProvider };
 
+/** Intentos de la dirección de arte (effort low: rara vez falla). */
+const ART_ATTEMPTS = 2;
+const EMPTY_ART: ConceptArt = { preset_id: null, look: "", art: { palette: "", typography: "", mood: "" }, scene: "", layout: "", product_units: 1, kit_parts: [], texts: [] };
+
+/** El aspecto del producto y su kit de la última corrida con la misma imagen base, o null. */
+async function savedLook(userId: string, productId: string, baseId: string | null): Promise<{ product_look: string; kit: string[] } | null> {
+  if (!baseId) return null;
+  const { data, error } = await adminClient()
+    .from("creative_runs")
+    .select("payload")
+    .eq("user_id", userId)
+    .eq("product_id", productId)
+    .eq("status", "succeeded")
+    .eq("payload->>base_image_id", baseId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  fail("Leer cómo se ve el producto", error);
+  const p = (data as { payload: { product_look?: string; kit?: string[] } } | null)?.payload;
+  return p?.product_look?.trim() ? { product_look: p.product_look, kit: p.kit ?? [] } : null;
+}
+
 /** Ejecuta el generador. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runCreatives(runId: string): Promise<void> {
   const db = adminClient();
@@ -204,104 +232,111 @@ export async function runCreatives(runId: string): Promise<void> {
   const claimed = await db.from("creative_runs").update({ status: "running", started_at: stamp(), updated_at: stamp() }).eq("id", runId).eq("status", "queued").select("*").maybeSingle();
   if (claimed.error || !claimed.data) return;
   const r = claimed.data as CreativeRunRow & { input: RunInput };
+  // El paso en curso: un error de la llamada se registra en el suyo.
+  let step: "creative_concepts" | "creative_art" = "creative_concepts";
   try {
     const input = r.input;
     // Los presets son de Marketing Studio: con Gemini no hay, y todos los conceptos van directos.
     const key = input.provider === "gemini" ? null : await higgsfieldKey(r.user_id);
     if (input.provider !== "gemini" && !key) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
-    const [brief, avatarRow, angles, presets, images] = await Promise.all([
+    const [brief, avatarRow, angles, presets, images, baseId] = await Promise.all([
       latestBrief(r.user_id, r.product_id),
       db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
       anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
       key ? presetsFor(key) : [],
       productImageUrls(r.user_id, r.product_id, 3),
+      listImageRows(r.user_id, [r.product_id]).then((rows) => imagesForGeneration(rows)[0]?.id ?? null),
     ]);
     fail("Leer el cliente ideal", avatarRow.error);
     if (!brief || !avatarRow.data || !angles) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los desarrollos y reintenta.");
     if (!images.length) throw new AiStepError("no_image", "El producto no tiene una imagen base. Elige una en Información base.");
 
-    const ctx: CreativesContext = {
-      brief,
-      avatar: avatarRow.data.payload as CustomerAvatar,
-      pricing: input.pricing,
-      labels: input.labels ?? undefined,
-      angles,
-      presets,
-      hasRealReviews: (brief.proof.real_reviews?.length ?? 0) > 0,
-    };
+    const ctx: CreativesContext = { brief, avatar: avatarRow.data.payload as CustomerAvatar, pricing: input.pricing, labels: input.labels ?? undefined, angles };
     const blocks = await Promise.all(images.map((u) => imageBlock(u).catch(() => null)));
     const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);
     if (!imageContent.length) throw new AiStepError("no_image", "No pudimos leer la imagen base del producto. Revísala en Información base.");
 
+    // 1. Los conceptos (effort high, sin fotos): la idea, la familia y los textos. Si lo que falla son
+    // algunos conceptos (un texto largo, un monto), se corrigen solo esos: cuesta una fracción.
     const facts = { presetIds: new Set(presets.map((p) => p.id)), pricing: input.pricing, slots: angles.map((a) => a.slot) };
     let problems: string[] = [];
     let found: ReturnType<typeof conceptProblemsByConcept> = { general: [], byConcept: [] };
-    let data: CreativeConceptsOutput | null = null;
-    let usage: AiUsage | null = null;
-    // Con la dirección de arte hay más reglas (largos por rol): un concepto fuera de medida no debería
-    // tumbar la propuesta, así que hay un tercer intento. Si lo que falla son algunos conceptos (un texto
-    // largo, un preset), se corrigen solo esos: cuesta una fracción de la propuesta entera.
+    let ideas: ConceptIdea[] | null = null;
+    let model = AI_MODEL;
     for (let attempt = 0; attempt < CONCEPT_ATTEMPTS; attempt++) {
-      const failing = data && !found.general.length ? found.byConcept.flatMap((p, i) => (p.length ? [i] : [])) : [];
-      const prev: CreativeConceptsOutput | null = data;
-      let next: CreativeConceptsOutput;
-      if (prev && failing.length && failing.length < prev.concepts.length) {
+      const failing = ideas && !found.general.length ? found.byConcept.flatMap((p, i) => (p.length ? [i] : [])) : [];
+      const prev: ConceptIdea[] | null = ideas;
+      let next: ConceptIdea[];
+      let usage: AiUsage;
+      if (prev && failing.length && failing.length < prev.length) {
         const fix = await generateStructured({
           userId: r.user_id,
           system: creativesSystem(input.market),
-          content: [
-            ...imageContent,
-            {
-              type: "text",
-              text: creativesFixUser(ctx, {
-                previous: failing.map((i) => prev.concepts[i]),
-                problems,
-                kept: prev.concepts.filter((_, i) => !failing.includes(i)),
-                productLook: prev.product_look,
-                kit: prev.kit,
-              }),
-            },
-          ],
+          content: [{ type: "text", text: creativesFixUser(ctx, { previous: failing.map((i) => prev[i]), problems, kept: prev.filter((_, i) => !failing.includes(i)) }) }],
           schema: conceptFixSchema,
           effort: "medium",
-          maxTokens: 16000,
+          maxTokens: 12000,
           // Otro esquema de salida: esta llamada no lee la caché del system, y escribirla no sirve.
           cacheSystem: false,
         });
-        // Cada concepto corregido reemplaza al suyo, con su ángulo y su familia (el reparto ya estaba
-        // bien); si vuelven menos, los que falten siguen fallando.
-        const concepts = [...prev.concepts];
+        // Cada concepto corregido reemplaza al suyo, con su ángulo y su familia (el reparto ya estaba bien).
+        next = [...prev];
         fix.data.concepts.slice(0, failing.length).forEach((c, k) => {
-          const before = prev.concepts[failing[k]];
-          concepts[failing[k]] = { ...c, angle: before.angle, family: before.family };
+          const before = prev[failing[k]];
+          next[failing[k]] = { ...c, angle: before.angle, family: before.family };
         });
-        next = { ...prev, concepts };
         usage = fix.usage;
       } else {
         const result = await generateStructured({
           userId: r.user_id,
           system: creativesSystem(input.market),
-          // Fotos y contexto con punto de caché: un reintento completo los lee a 0,1×.
-          content: retryableContent(imageContent, creativesContextText(ctx), creativesTail(problems)),
+          // El contexto con punto de caché: un reintento completo lo lee a 0,1×.
+          content: retryableContent([], creativesContextText(ctx), creativesTail(problems)),
           schema: creativeConceptsSchema,
-          effort: "medium",
+          effort: "high",
           maxTokens: 16000,
         });
-        next = result.data;
+        next = result.data.concepts;
         usage = result.usage;
       }
-      // Sin presets (Gemini), un preset_id del modelo no sirve de nada: se quita antes de validar, en
-      // vez de tumbar la propuesta por un id que igual no se usaría.
-      if (!presets.length) next = { ...next, concepts: next.concepts.map((c) => ({ ...c, preset_id: null })) };
-      data = next;
-      found = conceptProblemsByConcept(next, facts);
+      ideas = next;
+      model = usage.model;
+      found = conceptProblemsByConcept({ concepts: next }, facts);
       problems = [...found.general, ...found.byConcept.flat()];
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage, error: problems.length ? "invalid_concepts" : null, problems });
       if (!problems.length) break;
       console.warn("[creatives] conceptos inválidos", problems);
     }
-    if (problems.length || !data || !usage) throw new AiStepError("invalid_output", "La IA propuso anuncios que no cumplen las reglas. Toca Reintentar.", undefined, true);
-    const result = { data, usage };
+    if (problems.length || !ideas) throw new AiStepError("invalid_output", "La IA propuso anuncios que no cumplen las reglas. Toca Reintentar.", undefined, true);
+    const concepts = ideas.slice(0, CONCEPTS_PER_RUN);
+
+    // 2. La dirección de arte (effort low, con las fotos). El aspecto del producto y su kit se piden una
+    // vez por imagen base: la corrida anterior con la misma base ya los trae.
+    step = "creative_art";
+    const look = await savedLook(r.user_id, r.product_id, baseId);
+    let art: { concepts: ConceptPayload[]; product_look: string; kit: string[] } | null = null;
+    problems = [];
+    for (let attempt = 0; attempt < ART_ATTEMPTS && !art; attempt++) {
+      const result = await generateStructured({
+        userId: r.user_id,
+        system: artSystem(input.market),
+        content: retryableContent(imageContent, artContext({ brief, concepts, presets, hasRealReviews: (brief.proof.real_reviews?.length ?? 0) > 0, look }), artTail(problems)),
+        schema: creativeArtSchema(Boolean(look)),
+        effort: "low",
+        maxTokens: 12000,
+      });
+      const out = result.data as CreativeArtOutput;
+      const productLook = look?.product_look ?? out.product_look ?? "";
+      const kit = look?.kit ?? out.kit ?? [];
+      // Sin presets (Gemini), un preset_id del modelo no sirve de nada: se quita antes de validar.
+      const merged = concepts.map((c, i) => mergeConcept(c, { ...(out.concepts[i] ?? EMPTY_ART), ...(presets.length ? {} : { preset_id: null }) }));
+      problems = [...(out.concepts.length !== concepts.length ? [`Trae ${out.concepts.length} direcciones de arte para ${concepts.length} conceptos: una por concepto, en orden.`] : []), ...(productLook.trim() ? [] : ["Falta product_look."]), ...artProblems(merged, kit, facts, concepts)];
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_art", usage: result.usage, error: problems.length ? "invalid_art" : null, problems });
+      if (problems.length) console.warn("[creatives] dirección de arte inválida", problems);
+      else art = { concepts: merged, product_look: productLook, kit };
+    }
+    if (!art) throw new AiStepError("invalid_output", "La IA armó una dirección de arte que no cumple las reglas. Toca Reintentar.", undefined, true);
+    const result = { data: { ...art, base_image_id: baseId }, model };
 
     const presetById = new Map(presets.map((p) => [p.id, p]));
     const rows = result.data.concepts.slice(0, CONCEPTS_PER_RUN).map((c, i) => {
@@ -324,12 +359,12 @@ export async function runCreatives(runId: string): Promise<void> {
     await purgeDiscardedCreatives(r.user_id).catch((e) => console.error("[creatives] borrar lo reemplazado", e));
     fail(
       "Guardar la corrida",
-      (await db.from("creative_runs").update({ status: "succeeded", payload: result.data, prompt_version: CREATIVES_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error,
+      (await db.from("creative_runs").update({ status: "succeeded", payload: result.data, prompt_version: CREATIVES_PROMPT_VERSION, model: result.model, finished_at: now, updated_at: now }).eq("id", r.id)).error,
     );
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[creatives] conceptos", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "creative_concepts", usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step, usage: e.usage, error: e.code });
     await onHiggsfieldError(r.user_id, e);
     const message = known ? e.message : e instanceof HiggsfieldError ? e.message : "No pudimos proponer los anuncios. Toca Reintentar.";
     const now = stamp();
@@ -397,7 +432,7 @@ export async function createChat(userId: string, productId: string, body: unknow
   if ((count ?? 0) >= DAILY_CHATS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_CHATS} chats en 24 horas. Vuelve mañana.`, 429);
 
   const reviews = (await reviewsForPrompt(userId, productId)).filter((r) => r.rating >= 4).slice(0, CHAT_REVIEWS).map((r) => r.text);
-  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload as CustomerAvatar, angle: target, reviews };
+  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload as CustomerAvatar, angle: target, currency: ctx.pricing.currency, reviews };
   let problems: string[] = [];
   let chat: WhatsappChat | null = null;
   let meta: { name: string; why: string } | null = null;
