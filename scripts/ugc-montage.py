@@ -422,7 +422,8 @@ def mix_music(video: Path, music: Path, first_hit: float, out: Path, work: Path)
         offset = 0.0
     end = max(0.0, dur - END_CARD_S)
     sh(
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-ss", f"{offset:.3f}", "-i", str(music), "-filter_complex",
+        # La pista se repite si es más corta que el video: sin eso, el cierre quedaba en silencio.
+        "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-stream_loop", "-1", "-ss", f"{offset:.3f}", "-i", str(music), "-filter_complex",
         f"[0:a]loudnorm=I=-14:TP=-1.5:LRA=7,asplit=2[voz][sc];"
         f"[1:a]atrim=0:{dur:.3f},asetpts=PTS-STARTPTS,volume=-14dB,volume='if(gte(t,{end:.3f}),2.5,1)':eval=frame,afade=t=in:st=0:d=0.3,afade=t=out:st={max(0, dur - 0.9):.3f}:d=0.9[mus];"
         f"[mus][sc]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=350:makeup=1[duck];"
