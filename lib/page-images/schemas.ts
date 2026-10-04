@@ -2,16 +2,18 @@
 // Puro y testeado: la validación en código es lo que el modelo no puede saltarse.
 
 import * as z from "zod/v4";
-import { HEADLINE_MAX_WORDS, ROLE_LIMITS, TEXT_ROLES, type TextRole } from "@/lib/creatives/catalog";
+import { HEADLINE_MAX_WORDS, ROLE_LIMITS, ROLE_PROMPT_LIMITS, TEXT_ROLES, type TextRole } from "@/lib/creatives/catalog";
 import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES, VISUAL_WORLDS, type VisualWorld } from "./catalog";
 
 /**
  * Sube cuando cambia el prompt del director (queda en page_image_runs.prompt_version). 3: el prompt pide
  * los largos con margen (ROLE_PROMPT_LIMITS); la validación sigue en ROLE_LIMITS. 4: el director elige
  * el mundo visual (`visual_world`) en vez de una receta fija, y cada ángulo tiene su beneficio, con el
- * formato de su forma.
+ * formato de su forma. 5: el contexto corto de lib/ai/context.ts (sin la ficha ni el cliente ideal en JSON),
+ * los largos por rol en la descripción de cada texto y el «\\n» literal que el código convierte en salto
+ * de línea (normalizePlan).
  */
-export const PAGE_IMAGES_PROMPT_VERSION = 4;
+export const PAGE_IMAGES_PROMPT_VERSION = 5;
 
 const art = z.object({
   palette: z.string().describe("En inglés: 2 a 4 colores con nombre, los del mundo visual elegido; el producto contrasta con el fondo y los textos van en un acento que se lee."),
@@ -21,7 +23,7 @@ const art = z.object({
 
 const text = z.object({
   role: z.enum(TEXT_ROLES),
-  text: z.string().describe("Exactamente como va en la imagen, en el idioma del mercado."),
+  text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_PROMPT_LIMITS.headline} caracteres; badge y callout, 1 o 2 líneas (con un salto de línea) de ≤ ${ROLE_PROMPT_LIMITS.callout} cada una.`),
   placement: z.string().describe("En inglés: posición, líneas, peso, color y contenedor (solid pill with a line icon, round stamp, card, table cell)."),
   points_to: z.string().nullable().describe("Solo callouts: la parte concreta y VISIBLE del producto a la que llega su línea (en inglés); null en los demás."),
 });
@@ -93,6 +95,15 @@ const OFFER = /\$|US\$|\d+\s?%|\bgratis\b|\bregalo\b|\bdescuento\b|\boferta\b|\b
 export function benefitAngles(angles: number[], benefits: number = BENEFIT_SHOTS): (number | null)[] {
   const slots = [...new Set(angles)].sort((a, b) => a - b);
   return Array.from({ length: benefits }, (_, i) => slots[i] ?? null);
+}
+
+/**
+ * Lo que es regla lo arregla el código: el modelo escribe a veces el salto de línea de un badge o un
+ * callout como «\\n» literal (dos caracteres) y el texto entero pasaba del tope de una línea (la única
+ * falla de la versión 4 en producción, 2026-10-03). Se convierte en un salto de línea de verdad.
+ */
+export function normalizePlan(p: PagePlan): PagePlan {
+  return { ...p, shots: p.shots.map((s) => ({ ...s, texts: s.texts.map((t) => ({ ...t, text: t.text.replace(/\\n/g, "\n") })) })) };
 }
 
 /**

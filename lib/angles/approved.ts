@@ -1,7 +1,7 @@
 // Los ángulos aprobados como los leen los pasos siguientes (Imágenes, Página, Creativos, Eventos) y
 // la huella con que cada corrida recuerda con qué desarrollos se hizo. Puro.
 
-import { ANGLES, slotLabel, testAngleName, type AngleSlot, type TestAngle } from "./catalog";
+import { ANGLES, testAngleName, type AngleSlot, type TestAngle } from "./catalog";
 import type { AngleBriefPayload } from "./schemas";
 
 /** Un ángulo aprobado, listo para un prompt. */
@@ -19,25 +19,10 @@ export function angleForPrompt(angle: TestAngle, payload: AngleBriefPayload, fra
   return { slot: angle.slot, name: testAngleName({ ...angle, frame }), frameName: ANGLES[frame].name, angle: { ...angle, frame }, payload };
 }
 
-/** El encabezado de un ángulo en un prompt: «Ángulo 1: La crema sella (forma: Mecanismo único)». */
-export const angleHeading = (a: AngleForPrompt) => `${slotLabel(a.slot)}: ${a.name} (forma: ${a.frameName})`;
-
-/**
- * El mensaje del ángulo (gancho, a quién le habla, tono, dolor, segmento, promesa, momento y el ancla de
- * mercado si la tiene), sin los vacíos de los ángulos de antes del orquestador v7.
- */
-export function angleMessage(a: TestAngle): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (a.hook) out.hook = a.hook;
-  if (a.speaks_to) out.speaks_to = a.speaks_to === "buyer" ? "quien compra (puede no ser quien lo usa)" : "quien usa el producto";
-  if (a.tone) out.tone = a.tone;
-  if (a.pain_or_desire) out.pain_or_desire = a.pain_or_desire;
-  if (a.segment) out.segment = a.segment;
-  if (a.promise) out.promise = a.promise;
-  if (a.trigger_moment) out.trigger_moment = a.trigger_moment;
-  if (a.market_amounts?.length)
-    out.market_anchor = `${a.market_amounts.map((n) => n.toLocaleString("es-CL")).join(" y ")}: lo que cuesta la alternativa en el mercado, verificado por el comerciante. Se puede citar como ancla, nunca como precio de la tienda.`;
-  return out;
+/** A quién le habla un ángulo, en palabras (el crítico de ganchos). Los ángulos de antes del orquestador v7 no lo traen. */
+export function speaksToText(speaksTo: TestAngle["speaks_to"]): string | undefined {
+  if (!speaksTo) return undefined;
+  return speaksTo === "buyer" ? "quien compra (puede no ser quien lo usa)" : "quien usa el producto";
 }
 
 // ---------------------------------------------------------------- Huellas de las corridas

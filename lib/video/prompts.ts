@@ -137,7 +137,7 @@ export function linesContext(c: UgcContext): string {
     pricingBlock(c.pricing, c.labels),
     "",
     "EL ÁNGULO (el video es 100 % este ángulo)",
-    angleLine(c.angle.angle, c.pricing.currency),
+    angleLine(c.angle.angle),
     ...(p.core_message?.trim() ? [`- Idea central: ${p.core_message.trim()}`] : []),
     ...(aida ? [`- AIDA: Atención: ${aida.attention} Interés: ${aida.interest} Deseo: ${aida.desire} Acción: ${aida.action}`] : []),
     ...(format === "ugc" && p.handoff_to_ugc?.trim() ? [`- Quién lo cuenta: ${p.handoff_to_ugc.trim()}`] : []),

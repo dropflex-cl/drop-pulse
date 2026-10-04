@@ -3,7 +3,7 @@ import { AiStepError, generateStructured, type AiAuth } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type Anthropic from "@anthropic-ai/sdk";
-import { angleForPrompt, angleMessage } from "@/lib/angles/approved";
+import { angleForPrompt, speaksToText } from "@/lib/angles/approved";
 import { testAngleName, type TestAngle } from "@/lib/angles/catalog";
 import type { AngleContext } from "@/lib/angles/prompts";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
@@ -150,7 +150,7 @@ async function critiqueHooks(w: WriteHooksInput, ctx: HooksContext, out: HooksOu
   let problems: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const user = hookCriticUser({ avatar: ctx.avatar, speaksTo: angleMessage(ctx.angle.angle).speaks_to, hooks: out.hooks });
+      const user = hookCriticUser({ avatar: ctx.avatar, speaksTo: speaksToText(ctx.angle.angle.speaks_to), hooks: out.hooks });
       const result = await generateStructured({
         ...(w.auth ?? { userId: w.userId }),
         system: hookCriticSystem(w.market),

@@ -70,7 +70,7 @@ export function creativesContextText(c: CreativesContext): string {
     ...c.angles.flatMap((a) => {
       const hooks = hooksForPrompt(a.payload).slice(0, 4);
       return [
-        angleLine(a.angle, c.pricing.currency),
+        angleLine(a.angle),
         ...(a.payload.core_message?.trim() ? [`- Idea central: ${a.payload.core_message.trim()}`] : []),
         ...(hooks.length ? [`- Sus mejores ganchos: ${hooks.map(hookLine).join("; ")}`] : []),
         ...(a.payload.offer_layer?.trim() ? [`- La oferta: ${a.payload.offer_layer.trim()}`] : []),
@@ -221,8 +221,6 @@ export interface ChatContext {
   brief: ProductBrief;
   avatar: CustomerAvatar;
   angle: AngleForPrompt;
-  /** La moneda de la tienda (el ancla de mercado del ángulo). */
-  currency: string;
   /** Reseñas reales de 4 o 5 estrellas (primero las aprobadas); [] si no hay. */
   reviews: string[];
 }
@@ -240,7 +238,7 @@ export function chatUser(c: ChatContext, retry: string[] = []): string {
     ...list(buyerVoice(c.avatar, CHAT_VOICE_LINES).map((v) => `«${v}»`)),
     "",
     "EL ÁNGULO",
-    angleLine(c.angle.angle, c.currency),
+    angleLine(c.angle.angle),
     ...(c.angle.payload.core_message?.trim() ? [`- Idea central: ${c.angle.payload.core_message.trim()}`] : []),
     ...(hooks.length ? [`- Sus mejores ganchos (el primero es el recomendado): ${hooks.map((h) => `«${h.spoken}»`).join("; ")}`] : []),
     "",

@@ -1,7 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
+import { retryableContent } from "@/lib/ai/content";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar } from "@/lib/ai/schemas";
@@ -36,9 +37,9 @@ import {
   benefitSlot,
   slotKind,
 } from "@/lib/page-images/catalog";
-import { PAGE_QA_SYSTEM, pageImagesSystem, pageImagesUser, pageQaFacts, pageQaTexts, type PageImagesContext } from "@/lib/page-images/prompts";
+import { PAGE_QA_SYSTEM, pageImagesContext, pageImagesSystem, pageImagesTail, pageQaFacts, pageQaTexts, type PageImagesContext } from "@/lib/page-images/prompts";
 import { pageRenderRequest } from "@/lib/page-images/render";
-import { PAGE_IMAGES_PROMPT_VERSION, pagePlanSchema, pageQaSchema, pageQaVerdict, planProblems, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
+import { PAGE_IMAGES_PROMPT_VERSION, normalizePlan, pagePlanSchema, pageQaSchema, pageQaVerdict, planProblems, type PagePlan, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
 import {
   PAGE_MEDIA_BUCKET,
   activeShots,
@@ -203,24 +204,28 @@ export async function runPageImages(runId: string): Promise<void> {
     if (!imageContent.length) throw new AiStepError("no_image", "No pudimos leer la imagen base del producto. Revísala en Información base.");
 
     let problems: string[] = [];
-    let result: Awaited<ReturnType<typeof generateStructured<typeof pagePlanSchema>>> | null = null;
+    let plan: PagePlan | null = null;
+    let model = AI_MODEL;
+    const slots = angles.map((a) => a.slot);
     for (let attempt = 0; attempt < PLAN_ATTEMPTS; attempt++) {
-      result = await generateStructured({
+      const result = await generateStructured({
         userId: r.user_id,
         system: pageImagesSystem(input.market),
-        content: [...imageContent, { type: "text", text: pageImagesUser(ctx, problems) }],
+        // Las fotos y el contexto con punto de caché: un reintento los lee a 0,1×.
+        content: retryableContent(imageContent, pageImagesContext(ctx), pageImagesTail(slots, problems)),
         schema: pagePlanSchema,
         effort: "medium",
         maxTokens: 20000,
       });
-      problems = planProblems(result.data, BENEFIT_SHOTS, angles.map((a) => a.slot));
+      plan = normalizePlan(result.data);
+      model = result.usage.model;
+      problems = planProblems(plan, BENEFIT_SHOTS, slots);
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: result.usage, error: problems.length ? "invalid_plan" : null, problems });
       if (!problems.length) break;
       console.warn("[page-images] plan inválido", problems);
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA propuso imágenes que no cumplen las reglas. Toca Reintentar.", undefined, true);
+    if (problems.length || !plan) throw new AiStepError("invalid_output", "La IA propuso imágenes que no cumplen las reglas. Toca Reintentar.", undefined, true);
 
-    const plan = result.data;
     const rows = plan.shots.map((s, i) => {
       const benefit = s.slot === "benefit" && s.benefit ? plan.benefits[s.benefit - 1] : undefined;
       const payload: StoredShot = { ...s, product_look: plan.product_look, kit: plan.kit, props_forbidden: plan.props_forbidden, world: plan.visual_world, pairs: benefit?.text, angle: benefit?.angle ?? null };
@@ -232,7 +237,7 @@ export async function runPageImages(runId: string): Promise<void> {
     // Las tomas anteriores quedan fuera; sus imágenes generadas se borran (también las elegidas).
     fail("Reemplazar las tomas anteriores", (await db.from("page_image_shots").update({ superseded_at: now, updated_at: now }).eq("product_id", r.product_id).is("superseded_at", null).neq("run_id", r.id)).error);
     await purgeDiscardedPageImages(r.user_id).catch((e) => console.error("[page-images] borrar lo reemplazado", e));
-    fail("Guardar la corrida", (await db.from("page_image_runs").update({ status: "succeeded", payload: { ...plan, shots: undefined }, prompt_version: PAGE_IMAGES_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error);
+    fail("Guardar la corrida", (await db.from("page_image_runs").update({ status: "succeeded", payload: { ...plan, shots: undefined }, prompt_version: PAGE_IMAGES_PROMPT_VERSION, model, finished_at: now, updated_at: now }).eq("id", r.id)).error);
 
     // Solo lo que deja la etapa lista (el costo que vio el comerciante al tocar Generar); lo demás, a pedido.
     const shots = (inserted.data ?? []) as ShotRow[];

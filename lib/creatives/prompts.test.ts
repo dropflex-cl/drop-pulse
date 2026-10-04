@@ -95,7 +95,7 @@ describe("dos pasos: los conceptos y la dirección de arte", () => {
   });
 
   it("el chat recibe texto corto y las reseñas para citar", () => {
-    const u = chatUser({ brief, avatar: AVATAR, angle: ctx.angles[0], currency: "CLP", reviews: ["Llegó rápido y me sirvió"] });
+    const u = chatUser({ brief, avatar: AVATAR, angle: ctx.angles[0], reviews: ["Llegó rápido y me sirvió"] });
     expect(u).not.toMatch(/"(what_it_does|voice_of_customer|trigger_moments|summary)"\s*:/);
     expect(u).toContain("1. Llegó rápido y me sirvió");
     expect(u).toContain("«Mis talones raspaban las sábanas.»");

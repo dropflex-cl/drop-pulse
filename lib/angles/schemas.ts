@@ -13,8 +13,9 @@ const MIN_STRATEGY_ANGLES = 4;
 
 /** Bump cuando cambie el prompt o el esquema del orquestador. 7: un experto que propone ángulos con su gancho y AIDA, sin puntuar formas. 8: el gancho dicho y con tensión (14 palabras), la escena en aida.attention, el título con tope. 9: la pregunta del chat con poco contexto; la forma la pone una segunda llamada; anclas de mercado marcadas; ve lo que ya propuso. */
 export const ANGLE_ROUTER_PROMPT_VERSION = 9;
-/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. 5: los ganchos los escribe su propio agente (lib/hooks). 6: reciben el gancho, el AIDA y el tono del ángulo. */
-export const ANGLE_BRIEF_PROMPT_VERSION = 6;
+/** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. 5: los ganchos los escribe su propio agente (lib/hooks). 6: reciben el gancho, el AIDA y el tono del ángulo. 7: el contexto corto de lib/ai/context.ts (sin la ficha ni
+ * el cliente ideal en JSON) y sin `go`, `fit_reason` ni `aida_emphasis` (docs/spec-prompts-simples.md §8). */
+export const ANGLE_BRIEF_PROMPT_VERSION = 7;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -148,17 +149,15 @@ export type AidaStage = (typeof AIDA_STAGES)[number];
 // Compactos por la misma razón que el orquestador: lo que no se muestra ni se valida va como texto.
 // Los ganchos no van aquí: los escribe el agente de ganchos (lib/hooks) justo después, con sus reglas
 // en código, y se guardan en el mismo payload.
+// `go`, `fit_reason` y `aida_emphasis` (hasta la versión 6) salieron: nadie los leía; quedan en los desarrollos de antes.
 const briefBase = {
-  go: z.boolean().describe("false si este ángulo no se puede sostener con lo que hay (explica por qué en fit_reason)."),
-  fit_reason: text,
   psychological_lever: text.describe("Qué palanca concreta usas y por qué."),
   core_message: text.describe("El mensaje central en una frase."),
   aida_summary: z
     .object({ attention: text, interest: text, desire: text, action: text })
     .describe("Una frase por etapa: qué hace el anuncio en cada una (lo que ve el comerciante)."),
   body_beats: z.array(text).describe("Los beats del cuerpo en orden, cada uno empezando por su etapa: «Interés: …»."),
-  aida_emphasis: text.describe("Qué etapa pesa más para este producto según su nivel de consciencia, y por qué."),
-  proof_to_show: z.array(text).describe("Solo pruebas reales de la ficha."),
+  proof_to_show: z.array(text).describe("Solo pruebas reales (PRUEBAS REALES y las reseñas que se pueden citar)."),
   objection_handling: z.array(z.object({ objection: text, answer: text })).describe("3 a 5, incluida al menos una del pago contra entrega o de comprar online."),
   offer_layer: text.describe("La oferta en una línea, con los números de PRECIO Y OFERTA y el cierre del mercado («Paga al recibir»)."),
   visual_concepts: z.array(text).describe("3 conceptos: «formato: qué se ve (referencia)»."),

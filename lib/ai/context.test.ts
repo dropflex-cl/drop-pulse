@@ -57,7 +57,7 @@ describe("contexto compartido de los prompts", () => {
     expect(reviewQuotes(["x".repeat(400)], 1)[0]).toHaveLength(301);
   });
 
-  it("un ángulo en pocas líneas: gancho, a quién le habla, tono y ancla", () => {
+  it("un ángulo en pocas líneas: gancho, a quién le habla, tono y, solo si se pide, el ancla", () => {
     const line = angleLine(angle, "CLP");
     expect(line.split("\n")[0]).toBe("Ángulo 2: «La tele a todo volumen»");
     expect(line).toContain(`«${angle.hook}»`);
@@ -65,6 +65,8 @@ describe("contexto compartido de los prompts", () => {
     expect(line).toContain("humor cotidiano");
     expect(line).toContain(marketAnchorLine([400000], "CLP"));
     expect(line).not.toContain("No escucha");
+    // Sin moneda, sin el ancla: solo los ganchos la pueden usar.
+    expect(angleLine(angle)).not.toContain("Ancla de mercado");
     // Un ángulo de antes del orquestador v7: sin gancho, con su dolor y su promesa.
     const old = angleLine({ ...angle, hook: undefined, speaks_to: undefined, tone: undefined, market_amounts: undefined }, "CLP");
     expect(old).toContain("Dolor o deseo: No escucha");

@@ -1,6 +1,7 @@
 # Spec: prompts simples, mejores resultados
 
-> Estado: en curso (2026-10-04): fase 0 lista; las decisiones abiertas (§11) se tomaron. Aplica a todos los pasos de IA después de Ángulos. Mantiene las
+> Estado: implementado (2026-10-04), fases 0 a 5 (§13). Falta medir cada fase en producción (§9) y
+> correr las comparaciones a ciegas con una clave de Anthropic de scripts. Aplica a todos los pasos de IA después de Ángulos. Mantiene las
 > funciones, el flujo y la UI; cambia cómo se le pide el trabajo al modelo.
 
 ## 0. Resumen
@@ -96,7 +97,7 @@ Reemplaza los `json(c.brief)` y `json(c.avatar)` de los 6 prompts (`lib/angles/p
 | `buyerVoice(avatar, n)` | Hasta `n` frases o momentos del cliente ideal, **solo** para los pasos que escriben con sus palabras (página, guion) |
 | `proofLine(brief, reviews)` | Experto sí/no y cuántas reseñas reales hay |
 | `reviewQuotes(reviews, n)` | Hasta `n` reseñas citables (solo donde se citan: página, chat de WhatsApp) |
-| `angleLine(angle)` | Título, gancho, a quién le habla, tono y ancla de mercado (lo que hoy hace `angleMessage`) |
+| `angleLine(angle, moneda?)` | Título, gancho, a quién le habla y tono (reemplazó a `angleMessage`). Con la moneda, también el ancla de mercado: solo la piden los ganchos, porque la página, los estáticos y los guiones siguen solo con PRECIO Y OFERTA |
 
 Qué recibe cada paso:
 
@@ -373,3 +374,23 @@ con cita del comprador.
 - El chat de WhatsApp pasa al contexto corto (`CHAT_PROMPT_VERSION` 4).
 - Medir después: `npm run ai:metrics -- --step creative_concepts` y `--step creative_art` (rechazo frente
   al 60 %).
+
+### Fase 5 (2026-10-04): Imágenes de la página v5 y Desarrollo de ángulo v7
+
+- Imágenes: contexto corto en dos bloques (`pageImagesContext` con caché + `pageImagesTail`). La única
+  falla de la v4 era el «\\n» literal en badges y callouts: `normalizePlan` lo convierte en salto de
+  línea antes de validar; el prompt ya no lo muestra y la descripción de cada texto lleva los topes.
+- Desarrollo de ángulo: `briefContext` en vez de la ficha y el cliente ideal en JSON; las 6 guías
+  siguen; fuera `go`, `fit_reason` y `aida_emphasis` (nadie los leía). Las guías ya no nombran campos de
+  la ficha (`proof.real_reviews`, `real_deadline_or_event`…).
+- `angleMessage` se retiró: `angleLine` lo reemplaza en todos los pasos. El ancla de mercado solo va a
+  los ganchos (en las fases 2 a 4 llegaba también a la página, los estáticos y el guion: corregido).
+
+### Qué medir ahora
+
+Con la migración `20261031000000` aplicada en producción, `npm run ai:metrics -- --step <paso>` separa
+cada versión nueva de la anterior. Criterio del §9: menos rechazo, costo por resultado aceptado como
+mucho 20 % más alto (hay llamadas nuevas baratas: `page_argument`, `video_plan`, `creative_art`) y, en
+las comparaciones a ciegas (`scripts/eval-hooks.ts`, `scripts/eval-models.ts`), que el comerciante
+prefiera la versión nueva en la mayoría de los productos. Las siluetas de `MASCOT_BODIES` se prueban en
+Flare con `scripts/spike-higgsfield.ts mascots`.

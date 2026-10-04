@@ -7,7 +7,7 @@
 // - la ley es la del país (consumerAuthority), además de las políticas de Meta.
 // Puro. Regla de caché: el system depende solo del ángulo y del mercado; el producto va en el usuario.
 
-import { buyerLine, marketAnchorLine, productFactLines, proofLine, supplierText } from "@/lib/ai/context";
+import { buyerLine, buyerVoice, marketAnchorLine, productFactLines, productFacts, proofLine, reviewQuotes, supplierText } from "@/lib/ai/context";
 import { promptLimit } from "@/lib/ai/limits";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
@@ -25,9 +25,9 @@ const COMMON_RULES = [
   "- Los avatares de IA no se presentan como clientes ni como expertos: pueden demostrar, explicar o actuar una dramatización (sin rótulo: el video no lo lleva).",
   "- Política de atributos personales de Meta: no afirmes ni insinúes en segunda persona la edad, salud, peso o situación del espectador. ✗ «¿Tienes más de 40 y te duele la espalda?» ✓ «Tengo 47 y mi espalda…» / «Quienes pasan 8 horas sentados…».",
   "- Salud: «ayuda a», «diseñado para», «alivia la sensación de». Nunca «cura», «trata», «elimina» ni plazos médicos.",
-  "- Urgencia solo si la ficha trae una fecha real (real_deadline_or_event). Precio «antes» solo si es el tachado de PRECIO Y OFERTA.",
-  "- Precios y packs: exactamente los de PRECIO Y OFERTA. No calcules otros ni inventes descuentos, envío gratis o garantías que la ficha no diga.",
-  "- El cierre de confianza es el pago contra entrega («Paga al recibir»). Una garantía de devolución solo si la ficha la trae (proof.guarantee_days).",
+  "- Urgencia solo con la FECHA REAL de abajo. Precio «antes» solo si es el tachado de PRECIO Y OFERTA.",
+  "- Precios y packs: exactamente los de PRECIO Y OFERTA. No calcules otros ni inventes descuentos, envío gratis o garantías que el producto no traiga.",
+  "- El cierre de confianza es el pago contra entrega («Paga al recibir»). Una garantía de devolución solo si GARANTÍA trae una.",
 ].join("\n");
 
 // ---------------------------------------------------------------- Orquestador (v9)
@@ -182,24 +182,42 @@ function competitorLine(c: CompetitorAnalysis & { url: string }, i: number): str
   return `${i + 1}. ${c.store_name || host}${price} · ángulo: ${c.main_angle.pain_or_desire} → ${c.main_angle.promise} (para ${c.main_angle.segment}) · forma: ${ANGLES[c.frame]?.name ?? c.frame}${c.offer ? ` · oferta: ${c.offer}` : ""}`;
 }
 
-function contextBlock(c: AngleContext): string[] {
+/** Frases de quien compra y reseñas que recibe el agente de ángulo (lib/ai/context.ts). */
+const BRIEF_VOICE_LINES = 5;
+const BRIEF_REVIEWS = 3;
+
+/**
+ * El contexto del agente de ángulo, en texto corto (docs/spec-prompts-simples.md §8): los hechos, lo que
+ * el comprador usa hoy, las pruebas (con 3 reseñas para citar), quién compra con 5 de sus frases y sus
+ * dudas, el precio, el diferenciador y la competencia. Sin la ficha ni el cliente ideal en JSON.
+ */
+export function briefContext(c: AngleContext): string[] {
+  const b = c.brief;
+  const a = c.avatar;
+  const reviews = reviewQuotes(c.reviews ?? b.proof?.real_reviews ?? [], BRIEF_REVIEWS);
+  const doubts = [a.objections?.main_objection, a.objections?.cash_on_delivery_concerns].filter((t) => t?.trim());
   return [
-    "FICHA DE PRODUCTO",
-    json(c.brief),
+    productFacts(b),
+    ...(b.alternatives_already_tried?.length ? [`Lo que el comprador usa hoy y le falla: ${b.alternatives_already_tried.join("; ")}`] : []),
+    ...(b.forbidden_claims?.length ? [`Promesas que no se pueden hacer: ${b.forbidden_claims.join("; ")}`] : []),
     "",
-    "CLIENTE IDEAL (aprobado por el comerciante)",
-    json(c.avatar),
+    proofLine(b, c.reviews),
+    ...(reviews.length ? ["Reseñas reales que se pueden citar:", ...reviews.map((r) => `- «${r}»`)] : []),
+    `GARANTÍA: ${b.proof?.guarantee_days ? `${b.proof.guarantee_days} días` : "ninguna (el cierre es el pago contra entrega)"}`,
+    `FECHA REAL: ${b.real_deadline_or_event?.trim() || "ninguna (sin urgencia)"}`,
+    "",
+    buyerLine(a),
+    "Cómo lo dice:",
+    ...buyerVoice(a, BRIEF_VOICE_LINES).map((v) => `- «${v}»`),
+    ...(doubts.length ? ["Sus dudas:", ...doubts.map((d) => `- ${d}`)] : []),
     "",
     pricingBlock(c.pricing, c.labels),
     "",
     "DIFERENCIADOR (en qué se diferencia de lo que el cliente ya usa)",
-    c.differentiator ? `Frente a ${c.differentiator.versus}: ${c.differentiator.claim}` : "(sin diferenciador: dilo en missing_inputs)",
+    c.differentiator ? `Frente a ${c.differentiator.versus}: ${c.differentiator.claim}` : "(sin diferenciador confirmado)",
     "",
     `COMPETENCIA (${c.competitors?.length ?? 0} tiendas analizadas)`,
-    ...(c.competitors?.length ? c.competitors.map(competitorLine) : ["(sin datos de competencia: competitors_using = 0 y competition = «Sin datos de competencia»)"]),
-    "",
-    "LO QUE EL COMERCIANTE ESCRIBIÓ (contexto original; la ficha ya lo ordenó)",
-    c.baseInfo.trim() || "(vacío)",
+    ...(c.competitors?.length ? c.competitors.map(competitorLine) : ["(sin datos de competencia)"]),
   ];
 }
 
@@ -231,7 +249,7 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     structure: ["Credencial en 2 segundos: escena y rol.", "Observación del oficio: «Veo esto todos los días…».", "El error común que comete la mayoría.", "«Por eso uso / recomiendo…»: el producto como su elección.", "Demostración profesional: cómo lo usa o lo ajusta.", "Cierre suave: el experto no grita ofertas; la oferta va en el texto o en la página."],
     aida: ["Atención: credencial en 2 segundos.", "Interés: observación del oficio y error común.", "Deseo: «lo uso yo mismo» y la demostración.", "Acción: cierre suave con el pago contra entrega."],
     visuals: ["Experto en su consulta (9:16), luz natural, el producto sobre la camilla o el modelo anatómico.", "Reacción del experto a un video del problema.", "Estático de estilo de vida con el copy del experto."],
-    guardrails: ["Experto real, con credencial verificable y consentimiento; si cobra, se declara.", "Si no hay experto real en la ficha: expert_is_real = false y en expert el perfil a contratar, nunca una identidad ficticia; go = false si no se puede conseguir.", "Habla de pacientes o en primera persona, nunca «tu ciática»."],
+    guardrails: ["Experto real, con credencial verificable y consentimiento; si cobra, se declara.", "Si no hay experto real en PRUEBAS REALES: expert_is_real = false y en expert el perfil a contratar, nunca una identidad ficticia.", "Habla de pacientes o en primera persona, nunca «tu ciática»."],
   },
   common_enemy: {
     role: "Eres especialista en creativos de enemigo común: «lo que la industria no te dice». El cliente no fracasó: le vendieron lo incorrecto.",
@@ -242,7 +260,7 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
       "Disonancia: chocar con una creencia obliga a seguir mirando.",
       "Contraste: frente a una alternativa cara, riesgosa o inútil, el producto se ve mejor.",
     ],
-    when: ["alternatives_already_tried tiene contenido: una solución masiva que falla o tiene costo oculto.", "Sofisticación ≥ 3.", "El enemigo es una práctica, categoría o creencia, no una marca."],
+    when: ["Lo que el comprador usa hoy le falla: una solución masiva que falla o tiene costo oculto.", "Sofisticación ≥ 3.", "El enemigo es una práctica, categoría o creencia, no una marca."],
     whenNot: ["Es la primera solución de su tipo y no hay a quién oponerse.", "Habría que difamar a una marca concreta.", "La audiencia está conforme con lo que usa."],
     structure: ["Gancho de choque: nombra al enemigo y lo contradice.", "Validación: «Si probaste [alternativa] y no funcionó, no eres tú».", "La revelación: por qué falla (dato, lógica o experiencia).", "El costo de seguir igual.", "La alternativa: el producto como salida.", "Prueba real de quienes dejaron al enemigo.", "Cierre sin riesgo: paga al recibir."],
     aida: ["Atención: choque contra una creencia.", "Interés: «no es tu culpa» y la revelación.", "Deseo: costo de seguir igual, la alternativa y la prueba.", "Acción: probar es más seguro que seguir igual."],
@@ -258,12 +276,12 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
       "Unificación de síntomas: una causa con una solución es más creíble que cinco problemas.",
       "Prueba visual de lo invisible: el alivio no se ve, el mecanismo se puede dibujar.",
     ],
-    when: ["how_it_works describe un principio concreto: presión, geometría, compresión, drenaje, filtración.", "Las alternativas fallan por atacar otra causa o por diseño.", "El resultado es invisible pero el mecanismo se puede visualizar."],
+    when: ["Cómo funciona el producto es un principio concreto: presión, geometría, compresión, drenaje, filtración.", "Las alternativas fallan por atacar otra causa o por diseño.", "El resultado es invisible pero el mecanismo se puede visualizar."],
     whenNot: ["El producto es genérico, sin diferencia técnica real: inventar un mecanismo es engañoso.", "El mecanismo exige promesas médicas que no se pueden sustentar.", "Producto de impulso barato donde nadie quiere una explicación."],
     structure: ["Gancho de reencuadre: «No es X. Es Y.»", "Síntoma reconocible en primera o tercera persona.", "La causa real con un visual.", "Por qué fallan las alternativas: atacan X, no Y.", "Cómo el producto ataca Y: una frase y una metáfora.", "Prueba: demo o comparación.", "Cierre: paga al recibir, con la oferta como capa."],
     aida: ["Atención: «No es X, es Y».", "Interés: síntoma y causa real visualizada.", "Deseo: por qué fallan los demás, cómo lo resuelve el producto y la prueba.", "Acción: probarlo sin riesgo."],
     visuals: ["Animación técnica (9:16): el punto de presión o la causa antes de mostrar el producto.", "Demo comparativa: el producto contra la alternativa bajo la misma prueba.", "UGC explicando con las manos o con un objeto cotidiano como metáfora."],
-    guardrails: ["El mecanismo debe ser real y salir de la ficha: no se inventan tecnologías, patentes ni nombres científicos.", "Las animaciones son ilustrativas: «Ilustración» si pueden confundirse con imagen médica.", "Sin segunda persona sobre condiciones de salud."],
+    guardrails: ["El mecanismo debe ser real y salir de los datos del producto: no se inventan tecnologías, patentes ni nombres científicos.", "Las animaciones son ilustrativas: «Ilustración» si pueden confundirse con imagen médica.", "Sin segunda persona sobre condiciones de salud."],
   },
   age_identity: {
     role: "Eres especialista en creativos de identidad: segmentas en el gancho por etapa de vida o rol (40+, posparto, turnos largos, dueños de perros mayores).",
@@ -290,12 +308,12 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
       "El giro con un desconocido sabio mezcla curiosidad y autoridad externa.",
       "Formato nativo: un texto largo sobre una foto cotidiana parece un post, no un anuncio.",
     ],
-    when: ["proof.real_reviews tiene reseñas con narrativa: un antes, un momento y un después.", "El problema tiene carga emocional o un evento detonante.", "Compra de consideración media, donde el comprador necesita convencerse."],
+    when: ["Hay reseñas reales con narrativa: un antes, un momento y un después.", "El problema tiene carga emocional o un evento detonante.", "Compra de consideración media, donde el comprador necesita convencerse."],
     whenNot: ["No hay testimonios reales: este ángulo NO se construye con historias inventadas.", "Producto de impulso muy barato."],
     structure: ["Gancho en medio de la acción: el peor momento, con un detalle.", "Contexto humano: quién es y qué le importa.", "La escalada: lo que probó y cuánto le costó.", "El giro.", "El descubrimiento del producto, dentro de la historia.", "La resolución con un detalle concreto.", "Puente al espectador y cierre: paga al recibir."],
     aida: ["Atención: el peor momento con un detalle.", "Interés: contexto, escalada y giro.", "Deseo: descubrimiento y resolución.", "Acción: «si te suena, esto es lo que usó»."],
     visuals: ["Texto largo sobre una foto cotidiana (9:16), sin estética publicitaria.", "Selfie narrado por la persona real, en un solo plano.", "Estático tipo unboxing con el copy largo."],
-    guardrails: ["Solo historias reales con consentimiento, o dramatizaciones que no se presentan como el testimonio de una clienta.", "Si no hay reseñas reales en la ficha: story_is_real = false, go = false, las preguntas de entrevista en interview_questions y otro ángulo recomendado en fit_reason.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
+    guardrails: ["Solo historias reales con consentimiento, o dramatizaciones que no se presentan como el testimonio de una clienta.", "Si no hay reseñas reales: story_is_real = false y las preguntas de entrevista en interview_questions.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
   },
   offer: {
     role: "Eres especialista en ofertas: el pack es el mensaje (lleva 3 y paga 2, precio ancla, una fecha real). Con pago contra entrega, cada pedido paga el anuncio y el despacho una vez: el pack es lo que sostiene el CPA.",
@@ -320,7 +338,7 @@ export function angleSystem(angle: SalesAngle, market: Market): string {
   const g = GUIDES[angle];
   const list = (items: string[]) => items.map((i) => `- ${i}`);
   return [
-    `${g.role} Conviertes la ficha, el cliente ideal y el precio en un BRIEF DE ÁNGULO que después usan el guionista, el generador de estáticos y el copywriter. Razonas en español; todo el copy (ganchos, frases, titulares) va en el idioma del mercado.`,
+    `${g.role} Conviertes el producto, quién compra y el precio en un BRIEF DE ÁNGULO que después usan el guionista, el generador de estáticos y el copywriter. Razonas en español; todo el copy (ganchos, frases, titulares) va en el idioma del mercado.`,
     "",
     marketBlock(market),
     "",
@@ -349,7 +367,7 @@ export function angleSystem(angle: SalesAngle, market: Market): string {
     "ENTREGA",
     "- Los ganchos no van aquí: los escribe después un agente de ganchos a partir de este desarrollo. En aida_summary.attention di qué tiene que lograr la apertura.",
     "- aida_summary: una frase por etapa, lo que el comerciante lee para aprobar.",
-    "- 3 a 5 objeciones con respuesta; al menos una sobre comprar online o el pago contra entrega (usa cash_on_delivery_concerns del cliente ideal).",
+    "- 3 a 5 objeciones con respuesta; al menos una sobre comprar online o el pago contra entrega (lo que le preocupa a quien compra).",
     "- offer_layer: la oferta en una línea con los números exactos de PRECIO Y OFERTA y «Paga al recibir».",
     "- 3 conceptos visuales y 2 estáticos (3 si el ángulo es Oferta). Las referencias pueden ser anuncios de EE. UU. como inspiración de formato.",
   ].join("\n");
@@ -371,7 +389,7 @@ export interface AngleHandoff {
 export function angleUser(frame: SalesAngle, c: AngleContext, h: AngleHandoff): string {
   const a = h.angle;
   return [
-    ...contextBlock(c),
+    ...briefContext(c),
     "",
     "HANDOFF DEL ORQUESTADOR",
     `- Este es el ${slotLabel(a.slot).toLowerCase()} de ${h.others.length + 1} que se testean a la vez, cada uno en su propio conjunto de anuncios. Quien ve este anuncio no ve los otros: tiene que ser 100 % este ángulo, sin mezclarlo con los demás.`,

@@ -101,7 +101,7 @@ export function argumentContext(c: ArgumentContext): string {
     c.policies,
     "",
     `LOS ANUNCIOS QUE TRAEN TRÁFICO (${c.angles.length} ángulos)`,
-    ...c.angles.flatMap((a) => [angleLine(a.angle, c.pricing.currency), ...(a.payload.core_message?.trim() ? [`- Idea central: ${a.payload.core_message.trim()}`] : [])]),
+    ...c.angles.flatMap((a) => [angleLine(a.angle), ...(a.payload.core_message?.trim() ? [`- Idea central: ${a.payload.core_message.trim()}`] : [])]),
     ...(doubts.length ? ["", "DUDAS QUE YA SE CONOCEN", ...bullets(doubts)] : []),
   ].join("\n");
 }

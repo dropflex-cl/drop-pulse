@@ -432,7 +432,7 @@ export async function createChat(userId: string, productId: string, body: unknow
   if ((count ?? 0) >= DAILY_CHATS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_CHATS} chats en 24 horas. Vuelve mañana.`, 429);
 
   const reviews = (await reviewsForPrompt(userId, productId)).filter((r) => r.rating >= 4).slice(0, CHAT_REVIEWS).map((r) => r.text);
-  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload as CustomerAvatar, angle: target, currency: ctx.pricing.currency, reviews };
+  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload as CustomerAvatar, angle: target, reviews };
   let problems: string[] = [];
   let chat: WhatsappChat | null = null;
   let meta: { name: string; why: string } | null = null;

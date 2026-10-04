@@ -210,6 +210,23 @@ describe("agentes de ángulo", () => {
     expect(handoff(base)).not.toContain("mandan el gancho");
   });
 
+  it("el contexto del desarrollo es texto corto: sin la ficha ni el cliente ideal en JSON (v7)", () => {
+    const u = angleUser("personal_story", { ...ctx, reviews: ["Me cambió la tarde", "Llegó rápido", "Lo uso todos los días", "Una cuarta"] }, { angle: { ...base, frame: "personal_story" }, others: [], why: "", risks: [], complianceFlags: [] });
+    expect(u).not.toMatch(/"(what_it_does|voice_of_customer|trigger_moments|summary|proof)"\s*:/);
+    expect(u).not.toMatch(/^\s*[{[]/m);
+    expect(u).toContain("PRODUCTO: Corrector");
+    expect(u).toContain("Lo que el comprador usa hoy y le falla: Fajas");
+    expect(u).toContain("Promesas que no se pueden hacer: No decir que corrige la escoliosis");
+    expect(u).toContain("PRUEBAS REALES: sin experto; 4 reseñas");
+    expect(u).toContain("- «Lo uso todos los días»");
+    expect(u).not.toContain("Una cuarta");
+    expect(u).toContain("GARANTÍA: ninguna");
+    expect(u).toContain(`- «${AVATAR.voice_of_customer[0]}»`);
+    expect(u).toContain(`- ${AVATAR.objections.cash_on_delivery_concerns}`);
+    expect(u).not.toContain(AVATAR.formula);
+    expect(angleSystem("personal_story", CL)).not.toMatch(/\bgo = false|fit_reason|proof\.real_reviews|real_deadline_or_event|cash_on_delivery_concerns/);
+  });
+
   it("el ancla de mercado que verificó el comerciante llega al desarrollo", () => {
     expect(handoff({ ...base, market_amounts: [400000] } as never)).toContain(marketAnchorLine([400000], "CLP"));
     expect(marketAnchorLine([400000, 1500000], "CLP")).toContain("$400.000, $1.500.000");

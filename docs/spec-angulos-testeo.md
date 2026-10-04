@@ -151,7 +151,7 @@ Los 6 actuales pasan a ser **formas**. Sus guías (`GUIDES`) deciden **con qué 
 - **El código revisa** (`strategyProblems`): título y gancho presentes y sin repetir, gancho de hasta `ANGLE_HOOK_MAX_WORDS` (18: el de la tele tiene 15), título de hasta `ANGLE_TITLE_MAX_WORDS`, y gancho y AIDA con `hookTextProblems` sin precio (atributos personales, plazos, salud). Con problemas, otra respuesta una vez.
 - **Ancla de mercado** (`marketAmounts`): un monto que no es de PRECIO Y OFERTA («un audífono en un centro auditivo cuesta entre $400.000 y $1.500.000») no se rechaza. La tarjeta lo marca («Verifica que sea cierto antes de elegirlo») y, si el comerciante elige el ángulo, queda en `TestAngle.market_amounts`: el agente de ángulo lo recibe (`marketAnchorLine`) y los ganchos de ese ángulo lo pueden usar (`HookFacts.marketAmounts`, `hookTextProblems(…, extra)`, `claimProblems(…, extra)`), siempre como lo que cuesta la alternativa. Los textos de la página, los estáticos y los guiones siguen solo con PRECIO Y OFERTA.
 - **La pantalla** muestra el gancho y el AIDA en cada candidato, a quién le habla y el tono, el aviso del ancla, los datos dudosos arriba y los cuidados abajo. El comerciante puede editar el gancho.
-- **La forma es una guía, no un molde.** El agente de ángulo recibe el gancho, el AIDA, el tono y a quién le habla, y si chocan con la forma mandan ellos. `angleMessage` lleva el gancho, el tono, `speaks_to` y el ancla a los pasos siguientes, y el agente de ganchos escribe al menos 3 versiones de video del gancho del ángulo.
+- **La forma es una guía, no un molde.** El agente de ángulo recibe el gancho, el AIDA, el tono y a quién le habla, y si chocan con la forma mandan ellos. `angleLine` (`lib/ai/context.ts`, antes `angleMessage`) lleva el gancho, el tono y `speaks_to` a los pasos siguientes (el ancla, solo a los ganchos), y el agente de ganchos escribe al menos 3 versiones de video del gancho del ángulo.
 
 **Lo que se retiró y qué pasa con lo de antes.**
 
@@ -166,6 +166,8 @@ Los 6 actuales pasan a ser **formas**. Sus guías (`GUIDES`) deciden **con qué 
 Las columnas `scores`, `suggested_primary`, `suggested_secondary`, `primary_angle` y `secondary_angle` de `angle_rankings` quedan sin uso nuevo; no se borran para no perder el historial. Una evaluación vieja se sigue viendo y confirmando (`isStrategy` distingue las dos) hasta que se vuelva a evaluar. Vista de ejemplo: `/dev/screens/angles?state=ranking` (v7) y `?state=ranking-v6`.
 
 ### 4.3 Los desarrollos
+
+> Desde la versión 7 del agente de ángulo (2026-10-04, `docs/spec-prompts-simples.md` §8), el contexto es texto corto (`briefContext`: hechos, pruebas con 3 reseñas citables, garantía, fecha real, quién compra con 5 frases y sus dudas, precio, diferenciador y competencia), no la ficha y el cliente ideal en JSON, y el esquema ya no pide `go`, `fit_reason` ni `aida_emphasis`.
 
 - `angle_briefs.role` (`primary` | `secondary`) se reemplaza por `slot smallint` (1, 2 o 3). Migración: `primary → 1`, `secondary → 2`. Las filas antiguas quedan válidas; la etapa pide elegir un tercero para completarse.
 - Cada desarrollo usa el agente de su **forma** (`angleSystem(frame)`), pero con el ángulo como contexto: dolor, segmento, promesa y momento. El handoff deja de hablar de «principal que abre y secundario que refuerza» y dice «este anuncio es el único que ve esta persona: 100 % este ángulo».

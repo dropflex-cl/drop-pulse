@@ -102,6 +102,12 @@ Con la receta de campaña editorial como única dirección, las 4 galerías de p
 - Titular de 2 a 6 palabras con mayúscula inicial.
 - Límites por rol iguales a Creativos.
 
+### 4.2 Contexto corto (versión 5 del prompt, 2026-10-04)
+
+`docs/spec-prompts-simples.md` §8. El director recibía la ficha y el cliente ideal en JSON (~16.000 tokens). Ahora recibe texto corto de `lib/ai/context.ts`: los hechos del producto, lo que el comprador usa hoy (la comparativa), las promesas que no se pueden hacer, una línea de quién compra (para el mundo visual), el diferenciador y, por ángulo, `angleLine` (sin el ancla de mercado), su forma (el formato de su beneficio), su idea central, su momento y las escenas de sus anuncios. El mensaje va en dos bloques (`pageImagesContext` con punto de caché y `pageImagesTail`), así que un reintento lee las fotos y el contexto a 0,1×.
+
+La única falla de la versión 4 en producción (2026-10-03) era el modelo escribiendo el salto de línea de un badge o un callout como «\n» literal (dos caracteres): el texto entero pasaba del tope de una línea. `normalizePlan` lo convierte en un salto de línea de verdad antes de validar, el prompt ya no muestra «\n» y la descripción de cada texto dice los topes por rol (`ROLE_PROMPT_LIMITS`).
+
 ## 5. Costo
 
 - Director: ~US$0,25.

@@ -5,6 +5,7 @@
 // palabras, algunas frases del cliente ideal. Puro, con tests.
 
 import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
+import { speaksToText } from "@/lib/angles/approved";
 import { slotLabel, testAngleName, type TestAngle } from "@/lib/angles/catalog";
 import { money } from "@/lib/format";
 
@@ -73,20 +74,23 @@ export function marketAnchorLine(amounts: number[], currency: string): string {
 }
 
 /**
- * Un ángulo en pocas líneas: título, gancho, a quién le habla, tono y ancla de mercado. Los ángulos de
- * antes del orquestador v7 no traen gancho: van con su dolor o deseo y su promesa.
+ * Un ángulo en pocas líneas: título, gancho, a quién le habla y tono (lo que hacía angleMessage, en
+ * texto). `anchorCurrency`: con la moneda, también el ancla de mercado que verificó el comerciante; solo
+ * los ganchos la pueden usar (decisión del comerciante, 2026-10-04): la página, los estáticos y los
+ * guiones siguen solo con PRECIO Y OFERTA. Los ángulos de antes del orquestador v7 no traen gancho: van
+ * con su dolor o deseo y su promesa.
  */
-export function angleLine(a: TestAngle, currency: string): string {
+export function angleLine(a: TestAngle, anchorCurrency?: string): string {
   return [
     `${slotLabel(a.slot)}: «${testAngleName(a)}»`,
     ...bullets(
       clean([
         a.hook ? `Gancho con que lo eligió el comerciante: «${a.hook}»` : null,
-        a.speaks_to ? `Le habla a ${a.speaks_to === "buyer" ? "quien compra (puede no ser quien lo usa)" : "quien usa el producto"}.` : null,
+        a.speaks_to ? `Le habla a ${speaksToText(a.speaks_to)}.` : null,
         a.tone ? `Tono: ${a.tone}.` : null,
         a.hook ? null : a.pain_or_desire ? `Dolor o deseo: ${a.pain_or_desire}` : null,
         a.hook ? null : a.promise ? `Promesa: ${a.promise}` : null,
-        a.market_amounts?.length ? marketAnchorLine(a.market_amounts, currency) : null,
+        anchorCurrency && a.market_amounts?.length ? marketAnchorLine(a.market_amounts, anchorCurrency) : null,
       ]),
     ),
   ].join("\n");
