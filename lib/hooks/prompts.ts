@@ -1,19 +1,20 @@
 // El agente de ganchos: escribe los 10 ganchos de UN ángulo de testeo después de su desarrollo. Desde la
 // versión 6 (docs/spec-prompts-simples.md §4) es la pregunta de un experto con poco contexto, como el
-// orquestador de ángulos v9: el ángulo con su gancho, los hechos, quién compra, cinco frases suyas y el
-// precio. Sin la biblioteca de 14 patrones con plantillas, sin cuotas y sin la versión de mascota: con
-// eso, el modelo llenaba un patrón de cada uno y 24 de los ~37 problemas registrados eran de la mascota.
+// orquestador de ángulos v9: el ángulo con su gancho, los hechos, quién compra y el precio. Desde la 7,
+// sin las frases del cliente ideal (§14): la mitad de los ganchos las copiaba («tele a todo chancho»).
+// Sin la biblioteca de 14 patrones con plantillas, sin cuotas y sin la versión de mascota: con eso, el
+// modelo llenaba un patrón de cada uno y 24 de los ~37 problemas registrados eran de la mascota.
 // Lo comprobable lo revisa el código después (hookProblems) y lo que es regla lo arregla (normalizeHooks).
 // Puro. Regla de caché: el system depende solo del mercado; el producto y el ángulo van en el usuario.
 
-import { angleLine, buyerLine, buyerVoice, productFacts, proofLine } from "@/lib/ai/context";
+import { angleLine, buyerLine, productFacts, proofLine } from "@/lib/ai/context";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleForPrompt } from "@/lib/angles/approved";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import { HOOK_VOICE_LINES, HOOKS_PER_ANGLE, LOCAL_NOTES, ON_SCREEN_PROMPT_WORDS, SPOKEN_PROMPT_WORDS } from "./catalog";
+import { FOLLOW_UP_PROMPT_WORDS, HOOKS_PER_ANGLE, LOCAL_NOTES, ON_SCREEN_PROMPT_WORDS, SPOKEN_PROMPT_WORDS } from "./catalog";
 
 const list = (items: string[]) => items.map((i) => `- ${i}`);
 
@@ -24,9 +25,8 @@ export function hooksSystem(market: Market): string {
     "",
     "- Un gancho abre algo que hay que cerrar: algo que salió mal, un secreto, algo en juego para alguien que se quiere, una pregunta que necesita respuesta. Una característica del producto o una escena tranquila no detienen a nadie.",
     "- La primera frase lleva la tensión, sin una frase de contexto antes. Sin sonido, el texto en pantalla y la primera imagen dicen de qué se trata.",
-    `- Hablado de máximo ${SPOKEN_PROMPT_WORDS} palabras; texto en pantalla de máximo ${ON_SCREEN_PROMPT_WORDS}.`,
+    `- Hablado de máximo ${SPOKEN_PROMPT_WORDS} palabras y la segunda frase, si la hay, de máximo ${FOLLOW_UP_PROMPT_WORDS}; texto en pantalla de máximo ${ON_SCREEN_PROMPT_WORDS}.`,
     "- Los videos se hacen con IA (una persona que habla a cámara y clips generados desde una imagen) y se ven como grabados con un teléfono en una casa. Mostrar con IA el efecto o el resultado sería una prueba inventada: eso necesita grabación real.",
-    "- Las frases de quien compra suelen valer más que una pulida: puedes partir de una, casi textual.",
     "",
     "LÍMITES",
     "- Meta no acepta que el anuncio le atribuya a quien mira su edad, su salud o su cuerpo («¿Te estás quedando calvo?», «tu piel»). Hablarle de lo que hace o de un ser querido, o hablar en primera o tercera persona, sí se puede.",
@@ -37,7 +37,6 @@ export function hooksSystem(market: Market): string {
     "",
     marketBlock(market),
     ...(local ? [`- En este mercado: ${local}`] : []),
-    "- Los modismos del país, solo dentro de una frase textual de quien compra.",
     "",
     "Lo que se dice y se lee va en el idioma del mercado; lo demás (la primera imagen, lo que se entiende sin sonido, el riesgo, el diagnóstico), en español para el comerciante.",
   ].join("\n");
@@ -57,13 +56,9 @@ export interface HooksContext {
   hasImage: boolean;
 }
 
-/** Las frases de quien compra que recibe el agente: de aquí salen las citas (source_quote) que revisa el código. */
-export const hooksVoice = (c: Pick<HooksContext, "avatar">) => buyerVoice(c.avatar, HOOK_VOICE_LINES);
-
 /** Lo fijo: igual en cada intento, va con punto de caché (lib/ai/content.ts). Sin la ficha ni el cliente ideal en JSON. */
 export function hooksContextText(c: HooksContext): string {
   const core = c.angle.payload.core_message?.trim();
-  const voice = hooksVoice(c);
   return [
     ...(c.hasImage ? ["La imagen es la foto real del producto: lo que llega en el paquete.", ""] : []),
     productFacts(c.brief),
@@ -78,9 +73,6 @@ export function hooksContextText(c: HooksContext): string {
     angleLine(c.angle.angle, c.pricing.currency),
     ...(core ? [`- Idea central: ${core}`] : []),
     ...(c.others.length ? ["", `LOS OTROS ÁNGULOS DEL TESTEO (van en otros anuncios: no uses su idea): ${c.others.join("; ")}.`] : []),
-    "",
-    "CÓMO LO DICE QUIEN COMPRA",
-    ...(voice.length ? list(voice.map((t) => `«${t}»`)) : ["(sin frases)"]),
     "",
   ].join("\n");
 }

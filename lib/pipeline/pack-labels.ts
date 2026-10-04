@@ -48,7 +48,7 @@ export async function regeneratePackLabels(userId: string, productId: string) {
       content: [
         {
           type: "text",
-          text: packLabelsUser(JSON.stringify(brief, null, 2), avatar ? JSON.stringify(avatar, null, 2) : null, pricing, (previous?.payload ?? []).map((l) => l.label)),
+          text: packLabelsUser(brief, avatar ?? null, pricing, (previous?.payload ?? []).map((l) => l.label)),
         },
       ],
       schema: packLabelsOnlySchema,

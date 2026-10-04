@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { PROVEN_GRAMMAR_SIZE } from "@/lib/ai/limits";
 import { AVATAR } from "@/app/dev/screens/base/fixture";
 import { marketAnchorLine } from "@/lib/ai/context";
 import type { ProductBrief } from "@/lib/ai/schemas";
-import { avatarStepSchema } from "@/lib/ai/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { ANGLE_HOOK_MAX_WORDS, SALES_ANGLES } from "./catalog";
 import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleIdeasUser, angleSystem, angleUser } from "./prompts";
@@ -69,9 +69,9 @@ describe("orquestador de ángulos (v9)", () => {
     expect(u).toContain("- Navidad: 25 de diciembre (en 12 semanas)");
     expect(u).toContain("YA LE PROPUSISTE AL COMERCIANTE");
     expect(u).toContain("- Callado en la mesa: «Mi papá se ríe medio segundo tarde.»");
-    // Sin el material del cliente ideal que el modelo copiaba, ni las reseñas textuales.
-    for (const m of AVATAR.problems.trigger_moments) expect(u).not.toContain(m);
-    for (const v of AVATAR.voice_of_customer) expect(u).not.toContain(v);
+    // Sin el porqué ni las dudas de quien compra (son de los agentes de cada ángulo), ni las reseñas textuales.
+    expect(u).not.toContain(AVATAR.why_buy);
+    for (const d of AVATAR.doubts) expect(u).not.toContain(d);
     expect(u).not.toContain("Me sirvió para la oficina");
     expect(u).not.toContain("COMPETENCIA");
   });
@@ -221,9 +221,9 @@ describe("agentes de ángulo", () => {
     expect(u).toContain("- «Lo uso todos los días»");
     expect(u).not.toContain("Una cuarta");
     expect(u).toContain("GARANTÍA: ninguna");
-    expect(u).toContain(`- «${AVATAR.voice_of_customer[0]}»`);
-    expect(u).toContain(`- ${AVATAR.objections.cash_on_delivery_concerns}`);
-    expect(u).not.toContain(AVATAR.formula);
+    expect(u).toContain(`- Por qué compra: ${AVATAR.why_buy}`);
+    expect(u).toContain(`- Duda: ${AVATAR.doubts[0]}`);
+    expect(u).toContain(`- El pago contra entrega: ${AVATAR.cash_on_delivery}`);
     expect(angleSystem("personal_story", CL)).not.toMatch(/\bgo = false|fit_reason|proof\.real_reviews|real_deadline_or_event|cash_on_delivery_concerns/);
   });
 
@@ -255,11 +255,9 @@ describe("esquemas de ángulos", () => {
     for (const a of SALES_ANGLES) expect(toJSONSchema(angleBriefSchema(a))).toHaveProperty("properties.details");
   });
 
-  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»). El paso del cliente
-  // ideal funciona en producción: ningún esquema de ángulos puede ser más grande que ese.
-  it("no son más grandes que el del cliente ideal", async () => {
+  it("no son más grandes que uno que ya funcionó en producción", async () => {
     const { toJSONSchema } = await import("zod/v4");
-    const limit = size(toJSONSchema(avatarStepSchema));
+    const limit = PROVEN_GRAMMAR_SIZE;
     expect(size(toJSONSchema(angleIdeasSchema))).toBeLessThanOrEqual(limit);
     for (const a of SALES_ANGLES) expect(size(toJSONSchema(angleBriefSchema(a))), a).toBeLessThanOrEqual(limit);
   });

@@ -41,9 +41,9 @@ No hay datos reales: es solo texto, sin cifras, plazos ni tokens. Sin imagen en 
 ## Reglas del copy (IA)
 
 - **Título:** pregunta de reconocimiento, 8 a 48 caracteres.
-- **Momentos:** exactamente 3, `slot` distintos (uno por ángulo de venta; sin tercer ángulo, el tercero sale de los momentos del cliente ideal).
+- **Momentos:** exactamente 3, `slot` distintos (uno por ángulo de venta; sin tercer ángulo, el tercero es el momento extra del argumento de venta).
   - `title`: la escena en 3 a 6 palabras, 8 a 40 caracteres.
-  - `text`: 1 o 2 oraciones, 30 a 160 caracteres, en **primera** («me lavo la cara…») o **tercera persona** («quienes ya usan crema…»), con palabras de `voice_of_customer` y `trigger_moments` del cliente ideal.
+  - `text`: 1 o 2 oraciones, 30 a 160 caracteres, en **primera** («me lavo la cara…») o **tercera persona** («quienes ya usan crema…»), con palabras de todos los días: cada momento sale del argumento de venta (el de su ángulo).
 - **Remate** (`bridge`): 20 a 120 caracteres; lleva al **diferenciador**, no a la oferta.
 - Sobrio: sin exclamaciones ni mayúsculas sostenidas.
 - **Prohibido:** diagnosticar al lector («tienes la piel deshidratada»), cifras y plazos (validado: sin dígitos), promesas de resultado y afirmaciones de salud, humillar («tu cara se ve vieja»), segunda persona sobre edad, salud o peso.

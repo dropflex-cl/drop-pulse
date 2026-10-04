@@ -2,9 +2,18 @@ import { describe, expect, it } from "vitest";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import { customerAvatarSystem, customerAvatarUser, marketBlock, packLabelsSystem, packLabelsUser, productBriefSystem, productBriefUser } from "./prompts";
-import { avatarStepSchema, customerAvatarSchema, packLabelsOnlySchema, productBriefSchema } from "./schemas";
+import { AVATAR } from "@/app/dev/screens/base/fixture";
+import { avatarStepSchema, customerAvatarSchema, packLabelsOnlySchema, productBriefSchema, readAvatar, type ProductBrief } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
+const brief = {
+  product_name: "Corrector de postura",
+  what_it_does: "Lleva los hombros atrás.",
+  how_it_works: null,
+  key_facts: [{ label: "Talla", value: "Única" }],
+  alternatives_already_tried: ["Fajas"],
+  proof: { real_expert: null, real_reviews: [], studies_or_certifications: [], units_sold_or_social_proof: null, guarantee_days: null },
+} as unknown as ProductBrief;
 
 describe("prompts", () => {
   it("el mercado fija idioma neutro con tuteo, moneda, pago contra entrega y la ley local", () => {
@@ -24,21 +33,38 @@ describe("prompts", () => {
     expect(customerAvatarSystem(CL)).toBe(customerAvatarSystem({ ...CL }));
   });
 
-  it("el avatar recibe la plantilla de la fórmula (en dropflex base se nombraba pero no se enviaba)", () => {
-    expect(customerAvatarSystem(CL)).toContain("El nombre de mi cliente ideal es [NOMBRE].");
-  });
-
-  it("el género no se adivina por la categoría ni por las fotos, y el avatar dice por qué", () => {
+  it("el género no se adivina por la categoría ni por las fotos", () => {
     expect(productBriefSystem(CL)).toContain("Una modelo en las fotos o una categoría como «belleza» no lo deciden");
-    const avatar = customerAvatarSystem(CL);
-    expect(avatar).toContain("Si dice any, elige hombre o mujer solo si un dato de la ficha");
-    expect(avatar).toContain("demographics.gender_reason");
-    expect(avatar).toContain("no el más repetido");
   });
 
-  it("los avatares de antes, sin gender_reason, se siguen pudiendo leer y editar", () => {
-    const d = customerAvatarSchema.shape.demographics.parse({ age_range: "30-45", gender: "female", location: "Santiago", socioeconomic_level: "Medio", occupation_or_role: "Oficinista" });
-    expect(d.gender_reason).toBe("");
+  it("el cliente ideal es la pregunta de un experto: corto, sin fórmula, nombre ni escenas", () => {
+    const sys = customerAvatarSystem(CL);
+    expect(sys).not.toContain("[NOMBRE]");
+    expect(sys).toContain("sin nombre, sin anécdotas y sin frases inventadas");
+    expect(sys.split("\n").length).toBeLessThan(30);
+  });
+
+  it("los clientes ideales de antes (con fórmula, momentos y frases) se leen con lo que sirve", () => {
+    const legacy = {
+      name: "Andrés",
+      summary: "Andrés, 38, oficinista",
+      demographics: { age_range: "30-45", gender: "male" },
+      emotions: { core_motivation: "Recuperar el control de su cuerpo" },
+      objections: { main_objection: "Son incómodos", critical_question: "¿Se nota?", cash_on_delivery_concerns: "Pagar al recibir lo calma" },
+      voice_of_customer: ["Llego con la espalda molida"],
+      formula: "El nombre de mi cliente ideal es Andrés.",
+    };
+    expect(readAvatar(legacy)).toEqual({
+      summary: "Andrés, 38, oficinista",
+      buyer: "Andrés, 38, oficinista",
+      user: "",
+      age_range: "30-45",
+      why_buy: "Recuperar el control de su cuerpo",
+      doubts: ["Son incómodos", "¿Se nota?"],
+      cash_on_delivery: "Pagar al recibir lo calma",
+      more_than_one: "",
+    });
+    expect(readAvatar(AVATAR)).toEqual(AVATAR);
   });
 
   const pricing = buildPricingPlan(
@@ -80,9 +106,11 @@ describe("prompts", () => {
   });
 
   it("«otras etiquetas» no repite las anteriores", () => {
-    const u = packLabelsUser("{}", null, pricing, ["2 meses de uso"]);
+    const u = packLabelsUser(brief, AVATAR, pricing, ["2 meses de uso"]);
     expect(u).toContain("No repitas estas: «2 meses de uso»");
     expect(u).toContain("PRECIO Y OFERTA");
+    expect(u).toContain(`Por qué llevaría más de uno: ${AVATAR.more_than_one}`);
+    expect(u).not.toMatch(/^\s*[{[]/m);
   });
 
   it("las etiquetas aprobadas viajan con el precio", () => {
@@ -91,10 +119,19 @@ describe("prompts", () => {
   });
 
   it("el cliente ideal también recibe el precio y los packs", () => {
-    const u = customerAvatarUser("{}", "neopreno", pricing);
+    const u = customerAvatarUser(brief, "neopreno", pricing);
     expect(u).toContain("PRECIO Y OFERTA");
     expect(u).toContain("Pack 3 unidades");
-    expect(u).toContain("La oferta principal es el pack");
+    expect(u).toContain("OFERTA PRINCIPAL");
+  });
+
+  it("el cliente ideal recibe texto corto: los hechos y el texto del proveedor, sin la ficha en JSON", () => {
+    const u = customerAvatarUser(brief, "neopreno", pricing);
+    expect(u).toMatch(/^PRODUCTO: Corrector de postura/);
+    expect(u).toContain("- Talla: Única");
+    expect(u).toContain("Lo que dice el proveedor, tal cual:\nneopreno");
+    expect(u).not.toMatch(/"(what_it_does|key_facts|proof)"\s*:/);
+    expect(u).toMatch(/¿Quién compra este producto, quién lo usa y por qué\?/);
   });
 });
 
@@ -102,7 +139,7 @@ describe("esquemas", () => {
   it("se pueden convertir a JSON Schema para structured outputs", async () => {
     const { toJSONSchema } = await import("zod/v4");
     expect(toJSONSchema(productBriefSchema)).toHaveProperty("properties.missing_inputs");
-    expect(toJSONSchema(customerAvatarSchema)).toHaveProperty("properties.formula");
+    expect(toJSONSchema(customerAvatarSchema)).toHaveProperty("properties.why_buy");
     expect(toJSONSchema(avatarStepSchema)).toHaveProperty("properties.pack_labels");
     expect(toJSONSchema(packLabelsOnlySchema)).toHaveProperty("properties.pack_labels");
   });

@@ -13,8 +13,8 @@ import { OPENING_SHOT_DEFS } from "./catalog";
 import type { HooksCritique } from "./prompts";
 import type { HookOut, HooksReview } from "./schemas";
 
-/** Bump cuando cambie el prompt o el esquema del crítico. */
-export const HOOK_CRITIC_PROMPT_VERSION = 1;
+/** Bump cuando cambie el prompt o el esquema del crítico. 2: quién eres sale del cliente ideal v6 (por qué compra y qué lo frena, sin frases). */
+export const HOOK_CRITIC_PROMPT_VERSION = 2;
 
 const text = z.string();
 
@@ -65,8 +65,8 @@ export function hookCriticUser(c: HookCriticContext): string {
   return [
     "QUIÉN ERES",
     `- ${a.summary}`,
-    `- Lo que te pasa: ${a.problems.main_problem}`,
-    `- Cómo lo dices: ${(a.voice_of_customer ?? []).map((v) => `«${v}»`).join(" ")}`,
+    ...(a.why_buy ? [`- Por qué lo comprarías: ${a.why_buy}`] : []),
+    ...(a.doubts.length ? [`- Lo que te frena: ${a.doubts.join("; ")}`] : []),
     ...(c.speaksTo ? [`- Este anuncio le habla a: ${c.speaksTo}.`] : []),
     "",
     "LOS GANCHOS (los primeros 3 s de cada video)",

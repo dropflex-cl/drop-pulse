@@ -124,8 +124,8 @@ describe("argumento de la página (page_argument)", () => {
     expect(u).not.toMatch(/^\s*[{[]/m);
     expect(u).toContain("PRODUCTO: Corrector");
     expect(u).toContain(`QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${AVATAR.summary}`);
-    expect(u).toContain(`«${AVATAR.voice_of_customer[0]}»`);
-    expect(u).not.toContain(AVATAR.formula);
+    expect(u).toContain(`- Por qué compra: ${AVATAR.why_buy}`);
+    expect(u).toContain(`- ${AVATAR.doubts[0]}`);
     expect(u).toContain("EN QUÉ SE DIFERENCIA: frente a una faja, Lleva los hombros atrás");
     expect(u).toContain("LOS ANUNCIOS QUE TRAEN TRÁFICO (2 ángulos)");
     expect(u).toContain("Ángulo 1: «No es la silla»");

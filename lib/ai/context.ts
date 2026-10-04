@@ -1,8 +1,8 @@
 // El contexto que reciben los pasos de IA, en texto corto (docs/spec-prompts-simples.md §3). Reemplaza
 // la ficha y el cliente ideal pegados en JSON: con todo el material, el modelo copiaba sus frases en vez
 // de pensar (orquestador de ángulos v9, docs/spec-angulos-testeo.md §4.2). Cada paso toma solo lo que
-// necesita: los hechos del producto, una línea de quién compra y, solo donde se escribe con sus
-// palabras, algunas frases del cliente ideal. Puro, con tests.
+// necesita: los hechos del producto, una línea de quién compra y, donde se arma el argumento, por qué
+// compra y qué lo frena. Nunca escenas ni frases del comprador (§14). Puro, con tests.
 
 import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
 import { speaksToText } from "@/lib/angles/approved";
@@ -40,18 +40,18 @@ export function buyerLine(a: CustomerAvatar): string {
 }
 
 /**
- * Hasta `n` frases o momentos del cliente ideal, alternando lo que dice y cuándo le pasa. Solo para los
- * pasos que escriben con sus palabras (ganchos, página, guion): el resto lo copiaba entero.
+ * Por qué compra y qué lo frena, para quien escribe el argumento (el agente de ángulo, la página y el
+ * crítico de ganchos). Sin escenas ni frases: desde la versión 6 el cliente ideal no las trae.
  */
-export function buyerVoice(a: CustomerAvatar, n: number): string[] {
-  const voice = clean(a.voice_of_customer ?? []);
-  const moments = clean(a.problems?.trigger_moments ?? []);
-  const out: string[] = [];
-  for (let i = 0; out.length < n && (i < voice.length || i < moments.length); i++) {
-    if (i < voice.length) out.push(voice[i]);
-    if (out.length < n && i < moments.length) out.push(moments[i]);
-  }
-  return [...new Set(out)];
+export function buyerReasons(a: CustomerAvatar): string[] {
+  return bullets(
+    clean([
+      a.user ? `Quién lo usa: ${a.user}` : null,
+      a.why_buy ? `Por qué compra: ${a.why_buy}` : null,
+      ...a.doubts.map((d) => `Duda: ${d}`),
+      a.cash_on_delivery ? `El pago contra entrega: ${a.cash_on_delivery}` : null,
+    ]),
+  );
 }
 
 /** Las pruebas reales: si hay experto y cuántas reseñas (sin citarlas). */

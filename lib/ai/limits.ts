@@ -15,3 +15,10 @@ export function promptLimit(limit: number): number {
 export function promptRate(limit: number): number {
   return Math.round(limit * PROMPT_MARGIN * 10) / 10;
 }
+
+/**
+ * La API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled
+ * grammar is too large»). Este tamaño (campos, objetos y valores de enum, sin descripciones) funcionó en
+ * producción: era el del cliente ideal hasta su versión 5. Los tests de los esquemas grandes lo usan de tope.
+ */
+export const PROVEN_GRAMMAR_SIZE = 77;

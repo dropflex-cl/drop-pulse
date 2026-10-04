@@ -15,11 +15,8 @@ export const FOLLOW_UP_MAX_WORDS = 9;
 export const ON_SCREEN_MAX_WORDS = 6;
 /** Lo que pide el prompt (un 10 % menos, lib/ai/limits.ts); el código acepta hasta el tope real. */
 export const SPOKEN_PROMPT_WORDS = promptLimit(SPOKEN_MAX_WORDS);
+export const FOLLOW_UP_PROMPT_WORDS = promptLimit(FOLLOW_UP_MAX_WORDS);
 export const ON_SCREEN_PROMPT_WORDS = promptLimit(ON_SCREEN_MAX_WORDS);
-/** Frases del cliente ideal que recibe el agente (buyerVoice): de ahí salen las citas (source_quote). */
-export const HOOK_VOICE_LINES = 5;
-/** Palabras con contenido (4 letras o más) que un gancho comparte con la cita de la que parte. */
-export const QUOTE_SHARED_WORDS = 2;
 /** El crítico: si menos de estos ganchos lo detienen, se reescriben una vez los que no. */
 export const CRITIC_MIN_STOPS = 4;
 

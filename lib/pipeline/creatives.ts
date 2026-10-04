@@ -3,7 +3,7 @@ import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/a
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
-import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
 import { fail } from "@/lib/angles/store";
@@ -251,7 +251,7 @@ export async function runCreatives(runId: string): Promise<void> {
     if (!brief || !avatarRow.data || !angles) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los desarrollos y reintenta.");
     if (!images.length) throw new AiStepError("no_image", "El producto no tiene una imagen base. Elige una en Información base.");
 
-    const ctx: CreativesContext = { brief, avatar: avatarRow.data.payload as CustomerAvatar, pricing: input.pricing, labels: input.labels ?? undefined, angles };
+    const ctx: CreativesContext = { brief, avatar: readAvatar(avatarRow.data.payload), pricing: input.pricing, labels: input.labels ?? undefined, angles };
     const blocks = await Promise.all(images.map((u) => imageBlock(u).catch(() => null)));
     const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);
     if (!imageContent.length) throw new AiStepError("no_image", "No pudimos leer la imagen base del producto. Revísala en Información base.");
@@ -432,7 +432,7 @@ export async function createChat(userId: string, productId: string, body: unknow
   if ((count ?? 0) >= DAILY_CHATS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_CHATS} chats en 24 horas. Vuelve mañana.`, 429);
 
   const reviews = (await reviewsForPrompt(userId, productId)).filter((r) => r.rating >= 4).slice(0, CHAT_REVIEWS).map((r) => r.text);
-  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload as CustomerAvatar, angle: target, reviews };
+  const chatCtx = { brief: ctx.brief, avatar: ctx.avatar.payload, angle: target, reviews };
   let problems: string[] = [];
   let chat: WhatsappChat | null = null;
   let meta: { name: string; why: string } | null = null;

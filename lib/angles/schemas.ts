@@ -14,8 +14,9 @@ const MIN_STRATEGY_ANGLES = 4;
 /** Bump cuando cambie el prompt o el esquema del orquestador. 7: un experto que propone ángulos con su gancho y AIDA, sin puntuar formas. 8: el gancho dicho y con tensión (14 palabras), la escena en aida.attention, el título con tope. 9: la pregunta del chat con poco contexto; la forma la pone una segunda llamada; anclas de mercado marcadas; ve lo que ya propuso. */
 export const ANGLE_ROUTER_PROMPT_VERSION = 9;
 /** Bump cuando cambie el prompt o el esquema de los agentes de ángulo. 4: las dramatizaciones van sin rótulo. 5: los ganchos los escribe su propio agente (lib/hooks). 6: reciben el gancho, el AIDA y el tono del ángulo. 7: el contexto corto de lib/ai/context.ts (sin la ficha ni
- * el cliente ideal en JSON) y sin `go`, `fit_reason` ni `aida_emphasis` (docs/spec-prompts-simples.md §8). */
-export const ANGLE_BRIEF_PROMPT_VERSION = 7;
+ * el cliente ideal en JSON) y sin `go`, `fit_reason` ni `aida_emphasis` (docs/spec-prompts-simples.md §8). 8: quién compra con su
+ * porqué y sus dudas, sin las frases del cliente ideal (§14). */
+export const ANGLE_BRIEF_PROMPT_VERSION = 8;
 
 const text = z.string();
 const maybe = z.string().nullable();

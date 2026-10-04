@@ -7,7 +7,7 @@
 // reglas en código (lib/video/schemas.ts). Puro.
 // Regla de caché: los system dependen solo del mercado; el producto va en el usuario.
 
-import { angleLine, buyerLine, buyerVoice, productFacts } from "@/lib/ai/context";
+import { angleLine, buyerLine, productFacts } from "@/lib/ai/context";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleForPrompt } from "@/lib/angles/approved";
@@ -36,15 +36,10 @@ import {
 } from "./catalog";
 import type { OpeningInput, ScriptLines } from "./schemas";
 
-/** Frases del cliente ideal que recibe el guionista (buyerVoice). */
-export const SCRIPT_VOICE_LINES = 3;
-
 /** Las palabras por segundo que pide el prompt, con coma decimal («2,7»). */
 const WPS = String(WORDS_PER_SECOND_PROMPT).replace(".", ",");
 /** «4 s → 10, 5 s → 13…»: el tope por toma que pide el prompt. */
 const WORDS_BY_SECONDS = [4, 5, 6, 7, 8].map((s) => `${s} s → ${Math.floor(s * WORDS_PER_SECOND_PROMPT)}`).join(", ");
-
-const list = (items: string[]) => items.map((i) => `- ${i}`);
 
 // ---------------------------------------------------------------- 1. El guion
 
@@ -132,7 +127,6 @@ export function linesContext(c: UgcContext): string {
     ...(c.differentiator ? [`EN QUÉ SE DIFERENCIA (tiene que decirse): frente a ${c.differentiator.versus}, ${c.differentiator.claim}`] : []),
     "",
     buyerLine(c.avatar),
-    ...list(buyerVoice(c.avatar, SCRIPT_VOICE_LINES).map((v) => `«${v}»`)),
     "",
     pricingBlock(c.pricing, c.labels),
     "",

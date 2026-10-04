@@ -43,7 +43,7 @@ describe("guion: el gancho sale de la tríada", () => {
   } as unknown as AngleBriefPayload;
   const ctx = (format: "ugc" | "mascot"): UgcContext => ({
     brief: { product_name: "Almohadillas", what_it_does: "Frenan la vibración.", key_facts: [] } as unknown as UgcContext["brief"],
-    avatar: { summary: "Carla, 40, dueña de casa", voice_of_customer: ["La lavadora se me va hasta la puerta", "Suena horrible", "Ya no sé qué hacer", "Otra más"], problems: { trigger_moments: [] }, emotions: { fears: "MIEDO-SECRETO" } } as unknown as UgcContext["avatar"],
+    avatar: { summary: "Carla, 40, dueña de casa", buyer: "", user: "", age_range: "35-45", why_buy: "MOTIVO-INTERNO", doubts: ["¿Sirve en piso flotante?"], cash_on_delivery: "", more_than_one: "" },
     differentiator: null,
     pricing: { currency: "CLP", salePrice: 1, compareAtPrice: null, packs: [], recommended: null } as unknown as PricingPlan,
     angle: { slot: 1, name: "A", frameName: "Mecanismo único", angle: { slot: 1, frame: "unique_mechanism", title: "No es la lavadora", hook: "Tu lavadora no está rota." }, payload } as unknown as AngleForPrompt,
@@ -65,9 +65,9 @@ describe("guion: el gancho sale de la tríada", () => {
     expect(u).not.toMatch(/^\s*[{[]/m);
     expect(u).toContain("PRODUCTO: Almohadillas");
     expect(u).toContain("QUIÉN COMPRA, SEGÚN EL COMERCIANTE: Carla, 40, dueña de casa");
-    expect(u).toContain("«Ya no sé qué hacer»");
-    expect(u).not.toContain("Otra más");
-    expect(u).not.toContain("MIEDO-SECRETO");
+    // Solo quién compra (v10): sin su porqué ni sus dudas, y sin frases que copiar.
+    expect(u).not.toContain("MOTIVO-INTERNO");
+    expect(u).not.toContain("piso flotante");
     expect(u).toContain("Ángulo 1: «No es la lavadora»");
   });
 
@@ -103,11 +103,10 @@ describe("guion: el gancho sale de la tríada", () => {
 });
 
 describe("guion: tamaño de los esquemas", () => {
-  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»): ni el guion ni el
-  // plan de tomas pueden pasar el del cliente ideal, que funciona en producción.
-  it("no son más grandes que el del cliente ideal", async () => {
+  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»).
+  it("no son más grandes que uno que ya funcionó en producción", async () => {
     const { toJSONSchema } = await import("zod/v4");
-    const { avatarStepSchema } = await import("@/lib/ai/schemas");
+    const { PROVEN_GRAMMAR_SIZE } = await import("@/lib/ai/limits");
     const { scriptLinesSchema, ugcPlanSchema, mascotPlanSchema } = await import("./schemas");
     const size = (schema: unknown) => {
       let n = 0;
@@ -121,6 +120,6 @@ describe("guion: tamaño de los esquemas", () => {
       walk(schema);
       return n;
     };
-    for (const s of [scriptLinesSchema, ugcPlanSchema, mascotPlanSchema]) expect(size(toJSONSchema(s))).toBeLessThanOrEqual(size(toJSONSchema(avatarStepSchema)));
+    for (const s of [scriptLinesSchema, ugcPlanSchema, mascotPlanSchema]) expect(size(toJSONSchema(s))).toBeLessThanOrEqual(PROVEN_GRAMMAR_SIZE);
   });
 });

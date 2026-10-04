@@ -7,7 +7,7 @@
 // - la ley es la del país (consumerAuthority), además de las políticas de Meta.
 // Puro. Regla de caché: el system depende solo del ángulo y del mercado; el producto va en el usuario.
 
-import { buyerLine, buyerVoice, marketAnchorLine, productFactLines, productFacts, proofLine, reviewQuotes, supplierText } from "@/lib/ai/context";
+import { buyerLine, buyerReasons, marketAnchorLine, productFactLines, productFacts, proofLine, reviewQuotes, supplierText } from "@/lib/ai/context";
 import { promptLimit } from "@/lib/ai/limits";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
@@ -78,8 +78,8 @@ function eventLine(e: UpcomingEvent, today: string): string {
 
 /**
  * El contexto del experto: lo que dice el proveedor tal cual (para que lo critique), lo comprobado, una
- * línea de quién compra, el precio, las fechas y lo que ya propuso. Sin los momentos ni las frases del
- * cliente ideal: los usan después los agentes de cada ángulo. Lo fijo: va con punto de caché.
+ * línea de quién compra, el precio, las fechas y lo que ya propuso. Sin el porqué ni las dudas de quien
+ * compra: los usan después los agentes de cada ángulo. Lo fijo: va con punto de caché.
  */
 export function angleIdeasContext(c: AngleContext): string {
   const today = c.today ?? new Date().toISOString().slice(0, 10);
@@ -182,20 +182,18 @@ function competitorLine(c: CompetitorAnalysis & { url: string }, i: number): str
   return `${i + 1}. ${c.store_name || host}${price} · ángulo: ${c.main_angle.pain_or_desire} → ${c.main_angle.promise} (para ${c.main_angle.segment}) · forma: ${ANGLES[c.frame]?.name ?? c.frame}${c.offer ? ` · oferta: ${c.offer}` : ""}`;
 }
 
-/** Frases de quien compra y reseñas que recibe el agente de ángulo (lib/ai/context.ts). */
-const BRIEF_VOICE_LINES = 5;
+/** Reseñas que recibe el agente de ángulo para citar (lib/ai/context.ts). */
 const BRIEF_REVIEWS = 3;
 
 /**
  * El contexto del agente de ángulo, en texto corto (docs/spec-prompts-simples.md §8): los hechos, lo que
- * el comprador usa hoy, las pruebas (con 3 reseñas para citar), quién compra con 5 de sus frases y sus
- * dudas, el precio, el diferenciador y la competencia. Sin la ficha ni el cliente ideal en JSON.
+ * el comprador usa hoy, las pruebas (con 3 reseñas para citar), quién compra con su porqué y sus dudas,
+ * el precio, el diferenciador y la competencia. Sin la ficha ni el cliente ideal en JSON, y sin escenas
+ * ni frases del comprador (spec-prompts-simples §14): las escribe el agente para su ángulo.
  */
 export function briefContext(c: AngleContext): string[] {
   const b = c.brief;
-  const a = c.avatar;
   const reviews = reviewQuotes(c.reviews ?? b.proof?.real_reviews ?? [], BRIEF_REVIEWS);
-  const doubts = [a.objections?.main_objection, a.objections?.cash_on_delivery_concerns].filter((t) => t?.trim());
   return [
     productFacts(b),
     ...(b.alternatives_already_tried?.length ? [`Lo que el comprador usa hoy y le falla: ${b.alternatives_already_tried.join("; ")}`] : []),
@@ -206,10 +204,8 @@ export function briefContext(c: AngleContext): string[] {
     `GARANTÍA: ${b.proof?.guarantee_days ? `${b.proof.guarantee_days} días` : "ninguna (el cierre es el pago contra entrega)"}`,
     `FECHA REAL: ${b.real_deadline_or_event?.trim() || "ninguna (sin urgencia)"}`,
     "",
-    buyerLine(a),
-    "Cómo lo dice:",
-    ...buyerVoice(a, BRIEF_VOICE_LINES).map((v) => `- «${v}»`),
-    ...(doubts.length ? ["Sus dudas:", ...doubts.map((d) => `- ${d}`)] : []),
+    buyerLine(c.avatar),
+    ...buyerReasons(c.avatar),
     "",
     pricingBlock(c.pricing, c.labels),
     "",

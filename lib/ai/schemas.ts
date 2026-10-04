@@ -7,8 +7,8 @@ import * as z from "zod/v4";
 
 /** Bump cuando cambie el prompt o el esquema de la ficha. */
 export const PRODUCT_BRIEF_PROMPT_VERSION = 9;
-/** Bump cuando cambie el prompt o el esquema del cliente ideal. */
-export const CUSTOMER_AVATAR_PROMPT_VERSION = 5;
+/** Bump cuando cambie el prompt o el esquema del cliente ideal. 6: la pregunta del experto, sin perfil narrativo (spec-prompts-simples §14). */
+export const CUSTOMER_AVATAR_PROMPT_VERSION = 6;
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -90,137 +90,63 @@ export const differentiatorSchema = z.object({
 export type Differentiator = z.infer<typeof differentiatorSchema>;
 
 // ---------------------------------------------------------------- Cliente ideal
-// El avatar psicológico de dropflex base (docs/prompt-avatar.md: 7 secciones + fórmula), con lo que
-// le faltaba para decidir ángulos y segmentar: demografía, nivel de consciencia (Schwartz),
-// sofisticación, momentos detonantes, dudas del pago contra entrega y frases con sus palabras.
-
-export const AWARENESS_LEVELS = ["unaware", "problem_aware", "solution_aware", "product_aware", "most_aware"] as const;
+// Desde la versión 6 (docs/spec-prompts-simples.md §14) es lo que contesta un experto a «¿quién compra
+// este producto, quién lo usa y por qué?»: personas y motivos, sin nombre, escenas ni frases inventadas.
+// El perfil de antes (la fórmula de dropflex base, los momentos detonantes y «cómo lo dice») llegaba a
+// los ángulos, los ganchos y la página, que copiaban sus escenas y sus frases textuales: el chat, sin
+// cliente ideal, escribía mejores ganchos (audífono, 2026-10-04).
 
 export const customerAvatarSchema = z.object({
-  name: text.describe("Nombre de pila creíble en el país del mercado y en su generación, pero no el más repetido: evita el primero que se te ocurra."),
-  summary: text.describe("Quién es, en una frase: «Andrés, 38, oficinista que pasa 9 horas sentado…»."),
-  demographics: z.object({
-    age_range: text,
-    gender: z.enum(["female", "male", "any"]),
-    // Los avatares de antes de la versión 5 no la traen.
-    gender_reason: text
-      .default("")
-      .describe("Por qué es mujer, hombre o cualquiera, en una frase y con el dato de la ficha que lo sostiene (target_audience.gender, el uso del producto, las reseñas, lo que escribió el comerciante)."),
-    location: text.describe("Dónde vive dentro del país (ciudad grande, regiones…)."),
-    socioeconomic_level: text,
-    occupation_or_role: text,
-  }),
-  awareness_level: z.enum(AWARENESS_LEVELS).describe("Nivel de consciencia del mercado (Eugene Schwartz) frente a este producto."),
-  awareness_reason: text,
-  market_sophistication: z.number().int().describe("De 1 a 5: cuántas promesas parecidas ya vio este comprador."),
-  sophistication_reason: text,
-  identity: z.object({ current_identity: text, desired_identity: text, lifestyle: text }),
-  priorities: z.object({ primary_focus: text, secondary_priorities: text, long_term_outcome: text, immediate_outcome: text }),
-  problems: z.object({
-    main_problem: text.describe("El obstáculo externo evidente, con sus palabras."),
-    underlying_problem: text.describe("El problema que nace del principal (emocional, de identidad)."),
-    current_frustration: text,
-    trigger_moments: z.array(text).describe("3 a 5 escenas concretas y observables en que siente el problema (el filtro del gancho)."),
-  }),
-  emotions: z.object({ fears: text, secret_desires: text, core_motivation: text }),
-  objections: z.object({
-    critical_question: text,
-    main_objection: text,
-    common_excuses: text,
-    cash_on_delivery_concerns: text.describe("Qué le preocupa de comprar a una tienda online que no conoce y cómo el pago contra entrega lo calma."),
-  }),
-  enemies: z.object({ external_enemy: text, internal_enemy: text }),
-  vision: z.object({ future_vision: text, number_one: text }),
-  voice_of_customer: z.array(text).describe("4 a 6 frases en primera persona, como las diría en un comentario o a un amigo."),
-  formula: text.describe("La Fórmula del Cliente Ideal completa, siguiendo la plantilla del sistema."),
+  summary: text.describe("Quién compra y, si es otra persona, quién lo usa, en una frase y sin escenas: «Hijas e hijos de 40 a 55 que se lo compran a su papá o mamá que ya no escucha bien»."),
+  buyer: text.describe("Quién compra: edad, para quién y por qué es quien paga."),
+  user: text.describe("Quién lo usa, si no es quien compra; vacío si es la misma persona."),
+  age_range: text.describe("La edad de quien compra («40-55»)."),
+  why_buy: text.describe("Por qué lo compraría, en 1 o 2 frases."),
+  doubts: z.array(text).describe("2 a 4 dudas que lo frenan, también las de comprarle a una tienda que no conoce."),
+  cash_on_delivery: text.describe("Cómo lo calma el pago contra entrega, en una frase."),
+  more_than_one: text.describe("Por qué llevaría más de una unidad (regalar, la pareja, repuesto, uso diario), o vacío si no hay un motivo real."),
 });
 
 export type CustomerAvatar = z.infer<typeof customerAvatarSchema>;
-export type AwarenessLevel = (typeof AWARENESS_LEVELS)[number];
 
-export const AWARENESS_LABEL: Record<AwarenessLevel, string> = {
-  unaware: "No sabe que tiene el problema",
-  problem_aware: "Siente el problema, no conoce soluciones",
-  solution_aware: "Conoce soluciones, no la tuya",
-  product_aware: "Conoce productos como el tuyo",
-  most_aware: "Solo espera una buena oferta",
-};
+/** Un perfil de antes de la versión 6, con lo que se sigue leyendo. */
+interface LegacyAvatar {
+  summary?: string;
+  demographics?: { age_range?: string };
+  problems?: { main_problem?: string };
+  emotions?: { core_motivation?: string };
+  objections?: { critical_question?: string; main_objection?: string; cash_on_delivery_concerns?: string };
+}
 
-export const GENDER_LABEL = { female: "Mujer", male: "Hombre", any: "Cualquiera" } as const;
-
-/** Rótulos en español de cada campo narrativo, en el orden en que se muestran. */
-export const AVATAR_SECTIONS: { key: keyof CustomerAvatar; title: string; fields: [string, string][] }[] = [
-  {
-    key: "identity",
-    title: "Identidad",
-    fields: [
-      ["current_identity", "Cómo se ve hoy"],
-      ["desired_identity", "Quién quiere ser"],
-      ["lifestyle", "Su día a día"],
-    ],
-  },
-  {
-    key: "problems",
-    title: "Problemas",
-    fields: [
-      ["main_problem", "Problema principal"],
-      ["underlying_problem", "Problema de fondo"],
-      ["current_frustration", "Lo que lo frustra hoy"],
-    ],
-  },
-  {
-    key: "emotions",
-    title: "Emociones",
-    fields: [
-      ["fears", "Miedos"],
-      ["secret_desires", "Deseos que no dice"],
-      ["core_motivation", "Lo que lo mueve"],
-    ],
-  },
-  {
-    key: "objections",
-    title: "Objeciones",
-    fields: [
-      ["critical_question", "La pregunta que necesita resolver"],
-      ["main_objection", "Objeción principal"],
-      ["common_excuses", "Excusas"],
-      ["cash_on_delivery_concerns", "Pago contra entrega"],
-    ],
-  },
-  {
-    key: "priorities",
-    title: "Prioridades",
-    fields: [
-      ["primary_focus", "Lo que ocupa su cabeza"],
-      ["secondary_priorities", "Otras prioridades"],
-      ["immediate_outcome", "Lo que quiere ya"],
-      ["long_term_outcome", "Lo que quiere a largo plazo"],
-    ],
-  },
-  {
-    key: "enemies",
-    title: "Enemigos",
-    fields: [
-      ["external_enemy", "A quién culpa"],
-      ["internal_enemy", "Lo que lo frena de sí mismo"],
-    ],
-  },
-  {
-    key: "vision",
-    title: "Visión",
-    fields: [
-      ["future_vision", "Cómo se ve con el problema resuelto"],
-      ["number_one", "Lo que más quiere"],
-    ],
-  },
-];
+/**
+ * El cliente ideal guardado, de cualquier versión. Los perfiles de antes (con fórmula, momentos y frases)
+ * se leen con lo que sirve: su resumen, su edad, lo que lo mueve y sus dudas. Su resumen todavía puede
+ * traer una escena: «Volver a generar» lo reemplaza por uno nuevo.
+ */
+export function readAvatar(payload: unknown): CustomerAvatar {
+  const parsed = customerAvatarSchema.safeParse(payload);
+  if (parsed.success) return parsed.data;
+  const p = (payload ?? {}) as LegacyAvatar;
+  const o = p.objections ?? {};
+  const summary = p.summary?.trim() ?? "";
+  return {
+    summary,
+    buyer: summary,
+    user: "",
+    age_range: p.demographics?.age_range?.trim() ?? "",
+    why_buy: (p.emotions?.core_motivation || p.problems?.main_problem || "").trim(),
+    doubts: [o.main_objection, o.critical_question].map((t) => t?.trim() ?? "").filter(Boolean),
+    cash_on_delivery: o.cash_on_delivery_concerns?.trim() ?? "",
+    more_than_one: "",
+  };
+}
 
 // ---------------------------------------------------------------- Etiquetas de los packs
 // Salen en la misma llamada que el cliente ideal (ya tiene la ficha, el precio y quién compra), pero
 // se guardan y se aprueban aparte (pack_labels): aceptar una no obliga a revisar la otra.
 
-/** Bump cuando cambie el prompt o el esquema de las etiquetas. */
-export const PACK_LABELS_PROMPT_VERSION = 1;
+/** Bump cuando cambie el prompt o el esquema de las etiquetas. 2: el contexto en texto corto (sin la ficha ni el cliente ideal en JSON). */
+export const PACK_LABELS_PROMPT_VERSION = 2;
 
 export const PACK_LABEL_BASES = ["duration", "sharing", "spare", "gift", "savings", "other"] as const;
 

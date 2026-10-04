@@ -2,6 +2,8 @@
 // Regla de caché (prefijo estable): el system prompt no cambia entre productos de un mismo mercado;
 // todo lo del producto va en el mensaje del usuario.
 
+import { buyerLine, productFacts, proofLine, supplierText } from "@/lib/ai/context";
+import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
 import { countryInfo, languageName, type Market } from "@/lib/market";
 import { money } from "@/lib/format";
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -121,12 +123,11 @@ export function packLabelsSystem(market: Market): string {
   ].join("\n");
 }
 
-export function packLabelsUser(briefJson: string, avatarJson: string | null, pricing: PricingPlan, previous: string[]): string {
+export function packLabelsUser(brief: ProductBrief, avatar: CustomerAvatar | null, pricing: PricingPlan, previous: string[]): string {
   return [
-    "FICHA DE PRODUCTO",
-    briefJson,
+    productFacts(brief),
+    ...(avatar ? ["", buyerLine(avatar), ...(avatar.more_than_one ? [`Por qué llevaría más de uno: ${avatar.more_than_one}`] : [])] : []),
     "",
-    ...(avatarJson ? ["CLIENTE IDEAL", avatarJson, ""] : []),
     pricingBlock(pricing),
     "",
     ...(previous.length ? [`El comerciante pidió otras etiquetas. No repitas estas: ${previous.map((l) => `«${l}»`).join(", ")}.`, ""] : []),
@@ -135,57 +136,35 @@ export function packLabelsUser(briefJson: string, avatarJson: string | null, pri
 }
 
 // ---------------------------------------------------------------- Cliente ideal
-
-/** La plantilla de docs/prompt-avatar.md (dropflex base), que allá se nombraba pero no se enviaba. */
-const FORMULA_TEMPLATE = [
-  "El nombre de mi cliente ideal es [NOMBRE].",
-  "[NOMBRE] es un [IDENTIDAD ACTUAL] que vive una rutina [ESTILO DE VIDA] y sueña con ser [IDENTIDAD DESEADA].",
-  "Actualmente se enfoca en [ÁREA DE ENFOQUE], aunque también prioriza [PRIORIDADES SECUNDARIAS].",
-  "En última instancia quiere [RESULTADO A LARGO PLAZO], pero estaría encantado si pudiera lograr [RESULTADO INMEDIATO] ahora mismo.",
-  "Para avanzar necesita resolver [PROBLEMA PRINCIPAL], pero también enfrenta [PROBLEMA DE FONDO], lo que lo frustra porque [FRUSTRACIÓN ACTUAL].",
-  "Aunque lo mueve [MOTIVACIÓN PRINCIPAL], sus miedos como [MIEDOS] y dudas como [OBJECIÓN PRINCIPAL] lo frenan. Sigue buscando respuesta a esta pregunta: [PREGUNTA CRÍTICA].",
-  "[NOMBRE] cree que [ENEMIGO EXTERNO] es responsable de sus problemas, pero también se enfrenta a [ENEMIGO INTERNO], que lo limita aún más.",
-  "Al final del día, [NOMBRE] solo quiere [NÚMERO 1] para vivir la vida que sueña: [VISIÓN DEL FUTURO].",
-].join("\n");
+// La pregunta de un experto con poco contexto (docs/spec-prompts-simples.md §14), como el orquestador de
+// ángulos v9: quién compra, quién usa y por qué, sin nombre, escenas ni frases. Lo que escriba aquí llega
+// a todos los pasos siguientes; una escena inventada terminaba copiada en los ganchos.
 
 export function customerAvatarSystem(market: Market): string {
   return [
-    "Eres un estratega de respuesta directa especializado en perfiles de comprador. A partir de la ficha de un producto defines a su cliente ideal: la persona concreta a la que le hablarán los anuncios, la página del producto y los textos. De este perfil salen después los ángulos de venta (autoridad, enemigo común, mecanismo único, edad e identidad, historia personal, oferta), así que tiene que servir para decidir, no para decorar.",
+    "Eres un experto en ventas en formato AIDA: escribes anuncios para Facebook, Instagram y TikTok en Latinoamérica, donde se vende con pago contra entrega. Antes de pensar ángulos defines a quién se le vende.",
+    "",
+    "- Quien compra y quien usa a veces no son la misma persona (un regalo, el papá, la mascota).",
+    "- Personas y motivos, no escenas: sin nombre, sin anécdotas y sin frases inventadas de lo que diría. Las escenas y los ganchos se escriben después, para cada ángulo.",
+    "- Los hechos del producto son los de la ficha; quién compra y por qué es tu criterio de experto.",
     "",
     marketBlock(market),
-    "",
-    "QUÉ HACE BUENO A ESTE PERFIL",
-    "- Es una persona, no un segmento: un nombre, una edad, una rutina, escenas concretas. Si la mitad de la gente se reconociera en una frase, esa frase es demasiado amplia: afílala.",
-    "- El género lo fija la ficha (target_audience.gender). Si dice any, elige hombre o mujer solo si un dato de la ficha muestra que uno de los dos siente más el problema o compra más; si no, deja any (la persona igual tiene nombre, pero los anuncios le hablarán a ambos). Nunca elijas por la categoría ni por quién suele comprar en tiendas online. Di por qué en demographics.gender_reason.",
-    "- El nombre: creíble en el país y en su generación, pero no el más repetido. Evita el primero que se te ocurra.",
-    "- trigger_moments son escenas observables (la camisa arrugada justo antes de salir, el dolor al tercer café en el escritorio), porque de ahí sale el gancho que filtra a quien sí compra.",
-    "- El problema de fondo y las emociones explican por qué compraría, y las objeciones por qué no. Incluye las dudas de comprar a una tienda online que no conoce y cómo el pago contra entrega las calma.",
-    "- awareness_level y market_sophistication se juzgan frente a este producto en este país, con su razón en una frase.",
-    "- voice_of_customer son frases en primera persona, como las escribiría en un comentario: coloquiales, sin marketing.",
-    "- Cada campo narrativo va en 1 a 3 frases. Mejor preciso que largo.",
-    "",
-    "LÍMITES",
-    "- La ficha manda sobre los hechos: no inventes especificaciones, precios, reseñas ni resultados. Lo que infieras sobre la persona es criterio de estratega.",
-    "- Este perfil es interno (lo lee el comerciante para aprobarlo): puedes nombrar condiciones o edades. Quien escriba los anuncios se encargará de no afirmar atributos personales en segunda persona.",
-    "",
-    "FÓRMULA DEL CLIENTE IDEAL (campo formula): un párrafo que sigue esta plantilla, con los corchetes reemplazados por lo que definiste y la concordancia de género correcta:",
-    FORMULA_TEMPLATE,
     "",
     ...PACK_LABEL_RULES,
   ].join("\n");
 }
 
-export function customerAvatarUser(briefJson: string, baseInfo: string, pricing: PricingPlan): string {
+export function customerAvatarUser(brief: ProductBrief, baseInfo: string, pricing: PricingPlan): string {
   return [
-    "FICHA DE PRODUCTO",
-    briefJson,
+    productFacts(brief),
+    ...(brief.alternatives_already_tried?.length ? [`Lo que ya usa quien tiene el problema: ${brief.alternatives_already_tried.join("; ")}`] : []),
+    proofLine(brief),
+    "",
+    "Lo que dice el proveedor, tal cual:",
+    supplierText(baseInfo),
     "",
     pricingBlock(pricing),
-    "Usa el precio, el tachado y los packs para juzgar cuánto le duele pagar y qué objeciones de precio tendría. La oferta principal es el pack: define por qué esta persona llevaría más de una unidad (para regalar, para la pareja o la familia, repuesto, uso diario, stock) y qué la convence de hacerlo.",
     "",
-    "LO QUE EL COMERCIANTE ESCRIBIÓ (contexto original; la ficha ya lo ordenó)",
-    baseInfo.trim() || "(vacío)",
-    "",
-    "Define al cliente ideal de este producto.",
+    "¿Quién compra este producto, quién lo usa y por qué? Y escribe las etiquetas de los packs.",
   ].join("\n");
 }

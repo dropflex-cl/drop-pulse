@@ -50,7 +50,7 @@ export const painBlock = defineComponent({
             title: text("title").pipe(z.string().min(8).max(40))
               .describe("La escena en pocas palabras, sin punto final. Ej.: «La cara tirante a las siete»."),
             text: text("text").pipe(z.string().min(30).max(160))
-              .describe("1 o 2 oraciones en primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»), con las palabras del cliente ideal."),
+              .describe("1 o 2 oraciones en primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»), con palabras de todos los días."),
           }),
         )
         .length(3)
@@ -67,8 +67,8 @@ export const painBlock = defineComponent({
   realData: ["Ninguno: es solo texto. No lleva cifras, plazos ni tokens de la tienda."],
   rules: [
     "Primera persona («me lavo la cara y a media mañana…») o tercera («quienes ya usan crema…»); nunca la segunda persona para describir el problema.",
-    "Las palabras y las escenas salen del cliente ideal (voice_of_customer y trigger_moments); nada de contexto inventado.",
-    "Cada momento le hace puente a un ángulo de venta distinto (slot 1, 2 y 3). Si hay menos ángulos, el que falta sale de los momentos del cliente ideal.",
+    "Cada momento sale del argumento de venta (el momento de su ángulo); nada de contexto inventado.",
+    "Cada momento le hace puente a un ángulo de venta distinto (slot 1, 2 y 3). Si hay menos ángulos, el que falta es el momento extra del argumento.",
     "Título del momento: la escena en 3 a 6 palabras, concreta y sin punto final.",
     "El remate (bridge) lleva al diferenciador del producto (qué faltaba), no a la oferta, al precio ni al pago al recibir.",
     "Sobrio y cercano: sin exclamaciones, sin mayúsculas sostenidas, sin dramatizar.",

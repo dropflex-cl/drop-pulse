@@ -5,7 +5,7 @@ import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { recordAiGeneration } from "@/lib/ai/track";
-import type { CustomerAvatar } from "@/lib/ai/schemas";
+import { readAvatar } from "@/lib/ai/schemas";
 import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
 import { getDifferentiator } from "@/lib/competitors/store";
@@ -195,7 +195,7 @@ export async function runPageImages(runId: string): Promise<void> {
 
     const ctx: PageImagesContext = {
       brief,
-      avatar: avatarRow.data.payload as CustomerAvatar,
+      avatar: readAvatar(avatarRow.data.payload),
       angles,
       differentiator: differentiator.value,
     };

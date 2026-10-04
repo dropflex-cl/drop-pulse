@@ -220,8 +220,8 @@ export function artProblems(concepts: ConceptPayload[], kit: string[], facts: Pi
 
 // ---------------------------------------------------------------- Chat de WhatsApp (lib/creatives/chat.ts)
 
-/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). 3: el gancho puede partir de los del ángulo (lib/hooks). 4: el contexto corto de lib/ai/context.ts, sin la ficha ni el cliente ideal en JSON. */
-export const CHAT_PROMPT_VERSION = 4;
+/** Bump cuando cambie el prompt o el esquema del chat. 2: los largos con margen (CHAT_MESSAGE_PROMPT_MAX). 3: el gancho puede partir de los del ángulo (lib/hooks). 4: el contexto corto de lib/ai/context.ts, sin la ficha ni el cliente ideal en JSON. 5: sin las frases del cliente ideal (spec-prompts-simples §14). */
+export const CHAT_PROMPT_VERSION = 5;
 
 const chatTime = z.string().describe("«HH:MM», 24 h.");
 

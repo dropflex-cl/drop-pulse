@@ -3,7 +3,7 @@ import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { pageImageCounts } from "@/lib/page-images/store";
 import { AiStepError } from "@/lib/ai/claude";
 import { recordAiGeneration } from "@/lib/ai/track";
-import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
 import { anglesForPrompt, fail } from "@/lib/angles/store";
 import { getDifferentiator } from "@/lib/competitors/store";
@@ -204,7 +204,7 @@ export async function runCopy(runId: string): Promise<void> {
     let argument = mode.kind === "all" ? null : await reusableArgument(r);
     if (!argument) {
       step = "page_argument";
-      const avatar = avatarRow.data.payload as CustomerAvatar;
+      const avatar = readAvatar(avatarRow.data.payload);
       const wrote = await writeArgument({
         auth: { userId: r.user_id },
         ctx: { brief, avatar, pricing: input.pricing, labels: input.labels ?? undefined, angles, differentiator: differentiator.value, reviews: reviews.map(displayText), policies: policiesBlock(policies) },

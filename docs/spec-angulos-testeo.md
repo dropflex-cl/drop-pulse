@@ -188,9 +188,9 @@ La regla del ángulo principal (línea 51) se reemplaza por:
 1. **Común a los ángulos:** la página recibe tráfico de 3 anuncios distintos. Quien llega desde cualquiera debe reconocer en la primera pantalla lo que su anuncio le prometió. Ningún ángulo se adueña de la página, y tampoco se vuelve genérica («para todo tipo de piel», «cuidado facial»).
 2. **El diferenciador manda** en el título, la descripción corta y los títulos de sección.
 3. **Cada ángulo aporta al menos un bloque** visible (beneficio, razón, pregunta o momento), sin nombrarlo como ángulo.
-4. **Dolor antes que producto:** el bloque de dolor usa los momentos del cliente ideal, con sus palabras.
+4. **Dolor antes que producto:** el bloque de dolor usa un momento por ángulo, el que escribe el argumento de venta (desde el cliente ideal v6 no hay momentos del cliente ideal: `docs/spec-prompts-simples.md` §14).
 5. **Valor por sobre confianza:** el pago al recibir y el envío los cubren los componentes de compra. En `image-with-benefits`, `stats-with-image`, `comparison-table` y `gif-strip` va el producto: resultado, uso y diferencia frente a lo que ya probó.
-6. **El tono lo define el cliente ideal:** el registro de la página sale del cliente ideal aprobado, no del precio. Se toma de `demographics.socioeconomic_level`, `identity.lifestyle`, `market_sophistication` y `voice_of_customer`: cómo habla, qué le da confianza y cuántas promesas ya vio. Con sofisticación 3 o más, nada de exageraciones ni superlativos: descuenta el efecto milagro y le convencen los datos concretos. En ningún caso se escriben «viral», «increíble», mayúsculas sostenidas ni urgencia sin dato real (esto último ya es regla).
+6. **El tono lo define el cliente ideal:** el registro de la página sale del cliente ideal aprobado, no del precio. Se toma de quién compra, por qué y qué lo frena (cliente ideal v6; hasta la versión 5, de `demographics.socioeconomic_level`, `identity.lifestyle`, `market_sophistication` y `voice_of_customer`). Con sofisticación 3 o más, nada de exageraciones ni superlativos: descuenta el efecto milagro y le convencen los datos concretos. En ningún caso se escriben «viral», «increíble», mayúsculas sostenidas ni urgencia sin dato real (esto último ya es regla).
 7. **Nada de contexto inventado:** los escenarios de uso salen del cliente ideal o de la ficha. La POC escribió «cuando el aire acondicionado te reseca la cara», que no estaba en ninguna parte.
 
 Otros consumidores del «ángulo principal»: los textos de Eventos (`event_copy`, «mantiene el ángulo principal») pasan a mantener el **diferenciador**, y la etapa Imágenes (beneficios `benefit-1…3`, que hoy salen «de la ficha y los ángulos») toma un beneficio por ángulo.
@@ -221,7 +221,7 @@ content: z.object({
 }).superRefine(/* un momento por slot */),
 ```
 
-- **Reglas:** primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»). Las palabras salen de `voice_of_customer` y `trigger_moments`. Nada de afirmaciones de salud; el remate lleva al diferenciador, no a la oferta.
+- **Reglas:** primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»). Cada momento sale del argumento de venta (hasta el cliente ideal v5, de `voice_of_customer` y `trigger_moments`). Nada de afirmaciones de salud; el remate lleva al diferenciador, no a la oferta.
 - **Prohibido:** diagnosticar al lector («tienes la piel deshidratada»), cifras, plazos, promesas de resultado y dramatizar al punto de humillar («tu cara se ve vieja»).
 - **Piezas:** `sections/df-pain-block.liquid` (con autoprotección y tokens `--df-*`, como el resto), `README.md`, entrada en `catalog.ts`, preview React en la etapa Página, clave en `lib/shopify/publish/mapping.ts`, lugar en `templates/product.json` del kit y nueva versión del kit.
 - **Ejemplo** (salida de la POC, §8):
@@ -254,7 +254,7 @@ content: z.object({
 
 ### 5.7 Compatibilidad con los 2 ángulos de hoy
 
-Mientras no esté la Fase 3, la página usa los 2 desarrollos aprobados como `slot` 1 y 2. El tercer momento del bloque de dolor sale de `trigger_moments` del cliente ideal, sin ángulo asociado. Así, la Fase 2 puede salir antes.
+Mientras no esté la Fase 3, la página usa los 2 desarrollos aprobados como `slot` 1 y 2. El tercer momento del bloque de dolor es el momento extra del argumento de venta, sin ángulo asociado. Así, la Fase 2 puede salir antes.
 
 Cuando llegue la Fase 3, los productos con 2 desarrollos aprobados **no se bloquean**: Página, Imágenes y Creativos siguen funcionando con 2 ángulos. Ángulos muestra «Agrega un tercer ángulo para testear» como sugerencia, no como requisito.
 

@@ -373,7 +373,7 @@ export async function anglesState(uid: string, productId: string): Promise<Angle
     avatar: a
       ? {
           summary: a.summary,
-          tags: [a.demographics.age_range, a.demographics.occupation_or_role, a.demographics.location].map((t) => t?.trim()).filter(Boolean).slice(0, 3),
+          tags: [a.age_range.trim()].filter(Boolean).map((t) => (/año/.test(t) ? t : `${t} años`)),
           approved: avatar.status === "approved",
         }
       : undefined,

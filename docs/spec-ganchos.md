@@ -9,9 +9,9 @@ Es un paso propio (`angle_hooks`), no una sección del agente de ángulo:
 ```
 angulo-<forma> (effort high) → el desarrollo, SIN ganchos
         ▼
-agente de ganchos (effort medium, foto base + hechos + ángulo + 5 frases de quien compra) → 10 tríadas ordenadas (rank) y diagnóstico
+agente de ganchos (effort medium, foto base + hechos + quién compra + ángulo) → 10 tríadas ordenadas (rank) y diagnóstico
         ▼
-normalizeHooks (código) → material real que falta, real_footage, citas válidas, orden 1–10
+normalizeHooks (código) → material real que falta, real_footage, orden 1–10
         ▼
 crítico (effort low, solo lo que se ve y se oye) → su orden y qué entendió sin sonido; si detiene a < 4, una reescritura
         ▼                                                                           → angle_briefs.payload.hooks
@@ -33,8 +33,8 @@ video (UGC y mascota) · estáticos · chat · texto del anuncio
 | `on_screen` | Texto en pantalla (≤ 6 palabras), legible sin sonido |
 | `visual_first_3s` | La primera toma concreta |
 | `silent_read` | Qué se entiende en 1 s sin sonido (versión 4) |
-| `source_quote` | La frase de quien compra de la que parte, textual, o null (versión 4; desde la 6 es opcional y el código la quita si no está o no se usa) |
-| `delivery` | Cómo se dice (`HOOK_DELIVERIES`: confidencia, intriga, sorpresa, indignación contenida, seco, juguetón); manda en la voz de A1 (versión 4) |
+| `source_quote` | La frase de quien compra de la que parte, textual, o null (versiones 4 a 6; desde la 7 no hay frases del comprador: se sigue leyendo) |
+| `delivery` | Cómo se dice (`HOOK_DELIVERIES`: confidencia, intriga, sorpresa, indignación contenida, seco, juguetón); manda en la voz de A1 (versión 4). Desde la 7 es un enum en la salida estructurada |
 | `scores` | Saliencia, relevancia, tensión y credibilidad, de 1 a 5 (versiones 1 a 5; desde la 6 no se piden: ordena el crítico) |
 | `promises_only_what_arrives` | Lo que promete es lo que llega en la caja (versiones 4 y 5) |
 | `rank` | Su lugar, de 1 a 10: el del crítico o, si no corrió, el del agente. Los ganchos se guardan en ese orden (versión 4) |
@@ -54,7 +54,6 @@ El recomendado (`recommended_hook`) es el primero que se puede usar (`isUsable`)
 
 - Confesión y respuesta a comentario sin reseñas reales, Autoridad sin experto real y Bastidores siempre: si el agente no dijo qué material falta, lo dice el código (`REAL_MATERIAL_NOTE`).
 - Lo que pide material real abre con `real_footage`.
-- Una cita (`source_quote`) que no está textual entre las frases de quien compra (sin contar tildes, mayúsculas ni signos, `quoteFound`) o que el gancho no usa (al menos 2 de sus palabras de 4 letras o más) se quita.
 - `rank` se numera de 1 a 10 sin empates, en el orden que dio el agente.
 
 **Lo que hay que volver a escribir** (`hookProblems`):
@@ -108,9 +107,15 @@ Lo generado antes no cambia solo: se rehace con «Otros ganchos» y después «O
 2. **El contexto** sale de `lib/ai/context.ts`: los hechos del producto, las pruebas, una línea de quién compra, el diferenciador, el precio, el ángulo (`angleLine`: título, gancho, a quién le habla, tono y ancla) con su idea central, los otros ángulos y 5 frases de quien compra (`buyerVoice`). Ni la ficha ni el cliente ideal en JSON, ni el desarrollo entero.
 3. **La pregunta**: «10 ganchos para video que detengan el scroll: al menos 3 son el gancho del ángulo dicho para video; los demás, otras entradas a la misma idea».
 4. **La versión de mascota sale**: la escribe el guion de mascota, que ya valida la silueta. La lista de ganchos deja de mostrar «También mascota»; la apertura de la mascota se ve en Videos › Mascota (decisión del comerciante, 2026-10-04).
-5. **Citas opcionales** (decisión del comerciante, 2026-10-04): «puede citar», sin cuota. Se mide cuántos citan con `npm run ai:metrics -- --step angle_hooks`.
+5. **Citas opcionales** (decisión del comerciante, 2026-10-04): «puede citar», sin cuota. En la versión 7 las frases del comprador salen del todo (ver abajo).
 6. **El esquema** se queda con lo que alguien lee; el código arregla lo que es regla (`normalizeHooks`).
 7. **El crítico no cambia.**
+
+## Sin frases del comprador (versión 7, 2026-10-04)
+
+**Por qué** (`docs/spec-prompts-simples.md` §14). La primera corrida de la versión 6 en producción (el audífono, 2026-10-04) se alejó de los ganchos del chat: en el ángulo 1, la mitad copiaba frases y escenas del cliente ideal («Mi papá tiene el tele a todo chancho», «sonríe medio segundo tarde»), y en el ángulo de CyberMonday la mayoría volvía al dolor del ángulo 1. El chat no tenía cliente ideal. Además, 4 de 6 intentos se rechazaron por dos reglas que el prompt no decía: `delivery` escrito libre («Confesión cansada, luego decisión») y la segunda frase de más de 9 palabras. El ángulo 3 quedó sin ganchos.
+
+**Qué cambió.** Sin las 5 frases de quien compra ni `source_quote` (el código ya no revisa citas); sin modismos (solo cabían en una cita). `delivery` es un enum de la salida estructurada y el prompt dice el tope de la segunda frase (`FOLLOW_UP_PROMPT_WORDS`). El crítico ve a quien compra con su porqué y sus dudas, no con frases (`HOOK_CRITIC_PROMPT_VERSION` 2).
 
 Comparación a ciegas: `scripts/eval-hooks.ts` con un fixture cuyos desarrollos traigan los ganchos guardados deja las dos listas como A y B (`ciegas-slot-N.md`) y la clave aparte.
 
@@ -120,4 +125,4 @@ Cada gancho muestra el hablado (y la segunda frase), el patrón y el texto en pa
 
 ## Versiones
 
-`HOOKS_PROMPT_VERSION` (2: la primera toma y la versión de mascota; 4: detener el scroll; 6: prompt corto, sin mascota ni cuotas), `HOOK_CRITIC_PROMPT_VERSION` (1), `ANGLE_ROUTER_PROMPT_VERSION` (8: el gancho de 14 palabras), `ANGLE_BRIEF_PROMPT_VERSION` (5: sin ganchos), `UGC_PROMPT_VERSION` y `MASCOT_PROMPT_VERSION` (8: A1 abre con la frase del gancho; mascota 9: dice el gancho a su manera), `CREATIVES_PROMPT_VERSION` (6) y `CHAT_PROMPT_VERSION` (3).
+`HOOKS_PROMPT_VERSION` (2: la primera toma y la versión de mascota; 4: detener el scroll; 6: prompt corto, sin mascota ni cuotas; 7: sin frases del comprador, `delivery` cerrado), `HOOK_CRITIC_PROMPT_VERSION` (2: el cliente ideal v6), `ANGLE_ROUTER_PROMPT_VERSION` (8: el gancho de 14 palabras), `ANGLE_BRIEF_PROMPT_VERSION` (5: sin ganchos), `UGC_PROMPT_VERSION` y `MASCOT_PROMPT_VERSION` (8: A1 abre con la frase del gancho; mascota 9: dice el gancho a su manera), `CREATIVES_PROMPT_VERSION` (6) y `CHAT_PROMPT_VERSION` (3).

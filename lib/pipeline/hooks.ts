@@ -10,7 +10,7 @@ import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { chosenAngles, fail, getBriefRow, type RankingRow } from "@/lib/angles/store";
 import { CRITIC_MIN_STOPS } from "@/lib/hooks/catalog";
 import { critiqueFor, hookCriticProblems, hookCriticSchema, hookCriticSystem, hookCriticUser, stopsCount, toHooksReview } from "@/lib/hooks/critic";
-import { hooksContextText, hooksSystem, hooksTail, hooksVoice, type HooksContext, type HooksCritique } from "@/lib/hooks/prompts";
+import { hooksContextText, hooksSystem, hooksTail, type HooksContext, type HooksCritique } from "@/lib/hooks/prompts";
 import { hookProblems, hooksOutputSchema, hooksToPayload, normalizeHooks, type HooksOutput, type HooksReview } from "@/lib/hooks/schemas";
 import { adminClient } from "@/lib/integrations/admin";
 import type { Market } from "@/lib/market";
@@ -93,7 +93,6 @@ export async function writeHooks(w: WriteHooksInput): Promise<WrittenHooks> {
     pricing: w.ctx.pricing,
     hasRealReviews: w.ctx.brief.proof.real_reviews.some((r) => r.trim()),
     hasRealExpert: Boolean(w.ctx.brief.proof.real_expert?.trim()),
-    buyerVoice: hooksVoice(hooksCtx),
     marketAmounts: w.angle.market_amounts,
   };
   const hasAngleHook = Boolean(w.angle.hook);

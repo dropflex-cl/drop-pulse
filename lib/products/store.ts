@@ -1,7 +1,7 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { baseFirst, pickBase } from "./base";
-import type { CustomerAvatar, ProductBrief } from "@/lib/ai/schemas";
+import { readAvatar, type CustomerAvatar, type ProductBrief } from "@/lib/ai/schemas";
 import type { AvatarProposal, ContentStatus, OptimizationRun, ReferenceImage, RunStatus } from "@/lib/types";
 
 // Lecturas y escrituras de productos, imágenes de referencia, corridas y propuestas. Siempre con
@@ -282,7 +282,7 @@ export async function latestAvatars(userId: string, productIds: string[]): Promi
     .order("created_at", { ascending: false });
   fail("Leer los clientes ideales", error);
   const map = new Map<string, AvatarRow>();
-  for (const r of (data ?? []) as AvatarRow[]) if (!map.has(r.product_id)) map.set(r.product_id, r);
+  for (const r of (data ?? []) as AvatarRow[]) if (!map.has(r.product_id)) map.set(r.product_id, { ...r, payload: readAvatar(r.payload) });
   return map;
 }
 
@@ -366,5 +366,5 @@ export function toRun(r: RunRow): OptimizationRun {
 }
 
 export function toProposal(r: AvatarRow): AvatarProposal {
-  return { id: r.id, status: toUiStatus(r.status), avatar: r.payload, createdAt: r.created_at, editedAt: r.edited_at ?? undefined };
+  return { id: r.id, status: toUiStatus(r.status), avatar: readAvatar(r.payload), createdAt: r.created_at, editedAt: r.edited_at ?? undefined };
 }

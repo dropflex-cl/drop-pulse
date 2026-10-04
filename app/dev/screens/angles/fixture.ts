@@ -305,7 +305,7 @@ export function fixture(state: string): ProductAngles {
       price: 24990,
       currency: "CLP",
     },
-    avatar: { summary: AVATAR.summary, tags: ["30-45 años", "Oficinista", "Santiago y otras ciudades grandes"], approved: state !== "locked" },
+    avatar: { summary: AVATAR.summary, tags: [`${AVATAR.age_range} años`], approved: state !== "locked" },
     ranking: r,
     briefs: b,
     differentiator:

@@ -16,7 +16,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AiUsage } from "@/lib/ai/claude";
-import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
+import { readAvatar, type PackLabel, type ProductBrief } from "@/lib/ai/schemas";
 import type { TestAngle } from "@/lib/angles/catalog";
 import type { AngleContext } from "@/lib/angles/prompts";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
@@ -28,7 +28,8 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 interface Fixture {
   ranking: { input: { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; differentiator: AngleContext["differentiator"]; reviews?: string[] }; chosen: TestAngle[] };
   brief: ProductBrief;
-  avatar: CustomerAvatar;
+  /** customer_avatars.payload de cualquier versión (readAvatar). */
+  avatar: unknown;
   briefs: { slot: number; angle: TestAngle["frame"]; payload: AngleBriefPayload }[];
 }
 
@@ -52,7 +53,7 @@ async function main() {
   const reviews = input.reviews?.length ? input.reviews : undefined;
   const ctx = {
     brief: reviews ? { ...fx.brief, proof: { ...fx.brief.proof, real_reviews: reviews } } : fx.brief,
-    avatar: fx.avatar,
+    avatar: readAvatar(fx.avatar),
     pricing: input.pricing,
     labels: input.labels ?? undefined,
     differentiator: input.differentiator ?? null,

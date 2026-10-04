@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AVATAR } from "@/app/dev/screens/base/fixture";
 import type { TestAngle } from "@/lib/angles/catalog";
-import { angleLine, buyerLine, buyerVoice, marketAnchorLine, productFacts, proofLine, reviewQuotes, SUPPLIER_TEXT_MAX, supplierText } from "./context";
+import { angleLine, buyerLine, buyerReasons, marketAnchorLine, productFacts, proofLine, reviewQuotes, SUPPLIER_TEXT_MAX, supplierText } from "./context";
 import type { ProductBrief } from "./schemas";
 
 const brief = {
@@ -42,12 +42,10 @@ describe("contexto compartido de los prompts", () => {
     expect(supplierText("x".repeat(SUPPLIER_TEXT_MAX + 10))).toBe(`${"x".repeat(SUPPLIER_TEXT_MAX)}…`);
   });
 
-  it("quién compra es una línea y sus palabras van solo cuando se piden", () => {
+  it("quién compra es una línea; el porqué y las dudas, sin escenas ni frases", () => {
     expect(buyerLine(AVATAR)).toBe(`QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${AVATAR.summary}`);
-    const voice = buyerVoice(AVATAR, 4);
-    expect(voice).toEqual([AVATAR.voice_of_customer[0], AVATAR.problems.trigger_moments[0], AVATAR.voice_of_customer[1], AVATAR.problems.trigger_moments[1]]);
-    expect(buyerVoice(AVATAR, 0)).toEqual([]);
-    expect(buyerVoice(AVATAR, 99)).toHaveLength(6);
+    expect(buyerReasons(AVATAR)).toEqual([`- Por qué compra: ${AVATAR.why_buy}`, ...AVATAR.doubts.map((d) => `- Duda: ${d}`), `- El pago contra entrega: ${AVATAR.cash_on_delivery}`]);
+    expect(buyerReasons({ ...AVATAR, user: "Su papá", doubts: [] })[0]).toBe("- Quién lo usa: Su papá");
   });
 
   it("las pruebas se cuentan sin citarlas, y las reseñas se citan recortadas", () => {

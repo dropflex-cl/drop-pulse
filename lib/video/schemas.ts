@@ -37,16 +37,18 @@ import {
  * ganchos (hook_source). 7: la apertura (opening) y la cámara de cada imagen clave (spec-video-detener-scroll). 8: A1
  * abre con la frase del gancho, sin nada antes, y con su delivery. 9: dos pasos (docs/spec-prompts-simples.md §6):
  * el guion (lo que se dice, effort high) y el plan de tomas (video_plan, effort low); K1 lo arma el código.
+ * 10: sin las frases del cliente ideal (spec-prompts-simples §14).
  */
-export const UGC_PROMPT_VERSION = 9;
+export const UGC_PROMPT_VERSION = 10;
 /**
  * Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts). 2: palabras por segundo con margen.
  * 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la
  * tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). 8: A1 abre con la frase
  * del gancho y su delivery. 9: los ganchos ya no traen su versión de mascota (ganchos v6): el personaje dice el gancho
  * a su manera. 10: dos pasos, y el cuerpo sale de MASCOT_BODIES (el plan elige uno; el código arma la silueta).
+ * 11: sin las frases del cliente ideal (spec-prompts-simples §14).
  */
-export const MASCOT_PROMPT_VERSION = 10;
+export const MASCOT_PROMPT_VERSION = 11;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). 3: matches_hook (la apertura) y phone_look (aviso). */
 export const KEYFRAME_QA_PROMPT_VERSION = 3;
 

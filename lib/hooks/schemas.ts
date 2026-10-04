@@ -18,7 +18,6 @@ import {
   OPENING_SHOTS,
   PATTERN_DEFS,
   PATTERN_NAMES,
-  QUOTE_SHARED_WORDS,
   REAL_MATERIAL_NOTE,
   RISKS,
   SPOKEN_MAX_WORDS,
@@ -38,23 +37,24 @@ import { isUsable } from "./select";
  * 5: los montos del ancla de mercado del ángulo (market_anchor) se pueden usar. 6: prompt corto con el
  * contexto de lib/ai/context.ts (docs/spec-prompts-simples.md §4): sin la biblioteca de patrones, sin
  * cuotas, sin la versión de mascota (la escribe el guion de mascota), citas opcionales, sin puntajes ni
- * mecanismo, y lo que es regla (material real, citas, orden) lo arregla el código.
+ * mecanismo, y lo que es regla (material real, citas, orden) lo arregla el código. 7: sin las frases del cliente ideal
+ * ni citas (el chat, sin ellas, escribía mejores ganchos; spec-prompts-simples §14), `delivery` de la lista y el tope
+ * de la segunda frase en el prompt (en la 6 eran la mitad de los rechazos).
  */
-export const HOOKS_PROMPT_VERSION = 6;
+export const HOOKS_PROMPT_VERSION = 7;
 
 const text = z.string();
 
 const hookOut = z.object({
   text: text.describe("El hablado de 0 a 3 s, en el idioma del mercado y con tuteo. Su primera frase lleva la tensión."),
-  follow_up: text.nullable().describe("La segunda frase, hasta los 6 s, o null."),
+  follow_up: text.nullable().describe("La segunda frase, hasta los 6 s y tan corta como el hablado, o null."),
   on_screen: text.describe("El texto en pantalla de 0 a 3 s, legible sin sonido: la tensión con el problema adentro, no una etiqueta."),
   silent_read: text.describe("Qué entiende alguien en 1 s SIN sonido, solo con el texto en pantalla y la primera imagen, en una frase."),
   visual_first_3s: text.describe("La primera imagen: qué se ve y qué pasa, como un video de teléfono en una casa."),
   opening_shot: z.enum(OPENING_SHOTS).describe(`Con qué abre: ${OPENING_SHOTS.map((s) => `${s} (${OPENING_SHOT_DEFS[s].name.toLowerCase()})`).join(", ")}.`),
   first_motion: text.describe("Qué ya se está moviendo en la primera imagen, en una frase."),
-  delivery: text.describe(`Cómo se dice: ${HOOK_DELIVERIES.join(", ")}. Nunca gritado.`),
+  delivery: z.enum(HOOK_DELIVERIES).describe("Cómo se dice. Nunca gritado."),
   pattern: z.enum(HOOK_PATTERNS).describe(`El tipo de gancho que escribiste: ${HOOK_PATTERNS.map((p) => `${p} (${PATTERN_NAMES[p].toLowerCase()})`).join(", ")}.`),
-  source_quote: text.nullable().describe("La frase de quien compra de la que parte, copiada textual, o null."),
   rank: z.number().int().describe(`Su lugar entre los ${HOOKS_PER_ANGLE}, de 1 (el que más detiene el scroll) a ${HOOKS_PER_ANGLE}.`),
   risk: z.enum(RISKS).describe("Riesgo de rechazo de Meta o de rechazo en la entrega."),
   risk_reason: text.describe("La razón del riesgo en 5 palabras."),
@@ -115,7 +115,7 @@ export interface AngleHook {
   /** Desde la versión 2 del agente. Los de antes valen como `selfie_talk`. */
   opening_shot?: OpeningShot;
   first_motion?: string;
-  /** Desde la versión 4: lo que se entiende sin sonido, la cita de la que parte, cómo se dice y su lugar. */
+  /** Desde la versión 4: lo que se entiende sin sonido, la cita de la que parte (hasta la 6), cómo se dice y su lugar. */
   silent_read?: string;
   source_quote?: string | null;
   delivery?: HookDelivery;
@@ -180,55 +180,22 @@ export interface HookFacts {
   pricing: PricingPlan;
   hasRealReviews: boolean;
   hasRealExpert: boolean;
-  /** Las frases de quien compra que recibió el agente (buyerVoice): de ahí salen las citas. */
-  buyerVoice: string[];
   /** El ancla de mercado del ángulo que verificó el comerciante (TestAngle.market_amounts). */
   marketAmounts?: number[];
-}
-
-/** Sin tildes, en minúscula y sin signos: para comparar una cita con su fuente. */
-function plain(t: string): string {
-  return t
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9ñ]+/g, " ")
-    .trim();
-}
-
-/** Las palabras con contenido (4 letras o más) de un texto. */
-const contentWords = (t: string) => new Set(plain(t).split(" ").filter((w) => w.length >= 4));
-
-/** ¿La cita está textual entre las frases de quien compra? (sin contar tildes, mayúsculas ni signos). */
-export function quoteFound(quote: string, voice: string[]): boolean {
-  const q = plain(quote);
-  return q.length > 0 && voice.some((r) => plain(r).includes(q));
-}
-
-/** ¿El gancho dice de verdad la frase de la que dice partir? */
-function quoteUsed(h: HookOut, quote: string): boolean {
-  const said = contentWords(`${h.text} ${h.follow_up ?? ""} ${h.on_screen}`);
-  return [...contentWords(quote)].filter((w) => said.has(w)).length >= QUOTE_SHARED_WORDS;
 }
 
 /**
  * Lo que es regla y no creación lo arregla el código en vez de pagar otra respuesta (spec-prompts-simples
  * P3): en producción, el material real y las citas eran 13 de los ~37 problemas. Un patrón que necesita
- * material real que no hay lo dice; lo que pide material real abre con grabación real; una cita que no
- * está o que el gancho no usa se quita; el orden se numera de 1 a 10 sin empates.
+ * material real que no hay lo dice; lo que pide material real abre con grabación real; el orden se numera
+ * de 1 a 10 sin empates.
  */
 export function normalizeHooks(out: HooksOutput, facts: HookFacts): HooksOutput {
   const hooks = out.hooks.map((h) => {
     const need = PATTERN_DEFS[h.pattern].needsReal;
     const missing = need === "always" || (need === "reviews" && !facts.hasRealReviews) || (need === "expert" && !facts.hasRealExpert);
     const needs = h.needs_real_material?.trim() || (missing && need ? REAL_MATERIAL_NOTE[need] : null);
-    const quote = h.source_quote?.trim();
-    return {
-      ...h,
-      needs_real_material: needs,
-      opening_shot: needs ? ("real_footage" as const) : h.opening_shot,
-      source_quote: quote && quoteFound(quote, facts.buyerVoice) && quoteUsed(h, quote) ? quote : null,
-    };
+    return { ...h, needs_real_material: needs, opening_shot: needs ? ("real_footage" as const) : h.opening_shot };
   });
   const order = hooks.map((_, i) => i).sort((a, b) => hooks[a].rank - hooks[b].rank || a - b);
   order.forEach((i, k) => (hooks[i] = { ...hooks[i], rank: k + 1 }));
@@ -255,7 +222,6 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     if (!h.visual_first_3s.trim()) problems.push(`${at}no trae la primera imagen.`);
     if (!h.silent_read.trim()) problems.push(`${at}no dice qué se entiende sin sonido (silent_read).`);
     if (!h.first_motion.trim()) problems.push(`${at}no dice qué se mueve en la primera imagen (first_motion).`);
-    if (!(HOOK_DELIVERIES as readonly string[]).includes(h.delivery)) problems.push(`${at}delivery es «${h.delivery}»: usa uno de ${HOOK_DELIVERIES.join(", ")}.`);
     const spoken = wordCount(h.text);
     if (spoken > SPOKEN_MAX_WORDS) problems.push(`${at}el hablado tiene ${spoken} palabras; el máximo es ${SPOKEN_MAX_WORDS} (3 s).`);
     if (h.follow_up && wordCount(h.follow_up) > FOLLOW_UP_MAX_WORDS) problems.push(`${at}la segunda frase tiene ${wordCount(h.follow_up)} palabras; el máximo es ${FOLLOW_UP_MAX_WORDS}.`);
@@ -285,7 +251,7 @@ export function hooksToPayload(out: HooksOutput, review?: HooksReview | null): {
   const hooks: AngleHook[] = order.map((i, k) => {
     const h = out.hooks[i];
     const r = byHook.get(i);
-    return { ...h, delivery: h.delivery as HookDelivery, rank: k + 1, ...(r ? { review: r } : {}) };
+    return { ...h, rank: k + 1, ...(r ? { review: r } : {}) };
   });
   const usable = hooks.findIndex(isUsable);
   return {

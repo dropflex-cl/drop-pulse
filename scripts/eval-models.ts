@@ -22,7 +22,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
 import { customerAvatarSystem, customerAvatarUser } from "@/lib/ai/prompts";
-import { avatarStepSchema, type CustomerAvatar, type ProductBrief } from "@/lib/ai/schemas";
+import { avatarStepSchema, readAvatar, type ProductBrief } from "@/lib/ai/schemas";
 import { angleForPrompt } from "@/lib/angles/approved";
 import type { AngleSlot, TestAngle } from "@/lib/angles/catalog";
 import { differentiatorState } from "@/lib/competitors/store";
@@ -42,7 +42,8 @@ const API_KEY = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
 interface ProdInput {
   product: { id: string; title: string; description: string | null; base_info: string | null };
   brief: ProductBrief;
-  avatar: CustomerAvatar;
+  /** customer_avatars.payload de cualquier versión (readAvatar). */
+  avatar: unknown;
   copyInput: { market: Market; pricing: PricingPlan; labels: CopyContext["labels"] | null; free_shipping: boolean };
   optimizeInput: { market: Market; pricing: PricingPlan };
   angles: { id: string; angle: TestAngle["frame"]; role: string; payload: never }[];
@@ -83,7 +84,7 @@ function copyJobs(d: ProdInput, samples: number): Job[] {
   const write = toWrite([], d.reviews.length);
   const angles = d.angles.map((a, i) => angleForPrompt(oldAngle((i + 1) as AngleSlot, a.angle), a.payload, a.angle));
   const policies = { countryCode: input.market.countryCode, freeShipping: input.free_shipping, returnDays: brief.proof.guarantee_days && brief.proof.guarantee_days > 0 ? brief.proof.guarantee_days : null };
-  const argCtx = { brief, avatar: d.avatar, pricing: input.pricing, labels: input.labels ?? undefined, angles, differentiator: differentiatorState(null, brief).value, reviews: d.reviews.map(displayText), policies: policiesBlock(policies) };
+  const argCtx = { brief, avatar: readAvatar(d.avatar), pricing: input.pricing, labels: input.labels ?? undefined, angles, differentiator: differentiatorState(null, brief).value, reviews: d.reviews.map(displayText), policies: policiesBlock(policies) };
   const ctx = (argument: CopyContext["argument"]): CopyContext => ({
     brief,
     pricing: input.pricing,
@@ -147,7 +148,7 @@ function textsOfValue(v: unknown): string[] {
 function avatarJobs(d: ProdInput): Job[] {
   const { market, pricing } = d.optimizeInput;
   const system = customerAvatarSystem(market);
-  const user = customerAvatarUser(JSON.stringify(d.brief, null, 2), d.product.base_info ?? "", pricing);
+  const user = customerAvatarUser(d.brief, d.product.base_info ?? "", pricing);
   return MODELS.map((model) => ({
     task: "avatar" as const,
     product: d.product.title,

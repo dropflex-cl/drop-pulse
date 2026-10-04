@@ -216,7 +216,7 @@ describe("contexto del director (v5)", () => {
     expect(u).toContain("Lo que el comprador usa hoy y le falla: piedra pómez");
     expect(u).toContain("Promesas que no se pueden hacer: No decir que cura hongos");
     expect(u).toContain(`QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${AVATAR.summary}`);
-    expect(u).not.toContain(AVATAR.formula);
+    expect(u).not.toContain(AVATAR.why_buy);
     expect(u).toContain("Ángulo 1: «Adiós piedra pómez»");
     expect(u).toContain("- Forma: Enemigo común");
     expect(u).toContain("  · Adiós piedra | lima y piedra | Cambia");

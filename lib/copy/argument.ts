@@ -6,7 +6,7 @@
 // Regla de caché: el system depende solo del mercado; el producto va en el usuario.
 
 import * as z from "zod/v4";
-import { angleLine, buyerLine, buyerVoice, productFacts, proofLine } from "@/lib/ai/context";
+import { angleLine, buyerLine, productFacts, proofLine } from "@/lib/ai/context";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleForPrompt } from "@/lib/angles/approved";
@@ -15,8 +15,6 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import { amountAllowed, amountsIn, FORBIDDEN, INTERNAL } from "./schemas";
 
-/** Frases del cliente ideal que recibe el redactor (buyerVoice): escribe con sus palabras. */
-export const ARGUMENT_VOICE_LINES = 6;
 /** Objeciones que responde el argumento. */
 export const ARGUMENT_OBJECTIONS = { min: 5, max: 8 } as const;
 
@@ -47,8 +45,8 @@ export function argumentSystem(market: Market): string {
     "",
     "- La página recibe tráfico de varios anuncios, uno por ángulo de venta, y todavía no se sabe cuál vende. Quien llega desde cualquiera tiene que reconocer lo que su anuncio le prometió. Lo común a todos es el diferenciador.",
     "- Dolor antes que producto; valor antes que confianza. Un beneficio es lo que gana el comprador más el dato que lo prueba, nunca un adjetivo suelto.",
-    "- Escribe como le habla a quien compra alguien de confianza, con sus palabras. Si ya vio muchas promesas, le convencen los datos concretos, no los superlativos.",
-    "- Nada de escenas que no salgan de quien compra o del producto.",
+    "- Escribe como le habla a quien compra alguien de confianza, con palabras de todos los días. Si ya vio muchas promesas, le convencen los datos concretos, no los superlativos.",
+    "- Los momentos salen del ángulo de cada anuncio y del uso del producto, no de anécdotas inventadas.",
     "",
     "LÍMITES",
     "- Nada inventado: reseñas, expertos, cifras de clientes, estudios, plazos, certificaciones.",
@@ -79,8 +77,8 @@ const bullets = (items: string[]) => items.map((i) => `- ${i}`);
 
 /** Las dudas que ya se conocen: la ficha y el cliente ideal, sin repetir. */
 function knownDoubts(c: ArgumentContext): string[] {
-  const o = c.avatar.objections;
-  return [...new Set([o?.main_objection, o?.critical_question, o?.cash_on_delivery_concerns, ...(c.brief.known_objections ?? [])].map((t) => t?.trim()).filter((t): t is string => Boolean(t)))].slice(0, 8);
+  const a = c.avatar;
+  return [...new Set([...a.doubts, a.cash_on_delivery, ...(c.brief.known_objections ?? [])].map((t) => t?.trim()).filter((t): t is string => Boolean(t)))].slice(0, 8);
 }
 
 /** Lo fijo: igual en cada intento. Sin la ficha ni el cliente ideal en JSON. */
@@ -91,8 +89,7 @@ export function argumentContext(c: ArgumentContext): string {
     proofLine(c.brief, c.reviews),
     "",
     buyerLine(c.avatar),
-    "Cómo lo dice:",
-    ...bullets(buyerVoice(c.avatar, ARGUMENT_VOICE_LINES).map((v) => `«${v}»`)),
+    ...(c.avatar.why_buy ? [`- Por qué compra: ${c.avatar.why_buy}`] : []),
     "",
     c.differentiator ? `EN QUÉ SE DIFERENCIA: frente a ${c.differentiator.versus}, ${c.differentiator.claim}` : "EN QUÉ SE DIFERENCIA: (sin confirmar: usa cómo funciona el producto)",
     "",

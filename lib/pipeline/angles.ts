@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
-import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import { readAvatar, type CustomerAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type AngleAida, type AngleSlot, type SalesAngle, type SpeaksTo, type TestAngle } from "@/lib/angles/catalog";
 import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleSystem, angleUser, type AngleContext, type PreviousAngle, type UpcomingEvent } from "@/lib/angles/prompts";
 import {
@@ -225,7 +225,7 @@ async function avatarById(userId: string, id: string): Promise<CustomerAvatar> {
   const { data, error } = await adminClient().from("customer_avatars").select("payload").eq("user_id", userId).eq("id", id).single();
   fail("Leer el cliente ideal", error);
   if (!data) throw new AiStepError("not_found", "El cliente ideal ya no existe. Vuelve a evaluar.");
-  return data.payload as CustomerAvatar;
+  return readAvatar(data.payload);
 }
 
 async function contextFor(r: { user_id: string; product_id: string }, input: Record<string, unknown>): Promise<AngleContext> {

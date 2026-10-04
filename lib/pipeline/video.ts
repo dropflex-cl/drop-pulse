@@ -4,7 +4,7 @@ import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
-import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { testAngleName, type AngleSlot } from "@/lib/angles/catalog";
 import { anglesForPrompt, fail } from "@/lib/angles/store";
 import { getDifferentiator } from "@/lib/competitors/store";
@@ -211,7 +211,7 @@ export async function runScript(scriptId: string): Promise<void> {
 
     const ctx: UgcContext = {
       brief,
-      avatar: avatarRow.data.payload as CustomerAvatar,
+      avatar: readAvatar(avatarRow.data.payload),
       differentiator: differentiator.value,
       pricing: input.pricing,
       labels: input.labels ?? undefined,

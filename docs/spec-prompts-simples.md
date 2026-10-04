@@ -94,21 +94,23 @@ Reemplaza los `json(c.brief)` y `json(c.avatar)` de los 6 prompts (`lib/angles/p
 | `productFacts(brief)` | Nombre, qué hace, cómo funciona y datos clave, en viñetas. Lo comprobado, no lo que promete el proveedor |
 | `supplierText(baseInfo)` | El texto del proveedor tal cual, recortado (lo usa quien tiene que criticarlo) |
 | `buyerLine(avatar)` | Una línea: quién compra y para quién (el `summary`) |
-| `buyerVoice(avatar, n)` | Hasta `n` frases o momentos del cliente ideal, **solo** para los pasos que escriben con sus palabras (página, guion) |
+| `buyerReasons(avatar)` | Por qué compra, qué lo frena y el pago contra entrega, sin escenas ni frases (§14; reemplazó a `buyerVoice`, que daba frases del cliente ideal y los ganchos las copiaban) |
 | `proofLine(brief, reviews)` | Experto sí/no y cuántas reseñas reales hay |
 | `reviewQuotes(reviews, n)` | Hasta `n` reseñas citables (solo donde se citan: página, chat de WhatsApp) |
 | `angleLine(angle, moneda?)` | Título, gancho, a quién le habla y tono (reemplazó a `angleMessage`). Con la moneda, también el ancla de mercado: solo la piden los ganchos, porque la página, los estáticos y los guiones siguen solo con PRECIO Y OFERTA |
 
 Qué recibe cada paso:
 
-| Paso | productFacts | supplierText | buyerLine | buyerVoice | proofLine | reviewQuotes | angleLine | Precio |
+| Paso | productFacts | supplierText | buyerLine | buyerReasons | proofLine | reviewQuotes | angleLine | Precio |
 |---|---|---|---|---|---|---|---|---|
-| Orquestador (v9, ya está) | ✓ | ✓ | ✓ | | ✓ | | | ✓ |
-| Desarrollo de ángulo | ✓ | | ✓ | 5 | ✓ | 3 | ✓ | ✓ |
-| Ganchos | ✓ | | ✓ | 5 | ✓ | | ✓ | ✓ |
-| Página: argumento | ✓ | | ✓ | 6 | ✓ | | todos | ✓ |
+| Cliente ideal (v6, §14) | ✓ | ✓ | | | ✓ | | | ✓ |
+| Orquestador (v9) | ✓ | ✓ | ✓ | | ✓ | | | ✓ |
+| Desarrollo de ángulo | ✓ | | ✓ | ✓ | ✓ | 3 | ✓ | ✓ |
+| Ganchos | ✓ | | ✓ | | ✓ | | ✓ | ✓ |
+| Crítico de ganchos | | | ✓ | ✓ | | | | |
+| Página: argumento | ✓ | | ✓ | porqué y dudas | ✓ | | todos | ✓ |
 | Página: componentes | ✓ | | | | ✓ | ✓ | | ✓ |
-| Guion de video | ✓ | | ✓ | 3 | | | ✓ | ✓ |
+| Guion de video | ✓ | | ✓ | | | | ✓ | ✓ |
 | Estáticos | ✓ | | ✓ | | ✓ | | todos | ✓ |
 | Imágenes de la página | ✓ | | ✓ | | | | todos | |
 
@@ -287,6 +289,9 @@ en la mayoría de los productos.
 
 1. **Citas de MATERIA PRIMA en los ganchos:** pasan de cuota («al menos 3») a opcionales («puede
    citar»). Se mide cuántos citan (`npm run ai:metrics -- --step angle_hooks`, columna `con_cita`).
+   Reemplazada por la 4: en producción, la mitad de los ganchos copiaba las frases.
+4. **El cliente ideal simple, que no contagie** (2026-10-04, §14): la pregunta de un experto, sin
+   nombre, escenas ni frases; ningún paso recibe frases del comprador.
 2. **La marca «Mascota» en el gancho:** desaparece de la lista de ganchos. La apertura de la mascota se
    sigue viendo en Videos › Mascota.
 3. **La página sigue escribiendo todos los componentes**, no solo los activos.
@@ -394,3 +399,42 @@ mucho 20 % más alto (hay llamadas nuevas baratas: `page_argument`, `video_plan`
 las comparaciones a ciegas (`scripts/eval-hooks.ts`, `scripts/eval-models.ts`), que el comerciante
 prefiera la versión nueva en la mayoría de los productos. Las siluetas de `MASCOT_BODIES` se prueban en
 Flare con `scripts/spike-higgsfield.ts mascots`.
+
+## 14. Cliente ideal simple y sin contagio (2026-10-04)
+
+**El caso.** La primera corrida completa en producción después de las fases 1 a 5 (el audífono, producto
+`fd3c463e…`) se alejó de lo que había escrito el chat. El gancho v9 «Mi papá dejó de hablar en los
+almuerzos: solo sonríe y asiente» sale del resumen del cliente ideal («ve a su papá quedarse callado en
+los almuerzos familiares»). En el ángulo 1, 5 de los 10 ganchos v6 copiaban frases y escenas del
+cliente ideal («Mi papá tiene el tele a todo chancho», «sonríe medio segundo tarde»), y en el ángulo de
+CyberMonday 7 de 10 volvían al dolor del ángulo 1. El chat no tenía cliente ideal: el experto decidía
+solo quién compra. Además, 4 de 6 intentos de ganchos v6 se rechazaron por dos reglas que el prompt no
+decía (`delivery` escrito libre y la segunda frase de más de 9 palabras), y el ángulo 3 quedó sin ganchos.
+
+**La causa.** El cliente ideal era el avatar psicológico de dropflex base: nombre, fórmula, identidad,
+enemigos, momentos detonantes y «cómo lo dice». Un modelo que recibe escenas y frases las usa tal cual.
+Quitar el JSON (fases 1 a 5) no bastaba: `buyerVoice` seguía pasando 3 a 6 frases y el resumen mismo
+era una escena.
+
+**Qué cambió** (decisión del comerciante: «Simple, que no contagie»).
+
+1. **Cliente ideal v6** (`customerAvatarSystem`, `customerAvatarUser`, `customerAvatarSchema`): un
+   experto en ventas AIDA y la pregunta «¿Quién compra este producto, quién lo usa y por qué?», con los
+   hechos, el texto del proveedor, las pruebas y el precio (sin la ficha en JSON). Devuelve `summary`
+   (quién compra y quién usa, sin escenas), `buyer`, `user`, `age_range`, `why_buy`, `doubts`,
+   `cash_on_delivery` y `more_than_one`, más las etiquetas de los packs en la misma llamada. Sin nombre,
+   fórmula, momentos ni frases. La pantalla (Información base › Tu cliente ideal) muestra y edita esos
+   campos.
+2. **Lo de antes se sigue leyendo** con `readAvatar`: resumen, edad, lo que lo mueve y sus dudas. Su
+   resumen puede traer una escena: «Volver a generar» lo reemplaza.
+3. **`buyerVoice` sale; entra `buyerReasons`** (por qué compra, qué lo frena, el pago contra entrega),
+   solo para el agente de ángulo (v8), el argumento de la página (`COPY_PROMPT_VERSION` 9) y el crítico
+   de ganchos (v2). Ganchos (v7), guion (UGC 10, mascota 11) y chat (v5) reciben solo `buyerLine`.
+4. **Ganchos v7**: sin frases ni `source_quote`, sin modismos, `delivery` como enum y el tope de la
+   segunda frase en el prompt.
+5. **Etiquetas de los packs v2**: texto corto con `more_than_one`, sin la ficha ni el cliente ideal en JSON.
+6. **`pain-block`**: los momentos salen del argumento de venta, no del cliente ideal.
+
+**Qué medir.** Volver a generar el cliente ideal del audífono, volver a evaluar los ángulos y comparar
+los ganchos con los del chat. `npm run ai:metrics -- --step angle_hooks` separa la v7: el rechazo
+tendría que bajar (la mitad de los rechazos de la v6 eran `delivery` y la segunda frase).

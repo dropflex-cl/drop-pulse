@@ -6,7 +6,7 @@
 // (Higgsfield o Gemini): el prompt final lo arma lib/creatives/render.ts. También el chat de WhatsApp y
 // el QA de cada pieza. Puro. Regla de caché: los system dependen solo del mercado.
 
-import { angleLine, buyerLine, buyerVoice, productFacts, proofLine, reviewQuotes } from "@/lib/ai/context";
+import { angleLine, buyerLine, productFacts, proofLine, reviewQuotes } from "@/lib/ai/context";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { AngleForPrompt } from "@/lib/angles/approved";
@@ -18,8 +18,6 @@ import { pricingBlock } from "@/lib/pricing/prompt";
 import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX_WORDS, PROOF_GROUP, ROLE_PROMPT_LIMITS, TEXT_ROLES } from "./catalog";
 import { CHAT_MAX_MESSAGES, CHAT_MESSAGE_PROMPT_MAX, CHAT_MIN_MESSAGES, CONTACT_NAME_PROMPT_MAX } from "./chat";
 import type { ConceptIdea } from "./schemas";
-
-const list = (items: string[]) => items.map((i) => `- ${i}`);
 
 // ---------------------------------------------------------------- 1. Los conceptos
 
@@ -225,9 +223,6 @@ export interface ChatContext {
   reviews: string[];
 }
 
-/** Frases del cliente ideal que recibe el chat: el amigo escribe como alguien como él. */
-const CHAT_VOICE_LINES = 3;
-
 /** `retry`: lo que estuvo mal en el intento anterior (lib/creatives/schemas.ts › chatProblems). Sin la ficha ni el cliente ideal en JSON. */
 export function chatUser(c: ChatContext, retry: string[] = []): string {
   const hooks = hooksForPrompt(c.angle.payload).slice(0, 4);
@@ -235,7 +230,6 @@ export function chatUser(c: ChatContext, retry: string[] = []): string {
     productFacts(c.brief),
     "",
     buyerLine(c.avatar),
-    ...list(buyerVoice(c.avatar, CHAT_VOICE_LINES).map((v) => `«${v}»`)),
     "",
     "EL ÁNGULO",
     angleLine(c.angle.angle),

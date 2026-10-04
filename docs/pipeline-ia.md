@@ -50,15 +50,14 @@ Enum `content_status`: `generated`, `in_review`, `approved`, `rejected`, `publis
 - `images[]`: qué muestra cada imagen y si sirve para anuncios;
 - `inferred_fields` y `missing_inputs` (preguntas en tuteo para el comerciante). Las reseñas, expertos y cifras solo cuentan si el comerciante los escribió.
 
-**Cliente ideal** (`customerAvatarSchema`): las 7 secciones y la fórmula del avatar de dropflex base (`docs/prompt-avatar.md` del proyecto base), más lo que le faltaba para elegir ángulos:
+**Cliente ideal** (`customerAvatarSchema`, versión 6, `docs/spec-prompts-simples.md` §14): la respuesta de un experto a «¿Quién compra este producto, quién lo usa y por qué?»:
 
-- demografía;
-- nivel de consciencia (Schwartz) y sofisticación con su razón;
-- momentos detonantes (el filtro del gancho);
-- dudas del pago contra entrega;
-- frases con sus palabras (`voice_of_customer`).
+- `summary`: quién compra y quién usa, en una frase y sin escenas (es la línea que reciben los pasos siguientes, `buyerLine`);
+- `buyer`, `user` (vacío si es la misma persona) y `age_range`;
+- `why_buy`, `doubts` (2 a 4) y `cash_on_delivery`: por qué compra y qué lo frena (`buyerReasons`, solo para el agente de ángulo, la página y el crítico de ganchos);
+- `more_than_one`: por qué llevaría el pack (lo leen las etiquetas de los packs).
 
-La plantilla de la fórmula va en el prompt: en el proyecto base solo se nombraba.
+Sin nombre, fórmula, momentos detonantes ni frases inventadas: hasta la versión 5 el perfil era el avatar psicológico de dropflex base (7 secciones y la fórmula) y sus escenas y frases terminaban copiadas en los ángulos y los ganchos. Los perfiles de antes se leen con `readAvatar`.
 
 ## Decisiones
 
@@ -125,7 +124,7 @@ Cliente ideal aprobado + diferenciador confirmado + ficha + precio (y etiquetas 
 
 **Por qué la pregunta del chat** (`docs/spec-angulos-testeo.md` §4.2): un chat con cinco viñetas del proveedor propuso mejores ángulos que el orquestador con la ficha y el cliente ideal completos. Con más material, el modelo copiaba frases del cliente ideal, narraba en vez de interpelar y llenaba una forma por ángulo. Ahora el experto recibe poco contexto y la pregunta tal cual; la forma la pone una segunda llamada barata, y el código revisa después lo comprobable (`strategyProblems`). Un monto de mercado (lo que cuesta la alternativa) pasa marcado (`marketAmounts`) y, si el comerciante elige el ángulo, los ganchos lo pueden usar. Volver a evaluar ve lo que se propuso antes y trae otros.
 
-**Esquema compacto:** la API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled grammar is too large»). Un test impide que un esquema de ángulos sea más grande que el del cliente ideal.
+**Esquema compacto:** la API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled grammar is too large»). Un test impide que los esquemas grandes (ángulos, ganchos, guion) pasen `PROVEN_GRAMMAR_SIZE` (`lib/ai/limits.ts`), el tamaño del cliente ideal hasta su versión 5, que funcionó en producción.
 
 **Prompts de los agentes** (`lib/angles/prompts.ts`): los de `agentes-creativos/*.md`, adaptados a LATAM:
 

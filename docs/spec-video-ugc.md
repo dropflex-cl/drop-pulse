@@ -58,7 +58,7 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 
 - Brief del ángulo aprobado (`angle_briefs.payload`): `handoff_to_ugc` (solo UGC), los ganchos usables con su tríada (`hooksForPrompt`, ver `docs/spec-ganchos.md`), `body_beats`, `objection_handling`, `proof_to_show`, `compliance_flags`, `details`.
 - Mensaje del ángulo (`chosen_angles`): dolor o deseo, segmento, promesa, momento gatillo.
-- Cliente ideal aprobado: `voice_of_customer`, `problems.trigger_moments`, objeciones, identidad.
+- Cliente ideal aprobado: una línea de quién compra (`buyerLine`). Sin sus frases desde UGC 10 / mascota 11 (`docs/spec-prompts-simples.md` §14).
 - **Diferenciador confirmado** (`getDifferentiator`). Hoy Creativos no lo lee: se agrega aquí y en los estáticos.
 - Precio y packs aprobados (`pricingBlock`), mercado e idioma.
 - La foto base del producto (visión) para describir el producto y el kit.

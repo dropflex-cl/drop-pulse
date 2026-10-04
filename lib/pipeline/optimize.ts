@@ -187,7 +187,7 @@ async function avatarStep(run: RunRow, market: Market, brief: ProductBrief, brie
   const { data, usage } = await generateStructured({
     userId: run.user_id,
     system: customerAvatarSystem(market),
-    content: [{ type: "text", text: customerAvatarUser(JSON.stringify(brief, null, 2), baseInfo, run.input.pricing as PricingPlan) }],
+    content: [{ type: "text", text: customerAvatarUser(brief, baseInfo, run.input.pricing as PricingPlan) }],
     // Una sola llamada: el perfil y las etiquetas de los packs (se guardan y se deciden por separado).
     schema: avatarStepSchema,
     effort: "high",

@@ -5,7 +5,6 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { after } from "next/server";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { recordAiGeneration } from "@/lib/ai/track";
 import { fail } from "@/lib/angles/store";
 import { LISTING, type Listing } from "@/lib/copy/listing";
@@ -189,7 +188,7 @@ async function copyContext(userId: string, productId: string) {
   if (!avatar || avatar.status !== "approved" || !briefs || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y los desarrollos de tus ángulos primero.", 409);
   return {
     listing: currentContent(listingRow) as Listing,
-    avatarSummary: (avatar.payload as CustomerAvatar).summary,
+    avatarSummary: avatar.payload.summary,
     differentiator: differentiator.value ? { versus: differentiator.value.versus, claim: differentiator.value.claim } : null,
     angles: briefs.map((b) => testAngleName({ ...b.angle, frame: b.brief.angle })),
     pricing,
