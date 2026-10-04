@@ -12,6 +12,7 @@ import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, removeAdCopies } from "@/lib/creativ
 import { ratioOf, sniffMedia } from "@/lib/ads/media";
 import { adminClient } from "@/lib/integrations/admin";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
+import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import { higgsfieldKey, markHiggsfieldInvalid } from "@/lib/integrations/higgsfield/connection";
 import { shopifyQuery } from "@/lib/integrations/shopify/client";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -549,7 +550,7 @@ function shotCostUsd(s: ShotRow): number {
 }
 
 /** Toda toma de Higgsfield queda registrada con su costo estimado (la API no lo informa). */
-async function logShot(s: ShotRow, ok: boolean, error?: string, latencyMs?: number) {
+async function logShot(s: ShotRow, ok: boolean, error?: string, latencyMs?: number, detail?: string | null) {
   await recordAiGeneration({
     userId: s.user_id,
     productId: s.product_id,
@@ -558,6 +559,7 @@ async function logShot(s: ShotRow, ok: boolean, error?: string, latencyMs?: numb
     provider: "higgsfield",
     model: s.endpoint,
     error: ok ? null : (error ?? "failed"),
+    problems: detail ? [detail] : null,
     estimatedCostUsd: ok ? shotCostUsd(s) : null,
     latencyMs,
   });
@@ -574,10 +576,12 @@ async function downloadVideo(url: string): Promise<Buffer> {
 async function finishShot(s: ShotRow, state: RequestState, started: number): Promise<void> {
   const out = s.kind === "keyframe" ? state.images[0] : state.video;
   if (state.status !== "completed" || !out) {
-    const message =
-      state.status === "nsfw" ? "Higgsfield la rechazó por sus reglas de contenido. Cambia la escena o la línea y genera de nuevo." : "Higgsfield no pudo generarla. Toca Generar de nuevo.";
+    const message = failedMessage(state.status, state.error, {
+      nsfw: "Higgsfield la rechazó por sus reglas de contenido. Cambia la escena o la línea y genera de nuevo.",
+      failed: "Higgsfield no pudo generarla. Toca Generar de nuevo; si vuelve a fallar, cambia la imagen clave o la línea.",
+    });
     await patchShot(s.id, { render_status: "failed", error_code: state.status, error_message: message, finished_at: stamp() });
-    await logShot(s, false, state.status, Date.now() - started);
+    await logShot(s, false, state.status, Date.now() - started, state.error);
     return;
   }
   if (s.kind === "keyframe") return storeKeyframe(s, await download(out), () => logShot(s, true, undefined, Date.now() - started));

@@ -41,6 +41,7 @@ import { geminiKey, markGeminiInvalid } from "@/lib/integrations/gemini/connecti
 import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
 import { IMAGE_PROVIDER_NAME, type ImageProvider, type ImageStage } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
+import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import { higgsfieldKey, markHiggsfieldInvalid, presetsFor } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
@@ -91,7 +92,7 @@ async function assetDetail(a: AssetRow): Promise<string> {
  * Cada imagen de Higgsfield queda registrada. La API no informa el costo (Flare cobra por tokens):
  * una imagen lograda se anota con la cota de IMAGE_COST_USD, marcada como estimada.
  */
-async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: number) {
+async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: number, detail?: string | null) {
   await recordAiGeneration({
     userId: a.user_id,
     productId: a.product_id,
@@ -100,6 +101,7 @@ async function logRender(a: AssetRow, ok: boolean, error?: string, latencyMs?: n
     provider: "higgsfield",
     model: a.endpoint,
     error: ok ? null : (error ?? "failed"),
+    problems: detail ? [detail] : null,
     estimatedCostUsd: ok ? IMAGE_COST_USD : null,
     latencyMs,
   });
@@ -715,10 +717,12 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
   void key;
   const now = new Date().toISOString();
   if (state.status !== "completed" || !state.images[0]) {
-    const message =
-      state.status === "nsfw" ? "Higgsfield rechazó la imagen por sus reglas de contenido. Cambia los textos o la escena y genera de nuevo." : "Higgsfield no pudo generar la imagen. Toca Generar de nuevo.";
+    const message = failedMessage(state.status, state.error, {
+      nsfw: "Higgsfield rechazó la imagen por sus reglas de contenido. Cambia los textos o la escena y genera de nuevo.",
+      failed: "Higgsfield no pudo generar la imagen. Toca Generar de nuevo.",
+    });
     await patchAsset(a.id, { render_status: "failed", error_code: state.status, error_message: message, finished_at: now });
-    await logRender(a, false, state.status, Date.now() - started);
+    await logRender(a, false, state.status, Date.now() - started, state.error);
     return;
   }
   await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));

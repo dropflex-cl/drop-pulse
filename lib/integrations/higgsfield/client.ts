@@ -5,6 +5,8 @@ import "server-only";
 // resultado se copia a nuestro bucket (las URLs de salida duran ~7 días). Fetch directo: el SDK TS v2
 // solo expone `subscribe`, que espera bloqueando. Nunca se loguea la clave.
 
+import { providerDetail } from "./failure";
+
 const BASE = "https://api.higgsfield.ai";
 const TIMEOUT_MS = 30_000;
 
@@ -107,11 +109,13 @@ export interface RequestState {
   status: RequestStatus;
   images: string[];
   video: string | null;
+  /** Por qué falló, como lo dice Higgsfield (lib/integrations/higgsfield/failure.ts), o null. */
+  error: string | null;
 }
 
 export async function requestStatus(key: string, requestId: string): Promise<RequestState> {
-  const r = await call<{ status: RequestStatus; images?: { url: string }[]; video?: { url: string } | null }>(key, `requests/${encodeURIComponent(requestId)}/status`);
-  return { status: r.status, images: (r.images ?? []).map((i) => i.url), video: r.video?.url ?? null };
+  const r = await call<{ status: RequestStatus; images?: { url: string }[]; video?: { url: string } | null; error?: unknown }>(key, `requests/${encodeURIComponent(requestId)}/status`);
+  return { status: r.status, images: (r.images ?? []).map((i) => i.url), video: r.video?.url ?? null, error: providerDetail(r.error) };
 }
 
 export interface Preset {

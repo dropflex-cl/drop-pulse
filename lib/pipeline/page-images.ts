@@ -16,6 +16,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import { GEMINI_IMAGE_MODEL, GeminiError, geminiGeneration } from "@/lib/integrations/gemini/client";
 import type { ImageProvider } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
+import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import { higgsfieldKey } from "@/lib/integrations/higgsfield/connection";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
@@ -368,7 +369,7 @@ async function imageDetail(a: PageImageRow): Promise<string> {
 }
 
 /** Cada imagen de Higgsfield queda registrada con la cota de IMAGE_COST_USD, marcada como estimada. */
-async function logRender(a: PageImageRow, ok: boolean, error?: string, latencyMs?: number) {
+async function logRender(a: PageImageRow, ok: boolean, error?: string, latencyMs?: number, detail?: string | null) {
   await recordAiGeneration({
     userId: a.user_id,
     productId: a.product_id,
@@ -377,6 +378,7 @@ async function logRender(a: PageImageRow, ok: boolean, error?: string, latencyMs
     provider: "higgsfield",
     model: a.endpoint ?? undefined,
     error: ok ? null : (error ?? "failed"),
+    problems: detail ? [detail] : null,
     estimatedCostUsd: ok ? IMAGE_COST_USD : null,
     latencyMs,
   });
@@ -513,10 +515,12 @@ export async function syncPageImages(userId: string, productId: string): Promise
 
 async function finishImage(a: PageImageRow, state: RequestState, started: number): Promise<void> {
   if (state.status !== "completed" || !state.images[0]) {
-    const message =
-      state.status === "nsfw" ? "Higgsfield rechazó la imagen por sus reglas de contenido. Toca Generar otra." : "Higgsfield no pudo generar la imagen. Toca Generar otra.";
+    const message = failedMessage(state.status, state.error, {
+      nsfw: "Higgsfield rechazó la imagen por sus reglas de contenido. Toca Generar otra.",
+      failed: "Higgsfield no pudo generar la imagen. Toca Generar otra.",
+    });
     await patchImage(a.id, { render_status: "failed", error_code: state.status, error_message: message, finished_at: stamp() });
-    await logRender(a, false, state.status, Date.now() - started);
+    await logRender(a, false, state.status, Date.now() - started, state.error);
     return;
   }
   await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
