@@ -1,10 +1,28 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, fileSlug, montageName } from "./catalog";
+import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, MASCOT_BODIES, fileSlug, montageName } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
 import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, watermarkText } from "./package";
 import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
-import { applyScriptEdit, changedLines, keyframeQaVerdict, opensWithHook, scriptProblems, words, type OpeningInput, type UgcScript } from "./schemas";
+import {
+  applyScriptEdit,
+  assembleScript,
+  changedLines,
+  characterKeyframe,
+  keyframeQaVerdict,
+  lineProblems,
+  linesAsScript,
+  opensWithHook,
+  planProblems,
+  riskyShape,
+  scriptProblems,
+  words,
+  type MascotPlan,
+  type OpeningInput,
+  type ScriptLines,
+  type UgcPlan,
+  type UgcScript,
+} from "./schemas";
 import { keyframeQaUser } from "./prompts";
 
 // Deep Collagen (POC 2026-09-26, variante E, ángulo 3): el guion que el usuario aprobó.
@@ -154,10 +172,9 @@ describe("scriptProblems: la apertura del gancho", () => {
     expect(scriptProblems({ ...generated(), opening: { ...generated().opening!, hook_source: null } }, pricing, "ugc", opening)).toEqual([]);
   });
 
-  it("el gancho elige la toma y tiene que ser uno de la lista", () => {
+  it("el gancho tiene que ser uno de la lista", () => {
     const s = generated();
     expect(scriptProblems({ ...s, opening: { ...s.opening!, hook_source: 7 } }, pricing, "ugc", opening).join(" ")).toMatch(/hook_source es 7, que no está/);
-    expect(scriptProblems({ ...s, opening: { ...s.opening!, hook_source: 2 } }, pricing, "ugc", opening).join(" ")).toMatch(/El gancho 2 abre con problem_scene/);
     expect(scriptProblems({ ...s, opening: undefined }, pricing, "ugc", opening).join(" ")).toMatch(/Falta opening/);
   });
 
@@ -178,7 +195,6 @@ describe("scriptProblems: la apertura del gancho", () => {
 
   it("la mascota abre con su escena, nunca con el personaje sano", () => {
     const s = generated();
-    expect(scriptProblems(s, pricing, "mascot", { hooks: [{ index: 1, shot: "mascot_scene" }] }).join(" ")).toMatch(/la mascota abre con su escena/i);
     s.opening = { ...s.opening!, shot: "mascot_scene", keyframe: "K1" };
     s.a_roll[0] = { ...s.a_roll[0], keyframe: "K1" };
     expect(scriptProblems(s, pricing, "mascot", { hooks: [{ index: 1, shot: "mascot_scene" }] }).join(" ")).toMatch(/no parte de K1/);
@@ -219,7 +235,70 @@ describe("scriptProblems: la apertura del gancho", () => {
   it("el pago contra entrega no va en el gancho", () => {
     const s = generated();
     s.text_beats[0] = { anchor: "maquillas", until: null, text: "PAGAS AL RECIBIR" };
-    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no van en el gancho/);
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no van en el texto del gancho/);
+  });
+});
+
+describe("guion en dos pasos: lo que se dice y las tomas", () => {
+  const s = script();
+  const lines = (): ScriptLines => ({
+    format_fit: s.format_fit,
+    speaker: "Una mujer de 42 que se maquilla apurada",
+    hook_source: 1,
+    hook_why: s.hook_why,
+    a_roll: s.a_roll.map(({ seconds, line, delivery, acting }) => ({ seconds, line, delivery, acting })),
+    end_card: s.end_card,
+    compliance_notes: [],
+  });
+  const plan = (): UgcPlan => ({
+    persona: s.persona,
+    character: s.character,
+    opening: { keyframe: "K2", first_motion: "She leans toward the lens." },
+    keyframes: s.keyframes.slice(1).map((k) => ({ ...k, camera: k.uses_character ? "selfie" : "pov" })),
+    a_roll: s.a_roll.map(({ keyframe, motion }) => ({ keyframe, motion })),
+    b_roll: s.b_roll.map(({ keyframe, anchor, cut_s, motion }) => ({ keyframe, anchor, cut_s, motion })),
+    text_beats: s.text_beats,
+  });
+
+  it("el código pone K1, las claves y la toma de la apertura del gancho", () => {
+    const out = assembleScript(lines(), { ...plan(), keyframes: [{ ...characterKeyframe("ugc"), camera: "selfie", prompt: "otro K1" }, ...plan().keyframes] }, "ugc", "selfie_talk");
+    expect(out.keyframes[0]).toEqual(characterKeyframe("ugc"));
+    expect(out.keyframes.filter((k) => k.key === "K1")).toHaveLength(1);
+    expect(out.a_roll.map((a) => a.key)).toEqual(["A1", "A2", "A3", "A4", "A5"]);
+    expect(out.a_roll[0]).toMatchObject({ keyframe: "K1", line: s.a_roll[0].line, motion: s.a_roll[0].motion });
+    expect(out.b_roll.map((b) => b.key)).toEqual(["B1", "B2"]);
+    expect(out.opening).toEqual({ hook_source: 1, shot: "selfie_talk", keyframe: "K2", first_motion: "She leans toward the lens." });
+    expect(assembleScript(lines(), plan(), "ugc", null).opening?.shot).toBe("selfie_talk");
+  });
+
+  it("la mascota sale de un cuerpo seguro: el modelo solo pone color, cara y lugar", () => {
+    const m: MascotPlan = { ...plan(), character: { body: "droplet", color: "soft mint green", face: "big round eyes, worried eyebrows", setting: "a bathroom shelf" } } as unknown as MascotPlan;
+    const out = assembleScript(lines(), m, "mascot");
+    expect(out.persona).toBe(`${MASCOT_BODIES.droplet.prompt}, a 3D animated character`);
+    expect(out.character).toEqual({ look: "soft mint green; big round eyes, worried eyebrows", wardrobe: "none", setting: "a bathroom shelf" });
+    expect(out.opening?.shot).toBe("mascot_scene");
+    expect(out.keyframes[0].camera).toBe("animated");
+    // Ningún cuerpo del catálogo se lee como una forma riesgosa.
+    for (const b of Object.values(MASCOT_BODIES)) expect(riskyShape(b.prompt)).toBeNull();
+    // Lo que agrega el modelo sí se revisa.
+    expect(planProblems(assembleScript(lines(), { ...m, character: { ...m.character, face: "a long neck" } } as MascotPlan, "mascot"), pricing, "mascot").join(" ")).toMatch(/algo sexual/);
+  });
+
+  it("lo que se dice se revisa antes de pedir las tomas", () => {
+    expect(lineProblems(linesAsScript(lines()), pricing)).toEqual([]);
+    const bad = lines();
+    bad.a_roll[0] = { ...bad.a_roll[0], line: "Tengo cuarenta y dos y pago 27.990." };
+    const p = lineProblems(linesAsScript(bad), pricing).join(" ");
+    expect(p).toMatch(/número o un monto/);
+    expect(p).toMatch(/edad a la persona de IA/);
+    // Las tomas no se revisan en este paso.
+    expect(p).not.toMatch(/imagen clave/);
+  });
+
+  it("las tomas se revisan aparte: anclas, imágenes clave y la apertura", () => {
+    const out = assembleScript(lines(), { ...plan(), b_roll: [{ ...plan().b_roll[0], anchor: "nadie" }] }, "ugc", "selfie_talk");
+    expect(planProblems(out, pricing).join(" ")).toMatch(/se ancla a «nadie», que nadie dice/);
+    expect(planProblems(out, pricing).join(" ")).not.toMatch(/palabras para/);
   });
 });
 

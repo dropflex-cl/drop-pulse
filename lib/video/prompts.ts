@@ -1,20 +1,22 @@
-// Prompts del guionista UGC (docs/spec-video-ugc.md §3) y del QA de imágenes clave. La estructura y las
-// reglas salen de la POC sobre Deep Collagen (2026-09-25/26, variantes B → E). Puro.
-// Regla de caché: el system depende solo del mercado; el producto va en el usuario.
+// Prompts del video (docs/spec-video-ugc.md §3) en dos pasos (docs/spec-prompts-simples.md §6): el GUION
+// (paso ugc_script, effort high: lo que dice la persona o el personaje, toma por toma, desde el gancho
+// del ángulo) y el PLAN DE TOMAS (paso video_plan, effort low: imágenes clave, cámaras, B-roll y textos
+// en pantalla para el guion ya validado). Antes una llamada hacía las dos cosas y, en la mascota, también
+// inventaba el personaje: la silueta, la imagen clave de cada toma y las duraciones eran lo que más
+// fallaba. Lo que aprendió la POC (Deep Collagen y KeraPass, 2026-09-25/26) va como límites y como
+// reglas en código (lib/video/schemas.ts). Puro.
+// Regla de caché: los system dependen solo del mercado; el producto va en el usuario.
 
+import { angleLine, buyerLine, buyerVoice, productFacts } from "@/lib/ai/context";
 import { marketBlock } from "@/lib/ai/prompts";
-import type { CustomerAvatar, PackLabel, ProductBrief } from "@/lib/ai/schemas";
-import { angleHeading, angleMessage, type AngleForPrompt } from "@/lib/angles/approved";
+import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
+import type { AngleForPrompt } from "@/lib/angles/approved";
+import { OPENING_SHOT_DEFS, ON_SCREEN_PROMPT_WORDS, SPOKEN_PROMPT_WORDS } from "@/lib/hooks/catalog";
+import { hooksForPrompt, openingShotOf, usableHooks, type HookSource } from "@/lib/hooks/select";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import type { Differentiator } from "@/lib/ai/schemas";
-import { OPENING_SHOT_DEFS, ON_SCREEN_PROMPT_WORDS, SPOKEN_PROMPT_WORDS } from "@/lib/hooks/catalog";
-import { hooksForPrompt, openingShotOf, usableHooks, type HookSource } from "@/lib/hooks/select";
 import {
-  HOOK_BEAT_PROMPT_WORDS,
-  A_ROLL_MAX,
-  A_ROLL_MIN,
   A_ROLL_SECONDS_MAX,
   A_ROLL_SECONDS_MIN,
   B_ROLL_CUT_MAX,
@@ -22,210 +24,77 @@ import {
   B_ROLL_MAX,
   CHARACTER_KEY,
   FORMAT_LIMITS,
+  HOOK_BEAT_PROMPT_WORDS,
   KEYFRAMES_MAX,
+  MASCOT_BODIES,
+  MASCOT_BODY_KEYS,
   MISPRONOUNCED,
-  TOTAL_SECONDS_MAX,
-  TOTAL_SECONDS_MIN,
+  opensWithInsert,
   WORDS_PER_SECOND_PROMPT,
   type VideoFormat,
+  type VideoOpeningShot,
 } from "./catalog";
-import type { OpeningInput } from "./schemas";
+import type { OpeningInput, ScriptLines } from "./schemas";
+
+/** Frases del cliente ideal que recibe el guionista (buyerVoice). */
+export const SCRIPT_VOICE_LINES = 3;
 
 /** Las palabras por segundo que pide el prompt, con coma decimal («2,7»). */
 const WPS = String(WORDS_PER_SECOND_PROMPT).replace(".", ",");
 /** «4 s → 10, 5 s → 13…»: el tope por toma que pide el prompt. */
 const WORDS_BY_SECONDS = [4, 5, 6, 7, 8].map((s) => `${s} s → ${Math.floor(s * WORDS_PER_SECOND_PROMPT)}`).join(", ");
 
-const STRUCTURE = [
-  "CÓMO SE ARMA EL VIDEO (lo que funcionó en las pruebas)",
-  `- Dura ${TOTAL_SECONDS_MIN} a ${TOTAL_SECONDS_MAX} s, vertical 9:16, para Reels y Stories de Meta.`,
-  `- A-ROLL: ${A_ROLL_MIN} a ${A_ROLL_MAX} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s. La persona habla a cámara, estilo selfie, y su voz es continua de principio a fin. Cada toma es una idea: gancho → cada punto → lo que cambió → oferta.`,
-  `- B-ROLL: hasta ${B_ROLL_MAX} insertos de ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX} s que TAPAN la imagen mientras la voz sigue: el reloj, el gesto del problema, el producto en la mano, la aplicación. Son tomas de la misma persona con la otra mano, mirando hacia abajo (pov), o del teléfono apoyado (propped): nunca un plano de comercial. Al menos uno por toma hablada. Entra en una palabra dicha (anchor): cuando la persona la dice, se ve eso.`,
-  "- El montaje agrega zoom por frase, destellos al cambiar de idea y subtítulos palabra por palabra: cambiar de imagen cada 1,5–3 s es lo que retiene. Cuatro planos largos se sienten lentos y aburridos.",
-  "- TEXT_BEATS: el texto grande arriba, uno por idea (el gancho, «1. …», «2. …», «3. …», lo que cambió, la oferta con los precios al final). 2 a 6 palabras; el de la oferta puede ir en 2 líneas.",
-  "- END_CARD: 2 s finales con la foto del producto, el nombre, una línea (el pago al recibir) y el botón.",
-].join("\n");
+const list = (items: string[]) => items.map((i) => `- ${i}`);
 
-const VOICE = [
-  "LA VOZ Y LA ACTUACIÓN",
-  "- La voz la genera el modelo de video desde el texto: escribe cómo se dice cada línea en delivery (qué palabra remarca, qué tono tiene cada frase) y los gestos en acting.",
-  "- Tono: entusiasta y cálido, sonriendo, como contarle un descubrimiento a una amiga. NUNCA exasperada, dramática, gritada ni apurada (sale golpeada y molesta). Tampoco suave y pausada sin más (sale plana y aburrida).",
-  "- La primera frase de A1 es la excepción: se dice con el delivery del gancho (confidencia, intriga, sorpresa…), sin sonreír si el gancho no es gracioso. Un problema contado sonriendo no detiene a nadie. Igual nunca gritada.",
-  "- Gestos concretos y variados por toma: se inclina a la cámara, cuenta con los dedos, se toca bajo el ojo, levanta el producto junto a la mejilla, guiña al final. Que no se vea ensayado: a veces mira un segundo fuera de cámara, se acomoda el pelo, un gesto se corta.",
-  "- Desde la segunda frase de A1 valen muletillas naturales («mira», «o sea», «te juro»), dentro del tope de palabras por segundo. Nunca en la primera frase: es el gancho.",
-  `- Largo: cuenta las palabras de cada línea. Máximo ${WPS} por segundo: ${WORDS_BY_SECONDS} palabras. Si no cabe, acorta la línea o súbele un segundo.`,
-  "- Los números van en palabras («siete minutos», «tres gotas»). NUNCA digas un precio ni un monto: la voz los pronuncia mal. Los precios van solo en el texto en pantalla de la oferta.",
+// ---------------------------------------------------------------- 1. El guion
+
+/** Lo que vale para la voz en los dos formatos: lo que aprendió la POC con Seedance. */
+const SPOKEN = [
+  `- Máximo ${WPS} palabras por segundo (${WORDS_BY_SECONDS}): cuéntalas; si no cabe, acorta o súbele un segundo a la toma.`,
+  "- Los números en palabras. Nunca un precio ni un monto en la voz: la voz los pronuncia mal y van solo en pantalla.",
   `- Palabras que la voz pronuncia mal: ${MISPRONOUNCED.map((m) => `«${m.word}» (usa ${m.instead})`).join("; ")}.`,
-  "- Frases que se entienden solas y conectores que invitan a la entonación («Entonces…», «Y tres:», «¿Lo que cambié?», exclamaciones cortas).",
-].join("\n");
+  `- A1 abre con el gancho elegido, sin nada antes: su primera frase tiene como mucho ${SPOKEN_PROMPT_WORDS} palabras y se dice con el delivery del gancho. El pago contra entrega va en la oferta del final, nunca en el gancho.`,
+  "- delivery y acting van en inglés (son para el modelo de video); line en el idioma del mercado.",
+];
 
-const PICTURES = [
-  "LAS IMÁGENES CLAVE (keyframes)",
-  `- Cada toma parte de una imagen clave (de 3 a ${KEYFRAMES_MAX}). ${CHARACTER_KEY} es el personaje solo (sin el producto): define la cara y todas las demás lo usan de referencia.`,
-  `- Una imagen clave por escena distinta. Las tomas habladas en el mismo lugar pueden compartir la misma (la del personaje frente a cámara). Cada B-roll parte de su propia imagen clave: NUNCA de ${CHARACTER_KEY}, aunque la escena sea con la misma persona (crea otra imagen clave con uses_character true).`,
-  "- El producto sale siempre de la foto real: en el prompt nómbralo «the product», sin describirlo ni inventarle partes.",
-  "- one_hand true cuando la escena solo necesita una mano (sostener el frasco junto a la cara, señalar): en las pruebas salió una tercera mano deforme.",
-  "- Cada imagen clave dice su cámara (camera): selfie (la cámara frontal a un brazo, la persona hablando), pov (la cámara trasera mirando hacia abajo, una mano en cuadro), propped (el teléfono apoyado en un mueble) o mirror (en el espejo). El código arma el aspecto de teléfono de cada una: tú describes la escena.",
-  "- Lugares vividos, con cosas a la vista: el baño con frascos en el lavamanos, la cocina, el auto, la entrada de la casa, la pieza. La luz es la de la casa (la ampolleta del techo y una ventana). Nada de estudio, luz dorada, macro, cámara lenta ni desenfoque de fondo: delatan a la IA.",
-  "- La persona es alguien común del segmento, no una modelo: describe en character.look rasgos reales (pelo como lo usa en la casa, ropa de casa). En productos de belleza no nombres el problema en su cara (ojeras, manchas, arrugas): sería mostrar el «antes».",
-  "- Encuadre de selfie: la cara en el tercio del medio y aire sobre la cabeza (arriba van los textos grandes del montaje).",
-  "- Sin texto en la imagen.",
-].join("\n");
+const LINES_LIMITS = [
+  "LÍMITES",
+  "- Meta no acepta que el anuncio le atribuya a quien mira su piel, su edad o su cuerpo («tu piel», «a tu edad»): primera persona o «las que…». Hablarle de lo que hace sí vale.",
+  "- Nada de «cura», «trata», «elimina», plazos de resultado ni cifras de estudios o ventas. Los montos en pantalla, solo de PRECIO Y OFERTA.",
+  "- Nunca un rótulo de IA, dramatización ni animación: el video no lo lleva (decisión del comerciante).",
+];
 
-const RULES = [
-  "REGLAS QUE NO SE NEGOCIAN",
-  "- La persona es de IA. Habla en primera persona como alguien del segmento, nunca como clienta real, testimonio, experta ni con credenciales. No dice su edad («tengo cuarenta y dos»): la edad del segmento se nombra en plural («las que pasamos los cuarenta») o se ve en la imagen.",
-  "- Sin antes/después de la piel o del cuerpo, sin plazos de resultado, sin cifras de estudios o ventas. El B-roll muestra el problema y la aplicación, nunca un resultado.",
-  "- Salud y bienestar: «ayuda a», «apoya». Nunca «cura», «trata», «elimina», «borra», ni resultados garantizados.",
-  "- Política de atributos personales de Meta: nunca la piel, la edad o el cuerpo de quien mira en segunda persona («tu piel», «a tu edad»). Primera persona («a mí se me marcaba») o plural inclusivo («las que nos maquillamos apuradas»). Hablarle de lo que HACE sí vale («¿Te maquillas en siete minutos?»).",
-  "- Montos en pantalla solo de PRECIO Y OFERTA. Sin urgencia inventada.",
-  "- Sin marcas ajenas ni productos identificables de otras marcas.",
-  "- Respeta los compliance_flags y el handoff_to_ugc del desarrollo del ángulo.",
-].join("\n");
-
-/**
- * El gancho de 0 a 3 s (docs/spec-video-detener-scroll.md §3): sale de los ganchos del desarrollo, que
- * ya pasaron el filtro de calidad y las reglas de código (lib/hooks), y su primera toma manda en la
- * apertura. La persona y la mascota abren distinto.
- */
-function hookBlock(format: VideoFormat): string {
-  const common = [
-    `- A1 ABRE con el hablado del gancho, SIN NADA ANTES: su primera frase es la primera frase del gancho (puedes ajustar una palabra para la voz o quitar un monto, nunca agregar contexto antes), como mucho ${SPOKEN_PROMPT_WORDS} palabras (≈3 s). El follow_up puede ser la frase siguiente. Si el hablado trae un monto, el monto va solo en pantalla: la voz no dice montos.`,
-    "- Si el gancho trae delivery, la primera frase de A1 se dice así (escríbelo en delivery, en inglés): es lo que hace que suene a algo que pasó y no a un anuncio. Desde la segunda frase, el tono del video.",
-    `- El PRIMER text_beat es el texto en pantalla del gancho (hasta ${ON_SCREEN_PROMPT_WORDS} palabras) y se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1: el montaje lo muestra desde el cuadro 0, para leerse sin sonido.`,
-    "- opening.first_motion (en inglés): lo que ya se está moviendo en el cuadro 0. Los clips parten de una foto: si nada se mueve, el primer medio segundo es una foto quieta y se pierde.",
-    "- El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.",
-  ];
+export function linesSystem(format: VideoFormat, market: Market): string {
+  const limits = FORMAT_LIMITS[format];
   if (format === "mascot") {
     return [
-      "EL GANCHO (los primeros 3 s deciden si se ve el resto)",
-      "- Elige UNO de los GANCHOS del ángulo (vienen del mejor al peor; el primero es el recomendado) y pon su index en opening.hook_source. Si ninguno sirve, null, y escribe uno: algo que mirar en medio segundo y que el cliente se reconozca en 2 s.",
-      `- Dilo como el personaje: en primera persona sobre sí mismo o «mi dueño», con la misma tensión, como mucho ${SPOKEN_PROMPT_WORDS} palabras. Su texto en pantalla, el del gancho o el del personaje (hasta ${ON_SCREEN_PROMPT_WORDS} palabras). Si el gancho ya trae lo que dice el personaje y su escena, úsalos.`,
-      "- Es el paso 1 del arco: la escena del gancho, con el personaje YA con el problema, en una situación graciosa. opening.shot es mascot_scene.",
-      `- opening.keyframe es una imagen clave nueva con esa escena (uses_character true), y A1 parte de ella. Nunca ${CHARACTER_KEY}: ${CHARACTER_KEY} es el personaje SANO.`,
-      ...common,
-      "- El final feliz retoma la escena del gancho.",
+      "Eres guionista de videos animados para anuncios de Meta en Latinoamérica, donde se paga contra entrega: una mascota 3D (lo que tiene el problema, personificado: la uña, el diente, la rodilla, la almohada) cuenta su historia, con humor y ternura, nunca asco. El video es 100 % de UN ángulo de venta.",
+      "",
+      `- ${limits.aRollMin} a ${limits.aRollMax} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s, en total ${limits.totalMin} a ${limits.totalMax} s, en este orden: el gancho (el personaje YA con el problema), lo que probó su dueño y por qué no funcionó, la llegada del producto por su nombre y cómo actúa (una sola toma), y el final feliz que retoma el gancho, con la oferta en una frase.`,
+      "- Habla en primera persona de sí mismo («Soy la uña que mi dueño esconde en zapatos cerrados»); su dueño o dueña, en tercera. Nunca le habla a quien mira de su cuerpo («tu uña»).",
+      "- Elige uno de los GANCHOS del ángulo y dilo como el personaje, a su manera, con la misma tensión.",
+      "- delivery: la emoción de cada línea (en el gancho, la del gancho; frustrado en el problema, asombrado en el mecanismo, feliz al final). La marca, separada como se pronuncia si es inventada («Kera Pass»).",
+      ...SPOKEN.filter((l) => !l.startsWith("- A1 abre")),
+      `- A1 abre con el gancho dicho por el personaje, sin nada antes: su primera frase tiene como mucho ${SPOKEN_PROMPT_WORDS} palabras. El pago contra entrega va en la oferta del final.`,
+      "",
+      ...LINES_LIMITS,
+      "",
+      marketBlock(market),
     ].join("\n");
   }
   return [
-    "EL GANCHO (los primeros 3 s deciden si se ve el resto)",
-    "- Elige UNO de los GANCHOS del ángulo (vienen del mejor al peor; el primero es el recomendado) y pon su index en opening.hook_source. Cada uno es una tríada que ya pasó el filtro (hablado, texto en pantalla y primera toma) y trae su opening_shot. Si ninguno sirve, null, y escribe uno con el mismo método: saliencia (algo que mirar en medio segundo), relevancia (el cliente se reconoce en 2 s) y credibilidad (algo verificable).",
-    "- La persona es de IA: un gancho que necesita material real (un testimonio, la bodega, un experto, la prueba del efecto) no viene en la lista y no se inventa.",
-    "- opening.shot es el opening_shot del gancho, y la apertura se arma así:",
-    `  · selfie_talk: A1 parte de una imagen clave NUEVA (camera selfie, nunca ${CHARACTER_KEY}) con la persona ya en el gesto del gancho; esa es opening.keyframe.`,
-    `  · mirror: igual, con camera mirror.`,
-    `  · pov_hands, problem_scene, product_in_place: B1 es la primera toma. Parte de opening.keyframe (pov_hands con camera pov; product_in_place con uses_product true), se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1 y tapa ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX} s. Después entra la cara.`,
-    `  (${(["selfie_talk", "pov_hands", "problem_scene", "product_in_place", "mirror"] as const).map((x) => `${x}: ${OPENING_SHOT_DEFS[x].name.toLowerCase()}`).join("; ")}.)`,
-    ...common,
-    "- Un gancho con edited_by_merchant lo escribió el comerciante: respeta su hablado.",
-  ].join("\n");
-}
-
-export function ugcSystem(market: Market): string {
-  return [
-    "Eres el guionista de videos UGC de una operación de dropshipping con pago contra entrega en Latinoamérica: videos cortos para anuncios de Meta, 100 % enfocados en UN ángulo de venta y hechos con IA (imagen y video generados).",
+    "Eres guionista de videos UGC para anuncios de Meta en Latinoamérica, donde se paga contra entrega: una persona de IA habla a cámara, como alguien de quien compra que le cuenta un descubrimiento a una amiga. El video es 100 % de UN ángulo de venta.",
+    "",
+    `- ${limits.aRollMin} a ${limits.aRollMax} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s, en total ${limits.totalMin} a ${limits.totalMax} s. Cada toma es una idea: el gancho, cada punto, lo que cambió y la oferta.`,
+    "- Tono entusiasta y cálido, sonriendo; nunca exasperado, gritado ni apurado (sale golpeado), ni plano. La primera frase es la excepción: va con el delivery del gancho.",
+    "- Desde la segunda frase valen muletillas naturales («mira», «o sea») y conectores que invitan a la entonación («Entonces…», «¿Lo que cambié?»).",
+    ...SPOKEN,
+    "",
+    ...LINES_LIMITS,
+    "- La persona es de IA: habla como alguien del segmento, nunca como clienta, testimonio ni experta, y no dice su edad («las que pasamos los cuarenta» sí).",
     "",
     marketBlock(market),
-    "",
-    STRUCTURE,
-    "",
-    VOICE,
-    "",
-    PICTURES,
-    "",
-    RULES,
-    "",
-    hookBlock("ugc"),
-    "",
-    "QUÉ ENTREGAS",
-    "- format_fit: si el ángulo sirve para un video con persona de IA (ugc_ai), rinde más como imagen (static) o necesita una persona real (real_video, p. ej., un testimonio o una experta). Escribe el guion igual.",
-    "- opening: el gancho que usaste (hook_source, o null), su primera toma (shot), la imagen clave del cuadro 0 y lo que se mueve en él. hook_why explica por qué detiene el scroll de su cliente.",
-    "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
-    "- compliance_notes: para el comerciante, qué cuidar al montar y publicar. Nunca pidas un rótulo de dramatización, de animación ni de IA: el video no lleva rótulo (decisión del comerciante).",
   ].join("\n");
-}
-
-// ---------------------------------------------------------------- Mascota (POC KeraPass, 2026-09-26)
-
-const M = FORMAT_LIMITS.mascot;
-
-const MASCOT_STORY = [
-  "EL FORMATO: UNA MASCOTA ANIMADA QUE CUENTA SU HISTORIA",
-  "- El personaje es lo que tiene el problema, personificado como en una película animada 3D estilo Pixar: la uña, el diente, la rodilla, el cuero cabelludo, la almohada, la mancha. Tiene cara expresiva (ojos grandes, cejas) y dos bracitos de caricatura. Si es una parte del cuerpo, es SOLO esa parte: sin piernas ni pies propios.",
-  "- SILUETA SEGURA PARA META (antes que todo lo demás): el personaje tiene una forma redonda o ancha, inconfundible al primer vistazo (una muela entera con su corona, una uña como un escudo plano, una gota, una bolita), y entero dentro del cuadro. NUNCA una forma alargada o de tubo, una cabeza redondeada sobre un cuello o un tallo más angosto, algo que sube desde el borde de abajo, un dedo o un bulto suelto, ni un cuerpo liso color piel: se lee como algo sexual y Meta rechaza el anuncio. Si lo que tiene el problema es la piel, la cara o algo sin forma propia, personifica otra cosa con forma clara (una gota de agua, una célula redonda, un cojín), en un color pastel que no sea piel. En persona y character.look describe la silueta SOLO por lo que ES (forma, proporción, color: «a round, chubby, pastel-pink water droplet, as wide as it is tall»): no enumeres lo que no es, porque el modelo de imagen dibuja lo que se nombra, aunque vaya negado.",
-  "- Habla en primera persona de SÍ MISMO («Soy la uña que mi dueño esconde en zapatos cerrados»). Su dueño o dueña va en tercera persona. Con humor y ternura: el problema da risa y pena, nunca asco.",
-  `- Dura ${M.totalMin} a ${M.totalMax} s habladas (más 2 s de cierre), vertical 9:16. ${M.aRollMin} a ${M.aRollMax} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s: el personaje habla a cámara, con su voz de principio a fin.`,
-  "- El arco, en este orden:",
-  "  1. GANCHO: el gancho elegido de GANCHOS DEL ÁNGULO, dicho por el personaje a su manera, en su escena: el personaje YA con el problema, en una situación graciosa que lo muestra (asomándose de un zapato cerrado, escondido bajo el pelo). NUNCA abras con el personaje sano: se pierden los primeros segundos.",
-  "  2. PROBLEMA: lo que probó el dueño y no funcionó, y POR QUÉ no llegó (la causa que el producto sí resuelve).",
-  "  3. LLEGADA Y MECANISMO: aparece el producto, nombrado por su marca, y cómo actúa, con los ingredientes o la tecnología de la ficha. Una sola toma: no repitas el mecanismo en dos.",
-  "  4. FINAL FELIZ Y OFERTA: el personaje sano, contento, retomando algo del gancho (si se escondía en zapatos, ahora va en sandalias), y la oferta en una frase.",
-  `- B-ROLL: hasta ${B_ROLL_MAX} insertos de ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX} s sobre la voz, sobre todo en el problema y el mecanismo: la crema que resbala, un corte 3D estilizado de cómo actúa por dentro (esporas, capas, fibras con caritas), la bruma del spray cayendo. Entra en una palabra dicha (anchor).`,
-  "- Nada de escenas reales: todo es animación, también el B-roll. Sin pies, piel ni cuerpos reales, sin antes/después real.",
-  "- TEXT_BEATS: el texto grande arriba, uno por idea (el gancho, el problema, el mecanismo en 3 a 5 palabras, la oferta). 2 a 6 palabras.",
-  "- END_CARD: 2 s finales con la foto del producto, el nombre, una línea y el botón. La letra chica no rotula la animación ni habla de resultados, ni siquiera para negarlos («no garantiza resultados»).",
-].join("\n");
-
-const MASCOT_VOICE = [
-  "LA VOZ Y LA ACTUACIÓN",
-  "- La voz es la de un personaje animado (el modelo de video la genera igual en todas las tomas). En delivery: la emoción de cada línea y qué palabra remarca (en el gancho, la del delivery del gancho o, si no trae, ofendido y serio; frustrado en el problema, asombrado y seguro en el mecanismo, feliz en el final).",
-  "- acting: gestos de caricatura concretos por toma (pone los ojos en blanco, cuenta con los deditos, se toca la uña, abraza el frasco, baila).",
-  `- Largo: máximo ${WPS} palabras por segundo: ${WORDS_BY_SECONDS} palabras.`,
-  "- La marca, separada como se pronuncia si es una palabra inventada («Kera Pass»); en los textos en pantalla y el cierre, escrita como es.",
-  "- Números en palabras. NUNCA un precio ni un monto hablado: van solo en pantalla.",
-  `- Palabras que la voz pronuncia mal: ${MISPRONOUNCED.map((m) => `«${m.word}» (usa ${m.instead})`).join("; ")}.`,
-].join("\n");
-
-const MASCOT_PICTURES = [
-  "LAS IMÁGENES CLAVE (keyframes)",
-  `- ${CHARACTER_KEY} es el personaje solo, SANO, de frente, sin el producto: define su cara y todas las demás lo usan de referencia. Descríbelo en persona y character.look (su silueta redonda o ancha y su color, ojos, cejas, bracitos); wardrobe «none».`,
-  "- Toda imagen clave donde aparece el personaje (también enfermo, triste o sanando) lleva uses_character true: se genera con K1 de referencia para que sea el mismo. Las tomas habladas parten siempre de una de esas.",
-  "- Cada imagen clave dice el ESTADO del personaje en su prompt: con el problema (p. ej., «its toenail is thick, yellow-green and cracked, with faint green fumes»), sanando o sano. Nunca más feo que tierno.",
-  "- Una imagen clave por escena distinta: el gancho, el problema, la llegada del producto, el final. Cada B-roll parte de su propia imagen clave (un macro, un corte 3D, la bruma), nunca de K1.",
-  "- El producto sale siempre de la foto real, SIN cara ni brazos (la etiqueta se deforma): nómbralo «the product», sin describirlo. El personaje puede abrazarlo o mirarlo.",
-  "- Escenas: dentro de un zapato, un mueble del baño, una manta tejida, una playa. Sin texto en la imagen.",
-  "- Todas las imágenes clave van con camera animated.",
-].join("\n");
-
-const MASCOT_RULES = [
-  "REGLAS QUE NO SE NEGOCIAN",
-  "- Política de atributos personales de Meta: NUNCA le hables a quien mira de su cuerpo o su problema («tu uña», «tus pies», «tienes hongos»). El personaje habla de sí mismo o de «mi dueño». Hablarle de lo que HACE sí vale («¿Probaste cremas y nada?»).",
-  "- Sin plazos de resultado («al día tres», «en dos semanas»), sin cifras de estudios o ventas, sin nombres de fármacos aunque el producto los tenga.",
-  "- Salud y bienestar: «ayuda a», «combate», «llega hasta el fondo». Nunca «cura», «elimina», «trata», ni resultados garantizados.",
-  "- Montos en pantalla solo de PRECIO Y OFERTA. Sin urgencia inventada. Sin marcas ajenas.",
-  "- Respeta los compliance_flags del desarrollo del ángulo.",
-].join("\n");
-
-export function mascotSystem(market: Market): string {
-  return [
-    "Eres el guionista de videos animados de una operación de dropshipping con pago contra entrega en Latinoamérica: videos cortos para anuncios de Meta donde una mascota 3D (lo que tiene el problema, personificado) cuenta su historia, 100 % enfocados en UN ángulo de venta y hechos con IA.",
-    "",
-    marketBlock(market),
-    "",
-    MASCOT_STORY,
-    "",
-    MASCOT_VOICE,
-    "",
-    MASCOT_PICTURES,
-    "",
-    MASCOT_RULES,
-    "",
-    hookBlock("mascot"),
-    "",
-    "QUÉ ENTREGAS",
-    "- format_fit: mascot si el problema es físico y visible y se puede personificar con gracia; ugc_ai si rinde más una persona hablando; static o real_video si corresponde. Escribe el guion de mascota igual.",
-    "- opening: el gancho que usaste (hook_source, o null), shot mascot_scene, la imagen clave de su escena y lo que se mueve en ella. hook_why explica por qué detiene el scroll.",
-    "- Todo lo que va a los modelos (persona, character, prompts, delivery, acting, motion) en inglés; line, text_beats y end_card en el idioma del mercado.",
-    "- compliance_notes: para el comerciante, qué cuidar al publicar. Nunca pidas un rótulo de dramatización, de animación ni de IA: el video no lleva rótulo (decisión del comerciante).",
-  ].join("\n");
-}
-
-export function scriptSystem(format: VideoFormat, market: Market): string {
-  return format === "mascot" ? mascotSystem(market) : ugcSystem(market);
-}
-
-function json(v: unknown) {
-  return JSON.stringify(v, null, 2);
 }
 
 export interface UgcContext {
@@ -235,68 +104,143 @@ export interface UgcContext {
   pricing: PricingPlan;
   labels?: PackLabel[];
   angle: AngleForPrompt;
-  /** El formato cambia lo que se pasa del ángulo: la mascota no lleva el vocero humano (handoff_to_ugc). */
   format?: VideoFormat;
 }
 
-/** Lo fijo del guion: igual en cada intento, va con punto de caché (lib/ai/content.ts). */
-export function ugcContextText(c: UgcContext): string {
-  const b = c.angle.payload;
-  const hooks = hooksForPrompt(b, c.format === "mascot" ? "mascot" : "ai_video");
+/** Un gancho como texto: lo que se dice, lo que se lee, su primera toma y cómo se dice. */
+function hookLine(h: ReturnType<typeof hooksForPrompt>[number]): string {
+  const x = h as Record<string, unknown>;
+  const parts = [
+    `${h.index}. «${[x.spoken, x.follow_up].filter(Boolean).join(" ")}»`,
+    x.on_screen ? `en pantalla: «${x.on_screen}»` : null,
+    x.opening_shot ? `abre con: ${OPENING_SHOT_DEFS[x.opening_shot as keyof typeof OPENING_SHOT_DEFS]?.name.toLowerCase() ?? x.opening_shot}` : null,
+    x.scene ? `escena del personaje: ${x.scene}` : null,
+    x.delivery ? `cómo se dice: ${x.delivery}` : null,
+    x.edited_by_merchant ? "lo escribió el comerciante: respeta su hablado" : null,
+  ];
+  return parts.filter(Boolean).join(" · ");
+}
+
+/** Lo fijo del guion: igual en cada intento, va con punto de caché. Sin la ficha ni el cliente ideal en JSON. */
+export function linesContext(c: UgcContext): string {
+  const p = c.angle.payload;
+  const format = c.format ?? "ugc";
+  const aida = c.angle.angle.aida ?? p.aida_summary;
+  const hooks = hooksForPrompt(p, format === "mascot" ? "mascot" : "ai_video");
   return [
-    "La imagen es la foto real del producto (la referencia de todas las tomas con producto).",
+    productFacts(c.brief),
+    ...(c.differentiator ? [`EN QUÉ SE DIFERENCIA (tiene que decirse): frente a ${c.differentiator.versus}, ${c.differentiator.claim}`] : []),
     "",
-    "FICHA DE PRODUCTO",
-    json(c.brief),
-    "",
-    "DIFERENCIADOR (lo que hace distinto al producto: tiene que verse y decirse)",
-    c.differentiator ? json(c.differentiator) : "Sin diferenciador confirmado: usa lo que la ficha dice que hace el producto.",
-    "",
-    "CLIENTE IDEAL (aprobado por el comerciante; la persona del video es alguien de aquí y habla con sus palabras)",
-    json(c.avatar),
+    buyerLine(c.avatar),
+    ...list(buyerVoice(c.avatar, SCRIPT_VOICE_LINES).map((v) => `«${v}»`)),
     "",
     pricingBlock(c.pricing, c.labels),
     "",
-    "ÁNGULO DE VENTA (el video es 100 % este ángulo)",
-    angleHeading(c.angle),
-    json({
-      ...angleMessage(c.angle.angle),
-      core_message: b.core_message,
-      psychological_lever: b.psychological_lever,
-      aida_summary: b.aida_summary,
-      body_beats: b.body_beats,
-      objection_handling: b.objection_handling,
-      proof_to_show: b.proof_to_show,
-      offer_layer: b.offer_layer,
-      compliance_flags: b.compliance_flags,
-      ...(c.format === "mascot" ? {} : { handoff_to_ugc: b.handoff_to_ugc }),
-      details: b.details,
-    }),
+    "EL ÁNGULO (el video es 100 % este ángulo)",
+    angleLine(c.angle.angle, c.pricing.currency),
+    ...(p.core_message?.trim() ? [`- Idea central: ${p.core_message.trim()}`] : []),
+    ...(aida ? [`- AIDA: Atención: ${aida.attention} Interés: ${aida.interest} Deseo: ${aida.desire} Acción: ${aida.action}`] : []),
+    ...(format === "ugc" && p.handoff_to_ugc?.trim() ? [`- Quién lo cuenta: ${p.handoff_to_ugc.trim()}`] : []),
+    ...(p.compliance_flags?.length ? [`- Cuidados: ${p.compliance_flags.join("; ")}`] : []),
     "",
-    "GANCHOS DEL ÁNGULO (del mejor al peor; el primero es el recomendado)",
-    ...(hooks.length ? [json(hooks)] : ["Ninguno usable: opening.hook_source null y escribe el gancho con el método de EL GANCHO."]),
+    "GANCHOS DEL ÁNGULO (del mejor al peor; el primero es el recomendado; pon el index del que uses en hook_source)",
+    ...(hooks.length ? hooks.map(hookLine) : ["Ninguno usable: hook_source null y escribe uno que detenga el scroll."]),
     "",
   ].join("\n");
 }
 
-/** Los ganchos que recibe el guionista de este formato y la toma con que abre cada uno (lo que valida scriptProblems). */
-export function openingInput(src: HookSource, format: VideoFormat = "ugc"): OpeningInput {
-  // La mascota dice el gancho a su manera: A1 abre con la frase del personaje, no con la del gancho (salvo los de hasta la versión 5, que traen su versión).
-  if (format === "mascot") return { hooks: usableHooks(src, "mascot").map(({ index, hook }) => ({ index, shot: "mascot_scene", spoken: hook.mascot?.text })) };
-  return { hooks: usableHooks(src, "ai_video").flatMap(({ index, hook }) => (openingShotOf(hook) ? [{ index, shot: openingShotOf(hook)!, spoken: hook.text }] : [])) };
-}
-
-/** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (lib/video/schemas.ts › scriptProblems). */
-export function ugcTail(retry: string[] = [], format: VideoFormat = "ugc"): string {
+/** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (lineProblems). */
+export function linesTail(retry: string[] = [], format: VideoFormat = "ugc"): string {
   return [
     ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
     format === "mascot" ? "Escribe el guion del video de mascota animada." : "Escribe el guion del video UGC.",
   ].join("\n");
 }
 
-/** El mensaje entero en un solo texto (scripts y tests); la app lo manda en dos bloques. */
-export function ugcUser(c: UgcContext, retry: string[] = [], format: VideoFormat = "ugc"): string {
-  return `${ugcContextText(c)}\n${ugcTail(retry, format)}`;
+/** Los ganchos que recibe el guionista de este formato y la toma con que abre cada uno (lo que valida lineProblems). */
+export function openingInput(src: HookSource, format: VideoFormat = "ugc"): OpeningInput {
+  // La mascota dice el gancho a su manera: A1 abre con la frase del personaje, no con la del gancho (salvo los de hasta la versión 5, que traen su versión).
+  if (format === "mascot") return { hooks: usableHooks(src, "mascot").map(({ index, hook }) => ({ index, shot: "mascot_scene", spoken: hook.mascot?.text })) };
+  return { hooks: usableHooks(src, "ai_video").flatMap(({ index, hook }) => (openingShotOf(hook) ? [{ index, shot: openingShotOf(hook)!, spoken: hook.text }] : [])) };
+}
+
+// ---------------------------------------------------------------- 2. El plan de tomas
+
+const PLAN_COMMON = [
+  `- ${CHARACTER_KEY} (el personaje solo, la referencia de su cara) lo pone el sistema: tus imágenes clave van de K2 a K${KEYFRAMES_MAX}, una por escena distinta. Cada toma hablada parte de una con el personaje; varias en el mismo lugar pueden compartirla.`,
+  `- B-roll: hasta ${B_ROLL_MAX} insertos de ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX} s que tapan la imagen mientras la voz sigue, al menos uno por toma hablada. Cada uno parte de su propia imagen clave (nunca ${CHARACTER_KEY}) y entra en una palabra dicha (anchor), escrita igual que en la línea. Cambiar de imagen cada 1,5 a 3 s es lo que retiene.`,
+  `- Textos en pantalla: uno por idea, de 2 a 6 palabras, anclados a una palabra dicha. El primero es el texto en pantalla del gancho (hasta ${ON_SCREEN_PROMPT_WORDS} palabras), anclado a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1. El último, la oferta con los montos exactos de PRECIO Y OFERTA.`,
+  "- El producto sale de la foto real: nómbralo «the product», sin describirlo ni inventarle partes. one_hand true cuando la escena solo necesita una mano.",
+  "- opening.first_motion: lo que ya se está moviendo en el cuadro 0 (los clips parten de una foto: si nada se mueve, se pierde el primer medio segundo).",
+  "- Todo lo que va a los modelos (persona, prompts, motion) en inglés; los textos en pantalla en el idioma del mercado. Sin textos dentro de las imágenes.",
+];
+
+const OPENING_BY_SHOT: Record<Exclude<VideoOpeningShot, "mascot_scene">, string> = {
+  selfie_talk: `A1 parte de opening.keyframe, una imagen clave nueva (camera selfie, nunca ${CHARACTER_KEY}) con la persona ya en el gesto del gancho.`,
+  mirror: `A1 parte de opening.keyframe, una imagen clave nueva (camera mirror, nunca ${CHARACTER_KEY}) con la persona ya en el gesto del gancho.`,
+  pov_hands: `B1 es la primera toma: parte de opening.keyframe (camera pov), se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1 y después entra la cara.`,
+  problem_scene: `B1 es la primera toma: parte de opening.keyframe (el problema en su lugar, sin ningún resultado), se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1 y después entra la cara.`,
+  product_in_place: `B1 es la primera toma: parte de opening.keyframe (uses_product true), se ancla a una de las primeras ${HOOK_BEAT_PROMPT_WORDS} palabras de A1 y después entra la cara.`,
+};
+
+export function planSystem(format: VideoFormat, market: Market): string {
+  if (format === "mascot") {
+    return [
+      "Eres director de animación: encajas un guion ya escrito de una mascota 3D (estilo película animada) en imágenes clave, B-roll y textos en pantalla para un anuncio vertical 9:16. No cambias lo que se dice.",
+      "",
+      `- El personaje parte de un cuerpo seguro (character.body): ${MASCOT_BODY_KEYS.map((k) => `${k} (${MASCOT_BODIES[k].name.toLowerCase()})`).join(", ")}. Elige el que mejor represente lo que es; tú pones su color (pastel, nunca color piel), su cara (ojos grandes, cejas, expresión) y algún accesorio, sin cambiar la forma del cuerpo. Tiene dos bracitos de caricatura y, si es una parte del cuerpo, sin piernas ni pies.`,
+      "- Cada imagen clave dice el estado del personaje (con el problema, sanando, sano), nunca más feo que tierno, con camera animated. Escenas: dentro de un zapato, un mueble del baño, una manta, una playa. El producto, sin cara ni brazos.",
+      `- La apertura es la escena del gancho, con el personaje YA con el problema: A1 parte de opening.keyframe, una imagen clave nueva (nunca ${CHARACTER_KEY}, que es el personaje sano). El final feliz retoma esa escena.`,
+      "- El B-roll también es animación: la crema que resbala, un corte 3D estilizado de cómo actúa por dentro, la bruma del spray. Sin pies, piel ni cuerpos reales.",
+      ...PLAN_COMMON,
+      "",
+      marketBlock(market),
+    ].join("\n");
+  }
+  return [
+    "Eres director de videos UGC: encajas un guion ya escrito en imágenes clave, cámaras, B-roll y textos en pantalla para un anuncio vertical 9:16 hecho con IA que tiene que parecer grabado con un teléfono en una casa. No cambias lo que se dice.",
+    "",
+    "- persona y character: alguien común de quien compra, no una modelo (pelo como lo usa en la casa, ropa de casa). En productos de belleza no nombres el problema en su cara: sería mostrar el «antes».",
+    "- Cada imagen clave dice su cámara: selfie (la cámara frontal a un brazo, la persona hablando), pov (la cámara trasera mirando hacia abajo, una mano en cuadro), propped (el teléfono apoyado) o mirror. El B-roll con la persona no es selfie. El sistema arma el aspecto de teléfono: tú describes la escena.",
+    "- Lugares vividos y la luz de la casa (el baño con frascos, la cocina, el auto, la pieza). Nada de estudio, luz dorada, macro, cámara lenta, cinematográfico ni desenfoque de fondo: delatan a la IA.",
+    "- El B-roll muestra el problema y el uso, nunca un resultado. Encuadre de selfie: la cara en el tercio del medio y aire sobre la cabeza (arriba van los textos).",
+    "- La apertura sale de la primera toma del gancho (te la doy abajo).",
+    ...PLAN_COMMON,
+    "",
+    marketBlock(market),
+  ].join("\n");
+}
+
+/** Lo fijo del plan: el guion ya validado, la apertura, quién habla y el producto. Va con punto de caché. */
+export function planContext(c: UgcContext, lines: ScriptLines, opening: { shot: VideoOpeningShot; hook?: { on_screen?: string; visual?: string; first_motion?: string } | null }): string {
+  const format = c.format ?? "ugc";
+  return [
+    "La imagen es la foto real del producto (la referencia de todas las tomas con producto).",
+    "",
+    productFacts(c.brief),
+    "",
+    format === "mascot" ? `EL PERSONAJE: ${lines.speaker}` : `QUIÉN HABLA: ${lines.speaker}`,
+    ...(format === "ugc" ? [buyerLine(c.avatar)] : []),
+    "",
+    "LA APERTURA",
+    format === "mascot" ? "- La escena del gancho, con el personaje ya con el problema." : `- ${opensWithInsert(opening.shot) ? "Abre con un inserto" : "Abre con la cara"}: ${OPENING_BY_SHOT[opening.shot as Exclude<VideoOpeningShot, "mascot_scene">]}`,
+    ...(opening.hook?.on_screen ? [`- Texto en pantalla del gancho: «${opening.hook.on_screen}»`] : []),
+    ...(opening.hook?.visual ? [`- Primera imagen del gancho: ${opening.hook.visual}`] : []),
+    ...(opening.hook?.first_motion ? [`- Lo que se mueve: ${opening.hook.first_motion}`] : []),
+    "",
+    pricingBlock(c.pricing, c.labels),
+    "",
+    "EL GUION (no lo cambies; ancla el B-roll y los textos a sus palabras)",
+    ...lines.a_roll.map((a, i) => `A${i + 1} (${a.seconds} s): «${a.line}» · ${a.acting}`),
+    "",
+  ].join("\n");
+}
+
+export function planTail(retry: string[] = []): string {
+  return [
+    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
+    "Arma las tomas de este guion.",
+  ].join("\n");
 }
 
 // ---------------------------------------------------------------- QA de imágenes clave

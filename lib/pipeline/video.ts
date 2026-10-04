@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
+import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
@@ -39,7 +39,7 @@ import {
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
-import { KEYFRAME_QA_SYSTEM, keyframeQaUser, openingInput, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "@/lib/video/prompts";
+import { KEYFRAME_QA_SYSTEM, keyframeQaUser, linesContext, linesSystem, linesTail, openingInput, planContext, planSystem, planTail, type UgcContext } from "@/lib/video/prompts";
 import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
   MASCOT_PROMPT_VERSION,
@@ -49,10 +49,16 @@ import {
   keyframeQaSchema,
   firstSentence,
   keyframeQaVerdict,
+  assembleScript,
+  lineProblems,
+  linesAsScript,
+  planProblems,
+  planSchema,
   scriptEditSchema,
+  scriptLinesSchema,
   scriptProblems,
-  ugcScriptSchema,
   type KeyframeQa,
+  type ScriptLines,
   type UgcScript,
 } from "@/lib/video/schemas";
 import { activeScripts, getScriptRow, getShotRow, isShotRecoverable, latestByKey, purgeSupersededVideos, shotsFor, videoStep, type ScriptRow, type ShotRow } from "@/lib/video/store";
@@ -61,7 +67,8 @@ import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { OptimizeError, requireAiKey } from "./optimize";
 
 // Video UGC en Creativos (docs/spec-video-ugc.md). Cada paso en segundo plano (after), como Creativos:
-// 1. El guionista (Claude) escribe el guion de un ángulo; el comerciante lo edita y lo aprueba.
+// 1. El guionista (Claude) escribe lo que se dice (ugc_script) y otra llamada barata arma las tomas
+//    (video_plan); el código las junta en el guion. El comerciante lo edita y lo aprueba.
 // 2. Las imágenes clave (Flare): K1 define la cara y las demás la usan de referencia; un QA con Claude
 //    revisa manos, producto, cara y textos. El comerciante aprueba cada una.
 // 3. Los clips: tomas habladas en Seedance 2.0 (voz y labios desde el prompt) y B-roll en Kling.
@@ -69,7 +76,13 @@ import { OptimizeError, requireAiKey } from "./optimize";
 //    «Subir video montado» y, al aprobarlo, pasa a Anuncios.
 
 const POLL_BUDGET_MS = 200_000;
-const SCRIPT_ATTEMPTS = 3;
+/** Intentos del guion (effort high) y del plan de tomas (effort low), dentro de la función de 300 s. */
+const LINES_ATTEMPTS = 2;
+const PLAN_ATTEMPTS = 2;
+const SCRIPT_BUDGET_MS = 280_000;
+/** Lo que tarda una llamada del guion (≈ 1–2 min) y una del plan: si no alcanza, no se empieza. */
+const LINES_NEEDS_MS = 120_000;
+const PLAN_NEEDS_MS = 45_000;
 const LEASE_MS = 20_000;
 const PACKAGE_TTL_S = 24 * 60 * 60;
 const REFERENCES_BUCKET = "product-references";
@@ -179,6 +192,8 @@ export async function runScript(scriptId: string): Promise<void> {
   const format = scriptFormat(s);
   const detail = `${s.input.angle_name || `Ángulo ${s.angle_slot}`}${format === "mascot" ? " · mascota" : ""}`;
   const promptVersion = format === "mascot" ? MASCOT_PROMPT_VERSION : UGC_PROMPT_VERSION;
+  // El paso en curso: un error de la llamada se registra en el suyo.
+  let step: "ugc_script" | "video_plan" = "ugc_script";
   try {
     const input = s.input;
     const [brief, avatarRow, angles, differentiator, base] = await Promise.all([
@@ -203,40 +218,72 @@ export async function runScript(scriptId: string): Promise<void> {
       angle: angles[0],
       format,
     };
-    // Los ganchos que se le pasan y su toma (lib/hooks/select.ts): opening.hook_source tiene que ser uno de estos.
+    // Los ganchos que se le pasan y su toma (lib/hooks/select.ts): hook_source tiene que ser uno de estos.
     const opening = openingInput(angles[0].payload, format);
+    const started = Date.now();
+    const timeLeft = () => started + SCRIPT_BUDGET_MS - Date.now();
+
+    // 1. Lo que se dice (effort high, sin la foto: no la necesita).
     let problems: string[] = [];
-    let result: Awaited<ReturnType<typeof generateStructured<typeof ugcScriptSchema>>> | null = null;
-    for (let attempt = 0; attempt < SCRIPT_ATTEMPTS; attempt++) {
-      result = await generateStructured({
+    let lines: ScriptLines | null = null;
+    let model = AI_MODEL;
+    for (let attempt = 0; attempt < LINES_ATTEMPTS && !lines && (attempt === 0 || timeLeft() > LINES_NEEDS_MS + PLAN_NEEDS_MS); attempt++) {
+      const result = await generateStructured({
         userId: s.user_id,
-        system: scriptSystem(format, input.market),
-        // La foto y el contexto con punto de caché: un reintento (hasta 3) los lee a 0,1×.
-        content: retryableContent([image], ugcContextText(ctx), ugcTail(problems, format)),
-        schema: ugcScriptSchema,
-        effort: "medium",
+        system: linesSystem(format, input.market),
+        // El contexto con punto de caché: un reintento lo lee a 0,1×.
+        content: retryableContent([], linesContext(ctx), linesTail(problems, format)),
+        schema: scriptLinesSchema,
+        effort: "high",
         maxTokens: 16000,
       });
-      problems = scriptProblems(result.data, input.pricing, format, opening);
+      problems = lineProblems(linesAsScript(result.data), input.pricing, format, opening);
       await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems, promptVersion });
-      if (!problems.length) break;
-      console.warn("[video] guion inválido", problems);
+      if (problems.length) console.warn("[video] guion inválido", problems);
+      else {
+        lines = result.data;
+        model = result.usage.model;
+      }
     }
-    if (problems.length || !result) throw new AiStepError("invalid_output", "La IA escribió un guion que no cumple las reglas. Toca Reintentar.", undefined, true);
+    if (!lines) throw new AiStepError("invalid_output", "La IA escribió un guion que no cumple las reglas. Toca Reintentar.", undefined, true);
+
+    // 2. Las tomas (effort low, con la foto): encajan el guion ya validado.
+    step = "video_plan";
+    const chosen = lines.hook_source == null ? null : angles[0].payload.hooks[lines.hook_source];
+    const shot = format === "mascot" ? "mascot_scene" : (opening.hooks.find((h) => h.index === lines!.hook_source)?.shot ?? "selfie_talk");
+    const hook = chosen ? { on_screen: chosen.mascot?.on_screen ?? chosen.on_screen, visual: chosen.mascot?.scene ?? chosen.visual_first_3s, first_motion: chosen.mascot?.first_motion ?? chosen.first_motion } : null;
+    problems = [];
+    let script: UgcScript | null = null;
+    for (let attempt = 0; attempt < PLAN_ATTEMPTS && !script && timeLeft() > PLAN_NEEDS_MS; attempt++) {
+      const result = await generateStructured({
+        userId: s.user_id,
+        system: planSystem(format, input.market),
+        content: retryableContent([image], planContext(ctx, lines, { shot, hook }), planTail(problems)),
+        schema: planSchema(format),
+        effort: "low",
+        maxTokens: 12000,
+      });
+      const assembled = assembleScript(lines, result.data, format, shot);
+      problems = planProblems(assembled, input.pricing, format, opening);
+      await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_plan", detail, usage: result.usage, error: problems.length ? "invalid_plan" : null, problems, promptVersion });
+      if (problems.length) console.warn("[video] tomas inválidas", problems);
+      else script = assembled;
+    }
+    if (!script) throw new AiStepError("invalid_output", "La IA armó tomas que no cumplen las reglas. Toca Reintentar.", undefined, true);
     const now = stamp();
     fail(
       "Guardar el guion",
       (
         await db
           .from("video_scripts")
-          .update({ status: "succeeded", payload: result.data, prompt_version: promptVersion, model: result.usage.model, finished_at: now, updated_at: now })
+          .update({ status: "succeeded", payload: script, prompt_version: promptVersion, model, finished_at: now, updated_at: now })
           .eq("id", s.id)
       ).error,
     );
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[video] guion", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: e.usage, error: e.code, promptVersion });
+    if (known && !e.logged) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step, detail, usage: e.usage, error: e.code, promptVersion });
     const now = stamp();
     const { error } = await db
       .from("video_scripts")

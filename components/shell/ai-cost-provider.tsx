@@ -138,8 +138,13 @@ export function useLocalCost(): (usd: number) => string {
   return useCallback((usd: number) => `≈ ${cost ? money(usd * cost.usdRate, cost.currency) : money(usd, "USD")}`, [cost]);
 }
 
-/** «≈ $30» para una llamada del paso (AI_STEPS), o null si todavía no hay estimado. */
-export function useStepCost(step: string): string | null {
-  const e = useAiEstimate(step);
-  return e ? `≈ ${money(e.amount, e.currency)}` : null;
+/**
+ * «≈ $30» para una llamada de cada paso (AI_STEPS), sumados (una acción puede ser varios pasos: el guion
+ * y sus tomas), o null si todavía no hay estimado del primero.
+ */
+export function useStepCost(...steps: string[]): string | null {
+  const cost = useContext(Ctx)?.cost;
+  const first = cost?.estimates[steps[0]];
+  if (!cost || !first) return null;
+  return `≈ ${money(steps.reduce((n, step) => n + (cost.estimates[step] ?? 0), 0), cost.currency)}`;
 }

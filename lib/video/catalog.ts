@@ -50,6 +50,26 @@ export type VideoOpeningShot = (typeof VIDEO_OPENING_SHOTS)[number];
 export const FACE_SHOTS: readonly VideoOpeningShot[] = ["selfie_talk", "mirror", "mascot_scene"];
 export const opensWithInsert = (shot: VideoOpeningShot) => !FACE_SHOTS.includes(shot);
 
+/**
+ * Los cuerpos de la mascota (docs/spec-prompts-simples.md §6): redondos o anchos, inconfundibles al
+ * primer vistazo y nunca color piel. El plan de tomas elige uno y le pone cara, color y accesorios; el
+ * código arma la descripción. Una forma inventada por el modelo salió fálica en producción (una mancha
+ * de piel con cuello) y la silueta era la regla que más fallaba del guion (6 de 8 rechazos). `prompt`
+ * va al modelo de imagen, en positivo: dibuja lo que se nombra, aunque vaya negado.
+ */
+export const MASCOT_BODIES = {
+  droplet: { name: "Gota", prompt: "a round, chubby water droplet with a soft rounded top, as wide as it is tall" },
+  cloud: { name: "Nube", prompt: "a fluffy, round cloud, wider than it is tall, with soft puffy bumps" },
+  pillow: { name: "Cojín", prompt: "a soft, square, puffy cushion with rounded corners, wider than it is tall" },
+  jar: { name: "Frasco", prompt: "a short, wide, round jar with a lid on top, as wide as it is tall" },
+  ball: { name: "Bolita", prompt: "a perfectly round, bouncy little ball" },
+  molar: { name: "Muela", prompt: "a whole chubby molar tooth with its wide crown and two short rounded roots, wider than it is tall" },
+  shield: { name: "Escudo", prompt: "a flat, wide, rounded shield shape, like a fingernail seen from above, wider than it is tall" },
+  sponge: { name: "Esponja", prompt: "a soft, rectangular, chubby sponge with rounded corners, wider than it is tall" },
+} as const;
+export type MascotBody = keyof typeof MASCOT_BODIES;
+export const MASCOT_BODY_KEYS = Object.keys(MASCOT_BODIES) as MascotBody[];
+
 /** Palabras que Seedance pronuncia mal de forma consistente (POC: «Rinde» → «Ride»). */
 export const MISPRONOUNCED: { word: string; instead: string }[] = [{ word: "rinde", instead: "«te dura» o «alcanza para»" }];
 

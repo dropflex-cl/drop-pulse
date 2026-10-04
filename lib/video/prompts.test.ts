@@ -3,7 +3,7 @@ import { WORDS_PER_SECOND_MAX, WORDS_PER_SECOND_PROMPT } from "./catalog";
 import type { AngleForPrompt } from "@/lib/angles/approved";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { openingInput, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "./prompts";
+import { linesContext, linesSystem, linesTail, openingInput, planContext, planSystem, planTail, type UgcContext } from "./prompts";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 
@@ -11,7 +11,7 @@ describe("guion: margen en las palabras por segundo", () => {
   it("el prompt pide menos palabras por segundo de las que acepta scriptProblems", () => {
     expect(WORDS_PER_SECOND_PROMPT).toBeLessThan(WORDS_PER_SECOND_MAX);
     for (const format of ["ugc", "mascot"] as const) {
-      const sys = scriptSystem(format, CL);
+      const sys = linesSystem(format, CL);
       expect(sys).toContain("2,7");
       expect(sys).toContain("5 s → 13");
       expect(sys).not.toContain("5 s → 15");
@@ -21,9 +21,11 @@ describe("guion: margen en las palabras por segundo", () => {
 
 describe("guion en dos bloques (lo fijo en caché)", () => {
   it("los problemas van solo en el cierre, con la instrucción de su formato", () => {
-    expect(ugcTail()).toBe("Escribe el guion del video UGC.");
-    expect(ugcTail([], "mascot")).toBe("Escribe el guion del video de mascota animada.");
-    const retry = ugcTail(["La toma A5 tiene 17 palabras para 5 s (máximo 15)."]);
+    expect(linesTail()).toBe("Escribe el guion del video UGC.");
+    expect(linesTail([], "mascot")).toBe("Escribe el guion del video de mascota animada.");
+    expect(planTail()).toBe("Arma las tomas de este guion.");
+    expect(planTail(["B1 se ancla a «x»."])).toMatch(/^Tu respuesta anterior no cumple las reglas: B1[\s\S]*Arma las tomas/);
+    const retry = linesTail(["La toma A5 tiene 17 palabras para 5 s (máximo 15)."]);
     expect(retry).toMatch(/^Tu respuesta anterior no cumple las reglas: La toma A5/);
     expect(retry).toMatch(/Escribe el guion del video UGC\.$/);
   });
@@ -40,49 +42,73 @@ describe("guion: el gancho sale de la tríada", () => {
     recommended_hook: 1,
   } as unknown as AngleBriefPayload;
   const ctx = (format: "ugc" | "mascot"): UgcContext => ({
-    brief: {} as UgcContext["brief"],
-    avatar: {} as UgcContext["avatar"],
+    brief: { product_name: "Almohadillas", what_it_does: "Frenan la vibración.", key_facts: [] } as unknown as UgcContext["brief"],
+    avatar: { summary: "Carla, 40, dueña de casa", voice_of_customer: ["La lavadora se me va hasta la puerta", "Suena horrible", "Ya no sé qué hacer", "Otra más"], problems: { trigger_moments: [] }, emotions: { fears: "MIEDO-SECRETO" } } as unknown as UgcContext["avatar"],
     differentiator: null,
     pricing: { currency: "CLP", salePrice: 1, compareAtPrice: null, packs: [], recommended: null } as unknown as PricingPlan,
-    angle: { slot: 1, name: "A", frameName: "Mecanismo único", angle: { slot: 1, frame: "unique_mechanism" }, payload } as unknown as AngleForPrompt,
+    angle: { slot: 1, name: "A", frameName: "Mecanismo único", angle: { slot: 1, frame: "unique_mechanism", title: "No es la lavadora", hook: "Tu lavadora no está rota." }, payload } as unknown as AngleForPrompt,
     format,
   });
 
-  it("solo pasa los ganchos usables, con su tríada, y la mascota sin el vocero humano", () => {
-    const ugc = ugcContextText(ctx("ugc"));
+  it("solo pasa los ganchos usables, como texto, y la mascota sin el vocero humano", () => {
+    const ugc = linesContext(ctx("ugc"));
     expect(ugc).toContain("GANCHOS DEL ÁNGULO");
-    expect(ugc).toContain("PRUEBA DEL VASO");
+    expect(ugc).toContain("1. «Mira lo que pasa con el vaso.» · en pantalla: «PRUEBA DEL VASO»");
     expect(ugc).not.toContain("Pensé que era puro cuento");
     expect(ugc).toContain("Vocera de 40");
-    expect(ugcContextText(ctx("mascot"))).not.toContain("Vocera de 40");
+    expect(linesContext(ctx("mascot"))).not.toContain("Vocera de 40");
+  });
+
+  it("el contexto es texto corto: sin la ficha ni el cliente ideal en JSON, con 3 frases de quien compra", () => {
+    const u = linesContext(ctx("ugc"));
+    expect(u).not.toMatch(/"(what_it_does|voice_of_customer|trigger_moments|summary)"\s*:/);
+    expect(u).not.toMatch(/^\s*[{[]/m);
+    expect(u).toContain("PRODUCTO: Almohadillas");
+    expect(u).toContain("QUIÉN COMPRA, SEGÚN EL COMERCIANTE: Carla, 40, dueña de casa");
+    expect(u).toContain("«Ya no sé qué hacer»");
+    expect(u).not.toContain("Otra más");
+    expect(u).not.toContain("MIEDO-SECRETO");
+    expect(u).toContain("Ángulo 1: «No es la lavadora»");
   });
 
   it("la mascota dice el gancho a su manera: A1 no tiene que abrir con la frase de la persona", () => {
     expect(openingInput(payload, "mascot")).toEqual({ hooks: [{ index: 1, shot: "mascot_scene", spoken: undefined }] });
-    expect(scriptSystem("mascot", CL)).toContain("Dilo como el personaje");
+    expect(linesSystem("mascot", CL)).toContain("dilo como el personaje, a su manera");
     // Los ganchos de hasta la versión 5 traen su versión de mascota: A1 abre con esa.
     const old = { ...payload, hooks: payload.hooks.map((h) => ({ ...h, mascot: { text: "Soy el vaso que tiembla.", on_screen: "YO TIEMBLO", scene: "s", first_motion: "f" } })) };
     expect(openingInput(old, "mascot").hooks[0].spoken).toBe("Soy el vaso que tiembla.");
     expect(openingInput(payload, "ugc")).toEqual({ hooks: [{ index: 1, shot: "selfie_talk", spoken: "Mira lo que pasa con el vaso." }] });
   });
 
-  it("los dos formatos piden abrir con el gancho y su texto en pantalla", () => {
+  it("el guion no habla de imágenes clave ni cámaras: eso es el plan", () => {
     for (const format of ["ugc", "mascot"] as const) {
-      const sys = scriptSystem(format, CL);
-      expect(sys).toContain("EL GANCHO (los primeros 3 s");
-      expect(sys).toContain("hook_source");
-      expect(sys).toContain("primeras 3 palabras de A1");
+      const sys = linesSystem(format, CL);
+      expect(sys).toContain("A1 abre con el gancho");
+      expect(sys).not.toMatch(/keyframe|imagen clave|B-roll|camera/i);
+      expect(sys.split("\n").length).toBeLessThan(25);
+      expect(planSystem(format, CL)).toContain("K1 (el personaje solo, la referencia de su cara) lo pone el sistema");
+      expect(planSystem(format, CL)).toContain("primeras 3 palabras de A1");
     }
+    expect(planSystem("mascot", CL)).toMatch(/droplet \(gota\)[\s\S]*nunca color piel/);
+  });
+
+  it("el plan recibe el guion validado y la apertura del gancho", () => {
+    const lines = { format_fit: { recommended: "ugc_ai", why: "" }, speaker: "Una mujer de 40, dueña de casa", hook_source: 1, hook_why: "", a_roll: [{ seconds: 5, line: "Mira lo que pasa con el vaso.", delivery: "", acting: "Points." }], end_card: { title: "", subtitle: "", cta: "", small_print: [] }, compliance_notes: [] } as const;
+    const u = planContext(ctx("ugc"), { ...lines, a_roll: [...lines.a_roll], end_card: { ...lines.end_card, small_print: [] }, compliance_notes: [] }, { shot: "problem_scene", hook: { on_screen: "PRUEBA DEL VASO", visual: "Vaso sobre la lavadora" } });
+    expect(u).toContain("QUIÉN HABLA: Una mujer de 40");
+    expect(u).toContain("Abre con un inserto: B1 es la primera toma");
+    expect(u).toContain("Texto en pantalla del gancho: «PRUEBA DEL VASO»");
+    expect(u).toContain("A1 (5 s): «Mira lo que pasa con el vaso.» · Points.");
   });
 });
 
-describe("guion: tamaño del esquema", () => {
-  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»): el guion con la
-  // apertura y las cámaras no puede pasar el del cliente ideal, que funciona en producción.
-  it("no es más grande que el del cliente ideal", async () => {
+describe("guion: tamaño de los esquemas", () => {
+  // La API rechaza gramáticas muy grandes (400 «compiled grammar is too large»): ni el guion ni el
+  // plan de tomas pueden pasar el del cliente ideal, que funciona en producción.
+  it("no son más grandes que el del cliente ideal", async () => {
     const { toJSONSchema } = await import("zod/v4");
     const { avatarStepSchema } = await import("@/lib/ai/schemas");
-    const { ugcScriptSchema } = await import("./schemas");
+    const { scriptLinesSchema, ugcPlanSchema, mascotPlanSchema } = await import("./schemas");
     const size = (schema: unknown) => {
       let n = 0;
       const walk = (node: unknown) => {
@@ -95,6 +121,6 @@ describe("guion: tamaño del esquema", () => {
       walk(schema);
       return n;
     };
-    expect(size(toJSONSchema(ugcScriptSchema))).toBeLessThanOrEqual(size(toJSONSchema(avatarStepSchema)));
+    for (const s of [scriptLinesSchema, ugcPlanSchema, mascotPlanSchema]) expect(size(toJSONSchema(s))).toBeLessThanOrEqual(size(toJSONSchema(avatarStepSchema)));
   });
 });

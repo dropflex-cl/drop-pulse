@@ -63,7 +63,7 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 - Precio y packs aprobados (`pricingBlock`), mercado e idioma.
 - La foto base del producto (visión) para describir el producto y el kit.
 
-### 3.2 Salida (`ugcScriptSchema`, zod)
+### 3.2 Salida (`UgcScript`; desde la versión 9 lo arma `assembleScript`, §3.4)
 
 ```ts
 {
@@ -96,6 +96,16 @@ Por ángulo, lo mismo que ya leen Creativos y Página del producto:
 - Si hay persona de IA: ninguna línea en segunda persona sobre la edad o la piel de quien mira (heurística: `tu piel`, `tus arrugas`, `a tu edad`…) y la persona no dice su edad («tengo cuarenta y dos», «a mis 42»): la primera corrida real lo hizo, y el desarrollo del ángulo lo prohíbe.
 - Palabras que Seedance pronuncia mal (`MISPRONOUNCED`, empieza con `rinde`): se piden cambiar.
 - Si falla: hasta 2 correcciones con la lista de problemas (patrón de `writePage`). Nunca se recorta en silencio.
+
+### 3.4 Dos pasos: el guion y el plan de tomas (versión UGC 9, mascota 10; 2026-10-04)
+
+**Por qué** (`docs/spec-prompts-simples.md` §6). Una llamada escribía a la vez lo que se dice y toda la producción (tomas, K1, la imagen clave de cada toma, cámaras, anclas, textos, apertura) y, en la mascota, inventaba el personaje. Rechazó el 50 % de sus respuestas (26 sep–3 oct): la silueta de la mascota (6), la imagen clave de cada toma (4) y la suma de duraciones (2).
+
+1. **El guion** (`ugc_script`, effort high, `scriptLinesSchema`): `format_fit`, quién habla (`speaker`, en español), `hook_source` y `hook_why`, las tomas habladas (`seconds`, `line`, `delivery`, `acting`), el cierre y las notas. Contexto: los hechos, el diferenciador, quién compra con 3 frases suyas, el precio, el ángulo (`angleLine`, idea central, AIDA, `handoff_to_ugc` solo en el UGC, cuidados) y los ganchos usables como texto. Sin la foto. `lineProblems` revisa tomas, duraciones, palabras por segundo, montos, segunda persona, plazos, la edad, `MISPRONOUNCED`, el cierre y que A1 abra con el gancho.
+2. **El plan de tomas** (`video_plan`, effort low, `ugcPlanSchema` / `mascotPlanSchema`): con la foto, el guion ya validado y la apertura del gancho, arma la persona (o el cuerpo de la mascota), las imágenes clave desde K2, de qué imagen parte cada toma hablada, el B-roll, los textos en pantalla y la imagen del cuadro 0. `planProblems` revisa lo demás de `scriptProblems`. Si falla, se pide otro plan, no otro guion.
+3. **Lo que es regla lo pone el código** (`assembleScript`): K1 (`characterKeyframe`), las claves A1…/B1…, y la toma de la apertura (la del gancho; `mascot_scene` en la mascota).
+4. **Siluetas seguras** (`MASCOT_BODIES`): 8 cuerpos redondos o anchos descritos en positivo. El plan elige uno y le pone color (nunca piel), cara y accesorios; la silueta la escribe el código. `scripts/spike-higgsfield.ts mascots <plan.json>` arma el K1 de cada cuerpo con el prompt de la app para probarlos en Flare antes de confiar en ellos.
+5. **No cambia**: `video_scripts.payload` sigue siendo un `UgcScript` (la pantalla, el render, el paquete y la edición lo leen igual), los 5 pasos, los dos formatos por ángulo y los topes. «Escribir guion» muestra el costo de las dos llamadas.
 
 ## 4. Render (Higgsfield, clave del comerciante)
 
@@ -209,7 +219,7 @@ create index video_shots_pending on video_shots (user_id, render_status) where r
 
 ```
 lib/video/
-  schemas.ts        ugcScriptSchema, scriptProblems, MISPRONOUNCED (puro, tests)
+  schemas.ts        scriptLinesSchema, ugcPlanSchema/mascotPlanSchema, assembleScript, lineProblems + planProblems = scriptProblems (puro, tests)
   prompts.ts        ugcSystem(market), ugcUser(ctx, problems)
   render.ts         keyframeRequest, aRollRequest, bRollRequest, VOICE_BLOCK (puro, tests)
   cost.ts           seedanceCostUsd(w, h, s), KLING_TURBO_5S_USD (puro, tests)
@@ -263,7 +273,7 @@ Un segundo formato de video, con el mismo flujo, las mismas tablas y los mismos 
 | Tema | Lo que cambia respecto del UGC |
 |---|---|
 | Elección | **Cada ángulo tiene los dos videos, cada uno con su avance** (2026-09-26): la persona y la mascota del mismo ángulo conviven, y escribir uno nunca reemplaza ni borra el otro. La columna `video_scripts.format` (`ugc` por defecto; migración `20261027000000_video_script_format.sql`, que copia lo que había en `input.format`) entra en el índice único: un guion vigente por producto, ángulo y formato. `videosState` devuelve una tarjeta por ángulo y formato. En la pantalla, bajo la cabecera del ángulo, `SegmentedControl` «Formato del video» Persona / Mascota animada («Mascota» en la columna de pasos del escritorio) cambia de video sin perder nada; sin elegir, abre el del guion más reciente. «Otro guion» y «Reintentar» solo reemplazan el guion de su formato. `format_fit.recommended` suma `mascot`: si el guionista recomienda el otro formato, la pantalla ofrece «Escribir como mascota» (o «con persona»), que escribe ese video y pasa a él, o «Ver el video con mascota» si ya existe. |
-| Guion | `mascotSystem` (`lib/video/prompts.ts`, `MASCOT_PROMPT_VERSION`): arco fijo gancho con el problema → lo que no funcionó y por qué → llegada y mecanismo en una toma → final feliz que retoma el gancho + oferta. El personaje habla de sí mismo o de «mi dueño»; todo es animación (sin pies ni piel reales). Mismo esquema (`ugcScriptSchema`). |
+| Guion | `mascotSystem` (`lib/video/prompts.ts`, `MASCOT_PROMPT_VERSION`): arco fijo gancho con el problema → lo que no funcionó y por qué → llegada y mecanismo en una toma → final feliz que retoma el gancho + oferta. El personaje habla de sí mismo o de «mi dueño»; todo es animación (sin pies ni piel reales). Mismo `UgcScript`; desde la versión 10, guion y plan aparte y el cuerpo de `MASCOT_BODIES` (§3.4). |
 | Largo | `FORMAT_LIMITS.mascot`: 3 a 5 tomas y 20 a 26 s habladas (la POC: 23 s + 2 s de cierre; el usuario no quiso más). |
 | Reglas | `scriptProblems(…, format)`: además de las del UGC, la segunda persona sobre el cuerpo cubre uñas, pies, dientes, rodillas, pelo, hongos… y ninguna línea ni texto promete plazos («al día tres», «en dos semanas»); aplica también al UGC. |
 | Imágenes | `keyframeRequest(…, "mascot")`: cuadro de película animada 3D (no foto de teléfono), el personaje por su descripción sin ropa, el producto **sin cara ni brazos** (la etiqueta se deforma) y solo sus dos bracitos. Lección de la POC: pedir «el personaje ES un solo dedo que sube desde el borde de abajo, sin piernas ni pies», o sale con piernas y deditos propios. |

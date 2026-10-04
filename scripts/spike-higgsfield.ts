@@ -5,13 +5,19 @@
 //   npx tsx --env-file=.env.local scripts/spike-higgsfield.ts estimate <plan.json>
 //   npx tsx --env-file=.env.local scripts/spike-higgsfield.ts run <plan.json> <carpeta-salida>
 //   npx tsx --env-file=.env.local scripts/spike-higgsfield.ts resume <plan.json> <carpeta-salida> <id>=<request_id> …
+//   npx tsx --env-file=.env.local scripts/spike-higgsfield.ts mascots <plan.json>
 // El plan es una lista de { id, endpoint, input }. Sin webhook: se consulta el estado (2 s → 10 s).
+// `mascots` escribe un plan con el K1 de cada cuerpo de MASCOT_BODIES (lib/video/catalog.ts), con el mismo
+// prompt que arma la app, para probar en Flare que ninguno se lee como algo sexual (~US$0,10 cada uno).
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
+import { MASCOT_BODIES, MASCOT_BODY_KEYS } from "@/lib/video/catalog";
+import { keyframeRequest } from "@/lib/video/render";
+import { characterKeyframe } from "@/lib/video/schemas";
 
 const BASE = "https://api.higgsfield.ai";
 const KEY = process.env.HIGGSFIELD_API_KEY ?? "";
-if (!KEY) throw new Error("Falta HIGGSFIELD_API_KEY en .env.local");
+if (!KEY && process.argv[2] !== "mascots") throw new Error("Falta HIGGSFIELD_API_KEY en .env.local");
 
 type Job = { id: string; endpoint: string; input: Record<string, unknown> };
 
@@ -126,8 +132,20 @@ async function main() {
     );
     await writeFile(join(b, "results.json"), JSON.stringify(results, null, 2));
     console.log(JSON.stringify(results, null, 2));
+  } else if (cmd === "mascots") {
+    const jobs: Job[] = MASCOT_BODY_KEYS.map((body) => ({
+      id: `mascot-${body}`,
+      ...keyframeRequest(
+        characterKeyframe("mascot"),
+        { persona: `${MASCOT_BODIES[body].prompt}, a 3D animated character`, character: { look: "soft pastel lilac; big round eyes, friendly eyebrows, a small smile", wardrobe: "none", setting: "a tidy bathroom shelf, soft daylight" } },
+        "K1",
+        "mascot",
+      ),
+    }));
+    await writeFile(a, JSON.stringify(jobs, null, 2));
+    console.log(`${jobs.length} cuerpos en ${a}. Corre: run ${a} <salida>`);
   } else {
-    throw new Error("Comando: presets | upload <imagen> | estimate <plan.json> | run <plan.json> <salida>");
+    throw new Error("Comando: presets | upload <imagen> | estimate <plan.json> | run <plan.json> <salida> | mascots <plan.json>");
   }
 }
 

@@ -351,3 +351,14 @@ con cita del comprador.
 - `scripts/eval-models.ts` corre los dos pasos y, con `savedPage`, deja la comparación a ciegas.
 - Medir después: `npm run ai:metrics -- --step page_copy` y `--step page_argument` (rechazo frente al
   59 %, costo por página aceptada frente a US$0,92).
+
+### Fase 3 (2026-10-04): Guion de video, UGC 9 y mascota 10
+
+- `ugc_script` escribe solo lo que se dice (effort high, sin la foto) y `video_plan` (nuevo, effort low,
+  US$0,05 por defecto) arma las tomas; `assembleScript` los junta en el `UgcScript` de siempre, con K1,
+  las claves y la toma de la apertura puestas por el código.
+- `scriptProblems` = `lineProblems` + `planProblems`: cada paso corrige solo lo suyo.
+- `MASCOT_BODIES`: 8 cuerpos seguros; el modelo pone color, cara y accesorios. Probarlos en Flare con
+  `scripts/spike-higgsfield.ts mascots` (no se pudo sin la clave).
+- Medir después: `npm run ai:metrics -- --step ugc_script` y `--step video_plan` (rechazo frente al 50 %,
+  y que no vuelva la silueta).

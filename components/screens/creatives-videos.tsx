@@ -345,7 +345,7 @@ function CardStep({
   /** Pasa al video del otro formato del ángulo. */
   onFormat: (f: VideoFormat) => void;
 }) {
-  const scriptCost = useStepCost("ugc_script");
+  const scriptCost = useStepCost("ugc_script", "video_plan");
   const s = card.script;
   // «Escribir», «Otro guion» y «Reintentar» van en el formato de esta tarjeta: el otro formato no se toca.
   const format = card.format;

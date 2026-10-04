@@ -17,7 +17,7 @@ import type { AiStep } from "./costs";
 
 /**
  * Los pasos con prompt propio. Los renders (Higgsfield, Gemini) no tienen. El guion de mascota tiene su
- * versión (MASCOT_PROMPT_VERSION): la pasa quien registra.
+ * versión (MASCOT_PROMPT_VERSION), en el guion y en sus tomas: la pasa quien registra.
  */
 export const PROMPT_VERSIONS: Partial<Record<AiStep, number>> = {
   product_brief: PRODUCT_BRIEF_PROMPT_VERSION,
@@ -37,6 +37,7 @@ export const PROMPT_VERSIONS: Partial<Record<AiStep, number>> = {
   creative_chat: CHAT_PROMPT_VERSION,
   creative_qa: QA_PROMPT_VERSION,
   ugc_script: UGC_PROMPT_VERSION,
+  video_plan: UGC_PROMPT_VERSION,
   video_qa: KEYFRAME_QA_PROMPT_VERSION,
   usage_tip: USAGE_TIP_PROMPT_VERSION,
 };

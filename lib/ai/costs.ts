@@ -25,6 +25,7 @@ export const AI_STEPS = {
   creative_render: { stage: "creativos", label: "Imagen de anuncio" },
   creative_qa: { stage: "creativos", label: "Revisión de imagen" },
   ugc_script: { stage: "creativos", label: "Guion de video" },
+  video_plan: { stage: "creativos", label: "Tomas del video" },
   video_keyframe: { stage: "creativos", label: "Imagen clave de video" },
   video_qa: { stage: "creativos", label: "Revisión de imagen clave" },
   video_clip: { stage: "creativos", label: "Clip de video" },
@@ -49,6 +50,7 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   creative_concepts: 0.2,
   creative_chat: 0.05,
   ugc_script: 0.25,
+  video_plan: 0.05,
   page_plan: 0.25,
   usage_tip: 0.02,
 };
