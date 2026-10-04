@@ -415,6 +415,8 @@ Más el B-roll desde un keyframe 9:16. Es la ronda que decide si el texto se con
 3. **El concepto guardado no cambia** (`mergeConcept`): el render, el QA, los dos proveedores, «Proponer otros» y la pantalla lo leen igual. Se agrega `idea`. «Proponer» muestra el costo de las dos llamadas.
 4. **El chat de WhatsApp** (`CHAT_PROMPT_VERSION` 4) recibe el mismo contexto corto y las reseñas para citar.
 
+**El chat sin propuesta (2026-10-04).** En el teléfono no había dónde crearlo: la tarjeta «Chat de WhatsApp» vivía dentro de los grupos por ángulo, que solo existen con conceptos, y el servidor pedía «Primero propón los anuncios». Ahora la pantalla inicial muestra la sección «Chat de WhatsApp» con un `ChatModule` por ángulo aprobado, bajo el proveedor y antes de «Proponer anuncios». Sin propuesta, `createChat` crea una corrida propia ya terminada (`payload.chat_only`) que no cuenta en el tope diario ni reemplaza la corrida que ve la pantalla, y el render del chat va sin `product_look` (lo describe la foto base). Una propuesta de estáticos ya no reemplaza los chats, y su hoja dice «El chat de WhatsApp se queda».
+
 ### 7.5 Lo descartado se borra (2026-09-24)
 
 `purgeDiscardedCreatives` (`lib/creatives/store.ts`) borra primero el archivo de `creative-media` y después la fila de `creative_assets`. Corre con la limpieza de `expireStaleCreatives` (al abrir el producto y en el sondeo de la pantalla) y al terminar una propuesta. Borra:

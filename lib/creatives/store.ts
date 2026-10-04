@@ -222,6 +222,8 @@ export async function latestCreativeRuns(userId: string, productIds: string[]): 
     .select("id, product_id, user_id, status, error_code, error_message, input, created_at")
     .eq("user_id", userId)
     .in("product_id", productIds)
+    // La corrida de un chat creado sin propuesta no es una propuesta (lib/pipeline/creatives.ts › createChat).
+    .is("payload->>chat_only", null)
     .order("created_at", { ascending: false });
   fail("Leer las corridas de Creativos", error);
   const map = new Map<string, CreativeRunRow>();
@@ -275,7 +277,7 @@ export async function creativeCounts(userId: string, productIds: string[]) {
   if (!productIds.length) return () => ({ running: false, concepts: 0, rendering: 0, pending: 0, approved: 0 });
   const db = adminClient();
   const [runRes, conceptRes] = await Promise.all([
-    db.from("creative_runs").select("product_id, status").eq("user_id", userId).in("product_id", productIds).order("created_at", { ascending: false }),
+    db.from("creative_runs").select("product_id, status").eq("user_id", userId).in("product_id", productIds).is("payload->>chat_only", null).order("created_at", { ascending: false }),
     db.from("creative_concepts").select("id, product_id").eq("user_id", userId).in("product_id", productIds).is("superseded_at", null),
   ]);
   fail("Leer las corridas de Creativos", runRes.error);

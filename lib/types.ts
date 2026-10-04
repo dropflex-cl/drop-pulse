@@ -710,6 +710,8 @@ export interface CreativesState {
   imageProvider: ImageProviderChoice;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
   concepts: CreativeConceptView[];
+  /** Los ángulos aprobados: el chat de WhatsApp de cada uno se puede pedir aunque no haya propuesta. */
+  angles: { slot: number; name: string }[];
   /** Cota de USD por imagen del proveedor elegido, para mostrar antes de generar. */
   imageCostUsd: number;
 }

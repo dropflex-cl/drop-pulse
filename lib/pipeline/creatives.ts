@@ -171,7 +171,8 @@ export async function startCreatives(userId: string, productId: string): Promise
   if (active.data) return { run: active.data as CreativeRunRow, created: false };
 
   const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { count, error: countError } = await db.from("creative_runs").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since);
+  // Las corridas del chat solo (createChat) no son propuestas: no cuentan.
+  const { count, error: countError } = await db.from("creative_runs").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since).is("payload->>chat_only", null);
   fail("Contar las corridas", countError);
   if ((count ?? 0) >= DAILY_RUNS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_RUNS} propuestas de anuncios en 24 horas. Vuelve mañana.`, 429);
 
@@ -356,7 +357,8 @@ export async function runCreatives(runId: string): Promise<void> {
     const now = stamp();
     fail("Guardar los conceptos", (await db.from("creative_concepts").insert(rows)).error);
     // Los conceptos anteriores quedan fuera de la pantalla; sus piezas aprobadas siguen en Anuncios.
-    fail("Reemplazar los conceptos anteriores", (await db.from("creative_concepts").update({ superseded_at: now, updated_at: now }).eq("product_id", r.product_id).is("superseded_at", null).neq("run_id", r.id)).error);
+    // El chat de WhatsApp no es de la propuesta (lo pide el comerciante por ángulo): se queda.
+    fail("Reemplazar los conceptos anteriores", (await db.from("creative_concepts").update({ superseded_at: now, updated_at: now }).eq("product_id", r.product_id).is("superseded_at", null).neq("run_id", r.id).neq("family", CHAT_FAMILY)).error);
     // Lo reemplazado que no se aprobó se borra (archivo y fila); lo que sigue generándose, al terminar.
     await purgeDiscardedCreatives(r.user_id).catch((e) => console.error("[creatives] borrar lo reemplazado", e));
     fail(
@@ -399,6 +401,18 @@ export async function editConcept(userId: string, productId: string, conceptId: 
 
 // ---------------------------------------------------------------- 1b. Chat de WhatsApp (lib/creatives/chat.ts)
 
+/** La corrida de un chat creado sin propuesta de estáticos: ya terminada y marcada (no es una propuesta). */
+async function chatOnlyRun(userId: string, productId: string, input: RunInput): Promise<string> {
+  const now = new Date().toISOString();
+  const { data, error } = await adminClient()
+    .from("creative_runs")
+    .insert({ product_id: productId, user_id: userId, status: "succeeded", input, payload: { chat_only: true }, started_at: now, finished_at: now })
+    .select("id")
+    .single();
+  fail("Crear la corrida del chat", error);
+  return data!.id as string;
+}
+
 /** Tope de chats por comerciante en 24 h (cada uno es una llamada a Claude). */
 const DAILY_CHATS = 20;
 /** Reseñas reales que lee el chat: las de 4 o 5 estrellas, primero las aprobadas. */
@@ -408,7 +422,9 @@ const CHAT_ATTEMPTS = 2;
 /**
  * «Crear chat de WhatsApp» para un ángulo: Claude escribe la conversación (una llamada chica, sin
  * imágenes: ~15 s, por eso en la misma solicitud) y queda como un concepto más de la propuesta vigente.
- * El chat anterior de ese ángulo se reemplaza, salvo que tenga piezas aprobadas (esas siguen).
+ * Sin propuesta de estáticos, cuelga de una corrida propia (`payload.chat_only`), que no cuenta como
+ * propuesta: el chat no depende de los estáticos. El chat anterior de ese ángulo se reemplaza, salvo que
+ * tenga piezas aprobadas (esas siguen).
  * `acknowledged`: el comerciante aceptó que es una conversación armada (se lo dice la pantalla).
  */
 export async function createChat(userId: string, productId: string, body: unknown): Promise<void> {
@@ -418,11 +434,16 @@ export async function createChat(userId: string, productId: string, body: unknow
   await requireProvider(userId, "creatives");
   const concepts = (await activeConcepts(userId, [productId])).get(productId) ?? [];
   const base = concepts.find((c) => c.family !== CHAT_FAMILY) ?? concepts[0];
-  if (!base) throw new OptimizeError("Primero propón los anuncios: el chat se suma a esa propuesta.", 409);
   const ctx = await loadContext(userId, productId);
-  const run = await adminClient().from("creative_runs").select("input").eq("id", base.run_id).single();
-  fail("Leer la corrida", run.error);
-  const input = run.data!.input as RunInput;
+  let input: RunInput;
+  if (base) {
+    const run = await adminClient().from("creative_runs").select("input").eq("id", base.run_id).single();
+    fail("Leer la corrida", run.error);
+    input = run.data!.input as RunInput;
+  } else {
+    const { market } = await getMarket(userId, await getShopifyConnection(userId));
+    input = { market, pricing: ctx.pricing, labels: ctx.labels ?? null, avatar_id: ctx.avatar.id, briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })) };
+  }
   const angles = await anglesForPrompt(userId, stampEntries(input.briefs).map((b) => b.id));
   const target = angles?.find((a) => a.slot === angle);
   if (!target) throw new OptimizeError("Ese ángulo ya no está en la propuesta. Actualiza la página.", 409);
@@ -471,13 +492,15 @@ export async function createChat(userId: string, productId: string, body: unknow
     texts: [],
     chat,
     chat_prompt_version: CHAT_PROMPT_VERSION,
-    product_look: base.payload.product_look,
+    // Sin propuesta, el render del chat describe el producto solo con la foto base.
+    product_look: base?.payload.product_look ?? "",
     preset: null,
     sales_angle: target.angle.frame,
     angle_name: target.name,
   };
-  const position = Math.max(...concepts.map((c) => c.position)) + 1;
-  fail("Guardar el chat", (await db.from("creative_concepts").insert({ product_id: productId, user_id: userId, run_id: base.run_id, position, angle_slot: target.slot, family: CHAT_FAMILY, payload })).error);
+  const runId = base?.run_id ?? (await chatOnlyRun(userId, productId, input));
+  const position = Math.max(0, ...concepts.map((c) => c.position)) + 1;
+  fail("Guardar el chat", (await db.from("creative_concepts").insert({ product_id: productId, user_id: userId, run_id: runId, position, angle_slot: target.slot, family: CHAT_FAMILY, payload })).error);
   if (replaced.length) {
     const now = new Date().toISOString();
     fail("Reemplazar el chat anterior", (await db.from("creative_concepts").update({ superseded_at: now, updated_at: now }).in("id", replaced)).error);

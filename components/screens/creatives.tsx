@@ -135,6 +135,9 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   const working = proposing || concepts.some((c) => c.assets.some(rendering));
   const costFor = useCallback((p: ImageProvider | null | undefined) => localCost(IMAGE_COST_BY_PROVIDER[p ?? "higgsfield"]), [localCost]);
   const assets = concepts.flatMap((c) => c.assets);
+  // El chat de WhatsApp no es de la propuesta: sin estáticos, la pantalla sigue en «Proponer anuncios».
+  const statics = concepts.filter((c) => c.family !== CHAT_FAMILY);
+  const staticAssets = statics.flatMap((c) => c.assets);
   const shown = concepts.flatMap((c) => latestPieces(c.assets));
   const approved = assets.filter((a) => a.status === "aprobado").length;
   const toReview = shown.filter((a) => pieceState(a) === "review").length;
@@ -511,6 +514,19 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   }
 
   // ---------------------------------------------------------------- Contenido de la pestaña Imágenes
+  /** El chat de un ángulo: abrirlo si existe; si no, la hoja con el aviso para crearlo. */
+  const chatModule = (angle: number, chat = concepts.find((c) => c.angle === angle && c.family === CHAT_FAMILY)) => (
+    <ChatModule
+      state={chatState(chat)}
+      disabled={proposing || Boolean(busy)}
+      onAction={() => {
+        if (chat) return openConcept(chat);
+        setAck(false);
+        setSheet({ kind: "chat", angle });
+      }}
+    />
+  );
+
   let body: React.ReactNode;
   let footer: React.ReactNode = null;
   // «Es opcional: ir a Anuncios…» abajo solo en móvil; en escritorio va en la barra de arriba.
@@ -555,7 +571,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
-  } else if (proposing && !concepts.length) {
+  } else if (proposing && !statics.length) {
     body = (
       <EmptyState
         icon="sparkle"
@@ -567,7 +583,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
-  } else if (!concepts.length && run?.status === "failed") {
+  } else if (!statics.length && run?.status === "failed") {
     body = (
       <EmptyState
         icon="alert"
@@ -583,7 +599,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
-  } else if (!concepts.length) {
+  } else if (!statics.length) {
     body = (
       <div className="flex flex-col gap-4">
         <div>
@@ -606,8 +622,26 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
           </Link>
         </div>
         <ProviderPicker value={provider} providers={providerOptions} onChange={pick} />
+        {state.angles.length ? (
+          <section aria-labelledby="chat-whatsapp" className="flex flex-col gap-2.5 border-t pt-4">
+            <div>
+              <h2 id="chat-whatsapp" className="text-heading">
+                Chat de WhatsApp
+              </h2>
+              <p className="mt-1 text-body text-muted-foreground">Una captura de una conversación por ángulo. No necesita la propuesta de anuncios.</p>
+            </div>
+            {state.angles.map((a) => (
+              <div key={a.slot} className="flex flex-col gap-1.5">
+                <span className="text-label font-normal text-muted-foreground">{`Ángulo ${a.slot} · ${a.name}`}</span>
+                {chatModule(a.slot)}
+              </div>
+            ))}
+          </section>
+        ) : null}
       </div>
     );
+    // En escritorio, el chat abierto se ve a la derecha (solo si se eligió: la pantalla vacía no abre nada sola).
+    if (split && picked && selection) aside = selectionPanel(selection);
     footer = (
       <StickyActions stack mobileNote="Tarda ~1 min. Puedes salir de la pantalla: te avisamos.">
         <Button variant="primary" size="lg" block={!desktop} icon="sparkle" loading={busy === "propose"} onClick={propose}>
@@ -616,7 +650,8 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
       </StickyActions>
     );
   } else {
-    const kept = assets.filter((a) => a.kept).length;
+    const kept = staticAssets.filter((a) => a.kept).length;
+    const staticApproved = staticAssets.filter((a) => a.status === "aprobado").length;
     body = (
       <div className="flex flex-col gap-4">
         <CreativeSummary
@@ -662,17 +697,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
               first={gi === 0}
               collapsed={isFolded}
               onToggle={groups.length > 1 ? () => setFolded((f) => ({ ...f, [g.angle]: !isFolded })) : undefined}
-              chat={
-                <ChatModule
-                  state={chatState(chat)}
-                  disabled={proposing || Boolean(busy)}
-                  onAction={() => {
-                    if (chat) return openConcept(chat);
-                    setAck(false);
-                    setSheet({ kind: "chat", angle: g.angle });
-                  }}
-                />
-              }
+              chat={chatModule(g.angle, chat)}
             >
               {open.length ? <div className="grid gap-2.5 @2xl:grid-cols-2">{open.map(concept)}</div> : null}
               {done.map(concept)}
@@ -695,17 +720,18 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
           }
         >
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-body">
-            <ReplaceItem icon="undo">{`${concepts.length === 1 ? "El concepto se cambia" : `Los ${concepts.length} conceptos se cambian`} por nuevos.`}</ReplaceItem>
+            <ReplaceItem icon="undo">{`${statics.length === 1 ? "El concepto se cambia" : `Los ${statics.length} conceptos se cambian`} por nuevos.`}</ReplaceItem>
             <ReplaceItem icon="check">Mientras la IA trabaja, lo aprobado sigue en Anuncios.</ReplaceItem>
             <ReplaceItem icon="alert" warn>
               Al terminar se borran las piezas de los conceptos reemplazados
-              {approved ? (
+              {staticApproved ? (
                 <>
-                  , <b>{approved === 1 ? "también la aprobada" : `también las ${approved} aprobadas`}</b>
+                  , <b>{staticApproved === 1 ? "también la aprobada" : `también las ${staticApproved} aprobadas`}</b>
                 </>
               ) : null}
               .
             </ReplaceItem>
+            {statics.length < concepts.length ? <ReplaceItem icon="chat">El chat de WhatsApp se queda.</ReplaceItem> : null}
             {kept ? <ReplaceItem icon="shield">{`Se ${kept === 1 ? "conserva 1 que ya está en Meta o la usa" : `conservan ${kept} que ya están en Meta o las usa`} un anuncio.`}</ReplaceItem> : null}
           </ul>
           <p className="text-caption text-muted-foreground">{`Tarda ~1 min${proposeCost ? ` · ${proposeCost}` : ""}`}</p>
@@ -921,7 +947,7 @@ function resolveSelection(picked: Selection | null, concepts: CreativeConceptVie
 }
 
 /** Una línea de «Proponer otros» (.df-replace): qué se reemplaza, qué sigue y qué se borra. */
-function ReplaceItem({ icon, warn, children }: { icon: "undo" | "check" | "alert" | "shield"; warn?: boolean; children: React.ReactNode }) {
+function ReplaceItem({ icon, warn, children }: { icon: "undo" | "check" | "alert" | "shield" | "chat"; warn?: boolean; children: React.ReactNode }) {
   return (
     <li className="flex gap-2.5">
       <Icon name={icon} size="sm" className={cn("mt-0.75", warn ? "text-warning" : "text-muted-foreground")} />

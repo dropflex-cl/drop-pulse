@@ -480,6 +480,7 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
     imageProvider: choice,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     concepts: rows.map((c) => toConceptView(c, assets, urls, kept)),
+    angles: anglesDone && ranking ? chosenAngles(ranking).map((a) => ({ slot: a.slot, name: testAngleName(a) })) : [],
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
   };
 }

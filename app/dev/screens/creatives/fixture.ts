@@ -211,6 +211,7 @@ export function fixture(state: string, video = "none"): ProductCreatives {
     },
     run,
     concepts: list,
+    angles: state === "locked" ? [] : [{ slot: 1, name: "Mecanismo único" }, { slot: 2, name: "Enemigo común" }],
     imageCostUsd: IMAGE_COST_USD,
     videos: videosFixture(video),
   };
