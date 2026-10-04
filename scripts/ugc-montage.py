@@ -3,7 +3,7 @@
 
 Lee el paquete que descarga la pestaña Videos de Creativos («Descargar paquete») y arma el video listo
 para Meta: tomas habladas con la voz continua, B-roll encima de la voz (entra en su palabra), zoom
-alterno por frase, entrada de golpe del B-roll, destello al cambiar de idea, sacudida en el gancho,
+alterno por frase, entrada de golpe del B-roll, destello al cambiar de idea, acercamiento suave en el gancho,
 subtítulos palabra por palabra, cierre con la foto del producto, música
 opcional con bajada automática bajo la voz, marca de agua con el dominio de la tienda y compresión para
 Meta.
@@ -322,8 +322,9 @@ def end_card_png(path: Path, card: dict, image: Path | None, accent: tuple[int, 
 # ---------------------------------------------------------------- Movimiento
 
 
-def motion(kind: str, idx: int, frames: int, flash: bool, shake: bool, punch: bool = False) -> str:
-    """Zoom por plano (zoompan sobre 2x para que no tiemble). `punch`: zoom de entrada de la apertura con la cara."""
+def motion(kind: str, idx: int, frames: int, flash: bool, hook: bool, punch: bool = False) -> str:
+    """Zoom por plano (zoompan sobre 2x para que no tiemble). `hook`: los planos del gancho se acercan
+    suave. `punch`: zoom de entrada de la apertura con la cara."""
     n = max(frames, 1)
     if kind == "B":
         z = f"if(lt(on,6),1.35-0.30*on/6,1.05+0.05*(on-6)/{n})"  # entrada de golpe
@@ -331,11 +332,13 @@ def motion(kind: str, idx: int, frames: int, flash: bool, shake: bool, punch: bo
         z = f"1.04+0.08*on/{n}"  # se acerca
     else:
         z = f"1.14-0.10*on/{n}"  # se aleja
-    if punch:
+    if hook:
+        # El gancho se acerca suave y frena al final (antes temblaba: se veía como un error de cámara).
+        z = f"1.02+0.14*(1-pow(1-on/{n},2))"
+    elif punch:
         # Seedance abre desde la imagen clave, casi quieta: el primer medio segundo se mueve igual.
         z = f"if(lt(on,7),1.20-0.16*on/7,{z})"
-    sx, sy = ("+10*sin(on*2.1)", "+8*cos(on*1.7)") if shake else ("", "")
-    vf = f"fps={FPS},scale={2 * W}:{2 * H},setsar=1,zoompan=z='{z}':x='iw/2-(iw/zoom/2){sx}':y='ih/2-(ih/zoom/2){sy}':d=1:s={W}x{H}:fps={FPS}"
+    vf = f"fps={FPS},scale={2 * W}:{2 * H},setsar=1,zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={FPS}"
     if flash:
         vf += ",fade=t=in:st=0:d=0.14:color=white"
     return vf

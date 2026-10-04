@@ -90,7 +90,7 @@ Reglas nuevas en `openingProblems` (solo al generar, como hoy):
 ### 3.6 El clip y el montaje de la apertura
 
 - **Abrir con un B-roll** (`pov_hands`, `problem_scene`, `product_in_place`): Kling tiene movimiento cuando la toma empieza; el montaje ya salta el arranque quieto (0,6 s). B1 se pega en el segundo 0 aunque la primera palabra empiece a los 0,2 s.
-- **Abrir con la cara** (`selfie_talk`, `mirror`): Seedance abre desde la foto. El prompt de A1 pide la acción en marcha desde el primer cuadro (`first_motion`) y el montaje suma un *punch-in* (zoom 1,20 → 1,04 en 7 cuadros) y la sacudida que ya tiene la apertura. Con un inserto, el prompt de B1 también arranca en movimiento.
+- **Abrir con la cara** (`selfie_talk`, `mirror`): Seedance abre desde la foto. El prompt de A1 pide la acción en marcha desde el primer cuadro (`first_motion`) y el montaje abre con un acercamiento suave (1,02 → 1,16, que frena al final); antes era un *punch-in* con sacudida, que se veía como un error de cámara. Con un inserto, el prompt de B1 también arranca en movimiento.
 - El texto del gancho está en pantalla desde el cuadro 0, no desde que se dice su palabra.
 - El paquete sube a `PACKAGE_VERSION` 2 y trae `opening` (`{ shot, insert }`: la clave del B-roll de apertura, o null) y `look`. `scripts/ugc-montage.py` acepta 1 y 2; un paquete versión 1 sale igual que antes.
 
@@ -123,7 +123,7 @@ Hoy la mascota recibe los ganchos del ángulo, pero son de una persona: «Pensé
 - **`opening.keyframe` es la imagen clave de A1 y nunca es K1.** En la mascota, K1 es el personaje SANO que fija su cara. La apertura necesita al personaje con el problema en la escena del gancho: otra imagen clave con `uses_character`, generada con K1 de referencia.
 - La imagen clave de la apertura es el cuadro 0 con el `first_motion` (`firstFrame`), y el QA suma `matches_hook`, que bloquea igual que en el UGC. Todas las imágenes clave de la mascota van con `camera` animated.
 
-**El montaje** abre con la mascota hablando (A1). Seedance también parte de la imagen quieta, así que va con el *punch-in* y la sacudida de la apertura (§3.6).
+**El montaje** abre con la mascota hablando (A1). Seedance también parte de la imagen quieta, así que va con el acercamiento suave de la apertura (§3.6; antes un *punch-in* con sacudida).
 
 **No cambia:** el estilo de animación (`ANIMATED`), la voz (`voiceBlock(…, "mascot")`), la silueta segura y los límites de `FORMAT_LIMITS.mascot`. La parte de «que parezca de teléfono» (§4) es solo para el UGC.
 

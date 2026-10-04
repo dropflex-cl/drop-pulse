@@ -160,7 +160,7 @@ python3 scripts/ugc-montage.py paquete.json --music pista.mp3 --out video.mp4
 ```
 
 - Descarga los clips, transcribe cada toma con `mlx_whisper` (o `openai-whisper` si no es Mac) y alinea al guion.
-- Recorta, zoom alterno por frase, B-roll con entrada de golpe, destellos en los `text_beats` que empiezan con número, sacudida en el hook, subtítulos (grupos de 3, activa en `accent_color`), cierre con zoom.
+- Recorta, zoom alterno por frase, B-roll con entrada de golpe, destellos en los `text_beats` que empiezan con número, acercamiento suave en el hook (antes una sacudida, que se veía como un error), subtítulos (grupos de 3, activa en `accent_color`), cierre con zoom.
 - Música opcional: −14 LUFS la voz, bajada automática bajo la voz (`sidechaincompress`), golpe alineado al primer destello (tempo por autocorrelación), sube en el cierre.
 - **Nombres** (2026-09-26): el paquete se descarga como `<name>.json` y el video sale junto a él como `<name>.mp4` (`--out` lo cambia). `name` = `montageName`: el producto sin tildes ni símbolos (hasta 40 caracteres, sin cortar palabras), `ugc` o `mascota` y el ángulo, porque un producto puede tener seis videos. Los paquetes anteriores, sin `name`, usan la misma regla en el script (`package_name`).
 - **Cierre**: el nombre y la línea se achican hasta caber en dos líneas, el botón crece con su texto y la letra chica se parte en hasta 6 líneas; la foto usa el alto que queda. Nada se sale del cuadro.
