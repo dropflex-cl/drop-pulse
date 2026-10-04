@@ -10,9 +10,10 @@ import { getDifferentiator } from "@/lib/competitors/store";
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
 import { productFactText, schemaProblems, toWrite } from "@/lib/copy/page-schema";
-import { avatarStamp, differentiatorStamp, type CopyContextStamp } from "@/lib/copy/stale";
-import type { CopyContext } from "@/lib/copy/prompts";
-import { writePage } from "@/lib/copy/write";
+import type { PageArgument } from "@/lib/copy/argument";
+import { avatarStamp, differentiatorStamp, staleReasons, type CopyContextStamp, type CopyRunContext } from "@/lib/copy/stale";
+import { policiesBlock, type CopyContext } from "@/lib/copy/prompts";
+import { writeArgument, writePage } from "@/lib/copy/write";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
 import { activeComponents, currentContent, getComponentRow, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
 import { approvedAngles } from "./angles";
@@ -29,10 +30,12 @@ import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import type { ImagePick } from "@/lib/types";
 import { OptimizeError, requireAiKey } from "./optimize";
 
-// Etapa Página del producto (docs/spec-pagina-componentes.md). Con los 2 desarrollos de ángulo
-// aprobados, UNA llamada a Claude escribe la ficha y el contenido de cada componente de conversión
-// del catálogo. El comerciante elige cuáles usa en la página, los edita y los aprueba. «Reescribir»
-// vuelve a escribir lo que no está aprobado y conserva lo aprobado.
+// Etapa Página del producto (docs/spec-pagina-componentes.md). Con los desarrollos de ángulo
+// aprobados, dos pasos (docs/spec-prompts-simples.md §5): un redactor escribe el ARGUMENTO de venta
+// (page_argument, effort high) y otra llamada lo reparte en la ficha y el contenido de cada componente
+// de conversión del catálogo (page_copy). El comerciante elige cuáles usa en la página, los edita y los
+// aprueba. «Reescribir» vuelve a escribir lo que no está aprobado y conserva lo aprobado; lo que no
+// reescribe toda la página usa el argumento guardado, si sigue vigente, y no lo vuelve a pagar.
 
 /** Tope de escrituras por comerciante en 24 h (cada una es una llamada a Claude Opus). */
 const DAILY_RUNS = 20;
@@ -136,6 +139,29 @@ const positionOf = (id: string) => (id === LISTING ? 0 : CATALOG.findIndex((c) =
 
 type RunInput = { market: Market; pricing: PricingPlan; labels: PackLabel[] | null; avatar_id: string; briefs: BriefStamp; context?: CopyContextStamp; free_shipping: boolean; redo: boolean; mode?: CopyMode };
 
+/**
+ * El argumento de la última escritura que lo trae, si se escribió con lo mismo que esta (ángulos,
+ * cliente ideal, ficha, diferenciador y versión del prompt). Si algo cambió, null: se escribe otro.
+ */
+async function reusableArgument(r: CopyRunRow & { input: RunInput }): Promise<PageArgument | null> {
+  const { data, error } = await adminClient()
+    .from("copy_runs")
+    .select("input, payload")
+    .eq("user_id", r.user_id)
+    .eq("product_id", r.product_id)
+    .eq("status", "succeeded")
+    .not("payload->argument", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  fail("Leer el argumento de la página", error);
+  const prev = data as { input: CopyRunContext; payload: { argument?: PageArgument } } | null;
+  const context = r.input.context;
+  if (!prev?.payload.argument || !context) return null;
+  const changed = staleReasons([prev.input], { briefs: stampEntries(r.input.briefs), avatar: context.avatar, context });
+  return changed.length ? null : prev.payload.argument;
+}
+
 /** Ejecuta la escritura. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runCopy(runId: string): Promise<void> {
   const db = adminClient();
@@ -150,6 +176,8 @@ export async function runCopy(runId: string): Promise<void> {
   const r = claimed.data as CopyRunRow & { input: RunInput };
   // Lo que estuvo mal en el último intento: queda en la fila si la escritura falla.
   let problems: string[] = [];
+  // El paso en curso: un error de la llamada se registra en el suyo.
+  let step: "page_argument" | "page_copy" = "page_copy";
   try {
     const input = r.input;
     const [product, brief, avatarRow, angles, current, reviews, differentiator] = await Promise.all([
@@ -170,18 +198,36 @@ export async function runCopy(runId: string): Promise<void> {
     const approved = mode.kind === "all" ? [] : mode.kind === "only" ? current.filter((c) => c.status === "approved" && c.component !== mode.component) : input.redo ? current.filter((c) => c.status === "approved") : [];
     const write = mode.kind === "all" ? toWrite([], reviews.length) : mode.kind === "only" ? [mode.component] : toWrite(approved, reviews.length);
     const returnDays = brief.proof.guarantee_days && brief.proof.guarantee_days > 0 ? brief.proof.guarantee_days : null;
+    const policies = { countryCode: input.market.countryCode, freeShipping: input.free_shipping, returnDays };
+
+    // El argumento: el guardado si sigue vigente («Volver a escribir con IA» un componente, «Reescribir lo no aprobado»); si no, uno nuevo.
+    let argument = mode.kind === "all" ? null : await reusableArgument(r);
+    if (!argument) {
+      step = "page_argument";
+      const avatar = avatarRow.data.payload as CustomerAvatar;
+      const wrote = await writeArgument({
+        auth: { userId: r.user_id },
+        ctx: { brief, avatar, pricing: input.pricing, labels: input.labels ?? undefined, angles, differentiator: differentiator.value, reviews: reviews.map(displayText), policies: policiesBlock(policies) },
+        market: input.market,
+        facts: { slots: angles.map((a) => a.slot), currency: input.pricing.currency, amounts: allowedAmounts(input.pricing) },
+        onAttempt: async (a) => {
+          await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_argument", usage: a.usage, error: a.problems.length ? "invalid_argument" : null, problems: a.problems });
+          if (a.problems.length) console.warn("[copy] argumento inválido", a.problems);
+        },
+      });
+      problems = wrote.problems;
+      if (problems.length || !wrote.data) throw new AiStepError("invalid_output", "La IA escribió un argumento que no cumple las reglas. Toca Reintentar.", undefined, true);
+      argument = wrote.data;
+      step = "page_copy";
+    }
 
     const ctx: CopyContext = {
       brief,
-      avatar: avatarRow.data.payload as CustomerAvatar,
       pricing: input.pricing,
       labels: input.labels ?? undefined,
-      angles,
-      differentiator: differentiator.value,
+      argument,
       shopify: { title: product.title, description: product.description },
-      countryCode: input.market.countryCode,
-      freeShipping: input.free_shipping,
-      returnDays,
+      ...policies,
       reviews: reviews.map((v) => ({ id: v.id, rating: v.rating, text: displayText(v), country: v.country ?? undefined, photos: v.photos.length })),
       write,
       approved: approved.map((a) => ({ component: a.component, content: currentContent(a) })),
@@ -226,12 +272,12 @@ export async function runCopy(runId: string): Promise<void> {
     }
     fail(
       "Guardar la escritura",
-      (await db.from("copy_runs").update({ status: "succeeded", payload: data, prompt_version: COPY_PROMPT_VERSION, model: usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error,
+      (await db.from("copy_runs").update({ status: "succeeded", payload: { ...data, argument }, prompt_version: COPY_PROMPT_VERSION, model: usage.model, finished_at: now, updated_at: now }).eq("id", r.id)).error,
     );
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[copy] escribir", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_copy", usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step, usage: e.usage, error: e.code });
     const now = new Date().toISOString();
     const { error } = await db
       .from("copy_runs")

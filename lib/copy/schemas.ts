@@ -4,8 +4,12 @@
 import { currencySymbol, parseAmount } from "@/lib/format";
 import type { PricingPlan } from "@/lib/pricing/plan";
 
-/** Bump cuando cambie el prompt o el esquema del redactor de página. 7: review-wall (muro de testimonios) y las reseñas dicen cuántas fotos traen. */
-export const COPY_PROMPT_VERSION = 7;
+/**
+ * Bump cuando cambie el prompt o el esquema del redactor de página (o de su argumento). 7: review-wall
+ * (muro de testimonios) y las reseñas dicen cuántas fotos traen. 8: dos pasos (docs/spec-prompts-simples.md
+ * §5): el argumento de venta (page_argument) y su reparto en componentes con una guía de 3 líneas cada uno.
+ */
+export const COPY_PROMPT_VERSION = 8;
 
 /** Palabras de trabajo que no pueden llegar a la tienda («según la ficha», «el ángulo principal»). */
 export const INTERNAL = /(?<![\p{L}])(la ficha|ficha de producto|precio y oferta|cliente ideal|[áa]ngulo (principal|secundario))(?![\p{L}])/iu;

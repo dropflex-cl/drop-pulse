@@ -340,3 +340,14 @@ con cita del comprador.
   `diagnosis.core_pain` y `diagnosis.secondary_archetype`; lo guardado se sigue leyendo.
 - Medir después: `npm run ai:metrics -- --step angle_hooks` (rechazo de la v6 frente al 58 % y
   `con_cita`) y la comparación a ciegas de `scripts/eval-hooks.ts`.
+
+### Fase 2 (2026-10-04): Página del producto, `COPY_PROMPT_VERSION` 8
+
+- `page_argument` (nuevo, `lib/copy/argument.ts`, US$0,15 por defecto en `AI_STEPS`): el argumento en
+  texto, con `argumentProblems` y un reintento. Se guarda en `copy_runs.payload.argument` y se reusa al
+  reescribir un componente o lo no aprobado si nada cambió.
+- `page_copy` reparte el argumento con `componentBrief` (3 líneas por componente) en vez del manual; el
+  system bajó de ~51.000 caracteres a menos de 15.000 (test). Sin la ficha ni el cliente ideal en JSON.
+- `scripts/eval-models.ts` corre los dos pasos y, con `savedPage`, deja la comparación a ciegas.
+- Medir después: `npm run ai:metrics -- --step page_copy` y `--step page_argument` (rechazo frente al
+  59 %, costo por página aceptada frente a US$0,92).

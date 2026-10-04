@@ -29,6 +29,7 @@ export const PROMPT_VERSIONS: Partial<Record<AiStep, number>> = {
   angle_brief: ANGLE_BRIEF_PROMPT_VERSION,
   angle_hooks: HOOKS_PROMPT_VERSION,
   hook_critic: HOOK_CRITIC_PROMPT_VERSION,
+  page_argument: COPY_PROMPT_VERSION,
   page_copy: COPY_PROMPT_VERSION,
   event_copy: EVENT_COPY_PROMPT_VERSION,
   page_plan: PAGE_IMAGES_PROMPT_VERSION,

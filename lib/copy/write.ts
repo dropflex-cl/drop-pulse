@@ -1,12 +1,55 @@
 import "server-only";
 import { generateStructured, type AiAuth, type AiUsage } from "@/lib/ai/claude";
+import { retryableContent } from "@/lib/ai/content";
 import type { Market } from "@/lib/market";
+import { argumentContext, argumentProblems, argumentSystem, argumentTail, pageArgumentSchema, type ArgumentContext, type ArgumentFacts, type PageArgument } from "./argument";
 import { LISTING } from "./listing";
 import { failingParts, mergeOutput, pageProblems, pageSchema, partialOutput, type PageFacts, type PageOutput } from "./page-schema";
 import { copySystem, copyUser, type CopyContext, type CopyRetry } from "./prompts";
 
 /** Llamadas por escritura: la página entera y hasta 2 correcciones. */
 const MAX_CALLS = 3;
+/** Intentos del argumento: rara vez falla (no tiene topes de caracteres). */
+const ARGUMENT_CALLS = 2;
+
+/**
+ * Escribe el argumento de venta (paso page_argument, effort high). El contexto va con punto de caché:
+ * un reintento lo lee a 0,1×. Nunca lanza por reglas: devuelve los problemas que queden.
+ */
+export async function writeArgument({
+  auth,
+  ctx,
+  market,
+  facts,
+  model,
+  onAttempt,
+}: {
+  auth: AiAuth;
+  ctx: ArgumentContext;
+  market: Market;
+  facts: ArgumentFacts;
+  model?: string;
+  onAttempt: (a: { usage: AiUsage; problems: string[] }) => Promise<void> | void;
+}): Promise<{ data: PageArgument | null; problems: string[] }> {
+  let problems: string[] = [];
+  let data: PageArgument | null = null;
+  for (let i = 0; i < ARGUMENT_CALLS; i++) {
+    const result = await generateStructured({
+      ...auth,
+      system: argumentSystem(market),
+      content: retryableContent([], argumentContext(ctx), argumentTail(problems)),
+      schema: pageArgumentSchema,
+      effort: "high",
+      maxTokens: 16000,
+      model,
+    });
+    data = result.data;
+    problems = argumentProblems(data, facts);
+    await onAttempt({ usage: result.usage, problems });
+    if (!problems.length) break;
+  }
+  return { data, problems };
+}
 
 export interface PageAttempt {
   usage: AiUsage;

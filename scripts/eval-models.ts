@@ -5,15 +5,19 @@
 //     --in <prod-inputs.json> --out <carpeta> [--task copy|avatar|all] [--samples 2] [--dry]
 //     [--models claude-opus-5,claude-sonnet-5] [--repair]
 //
-// --repair: la página pasa por writePage (lib/copy/write.ts), con las correcciones de la app; sin él
-// se mide solo el primer intento.
+// La página son dos pasos, como en la app (docs/spec-prompts-simples.md §5): el argumento
+// (writeArgument) y su reparto en componentes. --repair: el reparto pasa por writePage
+// (lib/copy/write.ts), con las correcciones de la app; sin él se mide solo su primer intento.
 //
 // La clave de Anthropic va explícita en ANTHROPIC_API_KEY (.env.local): solo este script la lee del
 // entorno; la app usa siempre la clave del comerciante (Ajustes › Inteligencia artificial).
 //
-// Cada llamada cuesta dinero real (Opus ~US$0,30 la página, Sonnet ~40% de eso). --dry solo arma
+// Cada llamada cuesta dinero real (Opus ~US$0,35 la página con su argumento, Sonnet ~40% de eso). --dry solo arma
 // los prompts. El JSON de entrada: por producto, product, brief, avatar, copyInput (copy_runs.input),
-// optimizeInput (pipeline_runs.input), angles (angle_briefs aprobados) y reviews (aprobadas).
+// optimizeInput (pipeline_runs.input), angles (angle_briefs aprobados), reviews (aprobadas) y, para
+// la comparación a ciegas (docs/spec-prompts-simples.md §9), savedPage: la página guardada con la
+// versión anterior ({ listing, components }, de page_components.proposal). Con savedPage, cada página
+// nueva deja ciegas-<producto>-<modelo>-<n>.md con las dos como A y B, y la clave en clave.json.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
@@ -23,8 +27,9 @@ import { angleForPrompt } from "@/lib/angles/approved";
 import type { AngleSlot, TestAngle } from "@/lib/angles/catalog";
 import { differentiatorState } from "@/lib/competitors/store";
 import { pageProblems, pageSchema, productFactText, toWrite, type PageOutput } from "@/lib/copy/page-schema";
-import { copySystem, copyUser, type CopyContext } from "@/lib/copy/prompts";
-import { writePage, type PageAttempt } from "@/lib/copy/write";
+import { argumentContext, argumentSystem } from "@/lib/copy/argument";
+import { copySystem, copyUser, policiesBlock, type CopyContext } from "@/lib/copy/prompts";
+import { writeArgument, writePage, type PageAttempt } from "@/lib/copy/write";
 import { allowedAmounts } from "@/lib/copy/schemas";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -42,6 +47,7 @@ interface ProdInput {
   optimizeInput: { market: Market; pricing: PricingPlan };
   angles: { id: string; angle: TestAngle["frame"]; role: string; payload: never }[];
   reviews: (Parameters<typeof displayText>[0] & { id: string; rating: number; country: string | null })[];
+  savedPage?: PageOutput;
 }
 
 interface Job {
@@ -52,6 +58,8 @@ interface Job {
   run: () => Promise<{ data: unknown; usage: AiUsage; attempts?: PageAttempt[] }>;
   check: (data: unknown) => string[];
   prompt: string;
+  /** La página guardada con la versión anterior, para la comparación a ciegas. */
+  saved?: PageOutput;
 }
 
 function arg(name: string, fallback?: string): string | undefined {
@@ -73,24 +81,23 @@ function oldAngle(slot: AngleSlot, frame: TestAngle["frame"]): TestAngle {
 function copyJobs(d: ProdInput, samples: number): Job[] {
   const { copyInput: input, brief, product } = d;
   const write = toWrite([], d.reviews.length);
-  const ctx: CopyContext = {
+  const angles = d.angles.map((a, i) => angleForPrompt(oldAngle((i + 1) as AngleSlot, a.angle), a.payload, a.angle));
+  const policies = { countryCode: input.market.countryCode, freeShipping: input.free_shipping, returnDays: brief.proof.guarantee_days && brief.proof.guarantee_days > 0 ? brief.proof.guarantee_days : null };
+  const argCtx = { brief, avatar: d.avatar, pricing: input.pricing, labels: input.labels ?? undefined, angles, differentiator: differentiatorState(null, brief).value, reviews: d.reviews.map(displayText), policies: policiesBlock(policies) };
+  const ctx = (argument: CopyContext["argument"]): CopyContext => ({
     brief,
-    avatar: d.avatar,
     pricing: input.pricing,
     labels: input.labels ?? undefined,
-    angles: d.angles.map((a, i) => angleForPrompt(oldAngle((i + 1) as AngleSlot, a.angle), a.payload, a.angle)),
-    differentiator: differentiatorState(null, brief).value,
+    argument,
     shopify: { title: product.title, description: product.description },
-    countryCode: input.market.countryCode,
-    freeShipping: input.free_shipping,
-    returnDays: brief.proof.guarantee_days && brief.proof.guarantee_days > 0 ? brief.proof.guarantee_days : null,
+    ...policies,
     reviews: d.reviews.map((v) => ({ id: v.id, rating: v.rating, text: displayText(v), country: v.country ?? undefined })),
     write,
     approved: [],
-  };
-  const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: d.reviews.map((v) => v.id), factText: productFactText(brief, product.base_info) };
+  });
+  const amounts = allowedAmounts(input.pricing);
+  const facts = { currency: input.pricing.currency, amounts, reviewIds: d.reviews.map((v) => v.id), factText: productFactText(brief, product.base_info) };
   const system = copySystem(input.market);
-  const user = copyUser(ctx);
   const schema = pageSchema(write);
   return MODELS.flatMap((model) =>
     Array.from({ length: samples }, (_, sample) => ({
@@ -98,17 +105,43 @@ function copyJobs(d: ProdInput, samples: number): Job[] {
       product: product.title,
       model,
       sample,
-      prompt: `${system}\n\n=====\n\n${user}`,
-      run: REPAIR
-        ? async () => {
-            const attempts: PageAttempt[] = [];
-            const r = await writePage({ auth: { apiKey: API_KEY }, ctx, market: input.market, facts, model, onAttempt: (a) => void attempts.push(a) });
-            return { data: r.data, usage: sumUsage(attempts.map((a) => a.usage)), attempts };
-          }
-        : () => generateStructured({ apiKey: API_KEY, system, content: [{ type: "text", text: user }], schema, effort: "medium", maxTokens: 16000, model }),
+      prompt: `${argumentSystem(input.market)}\n\n=====\n\n${argumentContext(argCtx)}\n\n=====\n\n${system}`,
+      run: async () => {
+        const attempts: PageAttempt[] = [];
+        const arg = await writeArgument({
+          auth: { apiKey: API_KEY },
+          ctx: argCtx,
+          market: input.market,
+          facts: { slots: angles.map((a) => a.slot), currency: input.pricing.currency, amounts },
+          model,
+          onAttempt: (a) => void attempts.push({ usage: a.usage, problems: a.problems, parts: ["argument"], partial: false }),
+        });
+        if (!arg.data) throw new Error(`argumento inválido: ${arg.problems.join(" ")}`);
+        if (REPAIR) {
+          const r = await writePage({ auth: { apiKey: API_KEY }, ctx: ctx(arg.data), market: input.market, facts, model, onAttempt: (a) => void attempts.push(a) });
+          return { data: { argument: arg.data, ...r.data }, usage: sumUsage(attempts.map((a) => a.usage)), attempts };
+        }
+        const page = await generateStructured({ apiKey: API_KEY, system, content: [{ type: "text", text: copyUser(ctx(arg.data)) }], schema, effort: "medium", maxTokens: 16000, model });
+        attempts.push({ usage: page.usage, problems: [], parts: write, partial: false });
+        return { data: { argument: arg.data, ...(page.data as PageOutput) }, usage: sumUsage(attempts.map((a) => a.usage)), attempts };
+      },
       check: (data: unknown) => pageProblems(data as PageOutput, write, facts),
+      saved: d.savedPage,
     })),
   );
+}
+
+/** Una página como la lee el comerciante: la ficha y cada componente, en texto. */
+function pageForReading(p: PageOutput): string {
+  const block = (name: string, v: unknown) => [`### ${name}`, "", ...textsOfValue(v).map((t) => `- ${t}`), ""];
+  return [...block("Ficha", p.listing), ...Object.entries(p.components ?? {}).flatMap(([id, v]) => block(id, v))].join("\n");
+}
+
+function textsOfValue(v: unknown): string[] {
+  if (typeof v === "string") return [v];
+  if (Array.isArray(v)) return v.flatMap(textsOfValue);
+  if (v && typeof v === "object") return Object.entries(v).filter(([k]) => !/^(icon|policy|requires|topic|basis|fact|review_id|excerpt_mode|slot)$/.test(k)).flatMap(([, x]) => textsOfValue(x));
+  return [];
 }
 
 function avatarJobs(d: ProdInput): Job[] {
@@ -206,6 +239,19 @@ async function main() {
     seconds: r.usage ? Math.round(r.usage.latencyMs / 1000) : 0,
   }));
   writeFileSync(join(outDir, "summary.json"), JSON.stringify(rows, null, 1));
+
+  // Comparación a ciegas: la página nueva y la guardada, como A y B en orden al azar.
+  const key: Record<string, { A: string; B: string }> = {};
+  for (const r of results) {
+    if (!r.saved || !r.data) continue;
+    const page = r.data as PageOutput;
+    const newFirst = Math.random() < 0.5;
+    const [a, b] = newFirst ? [page, r.saved] : [r.saved, page];
+    const file = `ciegas-${name(r)}.md`;
+    key[file] = newFirst ? { A: "nueva", B: "guardada" } : { A: "guardada", B: "nueva" };
+    writeFileSync(join(outDir, file), [`# ${r.product}`, "", "¿Qué página venderías? Elige A o B antes de abrir clave.json.", "", "## A", "", pageForReading(a), "## B", "", pageForReading(b)].join("\n"));
+  }
+  if (Object.keys(key).length) writeFileSync(join(outDir, "clave.json"), JSON.stringify(key, null, 2));
   const total = rows.reduce((s, r) => s + r.cost, 0);
   console.log(`\nTotal US$${total.toFixed(2)}. Resultados en ${outDir}`);
 }

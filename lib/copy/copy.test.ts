@@ -6,7 +6,8 @@ import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { WRITTEN, toWrite } from "./page-schema";
 import { copyProgress, enabledLabel } from "./progress";
-import { copySystem, copyUser, type CopyContext } from "./prompts";
+import { argumentContext, argumentProblems, argumentSystem, argumentTail, argumentText, type ArgumentContext, type PageArgument } from "./argument";
+import { componentBrief, copySystem, copyUser, policiesBlock, type CopyContext } from "./prompts";
 import { allowedAmounts, amountAllowed, amountsIn } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
@@ -82,17 +83,93 @@ describe("progreso de la página", () => {
   });
 });
 
-describe("prompts del redactor de página", () => {
-  const brief = (core: string) => ({ core_message: core, hooks: [{ text: "gancho" }], objection_handling: [{ objection: "¿Y si no me queda?", answer: "Talla única" }] }) as unknown as AngleBriefPayload;
-  const ctx: CopyContext = {
-    brief: { product_name: "Corrector", proof: { guarantee_days: null } } as unknown as ProductBrief,
-    avatar: AVATAR,
-    pricing,
+describe("argumento de la página (page_argument)", () => {
+  const payload = (core: string) => ({ core_message: core, hooks: [{ text: "gancho del anuncio" }], objection_handling: [] }) as unknown as AngleBriefPayload;
+  const brief = {
+    product_name: "Corrector",
+    what_it_does: "Lleva los hombros atrás.",
+    key_facts: [{ label: "Material", value: "Neopreno" }],
+    known_objections: ["¿Se nota bajo la ropa?"],
+    proof: { guarantee_days: null, real_reviews: [], real_expert: null },
+  } as unknown as ProductBrief;
+  const angles = [
+    angleForPrompt({ slot: 1, frame: "unique_mechanism", title: "No es la silla", pain_or_desire: "Espalda cargada", segment: "Oficinistas", promise: "Hombros atrás", trigger_moment: "", competition: "", hook: "No es tu silla: son tus hombros.", speaks_to: "buyer" }, payload("La postura se corrige sola")),
+    angleForPrompt({ slot: 2, frame: "offer", title: "Lleva 2", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "" }, payload("Uno para la oficina y otro para la casa")),
+  ];
+  const ctx: ArgumentContext = { brief, avatar: AVATAR, pricing, angles, differentiator: { versus: "una faja", claim: "Lleva los hombros atrás", basis: "" }, reviews: ["Me llegó rápido"], policies: policiesBlock({ countryCode: "CL", freeShipping: true, returnDays: null }) };
+  const good = (): PageArgument => ({
+    headline: "El corrector que lleva los hombros atrás bajo la ropa",
+    promise: "Una faja aprieta la cintura; este tira de los hombros.",
     angles: [
-      angleForPrompt({ slot: 1, frame: "unique_mechanism", title: "No es la silla", pain_or_desire: "Espalda cargada", segment: "Oficinistas", promise: "Hombros atrás", trigger_moment: "A las 4 de la tarde", competition: "" }, brief("La postura se corrige sola")),
-      angleForPrompt({ slot: 2, frame: "offer", title: "", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "" }, brief("Lleva 2")),
+      { slot: 1, moment: "A las 4 de la tarde ya estoy encorvado", benefit: "Hombros atrás con cintas cruzadas", answer: "¿Se nota? No, va bajo la camisa." },
+      { slot: 2, moment: "Lo dejo en la oficina y en la casa no tengo", benefit: "El segundo sale a mitad de precio", answer: "¿Para qué dos? Uno en cada lugar." },
     ],
-    differentiator: { versus: "una faja", claim: "Lleva los hombros atrás", basis: "" },
+    extra_moment: "Al levantarme del escritorio estiro la espalda con las dos manos",
+    objections: Array.from({ length: 5 }, (_, i) => ({ objection: `Duda ${i}`, answer: "Respuesta" })),
+    close: `2 por $${pricing.packs[1].price.toLocaleString("es-CL")} · Paga al recibir`,
+  });
+  const facts = { slots: [1, 2], currency: "CLP", amounts: allowedAmounts(pricing) };
+
+  it("el system es corto, sin componentes ni topes de caracteres", () => {
+    const sys = argumentSystem(CL);
+    expect(sys).toBe(argumentSystem(CL));
+    expect(sys.split("\n").length).toBeLessThan(30);
+    expect(sys).toContain("redactor de respuesta directa");
+    expect(sys).not.toMatch(/caracteres|pain-block|benefit-usps|\{return_days\}/);
+  });
+
+  it("el contexto es texto corto: sin la ficha ni el cliente ideal en JSON, sin los ganchos", () => {
+    const u = argumentContext(ctx);
+    expect(u).not.toMatch(/"(what_it_does|voice_of_customer|trigger_moments|summary)"\s*:/);
+    expect(u).not.toMatch(/^\s*[{[]/m);
+    expect(u).toContain("PRODUCTO: Corrector");
+    expect(u).toContain(`QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${AVATAR.summary}`);
+    expect(u).toContain(`«${AVATAR.voice_of_customer[0]}»`);
+    expect(u).not.toContain(AVATAR.formula);
+    expect(u).toContain("EN QUÉ SE DIFERENCIA: frente a una faja, Lleva los hombros atrás");
+    expect(u).toContain("LOS ANUNCIOS QUE TRAEN TRÁFICO (2 ángulos)");
+    expect(u).toContain("Ángulo 1: «No es la silla»");
+    expect(u).toContain("- Idea central: Uno para la oficina y otro para la casa");
+    expect(u).not.toContain("gancho del anuncio");
+    expect(u).toContain("¿Se nota bajo la ropa?");
+    expect(u).toContain("Envío gratis a todo Chile");
+    expect(argumentTail(["Trae 3 dudas."])).toMatch(/Trae 3 dudas[\s\S]*Escribe el argumento/);
+  });
+
+  it("revisa un ángulo por slot, el momento extra con 2, las dudas, los montos y las promesas", () => {
+    expect(argumentProblems(good(), facts)).toEqual([]);
+    const bad = { ...good(), angles: good().angles.slice(0, 1), extra_moment: null, objections: [], close: "Antes $12.345. Cura el dolor." };
+    const p = argumentProblems(bad, facts).join(" ");
+    expect(p).toMatch(/uno por ángulo: 1, 2/);
+    expect(p).toMatch(/extra_moment/);
+    expect(p).toMatch(/Trae 0 dudas/);
+    expect(p).toMatch(/12345/);
+    expect(p).toMatch(/promesa prohibida/);
+    expect(argumentProblems({ ...good(), extra_moment: null }, { ...facts, slots: [1, 2, 3] }).join(" ")).toMatch(/uno por ángulo: 1, 2, 3/);
+  });
+
+  it("el argumento llega a los componentes como texto", () => {
+    const t = argumentText(good());
+    expect(t).toContain("Titular: El corrector");
+    expect(t).toContain("- Ángulo 2. Momento: Lo dejo en la oficina");
+    expect(t).toContain("- Otro momento (slot 3): Al levantarme");
+    expect(t).toContain("Cierre: 2 por");
+    expect(argumentText({ ...good(), angles: [...good().angles, { ...good().angles[0], slot: 3 }] })).not.toContain("Otro momento");
+  });
+});
+
+describe("prompts del redactor de página (page_copy)", () => {
+  const ctx: CopyContext = {
+    brief: { product_name: "Corrector", what_it_does: "Lleva los hombros atrás.", key_facts: [], proof: { guarantee_days: null, real_reviews: [] } } as unknown as ProductBrief,
+    pricing,
+    argument: {
+      headline: "El corrector que lleva los hombros atrás",
+      promise: "Una faja aprieta la cintura; este tira de los hombros.",
+      angles: [{ slot: 1, moment: "A las 4 ya estoy encorvado", benefit: "Hombros atrás", answer: "¿Se nota? No." }],
+      extra_moment: null,
+      objections: [{ objection: "¿Y si no me queda?", answer: "Talla única" }],
+      close: "Paga al recibir",
+    },
     shopify: { title: "Corrector Postura Unisex", description: null },
     countryCode: "CL",
     freeShipping: true,
@@ -101,34 +178,42 @@ describe("prompts del redactor de página", () => {
     write: ["listing", "inventory", "faq-and-text"],
   };
 
-  it("el system depende solo del mercado y trae la guía de cada componente", () => {
+  it("el system depende solo del mercado y trae una guía de 3 líneas por componente, sin su manual", () => {
     const sys = copySystem(CL);
     expect(sys).toBe(copySystem(CL));
     for (const c of WRITTEN) {
-      expect(sys).toContain(`### ${c.id} (${c.name})`);
+      expect(sys).toContain(componentBrief(c));
+      expect(componentBrief(c).split("\n")).toHaveLength(3);
       expect(sys).toContain(c.objection);
+      // Sin el ejemplo de otro producto ni las reglas del manual.
+      expect(sys).not.toContain(JSON.stringify(c.examples[0]));
+      for (const f of c.forbidden) expect(sys).not.toContain(f);
     }
-    expect(sys).toContain("Reparte las objeciones");
+    expect(sys).toContain("CÓMO REPARTIR");
     expect(sys).toContain("{return_days}");
+    expect(sys.length).toBeLessThan(15000);
   });
 
-  it("el usuario lleva precio, políticas reales, reseñas con id, los 2 ángulos y qué escribir", () => {
+  it("la forma de un componente sale de su esquema", () => {
+    const pain = WRITTEN.find((c) => c.id === "pain-block")!;
+    expect(componentBrief(pain)).toMatch(/^### pain-block \(DropFlex · Lo que te pasa\)\nDónde va: Primer bloque del cuerpo[^\n]*\nForma: heading: Una pregunta de reconocimiento, sin diagnosticar\. · moments: Exactamente 3 momentos/);
+  });
+
+  it("el usuario lleva el producto, el precio, las políticas, las reseñas con id, el argumento y qué escribir: sin la ficha ni el cliente ideal en JSON", () => {
     const u = copyUser(ctx);
+    expect(u).not.toMatch(/"(what_it_does|voice_of_customer|trigger_moments|summary)"\s*:/);
+    expect(u).toContain("PRODUCTO: Corrector");
     expect(u).toContain("PRECIO Y OFERTA");
     expect(u).toContain("- Envío gratis a todo Chile (policy free_shipping).");
     expect(u).toContain("Sin política de cambios cargada");
     expect(u).toContain("- rv_1 · 5★ · CL: Me llegó rápido y se ajusta bien.");
-    expect(u).toContain("ÁNGULOS DE VENTA (2");
-    expect(u).toContain("Ángulo 1: No es la silla (forma: Mecanismo único)");
-    expect(u).toContain("Ángulo 2: Oferta (forma: Oferta)");
-    expect(u).toContain("Frente a una faja: Lleva los hombros atrás");
-    expect(copySystem(CL)).toContain("UNA PÁGINA PARA TODOS LOS ÁNGULOS");
-    expect(copySystem(CL)).not.toMatch(/ángulo PRINCIPAL manda/);
-    expect(u).toContain("¿Y si no me queda?");
-    expect(u).not.toContain("gancho");
+    expect(u).toContain("ARGUMENTO DE VENTA");
+    expect(u).toContain("Titular: El corrector que lleva los hombros atrás");
+    expect(u).toContain("¿Y si no me queda? → Talla única");
     expect(u).toContain("- listing: la ficha.");
     expect(u).toContain("- components: inventory, faq-and-text.");
     expect(u).not.toContain("YA APROBADO");
+    expect(u).toMatch(/Reparte el argumento en la página del producto\.$/);
   });
 
   it("al reescribir lleva lo aprobado; al reintentar, su respuesta anterior y qué falló", () => {
@@ -142,7 +227,7 @@ describe("prompts del redactor de página", () => {
     expect(u).toContain('TU RESPUESTA ANTERIOR\n{"listing":null,"components":{"faq-and-text":{"heading":"Dudas"}}}');
     expect(u).toContain("No cumple las reglas: faq-and-text.items: falta una pregunta de envio");
     expect(u).toContain("Corrige solo eso y deja igual todo lo demás.");
-    expect(u).not.toContain("Escribe la página del producto.");
+    expect(u).not.toContain("Reparte el argumento en la página del producto.");
   });
 
   it("sin reseñas aprobadas lo dice", () => {
