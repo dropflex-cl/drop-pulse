@@ -248,8 +248,6 @@ export interface AngleHookView {
   silentRead?: string;
   /** El crítico no se detuvo con este gancho: por qué. */
   noStop?: string;
-  /** Tiene versión para el video de mascota. */
-  mascot?: boolean;
 }
 
 /** Lo que el comerciante revisa y edita de un desarrollo (AngleDevelopment). */

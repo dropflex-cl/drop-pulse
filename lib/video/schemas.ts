@@ -36,8 +36,8 @@ import {
 
 /** Bump cuando cambie el prompt o el esquema del guionista. 3: palabras por segundo con margen (WORDS_PER_SECOND_PROMPT). 4: el ejemplo de mascota del esquema. 5: sin rótulo «Dramatización». 6: el gancho sale de la tríada del agente de ganchos (hook_source). 7: la apertura (opening) y la cámara de cada imagen clave (spec-video-detener-scroll). 8: A1 abre con la frase del gancho, sin nada antes, y con su delivery. */
 export const UGC_PROMPT_VERSION = 8;
-/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). 8: A1 abre con la frase del gancho y su delivery. */
-export const MASCOT_PROMPT_VERSION = 8;
+/** Bump cuando cambie el prompt del guionista de mascota (lib/video/prompts.ts › mascotSystem). 2: palabras por segundo con margen. 3: silueta segura para Meta. 4: la silueta se describe en positivo. 5: sin rótulo «Animación». 6: el gancho de la tríada, sin el vocero humano. 7: el gancho de su versión de mascota y la apertura (opening). 8: A1 abre con la frase del gancho y su delivery. 9: los ganchos ya no traen su versión de mascota (ganchos v6): el personaje dice el gancho a su manera. */
+export const MASCOT_PROMPT_VERSION = 9;
 /** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). 3: matches_hook (la apertura) y phone_look (aviso). */
 export const KEYFRAME_QA_PROMPT_VERSION = 3;
 

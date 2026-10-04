@@ -99,8 +99,9 @@ function hookBlock(format: VideoFormat): string {
   if (format === "mascot") {
     return [
       "EL GANCHO (los primeros 3 s deciden si se ve el resto)",
-      "- Elige UNO de los GANCHOS del ángulo: cada uno ya trae su versión de mascota (lo que dice el personaje, su texto en pantalla y su escena). Vienen del mejor al peor; el primero es el recomendado. Pon su index en opening.hook_source. Si ninguno sirve, null, y escribe uno con el mismo método (algo que mirar en medio segundo, el cliente se reconoce en 2 s).",
-      "- Es el paso 1 del arco: la escena del gancho, con el personaje YA con el problema. opening.shot es mascot_scene.",
+      "- Elige UNO de los GANCHOS del ángulo (vienen del mejor al peor; el primero es el recomendado) y pon su index en opening.hook_source. Si ninguno sirve, null, y escribe uno: algo que mirar en medio segundo y que el cliente se reconozca en 2 s.",
+      `- Dilo como el personaje: en primera persona sobre sí mismo o «mi dueño», con la misma tensión, como mucho ${SPOKEN_PROMPT_WORDS} palabras. Su texto en pantalla, el del gancho o el del personaje (hasta ${ON_SCREEN_PROMPT_WORDS} palabras). Si el gancho ya trae lo que dice el personaje y su escena, úsalos.`,
+      "- Es el paso 1 del arco: la escena del gancho, con el personaje YA con el problema, en una situación graciosa. opening.shot es mascot_scene.",
       `- opening.keyframe es una imagen clave nueva con esa escena (uses_character true), y A1 parte de ella. Nunca ${CHARACTER_KEY}: ${CHARACTER_KEY} es el personaje SANO.`,
       ...common,
       "- El final feliz retoma la escena del gancho.",
@@ -155,7 +156,7 @@ const MASCOT_STORY = [
   "- Habla en primera persona de SÍ MISMO («Soy la uña que mi dueño esconde en zapatos cerrados»). Su dueño o dueña va en tercera persona. Con humor y ternura: el problema da risa y pena, nunca asco.",
   `- Dura ${M.totalMin} a ${M.totalMax} s habladas (más 2 s de cierre), vertical 9:16. ${M.aRollMin} a ${M.aRollMax} tomas habladas de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX} s: el personaje habla a cámara, con su voz de principio a fin.`,
   "- El arco, en este orden:",
-  "  1. GANCHO: el gancho elegido de GANCHOS DEL ÁNGULO, dicho por el personaje, en su escena: el personaje YA con el problema, en una situación graciosa que lo muestra (asomándose de un zapato cerrado, escondido bajo el pelo). NUNCA abras con el personaje sano: se pierden los primeros segundos.",
+  "  1. GANCHO: el gancho elegido de GANCHOS DEL ÁNGULO, dicho por el personaje a su manera, en su escena: el personaje YA con el problema, en una situación graciosa que lo muestra (asomándose de un zapato cerrado, escondido bajo el pelo). NUNCA abras con el personaje sano: se pierden los primeros segundos.",
   "  2. PROBLEMA: lo que probó el dueño y no funcionó, y POR QUÉ no llegó (la causa que el producto sí resuelve).",
   "  3. LLEGADA Y MECANISMO: aparece el producto, nombrado por su marca, y cómo actúa, con los ingredientes o la tecnología de la ficha. Una sola toma: no repitas el mecanismo en dos.",
   "  4. FINAL FELIZ Y OFERTA: el personaje sano, contento, retomando algo del gancho (si se escondía en zapatos, ahora va en sandalias), y la oferta en una frase.",
@@ -280,7 +281,8 @@ export function ugcContextText(c: UgcContext): string {
 
 /** Los ganchos que recibe el guionista de este formato y la toma con que abre cada uno (lo que valida scriptProblems). */
 export function openingInput(src: HookSource, format: VideoFormat = "ugc"): OpeningInput {
-  if (format === "mascot") return { hooks: usableHooks(src, "mascot").map(({ index, hook }) => ({ index, shot: "mascot_scene", spoken: hook.mascot?.text ?? hook.text })) };
+  // La mascota dice el gancho a su manera: A1 abre con la frase del personaje, no con la del gancho (salvo los de hasta la versión 5, que traen su versión).
+  if (format === "mascot") return { hooks: usableHooks(src, "mascot").map(({ index, hook }) => ({ index, shot: "mascot_scene", spoken: hook.mascot?.text })) };
   return { hooks: usableHooks(src, "ai_video").flatMap(({ index, hook }) => (openingShotOf(hook) ? [{ index, shot: openingShotOf(hook)!, spoken: hook.text }] : [])) };
 }
 

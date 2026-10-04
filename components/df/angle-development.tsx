@@ -177,7 +177,7 @@ function Editor({ initial, saving, onSave, onCancel }: { initial: AngleDevelopme
  * primera toma. Los que piden material real o tienen riesgo alto lo dicen: los anuncios con IA no los usan.
  */
 function HookItem({ text, detail, recommended }: { text: string; detail?: AngleHookView; recommended: boolean }) {
-  const meta = [detail?.pattern, detail?.onScreen ? `En pantalla: «${detail.onScreen}»` : null, detail?.mascot ? "También mascota" : null, detail?.edited ? "Editado" : null].filter(Boolean).join(" · ");
+  const meta = [detail?.pattern, detail?.onScreen ? `En pantalla: «${detail.onScreen}»` : null, detail?.edited ? "Editado" : null].filter(Boolean).join(" · ");
   const warning = detail?.needsMaterial
     ? `Necesita grabación real: ${detail.needsMaterial}. Los anuncios con IA no lo usan.`
     : detail?.highRisk

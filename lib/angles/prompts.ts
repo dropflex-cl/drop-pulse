@@ -212,7 +212,6 @@ interface AngleGuide {
   whenNot: string[];
   structure: string[];
   aida: string[];
-  hooks: string[];
   visuals: string[];
   guardrails: string[];
 }
@@ -231,7 +230,6 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     whenNot: ["No hay experto real ni forma de conseguirlo: no se inventan médicos ni credenciales.", "Moda, estatus o impulso: la autoridad se siente forzada.", "La promesa supera lo que un profesional diría en voz alta."],
     structure: ["Credencial en 2 segundos: escena y rol.", "Observación del oficio: «Veo esto todos los días…».", "El error común que comete la mayoría.", "«Por eso uso / recomiendo…»: el producto como su elección.", "Demostración profesional: cómo lo usa o lo ajusta.", "Cierre suave: el experto no grita ofertas; la oferta va en el texto o en la página."],
     aida: ["Atención: credencial en 2 segundos.", "Interés: observación del oficio y error común.", "Deseo: «lo uso yo mismo» y la demostración.", "Acción: cierre suave con el pago contra entrega."],
-    hooks: ["«Como [profesión], veo [problema] todos los días; por eso tengo [producto] en casa.»", "«Después de [X] años como [profesión], esto es lo único que le digo a cada paciente con [síntoma].»", "«La mayoría de los [profesión] no lo dice, pero…»", "«Lo que uso para mi propia [parte del cuerpo] como [profesión].»", "«Soy [profesión]. Por esto dejé de recomendar [alternativa común].»", "«Mis pacientes siempre me preguntan qué uso. Es esto.»"],
     visuals: ["Experto en su consulta (9:16), luz natural, el producto sobre la camilla o el modelo anatómico.", "Reacción del experto a un video del problema.", "Estático de estilo de vida con el copy del experto."],
     guardrails: ["Experto real, con credencial verificable y consentimiento; si cobra, se declara.", "Si no hay experto real en la ficha: expert_is_real = false y en expert el perfil a contratar, nunca una identidad ficticia; go = false si no se puede conseguir.", "Habla de pacientes o en primera persona, nunca «tu ciática»."],
   },
@@ -248,7 +246,6 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     whenNot: ["Es la primera solución de su tipo y no hay a quién oponerse.", "Habría que difamar a una marca concreta.", "La audiencia está conforme con lo que usa."],
     structure: ["Gancho de choque: nombra al enemigo y lo contradice.", "Validación: «Si probaste [alternativa] y no funcionó, no eres tú».", "La revelación: por qué falla (dato, lógica o experiencia).", "El costo de seguir igual.", "La alternativa: el producto como salida.", "Prueba real de quienes dejaron al enemigo.", "Cierre sin riesgo: paga al recibir."],
     aida: ["Atención: choque contra una creencia.", "Interés: «no es tu culpa» y la revelación.", "Deseo: costo de seguir igual, la alternativa y la prueba.", "Acción: probar es más seguro que seguir igual."],
-    hooks: ["«Si [la industria] fuera honesta, admitiría que [afirmación].»", "«[Solución popular] es lo peor que puedes [hacer/comprar] para [problema].»", "«Deja de [práctica común]. Esto es lo que le hace a tu [objeto/hogar].»", "«Gasté $[monto] en [alternativa] antes de que alguien me dijera esto.»", "«Por qué [alternativa] deja de funcionar después de [tiempo].»", "«Más grueso no es mejor. Esto es lo que hacen mal los [categoría].»"],
     visuals: ["UGC a cámara con el texto polémico arriba (9:16).", "Pantalla dividida: el enemigo a la izquierda, el producto a la derecha.", "«Cosas que dejé de comprar»: una lista tachando alternativas."],
     guardrails: ["Ataca prácticas, categorías o creencias, nunca marcas con nombre.", "Cada crítica necesita una base verificable; «estudios muestran» exige el estudio real.", "Sin segunda persona sobre condiciones («tu acné»)."],
   },
@@ -265,7 +262,6 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     whenNot: ["El producto es genérico, sin diferencia técnica real: inventar un mecanismo es engañoso.", "El mecanismo exige promesas médicas que no se pueden sustentar.", "Producto de impulso barato donde nadie quiere una explicación."],
     structure: ["Gancho de reencuadre: «No es X. Es Y.»", "Síntoma reconocible en primera o tercera persona.", "La causa real con un visual.", "Por qué fallan las alternativas: atacan X, no Y.", "Cómo el producto ataca Y: una frase y una metáfora.", "Prueba: demo o comparación.", "Cierre: paga al recibir, con la oferta como capa."],
     aida: ["Atención: «No es X, es Y».", "Interés: síntoma y causa real visualizada.", "Deseo: por qué fallan los demás, cómo lo resuelve el producto y la prueba.", "Acción: probarlo sin riesgo."],
-    hooks: ["«No es tu [causa supuesta]. Es tu [causa real].»", "«[Solución popular] no funciona sin esto.»", "«La mayoría de los [productos] agrega [más X]. Este hace [Y distinto].»", "«No puedes arreglar un problema de [metáfora A] con [metáfora B].»", "«[Síntoma 1], [síntoma 2] y [síntoma 3] son el mismo problema.»", "«Esto es lo que le pasa a tu [objeto] cuando [acción diaria].»"],
     visuals: ["Animación técnica (9:16): el punto de presión o la causa antes de mostrar el producto.", "Demo comparativa: el producto contra la alternativa bajo la misma prueba.", "UGC explicando con las manos o con un objeto cotidiano como metáfora."],
     guardrails: ["El mecanismo debe ser real y salir de la ficha: no se inventan tecnologías, patentes ni nombres científicos.", "Las animaciones son ilustrativas: «Ilustración» si pueden confundirse con imagen médica.", "Sin segunda persona sobre condiciones de salud."],
   },
@@ -282,7 +278,6 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     whenNot: ["Producto universal sin grupo dominante.", "La única forma de decirlo es acusatoria en segunda persona: Meta la rechaza y ofende."],
     structure: ["Etiqueta y síntoma en el gancho, en primera o tercera persona.", "Normalización: «No eres solo tú. Le pasa a [grupo] porque…».", "El intento fallido típico del grupo.", "El producto como ajuste para esta etapa, no como cura.", "Prueba real de pares.", "Recuperar la identidad.", "Cierre: paga al recibir, con el pack si aplica."],
     aida: ["Atención: etiqueta del grupo y síntoma.", "Interés: normalización y el intento fallido.", "Deseo: el ajuste, la prueba de pares y la identidad recuperada.", "Acción: actuar como actúa su grupo."],
-    hooks: ["«Tengo [edad] y nadie me advirtió de [síntoma].»", "«Las mujeres/los hombres de más de [edad] se están cambiando a [tipo de producto]: esto es por qué.»", "«[N] errores que comete todo [grupo] con [problema].»", "«Hecho para [rol] que [dolor con sus palabras].»", "«Lo que [grupo] quisiera haber sabido de [problema] a los [edad].»", "«Si trabajas [turnos de 12 horas], tienes que ver esto.» (el rol está permitido; la condición no)"],
     visuals: ["Vocero del grupo en su contexto (9:16).", "Listicle con texto grande («3 ERRORES») y la demo de fondo.", "Montaje de pares: 3 o 4 personas del grupo diciendo su rol y una frase."],
     guardrails: ["Nada de segunda persona sobre edad, salud o peso: primera persona del vocero o tercera del grupo.", "Nada de promesas de rejuvenecimiento ni resultados con plazo.", "Si el vocero es actor o avatar de IA, no afirma edad ni experiencia como hechos reales."],
   },
@@ -299,7 +294,6 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     whenNot: ["No hay testimonios reales: este ángulo NO se construye con historias inventadas.", "Producto de impulso muy barato."],
     structure: ["Gancho en medio de la acción: el peor momento, con un detalle.", "Contexto humano: quién es y qué le importa.", "La escalada: lo que probó y cuánto le costó.", "El giro.", "El descubrimiento del producto, dentro de la historia.", "La resolución con un detalle concreto.", "Puente al espectador y cierre: paga al recibir."],
     aida: ["Atención: el peor momento con un detalle.", "Interés: contexto, escalada y giro.", "Deseo: descubrimiento y resolución.", "Acción: «si te suena, esto es lo que usó»."],
-    hooks: ["«Gasté $[monto exacto] en [alternativas] antes de [evento].»", "«[Día y lugar concretos], [el mal momento]. Ahí supe que algo tenía que cambiar.»", "«[Persona inesperada] me hizo UNA pregunta que cambió cómo [manejo el problema].»", "«Casi [dejo / cancelo / pierdo] [algo que ama] por culpa de [problema].»", "«Mi [perro / mamá / pareja] ya no podía [actividad]. Esto fue lo que cambiamos.»", "«Nadie me creyó hasta que vieron [resultado].»"],
     visuals: ["Texto largo sobre una foto cotidiana (9:16), sin estética publicitaria.", "Selfie narrado por la persona real, en un solo plano.", "Estático tipo unboxing con el copy largo."],
     guardrails: ["Solo historias reales con consentimiento, o dramatizaciones que no se presentan como el testimonio de una clienta.", "Si no hay reseñas reales en la ficha: story_is_real = false, go = false, las preguntas de entrevista en interview_questions y otro ángulo recomendado en fit_reason.", "Sin promesas médicas dentro de la historia; «los resultados varían» cuando corresponda."],
   },
@@ -317,16 +311,10 @@ const GUIDES: Record<SalesAngle, AngleGuide> = {
     whenNot: ["Problema complejo de ticket alto: la oferta va como capa, no como gancho."],
     structure: ["La oferta ES el gancho: el número o «GRATIS» en los primeros 1–2 segundos.", "El producto en su mejor ángulo: variantes o demo rápida.", "Tres beneficios con check.", "El ancla: el tachado real o el precio por unidad del pack.", "Sin riesgo: paga al recibir.", "Urgencia solo si es real, y la llamada a la acción."],
     aida: ["Atención: la oferta en 1–2 segundos.", "Interés: el producto y 3 beneficios.", "Deseo: el ancla y el pago contra entrega.", "Acción: la fecha real y la llamada."],
-    hooks: ["«LLEVA 3, PAGA 2: [producto] [beneficio].» (solo si el pack de 3 cuesta lo de 2)", "«[Pack] por $[precio del pack]: $[precio por unidad] cada uno.»", "«Compra esto → llévate esto GRATIS.» (solo si es real)", "«[Evento real]: [oferta]. Termina [fecha real].»", "«¿Por qué pagar $[ancla] por [alternativa] si esto cuesta $[precio]?»", "«Menos de $[monto] al día por [beneficio].»"],
     visuals: ["Estático grilla de precio (1:1): las variantes, el precio grande y 3 checks.", "«Compra esto / llévate esto GRATIS» con flechas a mano.", "Video del producto con stickers de oferta (9:16)."],
     guardrails: ["La estructura recomendada es uno de los packs de PRECIO Y OFERTA: no inventes otra ni recalcules márgenes.", "«GRATIS» tiene que ser gratis de verdad.", "Nada de contadores que se reinician ni «termina hoy» permanente.", "Si el ángulo principal es otro, este desarrollo es la capa de oferta: details.as_layer = true."],
   },
 };
-
-/** Las plantillas de gancho de una forma: las adapta el agente de ganchos (lib/hooks/prompts.ts). */
-export function frameHookTemplates(angle: SalesAngle): string[] {
-  return GUIDES[angle].hooks;
-}
 
 export function angleSystem(angle: SalesAngle, market: Market): string {
   const g = GUIDES[angle];

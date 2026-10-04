@@ -275,7 +275,6 @@ function hookView(h: AngleHook): AngleHookView {
     edited: h.edited || undefined,
     openingShot: h.opening_shot && h.opening_shot !== "real_footage" ? OPENING_SHOT_DEFS[h.opening_shot].name : undefined,
     realFootage: h.opening_shot === "real_footage" || undefined,
-    mascot: Boolean(h.mascot) || undefined,
     silentRead: h.review?.understood_muted || h.silent_read || undefined,
     noStop: h.review && !h.review.stops ? h.review.why || "Alguien del cliente ideal pasaría de largo." : undefined,
   };

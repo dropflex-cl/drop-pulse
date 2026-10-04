@@ -4,24 +4,24 @@ import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type Anthropic from "@anthropic-ai/sdk";
 import { angleForPrompt, angleMessage } from "@/lib/angles/approved";
-import { ANGLES, testAngleName, type TestAngle } from "@/lib/angles/catalog";
-import { frameHookTemplates, type AngleContext } from "@/lib/angles/prompts";
+import { testAngleName, type TestAngle } from "@/lib/angles/catalog";
+import type { AngleContext } from "@/lib/angles/prompts";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import { chosenAngles, fail, getBriefRow, type RankingRow } from "@/lib/angles/store";
 import { CRITIC_MIN_STOPS } from "@/lib/hooks/catalog";
 import { critiqueFor, hookCriticProblems, hookCriticSchema, hookCriticSystem, hookCriticUser, stopsCount, toHooksReview } from "@/lib/hooks/critic";
-import { hooksContextText, hooksSystem, hooksTail, rawMaterial, type HooksContext, type HooksCritique } from "@/lib/hooks/prompts";
-import { hookProblems, hooksOutputSchema, hooksToPayload, type HooksOutput, type HooksReview } from "@/lib/hooks/schemas";
+import { hooksContextText, hooksSystem, hooksTail, hooksVoice, type HooksContext, type HooksCritique } from "@/lib/hooks/prompts";
+import { hookProblems, hooksOutputSchema, hooksToPayload, normalizeHooks, type HooksOutput, type HooksReview } from "@/lib/hooks/schemas";
 import { adminClient } from "@/lib/integrations/admin";
 import type { Market } from "@/lib/market";
 import { imagesForGeneration, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { imageBlock } from "./images";
 import { OptimizeError, requireAiKey } from "./optimize";
 
-// El agente de ganchos COD LatAm (agentes-creativos/hook-cod-latam.md, lib/hooks/): escribe los 10
-// ganchos de un ángulo justo después de su desarrollo (runBrief) y otra vez con «Otros ganchos». Lo
-// que valida el código (largos, patrones, montos, política, material real, citas) vuelve al modelo
-// hasta HOOK_ATTEMPTS veces. Después, el crítico (lib/hooks/critic.ts) los mira como alguien del
+// El agente de ganchos (lib/hooks/): escribe los 10 ganchos de un ángulo justo después de su desarrollo
+// (runBrief) y otra vez con «Otros ganchos». Lo que es regla (material real, citas, orden) lo arregla el
+// código (normalizeHooks); lo que valida (largos, montos, política) vuelve al modelo hasta HOOK_ATTEMPTS
+// veces. Después, el crítico (lib/hooks/critic.ts) los mira como alguien del
 // cliente ideal: su orden decide el recomendado y, si detiene a menos de CRITIC_MIN_STOPS, los que no
 // lo detienen se reescriben una vez, si queda tiempo en la función.
 
@@ -86,17 +86,17 @@ export async function writeHooks(w: WriteHooksInput): Promise<WrittenHooks> {
     labels: w.ctx.labels,
     differentiator: w.ctx.differentiator,
     angle: angleForPrompt(w.angle, { hooks: [], recommended_hook: 0, ...w.payload } as AngleBriefPayload),
-    others: w.others.map((o) => `«${testAngleName(o)}» (${ANGLES[o.frame].name})`),
-    frameTemplates: frameHookTemplates(w.angle.frame),
+    others: w.others.map((o) => `«${testAngleName(o)}»`),
     hasImage: Boolean(w.image),
   };
   const facts = {
     pricing: w.ctx.pricing,
     hasRealReviews: w.ctx.brief.proof.real_reviews.some((r) => r.trim()),
     hasRealExpert: Boolean(w.ctx.brief.proof.real_expert?.trim()),
-    rawMaterial: rawMaterial(hooksCtx),
+    buyerVoice: hooksVoice(hooksCtx),
     marketAmounts: w.angle.market_amounts,
   };
+  const hasAngleHook = Boolean(w.angle.hook);
   const deadline = w.deadline ?? Number.POSITIVE_INFINITY;
   const attempts = w.attempts ?? HOOK_ATTEMPTS;
   let problems: string[] = [];
@@ -110,7 +110,7 @@ export async function writeHooks(w: WriteHooksInput): Promise<WrittenHooks> {
         ...(w.auth ?? { userId: w.userId }),
         system: hooksSystem(w.market),
         // La foto y el contexto con punto de caché: un reintento los lee a 0,1×.
-        content: retryableContent(w.image ? [w.image] : [], hooksContextText(hooksCtx), hooksTail(problems, w.avoid, critique)),
+        content: retryableContent(w.image ? [w.image] : [], hooksContextText(hooksCtx), hooksTail(hasAngleHook, problems, w.avoid, critique)),
         schema: hooksOutputSchema,
         effort: "medium",
         maxTokens: 16000,
@@ -123,19 +123,20 @@ export async function writeHooks(w: WriteHooksInput): Promise<WrittenHooks> {
       }
       throw e;
     }
-    problems = hookProblems(result.data, facts);
+    const out = normalizeHooks(result.data, facts);
+    problems = hookProblems(out, facts);
     await (w.record ?? recordAiGeneration)({ userId: w.userId, productId: w.productId, step: "angle_hooks", detail, usage: result.usage, error: problems.length ? "invalid_hooks" : null, problems });
     if (problems.length) {
       console.warn("[hooks] ganchos inválidos", problems);
       continue;
     }
-    const review = Date.now() + CRITIC_NEEDS_MS < deadline ? await critiqueHooks(w, hooksCtx, result.data, detail) : null;
-    const written = { out: result.data, review };
+    const review = Date.now() + CRITIC_NEEDS_MS < deadline ? await critiqueHooks(w, hooksCtx, out, detail) : null;
+    const written = { out, review };
     // Una sola reescritura por el crítico, y solo si alcanza a terminar.
     const rewrite = review && !critique && stopsCount(review) < CRITIC_MIN_STOPS && attempt + 1 < attempts && Date.now() + REWRITE_NEEDS_MS < deadline;
     if (!rewrite) return best && review && stopsCount(best.review!) > stopsCount(review) ? best : written;
     best = written;
-    critique = critiqueFor(result.data.hooks, review);
+    critique = critiqueFor(out.hooks, review);
   }
   if (best) return best;
   throw new AiStepError("invalid_hooks", "La IA escribió ganchos que no cumplen las reglas. Toca Otros ganchos.", undefined, true);

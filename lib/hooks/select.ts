@@ -18,7 +18,8 @@ export function isUsable(h: AngleHook): boolean {
 
 /**
  * Para qué se usa: `any` (estáticos, chat, texto del anuncio), `ai_video` (el video con una persona de
- * IA: sin los que piden grabación real) o `mascot` (solo los que tienen versión de mascota).
+ * IA: sin los que piden grabación real) o `mascot` (los mismos que el video con IA: el guion de mascota
+ * dice el gancho como el personaje; los ganchos de hasta la versión 5 traen su versión de mascota).
  */
 export type HookUse = "any" | "ai_video" | "mascot";
 
@@ -30,8 +31,7 @@ export const openingShotOf = (h: AngleHook): AiOpeningShot | null => {
 
 function fits(h: AngleHook, use: HookUse): boolean {
   if (!isUsable(h)) return false;
-  if (use === "ai_video") return openingShotOf(h) !== null;
-  if (use === "mascot") return Boolean(h.mascot);
+  if (use === "ai_video" || use === "mascot") return openingShotOf(h) !== null;
   return true;
 }
 
@@ -74,14 +74,13 @@ function deliveryOf(h: AngleHook): { delivery?: string } {
 
 /**
  * Un gancho como lo lee un prompt: la tríada, su patrón y si lo escribió el comerciante. Para el video,
- * también su primera toma; para la mascota, su versión (lo que dice el personaje y su escena).
+ * también su primera toma; para la mascota, su versión si la trae (ganchos de hasta la versión 5).
  */
 export function hookForPrompt(index: number, h: AngleHook, use: HookUse = "any") {
   if (use === "mascot" && h.mascot) {
     return {
       index,
       ...(h.pattern ? { pattern: `${PATTERN_NAMES[h.pattern]} (${h.pattern})` } : {}),
-      ...(h.mechanism ? { mechanism: h.mechanism } : {}),
       spoken: h.mascot.text,
       on_screen: h.mascot.on_screen,
       ...deliveryOf(h),
@@ -92,11 +91,12 @@ export function hookForPrompt(index: number, h: AngleHook, use: HookUse = "any")
   const video =
     use === "ai_video"
       ? { opening_shot: openingShotOf(h), ...(h.first_motion ? { first_motion: h.first_motion } : {}), ...(h.edited ? {} : deliveryOf(h)) }
-      : {};
+      : use === "mascot" && !h.edited
+        ? deliveryOf(h)
+        : {};
   return {
     index,
     ...(h.pattern ? { pattern: `${PATTERN_NAMES[h.pattern]} (${h.pattern})` } : {}),
-    ...(h.mechanism ? { mechanism: h.mechanism } : {}),
     spoken: h.text,
     ...(h.follow_up ? { follow_up: h.follow_up } : {}),
     ...(h.on_screen ? { on_screen: h.on_screen } : {}),

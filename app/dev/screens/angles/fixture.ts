@@ -197,9 +197,9 @@ const PRIMARY: AngleBriefView = {
       "Acá preparamos los pedidos que salen hoy.",
     ],
     hookDetails: [
-      { pattern: "Dolor", onScreen: "NO ES LA SILLA", visual: "Mujer en el escritorio que se encorva de a poco hacia la pantalla, el teléfono apoyado en el monitor.", openingShot: "El problema en su lugar", mascot: true },
+      { pattern: "Dolor", onScreen: "NO ES LA SILLA", visual: "Mujer en el escritorio que se encorva de a poco hacia la pantalla, el teléfono apoyado en el monitor.", openingShot: "El problema en su lugar" },
       { pattern: "Demostración", onScreen: "MIRA LOS HOMBROS", visual: "De espaldas, frente al espejo: se ajusta las cintas cruzadas y los hombros vuelven atrás.", openingShot: "Selfie en el espejo" },
-      { pattern: "Contrario", onScreen: "NO ES UNA FAJA", visual: "Mano que suelta una faja sobre la mesa.", openingShot: "Las manos con el producto", mascot: true },
+      { pattern: "Contrario", onScreen: "NO ES UNA FAJA", visual: "Mano que suelta una faja sobre la mesa.", openingShot: "Las manos con el producto" },
       { pattern: "Dolor", followUp: "Y mi silla era buena.", onScreen: "4 PM: HOMBROS CARGADOS", visual: "Reloj de pared y hombros que se masajean." },
       { pattern: "Contrario", onScreen: "ANTES DE COMPRAR OTRA", visual: "Pantalla del celular con una silla ergonómica en el carrito." },
       { pattern: "Confesión", onScreen: "PENSÉ QUE ERA CUENTO", needsMaterial: "Un testimonio real en video" },

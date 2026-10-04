@@ -327,3 +327,16 @@ y del contexto que recibe el modelo (que no traiga la ficha ni el cliente ideal 
 
 Ganchos en los desarrollos vigentes: ninguno de la versión 4 o 5; de los 151, 0 editados y 0
 con cita del comprador.
+
+### Fase 1 (2026-10-04): Ganchos, versión 6
+
+- Prompt corto (~20 líneas) con el contexto de `lib/ai/context.ts` y la pregunta del §4; sin
+  patrones como menú, arquetipos, cuotas, puntajes, ejemplo ni versión de mascota.
+- `normalizeHooks` arregla en código lo que es regla (material real que falta, `real_footage`, citas
+  que no están o no se usan, orden): en la línea base eran 13 problemas pagados.
+- La mascota dice el gancho a su manera (`MASCOT_PROMPT_VERSION` 9); «También mascota» sale de la
+  lista. Citas opcionales.
+- Esquema: fuera `mechanism`, `scores`, `promises_only_what_arrives`, `mascot`, `production_notes`,
+  `diagnosis.core_pain` y `diagnosis.secondary_archetype`; lo guardado se sigue leyendo.
+- Medir después: `npm run ai:metrics -- --step angle_hooks` (rechazo de la v6 frente al 58 % y
+  `con_cita`) y la comparación a ciegas de `scripts/eval-hooks.ts`.

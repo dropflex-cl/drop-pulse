@@ -3,7 +3,7 @@ import { WORDS_PER_SECOND_MAX, WORDS_PER_SECOND_PROMPT } from "./catalog";
 import type { AngleForPrompt } from "@/lib/angles/approved";
 import type { AngleBriefPayload } from "@/lib/angles/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { scriptSystem, ugcContextText, ugcTail, type UgcContext } from "./prompts";
+import { openingInput, scriptSystem, ugcContextText, ugcTail, type UgcContext } from "./prompts";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 
@@ -55,6 +55,15 @@ describe("guion: el gancho sale de la tríada", () => {
     expect(ugc).not.toContain("Pensé que era puro cuento");
     expect(ugc).toContain("Vocera de 40");
     expect(ugcContextText(ctx("mascot"))).not.toContain("Vocera de 40");
+  });
+
+  it("la mascota dice el gancho a su manera: A1 no tiene que abrir con la frase de la persona", () => {
+    expect(openingInput(payload, "mascot")).toEqual({ hooks: [{ index: 1, shot: "mascot_scene", spoken: undefined }] });
+    expect(scriptSystem("mascot", CL)).toContain("Dilo como el personaje");
+    // Los ganchos de hasta la versión 5 traen su versión de mascota: A1 abre con esa.
+    const old = { ...payload, hooks: payload.hooks.map((h) => ({ ...h, mascot: { text: "Soy el vaso que tiembla.", on_screen: "YO TIEMBLO", scene: "s", first_motion: "f" } })) };
+    expect(openingInput(old, "mascot").hooks[0].spoken).toBe("Soy el vaso que tiembla.");
+    expect(openingInput(payload, "ugc")).toEqual({ hooks: [{ index: 1, shot: "selfie_talk", spoken: "Mira lo que pasa con el vaso." }] });
   });
 
   it("los dos formatos piden abrir con el gancho y su texto en pantalla", () => {
