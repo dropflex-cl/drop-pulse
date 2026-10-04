@@ -3,7 +3,8 @@ import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { AngleBriefView, AngleCandidateView, AngleHookView, AngleRankingView, RunStatus, TestAngleView } from "@/lib/types";
 import { ANGLES, testAngleName, type AngleSlot, type SalesAngle, type TestAngle } from "./catalog";
-import { isStrategy, type AngleBriefPayload, type LegacyScoredAngle, type RankingPayload } from "./schemas";
+import type { PricingPlan } from "@/lib/pricing/plan";
+import { isStrategy, marketAmounts, type AngleBriefPayload, type LegacyScoredAngle, type RankingPayload } from "./schemas";
 import { angleForPrompt, type AngleForPrompt } from "./approved";
 import { ARCHETYPE_NAMES, OPENING_SHOT_DEFS, PATTERN_NAMES } from "@/lib/hooks/catalog";
 import type { AngleHook } from "@/lib/hooks/schemas";
@@ -184,12 +185,14 @@ export function toTestAngleView(a: TestAngle): TestAngleView {
     speaksTo: a.speaks_to,
     tone: a.tone || undefined,
     why: a.why || undefined,
+    marketAmounts: a.market_amounts?.length ? a.market_amounts : undefined,
   };
 }
 
 /** Los candidatos del orquestador, en su orden (las evaluaciones de antes traen otros campos). */
-export function candidateViews(r: Pick<RankingRow, "payload">): AngleCandidateView[] {
+export function candidateViews(r: Pick<RankingRow, "payload" | "input">): AngleCandidateView[] {
   const p = r.payload;
+  const pricing = r.input.pricing as PricingPlan | undefined;
   if (isStrategy(p))
     return p.angles.map((a, i) => ({
       index: i,
@@ -206,6 +209,8 @@ export function candidateViews(r: Pick<RankingRow, "payload">): AngleCandidateVi
       frameName: ANGLES[a.frame]?.name ?? a.frame,
       triggerMoment: a.trigger_moment,
       competition: "",
+      // Montos que no son de la tienda: el comerciante los verifica antes de elegir el ángulo.
+      marketAmounts: pricing ? marketAmounts(a, pricing) : [],
     }));
   return (p?.test_angles ?? []).map((c, i) => ({
     index: i,
@@ -218,6 +223,7 @@ export function candidateViews(r: Pick<RankingRow, "payload">): AngleCandidateVi
     frameName: ANGLES[c.frame]?.name ?? c.frame,
     triggerMoment: c.trigger_moment,
     competition: c.competition,
+    marketAmounts: [],
   }));
 }
 

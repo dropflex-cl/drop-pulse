@@ -105,9 +105,10 @@ Cliente ideal aprobado + diferenciador confirmado + ficha + precio (y etiquetas 
                  │
       “Elegir ángulos con IA”  POST /api/products/[id]/angles   (angle_rankings: queued → running)
                  ▼
- orquestador v7 (effort high) → 5 ángulos del que más vende al que menos, cada uno con gancho, AIDA,
-                 │             a quién le habla y tono; los 2 o 3 para testear primero; datos dudosos
+ experto (effort high, la pregunta del chat con poco contexto) → 5 ángulos del más efectivo al menos,
+                 │   cada uno con gancho, AIDA, a quién le habla y tono; los 2 o 3 para testear; datos dudosos
  strategyProblems (código) → si falla una regla comprobable, otra respuesta una vez
+ forma de cada uno (effort low) → frame, dolor, segmento, promesa y momento, solo entre las formas posibles
                  ▼
  El comerciante elige 2 o 3 (ve el gancho; puede editarlo)   PUT /api/products/[id]/angles/selection
                  ▼
@@ -119,10 +120,10 @@ Cliente ideal aprobado + diferenciador confirmado + ficha + precio (y etiquetas 
 
 | Tabla | Qué guarda |
 |---|---|
-| `angle_rankings` | Una evaluación: `status`, `input` (mercado, precio, `avatar_id`, diferenciador, competencia, `reviews`, `events`, `today`), `payload` (la propuesta del orquestador), `suggested_slots`, la elección confirmada (`chosen_angles`, `confirmed_at`). Una activa por producto. Las de antes de v7 traen además `scores` (el puntaje de las 6 formas) |
+| `angle_rankings` | Una evaluación: `status`, `input` (mercado, precio, `avatar_id`, diferenciador, competencia, `reviews`, `events`, `today`, `previous`: lo que propuso la anterior), `payload` (la propuesta del orquestador), `suggested_slots`, la elección confirmada (`chosen_angles`, `confirmed_at`). Una activa por producto. Las de antes de v7 traen además `scores` (el puntaje de las 6 formas) |
 | `angle_briefs` | Un desarrollo por intento: `angle` (la forma), `slot`, `generation` (estado de la llamada), `payload` (el brief y sus ganchos), `status` (`content_status`). Regenerar crea otro y el anterior queda `rejected`. Uno activo por slot |
 
-**Por qué un prompt corto** (`docs/spec-angulos-testeo.md` §4.2): la versión anterior evaluaba 6 formas con 3 criterios cada una y un JSON de ~70 campos; los ángulos salían como etiquetas sin gancho y las formas dejaban fuera lo que no calzaba (humor, regalo de temporada). Ahora el modelo responde lo que preguntaría el comerciante, con el gancho y el AIDA de cada ángulo, y el código revisa después lo que se puede comprobar (`strategyProblems`): largo del gancho, gancho y AIDA con `hookTextProblems`, Autoridad solo con experto real e Historia personal solo con reseñas reales. No hay puntaje en código.
+**Por qué la pregunta del chat** (`docs/spec-angulos-testeo.md` §4.2): un chat con cinco viñetas del proveedor propuso mejores ángulos que el orquestador con la ficha y el cliente ideal completos. Con más material, el modelo copiaba frases del cliente ideal, narraba en vez de interpelar y llenaba una forma por ángulo. Ahora el experto recibe poco contexto y la pregunta tal cual; la forma la pone una segunda llamada barata, y el código revisa después lo comprobable (`strategyProblems`). Un monto de mercado (lo que cuesta la alternativa) pasa marcado (`marketAmounts`) y, si el comerciante elige el ángulo, los ganchos lo pueden usar. Volver a evaluar ve lo que se propuso antes y trae otros.
 
 **Esquema compacto:** la API compila el esquema de salida a una gramática y rechaza las demasiado grandes (400 «compiled grammar is too large»). Un test impide que un esquema de ángulos sea más grande que el del cliente ideal.
 

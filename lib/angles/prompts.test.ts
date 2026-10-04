@@ -4,8 +4,8 @@ import type { ProductBrief } from "@/lib/ai/schemas";
 import { avatarStepSchema } from "@/lib/ai/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { ANGLE_HOOK_MAX_WORDS, SALES_ANGLES } from "./catalog";
-import { angleStrategyContext, angleStrategySystem, angleStrategyTail, angleStrategyUser, angleSystem, angleUser } from "./prompts";
-import { angleBriefSchema, angleStrategySchema, isStrategy, strategyProblems, suggestedFrom, type StrategyAngle } from "./schemas";
+import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleIdeasUser, angleSystem, angleUser, marketAnchorLine } from "./prompts";
+import { angleBriefSchema, angleFramesSchema, angleIdeasSchema, isStrategy, marketAmounts, strategyProblems, suggestedFrom, type AngleIdea } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };
 const pricing = buildPricingPlan(
@@ -27,124 +27,128 @@ const brief = {
 } as unknown as ProductBrief;
 const ctx = { brief, avatar: AVATAR, pricing, baseInfo: "neopreno" };
 
-describe("orquestador de ángulos (v7)", () => {
-  it("es un experto que piensa en quién compra y quién usa, sin puntuar formas", () => {
-    const sys = angleStrategySystem(CL);
+describe("orquestador de ángulos (v9)", () => {
+  it("es la pregunta del chat: corta, sin formas ni puntajes", () => {
+    const sys = angleIdeasSystem(CL);
+    expect(sys).toContain("experto en ventas en formato AIDA");
     expect(sys).toContain("quién compra y quién usa");
-    expect(sys).toContain("Lo que ya vende en esta categoría vale más que ser original");
-    expect(sys).toContain("FECHAS");
     expect(sys).toContain("doubts");
+    expect(sys).toContain("ancla de precio");
+    expect(sys).toContain("Hablarle de un ser querido");
     expect(sys).toContain("español neutro con tuteo");
-    for (const a of SALES_ANGLES) expect(sys).toContain(`· ${a}: `);
-    expect(sys).not.toMatch(/peso \d|penalizaci|c1, c2 y c3|puntaje/i);
+    for (const a of SALES_ANGLES) expect(sys).not.toContain(a);
+    expect(sys).not.toMatch(/escena|puntaje|penalizaci/i);
+    expect(sys.split("\n").length).toBeLessThan(25);
+    expect(angleIdeasTail()).toBe("Dime los 5 ángulos de venta más efectivos para este producto.");
   });
 
-  it("el system solo depende del mercado (caché)", () => {
-    expect(angleStrategySystem(CL)).toBe(angleStrategySystem(CL));
-    expect(angleStrategySystem(CL)).not.toContain("Corrector");
+  it("el system solo depende del mercado (caché) y pide el gancho un 10 % más corto que el tope", () => {
+    expect(angleIdeasSystem(CL)).toBe(angleIdeasSystem(CL));
+    expect(angleIdeasSystem(CL)).not.toContain("Corrector");
+    expect(angleIdeasSystem(CL)).toContain(`máximo ${Math.floor(ANGLE_HOOK_MAX_WORDS * 0.9)} palabras`);
   });
 
-  it("el gancho que pide es un 10 % más corto que el que valida el código", () => {
-    expect(angleStrategySystem(CL)).toContain(`hook: máximo ${Math.floor(ANGLE_HOOK_MAX_WORDS * 0.9)} palabras`);
-  });
-
-  it("el contexto es texto corto: ficha, cliente ideal, pruebas, precio, competencia, fechas y lo del comerciante", () => {
-    const u = angleStrategyContext({
+  it("el contexto es mínimo: el proveedor tal cual, lo comprobado, quién compra, precio, fechas y lo ya propuesto", () => {
+    const u = angleIdeasContext({
       ...ctx,
+      baseInfo: "Audífono digital inteligente, origen Japón, 0.076 kg",
       differentiator: { versus: "una faja", claim: "sostiene los hombros", basis: "" },
       reviews: ["Me sirvió para la oficina", "Llegó rápido"],
       events: [{ name: "Navidad", starts_on: "2026-12-25" }],
       today: "2026-10-03",
+      previous: [{ title: "Callado en la mesa", hook: "Mi papá se ríe medio segundo tarde." }],
     });
     expect(u).toContain("HOY: 2026-10-03");
+    expect(u).toContain("Audífono digital inteligente, origen Japón, 0.076 kg");
     expect(u).toContain("- Material: Neopreno");
-    expect(u).toContain("CLIENTE IDEAL (quien compra según el comerciante)");
-    expect(u).toContain(AVATAR.summary);
-    expect(u).toContain("Frente a una faja: sostiene los hombros");
-    expect(u).toContain("2 reseñas reales");
-    expect(u).toContain("«Me sirvió para la oficina»");
+    expect(u).toContain(`QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${AVATAR.summary}`);
+    expect(u).toContain("frente a una faja, sostiene los hombros");
+    expect(u).toContain("2 reseñas de compradores del mismo producto");
     expect(u).toContain("PRECIO Y OFERTA");
     expect(u).toContain("- Navidad: 25 de diciembre (en 12 semanas)");
-    expect(u).toContain("(sin datos)");
-    // Sin la fórmula del cliente ideal ni la ficha en JSON.
-    expect(u).not.toContain(AVATAR.formula);
-    expect(u).not.toContain('"product_name"');
+    expect(u).toContain("YA LE PROPUSISTE AL COMERCIANTE");
+    expect(u).toContain("- Callado en la mesa: «Mi papá se ríe medio segundo tarde.»");
+    // Sin el material del cliente ideal que el modelo copiaba, ni las reseñas textuales.
+    for (const m of AVATAR.problems.trigger_moments) expect(u).not.toContain(m);
+    for (const v of AVATAR.voice_of_customer) expect(u).not.toContain(v);
+    expect(u).not.toContain("Me sirvió para la oficina");
+    expect(u).not.toContain("COMPETENCIA");
   });
 
-  it("sin reseñas ni fechas lo dice, y recorta el texto largo del proveedor", () => {
-    const u = angleStrategyContext({ ...ctx, baseInfo: "x".repeat(4000) });
-    expect(u).toContain("- Reseñas reales: ninguna");
+  it("sin fechas ni evaluación anterior no los nombra, y recorta el texto largo del proveedor", () => {
+    const u = angleIdeasContext({ ...ctx, baseInfo: "x".repeat(4000) });
     expect(u).toContain("(ninguna en los próximos meses)");
+    expect(u).not.toContain("YA LE PROPUSISTE");
     expect(u).toContain(`${"x".repeat(2500)}…`);
     expect(u).not.toContain("x".repeat(2501));
   });
 
   it("el reintento cambia solo el cierre: el contexto (con punto de caché) queda igual", () => {
     const problems = ["Ángulo 2: el gancho tiene 30 palabras."];
-    expect(angleStrategyContext(ctx)).not.toContain("respuesta anterior");
-    expect(angleStrategyTail(problems)).toContain("Tu respuesta anterior tenía estos problemas: Ángulo 2: el gancho tiene 30 palabras.");
-    expect(angleStrategyTail()).not.toContain("respuesta anterior");
-    expect(angleStrategyUser(ctx, problems)).toBe(`${angleStrategyContext(ctx)}\n\n${angleStrategyTail(problems)}`);
+    expect(angleIdeasTail(problems)).toContain("Tu respuesta anterior tenía estos problemas: Ángulo 2: el gancho tiene 30 palabras.");
+    expect(angleIdeasUser(ctx, problems)).toBe(`${angleIdeasContext(ctx)}\n\n${angleIdeasTail(problems)}`);
+  });
+
+  it("la clasificación solo ofrece las formas que se pueden usar", () => {
+    const u = angleFramesUser([angle(0)], ["common_enemy", "offer"], ctx);
+    expect(u).toContain("- common_enemy: ");
+    expect(u).toContain("- offer: ");
+    expect(u).not.toContain("authority");
+    expect(u).toContain(angle(0).hook);
+    expect(ANGLE_FRAMES_SYSTEM).toContain("sin cambiarlos");
   });
 });
 
+const angle = (i: number, patch: Partial<AngleIdea> = {}): AngleIdea => ({
+  title: `Ángulo ${i}`,
+  hook: "Cambié la silla dos veces y a las 4 me seguían pesando los hombros.",
+  speaks_to: "user",
+  tone: "Confesión",
+  aida: { attention: "La escena de las 4.", interest: "No es la silla.", desire: "Hombros atrás.", action: "Paga al recibir." },
+  why: "Es el dolor más común.",
+  ...patch,
+});
+const five = () => [0, 1, 2, 3, 4].map((i) => angle(i));
+
 describe("validación del orquestador", () => {
-  const facts = { pricing, hasRealReviews: false, hasRealExpert: false };
-  const angle = (i: number, patch: Partial<StrategyAngle> = {}): StrategyAngle => ({
-    title: `Ángulo ${i}`,
-    hook: "Cambié la silla dos veces y a las 4 me seguían pesando los hombros.",
-    speaks_to: "user",
-    tone: "Confesión",
-    aida: { attention: "La escena de las 4.", interest: "No es la silla.", desire: "Hombros atrás.", action: "Paga al recibir." },
-    why: "Es el dolor más común.",
-    pain_or_desire: "Espalda cargada",
-    segment: "Oficinistas",
-    promise: "Hombros atrás",
-    trigger_moment: "A las 4 de la tarde",
-    frame: "unique_mechanism",
-    ...patch,
-  });
-  const five = () => [0, 1, 2, 3, 4].map((i) => angle(i));
-
   it("acepta una propuesta completa", () => {
-    expect(strategyProblems({ angles: five() }, facts)).toEqual([]);
+    expect(strategyProblems({ angles: five() })).toEqual([]);
   });
 
-  // El gancho que motivó el orquestador v7 (un chat simple lo propuso; la versión de antes no podía).
-  it("acepta un gancho con forma de frase que habla de un tercero", () => {
-    const hook = "La tele de tu papá se escucha desde la calle.";
-    expect(strategyProblems({ angles: [angle(0, { hook, speaks_to: "buyer", tone: "Humor cotidiano" }), ...five().slice(1)] }, facts)).toEqual([]);
+  // Los ganchos del chat que motivaron la v9: le hablan a quien mira de un ser querido, o anclan contra el mercado.
+  it("acepta los ganchos del chat", () => {
+    for (const hook of [
+      "Si la tele de tu papá se escucha desde la calle, esto es para ustedes.",
+      "Tu mamá ya no te pregunta «¿qué?»… porque dejó de preguntar.",
+      "Un audífono en un centro auditivo cuesta entre $400.000 y $1.500.000. Este no.",
+      "No es que la gente hable bajito.",
+    ])
+      expect(strategyProblems({ angles: [angle(0, { hook }), ...five().slice(1)] }), hook).toEqual([]);
   });
 
   it("pide los ángulos completos y sin repetir", () => {
-    expect(strategyProblems({ angles: five().slice(0, 3) }, facts)[0]).toMatch(/Vienen 3 ángulos/);
-    expect(strategyProblems({ angles: [...five().slice(0, 4), angle(0)] }, facts)).toEqual(["Ángulo 5 («Ángulo 0»): repite el título de otro ángulo."]);
-    expect(strategyProblems({ angles: [angle(0, { hook: " " }), ...five().slice(1)] }, facts)[0]).toMatch(/le falta el título, el gancho/);
+    expect(strategyProblems({ angles: five().slice(0, 3) })[0]).toMatch(/Vienen 3 ángulos/);
+    expect(strategyProblems({ angles: [...five().slice(0, 4), angle(0)] })).toEqual(["Ángulo 5 («Ángulo 0»): repite el título de otro ángulo."]);
+    expect(strategyProblems({ angles: [angle(0, { hook: " " }), ...five().slice(1)] })[0]).toMatch(/le falta el título o el gancho/);
   });
 
-  it("el gancho tiene un tope de palabras", () => {
+  it("el gancho y el título tienen tope de palabras", () => {
     const long = Array.from({ length: ANGLE_HOOK_MAX_WORDS + 1 }, () => "palabra").join(" ");
-    expect(strategyProblems({ angles: [angle(0, { hook: long }), ...five().slice(1)] }, facts)[0]).toMatch(new RegExp(`el gancho tiene ${ANGLE_HOOK_MAX_WORDS + 1} palabras.*aida.attention`));
+    expect(strategyProblems({ angles: [angle(0, { hook: long }), ...five().slice(1)] })[0]).toMatch(`el gancho tiene ${ANGLE_HOOK_MAX_WORDS + 1} palabras`);
+    expect(strategyProblems({ angles: [angle(0, { title: "Un título que es en realidad una frase entera" }), ...five().slice(1)] })[0]).toMatch(/el título tiene 9 palabras/);
   });
 
-  it("el título es un nombre corto, no el gancho", () => {
-    const title = "El que antes contaba todos los chistes ahora sonríe medio segundo tarde";
-    expect(strategyProblems({ angles: [angle(0, { title }), ...five().slice(1)] }, facts)[0]).toMatch(/el título tiene 12 palabras/);
+  it("el gancho y el AIDA pasan las reglas de Meta y de salud", () => {
+    expect(strategyProblems({ angles: [angle(0, { hook: "Si tu espalda duele a las 4, mira esto." }), ...five().slice(1)] })[0]).toMatch(/le atribuye a quien mira/);
+    expect(strategyProblems({ angles: [angle(0, { aida: { ...angle(0).aida, desire: "Cura la sordera." } }), ...five().slice(1)] })[0]).toMatch(/promete un resultado de salud/);
   });
 
-  it("Autoridad e Historia personal piden la prueba real", () => {
-    const angles = [angle(0, { frame: "authority" }), angle(1, { frame: "personal_story" }), ...five().slice(2)];
-    expect(strategyProblems({ angles }, facts)).toHaveLength(2);
-    expect(strategyProblems({ angles }, { ...facts, hasRealExpert: true, hasRealReviews: true })).toEqual([]);
-  });
-
-  it("el gancho y el AIDA pasan las reglas de Meta y del precio", () => {
-    const second = strategyProblems({ angles: [angle(0, { hook: "Si tu espalda duele a las 4, mira esto." }), ...five().slice(1)] }, facts);
-    expect(second[0]).toMatch(/le atribuye a quien mira/);
-    const amount = strategyProblems({ angles: [angle(0, { aida: { ...angle(0).aida, action: "Llévalo a $9.990 y paga al recibir." } }), ...five().slice(1)] }, facts);
-    expect(amount[0]).toMatch(/monto que no está en PRECIO Y OFERTA/);
-    const ok = strategyProblems({ angles: [angle(0, { aida: { ...angle(0).aida, action: `Pide 1 a $${pricing.packs[0].price.toLocaleString("es-CL")} y paga al recibir.` } }), ...five().slice(1)] }, facts);
-    expect(ok).toEqual([]);
+  it("los montos que no son de la tienda pasan, marcados como ancla de mercado", () => {
+    const anchor = angle(0, { hook: "Un audífono en un centro auditivo cuesta entre $400.000 y $1.500.000. Este no." });
+    expect(marketAmounts(anchor, pricing)).toEqual([400000, 1500000]);
+    const store = angle(0, { aida: { ...angle(0).aida, action: `Pide 1 a $${pricing.salePrice.toLocaleString("es-CL")} y paga al recibir.` } });
+    expect(marketAmounts(store, pricing)).toEqual([]);
+    expect(marketAmounts(angle(0, { hook: "Gasté 300 mil pesos en la consulta." }), pricing)).toEqual([300000]);
   });
 
   it("los sugeridos son los que eligió el modelo o, si no sirven, los primeros", () => {
@@ -155,7 +159,7 @@ describe("validación del orquestador", () => {
   });
 
   it("distingue la propuesta nueva de las evaluaciones de antes", () => {
-    expect(isStrategy({ buyer_and_user: "", angles: five(), test_first: [0, 1], test_first_reason: "", doubts: [], watch_out: [] })).toBe(true);
+    expect(isStrategy({ buyer_and_user: "", angles: [], test_first: [0, 1], test_first_reason: "", doubts: [], watch_out: [] })).toBe(true);
     expect(isStrategy({ test_angles: [] })).toBe(false);
     // Las de antes también traen `angles` (las 6 formas puntuadas): producción, 2026-10-03.
     const v6 = { angles: [{ angle: "offer", scores: { c1: 4, c2: 3, c3: 4 }, penalty: false, why: "", risks: [] }], test_angles: [], aida_emphasis: "", compliance_flags: [] };
@@ -204,6 +208,11 @@ describe("agentes de ángulo", () => {
     expect(u).toContain("mandan el gancho y el tono");
     expect(handoff(base)).not.toContain("mandan el gancho");
   });
+
+  it("el ancla de mercado que verificó el comerciante llega al desarrollo", () => {
+    expect(handoff({ ...base, market_amounts: [400000] } as never)).toContain(marketAnchorLine([400000], "CLP"));
+    expect(marketAnchorLine([400000, 1500000], "CLP")).toContain("$400.000, $1.500.000");
+  });
 });
 
 describe("esquemas de ángulos", () => {
@@ -223,7 +232,8 @@ describe("esquemas de ángulos", () => {
 
   it("se convierten a JSON schema (salida estructurada)", async () => {
     const { toJSONSchema } = await import("zod/v4");
-    expect(toJSONSchema(angleStrategySchema)).toHaveProperty("properties.angles.items.properties.hook");
+    expect(toJSONSchema(angleIdeasSchema)).toHaveProperty("properties.angles.items.properties.hook");
+    expect(toJSONSchema(angleFramesSchema(["offer", "common_enemy"]))).toHaveProperty("properties.angles.items.properties.frame.enum", ["offer", "common_enemy"]);
     for (const a of SALES_ANGLES) expect(toJSONSchema(angleBriefSchema(a))).toHaveProperty("properties.details");
   });
 
@@ -232,7 +242,7 @@ describe("esquemas de ángulos", () => {
   it("no son más grandes que el del cliente ideal", async () => {
     const { toJSONSchema } = await import("zod/v4");
     const limit = size(toJSONSchema(avatarStepSchema));
-    expect(size(toJSONSchema(angleStrategySchema))).toBeLessThanOrEqual(limit);
+    expect(size(toJSONSchema(angleIdeasSchema))).toBeLessThanOrEqual(limit);
     for (const a of SALES_ANGLES) expect(size(toJSONSchema(angleBriefSchema(a))), a).toBeLessThanOrEqual(limit);
   });
 });

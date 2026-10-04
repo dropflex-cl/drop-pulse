@@ -5,18 +5,22 @@ import { retryableContent } from "@/lib/ai/content";
 import { recordAiGeneration } from "@/lib/ai/track";
 import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
 import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type AngleAida, type AngleSlot, type SalesAngle, type SpeaksTo, type TestAngle } from "@/lib/angles/catalog";
-import { angleStrategyContext, angleStrategySystem, angleStrategyTail, angleSystem, angleUser, type AngleContext, type UpcomingEvent } from "@/lib/angles/prompts";
+import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleSystem, angleUser, type AngleContext, type PreviousAngle, type UpcomingEvent } from "@/lib/angles/prompts";
 import {
   ANGLE_BRIEF_PROMPT_VERSION,
   ANGLE_ROUTER_PROMPT_VERSION,
   angleBriefEditSchema,
   angleBriefSchema,
-  angleStrategySchema,
+  angleFramesSchema,
+  angleIdeasSchema,
   isStrategy,
   strategyProblems,
   suggestedFrom,
   type AngleBriefEdit,
   type AngleBriefPayload,
+  type AngleIdea,
+  type AngleStrategyOutput,
+  type StrategyAngle,
 } from "@/lib/angles/schemas";
 import { allApproved, chosenAngles, currentBriefs, fail, getBriefRow, latestRankings, type BriefRow, type RankingRow } from "@/lib/angles/store";
 import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
@@ -35,8 +39,9 @@ import { OptimizeError, requireAiKey } from "./optimize";
 
 // Etapa Ángulos, segunda parte del pipeline de agentes creativos (agentes-creativos/README.md y
 // docs/spec-angulos-testeo.md §4):
-//   1. orquestador (v7) → 5 ángulos ordenados del que más vende al que menos, cada uno con su gancho
-//      y su AIDA, y los 2 o 3 que testearía primero; el código revisa lo comprobable (strategyProblems)
+//   1. orquestador (v9) → la pregunta del chat («los ángulos más efectivos»): 5 ángulos del que más
+//      vende al que menos, cada uno con su gancho y su AIDA, y los 2 o 3 que testearía primero; el
+//      código revisa lo comprobable (strategyProblems) y una llamada barata les pone su forma
 //   2. el comerciante elige 2 o 3 ángulos (uno por conjunto de anuncios) y la forma de cada uno
 //   3. un agente por ángulo (el de su forma), en paralelo → un brief por ángulo
 // Parte del cliente ideal APROBADO, el diferenciador, la competencia, la ficha, el precio, las
@@ -164,7 +169,7 @@ export async function startRanking(userId: string, productId: string): Promise<{
     throw new OptimizeError(`Llegaste al máximo de ${DAILY_RANKINGS} evaluaciones de ángulos en 24 horas. Vuelve mañana.`, 429);
   }
   const { market } = await getMarket(userId, await getShopifyConnection(userId));
-  const [reviews, events] = await Promise.all([approvedReviewTexts(userId, productId), upcomingEvents(market)]);
+  const [reviews, events, previous] = await Promise.all([approvedReviewTexts(userId, productId), upcomingEvents(market), previousAngles(userId, productId)]);
   const { data, error } = await db
     .from("angle_rankings")
     .insert({
@@ -183,6 +188,7 @@ export async function startRanking(userId: string, productId: string): Promise<{
         reviews,
         events,
         today: isoDay(new Date(), market.timezone),
+        previous,
       },
     })
     .select("*")
@@ -194,6 +200,25 @@ export async function startRanking(userId: string, productId: string): Promise<{
   }
   fail("Crear la evaluación", error);
   return { ranking: data as RankingRow, created: true };
+}
+
+/**
+ * Lo que propuso la última evaluación (v7 en adelante): volver a evaluar sin que nada cambie daba los
+ * mismos ángulos (producción, 2026-10-04), porque la pregunta y el contexto eran los mismos.
+ */
+async function previousAngles(userId: string, productId: string): Promise<PreviousAngle[]> {
+  const { data, error } = await adminClient()
+    .from("angle_rankings")
+    .select("payload")
+    .eq("user_id", userId)
+    .eq("product_id", productId)
+    .eq("status", "succeeded")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  fail("Leer la evaluación anterior", error);
+  const p = data?.payload as RankingRow["payload"];
+  return isStrategy(p) ? p.angles.map((a) => ({ title: a.title, hook: a.hook })) : [];
 }
 
 async function avatarById(userId: string, id: string): Promise<CustomerAvatar> {
@@ -218,6 +243,7 @@ async function contextFor(r: { user_id: string; product_id: string }, input: Rec
     reviews,
     events: (input.events as UpcomingEvent[] | undefined) ?? undefined,
     today: (input.today as string | undefined) ?? undefined,
+    previous: (input.previous as PreviousAngle[] | undefined) ?? undefined,
     avatar,
     pricing: input.pricing as PricingPlan,
     labels: (input.labels as PackLabel[] | null) ?? undefined,
@@ -237,6 +263,41 @@ function briefInputKey(ctx: AngleContext, market: unknown, angle: TestAngle, oth
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 
+/** Las formas que se pueden usar: Autoridad pide un experto real; Historia personal, reseñas reales. */
+function usableFrames(ctx: AngleContext): [SalesAngle, ...SalesAngle[]] {
+  const reviews = (ctx.reviews ?? ctx.brief.proof.real_reviews).some((t) => t.trim());
+  const expert = Boolean(ctx.brief.proof.real_expert?.trim());
+  return SALES_ANGLES.filter((f) => (f !== "authority" || expert) && (f !== "personal_story" || reviews)) as [SalesAngle, ...SalesAngle[]];
+}
+
+/**
+ * Le pone a cada ángulo su forma y lo que leen los pasos siguientes (dolor, segmento, promesa,
+ * momento). Llamada barata y aparte: si el experto ve la lista de formas, llena una por ángulo.
+ */
+async function frameAngles(r: RankingRow, ctx: AngleContext, ideas: AngleIdea[]): Promise<StrategyAngle[]> {
+  const frames = usableFrames(ctx);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, usage } = await generateStructured({
+        userId: r.user_id,
+        system: ANGLE_FRAMES_SYSTEM,
+        content: [{ type: "text", text: angleFramesUser(ideas, frames, ctx) }],
+        schema: angleFramesSchema(frames),
+        effort: "low",
+        maxTokens: 4000,
+      });
+      const ok = data.angles.length === ideas.length;
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_frames", usage, error: ok ? null : "invalid_frames", problems: ok ? [] : [`Vienen ${data.angles.length} clasificaciones para ${ideas.length} ángulos.`] });
+      if (ok) return ideas.map((a, i) => ({ ...a, ...data.angles[i] }));
+    } catch (e) {
+      if (!(e instanceof AiStepError)) throw e;
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_frames", usage: e.usage, error: e.code });
+      if (attempt) throw new AiStepError(e.code, "No pudimos clasificar los ángulos. Toca Reintentar.", e.usage, true);
+    }
+  }
+  throw new AiStepError("invalid_output", "No pudimos clasificar los ángulos. Toca Reintentar.", undefined, true);
+}
+
 /** Ejecuta la evaluación. Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
 export async function runRanking(rankingId: string): Promise<void> {
   const db = adminClient();
@@ -251,33 +312,31 @@ export async function runRanking(rankingId: string): Promise<void> {
   const r = claimed.data as RankingRow;
   try {
     const ctx = await contextFor(r, r.input);
-    const facts = {
-      pricing: ctx.pricing,
-      hasRealReviews: (ctx.reviews ?? ctx.brief.proof.real_reviews).some((t) => t.trim()),
-      hasRealExpert: Boolean(ctx.brief.proof.real_expert?.trim()),
-    };
-    // Si la propuesta no pasa las reglas en código, se pide otra una vez diciendo qué falló; nunca se
-    // recorta ni se completa en silencio.
+    const market = r.input.market as Market;
+    // 1. El experto. Si no pasa las reglas en código, se pide otra una vez diciendo qué falló.
     const propose = (retry: string[]) =>
       generateStructured({
         userId: r.user_id,
-        system: angleStrategySystem(r.input.market as Market),
+        system: angleIdeasSystem(market),
         // El contexto con punto de caché: el segundo intento lo lee a 0,1×.
-        content: retryableContent([], angleStrategyContext(ctx), angleStrategyTail(retry)),
-        schema: angleStrategySchema,
+        content: retryableContent([], angleIdeasContext(ctx), angleIdeasTail(retry)),
+        schema: angleIdeasSchema,
         effort: "high",
       });
     let problems: string[] = [];
     let result: Awaited<ReturnType<typeof propose>> | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       result = await propose(problems);
-      problems = strategyProblems(result.data, facts);
+      problems = strategyProblems(result.data);
       await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: result.usage, error: problems.length ? "invalid_angles" : null, problems });
       if (!problems.length) break;
       console.warn("[angles] propuesta inválida", problems);
     }
     if (problems.length || !result) throw new AiStepError("invalid_output", "La IA propuso ángulos que no cumplen las reglas. Toca Reintentar.", undefined, true);
-    const { data, usage } = result;
+    const { data: ideas, usage } = result;
+    // 2. La forma de cada uno, solo entre las que se pueden usar.
+    const angles = await frameAngles(r, ctx, ideas.angles);
+    const data: AngleStrategyOutput = { ...ideas, angles };
     const now = new Date().toISOString();
     fail(
       "Guardar la evaluación",
@@ -331,8 +390,8 @@ const clipWords = (v: unknown, n: number) => {
 };
 
 /** Lo que traen los ángulos del orquestador v7 (gancho, AIDA, a quién le habla, tono, por qué); los de antes, nada. */
-function extras(a: Record<string, unknown>): Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why"> {
-  const out: Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why"> = {};
+function extras(a: Record<string, unknown>): Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why" | "market_amounts"> {
+  const out: Pick<TestAngle, "hook" | "aida" | "speaks_to" | "tone" | "why" | "market_amounts"> = {};
   const hook = clip(a.hook, 300);
   if (hook) out.hook = hook;
   const aida = (a.aida ?? null) as Partial<Record<keyof AngleAida, unknown>> | null;
@@ -345,6 +404,8 @@ function extras(a: Record<string, unknown>): Pick<TestAngle, "hook" | "aida" | "
   if (tone) out.tone = tone;
   const why = clip(a.why, 400);
   if (why) out.why = why;
+  const amounts = Array.isArray(a.market_amounts) ? a.market_amounts.filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0).slice(0, 6) : [];
+  if (amounts.length) out.market_amounts = amounts;
   return out;
 }
 
@@ -379,7 +440,8 @@ export function normalizeChoice(raw: unknown): TestAngle[] {
 const sameAngle = (a: TestAngle, b: TestAngle | undefined) =>
   Boolean(b) &&
   (["frame", "title", "pain_or_desire", "segment", "promise", "trigger_moment", "competition", "hook", "speaks_to", "tone"] as const).every((k) => (a[k] ?? "") === (b![k] ?? "")) &&
-  JSON.stringify(a.aida ?? null) === JSON.stringify(b!.aida ?? null);
+  JSON.stringify(a.aida ?? null) === JSON.stringify(b!.aida ?? null) &&
+  JSON.stringify(a.market_amounts ?? null) === JSON.stringify(b!.market_amounts ?? null);
 
 /**
  * Guarda los ángulos elegidos y crea los desarrollos que falten. Un desarrollo que ya existe para el

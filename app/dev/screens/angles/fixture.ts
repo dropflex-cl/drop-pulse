@@ -29,6 +29,7 @@ const CANDIDATES: AngleCandidateView[] = [
     frameName: "Mecanismo único",
     triggerMoment: "Estirarse en la silla a media tarde con el cuello tenso",
     competition: "",
+    marketAmounts: [],
   },
   {
     index: 1,
@@ -50,11 +51,12 @@ const CANDIDATES: AngleCandidateView[] = [
     frameName: "Edad e identidad",
     triggerMoment: "Verse encorvado en la cámara de una videollamada",
     competition: "",
+    marketAmounts: [],
   },
   {
     index: 2,
     title: "Adiós a la faja rígida",
-    hook: "Tengo tres fajas en el cajón. Ninguna me ayudó con los hombros.",
+    hook: "Una faja ortopédica cuesta $45.000 y termina en el cajón. Esta no.",
     speaksTo: "user",
     tone: "Choque",
     aida: {
@@ -71,6 +73,7 @@ const CANDIDATES: AngleCandidateView[] = [
     frameName: "Enemigo común",
     triggerMoment: "Sacar la faja del cajón y volver a guardarla",
     competition: "",
+    marketAmounts: [45000],
   },
   {
     index: 3,
@@ -92,6 +95,7 @@ const CANDIDATES: AngleCandidateView[] = [
     frameName: "Oferta",
     triggerMoment: "Ver al papá estirarse la espalda al llegar del trabajo",
     competition: "",
+    marketAmounts: [],
   },
   {
     index: 4,
@@ -113,6 +117,7 @@ const CANDIDATES: AngleCandidateView[] = [
     frameName: "Oferta",
     triggerMoment: "Llegar a la oficina y darse cuenta de que lo dejó",
     competition: "",
+    marketAmounts: [],
   },
 ];
 
@@ -132,6 +137,7 @@ const chosenOf = (c: AngleCandidateView, slot: 1 | 2 | 3): TestAngleView => ({
   speaksTo: c.speaksTo,
   tone: c.tone,
   why: c.why,
+  marketAmounts: c.marketAmounts.length ? c.marketAmounts : undefined,
 });
 
 function ranking(state: string): AngleRankingView | undefined {
@@ -152,7 +158,7 @@ function ranking(state: string): AngleRankingView | undefined {
     missing: [{ text: "Reseñas reales: con reseñas aprobadas la IA puede contar historias de compradores", fix: "reviews" }],
     avatarChanged: false,
   };
-  const bare = (c: AngleCandidateView): AngleCandidateView => ({ ...c, hook: "", aida: undefined, speaksTo: undefined, tone: undefined, why: undefined });
+  const bare = (c: AngleCandidateView): AngleCandidateView => ({ ...c, hook: "", aida: undefined, speaksTo: undefined, tone: undefined, why: undefined, marketAmounts: [] });
   if (state === "legacy" || state === "legacy-nodiff")
     return { ...base, candidates: [], suggested: [], chosen: [chosenOf(bare({ ...CANDIDATES[0], title: "" }), 1), chosenOf(bare({ ...CANDIDATES[1], title: "" }), 2)].map((a) => ({ ...a, name: a.frameName })), confirmedAt: NOW };
   // Una evaluación de antes del orquestador v7: candidatos sin gancho ni AIDA, con lo que hacía la competencia.

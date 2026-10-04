@@ -16,11 +16,11 @@ export const MIN_TEST_ANGLES = 2;
 /** Candidatos que propone el orquestador. */
 export const ANGLE_CANDIDATES = 5;
 /**
- * Palabras del gancho de un ángulo (la frase que abre el anuncio). Era 24: el orquestador escribía un
- * párrafo de apertura («En el almuerzo del domingo todos se ríen del chiste y él sonríe medio segundo
- * tarde: no entendió nada.») y todo lo que seguía lo heredaba. La escena larga va en `aida.attention`.
+ * Palabras del gancho de un ángulo (la primera frase del anuncio). Fue 24 (la v7 escribía un párrafo
+ * de escena) y 14 (cortaba «Si la tele de tu papá se escucha desde la calle, esto es para ustedes.»,
+ * 15 palabras, el gancho que motivó la v9). La escena larga va en `aida.attention`.
  */
-export const ANGLE_HOOK_MAX_WORDS = 14;
+export const ANGLE_HOOK_MAX_WORDS = 18;
 /** Palabras del título de un ángulo (el prompt pide 2 a 5; un título de 11 se cortaba en la pantalla). */
 export const ANGLE_TITLE_MAX_WORDS = 6;
 
@@ -58,6 +58,12 @@ export interface TestAngle {
   tone?: string;
   /** Por qué va a vender, según el orquestador. */
   why?: string;
+  /**
+   * Montos de mercado que usa el ángulo y que no son de PRECIO Y OFERTA («un audífono clínico cuesta
+   * $400.000»): la pantalla los marca y, al confirmar el ángulo, el comerciante los da por verificados;
+   * los ganchos de ese ángulo los pueden usar como ancla.
+   */
+  market_amounts?: number[];
 }
 
 export interface AngleDef {

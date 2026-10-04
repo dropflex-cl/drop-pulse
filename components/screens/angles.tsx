@@ -81,6 +81,8 @@ const fromCandidate = (c: AngleCandidateView): Pick => ({
   ...(c.speaksTo ? { speaks_to: c.speaksTo } : {}),
   ...(c.tone ? { tone: c.tone } : {}),
   ...(c.why ? { why: c.why } : {}),
+  // Elegirlo con el aviso a la vista es verificar el ancla: los ganchos de este ángulo la pueden usar.
+  ...(c.marketAmounts.length ? { market_amounts: c.marketAmounts } : {}),
 });
 
 const fromChosen = (a: TestAngleView, candidates: AngleCandidateView[]): Pick => {
@@ -99,6 +101,7 @@ const fromChosen = (a: TestAngleView, candidates: AngleCandidateView[]): Pick =>
     ...(a.speaksTo ? { speaks_to: a.speaksTo } : {}),
     ...(a.tone ? { tone: a.tone } : {}),
     ...(a.why ? { why: a.why } : {}),
+    ...(a.marketAmounts?.length ? { market_amounts: a.marketAmounts } : {}),
   };
 };
 
@@ -401,6 +404,15 @@ export function AnglesScreen({ data }: { data: ProductAngles }) {
               ) : null}
             </dl>
             {c.why ? <p className="text-label font-normal text-muted-foreground">{c.why}</p> : null}
+            {c.marketAmounts.length ? (
+              <p className="flex gap-2 text-label font-normal">
+                <Icon name="alert" size="sm" className="mt-0.5 shrink-0 text-warning" />
+                <span>
+                  Usa {c.marketAmounts.map((n) => money(n, product.currency)).join(" y ")} como lo que cuesta la alternativa. Verifica que sea cierto antes de elegirlo: si lo eliges, los
+                  anuncios de este ángulo lo pueden citar.
+                </span>
+              </p>
+            ) : null}
           </>
         )}
         {c.competition && c.competition !== "Sin datos de competencia" ? (

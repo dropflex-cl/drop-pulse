@@ -101,10 +101,13 @@ export function textProblems(texts: StoredText[], pricing: PricingPlan, where = 
   return problems;
 }
 
-/** Montos fuera de PRECIO Y OFERTA y promesas de salud en un texto horneado (también los del video UGC). */
-export function claimProblems(text: string, pricing: PricingPlan, at = ""): string[] {
+/**
+ * Montos fuera de PRECIO Y OFERTA y promesas de salud en un texto horneado (también los del video UGC).
+ * `extra`: montos de mercado que el comerciante verificó al elegir el ángulo (TestAngle.market_amounts).
+ */
+export function claimProblems(text: string, pricing: PricingPlan, at = "", extra: number[] = []): string[] {
   const problems: string[] = [];
-  const allowed = allowedAmounts(pricing);
+  const allowed = [...allowedAmounts(pricing), ...extra];
   for (const n of amountsIn(text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${text}» trae un monto que no está en PRECIO Y OFERTA.`);
   problems.push(...healthProblems(text, at));
   return problems;

@@ -150,7 +150,7 @@ const LIMITS = [
   "- Sin antes/después corporal extremo o irreal.",
   "- NADA INVENTADO: testimonios, comentarios, reseñas, expertos, celebridades, cifras ni «denuncias» contra terceros. Una confesión o un comentario solo salen de las reseñas reales de la ficha (proof.real_reviews); un experto, solo si la ficha trae uno real (proof.real_expert). Si no hay, escribe igual el gancho y di en needs_real_material qué hace falta (Bastidores siempre lo pide: hay que grabar la operación real). No lo pongas en los 3 primeros.",
   "- Los anuncios se hacen con IA (personas de IA que dramatizan, mascotas animadas, imágenes generadas): un visual que muestre un resultado se marca como dramatización, nunca como resultado real.",
-  "- Urgencia solo si la ficha trae una fecha real. Montos SOLO los de PRECIO Y OFERTA, escritos como en la tienda; el «antes» solo si es el tachado real. Comparaciones de precio sin montos inventados.",
+  "- Urgencia solo si la ficha trae una fecha real. Montos SOLO los de PRECIO Y OFERTA, escritos como en la tienda, y los de market_anchor del ángulo (lo que cuesta la alternativa, verificado por el comerciante); el «antes» solo si es el tachado real. Comparaciones de precio sin montos inventados.",
   "- Contenido sexual explícito: no. El doble sentido suave va con riesgo alto.",
   "- risk: low, medium o high (política de Meta o rechazo en la entrega), con risk_reason en 5 palabras. policy_ok false si roza los atributos personales o la salud.",
 ].join("\n");

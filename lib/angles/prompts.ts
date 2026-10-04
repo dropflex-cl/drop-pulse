@@ -1,9 +1,4 @@
-// Prompts de la etapa Ángulos: el orquestador y los 6 agentes de ángulo.
-// El orquestador (v7) es a propósito un prompt corto, como la pregunta que el comerciante le haría a un
-// experto: «¿cuáles son los ángulos que más venden?». Las versiones de antes puntuaban 6 formas con 3
-// criterios y un JSON de 70 campos; el modelo llenaba el formulario y los ángulos salían como etiquetas
-// sin gancho (docs/spec-angulos-testeo.md §4.2). Las reglas que se pueden comprobar las revisa el código
-// después (strategyProblems), no se le cargan antes al modelo.
+// Prompts de la etapa Ángulos: el orquestador (docs/spec-angulos-testeo.md §4.2) y los 6 agentes de ángulo.
 // Los agentes de ángulo están adaptados de agentes-creativos/*.md (escritos para EE. UU.) a LATAM con
 // pago contra entrega:
 // - el copy va en el idioma del mercado con tuteo (marketBlock), no en inglés;
@@ -18,8 +13,10 @@ import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/
 import type { CompetitorAnalysis } from "@/lib/competitors/schemas";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
+import { money } from "@/lib/format";
 import { pricingBlock } from "@/lib/pricing/prompt";
-import { ANGLE_CANDIDATES, ANGLE_HOOK_MAX_WORDS, ANGLES, SALES_ANGLES, slotLabel, testAngleName, type SalesAngle, type TestAngle } from "./catalog";
+import { ANGLE_CANDIDATES, ANGLE_HOOK_MAX_WORDS, ANGLES, slotLabel, testAngleName, type SalesAngle, type TestAngle } from "./catalog";
+import type { AngleIdea } from "./schemas";
 
 /** Reglas comunes a todos (README de los agentes, versión LATAM). */
 const COMMON_RULES = [
@@ -33,37 +30,29 @@ const COMMON_RULES = [
   "- El cierre de confianza es el pago contra entrega («Paga al recibir»). Una garantía de devolución solo si la ficha la trae (proof.guarantee_days).",
 ].join("\n");
 
-// ---------------------------------------------------------------- Orquestador (v7)
+// ---------------------------------------------------------------- Orquestador (v9)
+// La pregunta que el comerciante le haría a un experto en un chat, con poco contexto. Un chat con
+// cinco viñetas del proveedor propuso mejores ángulos que la v8 con la ficha y el cliente ideal
+// completos (2026-10-03, el audífono): con más material, el modelo copiaba los momentos y las frases
+// del cliente ideal, narraba en vez de interpelar y llenaba una forma por ángulo. Opus sabe qué vende
+// en cada categoría: se le dan los hechos y se lo deja pensar. Lo comprobable lo revisa el código
+// después (strategyProblems) y la forma la pone otra llamada (angleFramesUser).
 
-export function angleStrategySystem(market: Market): string {
+export function angleIdeasSystem(market: Market): string {
   return [
-    "Eres un experto en ventas de respuesta directa: vendes con anuncios de Facebook, Instagram y TikTok en Latinoamérica, con pago contra entrega, y escribes en formato AIDA. Sabes qué ángulos venden en cada categoría porque los has visto funcionar.",
+    "Eres un experto en ventas en formato AIDA: escribes anuncios para Facebook, Instagram y TikTok en Latinoamérica, donde se vende con pago contra entrega, y sabes qué ángulos venden en cada categoría.",
     "",
-    "Te piden los ángulos de venta más efectivos para un producto. Cada uno se testea en su propio conjunto de anuncios y el mercado decide cuál vende.",
+    `- Cada ángulo es un motivo distinto para comprar, con su gancho: la primera frase del anuncio, la que detiene el scroll (máximo ${promptLimit(ANGLE_HOOK_MAX_WORDS)} palabras).`,
+    "- Piensa en quién compra y quién usa: a veces no son la misma persona.",
+    "- Los datos del proveedor suelen exagerar o equivocarse. No uses lo que no sea creíble y dilo en doubts.",
+    "- Si usas lo que cuesta la alternativa como ancla de precio, que sea una cifra que conoces bien del mercado: el comerciante la verifica antes de lanzar.",
     "",
-    "CÓMO LO PIENSAS",
-    "- Primero: ¿quién compra y quién usa? A veces no son la misma persona (la hija que compra para su papá, la mamá que compra para su bebé). Cada ángulo le habla a quien más se mueve con ese mensaje, y puede haber ángulos para los dos.",
-    "- Lo que ya vende en esta categoría vale más que ser original. La competencia sirve para no copiar su anuncio, no para descartar un dolor que funciona.",
-    "- Cada ángulo es otra razón para comprar: otro dolor, otro deseo, otra persona u otro momento. No la misma idea con otras palabras.",
-    "- El gancho es lo que detiene el scroll: lo que diría alguien, no un narrador, con las palabras de la gente. Nombra el problema y deja algo en juego o una pregunta abierta (un secreto, algo que salió mal, algo raro): quien lo lee piensa «¿qué pasó?» o «eso me pasa a mí». La escena que lo muestra va en aida.attention.",
-    "- El tono es el que mejor venda (humor, emoción, choque o curiosidad) y es el del resto del anuncio: el gancho siempre tiene tensión, aunque el tono sea cálido. Una observación tierna o tranquila no detiene a nadie.",
-    "- Si hay una fecha comercial cerca (FECHAS), un ángulo de regalo o de temporada puede estar entre los mejores.",
-    "- La información del proveedor muchas veces exagera o se equivoca: un peso, un origen, una marca, «médico», «inteligente». Lo que no sea creíble no lo uses: anótalo en doubts. Lo que escribe el comerciante también puede estar incompleto.",
-    "- Ordena los ángulos del que más va a vender al que menos, y elige 2 o 3 para testear primero.",
-    "",
-    "LÍMITES (para no perder la cuenta publicitaria ni el pedido en la puerta)",
-    "- Nunca «cura», «trata», «elimina» ni plazos de resultado: «ayuda a», «diseñado para».",
-    "- Política de atributos personales de Meta: no le afirmes en segunda persona a quien mira su edad, su salud, su peso o su cuerpo. ✗ «¿Tienes dolor de espalda?» ✓ «Quienes pasan 9 horas sentados…», «Mi papá ya no…».",
-    "- Nada inventado que se presente como real: ni reseñas, ni expertos, ni historias de clientes, ni cifras, ni estudios, ni unidades vendidas. Las pruebas son las de PRUEBAS REALES.",
-    "- Precios y packs: exactamente los de PRECIO Y OFERTA. Urgencia solo con una fecha de FECHAS.",
-    "- La confianza la cierra el pago contra entrega («Paga al recibir»).",
+    "LÍMITES",
+    "- Meta no acepta que el anuncio le atribuya a quien mira su edad, su salud o su cuerpo («¿Tienes manchas en la cara?»). Hablarle de un ser querido o hablar en tercera persona sí se puede.",
+    "- Nada de «cura» o «trata», ni reseñas, expertos o cifras de ventas inventadas.",
+    "- Los precios y packs de la tienda son los de PRECIO Y OFERTA. La urgencia, solo con una fecha de FECHAS.",
     "",
     marketBlock(market),
-    "",
-    "AL ENTREGAR",
-    `- ${ANGLE_CANDIDATES} ángulos. title: 2 a 5 palabras. hook: máximo ${promptLimit(ANGLE_HOOK_MAX_WORDS)} palabras, una o dos frases cortas.`,
-    "- frame: cuando el ángulo ya está escrito, la forma que más se le parece. Solo decide qué especialista lo desarrolla: no cambies el ángulo para que calce. authority solo con un experto real en PRUEBAS REALES; personal_story solo con reseñas reales.",
-    ...SALES_ANGLES.map((a) => `  · ${a}: ${ANGLES[a].gist}`),
   ].join("\n");
 }
 
@@ -74,7 +63,11 @@ export interface UpcomingEvent {
   starts_on: string;
 }
 
-const items = (list: (string | null | undefined)[] | undefined) => (list ?? []).map((t) => t?.trim()).filter(Boolean).join(" / ");
+/** Un ángulo de una evaluación anterior: volver a evaluar propone otros. */
+export interface PreviousAngle {
+  title: string;
+  hook: string;
+}
 
 function eventLine(e: UpcomingEvent, today: string): string {
   const date = new Date(`${e.starts_on}T12:00:00Z`);
@@ -87,78 +80,81 @@ function eventLine(e: UpcomingEvent, today: string): string {
 const BASE_INFO_MAX = 2500;
 
 /**
- * El contexto del orquestador, en texto corto y no en JSON: lo que un experto necesita para decidir y
- * nada más (sin la fórmula del cliente ideal ni los campos internos de la ficha). Lo fijo de la
- * evaluación: va con punto de caché (lib/ai/content.ts).
+ * El contexto del experto: lo que dice el proveedor tal cual (para que lo critique), lo comprobado, una
+ * línea de quién compra, el precio, las fechas y lo que ya propuso. Sin los momentos ni las frases del
+ * cliente ideal: los usan después los agentes de cada ángulo. Lo fijo: va con punto de caché.
  */
-export function angleStrategyContext(c: AngleContext): string {
+export function angleIdeasContext(c: AngleContext): string {
   const b = c.brief;
-  const a = c.avatar;
-  const reviews = c.reviews ?? b.proof?.real_reviews ?? [];
   const today = c.today ?? new Date().toISOString().slice(0, 10);
   const base = c.baseInfo.trim();
+  const reviews = c.reviews ?? b.proof?.real_reviews ?? [];
+  const facts = [b.what_it_does, b.how_it_works, ...(b.key_facts ?? []).map((f) => `${f.label}: ${f.value}`)].filter((t) => t?.trim());
   return [
     `HOY: ${today}`,
     "",
-    "PRODUCTO",
-    `- ${b.product_name}${b.category ? ` (${b.category})` : ""}`,
-    `- Qué hace: ${b.what_it_does}`,
-    ...(b.how_it_works ? [`- Cómo funciona: ${b.how_it_works}`] : []),
-    ...(b.key_facts ?? []).map((f) => `- ${f.label}: ${f.value}`),
-    ...(b.problem_solved ? [`- Problema que resuelve: ${b.problem_solved}`] : []),
-    ...(b.alternatives_already_tried?.length ? [`- Lo que la gente usa hoy: ${items(b.alternatives_already_tried)}`] : []),
-    ...(b.known_objections?.length ? [`- Dudas típicas: ${items(b.known_objections)}`] : []),
-    ...(b.target_audience ? [`- Público según la ficha: ${items([b.target_audience.age_range, b.target_audience.life_stage_or_role])}. Dónde lo siente: ${b.target_audience.where_they_feel_it}`] : []),
-    ...(b.forbidden_claims?.length ? [`- No se puede decir: ${items(b.forbidden_claims)}`] : []),
+    `PRODUCTO: ${b.product_name}`,
+    "Lo que dice el proveedor, tal cual:",
+    base ? (base.length > BASE_INFO_MAX ? `${base.slice(0, BASE_INFO_MAX)}…` : base) : "(nada)",
     "",
-    "CLIENTE IDEAL (quien compra según el comerciante)",
-    `- ${a.summary}`,
-    `- Problema: ${a.problems.main_problem} De fondo: ${a.problems.underlying_problem}`,
-    `- Momentos en que lo siente: ${items(a.problems.trigger_moments)}`,
-    `- Cómo lo dice: ${(a.voice_of_customer ?? []).map((v) => `«${v}»`).join(" ")}`,
-    `- Teme: ${a.emotions.fears} Quiere: ${a.emotions.secret_desires}`,
-    `- Lo que la frena: ${a.objections.main_objection} Su pregunta: ${a.objections.critical_question}`,
-    `- Comprar online: ${a.objections.cash_on_delivery_concerns}`,
+    "Lo comprobado en la foto y la ficha:",
+    ...facts.map((f) => `- ${f}`),
     "",
-    "DIFERENCIADOR (según el comerciante; puede estar incompleto o exagerado)",
-    c.differentiator ? `Frente a ${c.differentiator.versus}: ${c.differentiator.claim}` : "(sin diferenciador)",
-    "",
-    "PRUEBAS REALES",
-    `- Experto: ${b.proof?.real_expert?.trim() || "ninguno"}`,
-    reviews.length
-      ? `- ${reviews.length} reseñas reales de compradores del mismo producto (en otra tienda, no en esta). Algunas:\n${reviews
-          .slice(0, 8)
-          .map((r) => `  «${r}»`)
-          .join("\n")}`
-      : "- Reseñas reales: ninguna",
-    ...(b.proof?.guarantee_days ? [`- Garantía: ${b.proof.guarantee_days} días`] : []),
-    ...(b.proof?.studies_or_certifications?.length ? [`- Estudios o certificaciones: ${items(b.proof.studies_or_certifications)}`] : []),
-    ...(b.proof?.units_sold_or_social_proof ? [`- Ventas o prueba social: ${b.proof.units_sold_or_social_proof}`] : []),
+    `QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${c.avatar.summary}`,
+    ...(c.differentiator ? [`EN QUÉ SE DIFERENCIA, SEGÚN EL COMERCIANTE: frente a ${c.differentiator.versus}, ${c.differentiator.claim}`] : []),
+    `PRUEBAS REALES: ${b.proof?.real_expert?.trim() ? `experto: ${b.proof.real_expert}` : "sin experto"}; ${reviews.length ? `${reviews.length} reseñas de compradores del mismo producto en otra tienda` : "sin reseñas"}.`,
     "",
     pricingBlock(c.pricing, c.labels),
     "",
-    `COMPETENCIA (${c.competitors?.length ?? 0} tiendas analizadas)`,
-    ...(c.competitors?.length ? c.competitors.map(competitorLine) : ["(sin datos)"]),
-    "",
     "FECHAS COMERCIALES PRÓXIMAS",
     ...(c.events?.length ? c.events.map((e) => eventLine(e, today)) : ["(ninguna en los próximos meses)"]),
-    "",
-    "LO QUE ESCRIBIÓ EL COMERCIANTE (a menudo el texto del proveedor)",
-    base ? (base.length > BASE_INFO_MAX ? `${base.slice(0, BASE_INFO_MAX)}…` : base) : "(vacío)",
+    ...(c.competitors?.length ? ["", "LA COMPETENCIA (para no copiar sus anuncios)", ...c.competitors.map(competitorLine)] : []),
+    ...(c.previous?.length
+      ? ["", "YA LE PROPUSISTE AL COMERCIANTE (propón otros; repite como máximo 2 si de verdad siguen entre los mejores)", ...c.previous.map((p) => `- ${p.title}: «${p.hook}»`)]
+      : []),
   ].join("\n");
 }
 
-/** Lo que cambia en cada intento. `retry`: lo que estuvo mal en el anterior (strategyProblems). */
-export function angleStrategyTail(retry: string[] = []): string {
+/** La pregunta, y en un reintento lo que estuvo mal (strategyProblems). */
+export function angleIdeasTail(retry: string[] = []): string {
   return [
-    ...(retry.length ? [`Tu respuesta anterior tenía estos problemas: ${retry.join(" ")} Corrígelos y entrega los ${ANGLE_CANDIDATES} ángulos completos.`, ""] : []),
-    `¿Cuáles son los ${ANGLE_CANDIDATES} ángulos de venta más efectivos para este producto?`,
+    ...(retry.length ? [`Tu respuesta anterior tenía estos problemas: ${retry.join(" ")} Corrígelos.`, ""] : []),
+    `Dime los ${ANGLE_CANDIDATES} ángulos de venta más efectivos para este producto.`,
   ].join("\n");
 }
 
 /** El mensaje entero en un solo texto (tests); la app lo manda en dos bloques. */
-export function angleStrategyUser(c: AngleContext, retry: string[] = []): string {
-  return `${angleStrategyContext(c)}\n\n${angleStrategyTail(retry)}`;
+export function angleIdeasUser(c: AngleContext, retry: string[] = []): string {
+  return `${angleIdeasContext(c)}\n\n${angleIdeasTail(retry)}`;
+}
+
+/** Los montos de mercado que el comerciante verificó al elegir el ángulo, para los prompts que lo desarrollan. */
+export function marketAnchorLine(amounts: number[], currency: string): string {
+  return `Ancla de mercado verificada por el comerciante: ${amounts.map((n) => money(n, currency)).join(", ")}. Se puede citar como lo que cuesta la alternativa, nunca como precio de la tienda.`;
+}
+
+/** La segunda llamada: clasifica cada ángulo (no lo cambia). */
+export const ANGLE_FRAMES_SYSTEM = [
+  "Clasificas ángulos de venta ya escritos por un experto, sin cambiarlos. Para cada uno, en el mismo orden:",
+  "- frame: la forma que más se le parece, de la lista. Elige qué especialista lo va a desarrollar.",
+  "- pain_or_desire: el dolor o deseo que mueve, con las palabras de la gente.",
+  "- segment: para quién, en una línea.",
+  "- promise: lo que promete, sin salud ni resultados garantizados.",
+  "- trigger_moment: la escena concreta que abre el anuncio.",
+  "Escribe en el idioma de los ángulos, con tuteo.",
+].join("\n");
+
+export function angleFramesUser(ideas: AngleIdea[], frames: readonly SalesAngle[], c: Pick<AngleContext, "brief" | "avatar">): string {
+  return [
+    "FORMAS",
+    ...frames.map((f) => `- ${f}: ${ANGLES[f].gist}`),
+    "",
+    `PRODUCTO: ${c.brief.product_name}. ${c.brief.what_it_does}`,
+    `QUIÉN COMPRA: ${c.avatar.summary}`,
+    "",
+    "ÁNGULOS",
+    json(ideas.map((a) => ({ title: a.title, hook: a.hook, speaks_to: a.speaks_to, aida: a.aida }))),
+  ].join("\n");
 }
 
 function json(v: unknown) {
@@ -182,6 +178,8 @@ export interface AngleContext {
   events?: UpcomingEvent[];
   /** AAAA-MM-DD, el día de la evaluación. */
   today?: string;
+  /** Lo que propuso la evaluación anterior (para no repetirlo). */
+  previous?: PreviousAngle[];
 }
 
 function competitorLine(c: CompetitorAnalysis & { url: string }, i: number): string {
@@ -411,6 +409,7 @@ export function angleUser(frame: SalesAngle, c: AngleContext, h: AngleHandoff): 
     ...(a.hook ? [`- El gancho con que el comerciante eligió este ángulo: «${a.hook}». Es la idea que tiene que sobrevivir: el desarrollo la cuenta, no la cambia.`] : []),
     ...(a.tone ? [`- Tono: ${a.tone}.`] : []),
     ...(a.aida ? [`- El AIDA que se propuso: Atención: ${a.aida.attention} Interés: ${a.aida.interest} Deseo: ${a.aida.desire} Acción: ${a.aida.action}`] : []),
+    ...(a.market_amounts?.length ? [`- ${marketAnchorLine(a.market_amounts, c.pricing.currency)}`] : []),
     `- Se cuenta con la forma ${ANGLES[frame].name}.${a.hook ? " La forma es una guía de estructura, no un molde: si choca con el gancho o el tono del ángulo, mandan el gancho y el tono." : ""} Por qué: ${h.why}`,
     ...(h.others.length ? [`- Los otros ángulos del testeo (no los repitas): ${h.others.map((o) => `«${testAngleName(o)}» (${ANGLES[o.frame].name})`).join("; ")}.`] : []),
     ...(h.risks.length ? [`- Riesgos: ${h.risks.join("; ")}.`] : []),

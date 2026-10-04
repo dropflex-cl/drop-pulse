@@ -170,6 +170,8 @@ export interface AngleCandidateView {
   triggerMoment: string;
   /** Solo en las evaluaciones de antes: qué hacía la competencia con el ángulo. */
   competition: string;
+  /** Montos que no son de PRECIO Y OFERTA (lo que cuesta la alternativa): verificarlos antes de elegirlo. */
+  marketAmounts: number[];
 }
 
 /** Un ángulo de testeo elegido (uno por conjunto de anuncios). */
@@ -191,6 +193,8 @@ export interface TestAngleView {
   speaksTo?: SpeaksTo;
   tone?: string;
   why?: string;
+  /** El ancla de mercado que el comerciante verificó al elegirlo. */
+  marketAmounts?: number[];
 }
 
 /** La evaluación del orquestador y la elección del comerciante. */

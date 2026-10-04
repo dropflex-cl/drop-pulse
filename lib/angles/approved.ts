@@ -23,8 +23,8 @@ export function angleForPrompt(angle: TestAngle, payload: AngleBriefPayload, fra
 export const angleHeading = (a: AngleForPrompt) => `${slotLabel(a.slot)}: ${a.name} (forma: ${a.frameName})`;
 
 /**
- * El mensaje del ángulo (gancho, a quién le habla, tono, dolor, segmento, promesa, momento), sin los
- * vacíos de los ángulos de antes del orquestador v7.
+ * El mensaje del ángulo (gancho, a quién le habla, tono, dolor, segmento, promesa, momento y el ancla de
+ * mercado si la tiene), sin los vacíos de los ángulos de antes del orquestador v7.
  */
 export function angleMessage(a: TestAngle): Record<string, string> {
   const out: Record<string, string> = {};
@@ -35,6 +35,8 @@ export function angleMessage(a: TestAngle): Record<string, string> {
   if (a.segment) out.segment = a.segment;
   if (a.promise) out.promise = a.promise;
   if (a.trigger_moment) out.trigger_moment = a.trigger_moment;
+  if (a.market_amounts?.length)
+    out.market_anchor = `${a.market_amounts.map((n) => n.toLocaleString("es-CL")).join(" y ")}: lo que cuesta la alternativa en el mercado, verificado por el comerciante. Se puede citar como ancla, nunca como precio de la tienda.`;
   return out;
 }
 

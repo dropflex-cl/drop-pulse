@@ -95,6 +95,7 @@ export async function writeHooks(w: WriteHooksInput): Promise<WrittenHooks> {
     hasRealReviews: w.ctx.brief.proof.real_reviews.some((r) => r.trim()),
     hasRealExpert: Boolean(w.ctx.brief.proof.real_expert?.trim()),
     rawMaterial: rawMaterial(hooksCtx),
+    marketAmounts: w.angle.market_amounts,
   };
   const deadline = w.deadline ?? Number.POSITIVE_INFINITY;
   const attempts = w.attempts ?? HOOK_ATTEMPTS;

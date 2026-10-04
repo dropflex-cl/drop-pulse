@@ -8,7 +8,7 @@ import { buildPricingPlan } from "@/lib/pricing/plan";
 import { HOOK_PATTERNS, ON_SCREEN_PROMPT_WORDS, PATTERN_DEFS, SPOKEN_PROMPT_WORDS } from "./catalog";
 import { critiqueFor, hookCriticProblems, hookCriticSchema, hookCriticSystem, hookCriticUser, stopsCount, toHooksReview, type HookCriticOutput } from "./critic";
 import { hooksContextText, hooksSystem, hooksTail, hooksUser, rawMaterial } from "./prompts";
-import { hookProblems, hooksOutputSchema, hooksToPayload, hookTextOk, wordCount, type AngleHook, type HooksOutput } from "./schemas";
+import { hookProblems, HOOKS_PROMPT_VERSION, hooksOutputSchema, hooksToPayload, hookTextOk, wordCount, type AngleHook, type HooksOutput } from "./schemas";
 import { bestHook, hooksForPrompt, isUsable, usableHooks } from "./select";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es", timezone: "America/Santiago" };
@@ -110,6 +110,13 @@ describe("hookProblems", () => {
     expect(hookProblems(o, facts).filter((x) => x.includes("monto"))).toHaveLength(0);
   });
 
+  it("el ancla de mercado que verificó el comerciante también se puede usar", () => {
+    const o = output();
+    o.hooks[3] = hook({ pattern: "offer", text: "La consulta cuesta 400 mil pesos. Esto no.", on_screen: "NO $400.000" });
+    expect(hookProblems(o, facts).filter((x) => x.includes("monto"))).toHaveLength(2);
+    expect(hookProblems(o, { ...facts, marketAmounts: [400000] }).filter((x) => x.includes("monto"))).toHaveLength(0);
+  });
+
   it("el pago contra entrega no va en el gancho", () => {
     const o = output();
     o.hooks[6] = hook({ pattern: "curiosity", text: "Pagas al recibir y envío gratis.", on_screen: "CONTRAENTREGA" });
@@ -208,7 +215,7 @@ describe("hooksToPayload y la selección", () => {
     expect(p.recommended_hook).toBe(0);
     expect(p.hook_diagnosis?.archetype).toBe("visible_problem");
     expect(p.hooks_error).toBeNull();
-    expect(p.hooks_version).toBe(4);
+    expect(p.hooks_version).toBe(HOOKS_PROMPT_VERSION);
   });
 
   it("con el crítico, manda su orden y cada gancho guarda lo que dijo", () => {

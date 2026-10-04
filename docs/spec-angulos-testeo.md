@@ -131,7 +131,7 @@ create table public.product_competitors (
 
 Los 6 actuales pasan a ser **formas**. Sus guías (`GUIDES`) deciden **con qué especialista se desarrolla cada ángulo**. Desde el orquestador v7 (§4.2) ya no se puntúan: la forma la propone el modelo después de escribir el ángulo y el comerciante la puede cambiar.
 
-### 4.2 El orquestador (v7, 2026-10-03)
+### 4.2 El orquestador (v7, 2026-10-03; v9, 2026-10-04)
 
 **Por qué cambió.** Con el audífono amplificador (producción, 2026-10-03), la evaluación v6 propuso ángulos como «Lo que cuesta oír bien en Chile» o «El ajuste que cada oído necesita» (con «pesa 76 gramos», sacado del diferenciador pegado del proveedor). Un chat con un prompt de una línea («eres un experto en ventas AIDA, dime los ángulos más efectivos») propuso, con menos datos, «Si la tele de tu papá se escucha desde la calle, esto es para ustedes», un ángulo de regalo para Navidad y otro que le habla al usuario y no al comprador, y advirtió que los 76 g y «origen Japón» no eran creíbles. Las causas, en orden:
 
@@ -143,30 +143,15 @@ Los 6 actuales pasan a ser **formas**. Sus guías (`GUIDES`) deciden **con qué 
 6. **Datos obligatorios y sin crítica**: «al menos uno debe salir del DIFERENCIADOR», aunque el diferenciador fuera el texto del proveedor.
 7. **Un dato viejo**: la ficha se generó antes de importar las reseñas y la evaluación castigó Historia personal por «sin reseñas» con 14 aprobadas.
 
-**Cómo es ahora: divergir primero, revisar después.**
+**v8 y v9 (2026-10-04): la pregunta del chat.** La v7 mejoró, pero dos evaluaciones seguidas del audífono salieron casi iguales y todavía por debajo del chat: el modelo copiaba los momentos y las frases del cliente ideal («sonríe medio segundo tarde», «la farmacia, pitaba»), narraba en primera o tercera persona en vez de interpelar («Mi papá se ríe medio segundo tarde» frente a «Tu mamá ya no te pregunta "¿qué?"… porque dejó de preguntar»), llenaba una forma por ángulo porque la lista de las 6 estaba en el prompt, y rechazaba el ancla de precio de mercado por ser un monto que no es de la tienda. Más contexto dio ganchos menos creativos. La v9 vuelve a la pregunta que funcionó.
 
-- **System corto** (`angleStrategySystem`): un experto en respuesta directa con pago contra entrega que responde «¿cuáles son los ángulos más efectivos?». Piensa primero en quién compra y quién usa, prefiere lo que ya vende en la categoría, usa las fechas comerciales cercanas y desconfía de los datos del proveedor. Los límites (salud, atributos personales de Meta, nada inventado, precios exactos, pago al recibir) van en 5 líneas.
-- **Contexto corto en texto** (`angleStrategyContext`), no la ficha y el cliente ideal en JSON: lo que un experto necesita para decidir. Incluye las **reseñas aprobadas al evaluar** (`input.reviews`) y las **fechas del calendario `events`** del mercado en los próximos 120 días (`input.events`).
-- **Salida** (`angleStrategySchema`):
-
-```ts
-buyer_and_user: text,                 // quién compra y quién usa
-angles: z.array(z.object({            // 5, del que más vende al que menos
-  title, hook,                        // el gancho: la frase que abre el anuncio (≤ 24 palabras)
-  speaks_to: "buyer" | "user", tone,
-  aida: { attention, interest, desire, action },
-  why,                                // por qué va a vender
-  pain_or_desire, segment, promise, trigger_moment,
-  frame: z.enum(SALES_ANGLES),        // la forma más parecida: solo elige al especialista
-})),
-test_first: number[], test_first_reason: text,   // los 2 o 3 que testearía primero
-doubts: text[],                       // datos que no son creíbles
-watch_out: text[],                    // cuidados propios del producto
-```
-
-- **El código revisa lo comprobable** (`strategyProblems`, con tests): ganchos de hasta `ANGLE_HOOK_MAX_WORDS`; gancho y AIDA con `hookTextProblems` (segunda persona sobre el cuerpo, salud, plazos, montos fuera de PRECIO Y OFERTA); Autoridad solo con un experto real e Historia personal solo con reseñas reales; títulos sin repetir. Con problemas se pide otra una vez con el contexto en caché. Los sugeridos son `test_first` validado (`suggestedFrom`) o, si no sirve, los primeros.
-- **La pantalla** muestra el gancho y el AIDA en cada candidato, a quién le habla y el tono, los datos dudosos arriba («Revisa estos datos antes de usarlos») y los cuidados abajo. El comerciante puede editar el gancho.
-- **La forma es una guía, no un molde.** El agente de ángulo recibe el gancho, el AIDA, el tono y a quién le habla, y si chocan con la forma mandan ellos. `angleMessage` lleva el gancho, el tono y `speaks_to` a los pasos siguientes, y el agente de ganchos escribe al menos 3 versiones de video del gancho del ángulo.
+- **Llamada 1, el experto** (`angleIdeasSystem`, `angleIdeasContext`, `angleIdeasSchema`, effort high). El system tiene una docena de líneas: experto en ventas AIDA para LATAM con pago contra entrega; cada ángulo es un motivo de compra con su gancho; quién compra y quién usa; desconfía del proveedor (`doubts`); el ancla de mercado, solo con una cifra que conoce bien; y los límites (Meta permite hablarle de un ser querido, salud, nada inventado, precios de PRECIO Y OFERTA). Sin formas, sin «escena», sin ejemplos del rubro. El contexto, también mínimo: **el texto del proveedor tal cual** (para que lo critique, como hizo el chat), lo comprobado en la foto y la ficha, una línea de quién compra, el diferenciador, cuántas pruebas reales hay (sin citar reseñas), el precio, las fechas comerciales y la competencia. El cierre es la pregunta: «Dime los 5 ángulos de venta más efectivos para este producto». Salida: `buyer_and_user`, 5 ángulos (`title`, `hook`, `speaks_to`, `tone`, `aida`, `why`), `test_first`, `doubts` y `watch_out`.
+- **Volver a evaluar trae ángulos nuevos**: la evaluación guarda lo que propuso la anterior (`input.previous`, título y gancho) y el experto lo ve: «propón otros; repite como máximo 2 si de verdad siguen entre los mejores».
+- **Llamada 2, la forma** (`ANGLE_FRAMES_SYSTEM`, `angleFramesUser`, `angleFramesSchema`, effort low, paso `angle_frames`). Clasifica cada ángulo sin cambiarlo: `frame` (qué especialista lo desarrolla), `pain_or_desire`, `segment`, `promise` y `trigger_moment`, que leen los pasos siguientes. El enum solo trae las formas que se pueden usar: sin experto real no hay Autoridad, sin reseñas no hay Historia personal. Se guarda la unión (`StrategyAngle`), así que la pantalla y los pasos siguientes no cambian.
+- **El código revisa** (`strategyProblems`): título y gancho presentes y sin repetir, gancho de hasta `ANGLE_HOOK_MAX_WORDS` (18: el de la tele tiene 15), título de hasta `ANGLE_TITLE_MAX_WORDS`, y gancho y AIDA con `hookTextProblems` sin precio (atributos personales, plazos, salud). Con problemas, otra respuesta una vez.
+- **Ancla de mercado** (`marketAmounts`): un monto que no es de PRECIO Y OFERTA («un audífono en un centro auditivo cuesta entre $400.000 y $1.500.000») no se rechaza. La tarjeta lo marca («Verifica que sea cierto antes de elegirlo») y, si el comerciante elige el ángulo, queda en `TestAngle.market_amounts`: el agente de ángulo lo recibe (`marketAnchorLine`) y los ganchos de ese ángulo lo pueden usar (`HookFacts.marketAmounts`, `hookTextProblems(…, extra)`, `claimProblems(…, extra)`), siempre como lo que cuesta la alternativa. Los textos de la página, los estáticos y los guiones siguen solo con PRECIO Y OFERTA.
+- **La pantalla** muestra el gancho y el AIDA en cada candidato, a quién le habla y el tono, el aviso del ancla, los datos dudosos arriba y los cuidados abajo. El comerciante puede editar el gancho.
+- **La forma es una guía, no un molde.** El agente de ángulo recibe el gancho, el AIDA, el tono y a quién le habla, y si chocan con la forma mandan ellos. `angleMessage` lleva el gancho, el tono, `speaks_to` y el ancla a los pasos siguientes, y el agente de ganchos escribe al menos 3 versiones de video del gancho del ángulo.
 
 **Lo que se retiró y qué pasa con lo de antes.**
 

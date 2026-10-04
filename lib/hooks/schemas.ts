@@ -39,8 +39,9 @@ import { isUsable } from "./select";
  * Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera
  * toma (opening_shot) y la versión de mascota. 3: parte del gancho del ángulo (orquestador v7). 4: detener
  * el scroll (tensión, el problema nombrado, MATERIA PRIMA, rank, delivery y el crítico de lib/hooks/critic.ts).
+ * 5: los montos del ancla de mercado del ángulo (market_anchor) se pueden usar.
  */
-export const HOOKS_PROMPT_VERSION = 4;
+export const HOOKS_PROMPT_VERSION = 5;
 
 const text = z.string();
 
@@ -168,7 +169,7 @@ export function wordCount(t: string): number {
 /** Un monto hablado sin símbolo («190 mil pesos», «24 mil 990 pesos», «100 soles»). */
 const SPOKEN_AMOUNT = /(\d[\d.,]*)(\s*mil(?:\s+(\d{1,3}))?)?\s*(pesos|soles|quetzales|colones|d[oó]lares|reales|bol[ií]vares|guaran[ií]es)\b/gi;
 
-function spokenAmounts(t: string): number[] {
+export function spokenAmounts(t: string): number[] {
   return [...t.matchAll(SPOKEN_AMOUNT)]
     .map((m) => Number(m[1].replace(/[.,]/g, "")) * (m[2] ? 1000 : 1) + (m[3] ? Number(m[3]) : 0))
     .filter((n) => Number.isFinite(n) && n > 0);
@@ -178,13 +179,13 @@ function spokenAmounts(t: string): number[] {
  * Lo que está mal en un texto de gancho (del modelo o editado): segunda persona sobre el cuerpo,
  * promesas de salud, plazos y montos fuera de PRECIO Y OFERTA. `pricing` null: sin revisar montos.
  */
-export function hookTextProblems(t: string, pricing: PricingPlan | null, at = ""): string[] {
+export function hookTextProblems(t: string, pricing: PricingPlan | null, at = "", extra: number[] = []): string[] {
   const problems: string[] = [];
   if (SECOND_PERSON_BODY.test(t)) problems.push(`${at}«${t}» le atribuye a quien mira una condición del cuerpo, la edad o la salud: usa primera persona («me pasaba…») o tercera («quienes…»).`);
   if (RESULT_TIMELINE.test(t)) problems.push(`${at}«${t}» promete un plazo de resultado: quítalo.`);
   if (pricing) {
-    problems.push(...claimProblems(t, pricing, at));
-    const allowed = allowedAmounts(pricing);
+    problems.push(...claimProblems(t, pricing, at, extra));
+    const allowed = [...allowedAmounts(pricing), ...extra];
     for (const n of spokenAmounts(t)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${t}» trae un monto que no está en PRECIO Y OFERTA.`);
   } else problems.push(...healthProblems(t, at));
   return problems;
@@ -199,6 +200,8 @@ export interface HookFacts {
   hasRealExpert: boolean;
   /** MATERIA PRIMA (rawMaterial en lib/hooks/prompts.ts): de donde salen las citas del comprador. */
   rawMaterial: string[];
+  /** El ancla de mercado del ángulo que verificó el comerciante (TestAngle.market_amounts). */
+  marketAmounts?: number[];
 }
 
 /** Sin tildes, en minúscula y sin signos: para comparar una cita con su fuente. */
@@ -252,7 +255,7 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
       if (!Number.isInteger(v) || v < 1 || v > 5) problems.push(`${at}el puntaje ${k} es ${v}; va de 1 a 5.`);
       else if (v <= DISCARD_SCORE) problems.push(`${at}tiene ${v} en ${k}: descártalo y escribe otro en su lugar.`);
     }
-    for (const t of [h.text, h.follow_up ?? "", h.on_screen]) if (t) problems.push(...hookTextProblems(t, facts.pricing, at));
+    for (const t of [h.text, h.follow_up ?? "", h.on_screen]) if (t) problems.push(...hookTextProblems(t, facts.pricing, at, facts.marketAmounts));
     if (COD_IN_HOOK.test(`${h.text} ${h.on_screen}`)) problems.push(`${at}el pago contra entrega y el envío gratis van en el título y el texto del anuncio, no en los primeros 3 s.`);
     const need = PATTERN_DEFS[h.pattern].needsReal;
     const missing = need === "always" || (need === "reviews" && !facts.hasRealReviews) || (need === "expert" && !facts.hasRealExpert);
@@ -264,7 +267,7 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
     if (!h.first_motion.trim()) problems.push(`${at}no dice qué se mueve en el cuadro 0 (first_motion).`);
     const studio = studioWord(`${h.visual_first_3s} ${h.first_motion}`);
     if (studio) problems.push(`${at}la primera toma usa lenguaje de estudio («${studio}»): descríbela como un video de teléfono en una casa.`);
-    problems.push(...mascotProblems(h, facts.pricing, at));
+    problems.push(...mascotProblems(h, facts.pricing, at, facts.marketAmounts));
   });
 
   // El orden: un lugar por gancho, sin empates (ordenar obliga a comparar; un puntaje suelto, no).
@@ -296,7 +299,7 @@ export function hookProblems(out: HooksOutput, facts: HookFacts): string[] {
 }
 
 /** La versión de mascota de un gancho: solo en los patrones que encajan, con sus largos y reglas. */
-function mascotProblems(h: HooksOutput["hooks"][number], pricing: PricingPlan, at: string): string[] {
+function mascotProblems(h: HooksOutput["hooks"][number], pricing: PricingPlan, at: string, extra: number[] = []): string[] {
   const m = h.mascot;
   if (!m) return [];
   const problems: string[] = [];
@@ -305,7 +308,7 @@ function mascotProblems(h: HooksOutput["hooks"][number], pricing: PricingPlan, a
   if (!m.text.trim() || !m.on_screen.trim() || !m.scene.trim() || !m.first_motion.trim()) problems.push(`${where}tiene campos vacíos.`);
   if (wordCount(m.text) > SPOKEN_MAX_WORDS) problems.push(`${where}tiene ${wordCount(m.text)} palabras habladas; el máximo es ${SPOKEN_MAX_WORDS}.`);
   if (wordCount(m.on_screen) > ON_SCREEN_MAX_WORDS) problems.push(`${where}tiene ${wordCount(m.on_screen)} palabras en pantalla; el máximo es ${ON_SCREEN_MAX_WORDS}.`);
-  for (const t of [m.text, m.on_screen]) problems.push(...hookTextProblems(t, pricing, where));
+  for (const t of [m.text, m.on_screen]) problems.push(...hookTextProblems(t, pricing, where, extra));
   if (COD_IN_HOOK.test(`${m.text} ${m.on_screen}`)) problems.push(`${where}habla del pago contra entrega: va al final, no en el gancho.`);
   const shape = riskyShape(m.scene);
   if (shape) problems.push(`${where}describe una forma que puede leerse como algo sexual («${shape}»): la escena cuenta la situación, no la forma del personaje.`);
