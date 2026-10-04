@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { AVATAR } from "@/app/dev/screens/base/fixture";
+import { marketAnchorLine } from "@/lib/ai/context";
 import type { ProductBrief } from "@/lib/ai/schemas";
 import { avatarStepSchema } from "@/lib/ai/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { ANGLE_HOOK_MAX_WORDS, SALES_ANGLES } from "./catalog";
-import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleIdeasUser, angleSystem, angleUser, marketAnchorLine } from "./prompts";
+import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleIdeasUser, angleSystem, angleUser } from "./prompts";
 import { angleBriefSchema, angleFramesSchema, angleIdeasSchema, isStrategy, marketAmounts, strategyProblems, suggestedFrom, type AngleIdea } from "./schemas";
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es" };

@@ -178,6 +178,7 @@ export async function runScript(scriptId: string): Promise<void> {
   const s = claimed.data as ScriptRow & { input: ScriptInput };
   const format = scriptFormat(s);
   const detail = `${s.input.angle_name || `Ángulo ${s.angle_slot}`}${format === "mascot" ? " · mascota" : ""}`;
+  const promptVersion = format === "mascot" ? MASCOT_PROMPT_VERSION : UGC_PROMPT_VERSION;
   try {
     const input = s.input;
     const [brief, avatarRow, angles, differentiator, base] = await Promise.all([
@@ -217,7 +218,7 @@ export async function runScript(scriptId: string): Promise<void> {
         maxTokens: 16000,
       });
       problems = scriptProblems(result.data, input.pricing, format, opening);
-      await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems });
+      await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: result.usage, error: problems.length ? "invalid_script" : null, problems, promptVersion });
       if (!problems.length) break;
       console.warn("[video] guion inválido", problems);
     }
@@ -228,14 +229,14 @@ export async function runScript(scriptId: string): Promise<void> {
       (
         await db
           .from("video_scripts")
-          .update({ status: "succeeded", payload: result.data, prompt_version: format === "mascot" ? MASCOT_PROMPT_VERSION : UGC_PROMPT_VERSION, model: result.usage.model, finished_at: now, updated_at: now })
+          .update({ status: "succeeded", payload: result.data, prompt_version: promptVersion, model: result.usage.model, finished_at: now, updated_at: now })
           .eq("id", s.id)
       ).error,
     );
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[video] guion", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "ugc_script", detail, usage: e.usage, error: e.code, promptVersion });
     const now = stamp();
     const { error } = await db
       .from("video_scripts")

@@ -7,13 +7,13 @@
 // - la ley es la del país (consumerAuthority), además de las políticas de Meta.
 // Puro. Regla de caché: el system depende solo del ángulo y del mercado; el producto va en el usuario.
 
+import { buyerLine, marketAnchorLine, productFactLines, proofLine, supplierText } from "@/lib/ai/context";
 import { promptLimit } from "@/lib/ai/limits";
 import { marketBlock } from "@/lib/ai/prompts";
 import type { CustomerAvatar, Differentiator, PackLabel, ProductBrief } from "@/lib/ai/schemas";
 import type { CompetitorAnalysis } from "@/lib/competitors/schemas";
 import type { Market } from "@/lib/market";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { money } from "@/lib/format";
 import { pricingBlock } from "@/lib/pricing/prompt";
 import { ANGLE_CANDIDATES, ANGLE_HOOK_MAX_WORDS, ANGLES, slotLabel, testAngleName, type SalesAngle, type TestAngle } from "./catalog";
 import type { AngleIdea } from "./schemas";
@@ -76,33 +76,26 @@ function eventLine(e: UpcomingEvent, today: string): string {
   return `- ${e.name}: ${when} (${weeks <= 1 ? "esta semana o la próxima" : `en ${weeks} semanas`})`;
 }
 
-/** Lo que el comerciante escribió puede ser largo (texto del proveedor): basta el comienzo. */
-const BASE_INFO_MAX = 2500;
-
 /**
  * El contexto del experto: lo que dice el proveedor tal cual (para que lo critique), lo comprobado, una
  * línea de quién compra, el precio, las fechas y lo que ya propuso. Sin los momentos ni las frases del
  * cliente ideal: los usan después los agentes de cada ángulo. Lo fijo: va con punto de caché.
  */
 export function angleIdeasContext(c: AngleContext): string {
-  const b = c.brief;
   const today = c.today ?? new Date().toISOString().slice(0, 10);
-  const base = c.baseInfo.trim();
-  const reviews = c.reviews ?? b.proof?.real_reviews ?? [];
-  const facts = [b.what_it_does, b.how_it_works, ...(b.key_facts ?? []).map((f) => `${f.label}: ${f.value}`)].filter((t) => t?.trim());
   return [
     `HOY: ${today}`,
     "",
-    `PRODUCTO: ${b.product_name}`,
+    `PRODUCTO: ${c.brief.product_name}`,
     "Lo que dice el proveedor, tal cual:",
-    base ? (base.length > BASE_INFO_MAX ? `${base.slice(0, BASE_INFO_MAX)}…` : base) : "(nada)",
+    supplierText(c.baseInfo),
     "",
     "Lo comprobado en la foto y la ficha:",
-    ...facts.map((f) => `- ${f}`),
+    ...productFactLines(c.brief),
     "",
-    `QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${c.avatar.summary}`,
+    buyerLine(c.avatar),
     ...(c.differentiator ? [`EN QUÉ SE DIFERENCIA, SEGÚN EL COMERCIANTE: frente a ${c.differentiator.versus}, ${c.differentiator.claim}`] : []),
-    `PRUEBAS REALES: ${b.proof?.real_expert?.trim() ? `experto: ${b.proof.real_expert}` : "sin experto"}; ${reviews.length ? `${reviews.length} reseñas de compradores del mismo producto en otra tienda` : "sin reseñas"}.`,
+    proofLine(c.brief, c.reviews),
     "",
     pricingBlock(c.pricing, c.labels),
     "",
@@ -126,11 +119,6 @@ export function angleIdeasTail(retry: string[] = []): string {
 /** El mensaje entero en un solo texto (tests); la app lo manda en dos bloques. */
 export function angleIdeasUser(c: AngleContext, retry: string[] = []): string {
   return `${angleIdeasContext(c)}\n\n${angleIdeasTail(retry)}`;
-}
-
-/** Los montos de mercado que el comerciante verificó al elegir el ángulo, para los prompts que lo desarrollan. */
-export function marketAnchorLine(amounts: number[], currency: string): string {
-  return `Ancla de mercado verificada por el comerciante: ${amounts.map((n) => money(n, currency)).join(", ")}. Se puede citar como lo que cuesta la alternativa, nunca como precio de la tienda.`;
 }
 
 /** La segunda llamada: clasifica cada ángulo (no lo cambia). */

@@ -2,6 +2,7 @@ import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { AI_MODEL, type AiUsage } from "./claude";
 import type { AiStep } from "./costs";
+import { PROMPT_VERSIONS } from "./versions";
 
 // Registro único de cada llamada a un modelo (Claude, Higgsfield o Gemini), con su costo. De aquí salen el
 // costo de IA por producto (AiCostCard, AiRunList) y los topes diarios. Un paso nuevo que llame a la
@@ -27,6 +28,8 @@ export interface AiGeneration {
   /** El costo de `usage` es una aproximación (p. ej., un modelo de Gemini fuera de la tabla de precios). */
   costEstimated?: boolean;
   latencyMs?: number | null;
+  /** Por defecto, la vigente del paso (PROMPT_VERSIONS). El guion de mascota pasa la suya. */
+  promptVersion?: number | null;
 }
 
 /** Fallas antes de llamar al modelo (faltan datos): no son generaciones ni cuestan. */
@@ -55,10 +58,11 @@ export async function recordAiGeneration(g: AiGeneration): Promise<void> {
     latency_ms: u?.latencyMs ?? g.latencyMs ?? null,
   };
   const problems = g.error && g.problems?.length ? g.problems.slice(0, 20) : null;
+  const promptVersion = g.promptVersion ?? PROMPT_VERSIONS[g.step] ?? null;
   const table = () => adminClient().from("ai_generations");
-  let { error } = problems ? await table().insert({ ...row, problems }) : await table().insert(row);
-  // Sin la columna (la migración 20261025000000 aún no llega a esta base), el costo se registra igual.
-  if (error && problems && /problems/.test(error.message)) ({ error } = await table().insert(row));
+  let { error } = await table().insert({ ...row, ...(problems ? { problems } : {}), ...(promptVersion != null ? { prompt_version: promptVersion } : {}) });
+  // Sin esas columnas (las migraciones 20261025000000 y 20261031000000 aún no llegan a esta base), el costo se registra igual.
+  if (error && /problems|prompt_version/.test(error.message)) ({ error } = await table().insert(row));
   // Registrar nunca rompe la generación: el error queda en los logs.
   if (error) console.error(`[ai] registrar la generación (${g.step})`, error.message);
 }
