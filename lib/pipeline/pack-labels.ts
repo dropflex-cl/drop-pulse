@@ -1,6 +1,6 @@
 import "server-only";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { packLabelsSystem, packLabelsUser } from "@/lib/ai/prompts";
 import { PACK_LABELS_PROMPT_VERSION, packLabelsOnlySchema } from "@/lib/ai/schemas";
 import { adminClient } from "@/lib/integrations/admin";
@@ -57,7 +57,7 @@ export async function regeneratePackLabels(userId: string, productId: string) {
     });
   } catch (e) {
     if (e instanceof AiStepError) {
-      await recordAiGeneration({ userId, productId, step: "pack_labels", usage: e.usage, error: e.code });
+      await recordAiGeneration({ userId, productId, step: "pack_labels", ...failure(e) });
       throw new OptimizeError(e.message, 502);
     }
     throw e;

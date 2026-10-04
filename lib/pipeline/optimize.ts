@@ -1,7 +1,7 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { customerAvatarSystem, customerAvatarUser, productBriefSystem, productBriefUser } from "@/lib/ai/prompts";
 import {
   CUSTOMER_AVATAR_PROMPT_VERSION,
@@ -243,7 +243,7 @@ export async function runOptimization(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[pipeline] optimizar", e);
-    if (known) await recordAiGeneration({ userId: run.user_id, productId: run.product_id, runId: run.id, step, usage: e.usage, error: e.code });
+    if (known) await recordAiGeneration({ userId: run.user_id, productId: run.product_id, runId: run.id, step, ...failure(e) });
     await setRun(run.id, {
       status: "failed",
       error_code: known ? e.code : "unexpected",

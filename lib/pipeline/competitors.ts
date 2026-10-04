@@ -1,6 +1,6 @@
 import "server-only";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { FetchPageError, fetchPageText } from "@/lib/competitors/fetch";
 import { competitorSystem, competitorUser } from "@/lib/competitors/prompts";
 import { competitorAnalysisSchema, MAX_COMPETITORS } from "@/lib/competitors/schemas";
@@ -109,7 +109,7 @@ export async function runCompetitor(id: string): Promise<void> {
       });
     } catch (e) {
       if (e instanceof AiStepError) {
-        if (!e.logged) await recordAiGeneration({ userId, productId, step: "competitor_analysis", detail, usage: e.usage, error: e.code });
+        if (!e.logged) await recordAiGeneration({ userId, productId, step: "competitor_analysis", detail, ...failure(e) });
         return finish({ errorCode: "ai_failed" });
       }
       throw e;

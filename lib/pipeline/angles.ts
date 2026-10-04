@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar, type CustomerAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { ANGLES, MIN_TEST_ANGLES, SALES_ANGLES, SPEAKS_TO, TEST_ANGLES, type AngleAida, type AngleSlot, type SalesAngle, type SpeaksTo, type TestAngle } from "@/lib/angles/catalog";
 import { ANGLE_FRAMES_SYSTEM, angleFramesUser, angleIdeasContext, angleIdeasSystem, angleIdeasTail, angleSystem, angleUser, type AngleContext, type PreviousAngle, type UpcomingEvent } from "@/lib/angles/prompts";
@@ -291,7 +291,7 @@ async function frameAngles(r: RankingRow, ctx: AngleContext, ideas: AngleIdea[])
       if (ok) return ideas.map((a, i) => ({ ...a, ...data.angles[i] }));
     } catch (e) {
       if (!(e instanceof AiStepError)) throw e;
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_frames", usage: e.usage, error: e.code });
+      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_frames", ...failure(e) });
       if (attempt) throw new AiStepError(e.code, "No pudimos clasificar los ángulos. Toca Reintentar.", e.usage, true);
     }
   }
@@ -359,7 +359,7 @@ export async function runRanking(rankingId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[angles] evaluar", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "angle_ranking", ...failure(e) });
     const now = new Date().toISOString();
     const { error } = await db
       .from("angle_rankings")
@@ -621,7 +621,7 @@ export async function runBrief(briefId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[angles] desarrollar", e);
-    if (known) await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: `${b.slot} · ${ANGLES[b.angle].name}`, usage: e.usage, error: e.code });
+    if (known) await recordAiGeneration({ userId: b.user_id, productId: b.product_id, step: "angle_brief", detail: `${b.slot} · ${ANGLES[b.angle].name}`, ...failure(e) });
     const now = new Date().toISOString();
     const { error } = await db
       .from("angle_briefs")

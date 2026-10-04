@@ -2,7 +2,7 @@ import "server-only";
 import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
@@ -364,7 +364,7 @@ export async function runCreatives(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[creatives] conceptos", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step, usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step, ...failure(e) });
     await onHiggsfieldError(r.user_id, e);
     const message = known ? e.message : e instanceof HiggsfieldError ? e.message : "No pudimos proponer los anuncios. Toca Reintentar.";
     const now = stamp();
@@ -441,7 +441,7 @@ export async function createChat(userId: string, productId: string, body: unknow
     try {
       result = await generateStructured({ userId, system: chatSystem(input.market), content: [{ type: "text", text: chatUser(chatCtx, problems) }], schema: chatOutputSchema, effort: "low", maxTokens: 6000 });
     } catch (e) {
-      if (e instanceof AiStepError) await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, usage: e.usage, error: e.code });
+      if (e instanceof AiStepError) await recordAiGeneration({ userId, productId, step: "creative_chat", detail: target.name, ...failure(e) });
       throw new OptimizeError(e instanceof AiStepError ? e.message : "No pudimos escribir el chat. Intenta de nuevo.", 502);
     }
     const { name, why, ...raw } = result.data;
@@ -782,7 +782,7 @@ async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
       maxTokens: 4000,
     }));
   } catch (e) {
-    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, usage: e.usage, error: e.code });
+    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, ...failure(e) });
     throw e;
   }
   const { data, usage } = result;

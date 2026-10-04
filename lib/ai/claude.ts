@@ -6,9 +6,10 @@ import type * as z from "zod/v4";
 import { accountError, anthropicClient } from "@/lib/integrations/anthropic/client";
 import { anthropicKey, markAnthropicInvalid, NO_ANTHROPIC_KEY } from "@/lib/integrations/anthropic/connection";
 import { AI_MODEL } from "./model";
+import { firstText, readStructured, sumUsage } from "./structured";
 
 // Una llamada estructurada a Claude: system estable (se cachea), contenido del producto en el
-// mensaje del usuario, salida validada con zod. Modelo: Claude Opus 5 con pensamiento adaptativo y
+// mensaje del usuario, salida validada con zod por nosotros (lib/ai/structured.ts), no por el SDK. Modelo: Claude Opus 5 con pensamiento adaptativo y
 // `fallbacks: "default"` (si el modelo declina por política, la API reintenta con el recomendado
 // dentro de la misma llamada).
 //
@@ -43,6 +44,8 @@ export class AiStepError extends Error {
     public usage?: AiUsage,
     /** El intento ya quedó en ai_generations (lib/ai/track.ts): no se registra dos veces. */
     public logged = false,
+    /** Por qué no se pudo leer la respuesta (`invalid_output`): va a ai_generations.problems. */
+    public problems?: string[],
   ) {
     super(message);
   }
@@ -68,6 +71,7 @@ async function client(auth: AiAuth): Promise<Anthropic> {
 
 /** La API no compila esquemas muy grandes a gramática: se reintenta sin ella (ver generateStructured). */
 const GRAMMAR_TOO_LARGE = /grammar is too large|schema is too (large|complex)/i;
+class GrammarTooLarge extends Error {}
 
 type Message = Anthropic.Beta.Messages.BetaMessage;
 
@@ -113,8 +117,11 @@ async function apiError(e: unknown, auth: AiAuth): Promise<AiStepError> {
   // El motivo real queda en los logs (Vercel): la pantalla solo muestra el mensaje en español.
   if (e instanceof Anthropic.APIError) console.error(`[ai] ${e.status ?? "?"} ${e.requestID ?? ""}`, e.message);
   if (e instanceof Anthropic.BadRequestError) return new AiStepError("bad_request", "La IA no pudo procesar este producto. Reintenta en un momento; si vuelve a pasar, avísanos.");
+  // Sin respuesta de la API (incluye el tiempo agotado): ese sí es un problema de conexión.
+  if (e instanceof Anthropic.APIConnectionError) return new AiStepError("network", "No pudimos conectarnos con la IA. Intenta de nuevo en un momento.");
   if (e instanceof Anthropic.APIError) return new AiStepError(`api_${e.status ?? "error"}`, "La IA no respondió. Intenta de nuevo en un momento.");
-  return new AiStepError("network", "No pudimos conectarnos con la IA. Intenta de nuevo en un momento.");
+  console.error("[ai] error inesperado", e);
+  return new AiStepError("unexpected", "La IA no respondió. Intenta de nuevo en un momento.");
 }
 
 /** El primer objeto JSON del texto (tolera ```json … ``` alrededor). */
@@ -158,29 +165,51 @@ export async function generateStructured<S extends z.ZodType>({
     messages: [{ role: "user" as const, content }],
   };
   const anthropic = await client(auth);
-  let res;
+  // El formato va sin su `parse`: la respuesta la lee readStructured, que conserva el costo y el motivo.
+  const format = { type: "json_schema" as const, schema: betaZodOutputFormat(schema).schema };
+  const call = async (): Promise<{ data: z.infer<S>; usage: AiUsage } | { problems: string[]; usage: AiUsage }> => {
+    const callStarted = Date.now();
+    let res: Message;
+    try {
+      res = await anthropic.beta.messages.create({
+        ...base,
+        output_config: { effort, format },
+        system: [{ type: "text", text: system, ...(cacheSystem ? { cache_control: { type: "ephemeral" as const } } : {}) }],
+      });
+    } catch (e) {
+      if (e instanceof Anthropic.BadRequestError && GRAMMAR_TOO_LARGE.test(e.message)) throw new GrammarTooLarge(e.requestID ?? "");
+      throw await apiError(e, auth);
+    }
+    const usage = usageOf(res, callStarted);
+    checkStop(res, usage);
+    const read = readStructured(schema, firstText(res.content));
+    return "data" in read ? { data: read.data, usage } : { problems: read.problems, usage };
+  };
+
+  let first;
   try {
-    res = await anthropic.beta.messages.parse({
-      ...base,
-      output_config: { effort, format: betaZodOutputFormat(schema) },
-      system: [{ type: "text", text: system, ...(cacheSystem ? { cache_control: { type: "ephemeral" as const } } : {}) }],
-    });
+    first = await call();
   } catch (e) {
-    if (e instanceof Anthropic.BadRequestError && GRAMMAR_TOO_LARGE.test(e.message)) {
+    if (e instanceof GrammarTooLarge) {
       // Red de seguridad: sin gramática, el modelo devuelve el JSON como texto y se valida aquí
       // con el mismo esquema. Un esquema que llega a esto se debe achicar (ver lib/angles/schemas.ts).
-      console.warn(`[ai] esquema demasiado grande para la salida estructurada (${e.requestID ?? ""}); se reintenta sin gramática`);
+      console.warn(`[ai] esquema demasiado grande para la salida estructurada (${e.message}); se reintenta sin gramática`);
       return generateUnconstrained({ anthropic, auth, base, system, schema, effort, started });
     }
-    throw await apiError(e, auth);
+    throw e;
   }
-
-  const usage = usageOf(res, started);
-  checkStop(res, usage);
-  if (!res.parsed_output) {
-    throw new AiStepError("invalid_output", "La IA respondió en un formato inesperado. Reintenta.", usage);
-  }
-  return { data: res.parsed_output, usage };
+  if ("data" in first) return first;
+  // Una respuesta que no calza con el esquema es rara y casual: se pide otra vez, igual (el prefijo ya
+  // está en caché). Los dos intentos se pagaron y quedan en la misma fila.
+  console.warn("[ai] la respuesta no cumple el esquema; se pide otra vez", first.problems);
+  const second = await call().catch((e: unknown) => {
+    if (e instanceof AiStepError) e.usage = e.usage ? sumUsage(first.usage, e.usage) : first.usage;
+    throw e;
+  });
+  const usage = sumUsage(first.usage, second.usage);
+  if ("data" in second) return { data: second.data, usage };
+  console.error("[ai] la respuesta tampoco cumple el esquema la segunda vez", second.problems);
+  throw new AiStepError("invalid_output", "La IA respondió en un formato inesperado. Reintenta.", usage, false, second.problems);
 }
 
 async function generateUnconstrained<S extends z.ZodType>({

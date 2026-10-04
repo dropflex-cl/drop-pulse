@@ -5,7 +5,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { after } from "next/server";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { fail } from "@/lib/angles/store";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { allowedAmounts } from "@/lib/copy/schemas";
@@ -252,7 +252,7 @@ export async function runEventCopy(userId: string, productId: string, event: Eve
   } catch (e) {
     const known = e instanceof AiStepError || e instanceof OptimizeError;
     if (!known) console.error("[event-copy]", e);
-    if (e instanceof AiStepError && !e.logged) await recordAiGeneration({ userId, productId, step: "event_copy", detail: event.name, usage: e.usage, error: e.code });
+    if (e instanceof AiStepError && !e.logged) await recordAiGeneration({ userId, productId, step: "event_copy", detail: event.name, ...failure(e) });
     await save({ status: "failed", error_message: known ? (e as Error).message : "No pudimos escribir los textos. Intenta de nuevo." });
   }
 }

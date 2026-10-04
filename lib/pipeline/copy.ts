@@ -2,7 +2,7 @@ import "server-only";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { pageImageCounts } from "@/lib/page-images/store";
 import { AiStepError } from "@/lib/ai/claude";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
 import { anglesForPrompt, fail } from "@/lib/angles/store";
@@ -277,7 +277,7 @@ export async function runCopy(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[copy] escribir", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step, usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step, ...failure(e) });
     const now = new Date().toISOString();
     const { error } = await db
       .from("copy_runs")

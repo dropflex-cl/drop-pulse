@@ -1,6 +1,6 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
-import { AI_MODEL, type AiUsage } from "./claude";
+import { AI_MODEL, type AiStepError, type AiUsage } from "./claude";
 import type { AiStep } from "./costs";
 import { PROMPT_VERSIONS } from "./versions";
 
@@ -31,6 +31,9 @@ export interface AiGeneration {
   /** Por defecto, la vigente del paso (PROMPT_VERSIONS). El guion de mascota pasa la suya. */
   promptVersion?: number | null;
 }
+
+/** Lo que se registra de un intento que falló: su costo, su código y, si la respuesta no se pudo leer, por qué. */
+export const failure = (e: AiStepError) => ({ usage: e.usage, error: e.code, problems: e.problems });
 
 /** Fallas antes de llamar al modelo (faltan datos): no son generaciones ni cuestan. */
 const BEFORE_CALL = new Set(["not_found", "no_key", "no_image", "no_pricing", "image_unreadable"]);

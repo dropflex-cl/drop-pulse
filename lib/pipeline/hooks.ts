@@ -1,7 +1,7 @@
 import "server-only";
 import { AiStepError, generateStructured, type AiAuth } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import type Anthropic from "@anthropic-ai/sdk";
 import { angleForPrompt, speaksToText } from "@/lib/angles/approved";
 import { testAngleName, type TestAngle } from "@/lib/angles/catalog";
@@ -116,7 +116,7 @@ export async function writeHooks(w: WriteHooksInput): Promise<WrittenHooks> {
       });
     } catch (e) {
       if (e instanceof AiStepError) {
-        await (w.record ?? recordAiGeneration)({ userId: w.userId, productId: w.productId, step: "angle_hooks", detail, usage: e.usage, error: e.code });
+        await (w.record ?? recordAiGeneration)({ userId: w.userId, productId: w.productId, step: "angle_hooks", detail, ...failure(e) });
         if (best) return best;
         throw new AiStepError(e.code, e.message, e.usage, true);
       }
@@ -163,7 +163,7 @@ async function critiqueHooks(w: WriteHooksInput, ctx: HooksContext, out: HooksOu
       if (!problems.length) return toHooksReview(result.data);
     } catch (e) {
       if (e instanceof AiStepError) {
-        await (w.record ?? recordAiGeneration)({ userId: w.userId, productId: w.productId, step: "hook_critic", detail, usage: e.usage, error: e.code });
+        await (w.record ?? recordAiGeneration)({ userId: w.userId, productId: w.productId, step: "hook_critic", detail, ...failure(e) });
         // Sin clave o con la clave rechazada, el agente de ganchos tampoco seguiría: que lo decida quien llama.
         if (e.code === "no_key") throw e;
         return null;

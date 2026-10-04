@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar } from "@/lib/ai/schemas";
 import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
@@ -246,7 +246,7 @@ export async function runPageImages(runId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[page-images] director", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: e.usage, error: e.code });
+    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", ...failure(e) });
     await onHiggsfieldError(r.user_id, e);
     const message = known ? e.message : e instanceof HiggsfieldError ? e.message : "No pudimos proponer las imágenes. Toca Reintentar.";
     const now = stamp();
@@ -589,7 +589,7 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
       maxTokens: 4000,
     }));
   } catch (e) {
-    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_qa", detail, usage: e.usage, error: e.code });
+    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_qa", detail, ...failure(e) });
     throw e;
   }
   await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_qa", detail, usage: result.usage });

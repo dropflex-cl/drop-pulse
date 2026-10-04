@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { testAngleName, type AngleSlot } from "@/lib/angles/catalog";
 import { anglesForPrompt, fail } from "@/lib/angles/store";
@@ -283,7 +283,7 @@ export async function runScript(scriptId: string): Promise<void> {
   } catch (e) {
     const known = e instanceof AiStepError;
     if (!known) console.error("[video] guion", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step, detail, usage: e.usage, error: e.code, promptVersion });
+    if (known && !e.logged) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step, detail, ...failure(e), promptVersion });
     const now = stamp();
     const { error } = await db
       .from("video_scripts")
@@ -644,7 +644,7 @@ async function runKeyframeQa(s: ShotRow, script: ScriptRow & { payload: UgcScrip
     // Las imágenes clave se revisan juntas (processShots): la primera con el producto escribe su caché.
     result = def.uses_product ? await afterCacheWarm(`video_qa:${s.product_id}`, qa) : await qa();
   } catch (e) {
-    if (e instanceof AiStepError) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_qa", detail: s.key, usage: e.usage, error: e.code });
+    if (e instanceof AiStepError) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_qa", detail: s.key, ...failure(e) });
     throw e;
   }
   await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_qa", detail: s.key, usage: result.usage });

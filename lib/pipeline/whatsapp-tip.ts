@@ -1,7 +1,7 @@
 import "server-only";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { retryableContent } from "@/lib/ai/content";
-import { recordAiGeneration } from "@/lib/ai/track";
+import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { getPricingPlan } from "@/lib/pricing/store";
@@ -49,7 +49,7 @@ export async function writeUsageTip(userId: string, productId: string): Promise<
       });
     } catch (e) {
       if (e instanceof AiStepError) {
-        await recordAiGeneration({ userId, productId, step: "usage_tip", usage: e.usage, error: e.code });
+        await recordAiGeneration({ userId, productId, step: "usage_tip", ...failure(e) });
         throw new OptimizeError(e.message, 502);
       }
       throw e;
