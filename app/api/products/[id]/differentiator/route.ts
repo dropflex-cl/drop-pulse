@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { differentiatorSchema } from "@/lib/ai/schemas";
-import { getDifferentiator, saveDifferentiator } from "@/lib/competitors/store";
+import { getDifferentiator, saveDifferentiator } from "@/lib/products/differentiator";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 
 // El diferenciador del producto (Información base): la ficha lo propone y el comerciante lo

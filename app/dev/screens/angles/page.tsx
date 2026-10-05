@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { IconButton, StageList, StatusBadge, Thumb } from "@/components/df";
-import { AnglesScreen } from "@/components/screens/angles";
+import { StrategyScreen } from "@/components/screens/strategy";
 import { AiCostProvider } from "@/components/shell/ai-cost-provider";
 import { AssistantProvider } from "@/components/shell/assistant-provider";
 import { summarizeAiCost } from "@/lib/ai/costs";
 import { fixture } from "./fixture";
 
-// Verificación visual de Ángulos con datos de ejemplo:
-// ?state=locked|nodiff|start|evaluating|failed|ranking|ranking-v6 (evaluación de antes del orquestador v7)|developing|review|approved|legacy|legacy-nodiff|ai (sin Anthropic)
+// Verificación visual de Estrategia con datos de ejemplo:
+// ?state=locked|start|running|extract|failed|choose|done|ai (sin Anthropic)
 // Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
 // la API real y fallan sin datos: aquí solo importa cómo se ve.
 async function Screen({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
@@ -30,7 +30,7 @@ async function Screen({ searchParams }: { searchParams: Promise<{ state?: string
           <StageList stages={product.stages.map(({ title, state: s, desc, optional }) => ({ title, state: s, desc, optional }))} />
         </nav>
         <div className="min-w-0 flex-1">
-          <AnglesScreen key={state} data={data} />
+          <StrategyScreen key={state} data={data} />
         </div>
       </div>
     </>

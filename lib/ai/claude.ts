@@ -142,6 +142,7 @@ export async function generateStructured<S extends z.ZodType>({
   cacheSystem = true,
   ...auth
 }: AiAuth & {
+  /** Vacío: sin system (el prompt guardado en la base va entero en el mensaje del usuario). */
   system: string;
   content: Anthropic.Beta.BetaContentBlockParam[];
   schema: S;
@@ -174,7 +175,7 @@ export async function generateStructured<S extends z.ZodType>({
       res = await anthropic.beta.messages.create({
         ...base,
         output_config: { effort, format },
-        system: [{ type: "text", text: system, ...(cacheSystem ? { cache_control: { type: "ephemeral" as const } } : {}) }],
+        ...(system ? { system: [{ type: "text" as const, text: system, ...(cacheSystem ? { cache_control: { type: "ephemeral" as const } } : {}) }] } : {}),
       });
     } catch (e) {
       if (e instanceof Anthropic.BadRequestError && GRAMMAR_TOO_LARGE.test(e.message)) throw new GrammarTooLarge(e.requestID ?? "");
@@ -239,10 +240,7 @@ async function generateUnconstrained<S extends z.ZodType>({
     res = await anthropic.beta.messages.create({
       ...base,
       output_config: { effort },
-      system: [
-        { type: "text", text: system, cache_control: { type: "ephemeral" } },
-        { type: "text", text: format },
-      ],
+      system: [...(system ? [{ type: "text" as const, text: system, cache_control: { type: "ephemeral" as const } }] : []), { type: "text", text: format }],
     });
   } catch (e) {
     throw await apiError(e, auth);
@@ -261,4 +259,67 @@ async function generateUnconstrained<S extends z.ZodType>({
     throw new AiStepError("invalid_output", "La IA respondió en un formato inesperado. Reintenta.", usage);
   }
   return { data: parsed.data as z.infer<S>, usage };
+}
+
+/** Cada cuánto se avisa el texto acumulado mientras se escribe (la pantalla lo muestra en vivo). */
+const PROGRESS_MS = 3000;
+
+/**
+ * Una respuesta de texto libre, transmitida (streaming): para un prompt que pide un informe largo (el mega
+ * prompt de la estrategia, docs/spec-estrategia.md). Sin system: el prompt va entero en `content`.
+ * `onText` recibe el texto acumulado cada ~3 s y al terminar; si falla, el error se ignora (es avance).
+ * El streaming es obligatorio con respuestas largas: el SDK rechaza una llamada sin streaming que
+ * podría pasar de 10 minutos.
+ */
+export async function generateText({
+  content,
+  effort,
+  maxTokens,
+  model = AI_MODEL,
+  onText,
+  ...auth
+}: AiAuth & {
+  content: Anthropic.Beta.BetaContentBlockParam[];
+  effort: "low" | "medium" | "high";
+  maxTokens: number;
+  model?: string;
+  onText?: (text: string) => Promise<void> | void;
+}): Promise<{ text: string; usage: AiUsage }> {
+  const started = Date.now();
+  const anthropic = await client(auth);
+  let last = 0;
+  let pending: Promise<void> | null = null;
+  const report = (text: string) => {
+    if (!onText || pending) return;
+    last = Date.now();
+    pending = Promise.resolve(onText(text))
+      .catch((e: unknown) => console.warn("[ai] guardar el avance", (e as Error).message))
+      .finally(() => {
+        pending = null;
+      });
+  };
+  let res: Message;
+  try {
+    const stream = anthropic.beta.messages.stream({
+      model,
+      max_tokens: maxTokens,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      thinking: { type: "adaptive" },
+      output_config: { effort },
+      messages: [{ role: "user", content }],
+    });
+    stream.on("text", (_delta, snapshot) => {
+      if (Date.now() - last >= PROGRESS_MS) report(snapshot);
+    });
+    res = await stream.finalMessage();
+  } catch (e) {
+    throw await apiError(e, auth);
+  }
+  const usage = usageOf(res, started);
+  checkStop(res, usage);
+  const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+  if (pending) await pending;
+  if (onText) await Promise.resolve(onText(text)).catch((e: unknown) => console.warn("[ai] guardar el texto final", (e as Error).message));
+  return { text, usage };
 }

@@ -51,10 +51,10 @@ import { getPricingPlan } from "@/lib/pricing/store";
 import { reviewsForPrompt } from "@/lib/reviews/rows";
 import { imageQaEnabled, imagesForGeneration, latestAvatars, latestBrief, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { approvedAngles } from "./angles";
+import { approvedAngles } from "@/lib/angles/store";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeForAds } from "@/lib/media/optimize";
-import { OptimizeError, requireAiKey } from "./optimize";
+import { OptimizeError, requireAiKey } from "./errors";
 
 // Etapa Creativos (docs/spec-creativos.md). Tres pasos, cada uno en segundo plano (after):
 // 1. El generador de estáticos (Claude) propone 6 conceptos desde los 2 desarrollos aprobados.

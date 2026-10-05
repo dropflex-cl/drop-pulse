@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { anglesPhase, basePhase, copyPhase, productPosition, type AngleFacts, type CopyFacts, type CreativeFacts } from "./stages";
+import { anglesPhase, anglesReady, basePhase, copyPhase, productPosition, type AngleFacts, type CopyFacts, type CreativeFacts } from "./stages";
 
 const base = { price: 24990, currency: "CLP" };
+
+const ready = { price: 24990, currency: "CLP", base: { described: true, priced: true } };
 
 describe("productPosition", () => {
   it("un producto recién importado abre en Información base (ahí se define también el precio)", () => {
@@ -9,46 +11,25 @@ describe("productPosition", () => {
     expect(p.phase).toBe("new");
     expect(p.nextStage).toBe("importado");
     expect(p.stages.map((s) => s.state)).toEqual(["current", "available", "locked", "locked", "locked", "locked", "locked", "locked", "locked"]);
-    expect(p.stages.find((s) => s.key === "angulos")).toMatchObject({ desc: "Se habilita al aprobar tu cliente ideal" });
-    expect(p.summary).toBe("Importado de Shopify · sin optimizar · $24.990");
+    expect(p.stages[0]).toMatchObject({ desc: "Identifica el producto y guarda el precio" });
+    expect(p.stages.find((s) => s.key === "angulos")).toMatchObject({ title: "Estrategia", desc: "Se habilita con los datos del producto y el precio" });
+    expect(p.summary).toBe("Importado de Shopify · sin estrategia · $24.990");
     expect(p.status).toBeUndefined();
   });
 
-  it("optimizando mientras la corrida está activa", () => {
-    expect(basePhase({ ...base, run: { status: "running", createdAt: "2026-09-24T10:00:00Z" } })).toBe("optimizing");
+  it("Información base dice qué falta: los datos del producto o el precio", () => {
+    expect(productPosition({ ...base, base: { described: false, priced: true } }).stages[0].desc).toBe("Falta identificar el producto");
+    const noPrice = productPosition({ ...base, base: { described: true, priced: false } });
+    expect(noPrice.stages[0].desc).toBe("Falta guardar el precio y los packs");
+    expect(noPrice.reason).toBe("Falta el precio y los packs");
   });
 
-  it("una corrida fallida muestra el error y queda detenido", () => {
-    const p = productPosition({ ...base, run: { status: "failed", error: "La IA no respondió.", createdAt: "2026-09-24T10:00:00Z" } });
-    expect(p.phase).toBe("failed");
-    expect(p.stages[0].desc).toBe("La IA no respondió.");
-    expect(p.filter).toBe("detenidos");
-  });
-
-  it("un cliente ideal por revisar pide la decisión del comerciante", () => {
-    const p = productPosition({
-      ...base,
-      run: { status: "succeeded", createdAt: "2026-09-24T10:00:00Z" },
-      avatar: { status: "generado", createdAt: "2026-09-24T10:01:00Z" },
-    });
-    expect(p.phase).toBe("review");
-    expect(p.status).toBe("revision");
-  });
-
-  it("si una regeneración falla, sigue valiendo la propuesta anterior solo si es más nueva que la corrida", () => {
-    expect(
-      basePhase({ ...base, run: { status: "failed", createdAt: "2026-09-24T11:00:00Z" }, avatar: { status: "aprobado", createdAt: "2026-09-24T10:00:00Z" } }),
-    ).toBe("failed");
-  });
-
-  const approved = { ...base, avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
-
-  it("aprobado el cliente ideal, sigue Ángulos (el precio ya se definió en Información base)", () => {
-    const p = productPosition(approved);
+  it("con los datos y el precio, sigue Estrategia", () => {
+    const p = productPosition(ready);
     expect(p.nextStage).toBe("angulos");
-    expect(p.stages[0].state).toBe("done");
-    expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current" });
-    expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
+    expect(p.stages[0]).toMatchObject({ state: "done", desc: "Datos del producto · precio y packs listos" });
+    expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current", desc: "Genera la estrategia de venta con IA" });
+    expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" });
     expect(p.stages.map((s) => s.key)).not.toContain("precio");
     expect(p.meter).toHaveLength(9);
   });
@@ -67,62 +48,51 @@ describe("productPosition", () => {
   });
 });
 
-describe("etapa Ángulos", () => {
-  const approved = { price: 24990, currency: "CLP", avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
-  const brief = (slot: 1 | 2 | 3, status: "generado" | "aprobado", generation: "running" | "succeeded" | "failed" = "succeeded") => ({
-    slot,
-    name: ["", "La crema sella", "Tengo 38", "Lleva 3"][slot],
-    status,
-    generation,
-  });
-  const facts = (angles: AngleFacts) => ({ ...approved, angles });
+describe("etapa Estrategia", () => {
+  const brief = (slot: 1 | 2 | 3, status: "generado" | "aprobado" = "aprobado") => ({ slot, name: ["", "La crema sella", "Tengo 38", "Lleva 3"][slot], status, generation: "succeeded" as const });
+  const chosen = (n: 2 | 3): AngleFacts => ({ ranking: { status: "succeeded", confirmed: true, chosen: n }, briefs: ([1, 2, 3] as const).slice(0, n).map((s) => brief(s)) });
 
-  it("bloqueada hasta aprobar el cliente ideal", () => {
-    expect(anglesPhase({ ...approved, avatar: { status: "revision", createdAt: "2026-09-24T10:01:00Z" } })).toBe("locked");
+  it("bloqueada hasta tener los datos del producto y el precio", () => {
+    expect(anglesPhase({ ...base, base: { described: true, priced: false } })).toBe("locked");
+    expect(basePhase({ ...base, base: { described: false, priced: true } })).toBe("new");
   });
 
-  it("evaluando, por elegir y con error", () => {
-    expect(anglesPhase(facts({ ranking: { status: "running", confirmed: false }, briefs: [] }))).toBe("evaluating");
-    const choose = productPosition(facts({ ranking: { status: "succeeded", confirmed: false }, briefs: [] }));
+  it("escribiendo, por elegir y con error", () => {
+    expect(anglesPhase({ ...ready, strategy: { status: "running", confirmed: false } })).toBe("evaluating");
+    const choose = productPosition({ ...ready, strategy: { status: "succeeded", confirmed: false } });
     expect(choose.anglesPhase).toBe("choose");
-    expect(choose).toMatchObject({ filter: "detenidos", reason: "Espera tu elección · ángulos", status: "revision" });
-    const failed = productPosition(facts({ ranking: { status: "failed", error: "La IA no respondió.", confirmed: false }, briefs: [] }));
+    expect(choose).toMatchObject({ filter: "detenidos", reason: "Espera tu elección · estrategia", status: "revision" });
+    expect(choose.stages[2]).toMatchObject({ state: "review", desc: "Estrategia lista · elige 2 o 3 ángulos" });
+    const failed = productPosition({ ...ready, strategy: { status: "failed", error: "La IA no respondió.", confirmed: false } });
     expect(failed.stages[2]).toMatchObject({ state: "error", desc: "La IA no respondió." });
+    expect(failed.reason).toBe("Estrategia: no se pudo · reintenta");
   });
 
-  it("confirmados: desarrollando, por revisar y listos", () => {
-    const ranking = { status: "succeeded" as const, confirmed: true };
-    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "generado", "running"), brief(2, "generado")] }))).toBe("developing");
-    const review = productPosition(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "generado")] }));
-    expect(review.stages[2]).toMatchObject({ state: "review", desc: "1 de 2 desarrollos aprobados" });
-    const done = productPosition(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado")] }));
-    // Aprobados los 2 desarrollos sigue Imágenes (la Página del producto usa esas imágenes).
+  it("con 2 o 3 ángulos elegidos y aprobados, sigue Imágenes", () => {
+    const done = productPosition({ ...ready, strategy: { status: "succeeded", confirmed: true }, angles: chosen(2) });
+    expect(done.anglesPhase).toBe("done");
     expect(done.nextStage).toBe("imagenes");
     expect(done.stages[2]).toMatchObject({ state: "done", desc: "La crema sella · Tengo 38" });
     expect(done.stages[3]).toMatchObject({ key: "imagenes", state: "current" });
     expect(done.stages[4]).toMatchObject({ key: "textos", state: "locked", desc: "Se habilita con las imágenes listas" });
+    expect(anglesPhase({ ...ready, angles: chosen(3) })).toBe("done");
   });
 
-  it("con 3 ángulos elegidos, espera los 3 desarrollos", () => {
-    const ranking = { status: "succeeded" as const, confirmed: true, chosen: 3 };
-    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado")] }))).toBe("failed");
-    const review = productPosition(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado"), brief(3, "generado")] }));
-    expect(review.stages[2]).toMatchObject({ state: "review", desc: "2 de 3 desarrollos aprobados" });
-    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "aprobado"), brief(2, "aprobado"), brief(3, "aprobado")] }))).toBe("done");
+  it("con ángulos listos, generar otra estrategia no bloquea lo que sigue", () => {
+    expect(anglesPhase({ ...ready, strategy: { status: "running", confirmed: false }, angles: chosen(2) })).toBe("done");
   });
 
-  it("un desarrollo fallido detiene la etapa con su motivo", () => {
-    const p = productPosition(facts({ ranking: { status: "succeeded", confirmed: true }, briefs: [{ ...brief(1, "generado", "failed"), error: "La IA no respondió." }, brief(2, "generado")] }));
-    expect(p.anglesPhase).toBe("failed");
-    expect(p.stages[2].desc).toBe("La IA no respondió.");
+  it("una elección incompleta no cuenta como lista", () => {
+    const partial: AngleFacts = { ranking: { status: "succeeded", confirmed: true, chosen: 3 }, briefs: [brief(1), brief(2)] };
+    expect(anglesReady(partial)).toBe(false);
+    expect(anglesReady({ ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2, "generado")] })).toBe(false);
+    expect(anglesPhase({ ...ready, strategy: { status: "succeeded", confirmed: true }, angles: partial })).toBe("choose");
   });
 
-  it("confirmados sin desarrollos no se quedan «desarrollando»", () => {
-    const ranking = { status: "succeeded" as const, confirmed: true };
-    const none = productPosition(facts({ ranking, briefs: [] }));
-    expect(none.anglesPhase).toBe("failed");
-    expect(none.stages[2]).toMatchObject({ state: "error", desc: "Falta un desarrollo · toca Regenerar" });
-    expect(anglesPhase(facts({ ranking, briefs: [brief(1, "aprobado")] }))).toBe("failed");
+  it("un producto trabajado antes de la estrategia (sin datos del producto) con sus ángulos listos sigue adelante", () => {
+    const legacy = { ...base, base: { described: false, priced: true }, angles: chosen(2) };
+    expect(basePhase(legacy)).toBe("done");
+    expect(anglesPhase(legacy)).toBe("done");
   });
 });
 
@@ -131,7 +101,7 @@ describe("página del producto (Textos)", () => {
   const ready = {
     price: 24990,
     currency: "CLP",
-    avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" },
+    base: { described: true, priced: true },
     angles: {
       ranking: { status: "succeeded" as const, confirmed: true },
       briefs: [
@@ -145,8 +115,8 @@ describe("página del producto (Textos)", () => {
 
   it("bloqueada hasta aprobar los 2 desarrollos y tener las imágenes; después, por escribir", () => {
     const noAngles = productPosition({ ...ready, angles: { ...ready.angles, briefs: [ready.angles.briefs[0]] } });
-    expect(noAngles.stages[3]).toMatchObject({ key: "imagenes", title: "Imágenes", state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
-    expect(noAngles.stages[4]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" });
+    expect(noAngles.stages[3]).toMatchObject({ key: "imagenes", title: "Imágenes", state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" });
+    expect(noAngles.stages[4]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" });
     const noImages = productPosition({ ...ready, images: { ...images, cover: false } });
     expect(noImages.copyPhase).toBe("locked");
     expect(noImages).toMatchObject({ nextStage: "imagenes", reason: "Espera tu elección · imágenes" });
@@ -197,7 +167,7 @@ describe("página del producto (Textos)", () => {
 describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
   const ready = {
     ...base,
-    avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" },
+    base: { described: true, priced: true },
     angles: {
       ranking: { status: "succeeded" as const, confirmed: true },
       briefs: [
@@ -216,7 +186,7 @@ describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
   it("va entre Publicar y Anuncios y es opcional", () => {
     const keys = productPosition(base).stages.map((s) => s.key);
     expect(keys.slice(-4, -1)).toEqual(["publicar", "creativos", "anuncios"]);
-    expect(stage(base)).toMatchObject({ optional: true, state: "locked", desc: "Después de aprobar los ángulos", meter: "optional" });
+    expect(stage(base)).toMatchObject({ optional: true, state: "locked", desc: "Después de elegir los ángulos", meter: "optional" });
   });
 
   it("con los ángulos aprobados pide la clave de Higgsfield, y después se habilita", () => {
@@ -244,7 +214,7 @@ describe("etapa WhatsApp", () => {
     const i = p.stages.findIndex((s) => s.key === "mensajes");
     return { ...p.stages[i], meter: p.meter[i], position: p, last: i === p.stages.length - 1 };
   };
-  const approved = { ...base, avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
+  const approved = { ...base, base: { described: true, priced: true } };
 
   it("va al final, es opcional y se habilita con la información base lista", () => {
     expect(stage(base)).toMatchObject({ last: true, optional: true, state: "locked", desc: "Después de la información base", meter: "optional" });
@@ -257,7 +227,7 @@ describe("etapa WhatsApp", () => {
 });
 
 describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
-  const approvedAvatar = { ...base, avatar: { status: "aprobado" as const, createdAt: "2026-09-24T10:01:00Z" } };
+  const approvedAvatar = { ...base, base: { described: true, priced: true } };
   const anglesDone = {
     ...approvedAvatar,
     angles: {
@@ -270,10 +240,10 @@ describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
   };
   const byKey = (f: Parameters<typeof productPosition>[0], key: string) => productPosition(f).stages.find((s) => s.key === key)!;
 
-  it("Información base nunca se bloquea: dice que falta conectar Anthropic para optimizar", () => {
+  it("Información base nunca se bloquea: dice que falta conectar Anthropic para identificar el producto", () => {
     const p = productPosition({ ...base, ai: false });
-    expect(p.stages[0]).toMatchObject({ state: "current", desc: "Conecta Anthropic en Ajustes para optimizar" });
-    expect(p.reason).toBe("Sin optimizar · conecta Anthropic en Ajustes");
+    expect(p.stages[0]).toMatchObject({ state: "current", desc: "Conecta Anthropic en Ajustes para identificar el producto" });
+    expect(p.reason).toBe("Sin identificar · conecta Anthropic en Ajustes");
   });
 
   it("la etapa de IA que no ha empezado queda bloqueada con el motivo", () => {
@@ -289,8 +259,8 @@ describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
   });
 
   it("lo ya generado se sigue viendo y decidiendo", () => {
-    const ranking = { ...approvedAvatar, angles: { ranking: { status: "succeeded" as const, confirmed: false }, briefs: [] }, ai: false };
-    expect(byKey(ranking, "angulos")).toMatchObject({ state: "review" });
+    const strategy = { ...approvedAvatar, strategy: { status: "succeeded" as const, confirmed: false }, ai: false };
+    expect(byKey(strategy, "angulos")).toMatchObject({ state: "review" });
     const images = { ...anglesDone, images: { running: false, rendering: 0, options: 3, cover: false, gallery: 0 }, ai: false };
     expect(byKey(images, "imagenes")).toMatchObject({ state: "review" });
     expect(byKey({ ...anglesDone, creatives: { connected: true, running: false, concepts: 6, rendering: 0, pending: 2, approved: 0 }, ai: false }, "creativos")).toMatchObject({ state: "review" });

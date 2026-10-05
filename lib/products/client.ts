@@ -1,14 +1,10 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
-import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/ai/schemas";
 import type { PricingForm } from "@/lib/pricing/plan";
-import type { AngleBriefEdit } from "@/lib/angles/schemas";
-import type { TestAngle } from "@/lib/angles/catalog";
 import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image-provider";
-
-/** Lo que manda la pantalla al confirmar: el slot lo pone el servidor por el orden. */
-export type TestAngleInput = Omit<TestAngle, "slot">;
+import type { ProductData } from "@/lib/products/product-data";
 import type { VideoFormat } from "@/lib/video/catalog";
-import type { AnglesState, AvatarProposal, MessagesState, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, OptimizationRun, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto } from "@/lib/types";
+import type { MessagesState, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto, StrategyState } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -144,25 +140,20 @@ export const productsApi = {
   setExcluded: (id: string, imageId: string, excluded: boolean) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { excluded }),
   setBase: (id: string, imageId: string) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { base: true }),
   setImageQa: (id: string, enabled: boolean) => send<{ enabled: boolean }>("PUT", `/${id}/image-qa`, { enabled }),
-  optimize: (id: string) => send<{ run: OptimizationRun }>("POST", `/${id}/optimize`),
-  status: (id: string) => call<{ run: OptimizationRun | null; avatar: AvatarProposal | null }>(`/${id}/optimize`),
-  decideAvatar: (id: string, action: "approve" | "reopen") => send<{ avatar: AvatarProposal }>("PATCH", `/${id}/avatar`, { action }),
+  /** «Identificar con IA»: la IA escribe el nombre y la descripción (~20 a 60 s). */
+  identifyProduct: (id: string) => send<{ productData: ProductData }>("POST", `/${id}/product-data`),
+  saveProductData: (id: string, data: { name: string; description: string }) => send<{ productData: ProductData }>("PUT", `/${id}/product-data`, data),
   importReviews: (id: string, input: { url: string; minRating: 1 | 4 | 5; photosOnly: boolean; translate: boolean }) =>
     send<{ job: ReviewImport }>("POST", `/${id}/reviews/import`, input),
   reviewImport: (id: string) => call<{ job: ReviewImport | null }>(`/${id}/reviews/import`),
   decideReviews: (id: string, ids: string[], action: "approve" | "reject" | "reopen") => send<{ count: number }>("PATCH", `/${id}/reviews`, { ids, action }),
   decideReview: (id: string, reviewId: string, action: "approve" | "reject" | "reopen") => send<{ ok: true }>("PATCH", `/${id}/reviews/${reviewId}`, { action }),
   editReview: (id: string, reviewId: string, text: string) => send<{ review: CustomerReview }>("PUT", `/${id}/reviews/${reviewId}`, { text }),
-  editAvatar: (id: string, avatar: CustomerAvatar, approve: boolean) => send<{ avatar: AvatarProposal }>("PUT", `/${id}/avatar`, { avatar, approve }),
-  // Etapa Ángulos: cada acción devuelve el estado completo de la etapa.
-  angles: (id: string) => call<AnglesState>(`/${id}/angles`),
-  evaluateAngles: (id: string) => send<AnglesState>("POST", `/${id}/angles`),
-  confirmAngles: (id: string, angles: TestAngleInput[]) => send<AnglesState>("PUT", `/${id}/angles/selection`, { angles }),
-  decideAngleBrief: (id: string, briefId: string, action: "approve" | "reopen") => send<AnglesState>("PATCH", `/${id}/angles/briefs/${briefId}`, { action }),
-  editAngleBrief: (id: string, briefId: string, edit: AngleBriefEdit, approve: boolean) => send<AnglesState>("PUT", `/${id}/angles/briefs/${briefId}`, { edit, approve }),
-  regenerateAngleBrief: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}`),
-  /** «Otros ganchos»: solo los ganchos del desarrollo, en la misma solicitud (~1 min). */
-  moreAngleHooks: (id: string, briefId: string) => send<AnglesState>("POST", `/${id}/angles/briefs/${briefId}?part=hooks`),
+  // Etapa Estrategia: cada acción devuelve el estado completo de la etapa.
+  strategy: (id: string) => call<StrategyState>(`/${id}/strategy`),
+  generateStrategy: (id: string) => send<StrategyState>("POST", `/${id}/strategy`),
+  /** Los índices (0 a 4) de los TOP 5 ángulos elegidos: 2 o 3. */
+  confirmStrategy: (id: string, indexes: number[]) => send<StrategyState>("POST", `/${id}/strategy/confirm`, { indexes }),
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
   writeCopy: (id: string, redo = false, mode?: "all" | { component: string }) => send<CopyState>("POST", `/${id}/copy`, { redo, mode }),
@@ -170,13 +161,9 @@ export const productsApi = {
   updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean }) =>
     send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, patch),
   saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),
-  // Información base › Diferenciador y Tiendas de la competencia: cada acción devuelve la lista completa.
+  // Información base › Diferenciador.
   saveDifferentiator: (id: string, d: { versus: string; claim: string; basis?: string }) =>
     send<import("@/lib/types").DifferentiatorView>("PUT", `/${id}/differentiator`, d),
-  competitors: (id: string) => call<CompetitorsResponse>(`/${id}/competitors`),
-  addCompetitor: (id: string, url: string) => send<CompetitorsResponse>("POST", `/${id}/competitors`, { url }),
-  removeCompetitor: (id: string, competitorId: string) => send<CompetitorsResponse>("DELETE", `/${id}/competitors/${competitorId}`),
-  retryCompetitor: (id: string, competitorId: string) => send<CompetitorsResponse>("POST", `/${id}/competitors/${competitorId}`),
 };
 
 /** Los proveedores de imágenes con clave propia del comerciante (Ajustes › Anuncios con IA). */
@@ -225,8 +212,3 @@ export const themeApi = {
   permissions: (shop: string) => post<{ authorizeUrl: string }>("/api/onboarding/shopify/connect", { shop }, "No pudimos abrir Shopify. Intenta de nuevo."),
 };
 
-/** Respuesta de /api/products/[id]/competitors*. */
-export interface CompetitorsResponse {
-  competitors: import("@/lib/types").CompetitorView[];
-  max: number;
-}

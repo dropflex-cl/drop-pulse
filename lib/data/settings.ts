@@ -11,6 +11,7 @@ import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { getAiCostCap } from "@/lib/settings/ai-cost";
 import { getMarket } from "@/lib/settings/market";
 import { getStorePolicies } from "@/lib/settings/policies-store";
+import { promptSettings } from "@/lib/prompts/store";
 import type { Assumptions } from "@/lib/types";
 
 export async function getAssumptions(): Promise<Assumptions> {
@@ -76,4 +77,11 @@ export async function getPolicySettings() {
   const user = await sessionUser();
   if (!user) return null;
   return getStorePolicies(user.id);
+}
+
+/** Ajustes › Prompts: solo para el equipo de DropFlex (app_metadata.role = "admin"); null para el resto. */
+export async function getPromptSettings() {
+  const user = await sessionUser();
+  if (!user?.admin) return null;
+  return promptSettings();
 }

@@ -1,15 +1,15 @@
-// Acceso a productos desde Supabase (products, product_reference_images, pipeline_runs,
-// customer_avatars, las reseñas importadas, la etapa Ángulos: angle_rankings, angle_briefs, y la
-// página del producto: copy_runs, page_components). Las imágenes generadas todavía no existen: esa
+// Acceso a productos desde Supabase (products con sus datos del producto, product_reference_images, el
+// precio, las reseñas importadas, la estrategia: strategy_runs y los ángulos elegidos en angle_rankings
+// y angle_briefs, y la página del producto: copy_runs, page_components). Las imágenes generadas todavía no existen: esa
 // lectura devuelve vacío y la pantalla muestra su espera.
 import "server-only";
 import { GALLERY_MIN, VISUAL_WORLD_NAMES, isVisualWorld } from "@/lib/page-images/catalog";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { ANGLES } from "@/lib/angles/catalog";
-import { allApproved, chosenAngles, currentBriefs, currentBriefStates, latestRankings, latestRankingStates, toBriefView, toRankingView, type BriefsBySlot, type BriefState, type RankingState } from "@/lib/angles/store";
+import { allApproved, chosenAngles, currentBriefs, currentBriefStates, latestRankings, latestRankingStates, type BriefsBySlot, type BriefState, type RankingState } from "@/lib/angles/store";
 import { testAngleName } from "@/lib/angles/catalog";
-import { competitorViews, confirmedDifferentiator, differentiatorState } from "@/lib/competitors/store";
+import { confirmedDifferentiator, differentiatorState, getDifferentiator } from "@/lib/products/differentiator";
 import { copyProgress } from "@/lib/copy/progress";
 import { avatarStamp, differentiatorStamp, staleReasons } from "@/lib/copy/stale";
 import { COPY_PROMPT_VERSION } from "@/lib/copy/schemas";
@@ -18,7 +18,7 @@ import { catalogImages } from "@/lib/copy/images";
 import { activeComponents, activeComponentStates, copyRunInputs, isStale, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
 import { sessionUser } from "@/lib/integrations/session";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
-import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
+import { getPricingPlan, pricedProducts, pricingDefaults } from "@/lib/pricing/store";
 import { scheduleHousekeeping } from "@/lib/products/housekeeping";
 import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
@@ -31,7 +31,8 @@ import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection"
 import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
-import { analyzedCompetitors, getDifferentiator } from "@/lib/competitors/store";
+import { latestStrategies, latestStrategyStates, strategyBlocker, toStrategyView, type StrategyState as StrategyRunState } from "@/lib/pipeline/strategy";
+import { hasProductData } from "@/lib/products/product-data";
 import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection } from "@/lib/integrations/meta/connection";
@@ -40,24 +41,17 @@ import {
   baseImage,
   getProductRow,
   latestAvatars,
-  latestAvatarStates,
   latestBrief,
   latestBriefId,
-  latestRuns,
-  latestRunStates,
   listImageRows,
   listProductRows,
-  toProposal,
   toReferenceImage,
   toUiStatus,
-  toRun,
   withDisplayUrls,
-  type AvatarState,
   type ImageRow,
   type ProductRow,
-  type RunState,
 } from "@/lib/products/store";
-import type { AnglesState, CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductAngles, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductReviews, UpsellProduct } from "@/lib/types";
+import type { CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductReviews, ProductStrategy, StrategyState, UpsellProduct } from "@/lib/types";
 import { messagesState } from "@/lib/whatsapp/store";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
@@ -142,8 +136,8 @@ function publicationFacts(p: PublicationRow | undefined): PublishFacts | null {
 function toProduct(
   row: ProductRow,
   image: string,
-  run?: RunState,
-  avatar?: AvatarState,
+  priced: boolean,
+  strategy?: StrategyRunState,
   reviews?: ReviewFacts,
   angles?: AngleFacts | null,
   copy?: CopyFacts | null,
@@ -156,8 +150,8 @@ function toProduct(
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
-    run: run ? { status: run.status, error: run.error_message, createdAt: run.created_at } : null,
-    avatar: avatar ? { status: toUiStatus(avatar.status), createdAt: avatar.created_at } : null,
+    base: { described: hasProductData(row.product_data), priced },
+    strategy: strategy ? { status: strategy.status, error: strategy.error_message, confirmed: Boolean(strategy.confirmed_at) } : null,
     reviews,
     angles,
     copy,
@@ -197,10 +191,10 @@ function toProduct(
 export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [imageRows, runs, avatars, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic] = await Promise.all([
+  const [imageRows, priced, strategies, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic] = await Promise.all([
     images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
-    latestRunStates(uid, ids),
-    latestAvatarStates(uid, ids),
+    pricedProducts(uid, ids),
+    latestStrategyStates(uid, ids),
     reviewFacts(uid, ids),
     latestRankingStates(uid, ids),
     latestCopyRunStates(uid, ids),
@@ -223,7 +217,7 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
     const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen, ranking);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", runs.get(r.id), avatars.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai);
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), strategies.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai);
   });
 }
 
@@ -291,44 +285,36 @@ async function withProduct<T>(id: string, state: (uid: string) => Promise<T>): P
   return { product, state: result.value };
 }
 
-/** La etapa Información base: texto, imágenes de referencia, la optimización y el cliente ideal. */
+/** La etapa Información base: texto, imágenes de referencia, los datos del producto y el precio. */
 export const getProductBase = cache(async (id: string): Promise<ProductBase | null> => {
   if (!UUID.test(id)) return null;
   const uid = await userId();
   // Todo a la vez: la etapa no espera a la ruta del producto; solo los valores por defecto del precio esperan la fila.
   const row$ = productRow(uid, id);
-  const [product, row, images, runs, avatars, brief, pricing, pricingDefaultsValue, packLabels, differentiator, competitors] = await Promise.all([
+  const [product, row, images, brief, pricing, pricingDefaultsValue, packLabels, differentiator] = await Promise.all([
     getProduct(id),
     row$,
     listImageRows(uid, [id]),
-    latestRuns(uid, [id]),
-    latestAvatars(uid, [id]),
     latestBrief(uid, id),
     getPricingPlan(uid, id),
     row$.then((r) => (r ? pricingDefaults(uid, r) : null)),
     latestPackLabels(uid, id),
     confirmedDifferentiator(uid, id),
-    competitorViews(uid, id),
   ]);
   if (!product || !row || !pricingDefaultsValue) return null;
   const urls = await withDisplayUrls(images);
-  const run = runs.get(id);
-  const avatar = avatars.get(id);
   return {
     product,
     baseInfo: row.base_info,
     baseInfoUpdatedAt: row.base_info_updated_at ?? undefined,
     fromShopify: Boolean(row.description?.trim()) && row.base_info.includes(row.description!.trim().slice(0, 40)),
     images: images.filter((i) => urls.has(i.id)).map((i) => toReferenceImage(i, urls.get(i.id)!)),
-    run: run ? toRun(run) : undefined,
-    avatar: avatar ? toProposal(avatar) : undefined,
+    productData: hasProductData(row.product_data) ? row.product_data : undefined,
     pricing: pricing ?? undefined,
     packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
-    missingInputs: brief?.missing_inputs ?? [],
     hasBrief: brief !== null,
     differentiator: differentiatorState(differentiator, brief),
-    competitors,
     imageQa: row.image_qa === true,
   };
 });
@@ -351,36 +337,24 @@ export const getProductReviews = cache(async (id: string): Promise<ProductReview
   };
 });
 
-/** La etapa Ángulos: el cliente ideal que la alimenta, la evaluación del orquestador y los 2 desarrollos. */
-export const getProductAngles = cache(async (id: string): Promise<ProductAngles | null> => {
-  const found = await withProduct(id, (uid) => anglesState(uid, id));
+/** La etapa Estrategia: la corrida del mega prompt y los ángulos elegidos. */
+export const getProductStrategy = cache(async (id: string): Promise<ProductStrategy | null> => {
+  const found = await withProduct(id, (uid) => strategyState(uid, id));
   return found && { product: found.product, ...found.state };
 });
 
-/** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/angles). */
-export async function anglesState(uid: string, productId: string): Promise<AnglesState> {
-  const [avatars, rankings, differentiator, competitors] = await Promise.all([
-    latestAvatars(uid, [productId]),
-    latestRankings(uid, [productId]),
-    getDifferentiator(uid, productId),
-    analyzedCompetitors(uid, productId),
-  ]);
-  const avatar = avatars.get(productId);
+/** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/strategy). */
+export async function strategyState(uid: string, productId: string): Promise<StrategyState> {
+  const [strategies, rankings, blocker] = await Promise.all([latestStrategies(uid, [productId]), latestRankings(uid, [productId]), strategyBlocker(uid, productId)]);
+  const run = strategies.get(productId);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  const a = avatar?.payload;
   return {
-    avatar: a
-      ? {
-          summary: a.summary,
-          tags: [a.age_range.trim()].filter(Boolean).map((t) => (/año/.test(t) ? t : `${t} años`)),
-          approved: avatar.status === "approved",
-        }
-      : undefined,
-    ranking: ranking ? toRankingView(ranking, avatar?.status === "approved" ? avatar.id : undefined) : undefined,
-    briefs: ranking ? chosenAngles(ranking).flatMap((a) => (briefs[a.slot] ? [toBriefView(briefs[a.slot]!, a)] : [])) : [],
-    differentiator: differentiator.value ? { versus: differentiator.value.versus, claim: differentiator.value.claim, confirmed: differentiator.confirmed } : null,
-    competitors: competitors.length,
+    strategy: run ? toStrategyView(run) : undefined,
+    blocker,
+    chosen: ranking
+      ? chosenAngles(ranking).flatMap((a) => (briefs[a.slot]?.status === "approved" ? [{ slot: a.slot, title: testAngleName(a), hook: a.hook ?? "" }] : []))
+      : [],
   };
 }
 

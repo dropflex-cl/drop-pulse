@@ -7,11 +7,11 @@ import type { StageState } from "@/components/df/stage-list";
 import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
 import type { AttentionKind } from "@/components/df/attention-item";
-import type { CustomerAvatar, PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/ai/schemas";
 import type { ImageProvider, ImageProviderChoice } from "@/lib/image-provider";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 import type { StoreFacts } from "@/lib/store-preview/facts";
-import type { AngleAida, AngleSlot, SalesAngle, SpeaksTo } from "@/lib/angles/catalog";
+import type { AngleSlot } from "@/lib/angles/catalog";
 
 export type { ContentStatus, Verdict };
 
@@ -55,7 +55,7 @@ export interface Product {
   /** Estado del contenido en el encabezado; un producto sin optimizar no tiene. */
   status?: ContentStatus;
   /** Fase de la etapa Ángulos (lib/products/stages.ts › anglesPhase). */
-  anglesPhase?: "locked" | "new" | "evaluating" | "failed" | "choose" | "developing" | "review" | "done";
+  anglesPhase?: "locked" | "new" | "evaluating" | "failed" | "choose" | "done";
   /** Fase de la etapa Textos, la página del producto (lib/products/stages.ts › copyPhase). */
   copyPhase?: "locked" | "new" | "writing" | "failed" | "review" | "done";
   /**
@@ -88,24 +88,40 @@ export interface ReferenceImage {
 /** Plan de precios guardado (lib/pricing/store.ts), tal como lo recibe la pantalla. */
 export type SavedPricingDto = PricingPlan & { updatedAt: string };
 
-export interface OptimizationRun {
+/** Una corrida de la estrategia (strategy_runs), como la ve la pantalla. */
+export interface StrategyView {
   id: string;
   status: RunStatus;
-  step: "product_brief" | "customer_avatar" | null;
+  /** Qué está haciendo: escribir el informe o pasarlo a datos. */
+  step: "report" | "extract" | null;
+  /** El informe del mega prompt (se va llenando mientras se escribe). */
+  report: string;
   /** Qué pasó y qué hacer, en español. */
-  error?: string;
+  error: string | null;
+  /** La versión del prompt con que se escribió (Ajustes › Prompts). */
+  templateVersion: number | null;
+  /** Los TOP 5 ángulos del informe, en su orden. */
+  angles: { index: number; title: string; hook: string; promise: string; why: string; segment: string; frameName: string }[];
+  /** «Si tuviera que gastar mi primer dólar…»: los 3 conceptos, en orden. */
+  firstDollar: string[];
+  /** Los índices elegidos al confirmar; null sin confirmar. */
+  chosen: number[] | null;
+  confirmedAt: string | null;
   createdAt: string;
-  startedAt?: string;
-  finishedAt?: string;
+  startedAt: string | null;
 }
 
-/** Propuesta de cliente ideal: la IA propone, el comerciante acepta, edita o regenera. */
-export interface AvatarProposal {
-  id: string;
-  status: ContentStatus;
-  avatar: CustomerAvatar;
-  createdAt: string;
-  editedAt?: string;
+/** Lo que necesita la etapa Estrategia. */
+export interface StrategyState {
+  strategy?: StrategyView;
+  /** Lo que falta para generarla (datos del producto o precio); null si se puede. */
+  blocker: string | null;
+  /** Los ángulos que leen los pasos siguientes (de esta estrategia o de una anterior). */
+  chosen: { slot: number; title: string; hook: string }[];
+}
+
+export interface ProductStrategy extends StrategyState {
+  product: Product;
 }
 
 /** Etiquetas de los packs propuestas por la IA; se aprueban aparte del cliente ideal. */
@@ -129,101 +145,20 @@ export interface ProductBase {
   /** El texto partió de la descripción de Shopify. */
   fromShopify: boolean;
   images: ReferenceImage[];
-  run?: OptimizationRun;
-  avatar?: AvatarProposal;
-  /** Precio y packs guardados; sin ellos no se puede optimizar. */
+  /** El nombre y la descripción del producto (DATOS DEL PRODUCTO en la estrategia); sin identificar, undefined. */
+  productData?: import("@/lib/products/product-data").ProductData;
+  /** Precio y packs guardados; sin ellos no se puede generar la estrategia. */
   pricing?: SavedPricingDto;
-  /** Etiquetas de los packs (salen con el cliente ideal). */
+  /** Etiquetas de los packs (las propone la estrategia). */
   packLabels?: PackLabelsProposal;
   /** Valores para abrir la calculadora la primera vez (costo de Shopify, números del onboarding). */
   pricingDefaults: Partial<PricingForm>;
-  /** Lo que la ficha dice que falta, como preguntas para el comerciante. */
-  missingInputs: { field: string; question: string }[];
-  /** Hay ficha (el diferenciador y la competencia se muestran desde ahí). */
+  /** Hay ficha (la escribe la estrategia al confirmar): el diferenciador se muestra desde ahí. */
   hasBrief: boolean;
   /** El diferenciador confirmado o propuesto. */
   differentiator: DifferentiatorView;
-  /** Tiendas de la competencia pegadas por el comerciante. */
-  competitors: CompetitorView[];
   /** «Revisar cada imagen con IA»: el QA con Claude de cada imagen generada. Apagado por defecto. */
   imageQa: boolean;
-}
-
-/** Un ángulo candidato del orquestador para testear, en el orden en que lo propuso (del que más vende al que menos). */
-export interface AngleCandidateView {
-  /** Posición en la lista del orquestador (lo que se guarda como sugerido). */
-  index: number;
-  title: string;
-  /** La frase que abre el anuncio. Vacía en las evaluaciones de antes del orquestador v7. */
-  hook: string;
-  aida?: AngleAida;
-  speaksTo?: SpeaksTo;
-  tone?: string;
-  /** Por qué va a vender, según el orquestador. */
-  why?: string;
-  painOrDesire: string;
-  segment: string;
-  promise: string;
-  /** La forma recomendada (una de las 6). */
-  frame: SalesAngle;
-  frameName: string;
-  triggerMoment: string;
-  /** Solo en las evaluaciones de antes: qué hacía la competencia con el ángulo. */
-  competition: string;
-  /** Montos que no son de PRECIO Y OFERTA (lo que cuesta la alternativa): verificarlos antes de elegirlo. */
-  marketAmounts: number[];
-}
-
-/** Un ángulo de testeo elegido (uno por conjunto de anuncios). */
-export interface TestAngleView {
-  slot: AngleSlot;
-  frame: SalesAngle;
-  frameName: string;
-  /** El título que puso la IA o el comerciante (vacío en los elegidos antes de los ángulos de testeo). */
-  title: string;
-  /** El título o, si no hay, el nombre de la forma. */
-  name: string;
-  painOrDesire: string;
-  segment: string;
-  promise: string;
-  triggerMoment: string;
-  competition: string;
-  hook?: string;
-  aida?: AngleAida;
-  speaksTo?: SpeaksTo;
-  tone?: string;
-  why?: string;
-  /** El ancla de mercado que el comerciante verificó al elegirlo. */
-  marketAmounts?: number[];
-}
-
-/** La evaluación del orquestador y la elección del comerciante. */
-export interface AngleRankingView {
-  id: string;
-  status: RunStatus;
-  error?: string;
-  createdAt: string;
-  /** Los ángulos candidatos para testear (vacío en las evaluaciones de antes). */
-  candidates: AngleCandidateView[];
-  /** Índices de candidates que sugiere el orquestador (2 o 3). */
-  suggested: number[];
-  /** Por qué sugiere esos. */
-  suggestedReason?: string;
-  /** Quién compra y quién usa el producto, según el orquestador. */
-  buyerAndUser?: string;
-  /** Datos de la información que no son creíbles: revisarlos antes de usarlos. */
-  doubts: string[];
-  /** Cuidados de cumplimiento propios del producto. */
-  watchOut: string[];
-  /** Lo que confirmó el comerciante (2 o 3 ángulos). */
-  chosen?: TestAngleView[];
-  confirmedAt?: string;
-  /** Tiendas de la competencia analizadas al evaluar. */
-  competitors: number;
-  /** “Para elegir mejor, falta”: nunca bloquea la confirmación. */
-  missing: { text: string; fix?: "reviews" | "expert" }[];
-  /** El cliente ideal cambió después de evaluar. */
-  avatarChanged: boolean;
 }
 
 /** Un gancho del agente de ganchos (lib/hooks), como lo ve el comerciante. Los de antes solo traen el texto. */
@@ -248,56 +183,6 @@ export interface AngleHookView {
   silentRead?: string;
   /** El crítico no se detuvo con este gancho: por qué. */
   noStop?: string;
-}
-
-/** Lo que el comerciante revisa y edita de un desarrollo (AngleDevelopment). */
-export interface AngleBriefContent {
-  coreMessage: string;
-  hooks: string[];
-  /** El detalle de cada gancho, en el mismo orden que `hooks`. */
-  hookDetails?: AngleHookView[];
-  /** El arquetipo del producto y la objeción principal (diagnóstico del agente de ganchos). */
-  hookDiagnosis?: { archetype: string; objection: string };
-  /** El paso de ganchos falló: se piden con «Otros ganchos». */
-  hooksError?: string;
-  recommendedHook: number;
-  aida: { attention: string; interest: string; desire: string; action: string };
-  objections: { objection: string; answer: string }[];
-  offer: string;
-}
-
-export interface AngleBriefView {
-  id: string;
-  /** La forma con que se cuenta. */
-  angle: SalesAngle;
-  /** El nombre del ángulo (título o, si no hay, la forma). */
-  name: string;
-  frameName: string;
-  slot: AngleSlot;
-  generation: RunStatus;
-  error?: string;
-  status: ContentStatus;
-  content?: AngleBriefContent;
-  createdAt: string;
-  editedAt?: string;
-}
-
-/** El estado de la etapa Ángulos (lo que devuelve el sondeo). */
-export interface AnglesState {
-  /** El cliente ideal vigente (IcpSummary). */
-  avatar?: { summary: string; tags: string[]; approved: boolean };
-  ranking?: AngleRankingView;
-  /** Los desarrollos de los ángulos elegidos, en orden de slot. */
-  briefs: AngleBriefView[];
-  /** El diferenciador del producto (confirmado o propuesto); sin él no se evalúa. */
-  differentiator?: { versus: string; claim: string; confirmed: boolean } | null;
-  /** Tiendas de la competencia analizadas (Información base). */
-  competitors: number;
-}
-
-/** Todo lo que necesita la etapa Ángulos. */
-export interface ProductAngles extends AnglesState {
-  product: Product;
 }
 
 /** Una foto elegida para un espacio de imagen de un componente (ImageSlot en su content.ts). */
@@ -1042,25 +927,3 @@ export interface DifferentiatorView {
   oldBrief?: boolean;
 }
 
-/** Una tienda de la competencia y el resumen de su análisis. */
-export interface CompetitorView {
-  id: string;
-  url: string;
-  /** El dominio, sin www. */
-  host: string;
-  status: "queued" | "running" | "succeeded" | "failed";
-  /** «No pudimos leer esa página: …» cuando falló. */
-  error?: string;
-  createdAt: string;
-  analysis?: {
-    storeName?: string;
-    price?: number;
-    compareAt?: number;
-    offer?: string;
-    painOrDesire: string;
-    promise: string;
-    frame: SalesAngle;
-    /** Nombre de la forma en la pantalla (ANGLES[frame].name). */
-    frameName: string;
-  };
-}

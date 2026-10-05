@@ -3,7 +3,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 
 // Filas de product_reviews y la lectura que usa la IA. Aparte de ./store para que el pipeline
-// (lib/pipeline/optimize.ts) las lea sin depender de las rutas de la API.
+// (lib/pipeline/strategy.ts) las lea sin depender de las rutas de la API.
 
 /** Reseñas que ve la IA al escribir la ficha. */
 const PROMPT_MAX = 30;

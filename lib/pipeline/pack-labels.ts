@@ -9,7 +9,7 @@ import { latestPackLabels, saveGeneratedPackLabels } from "@/lib/pricing/labels-
 import { getPricingPlan } from "@/lib/pricing/store";
 import { latestAvatars, latestBrief } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { OptimizeError, requireAiKey } from "./optimize";
+import { OptimizeError, requireAiKey } from "./errors";
 
 // “Otras etiquetas” en Precio y packs: una llamada chica, solo con las etiquetas, que parte de la
 // ficha, el cliente ideal y el precio vigentes. Las primeras salen con el cliente ideal (optimize.ts).

@@ -7,7 +7,7 @@ const NOW = "2026-09-26T10:00:00Z";
 
 /** `full`: Ajustes completos, packs y consejo de uso. `bare`: sin políticas, sin packs y sin ficha para el consejo. */
 export function fixture(state: string): ProductMessages {
-  const pos = productPosition({ price: 24990, currency: "CLP", avatar: { status: "aprobado", createdAt: NOW } });
+  const pos = productPosition({ price: 24990, currency: "CLP", base: { described: true, priced: true } });
   const product: Product = {
     id: "00000000-0000-0000-0000-000000000000",
     name: "Corrector de postura",

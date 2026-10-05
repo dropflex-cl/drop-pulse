@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ACCEPTED_TYPES,
   Button,
-  GenerationProgress,
   Icon,
   ImageUploader,
   ProductInfoInput,
@@ -16,7 +15,6 @@ import {
   Switch,
   TopBar,
   notify,
-  notifyUndo,
   type UploadItem,
   type UploaderMode,
 } from "@/components/df";
@@ -26,23 +24,21 @@ import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider"
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { IMAGE_QA_USD } from "@/lib/ai/costs";
-import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { count } from "@/lib/format";
 import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
 import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
-import type { AvatarProposal, OptimizationRun, ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
-import { AvatarProposalCard } from "./avatar-proposal";
-import { CompetitorsSection } from "./competitors-section";
+import type { ProductData } from "@/lib/products/product-data";
+import type { ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
 import { AI_SETTINGS_HREF, CONNECT_AI_NOTE } from "./connect-anthropic";
 import { DifferentiatorSection } from "./differentiator-section";
 import { PricingSection } from "./pricing-section";
+import { ProductDataSection } from "./product-data-section";
 
 const AUTOSAVE_MS = 1500;
-const POLL_MS = 2500;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const NOTE = "Define a tu cliente ideal en 1 o 2 minutos. Nada se publica sin tu OK.";
+const NOTE = "La IA identifica tu producto en menos de un minuto. Nada se publica sin tu OK.";
 
 interface Upload extends UploadItem {
   file: File;
@@ -150,23 +146,6 @@ function ImageQaSection({ productId, initial }: { productId: string; initial: bo
   );
 }
 
-/** “Optimizando”: los dos pasos de la corrida, con el mismo avance que el onboarding. */
-function OptimizingCard({ run, image, name }: { run: OptimizationRun; image?: string; name: string }) {
-  const onAvatar = run.step === "customer_avatar";
-  return (
-    <section aria-label="Optimización en curso" className="rounded-lg border bg-card p-4">
-      <GenerationProgress
-        title="La IA está trabajando"
-        progressLabel={`${onAvatar ? 1 : 0} de 2 pasos listos`}
-        items={[
-          { name: "Ficha del producto", image, status: onAvatar ? "generado" : "publicando", detail: onAvatar ? "Lista" : "Ordenando tu información e imágenes" },
-          { name: `Cliente ideal de ${name}`, image, status: onAvatar ? "publicando" : "cola", detail: onAvatar ? "Definiendo quién compra y por qué" : "Empieza al terminar la ficha" },
-        ]}
-      />
-    </section>
-  );
-}
-
 export function BaseInfoScreen({ base }: { base: ProductBase }) {
   const router = useRouter();
   const desktop = useDesktop();
@@ -182,38 +161,12 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
   const [fetching, setFetching] = useState(false);
 
   const [pricing, setPricing] = useState<SavedPricingDto | undefined>(base.pricing);
-  const [run, setRun] = useState<OptimizationRun | undefined>(base.run);
-  const [avatar, setAvatar] = useState<AvatarProposal | undefined>(base.avatar);
-  const [starting, setStarting] = useState(false);
+  const [productData, setProductData] = useState<ProductData | undefined>(base.productData);
+  const [identifying, setIdentifying] = useState(false);
   const [startError, setStartError] = useState<string>();
-  const [editing, setEditing] = useState(false);
-  const [deciding, setDeciding] = useState(false);
 
-  const running = run?.status === "queued" || run?.status === "running";
-  const failed = run?.status === "failed" && !(avatar && avatar.createdAt >= run.createdAt);
   const inUse = images.filter((i) => !i.excluded).length;
   const baseId = pickBase(images, (i) => i)?.id;
-  const approved = avatar?.status === "aprobado";
-
-  // ---------------------------------------------------------------- Sondeo de la corrida
-  useEffect(() => {
-    if (!running) return;
-    const t = window.setInterval(async () => {
-      try {
-        const s = await productsApi.status(product.id);
-        if (s.run) setRun(s.run);
-        if (s.avatar) setAvatar(s.avatar);
-        if (s.run && s.run.status !== "queued" && s.run.status !== "running") {
-          // La ruta, el encabezado y Hoy se leen en el servidor.
-          router.refresh();
-          if (s.run.status === "succeeded") notify("Tu cliente ideal está listo para revisar");
-        }
-      } catch {
-        // Un sondeo fallido no cambia nada: se intenta en el siguiente.
-      }
-    }, POLL_MS);
-    return () => window.clearInterval(t);
-  }, [running, product.id, router]);
 
   // ---------------------------------------------------------------- Imágenes
   const startUpload = useCallback(
@@ -310,48 +263,20 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
     }
   };
 
-  // ---------------------------------------------------------------- Optimizar y decidir
-  const optimize = async () => {
-    setStarting(true);
+  // ---------------------------------------------------------------- Identificar con IA
+  const identify = async () => {
+    setIdentifying(true);
     setStartError(undefined);
     try {
       await info.save();
-      const { run: started } = await productsApi.optimize(product.id);
-      setRun(started);
-      setEditing(false);
-    } catch (e) {
-      setStartError(errorText(e, "No pudimos empezar. Intenta de nuevo en un momento."));
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  const decide = async (action: "approve" | "reopen") => {
-    setDeciding(true);
-    try {
-      const res = await productsApi.decideAvatar(product.id, action);
-      setAvatar(res.avatar);
+      const res = await productsApi.identifyProduct(product.id);
+      setProductData(res.productData);
       router.refresh();
-      if (action === "approve") notifyUndo("Cliente ideal aprobado", () => decide("reopen"));
+      notify("Revisa los datos del producto: es lo que recibe la estrategia");
     } catch (e) {
-      notify(errorText(e, "No pudimos guardar tu decisión. Intenta de nuevo."));
+      setStartError(errorText(e, "No pudimos identificar el producto. Intenta de nuevo en un momento."));
     } finally {
-      setDeciding(false);
-    }
-  };
-
-  const saveEdited = async (edited: CustomerAvatar) => {
-    setDeciding(true);
-    try {
-      const res = await productsApi.editAvatar(product.id, edited, true);
-      setAvatar(res.avatar);
-      setEditing(false);
-      router.refresh();
-      notifyUndo("Cambios guardados y cliente ideal aprobado", () => decide("reopen"));
-    } catch (e) {
-      notify(errorText(e, "No pudimos guardar los cambios. Intenta de nuevo."));
-    } finally {
-      setDeciding(false);
+      setIdentifying(false);
     }
   };
 
@@ -418,44 +343,10 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
 
   const status = (
     <>
-      {running && run ? <OptimizingCard run={run} image={product.image} name={product.name} /> : null}
-      {failed && run ? (
-        <div role="alert" className="flex gap-3 rounded-lg border border-destructive bg-destructive-soft p-4 text-destructive">
-          <Icon name="alert" />
-          <div className="min-w-0 flex-1">
-            <p className="text-row">No se pudo optimizar</p>
-            <p className="text-label font-normal">{run.error ?? "Toca Reintentar."}</p>
-          </div>
-        </div>
-      ) : null}
-      {avatar && !running ? (
-        <AvatarProposalCard
-          proposal={avatar}
-          editing={editing}
-          saving={deciding}
-          onEdit={() => setEditing(true)}
-          onCancelEdit={() => setEditing(false)}
-          onSave={saveEdited}
-          onRegenerate={optimize}
-          regenerating={starting}
-        />
-      ) : null}
-      {base.hasBrief && !running ? (
-        // Se reinicia si la ficha nueva trae otra propuesta.
+      <ProductDataSection productId={product.id} value={productData} identifying={identifying} onIdentify={identify} onSaved={setProductData} />
+      {base.hasBrief ? (
+        // Se reinicia si la estrategia nueva trae otra propuesta.
         <DifferentiatorSection key={JSON.stringify(base.differentiator.proposed)} productId={product.id} initial={base.differentiator} />
-      ) : null}
-      {avatar && !running && base.missingInputs.length ? (
-        <section aria-labelledby="falta" className="rounded-lg border bg-card p-4">
-          <h2 id="falta" className="text-heading">
-            Para mejores anuncios, cuéntale a la IA
-          </h2>
-          <p className="mt-0.5 text-label font-normal text-muted-foreground">Agrégalo abajo, en lo que sabes del producto, y vuelve a generar.</p>
-          <ul className="mt-3 flex list-disc flex-col gap-1 pl-5 text-small">
-            {base.missingInputs.map((m) => (
-              <li key={m.field}>{m.question}</li>
-            ))}
-          </ul>
-        </section>
       ) : null}
     </>
   );
@@ -496,29 +387,17 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
   // Acción principal: una por vista (design-system › primary).
   let primary: React.ReactNode;
   let summary: React.ReactNode = NOTE;
-  if (editing) {
-    primary = null;
-  } else if (running) {
-    primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" loading>
-        Optimizando
-      </Button>
-    );
-    summary = "Puedes salir de esta pantalla: te avisamos en Hoy cuando esté listo.";
-  } else if (avatar && !approved) {
-    primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="check" loading={deciding} onClick={() => decide("approve")}>
-        Aceptar cliente ideal
-      </Button>
-    );
-    summary = "Revisa la propuesta. Puedes editarla o volver a generarla.";
-  } else if (approved) {
-    primary = (
+  if (productData) {
+    primary = pricing ? (
       <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
-        Continuar: Ángulos
+        Continuar: Estrategia
+      </Button>
+    ) : (
+      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" disabled>
+        Continuar: Estrategia
       </Button>
     );
-    summary = "Cliente ideal aprobado. Con él, la IA evalúa cómo vender el producto.";
+    summary = pricing ? "Con estos datos y tu precio, la IA escribe la estrategia de venta." : "Guarda el precio y los packs para seguir: la estrategia parte de ese precio.";
   } else if (product.aiConnected === false) {
     // Como Creativos sin Higgsfield: la acción de IA lleva a Ajustes a conectar la clave.
     primary = (
@@ -529,12 +408,11 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
     summary = CONNECT_AI_NOTE;
   } else {
     primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={starting} disabled={inUse === 0 || !pricing} onClick={optimize}>
-        {failed ? "Reintentar" : "Optimizar con IA"}
+      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={identifying} disabled={inUse === 0} onClick={identify}>
+        Identificar con IA
       </Button>
     );
-    if (inUse === 0) summary = "Agrega o vuelve a usar al menos una imagen para optimizar.";
-    else if (!pricing) summary = "Guarda el precio y los packs para optimizar: la IA escribe para ese precio.";
+    if (inUse === 0) summary = "Agrega o vuelve a usar al menos una imagen para identificar el producto.";
   }
 
   return (
@@ -570,7 +448,6 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
             </div>
           </section>
           {infoInput(desktop ? 9 : 4)}
-          <CompetitorsSection productId={product.id} currency={product.currency ?? "CLP"} initial={base.competitors} />
           <div className="lg:hidden">{reviewsCta}</div>
           <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
           <ImageQaSection productId={product.id} initial={base.imageQa} />

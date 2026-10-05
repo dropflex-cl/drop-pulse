@@ -7,12 +7,13 @@ import { LogoutButton } from "@/components/logout-button";
 import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { PageHeader } from "@/components/shell/page-header";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAiCostSettings, getAnthropicSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
+import { getAdSettings, getAiCostSettings, getAnthropicSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings, getPromptSettings } from "@/lib/data/settings";
 import { PolicySettings } from "@/components/screens/policy-settings";
 import { AiCostSettings } from "@/components/screens/ai-cost-settings";
 import { ApiKeySettings } from "@/components/screens/api-key-settings";
 import { AdSettings } from "@/components/screens/ad-settings";
 import { MarketSettings } from "@/components/screens/market-settings";
+import { PromptSettings } from "@/components/screens/prompt-settings";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -27,7 +28,7 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies] = await Promise.all([
+  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies, prompts] = await Promise.all([
     getAssumptions(),
     getMarketSettings(),
     getAdSettings(),
@@ -36,6 +37,7 @@ export default async function AjustesPage() {
     getGeminiSettings(),
     getAiCostSettings(),
     getPolicySettings(),
+    getPromptSettings(),
   ]);
   return (
     <>
@@ -87,6 +89,11 @@ export default async function AjustesPage() {
         {aiCost ? (
           <Section id="costo-ia" title="Costo de IA" description="Cuánto puede gastar la IA en cada producto. Lo ya generado nunca se bloquea.">
             <AiCostSettings cap={aiCost.cap} currency={aiCost.currency} />
+          </Section>
+        ) : null}
+        {prompts ? (
+          <Section id="prompts" title="Prompts" description="Solo administradores. El texto de cada prompt de la IA: guardar crea una versión nueva y la deja activa para todos los comerciantes.">
+            <PromptSettings prompts={prompts} />
           </Section>
         ) : null}
         <Section id="apariencia" title="Apariencia" description="Claro, oscuro o el mismo del teléfono.">

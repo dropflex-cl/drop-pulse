@@ -2,7 +2,7 @@ import { LoadingRegion, Skeleton } from "@/components/shell/skeletons";
 
 export default function Loading() {
   return (
-    <LoadingRegion label="Cargando los ángulos">
+    <LoadingRegion label="Cargando la estrategia">
       <div className="flex h-topbar items-center gap-3 px-4 lg:hidden">
         <Skeleton className="size-6" />
         <div className="flex flex-1 flex-col gap-1.5">

@@ -9,7 +9,7 @@ import { getProductRow, latestBrief } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { saveUsageTip } from "@/lib/whatsapp/store";
 import { tipFactText, tipOutputSchema, tipProblems, USAGE_TIP_PROMPT_VERSION, usageTipContext, usageTipSystem, usageTipTail, type UsageTip } from "@/lib/whatsapp/tip";
-import { OptimizeError, requireAiKey } from "./optimize";
+import { OptimizeError, requireAiKey } from "./errors";
 
 // El consejo de uso del mensaje «Entregado» (etapa WhatsApp): una llamada chica a Claude desde la ficha
 // y la información del producto. Si no cumple las reglas (lib/whatsapp/tip.ts › tipProblems), un

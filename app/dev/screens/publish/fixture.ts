@@ -52,7 +52,7 @@ export function fixture(state: string): { product: Product; data: PublishState }
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
-    avatar: { status: "aprobado", createdAt: NOW },
+    base: { described: true, priced: true },
     reviews: { pending: 0, approved: 12, total: 12 },
     angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2)] },
     copy: { run: { status: "succeeded" }, progress: { total: 13, enabled: 6, listing: "approved", complete: true } },

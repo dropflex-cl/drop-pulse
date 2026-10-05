@@ -1,5 +1,7 @@
 # Pipeline de IA: “Optimizar con IA”, Ángulos y la página del producto
 
+> **Desde el 2026-10-05, la primera parte cambió** (ver `docs/spec-estrategia.md`): «Optimizar con IA» (ficha + cliente ideal) y la etapa Ángulos (orquestador, agentes de ángulo, ganchos y crítico) se reemplazaron por **Datos del producto** y **Estrategia**, con los prompts guardados en la base (`prompt_templates`). La estrategia escribe las mismas tablas (`product_briefs`, `customer_avatars`, `angle_rankings`, `angle_briefs`), así que lo que sigue desde la Página del producto vale igual. Lo de abajo sobre la ficha, el cliente ideal y los ángulos queda como historia.
+
 Sistema de agentes creativos, adaptado a LATAM con pago contra entrega. Hoy genera la **ficha de producto** y el **cliente ideal** (Información base), en la etapa **Ángulos** el ranking del orquestador y los **2 desarrollos de ángulo** elegidos, y en la etapa **Textos** (“Página del producto”) los bloques de la página en la tienda. Los estáticos, los guiones y el copywriter de anuncios vienen después y leen estas piezas.
 
 ```

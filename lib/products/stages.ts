@@ -1,6 +1,6 @@
-// Dónde está un producto en su ruta, derivado de lo que hay en la base: la última optimización, la
-// última propuesta de cliente ideal, las reseñas (opcional), la etapa Ángulos (evaluación y
-// desarrollos) y la página del producto (Textos). Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
+// Dónde está un producto en su ruta, derivado de lo que hay en la base: los datos del producto y el
+// precio (Información base), las reseñas (opcional), la estrategia (la corrida del mega prompt y los
+// ángulos elegidos) y la página del producto (Textos). Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
 // Textos de design-system/reference/bundle.js (PP_STAGES, RV_STAGES y ANG_STAGES).
 
 import type { MeterStage } from "@/components/df/stage-meter";
@@ -30,11 +30,20 @@ export interface PublishFacts {
   error?: string | null;
 }
 
+/** La corrida más reciente de la estrategia (strategy_runs). */
+export interface StrategyFacts {
+  status: RunStatus;
+  error?: string | null;
+  confirmed: boolean;
+}
+
 export interface ProductFacts {
   price: number;
   currency: string;
-  run?: { status: RunStatus; error?: string | null; createdAt: string } | null;
-  avatar?: { status: ContentStatus; createdAt: string } | null;
+  /** Información base: los datos del producto identificados y el precio guardado. */
+  base?: { described: boolean; priced: boolean } | null;
+  strategy?: StrategyFacts | null;
+  /** Los ángulos elegidos y sus desarrollos (los escribe la estrategia al confirmar, o el flujo de antes). */
   angles?: AngleFacts | null;
   copy?: CopyFacts | null;
   /** Reseñas importadas (etapa opcional): nunca bloquean ni se bloquean. */
@@ -99,8 +108,8 @@ export interface ReviewFacts {
   importing?: boolean;
 }
 
-export type BasePhase = "new" | "optimizing" | "failed" | "review" | "done";
-export type AnglesPhase = "locked" | "new" | "evaluating" | "failed" | "choose" | "developing" | "review" | "done";
+export type BasePhase = "new" | "done";
+export type AnglesPhase = "locked" | "new" | "evaluating" | "failed" | "choose" | "done";
 export type CopyPhase = "locked" | "new" | "writing" | "failed" | "review" | "done";
 
 /** Nombre de la etapa Textos para el comerciante: escribe la página del producto, no el anuncio. */
@@ -121,36 +130,36 @@ export interface ProductPosition {
   status?: ContentStatus;
 }
 
-const pending = (s?: ContentStatus) => s === "generado" || s === "revision";
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 
+/** Los ángulos elegidos (2 o 3) con sus desarrollos aprobados: lo que habilita Imágenes, Página y Creativos. */
+export function anglesReady(a: AngleFacts | null | undefined): boolean {
+  const r = a?.ranking;
+  if (!r?.confirmed || r.status !== "succeeded") return false;
+  const briefs = a?.briefs ?? [];
+  return briefs.length >= Math.max(2, r.chosen ?? 2) && briefs.every((b) => b.generation === "succeeded" && b.status === "aprobado");
+}
+
+/**
+ * Información base está lista con los datos del producto y el precio. Un producto trabajado con el flujo
+ * de antes (sin datos del producto) que ya tiene sus ángulos listos también cuenta como listo.
+ */
 export function basePhase(f: ProductFacts): BasePhase {
-  const run = f.run;
-  if (run && (run.status === "queued" || run.status === "running")) return "optimizing";
-  const avatarIsNewer = f.avatar && (!run || f.avatar.createdAt >= run.createdAt);
-  if (run?.status === "failed" && !avatarIsNewer) return "failed";
-  if (f.avatar?.status === "aprobado") return "done";
-  if (pending(f.avatar?.status)) return "review";
-  if (run?.status === "failed") return "failed";
+  if (f.base?.priced && (f.base.described || anglesReady(f.angles))) return "done";
   return "new";
 }
 
-/** La etapa Ángulos se habilita al aprobar el cliente ideal y termina con los desarrollos de los ángulos elegidos (2 o 3) aprobados. */
+/** La etapa Estrategia se habilita con la información base lista y termina con los ángulos elegidos. */
 export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): AnglesPhase {
   if (base !== "done") return "locked";
-  const r = f.angles?.ranking;
-  if (!r) return "new";
-  if (active(r.status)) return "evaluating";
-  if (r.status === "failed") return "failed";
-  if (!r.confirmed) return "choose";
-  const briefs = f.angles?.briefs ?? [];
-  if (briefs.some((b) => active(b.generation))) return "developing";
-  // Confirmado sin uno de los desarrollos (una confirmación que falló a la mitad): nada lo está
-  // generando, así que no es «desarrollando»; se recupera con Regenerar.
-  const expected = Math.max(2, r.chosen ?? 2);
-  if (briefs.length < expected || briefs.some((b) => b.generation === "failed")) return "failed";
-  if (briefs.every((b) => b.status === "aprobado")) return "done";
-  return "review";
+  // Con ángulos listos, la etapa está hecha aunque se esté generando otra estrategia: lo de después sigue.
+  if (anglesReady(f.angles)) return "done";
+  const s = f.strategy;
+  if (!s) return "new";
+  if (active(s.status)) return "evaluating";
+  if (s.status === "failed") return "failed";
+  // Lista: el comerciante elige. Confirmada pero sin ángulos (falló al guardar): se vuelve a elegir.
+  return "choose";
 }
 
 /**
@@ -189,7 +198,7 @@ function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined, anglesDone:
   const p = c?.progress;
   switch (phase) {
     case "locked":
-      return anglesDone ? "Se habilita con las imágenes listas" : "Se habilita al aprobar los desarrollos de los ángulos";
+      return anglesDone ? "Se habilita con las imágenes listas" : "Se habilita al elegir los ángulos de la estrategia";
     case "new":
       return "La ficha y los componentes de la página con tus ángulos";
     case "writing":
@@ -203,29 +212,15 @@ function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined, anglesDone:
   }
 }
 
-const BASE_DESC: Record<BasePhase, string> = {
-  new: "Lo que sabes del producto, imágenes y precio",
-  optimizing: "La IA está definiendo a tu cliente ideal",
-  failed: "No se pudo optimizar",
-  review: "Tu cliente ideal espera tu revisión",
-  done: "Cliente ideal aprobado · precio y packs listos",
-};
+/** Nombre de la etapa Ángulos (StageKey `angulos`): la estrategia completa del mega prompt. */
+export const STRATEGY_STAGE_TITLE = "Estrategia";
 
-const BASE_STATE: Record<BasePhase, Stage["state"]> = {
-  new: "current",
-  optimizing: "current",
-  failed: "error",
-  review: "review",
-  done: "done",
-};
-
-const BASE_METER: Record<BasePhase, MeterStage> = {
-  new: "current",
-  optimizing: "current",
-  failed: "error",
-  review: "review",
-  done: "done",
-};
+function baseDesc(f: ProductFacts, phase: BasePhase): string {
+  if (phase === "done") return "Datos del producto · precio y packs listos";
+  if (!f.base?.described && !f.base?.priced) return "Identifica el producto y guarda el precio";
+  if (!f.base?.described) return "Falta identificar el producto";
+  return "Falta guardar el precio y los packs";
+}
 
 const ANGLES_STATE: Record<AnglesPhase, Stage["state"]> = {
   locked: "locked",
@@ -233,42 +228,23 @@ const ANGLES_STATE: Record<AnglesPhase, Stage["state"]> = {
   evaluating: "current",
   failed: "error",
   choose: "review",
-  developing: "current",
-  review: "review",
   done: "done",
 };
 
-const ANGLES_METER: Record<AnglesPhase, MeterStage> = {
-  locked: "locked",
-  new: "current",
-  evaluating: "current",
-  failed: "error",
-  choose: "review",
-  developing: "current",
-  review: "review",
-  done: "done",
-};
-
-function anglesDesc(phase: AnglesPhase, a: AngleFacts | null | undefined): string {
+function anglesDesc(phase: AnglesPhase, f: ProductFacts): string {
   switch (phase) {
     case "locked":
-      return "Se habilita al aprobar tu cliente ideal";
+      return "Se habilita con los datos del producto y el precio";
     case "new":
-      return "Elige cómo vas a vender este producto";
+      return "Genera la estrategia de venta con IA";
     case "evaluating":
-      return "La IA está evaluando los ángulos";
+      return "La IA está escribiendo la estrategia";
     case "failed":
-      return a?.ranking?.status === "failed"
-        ? (a.ranking.error ?? "No se pudo evaluar")
-        : (a?.briefs.find((b) => b.generation === "failed")?.error ?? (a && a.briefs.length < (a.ranking?.chosen ?? 2) ? "Falta un desarrollo · toca Regenerar" : "No se pudo desarrollar un ángulo"));
+      return f.strategy?.error ?? "No se pudo generar la estrategia";
     case "choose":
-      return "Sugerencia lista · elige los ángulos para testear";
-    case "developing":
-      return `La IA está desarrollando ${a?.ranking?.chosen ?? 3} ángulos`;
-    case "review":
-      return `${a?.briefs.filter((b) => b.status === "aprobado").length ?? 0} de ${a?.ranking?.chosen ?? a?.briefs.length ?? 3} desarrollos aprobados`;
+      return "Estrategia lista · elige 2 o 3 ángulos";
     case "done":
-      return (a?.briefs ?? []).map((b) => b.name).join(" · ");
+      return (f.angles?.briefs ?? []).map((b) => b.name).join(" · ");
   }
 }
 
@@ -300,7 +276,7 @@ function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined
   const base = { key: "creativos", title: "Creativos", optional: true } as const;
   const optional = (state: Stage["state"], desc: string) => ({ stage: { ...base, state, desc }, meter: "optional" as MeterStage });
   // Como Anuncios: bloqueada, su rayita sigue siendo «opcional» (no cuenta como pendiente).
-  if (!anglesDone) return optional("locked", "Después de aprobar los ángulos");
+  if (!anglesDone) return optional("locked", "Después de elegir los ángulos");
   // Sin Anthropic no hay conceptos que generar; lo ya propuesto se sigue viendo.
   if (!ai && !c?.concepts) return optional("locked", CONNECT_AI);
   if (!c?.connected) return optional("locked", "Conecta Higgsfield en Ajustes");
@@ -318,7 +294,7 @@ function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined
  */
 function imagesStage(anglesDone: boolean, i: ImageFacts | null | undefined, ai = true): { stage: Stage; meter: MeterStage; done: boolean } {
   const base = { key: "imagenes", title: "Imágenes" } as const;
-  if (!anglesDone) return { stage: { ...base, state: "locked", desc: "Se habilita al aprobar los desarrollos de los ángulos" }, meter: "locked", done: false };
+  if (!anglesDone) return { stage: { ...base, state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" }, meter: "locked", done: false };
   const done = Boolean(i?.cover) && (i?.gallery ?? 0) >= GALLERY_MIN;
   if (done) return { stage: { ...base, state: "done", desc: `Portada y ${i!.gallery} de galería` }, meter: "done", done };
   if (i?.running) return { stage: { ...base, state: "current", desc: "La IA está pensando tu galería" }, meter: "current", done };
@@ -366,13 +342,13 @@ export function productPosition(f: ProductFacts): ProductPosition {
     {
       key: "importado",
       title: "Información base",
-      state: BASE_STATE[phase],
-      // Información base nunca se bloquea (ahí se escribe lo del producto): solo dice qué falta para optimizar.
-      desc: phase === "failed" && f.run?.error ? f.run.error : phase === "new" && !ai ? `${CONNECT_AI} para optimizar` : BASE_DESC[phase],
+      state: phase === "done" ? "done" : "current",
+      // Información base nunca se bloquea (ahí se escribe lo del producto): solo dice qué falta.
+      desc: phase === "new" && !ai && !f.base?.described ? `${CONNECT_AI} para identificar el producto` : baseDesc(f, phase),
     },
     // Reseñas es opcional: nunca bloquea ni se bloquea (arquitectura.md › 9).
     reviews.stage,
-    { key: "angulos", title: "Ángulos", ...(angles === "new" ? aiLocked(ANGLES_STATE[angles], anglesDesc(angles, f.angles)) : { state: ANGLES_STATE[angles], desc: anglesDesc(angles, f.angles) }) },
+    { key: "angulos", title: STRATEGY_STAGE_TITLE, ...(angles === "new" ? aiLocked(ANGLES_STATE[angles], anglesDesc(angles, f)) : { state: ANGLES_STATE[angles], desc: anglesDesc(angles, f) }) },
     // Imágenes va antes de la Página del producto: sus componentes usan las imágenes elegidas. El
     // precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
     images.stage,
@@ -384,36 +360,26 @@ export function productPosition(f: ProductFacts): ProductPosition {
     // WhatsApp es opcional: los mensajes de los pedidos, cuando empiecen a llegar.
     messagesStage(phase === "done"),
   ];
-  const meter: MeterStage[] = [BASE_METER[phase], reviews.meter, ANGLES_METER[angles], images.meter, COPY_METER[copy], publish.meter, creatives.meter, "optional", "optional"];
+  const meter: MeterStage[] = [phase === "done" ? "done" : "current", reviews.meter, ANGLES_STATE[angles] as MeterStage, images.meter, COPY_METER[copy], publish.meter, creatives.meter, "optional", "optional"];
   const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
   const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
 
-  switch (phase) {
-    case "new":
-      return { ...common, filter: "avanzan", tone: "primary", reason: ai ? "Sin optimizar · agrega lo que sabes" : "Sin optimizar · conecta Anthropic en Ajustes", nextStage: "importado", summary: `Importado de Shopify · sin optimizar${price}` };
-    case "optimizing":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Optimizando con IA", nextStage: "importado", summary: `Optimizando con IA${price}` };
-    case "failed":
-      return { ...common, filter: "detenidos", tone: "danger", reason: "No se pudo optimizar · reintenta", nextStage: "importado", summary: `No se pudo optimizar${price}`, status: "error" };
-    case "review":
-      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · cliente ideal", nextStage: "importado", summary: `Cliente ideal por revisar${price}`, status: "revision" };
+  if (phase === "new") {
+    const reason = !f.base?.described ? (ai ? "Identifica el producto · agrega lo que sabes" : "Sin identificar · conecta Anthropic en Ajustes") : "Falta el precio y los packs";
+    return { ...common, filter: "avanzan", tone: "primary", reason, nextStage: "importado", summary: `Importado de Shopify · sin estrategia${price}` };
   }
 
   switch (angles) {
     case "evaluating":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Evaluando ángulos con IA", nextStage: "angulos", summary: `Evaluando ángulos${price}` };
+      return { ...common, filter: "avanzan", tone: "primary", reason: "Escribiendo la estrategia con IA", nextStage: "angulos", summary: `Escribiendo la estrategia${price}` };
     case "failed":
-      return { ...common, filter: "detenidos", tone: "danger", reason: "Ángulos: no se pudo · reintenta", nextStage: "angulos", summary: `Ángulos con error${price}`, status: "error" };
+      return { ...common, filter: "detenidos", tone: "danger", reason: "Estrategia: no se pudo · reintenta", nextStage: "angulos", summary: `Estrategia con error${price}`, status: "error" };
     case "choose":
-      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · ángulos", nextStage: "angulos", summary: `Ángulos por elegir${price}`, status: "revision" };
-    case "developing":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Desarrollando ángulos con IA", nextStage: "angulos", summary: `Desarrollando ángulos${price}` };
-    case "review":
-      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · ángulos", nextStage: "angulos", summary: `Ángulos por revisar${price}`, status: "revision" };
+      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · estrategia", nextStage: "angulos", summary: `Ángulos por elegir${price}`, status: "revision" };
     case "done":
       break;
     default:
-      return { ...common, filter: "avanzan", tone: "primary", reason: ai ? "Siguiente: ángulos de venta" : CONNECT_AI, nextStage: "angulos", summary: `Información base lista${price}`, status: "aprobado" };
+      return { ...common, filter: "avanzan", tone: "primary", reason: ai ? "Siguiente: estrategia de venta" : CONNECT_AI, nextStage: "angulos", summary: `Información base lista${price}`, status: "aprobado" };
   }
 
   if (!images.done) {

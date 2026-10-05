@@ -5,14 +5,13 @@
 // así que una pantalla que espera una corrida colgada la ve fallar en el siguiente sondeo.
 import "server-only";
 import { after } from "next/server";
-import { expireStaleAngles } from "@/lib/angles/store";
 import { expireStaleCopy } from "@/lib/copy/store";
 import { expireStaleCreatives } from "@/lib/creatives/store";
 import { expireStalePageImages } from "@/lib/page-images/store";
 import { expireStaleLaunches } from "@/lib/pipeline/ads-launch";
 import { expireStalePublications } from "@/lib/pipeline/publish";
+import { expireStaleStrategies } from "@/lib/pipeline/strategy";
 import { expireStaleImports } from "@/lib/reviews/store";
-import { expireStaleRuns } from "./store";
 import { syncSelectedProducts } from "./sync";
 
 const EVERY_MS = 60_000;
@@ -21,9 +20,8 @@ const lastRun = new Map<string, number>();
 async function housekeeping(userId: string): Promise<void> {
   await syncSelectedProducts(userId).catch((e) => console.error("[products/housekeeping] sincronizar", e));
   const results = await Promise.allSettled([
-    expireStaleRuns(userId),
     expireStaleImports(userId),
-    expireStaleAngles(userId),
+    expireStaleStrategies(userId),
     expireStaleCopy(userId),
     expireStaleCreatives(userId),
     expireStalePageImages(userId),

@@ -33,7 +33,7 @@ import { isUsable } from "./select";
 /**
  * Bump cuando cambie el prompt o el esquema del agente de ganchos (lib/hooks/prompts.ts). 2: la primera
  * toma (opening_shot) y la versión de mascota. 3: parte del gancho del ángulo (orquestador v7). 4: detener
- * el scroll (tensión, el problema nombrado, MATERIA PRIMA, rank, delivery y el crítico de lib/hooks/critic.ts).
+ * el scroll (tensión, el problema nombrado, MATERIA PRIMA, rank, delivery y el crítico de ganchos, retirado con la estrategia).
  * 5: los montos del ancla de mercado del ángulo (market_anchor) se pueden usar. 6: prompt corto con el
  * contexto de lib/ai/context.ts (docs/spec-prompts-simples.md §4): sin la biblioteca de patrones, sin
  * cuotas, sin la versión de mascota (la escribe el guion de mascota), citas opcionales, sin puntajes ni
@@ -80,7 +80,7 @@ export interface HookTop {
   variant: { changes: string; text: string };
 }
 
-/** Lo que dijo el crítico de un gancho (lib/hooks/critic.ts). */
+/** Lo que dijo el crítico de un gancho (hasta la estrategia de 2026-10-05; se sigue leyendo en lo guardado). */
 export interface HookReview {
   stops: boolean;
   understood_muted: string;

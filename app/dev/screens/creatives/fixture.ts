@@ -167,7 +167,7 @@ export function fixture(state: string, video = "none"): ProductCreatives {
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
-    avatar: { status: "aprobado", createdAt: NOW },
+    base: { described: true, priced: true },
     angles: state === "locked" ? { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1)] } : { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2)] },
     creatives: {
       connected: state !== "key",

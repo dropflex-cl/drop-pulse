@@ -8,7 +8,7 @@ import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar } from "@/lib/ai/schemas";
 import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
 import { anglesForPrompt } from "@/lib/angles/store";
-import { getDifferentiator } from "@/lib/competitors/store";
+import { getDifferentiator } from "@/lib/products/differentiator";
 import { fail } from "@/lib/angles/store";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
@@ -56,11 +56,11 @@ import { ProductApiError } from "@/lib/products/http";
 import { download as downloadFromLink } from "@/lib/products/images";
 import { imageQaEnabled, latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
-import { approvedAngles } from "./angles";
+import { approvedAngles } from "@/lib/angles/store";
 import { onGeminiError, onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 import { optimizeImage } from "@/lib/media/optimize";
-import { OptimizeError, requireAiKey } from "./optimize";
+import { OptimizeError, requireAiKey } from "./errors";
 
 // Etapa Imágenes (docs/spec-imagenes.md): las imágenes de la página del producto, por espacio.
 // 1. El director de galería (Claude) propone una toma por espacio con dirección de arte: portada, 5 de

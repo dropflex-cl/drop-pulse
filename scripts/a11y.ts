@@ -33,6 +33,13 @@ const EXTRA = [
   { name: "creativos", path: "/dev/screens/creatives?state=rendering" },
   { name: "creativos-listos", path: "/dev/screens/creatives?state=done" },
   { name: "creativos-sin-clave", path: "/dev/screens/creatives?state=key" },
+  // Estrategia (docs/spec-estrategia.md): el informe escribiéndose, el TOP 5 por elegir y lo confirmado.
+  { name: "estrategia", path: "/dev/screens/angles?state=running" },
+  { name: "estrategia-elegir", path: "/dev/screens/angles?state=choose" },
+  { name: "estrategia-lista", path: "/dev/screens/angles?state=done" },
+  // Información base con los datos del producto identificados y sin identificar.
+  { name: "base-datos", path: "/dev/screens/base?state=identified" },
+  { name: "base-nuevo", path: "/dev/screens/base?state=new" },
   // WhatsApp: los mensajes con Ajustes completos y el consejo, y sin nada (el aviso y los «[…]»).
   { name: "whatsapp", path: "/dev/screens/whatsapp?state=full" },
   { name: "whatsapp-vacio", path: "/dev/screens/whatsapp?state=bare" },

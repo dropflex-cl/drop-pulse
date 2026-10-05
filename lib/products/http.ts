@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/integrations/session";
 import { OnboardingError } from "@/lib/onboarding/types";
-import { OptimizeError } from "@/lib/pipeline/optimize";
+import { OptimizeError } from "@/lib/pipeline/errors";
 import { getProductRow, type ProductRow } from "./store";
 
 // Rutas /api/products/*: errores { error, field? } en español con el código HTTP que corresponde

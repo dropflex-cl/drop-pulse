@@ -6,7 +6,7 @@ import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { stampEntries } from "@/lib/angles/approved";
 import { anglesForPrompt, fail } from "@/lib/angles/store";
-import { getDifferentiator } from "@/lib/competitors/store";
+import { getDifferentiator } from "@/lib/products/differentiator";
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
 import { productFactText, schemaProblems, toWrite } from "@/lib/copy/page-schema";
@@ -16,7 +16,7 @@ import { policiesBlock, type CopyContext } from "@/lib/copy/prompts";
 import { writeArgument, writePage } from "@/lib/copy/write";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
 import { activeComponents, currentContent, getComponentRow, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
-import { approvedAngles } from "./angles";
+import { approvedAngles } from "@/lib/angles/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import type { Market } from "@/lib/market";
@@ -28,7 +28,7 @@ import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { getMarket } from "@/lib/settings/market";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import type { ImagePick } from "@/lib/types";
-import { OptimizeError, requireAiKey } from "./optimize";
+import { OptimizeError, requireAiKey } from "./errors";
 
 // Etapa Página del producto (docs/spec-pagina-componentes.md). Con los desarrollos de ángulo
 // aprobados, dos pasos (docs/spec-prompts-simples.md §5): un redactor escribe el ARGUMENTO de venta

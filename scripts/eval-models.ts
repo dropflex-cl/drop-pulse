@@ -2,7 +2,7 @@
 // la app. No escribe en ninguna base: lee un JSON exportado de prod y deja todo en --out.
 //
 //   npx tsx --conditions=react-server --env-file=.env.local scripts/eval-models.ts \
-//     --in <prod-inputs.json> --out <carpeta> [--task copy|avatar|all] [--samples 2] [--dry]
+//     --in <prod-inputs.json> --out <carpeta> [--task copy] [--samples 2] [--dry]
 //     [--models claude-opus-5,claude-sonnet-5] [--repair]
 //
 // La página son dos pasos, como en la app (docs/spec-prompts-simples.md §5): el argumento
@@ -21,11 +21,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
-import { customerAvatarSystem, customerAvatarUser } from "@/lib/ai/prompts";
-import { avatarStepSchema, readAvatar, type ProductBrief } from "@/lib/ai/schemas";
+import { readAvatar, type ProductBrief } from "@/lib/ai/schemas";
 import { angleForPrompt } from "@/lib/angles/approved";
 import type { AngleSlot, TestAngle } from "@/lib/angles/catalog";
-import { differentiatorState } from "@/lib/competitors/store";
+import { differentiatorState } from "@/lib/products/differentiator";
 import { pageProblems, pageSchema, productFactText, toWrite, type PageOutput } from "@/lib/copy/page-schema";
 import { argumentContext, argumentSystem } from "@/lib/copy/argument";
 import { copySystem, copyUser, policiesBlock, type CopyContext } from "@/lib/copy/prompts";
@@ -52,7 +51,7 @@ interface ProdInput {
 }
 
 interface Job {
-  task: "copy" | "avatar";
+  task: "copy";
   product: string;
   model: string;
   sample: number;
@@ -145,22 +144,6 @@ function textsOfValue(v: unknown): string[] {
   return [];
 }
 
-function avatarJobs(d: ProdInput): Job[] {
-  const { market, pricing } = d.optimizeInput;
-  const system = customerAvatarSystem(market);
-  const user = customerAvatarUser(d.brief, d.product.base_info ?? "", pricing);
-  return MODELS.map((model) => ({
-    task: "avatar" as const,
-    product: d.product.title,
-    model,
-    sample: 0,
-    prompt: `${system}\n\n=====\n\n${user}`,
-    run: () => generateStructured({ apiKey: API_KEY, system, content: [{ type: "text", text: user }], schema: avatarStepSchema, effort: "high", model }),
-    // La app no valida el cliente ideal más allá del esquema: la calidad se lee a mano.
-    check: () => [],
-  }));
-}
-
 async function pool<T>(items: (() => Promise<T>)[], size: number): Promise<T[]> {
   const out: T[] = [];
   let next = 0;
@@ -187,7 +170,8 @@ async function main() {
   const inputs = JSON.parse(readFileSync(inPath, "utf8")) as ProdInput[];
   mkdirSync(outDir, { recursive: true });
 
-  const jobs = inputs.flatMap((d) => [...(task === "avatar" ? [] : copyJobs(d, samples)), ...(task === "copy" ? [] : avatarJobs(d))]);
+  // El cliente ideal ya no tiene prompt propio: sale de la estrategia (docs/spec-estrategia.md).
+  const jobs = inputs.flatMap((d) => (task === "copy" || task === "all" ? copyJobs(d, samples) : []));
   const name = (j: Job) => `${j.task}-${slug(j.product)}-${j.model.replace(/^claude-/, "")}-${j.sample}`;
 
   if (dry) {

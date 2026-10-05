@@ -146,3 +146,11 @@ export async function savePricingPlan(userId: string, product: Pick<ProductRow, 
   if (error) throw new Error(`Guardar el precio: ${error.message}`);
   return toPlan(data as PricingRow);
 }
+
+/** Los productos (de los dados) que ya tienen el precio guardado: la ruta de etapas lo pide. */
+export async function pricedProducts(userId: string, productIds: string[]): Promise<Set<string>> {
+  if (!productIds.length) return new Set();
+  const { data, error } = await adminClient().from("product_pricing").select("product_id").eq("user_id", userId).in("product_id", productIds);
+  if (error) throw new Error(`Leer los precios: ${error.message}`);
+  return new Set((data ?? []).map((r) => r.product_id as string));
+}

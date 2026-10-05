@@ -63,37 +63,18 @@ function productEntries(products: Product[]): AttentionEntry[] {
   for (const p of products) {
     const base = p.stages.find((s) => s.key === "importado");
     const href = productHref(p.id, "importado");
-    if (base?.state === "error") {
-      out.push({
-        id: `optimize-error-${p.id}`,
-        group: "primero",
-        kind: "error",
-        title: "No se pudo optimizar",
-        product: p.name,
-        detail: base.desc,
-        actions: [{ label: "Reintentar", href, variant: "primary" }],
-      });
-    } else if (base?.state === "review") {
-      out.push({
-        id: `avatar-review-${p.id}`,
-        group: "revisar",
-        kind: "review",
-        title: "Tu cliente ideal está listo",
-        product: p.name,
-        actions: [{ label: "Revisar ahora", href, iconEnd: "chevron-right" }],
-      });
-    } else if (base?.state === "current" && p.reason.startsWith("Sin optimizar")) {
+    if (base?.state === "current") {
       out.push({
         id: `optimize-${p.id}`,
         group: "revisar",
         kind: "stuck",
-        title: "Falta optimizar con IA",
-        product: `${p.name} · agrega lo que sabes y sus imágenes`,
+        title: "Falta la información base",
+        product: `${p.name} · ${base.desc?.toLowerCase() ?? "identifica el producto y guarda el precio"}`,
         actions: [{ label: "Empezar", href, iconEnd: "chevron-right" }],
       });
     }
 
-    // Etapa Ángulos: se habilita al aprobar el cliente ideal.
+    // Etapa Estrategia: se habilita con los datos del producto y el precio.
     const angles = p.stages.find((s) => s.key === "angulos");
     const anglesHref = productHref(p.id, "angulos");
     if (angles?.state === "error") {
@@ -101,29 +82,28 @@ function productEntries(products: Product[]): AttentionEntry[] {
         id: `angles-error-${p.id}`,
         group: "primero",
         kind: "error",
-        title: "No se pudieron preparar los ángulos",
+        title: "No se pudo generar la estrategia",
         product: p.name,
         detail: angles.desc,
         actions: [{ label: "Reintentar", href: anglesHref, variant: "primary" }],
       });
-    } else if (p.anglesPhase === "choose" || p.anglesPhase === "review") {
-      const choosing = p.anglesPhase === "choose";
+    } else if (p.anglesPhase === "choose") {
       out.push({
         id: `angles-review-${p.id}`,
         group: "revisar",
         kind: "review",
-        title: choosing ? "Elige cómo vender este producto" : "Tus ángulos están listos para revisar",
+        title: "Tu estrategia está lista: elige los ángulos",
         product: p.name,
         detail: angles?.desc,
-        actions: [{ label: choosing ? "Elegir ángulos" : "Revisar ahora", href: anglesHref, iconEnd: "chevron-right" }],
+        actions: [{ label: "Elegir ángulos", href: anglesHref, iconEnd: "chevron-right" }],
       });
     } else if (p.anglesPhase === "new") {
       out.push({
         id: `angles-${p.id}`,
         group: "revisar",
         kind: "stuck",
-        title: "Falta elegir los ángulos de venta",
-        product: `${p.name} · cliente ideal aprobado`,
+        title: "Falta generar la estrategia de venta",
+        product: `${p.name} · información base lista`,
         actions: [{ label: "Empezar", href: anglesHref, iconEnd: "chevron-right" }],
       });
     }

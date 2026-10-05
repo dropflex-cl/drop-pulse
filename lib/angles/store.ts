@@ -1,20 +1,14 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
-import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
-import type { AngleBriefView, AngleCandidateView, AngleHookView, AngleRankingView, RunStatus, TestAngleView } from "@/lib/types";
-import { ANGLES, testAngleName, type AngleSlot, type SalesAngle, type TestAngle } from "./catalog";
-import type { PricingPlan } from "@/lib/pricing/plan";
-import { isStrategy, marketAmounts, type AngleBriefPayload, type LegacyScoredAngle, type RankingPayload } from "./schemas";
+import type { DbContentStatus } from "@/lib/products/store";
+import type { RunStatus } from "@/lib/types";
+import type { AngleSlot, SalesAngle, TestAngle } from "./catalog";
+import type { AngleBriefPayload, LegacyScoredAngle, RankingPayload } from "./schemas";
 import { angleForPrompt, type AngleForPrompt } from "./approved";
-import { ARCHETYPE_NAMES, OPENING_SHOT_DEFS, PATTERN_NAMES } from "@/lib/hooks/catalog";
-import type { AngleHook } from "@/lib/hooks/schemas";
 
-// angle_rankings y angle_briefs: lecturas y escrituras de la etapa Ángulos. Siempre con service_role
-// filtrando por el dueño (como lib/products/store.ts).
-
-/** Una evaluación o un desarrollo que no avanza en este tiempo se da por interrumpido. */
-const RUNNING_STALE_MS = 10 * 60 * 1000;
-const QUEUED_STALE_MS = 3 * 60 * 1000;
+// angle_rankings y angle_briefs: los ángulos elegidos y sus desarrollos, como los leen los pasos
+// siguientes. Desde la estrategia (lib/pipeline/strategy.ts) se escriben al confirmar, ya aprobados.
+// Siempre con service_role filtrando por el dueño (como lib/products/store.ts).
 
 export interface RankingRow {
   id: string;
@@ -53,23 +47,6 @@ export interface BriefRow {
 
 export function fail(what: string, error: { message: string } | null) {
   if (error) throw new Error(`${what}: ${error.message}`);
-}
-
-/** Cierra las evaluaciones y los desarrollos colgados (el proceso murió). */
-export async function expireStaleAngles(userId: string): Promise<void> {
-  const db = adminClient();
-  const now = Date.now();
-  const stamp = new Date().toISOString();
-  const running = new Date(now - RUNNING_STALE_MS).toISOString();
-  const queued = new Date(now - QUEUED_STALE_MS).toISOString();
-  const patch = (message: string) => ({ error_code: "stale", error_message: message, finished_at: stamp, updated_at: stamp });
-  const results = await Promise.all([
-    db.from("angle_rankings").update({ status: "failed", ...patch("La evaluación se interrumpió. Toca Reintentar.") }).eq("user_id", userId).eq("status", "running").lt("started_at", running),
-    db.from("angle_rankings").update({ status: "failed", ...patch("La evaluación se interrumpió. Toca Reintentar.") }).eq("user_id", userId).eq("status", "queued").lt("created_at", queued),
-    db.from("angle_briefs").update({ generation: "failed", ...patch("El desarrollo se interrumpió. Toca Regenerar.") }).eq("user_id", userId).eq("generation", "running").lt("started_at", running),
-    db.from("angle_briefs").update({ generation: "failed", ...patch("El desarrollo se interrumpió. Toca Regenerar.") }).eq("user_id", userId).eq("generation", "queued").lt("created_at", queued),
-  ]);
-  for (const r of results) fail("Cerrar ángulos colgados", r.error);
 }
 
 /** La evaluación más reciente de cada producto. */
@@ -149,12 +126,6 @@ export async function currentBriefStates(userId: string, rankingIds: string[]): 
   return map;
 }
 
-export async function getBriefRow(userId: string, productId: string, briefId: string): Promise<BriefRow | null> {
-  const { data, error } = await adminClient().from("angle_briefs").select("*").eq("user_id", userId).eq("product_id", productId).eq("id", briefId).maybeSingle();
-  fail("Leer el desarrollo", error);
-  return (data as BriefRow | null) ?? null;
-}
-
 // ---------------------------------------------------------------- A la pantalla
 
 /** Los ángulos elegidos, en orden de slot. */
@@ -166,147 +137,6 @@ export function chosenAngles(r: Pick<RankingRow, "chosen_angles" | "confirmed_at
 /** ¿Están todos los ángulos elegidos desarrollados y aprobados? (2 o 3; los de antes, 2). */
 export function allApproved(chosen: Pick<TestAngle, "slot">[], briefs: BriefsBySlot<Pick<BriefState, "generation" | "status">>): boolean {
   return chosen.length >= 2 && chosen.every((a) => briefs[a.slot]?.generation === "succeeded" && briefs[a.slot]?.status === "approved");
-}
-
-export function toTestAngleView(a: TestAngle): TestAngleView {
-  return {
-    slot: a.slot,
-    frame: a.frame,
-    frameName: ANGLES[a.frame].name,
-    title: a.title,
-    name: testAngleName(a),
-    painOrDesire: a.pain_or_desire,
-    segment: a.segment,
-    promise: a.promise,
-    triggerMoment: a.trigger_moment,
-    competition: a.competition,
-    hook: a.hook || undefined,
-    aida: a.aida,
-    speaksTo: a.speaks_to,
-    tone: a.tone || undefined,
-    why: a.why || undefined,
-    marketAmounts: a.market_amounts?.length ? a.market_amounts : undefined,
-  };
-}
-
-/** Los candidatos del orquestador, en su orden (las evaluaciones de antes traen otros campos). */
-export function candidateViews(r: Pick<RankingRow, "payload" | "input">): AngleCandidateView[] {
-  const p = r.payload;
-  const pricing = r.input.pricing as PricingPlan | undefined;
-  if (isStrategy(p))
-    return p.angles.map((a, i) => ({
-      index: i,
-      title: a.title,
-      hook: a.hook,
-      aida: a.aida,
-      speaksTo: a.speaks_to,
-      tone: a.tone,
-      why: a.why,
-      painOrDesire: a.pain_or_desire,
-      segment: a.segment,
-      promise: a.promise,
-      frame: a.frame,
-      frameName: ANGLES[a.frame]?.name ?? a.frame,
-      triggerMoment: a.trigger_moment,
-      competition: "",
-      // Montos que no son de la tienda: el comerciante los verifica antes de elegir el ángulo.
-      marketAmounts: pricing ? marketAmounts(a, pricing) : [],
-    }));
-  return (p?.test_angles ?? []).map((c, i) => ({
-    index: i,
-    title: c.title,
-    hook: "",
-    painOrDesire: c.pain_or_desire,
-    segment: c.segment,
-    promise: c.promise,
-    frame: c.frame,
-    frameName: ANGLES[c.frame]?.name ?? c.frame,
-    triggerMoment: c.trigger_moment,
-    competition: c.competition,
-    marketAmounts: [],
-  }));
-}
-
-/** `currentAvatarId`: el cliente ideal aprobado hoy; si es otro, la evaluación quedó vieja. */
-export function toRankingView(r: RankingRow, currentAvatarId: string | undefined): AngleRankingView {
-  const p = r.payload;
-  const strategy = isStrategy(p) ? p : null;
-  const missing: AngleRankingView["missing"] = [];
-  if (strategy) {
-    if (!((r.input.reviews as string[] | undefined) ?? []).length) missing.push({ text: "Reseñas reales: con reseñas aprobadas la IA puede contar historias de compradores", fix: "reviews" });
-  } else {
-    // Evaluaciones de antes: el puntaje de las 6 formas y lo que subirían con la prueba que falta.
-    const scores = r.scores ?? [];
-    const potential = (r.input.potential ?? {}) as Partial<Record<"reviews" | "expert", number>>;
-    if (scores.some((s) => s.risks.some((k) => k.fix === "reviews"))) missing.push({ text: `Reseñas reales: subirían Historia personal hasta ~${potential.reviews ?? 70}`, fix: "reviews" });
-    if (scores.some((s) => s.risks.some((k) => k.fix === "expert"))) missing.push({ text: `Un experto real que lo recomiende: subiría Autoridad hasta ~${potential.expert ?? 70}`, fix: "expert" });
-    // Evaluaciones de la versión 1 guardaban { text, gain }.
-    if (p && !isStrategy(p)) for (const m of p.missing_inputs ?? []) missing.push({ text: typeof m === "string" ? m : m.gain ? `${m.text}: ${m.gain}` : m.text });
-  }
-  const chosen = chosenAngles(r);
-  return {
-    id: r.id,
-    status: r.status,
-    error: r.error_message ?? undefined,
-    createdAt: r.created_at,
-    candidates: candidateViews(r),
-    suggested: r.suggested_slots ?? [],
-    suggestedReason: strategy?.test_first_reason || undefined,
-    buyerAndUser: strategy?.buyer_and_user || undefined,
-    doubts: (strategy?.doubts ?? []).filter((d) => d.trim()),
-    watchOut: (strategy?.watch_out ?? []).filter((w) => w.trim()),
-    chosen: chosen.length ? chosen.map(toTestAngleView) : undefined,
-    confirmedAt: r.confirmed_at ?? undefined,
-    competitors: Number((r.input as { competitors?: number }).competitors ?? 0),
-    missing,
-    avatarChanged: Boolean(currentAvatarId && r.input.avatar_id && r.input.avatar_id !== currentAvatarId),
-  };
-}
-
-function hookView(h: AngleHook): AngleHookView {
-  return {
-    pattern: h.pattern ? PATTERN_NAMES[h.pattern] : undefined,
-    followUp: h.follow_up ?? undefined,
-    onScreen: h.on_screen || undefined,
-    visual: h.visual_first_3s || undefined,
-    needsMaterial: h.needs_real_material?.trim() || undefined,
-    // Los ganchos que agregaba a mano el comerciante antes (sin patrón ni visual) quedaban en policy_ok false sin revisar.
-    highRisk: h.risk === "high" ? h.risk_reason || "Riesgo alto" : h.policy_ok === false && (h.pattern || h.visual_first_3s || h.edited) ? "Roza las políticas de Meta" : undefined,
-    edited: h.edited || undefined,
-    openingShot: h.opening_shot && h.opening_shot !== "real_footage" ? OPENING_SHOT_DEFS[h.opening_shot].name : undefined,
-    realFootage: h.opening_shot === "real_footage" || undefined,
-    silentRead: h.review?.understood_muted || h.silent_read || undefined,
-    noStop: h.review && !h.review.stops ? h.review.why || "Alguien del cliente ideal pasaría de largo." : undefined,
-  };
-}
-
-export function toBriefView(b: BriefRow, angle?: TestAngle): AngleBriefView {
-  const p = b.payload;
-  return {
-    id: b.id,
-    angle: b.angle,
-    name: angle ? testAngleName(angle) : ANGLES[b.angle].name,
-    frameName: ANGLES[b.angle].name,
-    slot: b.slot,
-    generation: b.generation,
-    error: b.error_message ?? undefined,
-    status: toUiStatus(b.status),
-    content: p
-      ? {
-          coreMessage: p.core_message,
-          hooks: p.hooks.map((h) => h.text),
-          hookDetails: p.hooks.map(hookView),
-          hookDiagnosis: p.hook_diagnosis ? { archetype: ARCHETYPE_NAMES[p.hook_diagnosis.archetype] ?? p.hook_diagnosis.archetype, objection: p.hook_diagnosis.main_objection } : undefined,
-          hooksError: !p.hooks.length ? (p.hooks_error ?? undefined) : undefined,
-          recommendedHook: Math.min(Math.max(0, p.recommended_hook), Math.max(0, p.hooks.length - 1)),
-          aida: p.aida_summary,
-          objections: p.objection_handling,
-          offer: p.offer_layer,
-        }
-      : undefined,
-    createdAt: b.created_at,
-    editedAt: b.edited_at ?? undefined,
-  };
 }
 
 /**
@@ -329,4 +159,14 @@ export async function anglesForPrompt(userId: string, ids: string[]): Promise<An
     const angle = chosen.get(r.ranking_id)?.find((a) => a.slot === r.slot) ?? { slot: r.slot, frame: r.angle, title: "", pain_or_desire: "", segment: "", promise: "", trigger_moment: "", competition: "" };
     return angleForPrompt(angle, r.payload!, r.angle);
   });
+}
+
+/** Los ángulos elegidos con su desarrollo aprobado (los leen Imágenes, Página, Creativos, Video y Eventos), o null si falta alguno. */
+export async function approvedAngles(userId: string, productId: string): Promise<{ angle: TestAngle; brief: BriefRow }[] | null> {
+  const ranking = (await latestRankings(userId, [productId])).get(productId);
+  if (!ranking?.confirmed_at) return null;
+  const chosen = chosenAngles(ranking);
+  const briefs = (await currentBriefs(userId, [ranking.id])).get(ranking.id) ?? {};
+  if (!allApproved(chosen, briefs)) return null;
+  return chosen.map((angle) => ({ angle, brief: briefs[angle.slot]! })).filter((a) => a.brief.payload);
 }

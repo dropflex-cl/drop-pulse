@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AnglesScreen } from "@/components/screens/angles";
-import { getProductAngles } from "@/lib/data/products";
+import { StrategyScreen } from "@/components/screens/strategy";
+import { getProductStrategy } from "@/lib/data/products";
 
-export const metadata: Metadata = { title: "Ángulos" };
+export const metadata: Metadata = { title: "Estrategia" };
 
 /**
- * Ángulos (PantallasAngulos1/2, PantallasAngulosEscritorio1/2): con el cliente ideal aprobado, la IA
- * evalúa los 6 ángulos de venta, el comerciante elige principal y secundario y aprueba sus desarrollos.
+ * Estrategia (docs/spec-estrategia.md): con los datos del producto y el precio, el mega prompt escribe la
+ * estrategia completa y el comerciante elige 2 o 3 de sus TOP 5 ángulos para testear.
  */
-export default async function AnglesPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function StrategyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const angles = await getProductAngles(id);
-  if (!angles) notFound();
-  return <AnglesScreen data={angles} />;
+  const strategy = await getProductStrategy(id);
+  if (!strategy) notFound();
+  return <StrategyScreen data={strategy} />;
 }

@@ -5,6 +5,11 @@ import type { AiRun, AiStageCost, ProductAiCost, StageKey } from "@/lib/types";
 
 /** Cada paso que llama a un modelo. Un paso nuevo se agrega aquí, con su etapa y su nombre. */
 export const AI_STEPS = {
+  product_data: { stage: "importado", label: "Datos del producto" },
+  strategy: { stage: "angulos", label: "Estrategia" },
+  strategy_extract: { stage: "angulos", label: "Lectura de la estrategia" },
+  // Los pasos de antes de la estrategia (ficha, cliente ideal, ángulos, ganchos): ya no corren, pero su
+  // costo registrado se sigue sumando en su etapa.
   product_brief: { stage: "importado", label: "Ficha del producto" },
   customer_avatar: { stage: "importado", label: "Cliente ideal" },
   pack_labels: { stage: "importado", label: "Nombres de los packs" },
@@ -40,6 +45,9 @@ export type AiStep = keyof typeof AI_STEPS;
  * Claude Opus 5 (evaluación ~US$0,15; desarrollo con effort high ~US$0,30).
  */
 const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
+  product_data: 0.03,
+  strategy: 1.5,
+  strategy_extract: 0.1,
   angle_ranking: 0.15,
   angle_frames: 0.01,
   angle_brief: 0.3,

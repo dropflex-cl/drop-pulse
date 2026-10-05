@@ -2,16 +2,13 @@ import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { baseFirst, pickBase } from "./base";
 import { readAvatar, type CustomerAvatar, type ProductBrief } from "@/lib/ai/schemas";
-import type { AvatarProposal, ContentStatus, OptimizationRun, ReferenceImage, RunStatus } from "@/lib/types";
+import type { ContentStatus, ReferenceImage } from "@/lib/types";
 
 // Lecturas y escrituras de productos, imágenes de referencia, corridas y propuestas. Siempre con
 // service_role filtrando por el dueño (el mismo patrón de lib/onboarding/store.ts).
 
 export const REFERENCES_BUCKET = "product-references";
 const SIGNED_URL_TTL_S = 60 * 60;
-/** Una corrida que no avanza en este tiempo se da por interrumpida (el proceso murió). */
-const RUN_STALE_MS = 10 * 60 * 1000;
-const QUEUED_STALE_MS = 3 * 60 * 1000;
 
 export interface ProductRow {
   id: string;
@@ -39,6 +36,8 @@ export interface ProductRow {
   image_qa: boolean;
   /** El consejo de uso del mensaje «Entregado» (etapa WhatsApp); null si no se escribió. */
   usage_tip?: import("@/lib/whatsapp/tip").UsageTip | null;
+  /** Datos del producto: el nombre y la descripción que recibe la estrategia; null sin identificar. */
+  product_data?: import("./product-data").ProductData | null;
   created_at: string;
 }
 
@@ -54,19 +53,6 @@ export interface ImageRow {
   /** Elegida por el comerciante como imagen base (una por producto). */
   is_base: boolean;
   excluded: boolean;
-}
-
-export interface RunRow {
-  id: string;
-  product_id: string;
-  user_id: string;
-  status: RunStatus;
-  current_step: "product_brief" | "customer_avatar" | null;
-  error_message: string | null;
-  input: Record<string, unknown>;
-  started_at: string | null;
-  finished_at: string | null;
-  created_at: string;
 }
 
 export interface AvatarRow {
@@ -229,46 +215,7 @@ export function toReferenceImage(r: ImageRow, src: string): ReferenceImage {
   return { id: r.id, src, alt: r.alt ?? "", source: r.source, excluded: r.excluded, cover: r.is_cover, base: r.is_base };
 }
 
-// ---------------------------------------------------------------- Corridas y propuestas
-
-/** Marca como fallidas las corridas que quedaron colgadas. Devuelve cuántas. */
-export async function expireStaleRuns(userId: string): Promise<void> {
-  const now = Date.now();
-  const db = adminClient();
-  const message = "La optimización se interrumpió. Toca Reintentar.";
-  const stamp = new Date().toISOString();
-  const [a, b] = await Promise.all([
-    db
-      .from("pipeline_runs")
-      .update({ status: "failed", error_code: "stale", error_message: message, finished_at: stamp })
-      .eq("user_id", userId)
-      .eq("status", "running")
-      .lt("started_at", new Date(now - RUN_STALE_MS).toISOString()),
-    db
-      .from("pipeline_runs")
-      .update({ status: "failed", error_code: "stale", error_message: message, finished_at: stamp })
-      .eq("user_id", userId)
-      .eq("status", "queued")
-      .lt("created_at", new Date(now - QUEUED_STALE_MS).toISOString()),
-  ]);
-  fail("Cerrar corridas colgadas", a.error);
-  fail("Cerrar corridas colgadas", b.error);
-}
-
-/** La corrida más reciente de cada producto. */
-export async function latestRuns(userId: string, productIds: string[]): Promise<Map<string, RunRow>> {
-  if (!productIds.length) return new Map();
-  const { data, error } = await adminClient()
-    .from("pipeline_runs")
-    .select("*")
-    .eq("user_id", userId)
-    .in("product_id", productIds)
-    .order("created_at", { ascending: false });
-  fail("Leer las optimizaciones", error);
-  const map = new Map<string, RunRow>();
-  for (const r of (data ?? []) as RunRow[]) if (!map.has(r.product_id)) map.set(r.product_id, r);
-  return map;
-}
+// ---------------------------------------------------------------- Ficha y cliente ideal (los escribe la estrategia al confirmar)
 
 /** La propuesta de cliente ideal vigente de cada producto (la más reciente que no se descartó). */
 export async function latestAvatars(userId: string, productIds: string[]): Promise<Map<string, AvatarRow>> {
@@ -286,44 +233,12 @@ export async function latestAvatars(userId: string, productIds: string[]): Promi
   return map;
 }
 
-// ---------------------------------------------------------------- Estado para la ruta (liviano)
-
-/** Lo que la ruta de etapas mira de una corrida o propuesta (sin payload ni input). */
-export type RunState = Pick<RunRow, "product_id" | "status" | "error_message" | "created_at">;
-export type AvatarState = Pick<AvatarRow, "product_id" | "status" | "created_at">;
 
 /** La fila más reciente de cada producto (las filas vienen ordenadas de la más nueva a la más vieja). */
 export function newestByProduct<T extends { product_id: string }>(rows: T[]): Map<string, T> {
   const map = new Map<string, T>();
   for (const r of rows) if (!map.has(r.product_id)) map.set(r.product_id, r);
   return map;
-}
-
-/** Como latestRuns, sin input: solo para la posición en la ruta. */
-export async function latestRunStates(userId: string, productIds: string[]): Promise<Map<string, RunState>> {
-  if (!productIds.length) return new Map();
-  const { data, error } = await adminClient()
-    .from("pipeline_runs")
-    .select("product_id, status, error_message, created_at")
-    .eq("user_id", userId)
-    .in("product_id", productIds)
-    .order("created_at", { ascending: false });
-  fail("Leer las optimizaciones", error);
-  return newestByProduct((data ?? []) as RunState[]);
-}
-
-/** Como latestAvatars, sin el cliente ideal: solo para la posición en la ruta. */
-export async function latestAvatarStates(userId: string, productIds: string[]): Promise<Map<string, AvatarState>> {
-  if (!productIds.length) return new Map();
-  const { data, error } = await adminClient()
-    .from("customer_avatars")
-    .select("product_id, status, created_at")
-    .eq("user_id", userId)
-    .in("product_id", productIds)
-    .neq("status", "rejected")
-    .order("created_at", { ascending: false });
-  fail("Leer los clientes ideales", error);
-  return newestByProduct((data ?? []) as AvatarState[]);
 }
 
 /** El id de la ficha vigente: la huella con que la Página recuerda de qué ficha se escribió. */
@@ -351,20 +266,4 @@ export async function latestBrief(userId: string, productId: string): Promise<Pr
     .maybeSingle();
   fail("Leer la ficha", error);
   return (data?.payload as ProductBrief | undefined) ?? null;
-}
-
-export function toRun(r: RunRow): OptimizationRun {
-  return {
-    id: r.id,
-    status: r.status,
-    step: r.current_step,
-    error: r.error_message ?? undefined,
-    createdAt: r.created_at,
-    startedAt: r.started_at ?? undefined,
-    finishedAt: r.finished_at ?? undefined,
-  };
-}
-
-export function toProposal(r: AvatarRow): AvatarProposal {
-  return { id: r.id, status: toUiStatus(r.status), avatar: readAvatar(r.payload), createdAt: r.created_at, editedAt: r.edited_at ?? undefined };
 }

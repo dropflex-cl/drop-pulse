@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { adHookText } from "@/lib/hooks/select";
-import { approvedAngles } from "@/lib/pipeline/angles";
+import { approvedAngles } from "@/lib/angles/store";
 import { getPublications } from "@/lib/pipeline/publish";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection, type MetaConnection } from "@/lib/integrations/meta/connection";

@@ -7,7 +7,7 @@ import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { readAvatar, type PackLabel } from "@/lib/ai/schemas";
 import { testAngleName, type AngleSlot } from "@/lib/angles/catalog";
 import { anglesForPrompt, fail } from "@/lib/angles/store";
-import { getDifferentiator } from "@/lib/competitors/store";
+import { getDifferentiator } from "@/lib/products/differentiator";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, removeAdCopies } from "@/lib/creatives/store";
 import { ratioOf, sniffMedia } from "@/lib/ads/media";
 import { adminClient } from "@/lib/integrations/admin";
@@ -63,9 +63,9 @@ import {
   type UgcScript,
 } from "@/lib/video/schemas";
 import { activeScripts, getScriptRow, getShotRow, isShotRecoverable, latestByKey, purgeSupersededVideos, shotsFor, videoStep, type ScriptRow, type ShotRow } from "@/lib/video/store";
-import { approvedAngles } from "./angles";
+import { approvedAngles } from "@/lib/angles/store";
 import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
-import { OptimizeError, requireAiKey } from "./optimize";
+import { OptimizeError, requireAiKey } from "./errors";
 
 // Video UGC en Creativos (docs/spec-video-ugc.md). Cada paso en segundo plano (after), como Creativos:
 // 1. El guionista (Claude) escribe lo que se dice (ugc_script) y otra llamada barata arma las tomas

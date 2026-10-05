@@ -65,7 +65,7 @@ export function fixture(requested: string): ProductCopy {
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
-    avatar: { status: "aprobado", createdAt: NOW },
+    base: { described: true, priced: true },
     reviews: { pending: 0, approved: 6, total: 6 },
     angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1, "aprobado"), brief(2, locked ? "revision" : "aprobado")] },
     copy: run ? { run: { status: run.status, error: run.error }, progress: copyProgress(list) } : null,

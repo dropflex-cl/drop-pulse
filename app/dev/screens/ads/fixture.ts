@@ -6,7 +6,6 @@ import { productImage } from "@/lib/mock/images";
 import { productPosition } from "@/lib/products/stages";
 import type { AdMedia, ProductAds } from "@/lib/types";
 
-const NOW = "2026-09-24T10:00:00Z";
 const TEXTS = {
   primary_texts: [
     "¿Terminas el día con la espalda cargada? El corrector sujeta tus hombros atrás mientras trabajas.\n\n2 por $39.990 · Paga al recibir",
@@ -38,7 +37,7 @@ export function fixture(state: string): ProductAds {
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
-    avatar: { status: "aprobado", createdAt: NOW },
+    base: { described: true, priced: true },
     angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [] },
     copy: { run: { status: "succeeded" }, progress: pageDone ? { ...copyProgress([]), complete: true } : copyProgress([]) },
     ads: { metaReady: state !== "meta", campaigns: 0, launching: state === "launching" },
