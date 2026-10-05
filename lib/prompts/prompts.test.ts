@@ -3,7 +3,19 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { renderPrompt, tagValues, templateProblems } from "./render";
-import { costText, priceText, PRODUCT_DATA_TAGS, STRATEGY_TAGS, type StrategyTagContext } from "./tags";
+import { costText, priceText, PRODUCT_DATA_TAGS, STRATEGY_TAGS, PROMPT_KEYS, type StrategyTagContext } from "./tags";
+import { toPromptSettings } from "./view";
+
+describe("Ajustes › Prompts", () => {
+  it.each(PROMPT_KEYS)("%s puede pasar del servidor a la pantalla sin funciones", (key) => {
+    const view = toPromptSettings(key, []);
+    expect(() => structuredClone(view)).not.toThrow();
+    expect(view.tags.length).toBeGreaterThan(0);
+    for (const tag of view.tags) {
+      expect(Object.keys(tag).sort()).toEqual(["label", "tag"]);
+    }
+  });
+});
 
 const CL = { countryCode: "CL", currency: "CLP", language: "es", timezone: "America/Santiago" };
 const pricing = buildPricingPlan(

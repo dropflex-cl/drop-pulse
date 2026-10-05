@@ -70,8 +70,8 @@ export const PRODUCT_DATA_TAGS: TagDef<ProductDataTagContext>[] = [
 
 /** Los tags de cada prompt (sin el `resolve`, para validar y para la pantalla). */
 export const TAGS_BY_KEY: Record<PromptKey, { tag: string; label: string }[]> = {
-  product_data: PRODUCT_DATA_TAGS,
-  strategy: STRATEGY_TAGS,
+  product_data: PRODUCT_DATA_TAGS.map(({ tag, label }) => ({ tag, label })),
+  strategy: STRATEGY_TAGS.map(({ tag, label }) => ({ tag, label })),
 };
 
 export const isPromptKey = (v: unknown): v is PromptKey => typeof v === "string" && (PROMPT_KEYS as readonly string[]).includes(v);
