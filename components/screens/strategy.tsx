@@ -31,6 +31,11 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
   const router = useRouter();
   const { product } = data;
   const [state, setState] = useState<StrategyState>(data);
+  const [shownData, setShownData] = useState(data);
+  if (shownData !== data) {
+    setShownData(data);
+    setState(data);
+  }
   const s = state.strategy;
   const baseHref = productHref(product.id, "importado");
   const working = active(s?.status);
@@ -48,6 +53,19 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
   const [error, setError] = useState<string>();
   const cost = useAiEstimate("strategy");
   const costText = cost ? money(cost.amount, cost.currency) : null;
+
+  // Una navegación puede traer el bloqueo anterior a identificar el producto o guardar su precio.
+  // Comprueba los requisitos actuales sin arrancar una generación ni gastar créditos.
+  useEffect(() => {
+    if (!data.blocker) return;
+    let cancelled = false;
+    void productsApi.strategy(product.id).then((fresh) => {
+      if (!cancelled) setState(fresh);
+    }).catch(() => {
+      // Conserva el motivo visible si no se pudo comprobar el estado actual.
+    });
+    return () => { cancelled = true; };
+  }, [data, product.id]);
 
   // ---------------------------------------------------------------- Sondeo
   const wasWorking = useRef(working);
