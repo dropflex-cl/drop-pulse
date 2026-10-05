@@ -17,7 +17,7 @@ prompts se editan en la base.
 ## 2. Estrategia (etapa `angulos`, `/products/[id]/angles`)
 
 1. «Generar estrategia» crea una corrida en `strategy_runs` y la corre en segundo plano (`after()`,
-   `maxDuration = 800`): el **mega prompt** activo, tal cual, con sus tags llenos y la imagen base
+   `maxDuration = 300`, el máximo del plan Hobby de Vercel): el **mega prompt** activo, tal cual, con sus tags llenos y la imagen base
    delante, sin system prompt.
 2. El informe se escribe con streaming (`generateText`) y se guarda cada pocos segundos en
    `strategy_runs.report`: la pantalla lo muestra mientras se escribe.
@@ -65,7 +65,8 @@ una versión anterior. Cada generación guarda la versión de su plantilla en
 
 ## Riesgos conocidos
 
-- **Duración**: el informe completo puede tardar de 3 a 8 minutos con Opus. `maxDuration = 800`
-  necesita Vercel Pro con Fluid compute. Si no alcanza, se baja el esfuerzo de la plantilla en Ajustes,
-  sin deploy. Una corrida sin avance en 15 minutos queda fallida (`expireStaleStrategies`).
+- **Duración**: el plan Hobby de Vercel no acepta funciones de más de 300 s (con 800, Vercel rechazó el
+  deploy). El informe tiene 210 s (`STRATEGY_REPORT_BUDGET_MS`) y la extracción el resto; si el informe
+  pasa ese tope, se corta y la corrida falla con el motivo («baja el esfuerzo a Medio en Ajustes ›
+  Prompts»), sin deploy. Una corrida sin avance en 15 minutos queda fallida (`expireStaleStrategies`).
 - **Costo**: estimado en ~US$1,50 por estrategia (`DEFAULT_STEP_USD`), y se ajusta solo con el historial.

@@ -198,7 +198,7 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
       </div>
     );
     footer = (
-      <StickyActions variant="bar" stack summary="Toma entre 3 y 8 minutos. Puedes salir de esta pantalla." mobileNote="Toma entre 3 y 8 minutos." className="lg:px-8">
+      <StickyActions variant="bar" stack summary="Toma unos 4 minutos. Puedes salir de esta pantalla." mobileNote="Toma unos 4 minutos." className="lg:px-8">
         <Button variant="primary" size="lg" icon="sparkle" loading={busy === "generate"} onClick={generate} className="max-lg:w-full lg:h-control lg:text-row">
           {view === "failed" ? "Volver a generar" : costText ? `Generar estrategia por ~${costText}` : "Generar estrategia"}
         </Button>
@@ -211,7 +211,7 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
           <Icon name="loader" className="motion-exempt animate-spin text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="text-row">{s?.step === "extract" ? "La IA está leyendo los ángulos del informe" : "La IA está escribiendo tu estrategia"}</p>
-            <p className="text-label font-normal text-muted-foreground">Toma entre 3 y 8 minutos. Puedes salir de esta pantalla: te avisamos en Hoy.</p>
+            <p className="text-label font-normal text-muted-foreground">Toma unos 4 minutos. Puedes salir de esta pantalla: te avisamos en Hoy.</p>
           </div>
         </section>
         {s?.report ? (

@@ -277,6 +277,8 @@ export async function generateText({
   maxTokens,
   model = AI_MODEL,
   onText,
+  timeoutMs,
+  timeoutMessage = "La IA tardó demasiado y se cortó. Reintenta.",
   ...auth
 }: AiAuth & {
   content: Anthropic.Beta.BetaContentBlockParam[];
@@ -284,6 +286,9 @@ export async function generateText({
   maxTokens: number;
   model?: string;
   onText?: (text: string) => Promise<void> | void;
+  /** Corta la respuesta pasado este tiempo (la función tiene un máximo): falla con `timeout` y su mensaje. */
+  timeoutMs?: number;
+  timeoutMessage?: string;
 }): Promise<{ text: string; usage: AiUsage }> {
   const started = Date.now();
   const anthropic = await client(auth);
@@ -299,6 +304,8 @@ export async function generateText({
       });
   };
   let res: Message;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
   try {
     const stream = anthropic.beta.messages.stream({
       model,
@@ -312,9 +319,21 @@ export async function generateText({
     stream.on("text", (_delta, snapshot) => {
       if (Date.now() - last >= PROGRESS_MS) report(snapshot);
     });
+    if (timeoutMs) {
+      timer = setTimeout(() => {
+        timedOut = true;
+        stream.abort();
+      }, timeoutMs);
+    }
     res = await stream.finalMessage();
   } catch (e) {
+    if (timedOut && e instanceof Anthropic.APIUserAbortError) {
+      if (pending) await pending;
+      throw new AiStepError("timeout", timeoutMessage);
+    }
     throw await apiError(e, auth);
+  } finally {
+    clearTimeout(timer);
   }
   const usage = usageOf(res, started);
   checkStop(res, usage);

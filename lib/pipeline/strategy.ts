@@ -44,6 +44,12 @@ const DAILY_LIMIT = 10;
 /** Una corrida que no avanza en este tiempo se da por interrumpida (cada avance toca updated_at). */
 const RUNNING_STALE_MS = 15 * 60 * 1000;
 const QUEUED_STALE_MS = 3 * 60 * 1000;
+/**
+ * Tiempo máximo del informe: la función tiene 300 s (app/api/products/[id]/strategy) y la extracción
+ * necesita el resto. Pasado este tope, la respuesta se corta y la corrida falla con un motivo claro, en
+ * vez de quedar colgada hasta que la cierre expireStaleStrategies.
+ */
+const STRATEGY_REPORT_BUDGET_MS = 210_000;
 /** Cada cuánto se guarda el informe mientras se escribe. */
 const SAVE_EVERY_MS = 4000;
 
@@ -221,6 +227,8 @@ async function reportStep(r: StrategyRunRow): Promise<{ report: string; usage: A
     effort: t.effort as "low" | "medium" | "high",
     maxTokens: t.max_tokens as number,
     model: t.model as string,
+    timeoutMs: STRATEGY_REPORT_BUDGET_MS,
+    timeoutMessage: "El informe tardó más de 3 minutos y medio y se cortó. Pide a un administrador bajar el esfuerzo del prompt de estrategia a «Medio» en Ajustes › Prompts y vuelve a generar.",
     onText: async (snapshot) => {
       if (Date.now() - last < SAVE_EVERY_MS) return;
       last = Date.now();
