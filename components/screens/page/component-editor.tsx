@@ -35,6 +35,7 @@ export interface ComponentEditorProps {
   view: PageComponentView;
   selection?: LandingSelection;
   facts: StoreFacts;
+  videos?: { id: string; name: string }[];
   accent: string | null;
   catalog: CatalogImage[];
   imagesHref: string;
@@ -47,7 +48,7 @@ export interface ComponentEditorProps {
   rewriting?: boolean;
 }
 
-export function ComponentEditor({ view, selection = {}, facts, accent, catalog, imagesHref, saving, error, onCancel, onSave, onRewrite, rewriting }: ComponentEditorProps) {
+export function ComponentEditor({ view, selection = {}, facts, videos, accent, catalog, imagesHref, saving, error, onCancel, onSave, onRewrite, rewriting }: ComponentEditorProps) {
   const [expected] = useState({ expected_id: view.id, expected_updated_at: view.updatedAt });
   const [activeSelection, setActiveSelection] = useState<LandingSelection>(selection);
   const listing = view.component === LISTING;
@@ -101,7 +102,7 @@ export function ComponentEditor({ view, selection = {}, facts, accent, catalog, 
           <p className="text-caption text-muted-foreground">
             Las palabras entre llaves, como {"{count}"} o {"{min}"}, las reemplaza tu tienda con datos reales: reseñas, plazos y políticas.
           </p>
-          <ComponentForm fields={fields} value={variant.content} onChange={updateDraft} errors={visibleErrors} reviews={facts.reviews} />
+          <ComponentForm fields={fields} value={variant.content} onChange={updateDraft} errors={visibleErrors} reviews={facts.reviews} videos={videos} />
           {slots.length ? (
             <div className="flex flex-col gap-3 border-t pt-5">
               <h3 className="text-heading">Fotos</h3>

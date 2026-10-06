@@ -3,6 +3,7 @@
 // sobre el estado final en graph.ts, no con lecturas externas en el parser.
 import { z } from "zod";
 import { getPackLabelsInput, savePackLabelsInput, packLabelsOutputs } from "./pack-labels-schemas";
+import { getUgcInput, saveUgcInput, getUgcMontageInput, ugcOutputs } from "./ugc-schemas";
 import { getLandingInput, saveLandingInput, landingOutputs } from "./landing-schemas";
 
 function isHttpsUrl(value: string): boolean {
@@ -1546,37 +1547,15 @@ export const generate_landingOutputSchema = z.union([z.strictObject({
   "error": errorSchema
 })]);
 
-export const generate_ugcInputSchema = z.union([z.strictObject({
-  "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
-  "dry_run": z.boolean().default(false),
-  "stage": z.literal("script"),
-  "strategy_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "angle_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "format": z.enum(["ugc", "mascot"])
-}), z.strictObject({
-  "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
-  "dry_run": z.boolean().default(false),
-  "stage": z.literal("keyframes"),
-  "script_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "expected_artifact_etag": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
-  "shot_keys": z.array(z.string().min(1).max(64)).min(1).max(20).refine(uniqueItems, "No repitas elementos.").meta({ uniqueItems: true })
-}), z.strictObject({
-  "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
-  "dry_run": z.boolean().default(false),
-  "stage": z.literal("clips"),
-  "script_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "expected_artifact_etag": z.string().regex(new RegExp("^[0-9a-f]{64}$")),
-  "shot_keys": z.array(z.string().min(1).max(64)).min(1).max(20).refine(uniqueItems, "No repitas elementos.").meta({ uniqueItems: true })
-})]);
+export const generate_ugcInputSchema = z.strictObject({
+  product_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }), schema_version: z.literal("1.0"),
+  expected_revision: z.number().int().nonnegative().safe(),
+  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false),
+  replace_existing: z.boolean().default(false),
+  stage: z.enum(["keyframes", "clips"]), script_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }),
+  expected_artifact_etag: z.string().regex(/^[0-9a-f]{64}$/),
+  shot_keys: z.array(z.string().regex(/^[KAB][1-9][0-9]?$/)).min(1).max(20).refine(uniqueItems, "No repitas tomas."),
+});
 
 export const generate_ugcOutputSchema = z.union([z.strictObject({
   "ok": z.literal(true),
@@ -1623,6 +1602,7 @@ export const generationContextSchema = z.strictObject({
 });
 
 export const inputSchemas = {
+  get_ugc_content: getUgcInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
   get_pack_labels: getPackLabelsInput, save_pack_labels: savePackLabelsInput,
   "get_landing_content": getLandingInput,
   "save_landing_content": saveLandingInput,
@@ -1640,7 +1620,9 @@ export const inputSchemas = {
 
 const landingOutputSchemas = landingOutputs(errorSchema);
 const packOutputs = packLabelsOutputs(errorSchema);
+const ugcOutputSchemas = ugcOutputs(errorSchema);
 export const outputSchemas = {
+  get_ugc_content: ugcOutputSchemas.get, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
   get_pack_labels: packOutputs.get, save_pack_labels: packOutputs.save,
   "get_landing_content": landingOutputSchemas.get,
   "save_landing_content": landingOutputSchemas.save,

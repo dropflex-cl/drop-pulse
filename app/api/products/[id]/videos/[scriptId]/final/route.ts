@@ -23,7 +23,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const { id, scriptId } = await params;
     const { userId } = await ownedProduct(id);
-    await confirmFinal(userId, id, scriptId, await json<{ path: string; width: number; height: number; durationS: number | null }>(req));
+    await confirmFinal(userId, id, scriptId, await json<{ path: string; width: number; height: number; durationS: number | null; expected_artifact_etag: string }>(req));
     return NextResponse.json(await videosState(userId, id));
   } catch (e) {
     return errorResponse(e, "No pudimos guardar el video. Intenta de nuevo.");
@@ -37,9 +37,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id, scriptId } = await params;
     const { userId } = await ownedProduct(id);
-    const { action } = await json<{ action: FinalDecision }>(req);
+    const { action, expected_artifact_etag } = await json<{ action: FinalDecision; expected_artifact_etag: string }>(req);
     if (!action || !ACTIONS.includes(action)) throw new ProductApiError("Acción no válida.", 400);
-    await decideFinal(userId, id, scriptId, action);
+    await decideFinal(userId, id, scriptId, action, expected_artifact_etag);
     return NextResponse.json(await videosState(userId, id));
   } catch (e) {
     return errorResponse(e);

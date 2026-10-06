@@ -193,3 +193,18 @@ describe("metafields", () => {
     expect(fingerprint(input())).not.toBe(fingerprint(input({ accent: "#000000" })));
   });
 });
+
+
+describe("videos UGC por variante", () => {
+  it("comparte el pool, respeta orden y separa default/hook sin publicar IDs privados", () => {
+    const videoGids=new Map([["video/a","gid://shopify/Video/1"],["video/b","gid://shopify/Video/2"]]);
+    const content=[{key:"default",angle_id:null,hook_id:null,content:{heading:"Mira el producto",script_ids:["private-a"]}},
+      {key:"hook",angle_id:"desk",hook_id:"a",content:{heading:"Mira cómo se ordena",script_ids:["private-b","private-a"]}}];
+    const mapped=productMetafields(input({components:[{id:"ugc-slider",content,images:{videos:["video/a"]},variantImages:[{key:"default",images:{videos:["video/a"]}},{key:"hook",images:{videos:["video/b","video/a"]}}]}]}),videoGids);
+    const json=JSON.parse(mapped.set.find((m)=>m.key==="ugc_slider")!.value);
+    expect(json.map((v: {media_indices:object})=>v.media_indices)).toEqual([{videos:[0]},{videos:[1,0]}]);
+    expect(mapped.set.find((m)=>m.key==="ugc_slider")!.value).not.toContain("script_ids");
+    expect(JSON.parse(mapped.set.find((m)=>m.key==="ugc_videos_variants")!.value)).toEqual(["gid://shopify/Video/1","gid://shopify/Video/2"]);
+    expect(JSON.parse(mapped.set.find((m)=>m.key==="ugc_videos")!.value)).toEqual(["gid://shopify/Video/1"]);
+  });
+});

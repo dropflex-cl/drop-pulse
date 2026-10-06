@@ -26,10 +26,8 @@ import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
 import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
-import { VIDEO_FORMATS } from "@/lib/video/catalog";
 import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
 import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
-import { getHiggsfieldConnection } from "@/lib/integrations/higgsfield/connection";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
 import { latestStrategies, latestStrategyStates, strategyBlocker, toStrategyView, type StrategyState as StrategyRunState } from "@/lib/pipeline/strategy";
@@ -399,7 +397,10 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
         })
       : [];
   if (run?.input.source === "mcp_chat" && await getLandingContextStale(uid, productId)) reasons.push("product_context");
+  const videoRows = await activeScripts(uid, productId);
+  const videos = videoRows.filter((s) => s.final_status === "approved" && s.approved_at && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
   return {
+    videos,
     locked: run?.input.source === "mcp_chat" ? null : !approved ? "angles" : imagesReady(chosen) ? null : "images",
     fromChat: run?.input.source === "mcp_chat",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
@@ -423,18 +424,11 @@ export const getProductCreatives = cache(async (id: string): Promise<ProductCrea
 
 /** La pestaña Videos (docs/spec-video-ugc.md): una tarjeta por ángulo aprobado y formato. Lo que devuelve su sondeo. */
 export async function videosState(uid: string, productId: string): Promise<VideosState> {
-  const [rankings, connection, scripts] = await Promise.all([latestRankings(uid, [productId]), getHiggsfieldConnection(uid), activeScripts(uid, productId)]);
-  const ranking = rankings.get(productId);
-  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  const chosen = ranking ? chosenAngles(ranking) : [];
-  const anglesDone = ranking ? allApproved(chosen, briefs) : false;
-  if (!anglesDone) return { locked: "Aprueba los desarrollos de tus ángulos para hacer videos.", cards: [] };
-  if (connection?.status !== "connected") return { locked: "Conecta tu cuenta de Higgsfield en Ajustes para hacer videos: las voces y los clips se generan ahí.", cards: [] };
+  const scripts = await activeScripts(uid, productId);
   const shots = await shotsFor(uid, scripts.map((s) => s.id));
-  const cards = await Promise.all(
-    chosen.flatMap((a) => VIDEO_FORMATS.map((f) => toCardView(a.slot, testAngleName(a), f, scripts.find((s) => s.angle_slot === a.slot && s.format === f), shots))),
-  );
+  const cards = await Promise.all(scripts.map((s) => toCardView(s.angle_slot, String(s.input.angle_name ?? s.execution_key ?? `Ángulo ${s.angle_slot}`), s.format, s, shots)));
   return { locked: null, cards };
+
 }
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/creatives). */

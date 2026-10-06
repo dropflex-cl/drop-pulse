@@ -7,7 +7,7 @@
   @param {object} [df_variant]
 {%- enddoc -%}
 {%- doc -%}
-  DropFlex · Videos de clientes (ugc-slider). Bloque de la columna del producto, bajo el botón:
+  DropFlex · Videos del producto (ugc-slider). Bloque de la columna del producto, bajo el botón:
   pista de videos verticales (o círculos tipo historias) que abre un reproductor.
 
   Liviano: la pista solo carga pósters. Hay un único <video> (en el modal) con preload="none"
@@ -32,6 +32,17 @@
   assign summary = product.metafields.dropflex.review_summary.value
   assign mf_videos = product.metafields.dropflex.ugc_videos.value
 
+  if df_variant != blank
+    assign mf_videos = product.metafields.dropflex.ugc_videos_variants.value
+    assign video_indices = df_variant.media_indices.videos
+    assign selected_videos = mf_videos | slice: 0, 0
+    for video_index in video_indices
+      assign selected_video = mf_videos | slice: video_index, 1
+      assign selected_videos = selected_videos | concat: selected_video
+    endfor
+    assign mf_videos = selected_videos
+  endif
+
   # Videos: los del metafield; si no hay, los del bloque (hasta 6).
   assign total = 0
   for v in mf_videos
@@ -40,7 +51,7 @@
     endif
   endfor
   assign from_metafield = true
-  if total == 0
+  if total == 0 and df_variant == blank
     assign from_metafield = false
     for i in (1..6)
       assign key = 'video_' | append: i
@@ -134,7 +145,7 @@
       data-dot-label="Ir al video"
       role="region"
       aria-roledescription="carrusel"
-      aria-label="Videos de clientes"
+      aria-label="Videos del producto"
     >
       <div class="df-slider__track" data-df-track>
         {%- if from_metafield -%}
@@ -196,7 +207,7 @@
     <dialog
       class="df df-ugc-slider__dialog df-dialog-motion"
       data-df-ugc-dialog
-      aria-label="Videos de clientes"
+      aria-label="Videos del producto"
       style="{{ accent_vars }}"
     >
       <div class="df-ugc-slider__stage" data-df-ugc-stage>

@@ -147,4 +147,4 @@ export function fileSlug(text: string): string {
  * pisen en Descargas: «uro-vaginal-probiotico-mascota-angulo-1». scripts/ugc-montage.py repite la regla
  * para los paquetes que no traen `name`.
  */
-export const montageName = (productTitle: string, slot: number, format: VideoFormat) => `${fileSlug(productTitle)}-${format === "mascot" ? "mascota" : "ugc"}-angulo-${slot}`;
+export const montageName = (productTitle: string, slot: number, format: VideoFormat, executionKey?: string) => `${fileSlug(productTitle)}-${format === "mascot" ? "mascota" : "ugc"}-angulo-${slot}${executionKey ? `-${fileSlug(executionKey)}` : ""}`;

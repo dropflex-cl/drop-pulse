@@ -21,7 +21,7 @@ import {
   type ClipState,
   type KeyframeState,
 } from "@/components/df";
-import { useLocalCost, useStepCost } from "@/components/shell/ai-cost-provider";
+import { useLocalCost } from "@/components/shell/ai-cost-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { mediaFacts } from "@/lib/ads/client";
 import { durationLabel } from "@/lib/ads/media";
@@ -32,7 +32,6 @@ import { formatOf, montageName, type VideoFormat } from "@/lib/video/catalog";
 import { shotCost } from "@/lib/video/cost";
 import type { UgcScript } from "@/lib/video/schemas";
 import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
-import { ConnectAnthropic } from "./connect-anthropic";
 
 // Pestaña Videos de Creativos (design-system/creativos.md › 3, docs/spec-video-ugc.md §2): por ángulo, un
 // video con persona (UGC de ~30 s) y otro con mascota animada (~25 s), cada uno con su propio avance en 5
@@ -52,7 +51,7 @@ const FORMAT: Record<VideoFormat, { option: string; short: string; noun: string;
     short: "Persona",
     noun: "persona",
     title: "Un UGC de ~30 s para este ángulo",
-    body: "Una persona de IA habla a cámara. Claude escribe las tomas habladas, las de apoyo, los textos en pantalla y el cierre, desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.",
+    body: "Una persona de IA habla a cámara. El chat propone las tomas habladas, las de apoyo, los textos en pantalla y el cierre, desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.",
     guard: "La persona muestra el producto. No dice ser clienta ni cuenta resultados propios.",
     character: "la persona sola y define su cara",
   },
@@ -72,8 +71,8 @@ const formatOptions = (short: boolean) => (["ugc", "mascot"] as const).map((valu
 type Run = (key: string, fn: () => Promise<VideosState>, fallback: string, done?: string) => Promise<VideosState | null>;
 
 /** Sin elegir: el formato del ángulo con el guion más reciente (lo último en que se trabajó) o, sin guiones, Persona. */
-function initialFormat(cards: VideoCardView[], slot: number | undefined): VideoFormat {
-  const latest = cards.filter((c) => c.slot === slot && c.script).sort((a, b) => b.script!.createdAt.localeCompare(a.script!.createdAt))[0];
+function initialFormat(cards: VideoCardView[], slot: string | undefined): VideoFormat {
+  const latest = cards.filter((c) => (c.executionKey ?? `legacy-${c.slot}`) === slot && c.script).sort((a, b) => b.script!.createdAt.localeCompare(a.script!.createdAt))[0];
   return latest?.format ?? "ugc";
 }
 
@@ -92,7 +91,7 @@ export function VideosPanel({
   aiConnected = true,
 }: {
   productId: string;
-  /** La clave de Anthropic está conectada: los guiones y el QA de las imágenes clave son de Claude. */
+  /** Compatibilidad con la pantalla contenedora; solo el QA opcional usa Anthropic. */
   aiConnected?: boolean;
   /** Para el nombre del paquete (montageName): el mismo con que lo descarga la API. */
   productName: string;
@@ -105,9 +104,9 @@ export function VideosPanel({
   const [state, setState] = useState<VideosState>(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
-  const [slot, setSlot] = useState<number | undefined>(initial.cards[0]?.slot);
+  const [slot, setSlot] = useState<string | undefined>(initial.cards[0]?.executionKey ?? (initial.cards[0] ? `legacy-${initial.cards[0].slot}` : undefined));
   // El formato que se mira en cada ángulo: cambiarlo no toca el video del otro formato.
-  const [formats, setFormats] = useState<Record<number, VideoFormat>>({});
+  const [formats, setFormats] = useState<Record<string, VideoFormat>>({});
   // El paso que se mira en cada video (uno ya hecho, para revisarlo); sin él, el actual.
   const [viewing, setViewing] = useState<Record<string, number | undefined>>({});
 
@@ -169,38 +168,34 @@ export function VideosPanel({
     );
   }
 
-  // Como «Conecta Higgsfield»: sin la clave de Anthropic no hay guion que escribir. Lo ya escrito se sigue viendo.
-  if (!aiConnected && !state.cards.some((c) => c.script)) {
-    return (
-      <div className="flex flex-1 flex-col justify-center px-4 py-4 lg:mx-auto lg:w-full lg:max-w-content lg:justify-start lg:px-7 lg:pt-8">
-        <ConnectAnthropic what="escribe el guion de tus videos y revisa cada imagen" />
-      </div>
-    );
-  }
+  const refresh = <Button size="sm" loading={busy === "refresh"} disabled={Boolean(busy)} onClick={() => run("refresh", () => productsApi.videos(productId), "No pudimos actualizar los guiones.")}>Actualizar guiones</Button>;
+  if (!state.cards.length) return <EmptyState icon="text" title="Crea el guion en el chat" body="Escribe el guion y el plan de tomas en el chat conectado a DropFlex. Al guardarlos, podrás revisarlos y aprobarlos aquí." action={refresh}>{error ? <p role="alert" className="text-caption text-destructive">{error}</p> : null}</EmptyState>;
+  void aiConnected;
 
-  const slots = [...new Set(state.cards.map((c) => c.slot))];
+  const group = (c: VideoCardView) => c.executionKey ?? `legacy-${c.slot}`;
+  const slots = [...new Set(state.cards.map(group))];
   const angle = slots.find((n) => n === slot) ?? slots[0];
   const format = formats[angle] ?? initialFormat(state.cards, angle);
-  const card = state.cards.find((c) => c.slot === angle && c.format === format) ?? state.cards.find((c) => c.slot === angle);
+  const card = state.cards.find((c) => group(c) === angle && c.format === format) ?? state.cards.find((c) => group(c) === angle);
   if (!card) return null;
-  const sibling = state.cards.find((c) => c.slot === card.slot && c.format !== card.format);
-  const viewKey = `${card.slot}-${card.format}`;
+  const sibling = state.cards.find((c) => group(c) === group(card) && c.format !== card.format);
+  const viewKey = `${group(card)}-${card.format}`;
   const current = currentStep(card);
   const shown = Math.min(viewing[viewKey] ?? current, current);
   const view = (n: number) => setViewing((v) => ({ ...v, [viewKey]: n === current ? undefined : n }));
-  const pickFormat = (f: VideoFormat) => setFormats((m) => ({ ...m, [card.slot]: f }));
+  const pickFormat = (f: VideoFormat) => setFormats((m) => ({ ...m, [group(card)]: f }));
 
   // La cabecera del ángulo (AngleGroup, como en Imágenes) con «Ver ángulo N» para pasar al siguiente.
-  const next = slots[(slots.indexOf(card.slot) + 1) % slots.length];
+  const next = slots[(slots.indexOf(group(card)) + 1) % slots.length];
   const angleHeader = (
     <AngleGroup
       headerOnly
       slot={card.slot}
       name={card.angleName}
       action={
-        next !== card.slot ? (
+        next !== group(card) ? (
           <button type="button" onClick={() => setSlot(next)} className="inline-flex min-h-8 shrink-0 cursor-pointer items-center text-small font-medium whitespace-nowrap text-primary underline underline-offset-3">
-            {`Ver ángulo ${next}`}
+            {`Ver otro video`}
           </button>
         ) : null
       }
@@ -240,6 +235,7 @@ export function VideosPanel({
         <div className="flex flex-col gap-4 border-r p-4">
           {angleHeader}
           {formatSwitch}
+          {refresh}
           <UgcStepper current={current} viewing={shown} vertical notes={stepNotes(card)} onSelect={view} />
         </div>
         <div className="flex min-w-0 flex-col gap-3 px-7 pt-5 pb-6">
@@ -248,7 +244,7 @@ export function VideosPanel({
         </div>
         {three ? (
           <aside aria-label="Paso siguiente" className="flex flex-col gap-3 border-l bg-sidebar px-6 pt-5 pb-6">
-            <NextStep card={card} current={current} file={`${montageName(productName, card.slot, card.format)}.json`} />
+            <NextStep card={card} current={current} file={`${montageName(productName, card.slot, card.format, card.executionKey)}.json`} />
           </aside>
         ) : null}
       </div>
@@ -260,6 +256,7 @@ export function VideosPanel({
       <div className="flex flex-col gap-2.5 px-4 pb-2">
         {angleHeader}
         {formatSwitch}
+        {refresh}
         <UgcStepper current={current} viewing={shown} onSelect={view} />
       </div>
       <div className="flex flex-col gap-2.5 px-4 pt-1 pb-4">
@@ -345,19 +342,18 @@ function CardStep({
   /** Pasa al video del otro formato del ángulo. */
   onFormat: (f: VideoFormat) => void;
 }) {
-  const scriptCost = useStepCost("ugc_script", "video_plan");
   const s = card.script;
-  // «Escribir», «Otro guion» y «Reintentar» van en el formato de esta tarjeta: el otro formato no se toca.
+  // «Escribir», «Crear otra versión en el chat» y «Reintentar» van en el formato de esta tarjeta: el otro formato no se toca.
   const format = card.format;
   const writeKey = (f: VideoFormat) => `write-${card.slot}-${f}`;
-  const writeAs = (f: VideoFormat) => run(writeKey(f), () => productsApi.writeScript(productId, card.slot, f), "No pudimos empezar a escribir el guion.");
-  const write = () => writeAs(format);
+  const writeAs = () => onError("Crea otra versión en el chat y guárdala. Después vuelve a Videos para revisarla.");
+  const write = () => writeAs();
   const writing = busy === writeKey(format);
-  const writeLabel = (text: string) => (scriptCost ? `${text} · ${scriptCost}` : text);
+  const writeLabel = (text: string) => text;
   // El guionista recomienda el otro formato: si ese video ya existe, se pasa a él; si no, se escribe y se pasa.
   const toOther = async (f: VideoFormat) => {
     if (sibling?.script) return onFormat(f);
-    if (await writeAs(f)) onFormat(f);
+    writeAs();
   };
 
   if (shown === 1) {
@@ -368,7 +364,7 @@ function CardStep({
           <span className="text-caption text-muted-foreground">{FORMAT[format].body}</span>
           {sibling?.script ? <span className="text-caption text-muted-foreground">{`El video con ${FORMAT[sibling.format].noun} de este ángulo no cambia: cada formato es un video aparte.`}</span> : null}
           <Button variant="primary" icon="sparkle" loading={writing} disabled={Boolean(busy)} onClick={write} className="h-auto min-h-control max-w-full shrink self-start py-2 text-left whitespace-normal">
-            {writeLabel("Escribir el guion")}
+            {writeLabel("Crear el guion en el chat")}
           </Button>
         </div>
       );
@@ -416,7 +412,7 @@ function CardStep({
   }
   if (shown === 2) return <KeyframesStep productId={productId} card={card} format={format} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
   if (shown === 3) return <ClipsStep productId={productId} card={card} current={current} desktop={desktop} busy={busy} run={run} onView={onView} />;
-  if (shown === 4) return <MontageStep productId={productId} file={`${montageName(productName, card.slot, card.format)}.json`} card={card} desktop={desktop} onView={onView} />;
+  if (shown === 4) return <MontageStep productId={productId} file={`${montageName(productName, card.slot, card.format, card.executionKey)}.json`} card={card} desktop={desktop} onView={onView} />;
   return <FinalStep productId={productId} card={card} busy={busy} run={run} onState={onState} onError={onError} />;
 }
 
@@ -479,7 +475,7 @@ function ScriptStep({
   const [saving, setSaving] = useState(false);
   const timeline = scriptTimeline(p);
   const clipsStarted = card.clips.length > 0;
-  const action = (a: "approve" | "unapprove", done?: string) => run(`${a}-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, a), "No pudimos guardar el cambio.", done);
+  const action = (a: "approve" | "unapprove", done?: string) => run(`${a}-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, a, card.script?.artifactEtag), "No pudimos guardar el cambio.", done);
 
   function cancel() {
     setLines(Object.fromEntries(p.a_roll.map((a) => [a.key, a.line])));
@@ -496,7 +492,7 @@ function ScriptStep({
           a_roll: p.a_roll.map((a) => ({ key: a.key, line: lines[a.key], delivery: a.delivery })),
           text_beats: beats.map((text) => ({ text })),
           end_card: endCard,
-        }),
+        }, card.script?.artifactEtag),
       );
       setEditing(false);
       notify(clipsStarted ? "Guion guardado: las tomas que cambiaste se generan de nuevo" : "Guion guardado");
@@ -523,7 +519,7 @@ function ScriptStep({
           </Button>
         ) : (
           <Button size="sm" icon="sparkle" loading={otherBusy} disabled={Boolean(busy)} onClick={() => onOther(other)} className="self-start">
-            {withCost(other === "mascot" ? "Escribir como mascota" : "Escribir con persona")}
+            {withCost(other === "mascot" ? "Crear mascota en el chat" : "Crear UGC en el chat")}
           </Button>
         )
       ) : null}
@@ -585,7 +581,7 @@ function ScriptStep({
                 Editar
               </Button>
               <Button icon="undo" loading={writing} disabled={Boolean(busy)} onClick={onAnother}>
-                {withCost("Otro guion")}
+                {withCost("Crear otra versión en el chat")}
               </Button>
             </div>
             {approved ? (
@@ -642,9 +638,9 @@ function KeyframesStep({
   const approvedN = states.filter((st) => st === "approved").length;
   const pending = card.keyframes.filter((k) => keyframeState(k) === "review");
   const scriptId = card.script!.id;
-  const generate = () => run(`keyframes-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "keyframes"), "No pudimos empezar a generar.", "Generando las imágenes clave");
+  const generate = () => run(`keyframes-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "keyframes", card.script?.artifactEtag), "No pudimos empezar a generar.", "Generando las imágenes clave");
   const shot = (s: VideoShotView, a: "approve" | "reject" | "reopen" | "regenerate" | "recover", done?: string) =>
-    run(`shot-${s.id}`, () => productsApi.shotAction(productId, s.id, a), "No pudimos guardar el cambio.", done);
+    run(`shot-${s.id}`, () => productsApi.shotAction(productId, s.id, a, card.script?.artifactEtag, s.updatedAt), "No pudimos guardar el cambio.", done);
   const each = localCost(shotCost("keyframe"));
   const none = card.keyframes.length === 0;
 
@@ -658,6 +654,7 @@ function KeyframesStep({
           </Button>
         ) : null}
       </div>
+      <Reconciliation productId={productId} card={card} shots={card.keyframes} busy={busy} run={run} />
       {none ? (
         <div className="flex flex-col gap-2 rounded-lg border bg-card p-4">
           <b className="text-body font-semibold">{`${expected.length} imágenes clave`}</b>
@@ -696,7 +693,7 @@ function KeyframesStep({
                           Volver a revisar
                         </TileLink>
                       ) : null}
-                      {st !== "approved" ? (
+                      {st !== "approved" && !s.needsReconciliation ? (
                         <TileLink disabled={Boolean(busy)} onClick={() => shot(s, "regenerate")}>
                           {`Pedir otra · ${each}`}
                         </TileLink>
@@ -722,7 +719,7 @@ function KeyframesStep({
               icon="check"
               loading={busy === `approve_keyframes-${card.slot}`}
               disabled={Boolean(busy)}
-              onClick={() => run(`approve_keyframes-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "approve_keyframes"), "No pudimos aprobarlas.", "Imágenes clave aprobadas")}
+              onClick={() => run(`approve_keyframes-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "approve_keyframes", card.script?.artifactEtag), "No pudimos aprobarlas.", "Imágenes clave aprobadas")}
             >
               {`Aprobar todas (${pending.length})`}
             </Button>
@@ -757,7 +754,7 @@ function ClipsStep({ productId, card, current, desktop, busy, run, onView }: { p
   const rendering = card.clips.some(busyShot);
   const cost = (t: TimelineShot) => shotCost(t.kind, t.seconds);
   const scriptId = card.script!.id;
-  const generate = () => run(`clips-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "clips"), "No pudimos empezar a generar los clips.", "Generando los clips: tardan unos minutos");
+  const generate = () => run(`clips-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "clips", card.script?.artifactEtag), "No pudimos empezar a generar los clips.", "Generando los clips: tardan unos minutos");
   const done = timeline.every((t) => byKey.get(t.key)?.render === "succeeded");
 
   if (!card.clips.length) {
@@ -781,10 +778,11 @@ function ClipsStep({ productId, card, current, desktop, busy, run, onView }: { p
           <span className="text-caption text-muted-foreground">Habladas en Seedance con voz · apoyo en Kling</span>
         </div>
       ) : null}
+      <Reconciliation productId={productId} card={card} shots={card.clips} busy={busy} run={run} />
       {rendering ? <Notice tone="info" icon="clock" title="Tardan de 3 a 6 minutos" body="Puedes salir. Te avisamos cuando estén todos." /> : null}
       {timeline.map((t) => {
         const s = byKey.get(t.key);
-        const act = (a: "regenerate" | "recover") => s && run(`shot-${s.id}`, () => productsApi.shotAction(productId, s.id, a), "No pudimos guardar el cambio.");
+        const act = (a: "regenerate" | "recover") => s && run(`shot-${s.id}`, () => productsApi.shotAction(productId, s.id, a, card.script?.artifactEtag, s.updatedAt), "No pudimos guardar el cambio.");
         return (
           <ClipRow
             key={t.key}
@@ -799,7 +797,7 @@ function ClipsStep({ productId, card, current, desktop, busy, run, onView }: { p
             error={s?.error}
             busy={Boolean(s && busy === `shot-${s.id}`) || Boolean(busy)}
             onRecover={() => act("recover")}
-            onRedo={() => act("regenerate")}
+            onRedo={s?.needsReconciliation ? undefined : () => act("regenerate")}
           />
         );
       })}
@@ -858,9 +856,9 @@ function FinalStep({ productId, card, busy, run, onState, onError }: { productId
     }
   }
 
-  const decide = async (action: "approve" | "reject" | "reopen") => {
-    const next = await run(`final-${action}-${card.slot}`, () => productsApi.decideFinalVideo(productId, scriptId, action), action === "reopen" ? "No pudimos deshacer." : "No pudimos guardar tu decisión.");
-    if (next && action !== "reopen") notifyUndo(action === "approve" ? "Video aprobado. Ya está en Anuncios." : "Video descartado.", () => void decide("reopen"));
+  const decide = async (action: "approve" | "reject" | "reopen", etag = card.script?.artifactEtag) => {
+    const next = await run(`final-${action}-${card.slot}`, () => productsApi.decideFinalVideo(productId, scriptId, action, etag), action === "reopen" ? "No pudimos deshacer." : "No pudimos guardar tu decisión.");
+    if (next && action !== "reopen") notifyUndo(action === "approve" ? "Video aprobado. Ya está en Anuncios." : "Video descartado.", () => void decide("reopen", next.cards.find((v) => v.script?.id === scriptId)?.script?.artifactEtag));
   };
   const busyAction = busy === `final-approve-${card.slot}` ? "approve" : busy === `final-reject-${card.slot}` ? "discard" : busy === `final-reopen-${card.slot}` ? "undo" : null;
 
@@ -897,4 +895,22 @@ function FinalStep({ productId, card, busy, run, onState, onError }: { productId
       {!f?.src || uploadError ? <VideoUpload state={uploadError ? "error" : "idle"} error={uploadError} onPick={pickFile} /> : null}
     </div>
   );
+}
+
+
+function Reconciliation({ productId, card, shots, busy, run }: { productId: string; card: VideoCardView; shots: VideoShotView[]; busy: string | null; run: Run }) {
+  return shots.filter((s) => s.needsReconciliation).map((shot) => <ReconcileJob key={shot.id} productId={productId} card={card} shot={shot} busy={busy} run={run} />);
+}
+function ReconcileJob({ productId, card, shot, busy, run }: { productId: string; card: VideoCardView; shot: VideoShotView; busy: string | null; run: Run }) {
+  const [requestId, setRequestId] = useState("");
+  const [notSent, setNotSent] = useState(false);
+  const reconcile = (absent: boolean) => run(`shot-${shot.id}`, () => productsApi.reconcileVideoShot(productId, shot.id, card.script?.artifactEtag, shot.updatedAt, absent ? undefined : requestId.trim(), absent), "No pudimos conciliar el trabajo. Revisa Higgsfield y actualiza Videos.");
+  return <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+    <b className="text-body font-semibold">Revisa el envío de {shot.key}</b>
+    <p className="text-caption text-muted-foreground">Se perdió la respuesta de Higgsfield. Si el trabajo existe, pega su identificador para recuperarlo sin generar otra vez.</p>
+    <Field label="Identificador del trabajo" value={requestId} onValueChange={setRequestId} maxLength={128} disabled={Boolean(busy)} />
+    <Button onClick={() => reconcile(false)} disabled={Boolean(busy) || !requestId.trim()}>Recuperar trabajo</Button>
+    <label className="flex min-h-touch items-center gap-2 text-caption"><input type="checkbox" checked={notSent} disabled={Boolean(busy)} onChange={(e) => setNotSent(e.target.checked)} />Ya revisé Higgsfield y este trabajo no existe</label>
+    <Button onClick={() => reconcile(true)} disabled={Boolean(busy) || !notSent}>Habilitar otro intento</Button>
+  </div>;
 }

@@ -1,5 +1,17 @@
 > Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
 
+# Estado actual: UGC desde el chat
+
+Implementados get/save_ugc_content, generación de keyframes/clips, consulta de operaciones y paquete de montaje. UI/MCP comparten cola, revisión y CAS. Guiones del chat conservan versiones por ejecución; el writer de texto pagado se retiró. Shopify publica videos finales aprobados por variante y Meta incorpora sus selectores al destino. [Flujo, contrato y rollout](ugc-chat-mcp.md), [ADR 014](adrs/014-chat-authored-ugc-and-durable-render.md).
+
+Hay 16 tools habilitadas en runtime y 17 pares de schemas derivados. Migración 20261108000000 validada completa en una transacción local terminada en ROLLBACK y funciones/reglas comprobadas con fixtures propios; **no aplicada en producción en esta entrega**. Se preservaron Auth, región, datos locales y archivos preexistentes sin seguimiento.
+
+Verificación: 1.045 tests habituales y 79 transaccionales locales (14 nuevos UGC), incluido OAuth nativo/SDK HTTP. Typecheck, ESLint de cambios, contratos, tokens y diff pasan. Chromium comprueba 19 componentes × 8 URL × móvil/escritorio, selección/orden de videos y fallback sin JS. Theme Check: cero errores y 42 warnings existentes. Build webpack termina correctamente y mantiene los cinco diagnósticos previos HANGING_PROMISE_REJECTION en rutas ads/onboarding.
+
+Pendiente operacional: aplicar migración, desplegar app/cron, actualizar tema y aceptar el flujo con ChatGPT, proveedor y tienda de ensayo. El montaje se conserva local por decisión de arquitectura. No se gastaron créditos ni se publicaron productos/campañas durante las pruebas. Ver pasos y límites en el runbook UGC.
+
+---
+
 # Estado actual: landing por ángulo y hook
 
 Implementación y pruebas locales de arrays por componente, edición/revisión, medios por variante y selección URL en el template Shopify. [Contrato, despliegue y rollback](landing-variants-mcp.md), [ADR 013](adrs/013-component-landing-variants.md). Se mantienen once tools persistentes; get/save_landing_content usan contrato 1.1 con compatibilidad 1.0. Migración 20261107000000 aplicada solo en local. Producción sigue readonly.

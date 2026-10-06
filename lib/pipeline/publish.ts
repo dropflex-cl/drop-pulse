@@ -7,6 +7,7 @@
 // Corre en segundo plano (after) y deja su estado en product_publications. Publicar dos veces es
 // idempotente. El tema se instala aparte (lib/shopify/publish/theme.ts).
 import "server-only";
+import { assertUgcPublishable } from "@/lib/video/publication";
 import { after } from "next/server";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { validateLandingProposal } from "@/lib/product-intelligence/landing-service";
@@ -32,7 +33,7 @@ import { getStorePolicies } from "@/lib/settings/policies-store";
 import { componentById } from "@/lib/shopify/components/catalog";
 import { EVENT_KEY, publishProductEvent } from "@/lib/events/store";
 import { ensureDefinitions } from "@/lib/shopify/publish/definitions";
-import { assertNoUserErrors, ensureImages, PublishError, type SourceImage } from "@/lib/shopify/publish/files";
+import { assertNoUserErrors, ensureImages, ensureVideos, PublishError, type SourceImage } from "@/lib/shopify/publish/files";
 import { deleteMetafields, setMetafields } from "@/lib/shopify/publish/metafields";
 import { fingerprint, landingAtomicKeys, MappingError, PACK_OPTION, productMetafields, productSetInput, type ExistingProduct, type PublishInput } from "@/lib/shopify/publish/mapping";
 import { packCompareAt } from "@/lib/store-preview/facts";
@@ -97,6 +98,7 @@ const refSource = (r: ImageRow, alt: string): SourceImage =>
 export interface Prepared {
   input: PublishInput;
   images: SourceImage[];
+  videos?: SourceImage[];
   /** Lo que falta para poder publicar, en frases para la pantalla. */
   missing: string[];
 }
@@ -231,6 +233,32 @@ export async function preparePublish(userId: string, productId: string): Promise
     };
   });
 
+  const { data: approvedVideos, error: videoError } = await adminClient().from("video_scripts").select("id,final_storage_path,final_status,approved_at,provenance,execution_key")
+    .eq("user_id", userId).eq("product_id", productId).is("superseded_at", null).eq("final_status", "approved").not("approved_at", "is", null).not("final_storage_path", "is", null);
+  if (videoError) throw new PublishError("No pudimos leer los videos aprobados.");
+  const byId = new Map((approvedVideos ?? []).map((v) => [v.id, v]));
+  const videos: SourceImage[] = [];
+  const selectedVideoIds: string[] = [];
+  const ugc = components.find((c) => c.id === "ugc-slider");
+  function videoKeys(content: unknown): string[] {
+    const ids = (content as { script_ids?: string[] })?.script_ids ?? [];
+    selectedVideoIds.push(...ids);
+    return ids.map((id) => {
+      const video = byId.get(id);
+      if (!video?.final_storage_path) throw new PublishError("Un video de la página ya no está aprobado. Revisa Videos y el componente antes de publicar.");
+      const key = `creative-media/${video.final_storage_path}`;
+      videos.push({ key, bucket: "creative-media", path: video.final_storage_path, alt: `Video del producto · ${video.execution_key ?? id}` });
+      return key;
+    });
+  }
+  if (ugc) {
+    if (isVariants(ugc.content)) {
+      const fallback = ugc.content.find((v) => v.key === "default");
+      ugc.images.videos = videoKeys(fallback?.content);
+      ugc.variantImages = ugc.content.map((v) => ({ key: v.key, images: { videos: videoKeys(v.content) } }));
+    } else ugc.images.videos = videoKeys(ugc.content);
+  }
+  await assertUgcPublishable(userId, productId, selectedVideoIds);
   const input: PublishInput = {
     listing: listing ?? { title: row.title, short_name: row.title, short_description: "", offer_line: "", seo_title: "", seo_description: "" },
     ...(isVariants(listingContent) ? { listingVariants: listingContent } : {}),
@@ -240,7 +268,7 @@ export async function preparePublish(userId: string, productId: string): Promise
     accent: row.page_accent_color,
     gallery: galleryImages.map((g) => ({ key: g.key, alt: g.alt })),
   };
-  return { input, images, missing };
+  return { input, images, videos, missing };
 }
 
 // ---------------------------------------------------------------- Shopify
@@ -363,7 +391,7 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     if (problem || !conn) throw new PublishError(problem ?? "Conecta tu tienda Shopify.");
     const row = await getProductRow(userId, productId);
     if (!row) throw new PublishError("No encontramos ese producto.");
-    const { input, images, missing } = await preparePublish(userId, productId);
+    const { input, images, videos, missing } = await preparePublish(userId, productId);
     if (missing.length) throw new PublishError(missing[0]);
 
     if (input.listingVariants || input.components.some((c) => isVariants(c.content))) await assertLandingVariantTheme(conn);
@@ -383,6 +411,10 @@ export async function runPublish(userId: string, productId: string): Promise<voi
 
     await ensureDefinitions(conn);
     const gids = await ensureImages(conn, productId, images);
+    for (const [key, id] of await ensureVideos(conn, productId, videos ?? [])) gids.set(key, id);
+    const ugcContent = input.components.find((c) => c.id === "ugc-slider")?.content;
+    const scriptIds = contentVariants(ugcContent).flatMap((v) => (v.content as { script_ids?: string[] })?.script_ids ?? []);
+    await assertUgcPublishable(userId, productId, scriptIds);
     const meta = productMetafields(input, gids);
     const set = await shopifyMutation<{ productSet: { product: { handle: string; onlineStoreUrl: string | null } | null; userErrors: { message: string }[] } }>(conn, PRODUCT_SET, {
       input: productSetInput(input, existing, gids),

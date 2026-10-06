@@ -223,6 +223,7 @@ export interface PageComponentView {
 
 /** El estado de la etapa Página del producto (lo que devuelve el sondeo). */
 export interface CopyState {
+  videos?: { id: string; name: string }[];
   fromChat?: boolean;
   /** Qué falta para habilitarla: los 2 desarrollos de Ángulos, o las imágenes (Imágenes va antes). null si está habilitada. */
   locked: "angles" | "images" | null;
@@ -618,6 +619,7 @@ export interface ProductCreatives extends CreativesState {
 /** Una toma de un guion: imagen clave, toma hablada o B-roll. */
 export interface VideoShotView {
   id: string;
+  updatedAt?: string;
   key: string;
   kind: "keyframe" | "a_roll" | "b_roll";
   attempt: number;
@@ -630,12 +632,14 @@ export interface VideoShotView {
   status: ContentStatus;
   /** Falló después de llegar a Higgsfield: se puede recuperar sin volver a cobrar. */
   recoverable?: boolean;
+  needsReconciliation?: boolean;
 }
 
 /** En qué paso está el video de un ángulo en un formato. */
 export type VideoStep = "script" | "keyframes" | "clips" | "montage" | "final";
 
 export interface VideoCardView {
+  executionKey?: string;
   slot: AngleSlot;
   angleName: string;
   /** UGC (persona de IA) o mascota animada: cada ángulo tiene una tarjeta por formato, con su propio avance. */
@@ -643,6 +647,8 @@ export interface VideoCardView {
   step: VideoStep;
   script?: {
     id: string;
+    artifactEtag?: string;
+    source?: "legacy" | "mcp_chat";
     status: RunStatus;
     error?: string;
     payload?: import("./video/schemas").UgcScript;

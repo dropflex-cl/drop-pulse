@@ -1,4 +1,15 @@
 {
-  "regions": ["gru1"],
-  "crons": [{ "path": "/api/cron/connections", "schedule": "0 9 * * *" }]
+  "regions": [
+    "gru1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/connections",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/ugc",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

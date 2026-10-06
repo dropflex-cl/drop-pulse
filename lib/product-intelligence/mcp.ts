@@ -12,6 +12,9 @@ export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }
 export type DomainExecutor = (principal: Principal, command: ToolCommand, signal: AbortSignal) => Promise<unknown>;
 
 const descriptions: Record<ToolName, string> = {
+  get_ugc_content: "Lee guiones UGC, revisión, etags y contratos reales para escribir guion y plan en el chat.",
+  save_ugc_content: "Guarda guion y plan del chat como propuesta, con estrategia, ángulo y hook. Sin redacción de pago ni aprobación.",
+  get_ugc_montage: "Recupera el paquete de clips aprobado para el montaje local existente, con URLs que vencen en 24 horas.",
   get_pack_labels: "Consulta precio, propuesta y contrato de las etiquetas de packs para escribirlas en chat.",
   save_pack_labels: "Guarda etiquetas de packs como propuesta vinculada al precio, sin IA, aprobación ni publicación.",
   get_landing_content: "Lee el contrato real de un componente de Shopify, contenido actual, reseñas aprobadas y pricing. Consulta cada componente antes de escribirlo.",
@@ -24,7 +27,7 @@ const descriptions: Record<ToolName, string> = {
   set_product_strategy: "Crea una versión de decisión explícita; seleccionar no demuestra un ganador.",
   get_product_strategy: "Recupera la selección y sus restricciones vigentes para ejecutar contenido.",
   generate_landing: "Pide contenido o imágenes de landing como etapa explícita; puede gastar con proveedores.",
-  generate_ugc: "Pide guion, imágenes clave o clips; conserva revisión y contexto, puede gastar.",
+  generate_ugc: "Genera imágenes clave o clips de un guion aprobado; dry_run informa costo. Puede gastar créditos de Higgsfield.",
   get_generation_status: "Lee estado, outputs y costo registrado sin sondear proveedores.",
 };
 

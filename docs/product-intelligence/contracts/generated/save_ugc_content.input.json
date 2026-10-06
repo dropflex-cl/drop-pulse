@@ -1,0 +1,652 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_ugc_etag",
+    "idempotency_key",
+    "execution_key",
+    "strategy_id",
+    "angle_id",
+    "angle_slot",
+    "landing_angle_id",
+    "landing_hook_id",
+    "hook",
+    "content"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "ugc"
+        },
+        "lines": {
+          "type": "object",
+          "properties": {
+            "format_fit": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "speaker": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "hook_source": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "hook_why": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "a_roll": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "end_card": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "compliance_notes": {
+              "$ref": "#/$defs/__schema12"
+            }
+          },
+          "required": [
+            "format_fit",
+            "speaker",
+            "hook_source",
+            "hook_why",
+            "a_roll",
+            "end_card",
+            "compliance_notes"
+          ],
+          "additionalProperties": false
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "persona": {
+              "type": "string",
+              "description": "En inglés: quién habla (edad aparente, género y estilo), alguien común del segmento."
+            },
+            "character": {
+              "type": "object",
+              "properties": {
+                "look": {
+                  "type": "string",
+                  "description": "En inglés: rostro, pelo y rasgos reales de la persona."
+                },
+                "wardrobe": {
+                  "type": "string",
+                  "description": "En inglés: ropa de casa."
+                },
+                "setting": {
+                  "type": "string",
+                  "description": "En inglés: el lugar principal, vivido, con la luz de la casa."
+                }
+              },
+              "required": [
+                "look",
+                "wardrobe",
+                "setting"
+              ]
+            },
+            "opening": {
+              "$ref": "#/$defs/__schema14"
+            },
+            "keyframes": {
+              "$ref": "#/$defs/__schema15"
+            },
+            "a_roll": {
+              "$ref": "#/$defs/__schema17"
+            },
+            "b_roll": {
+              "$ref": "#/$defs/__schema19"
+            },
+            "text_beats": {
+              "$ref": "#/$defs/__schema21"
+            }
+          },
+          "required": [
+            "persona",
+            "character",
+            "opening",
+            "keyframes",
+            "a_roll",
+            "b_roll",
+            "text_beats"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "format",
+        "lines",
+        "plan"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "recommended": {
+          "type": "string",
+          "enum": [
+            "ugc_ai",
+            "mascot",
+            "static",
+            "real_video"
+          ],
+          "description": "ugc_ai: sirve para video con persona de IA. mascot: rinde más con un personaje animado (un problema físico visible que se puede personificar). static: el ángulo rinde más como imagen. real_video: necesita una persona real (testimonio, experta)."
+        },
+        "why": {
+          "type": "string",
+          "description": "Para el comerciante, una frase."
+        }
+      },
+      "required": [
+        "recommended",
+        "why"
+      ]
+    },
+    "__schema4": {
+      "type": "string",
+      "description": "En español, para el plan de tomas: quién habla (UGC: alguien de quien compra, su edad aparente y su rol) o qué es el personaje (mascota: lo que tiene el problema, personificado)."
+    },
+    "__schema5": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema6"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "El index del gancho de GANCHOS DEL ÁNGULO con que abre A1, o null si ninguno servía."
+    },
+    "__schema6": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "__schema7": {
+      "type": "string",
+      "description": "Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."
+    },
+    "__schema8": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema9"
+      },
+      "description": "Las tomas habladas, en orden (A1, A2…)."
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "seconds": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "4 a 8. Cuenta las palabras: máximo 2,7 por segundo."
+        },
+        "line": {
+          "type": "string",
+          "description": "Lo que dice, exactamente, en el idioma del mercado. Números en palabras. NUNCA un precio ni un monto."
+        },
+        "delivery": {
+          "type": "string",
+          "description": "En inglés: cómo lo dice (qué palabra remarca, qué tono en cada frase)."
+        },
+        "acting": {
+          "type": "string",
+          "description": "En inglés: gestos y expresión mientras habla."
+        }
+      },
+      "required": [
+        "seconds",
+        "line",
+        "delivery",
+        "acting"
+      ]
+    },
+    "__schema10": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "El nombre del producto."
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Una línea: la razón para comprar hoy (p. ej., «Pagas al recibir»)."
+        },
+        "cta": {
+          "type": "string",
+          "description": "El botón: «Comprar»."
+        },
+        "small_print": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema11"
+          },
+          "description": "Letra chica obligatoria (tipo de piel, prueba en una zona pequeña, etc.)."
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "cta",
+        "small_print"
+      ]
+    },
+    "__schema11": {
+      "type": "string"
+    },
+    "__schema12": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema13"
+      },
+      "description": "Para el comerciante: qué cuidar al montar y publicar. Nunca un rótulo de IA, dramatización ni animación."
+    },
+    "__schema13": {
+      "type": "string"
+    },
+    "__schema14": {
+      "type": "object",
+      "properties": {
+        "keyframe": {
+          "type": "string",
+          "description": "La imagen clave del cuadro 0: la de A1 si abre con la cara (nunca K1), la de B1 si abre con un inserto."
+        },
+        "first_motion": {
+          "type": "string",
+          "description": "En inglés: lo que ya se está moviendo en el cuadro 0."
+        }
+      },
+      "required": [
+        "keyframe",
+        "first_motion"
+      ]
+    },
+    "__schema15": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema16"
+      },
+      "description": "Desde K2, una por cada escena distinta de las tomas habladas y el B-roll (hasta K9)."
+    },
+    "__schema16": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "«K2» a «K9» (K1, el personaje solo, lo pone el sistema)."
+        },
+        "uses_character": {
+          "type": "boolean",
+          "description": "true si aparece la persona o el personaje (cara, manos o cuerpo): se genera con K1 de referencia."
+        },
+        "uses_product": {
+          "type": "boolean",
+          "description": "true si aparece el producto: se genera con la foto real de referencia."
+        },
+        "one_hand": {
+          "type": "boolean",
+          "description": "true si la escena necesita una sola mano visible (sostener el frasco, señalar): evita manos de más."
+        },
+        "camera": {
+          "type": "string",
+          "enum": [
+            "selfie",
+            "pov",
+            "propped",
+            "mirror",
+            "animated"
+          ],
+          "description": "UGC: selfie (cámara frontal a un brazo), pov (cámara trasera mirando hacia abajo, una mano en cuadro), propped (el teléfono apoyado) o mirror (en el espejo). Mascota: animated."
+        },
+        "prompt": {
+          "type": "string",
+          "description": "En inglés, 40 a 90 palabras: la escena (lugar, encuadre, qué hace «the person» o «the character» y en qué estado, qué se ve de «the product», sin describirlo). Sin textos en la imagen."
+        }
+      },
+      "required": [
+        "key",
+        "uses_character",
+        "uses_product",
+        "one_hand",
+        "camera",
+        "prompt"
+      ]
+    },
+    "__schema17": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema18"
+      },
+      "description": "Una por toma hablada, en el mismo orden."
+    },
+    "__schema18": {
+      "type": "object",
+      "properties": {
+        "keyframe": {
+          "type": "string",
+          "description": "La imagen clave de la que parte (K1… con el personaje)."
+        },
+        "motion": {
+          "type": "string",
+          "description": "En inglés: cámara y movimiento."
+        }
+      },
+      "required": [
+        "keyframe",
+        "motion"
+      ]
+    },
+    "__schema19": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema20"
+      },
+      "description": "Hasta 10 insertos cortos sobre la voz; al menos uno por toma hablada."
+    },
+    "__schema20": {
+      "type": "object",
+      "properties": {
+        "keyframe": {
+          "type": "string",
+          "description": "La imagen clave de la que parte el clip (K2…; nunca K1)."
+        },
+        "anchor": {
+          "type": "string",
+          "description": "UNA palabra de alguna línea, escrita igual: el B-roll entra justo cuando se dice."
+        },
+        "cut_s": {
+          "type": "number",
+          "description": "Segundos que tapa la toma hablada: 1 a 2."
+        },
+        "motion": {
+          "type": "string",
+          "description": "En inglés: qué se mueve en el clip (acción concreta y corta, cámara)."
+        }
+      },
+      "required": [
+        "keyframe",
+        "anchor",
+        "cut_s",
+        "motion"
+      ]
+    },
+    "__schema21": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema22"
+      },
+      "description": "Los textos grandes en pantalla, en orden: el del gancho, cada idea y la oferta al final."
+    },
+    "__schema22": {
+      "type": "object",
+      "properties": {
+        "anchor": {
+          "type": "string",
+          "description": "UNA palabra de alguna línea, escrita igual: el texto aparece cuando se dice."
+        },
+        "until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema23"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Palabra de una línea donde se quita, o null (hasta el siguiente texto)."
+        },
+        "text": {
+          "type": "string",
+          "description": "El texto grande en pantalla, en el idioma del mercado: 2 a 6 palabras (el de la oferta puede ir en 2 líneas)."
+        }
+      },
+      "required": [
+        "anchor",
+        "until",
+        "text"
+      ]
+    },
+    "__schema23": {
+      "type": "string"
+    },
+    "__schema24": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "mascot"
+        },
+        "lines": {
+          "type": "object",
+          "properties": {
+            "format_fit": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "speaker": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "hook_source": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "hook_why": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "a_roll": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "end_card": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "compliance_notes": {
+              "$ref": "#/$defs/__schema12"
+            }
+          },
+          "required": [
+            "format_fit",
+            "speaker",
+            "hook_source",
+            "hook_why",
+            "a_roll",
+            "end_card",
+            "compliance_notes"
+          ],
+          "additionalProperties": false
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "character": {
+              "type": "object",
+              "properties": {
+                "body": {
+                  "type": "string",
+                  "enum": [
+                    "droplet",
+                    "cloud",
+                    "pillow",
+                    "jar",
+                    "ball",
+                    "molar",
+                    "shield",
+                    "sponge"
+                  ],
+                  "description": "El cuerpo del personaje: droplet (gota), cloud (nube), pillow (cojín), jar (frasco), ball (bolita), molar (muela), shield (escudo), sponge (esponja)."
+                },
+                "color": {
+                  "type": "string",
+                  "description": "En inglés: su color, pastel y nunca color piel («soft mint green»)."
+                },
+                "face": {
+                  "type": "string",
+                  "description": "En inglés: ojos, cejas, expresión y algún accesorio, sin cambiar la forma del cuerpo."
+                },
+                "setting": {
+                  "type": "string",
+                  "description": "En inglés: el lugar principal."
+                }
+              },
+              "required": [
+                "body",
+                "color",
+                "face",
+                "setting"
+              ]
+            },
+            "opening": {
+              "$ref": "#/$defs/__schema14"
+            },
+            "keyframes": {
+              "$ref": "#/$defs/__schema15"
+            },
+            "a_roll": {
+              "$ref": "#/$defs/__schema17"
+            },
+            "b_roll": {
+              "$ref": "#/$defs/__schema19"
+            },
+            "text_beats": {
+              "$ref": "#/$defs/__schema21"
+            }
+          },
+          "required": [
+            "character",
+            "opening",
+            "keyframes",
+            "a_roll",
+            "b_roll",
+            "text_beats"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "format",
+        "lines",
+        "plan"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_ugc_etag": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "execution_key": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "strategy_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "angle_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "angle_slot": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "landing_angle_id": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "landing_hook_id": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "hook": {
+      "type": "object",
+      "properties": {
+        "spoken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "screen": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "delivery": {
+          "type": "string",
+          "enum": [
+            "confiding",
+            "intrigued",
+            "surprised",
+            "indignant",
+            "deadpan",
+            "playful"
+          ]
+        },
+        "opening_shot": {
+          "type": "string",
+          "enum": [
+            "selfie_talk",
+            "pov_hands",
+            "problem_scene",
+            "product_in_place",
+            "mirror",
+            "mascot_scene"
+          ]
+        },
+        "first_motion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "spoken",
+        "screen",
+        "delivery",
+        "opening_shot",
+        "first_motion"
+      ],
+      "additionalProperties": false
+    },
+    "content": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/__schema2"
+        },
+        {
+          "$ref": "#/$defs/__schema24"
+        }
+      ]
+    }
+  }
+}

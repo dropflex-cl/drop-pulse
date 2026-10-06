@@ -41,10 +41,16 @@ export interface ScriptRow {
   final_status: DbContentStatus | null;
   final_decided_at: string | null;
   ad_media_id: string | null;
+  source?: "legacy" | "mcp_chat";
+  execution_key?: string | null;
+  provenance?: Record<string, unknown>;
+  artifact_etag: string;
+  updated_at: string;
   created_at: string;
 }
 
 export interface ShotRow {
+  operation_id?: string | null;
   id: string;
   script_id: string;
   product_id: string;
@@ -83,7 +89,8 @@ export async function expireStaleVideos(userId: string): Promise<void> {
     db.from("video_scripts").update(scriptPatch).eq("user_id", userId).eq("status", "running").lt("started_at", before(SCRIPT_RUNNING_STALE_MS)),
     db.from("video_scripts").update(scriptPatch).eq("user_id", userId).eq("status", "queued").lt("created_at", before(SCRIPT_QUEUED_STALE_MS)),
     db.from("video_shots").update(shotPatch).eq("user_id", userId).eq("render_status", "running").lt("submitted_at", before(SHOT_RUNNING_STALE_MS)),
-    db.from("video_shots").update(shotPatch).eq("user_id", userId).eq("render_status", "queued").lt("created_at", before(SHOT_QUEUED_STALE_MS)),
+    db.from("video_shots").update(shotPatch).eq("user_id", userId).is("operation_id", null).eq("render_status", "queued").lt("created_at", before(SHOT_QUEUED_STALE_MS)),
+    db.from("video_shots").update({ ...shotPatch, error_code: "dispatch_unknown", error_message: "El envío se interrumpió sin confirmación. Revisa Higgsfield antes de repetirlo." }).eq("user_id", userId).not("operation_id", "is", null).eq("render_status", "queued").eq("error_code", "dispatching").lt("updated_at", before(10 * 60 * 1000)),
   ]);
   for (const r of results) fail("Cerrar lo colgado de Videos", r.error);
   await purgeSupersededVideos(userId);
@@ -98,8 +105,8 @@ export async function expireStaleVideos(userId: string): Promise<void> {
 export async function purgeSupersededVideos(userId: string): Promise<void> {
   const db = adminClient();
   const [shots, scripts] = await Promise.all([
-    db.from("video_shots").select("id, storage_path").eq("user_id", userId).not("superseded_at", "is", null).in("render_status", ["succeeded", "failed"]),
-    db.from("video_scripts").select("id, final_storage_path").eq("user_id", userId).not("superseded_at", "is", null).in("status", ["succeeded", "failed"]),
+    db.from("video_shots").select("id, storage_path").eq("user_id", userId).not("superseded_at", "is", null).is("operation_id", null).in("render_status", ["succeeded", "failed"]),
+    db.from("video_scripts").select("id, final_storage_path").eq("source", "legacy").eq("user_id", userId).not("superseded_at", "is", null).in("status", ["succeeded", "failed"]),
   ]);
   fail("Leer las tomas reemplazadas", shots.error);
   fail("Leer los guiones reemplazados", scripts.error);
@@ -178,6 +185,7 @@ export function toShotView(s: ShotRow, src?: string): VideoShotView {
   const waiting = s.render_status === "queued" && s.error_code === "busy";
   return {
     id: s.id,
+    updatedAt: s.updated_at,
     key: s.key,
     kind: s.kind,
     attempt: s.attempt,
@@ -187,6 +195,7 @@ export function toShotView(s: ShotRow, src?: string): VideoShotView {
     qa: s.qa ? { pass: s.qa.pass, issues: s.qa.issues } : undefined,
     status: toUiStatus(s.status),
     recoverable: isShotRecoverable(s) || undefined,
+    needsReconciliation: s.error_code === "dispatch_unknown" || undefined,
   };
 }
 
@@ -214,11 +223,14 @@ export async function toCardView(slot: AngleSlot, angleName: string, format: Vid
   return {
     slot,
     angleName,
+    executionKey: script?.execution_key ?? `legacy-${slot}`,
     format,
     step: videoStep(script, keyframes, clips),
     script: script
       ? {
           id: script.id,
+          artifactEtag: script.artifact_etag,
+          source: script.source ?? "legacy",
           status: script.status,
           error: script.error_message ?? undefined,
           payload: script.payload ?? undefined,

@@ -143,13 +143,13 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     expect((await db.from("pack_labels").update({ status: "approved" }).eq("id", currentId)).error?.message).toBe("PI_ARTIFACT_CONFLICT");
     expect(await count("pack_labels")).toBe(1);
   });
-  it("SDK descubre once tools y lee/guarda/reproduce etiquetas", async () => {
+  it("SDK descubre dieciséis tools y lee/guarda/reproduce etiquetas", async () => {
     await price(); const server = createProductIntelligenceServer(owner, execute, { availableTools: PERSISTED_INTELLIGENCE_TOOLS }), client = new Client({ name: "packs", version: "1" });
     const [a, b] = InMemoryTransport.createLinkedPair(); await server.connect(a); await client.connect(b);
     try {
       const names: string[] = []; let cursor: string | undefined;
       do { const p = await client.listTools(cursor ? { cursor } : {}); names.push(...p.tools.map((t) => t.name)); cursor = p.nextCursor; } while (cursor);
-      expect(names).toHaveLength(11); expect(names).toContain("save_pack_labels");
+      expect(names).toHaveLength(16); expect(names).toContain("save_pack_labels");
       const i = await input(), r = await client.callTool({ name: "save_pack_labels", arguments: i }); expect(r.isError).toBe(false);
       expect(await client.callTool({ name: "save_pack_labels", arguments: i })).toEqual(r);
       expect((await client.callTool({ name: "get_pack_labels", arguments: { product_id: product } })).isError).toBe(false);

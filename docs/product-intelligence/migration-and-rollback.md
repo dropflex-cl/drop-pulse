@@ -57,3 +57,7 @@ Medir request_id/actor/tool/revisión/operation_id, conflictos, replays, missing
 Comparar cargas equivalentes antes/después: guardar contexto no llama IA, seleccionar no genera, y una generación solo ejecuta pasos solicitados. El presupuesto limita tokens/reintentos y permite estimar gasto; no anunciar un tope externo exacto sin soporte del proveedor. SLO de tools: 15 s máximo para crear/leer requests y p95 propuesto <2 s en operaciones habituales; los workers de generación se miden aparte.
 
 Expandir piloto por cohortes solo tras regresión de calculadora, revisión/publicación, media/campañas/engine Meta y recuperación de contexto desde un chat nuevo. El volumen actual sirve como evidencia de formatos, no prueba escala.
+
+## Migración UGC 20261108000000
+
+Extiende guiones/tomas/medios, conserva versiones por ejecución y agrega pi_ugc_operations. Instalación completa validada en transacción local con rollback, sin reset; no aplicada en producción en esta entrega. Desplegar esquema antes de app, actualizar tema Shopify y habilitar cron. Rollback funcional conserva tablas, historia y lectores/revisión compatibles, desactiva nuevas generaciones y concilia trabajos externos. [Detalle](ugc-chat-mcp.md#despliegue-y-rollback).

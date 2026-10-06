@@ -47,10 +47,11 @@ export interface ComponentFormProps {
   errors: Map<string, string>;
   /** Las reseñas aprobadas, para los campos de reseña. */
   reviews: StoreReview[];
+  videos?: { id: string; name: string }[];
 }
 
-export function ComponentForm({ fields, value, onChange, errors, reviews }: ComponentFormProps) {
-  const ctx = { root: value, onChange, errors, reviews };
+export function ComponentForm({ fields, value, onChange, errors, reviews, videos = [] }: ComponentFormProps) {
+  const ctx = { root: value, onChange, errors, reviews, videos };
   return (
     <div className="flex flex-col gap-5">
       {fields.map((f) => (
@@ -65,6 +66,7 @@ interface Ctx {
   onChange: (next: unknown) => void;
   errors: Map<string, string>;
   reviews: StoreReview[];
+  videos?: { id: string; name: string }[];
 }
 
 function ErrorText({ id, message }: { id: string; message?: string }) {
@@ -86,6 +88,21 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
   const name = label ?? field.label;
   const errorId = `${id}-error`;
 
+  if (field.key === "script_ids") {
+    const selected = Array.isArray(value) ? value as string[] : [];
+    const available = ctx.videos ?? [];
+    const retired = selected.filter((id) => !available.some((v) => v.id === id));
+    return <fieldset className="flex flex-col gap-2">
+      <legend className="text-label">{name}</legend>
+      <p className="text-caption text-muted-foreground">Elige los videos para esta variante. El número indica su orden; revisa sus textos si cambias la selección.</p>
+      {!available.length && !retired.length ? <p className="text-caption text-muted-foreground">Aprueba un video en Creativos para elegirlo aquí.</p> : null}
+      {[...available, ...retired.map((id) => ({ id, name: "Video retirado: quítalo antes de publicar" }))].map((video) => <label key={video.id} className="flex min-h-touch cursor-pointer items-center gap-3 rounded-md border p-3">
+        <input type="checkbox" checked={selected.includes(video.id)} disabled={!selected.includes(video.id) && selected.length >= 10} onChange={(e) => set(e.target.checked ? [...selected, video.id] : selected.filter((id) => id !== video.id))} />
+        <span className="text-caption">{selected.includes(video.id) ? `${selected.indexOf(video.id)+1}. ` : ""}{video.name}</span>
+      </label>)}
+      <ErrorText id={errorId} message={error} />
+    </fieldset>;
+  }
   switch (field.kind) {
     case "text": {
       const text = typeof value === "string" ? value : "";

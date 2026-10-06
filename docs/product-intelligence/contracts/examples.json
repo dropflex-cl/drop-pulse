@@ -882,7 +882,7 @@
       }
     },
     {
-      "name": "preview-script",
+      "name": "preview-keyframes",
       "tool": "generate_ugc",
       "payload": {
         "product_id": "00000000-0000-0000-0000-000000000001",
@@ -890,24 +890,28 @@
         "expected_revision": 5,
         "idempotency_key": "ugc-script-preview-0001",
         "dry_run": true,
-        "stage": "script",
-        "strategy_id": "00000000-0000-0000-0000-000000000032",
-        "angle_id": "00000000-0000-0000-0000-0000000000dc",
-        "format": "ugc"
+        "stage": "keyframes",
+        "script_id": "00000000-0000-0000-0000-000000000047",
+        "expected_artifact_etag": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "shot_keys": [
+          "K1"
+        ]
       }
     },
     {
-      "name": "start-script",
+      "name": "start-keyframes",
       "tool": "generate_ugc",
       "payload": {
         "product_id": "00000000-0000-0000-0000-000000000001",
         "schema_version": "1.0",
         "expected_revision": 5,
         "idempotency_key": "ugc-script-0001",
-        "stage": "script",
-        "strategy_id": "00000000-0000-0000-0000-000000000032",
-        "angle_id": "00000000-0000-0000-0000-0000000000dc",
-        "format": "ugc"
+        "stage": "keyframes",
+        "script_id": "00000000-0000-0000-0000-000000000047",
+        "expected_artifact_etag": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "shot_keys": [
+          "K1"
+        ]
       }
     },
     {
@@ -6222,6 +6226,39 @@
             "relation": "supports",
             "fragment": "Organizador con tres compartimentos."
           }
+        ]
+      }
+    },
+    {
+      "name": "preview-script-retired",
+      "tool": "generate_ugc",
+      "payload": {
+        "product_id": "00000000-0000-0000-0000-000000000001",
+        "schema_version": "1.0",
+        "expected_revision": 5,
+        "idempotency_key": "ugc-script-preview-0001",
+        "dry_run": true,
+        "stage": "script",
+        "script_id": "00000000-0000-0000-0000-000000000047",
+        "expected_artifact_etag": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "shot_keys": [
+          "K1"
+        ]
+      }
+    },
+    {
+      "name": "start-script-retired",
+      "tool": "generate_ugc",
+      "payload": {
+        "product_id": "00000000-0000-0000-0000-000000000001",
+        "schema_version": "1.0",
+        "expected_revision": 5,
+        "idempotency_key": "ugc-script-0001",
+        "stage": "script",
+        "script_id": "00000000-0000-0000-0000-000000000047",
+        "expected_artifact_etag": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "shot_keys": [
+          "K1"
         ]
       }
     }

@@ -28,6 +28,7 @@ export const REVIEW_PHOTOS_MAX = 90;
 
 /** Metafield de archivos de cada espacio de imagen de un componente (catálogo › imageSlots). */
 export const SLOT_METAFIELD: Record<string, Record<string, { key: string; type: "file_reference" | "list.file_reference" }>> = {
+  "ugc-slider": { videos: { key: "ugc_videos", type: "list.file_reference" } },
   "stats-with-image": { collage: { key: "stats_with_image_images", type: "list.file_reference" } },
   "insta-story": { stories: { key: "insta_story_media", type: "list.file_reference" } },
   "image-with-benefits": { main: { key: "image_with_benefits_image", type: "file_reference" } },
@@ -185,7 +186,7 @@ export function productKeys(): string[] {
   return [...keys].sort();
 }
 
-/** Hasta 21 claves del catálogo actual: 16 componentes, listing y cuatro pools de archivos. */
+/** Hasta 22 claves del catálogo actual: 16 componentes, listing y cinco pools de archivos. */
 export function landingAtomicKeys(input: PublishInput): string[] {
   const keys: string[] = input.listingVariants ? [SHARED_METAFIELDS.landingListing.key] : [];
   for (const c of input.components) if (isVariants(c.content)) {
@@ -243,6 +244,10 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
   for (const c of input.components) {
     const def = componentById(c.id);
     if (!def?.metafield) continue;
+    const publicContent = (value: unknown) => {
+      if (c.id !== "ugc-slider" || !value || typeof value !== "object") return value;
+      const clean = { ...value as Record<string, unknown> }; delete clean.script_ids; return clean;
+    };
     const content = isVariants(c.content) ? c.content.map((v) => {
       const media_indices: Record<string, number[]> = {};
       const own = c.variantImages?.find((i) => i.key === v.key)?.images ?? c.images;
@@ -252,8 +257,8 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
         const selected = own[slot] ?? c.images[slot] ?? [];
         media_indices[slot] = selected.map((key) => validPool.indexOf(key)).filter((i) => i >= 0);
       }
-      return { key: v.key, angle_id: v.angle_id, hook_id: v.hook_id, content: v.content, media_indices };
-    }) : c.content;
+      return { key: v.key, angle_id: v.angle_id, hook_id: v.hook_id, content: publicContent(v.content), media_indices };
+    }) : publicContent(c.content);
     set.push(mf(def.metafield.key, "json", content));
     if (isVariants(c.content)) for (const [slot, meta] of Object.entries(SLOT_METAFIELD[c.id] ?? {})) {
       const pool = [...new Set([...(c.images[slot] ?? []), ...(c.variantImages ?? []).flatMap((i) => i.images[slot] ?? [])])];

@@ -1,4 +1,6 @@
+import { assertUgcPublishable } from "@/lib/video/publication";
 import "server-only";
+import { ugcDestination } from "@/lib/ads/ugc-link";
 import { adsContext, AD_MEDIA_BUCKET, fail, getCampaignRow, getDraft, listMediaRows, type CampaignRow, type MediaRow } from "@/lib/ads/store";
 import { createAd, createAdset, createCampaign, createCreative, getAdAccount, lifetimeImpressions, setStartTime, setStatus, uploadImage, uploadVideo, videoStatus, videoThumbnailHash, waitVideoReady } from "@/lib/ads/meta/adapter";
 import { buildTargeting, dynamicCreative, needsDynamicCreative, singleCreative, type UploadedMedia } from "@/lib/ads/meta/payloads";
@@ -151,6 +153,9 @@ export async function runLaunch(campaignId: string): Promise<void> {
     const media = c.launch.creatives.map((id) => allMedia.find((m) => m.id === id)).filter((m): m is MediaRow => !!m);
     // Los nombres llevan la fecha de hoy en la cuenta: al rehacer o recrear, la del nuevo lanzamiento.
     const plan = planLaunch(c.structure, c.launch, media, { product: product.title, date: creationDate(new Date(), account.timezone) });
+    for (const set of plan.adsets) for (const ad of set.ads) ugcDestination(link, media.filter((m) => ad.mediaIds.includes(m.id)));
+    const ugcScripts = media.map((m) => m.ugc_provenance?.script_id).filter((id): id is string => typeof id === "string");
+    await assertUgcPublishable(c.user_id, c.product_id, ugcScripts, media);
     total = planSteps(plan, media.length);
     const startTime = c.launch.start === "tomorrow" ? nextMorning(new Date(), c.launch.start_hour, account.timezone) : null;
     // El nombre queda en la fila desde ya: si algo falla, el aviso nombra la campaña como está en Meta.
@@ -184,10 +189,11 @@ export async function runLaunch(campaignId: string): Promise<void> {
       const ads: (typeof setRows)[number]["ads"] = [];
       for (const a of s.ads) {
         const mediaList = a.mediaIds.map((id) => uploaded.get(id)!).filter(Boolean);
-        const text = { primaryTexts: a.primaryTexts, headlines: a.headlines, description: c.launch.description, link, cta: c.launch.cta };
+        const adLink = ugcDestination(link, media.filter((m) => a.mediaIds.includes(m.id)));
+        const text = { primaryTexts: a.primaryTexts, headlines: a.headlines, description: c.launch.description, link: adLink, cta: c.launch.cta };
         const payload =
           mediaList.length === 1 && a.primaryTexts.length === 1 && a.headlines.length === 1
-            ? singleCreative(a.name, meta.page_id!, mediaList[0], { primaryText: a.primaryTexts[0], headline: a.headlines[0], description: c.launch.description, link, cta: c.launch.cta })
+            ? singleCreative(a.name, meta.page_id!, mediaList[0], { primaryText: a.primaryTexts[0], headline: a.headlines[0], description: c.launch.description, link: adLink, cta: c.launch.cta })
             : dynamicCreative(a.name, meta.page_id!, mediaList, text);
         const creativeId = await createCreative(token, accountId, payload);
         objects.push({ level: "creative", id: creativeId });

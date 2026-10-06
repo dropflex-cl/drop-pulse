@@ -134,3 +134,13 @@ Arriba: la cabecera del ángulo (`AngleGroup headerOnly`, con «Ver secundario»
 ## Costos de ejemplo
 
 Los montos de las pantallas son de ejemplo (en la moneda de la tienda). Los reales salen del proveedor elegido y del mismo cálculo del indicador de costo de IA.
+
+## Actualización: guiones y planificación desde el chat
+
+Esta sección reemplaza la redacción pagada de 3.1–3.4 y 3.6. Sin guiones: «Crea el guion en el chat», «Escribe el guion y el plan de tomas en el chat conectado a DropFlex. Al guardarlos, podrás revisarlos y aprobarlos aquí.» y **Actualizar guiones**. Con propuestas, el mismo botón permite recuperar cambios del chat. No se exige Anthropic para leer, guardar ni revisar; Higgsfield se necesita al generar medios y Anthropic solo para QA opcional.
+
+Varias ejecuciones del mismo ángulo se revisan con «Ver otro video»; persona y mascota siguen separadas. **Crear el guion en el chat**, **Crear otra versión en el chat**, **Crear UGC en el chat** y **Crear mascota en el chat** orientan al comerciante; no llaman al writer. El aviso es «Crea otra versión en el chat y guárdala. Después vuelve a Videos para revisarla.».
+
+Un envío ambiguo muestra «Revisa el envío de [toma]», «Se perdió la respuesta de Higgsfield. Si el trabajo existe, pega su identificador para recuperarlo sin generar otra vez.», el Field «Identificador del trabajo» y **Recuperar trabajo**. La alternativa tiene una casilla «Ya revisé Higgsfield y este trabajo no existe» y **Habilitar otro intento**. Sin conciliar, no se permite repetir esa generación. Descartar el montaje conserva el archivo para Deshacer.
+
+En el editor de la landing, «Videos aprobados» permite marcar videos por nombre y orden; «Video retirado: quítalo antes de publicar» identifica una selección que dejó de estar disponible. Los captions se revisan en el mismo orden.

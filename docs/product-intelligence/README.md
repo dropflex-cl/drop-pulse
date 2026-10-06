@@ -1,3 +1,5 @@
+> Actualización UGC: [guiones, render y publicación desde chat](ugc-chat-mcp.md), [ADR 014](adrs/014-chat-authored-ugc-and-durable-render.md). La migración UGC nueva solo está probada en local; las migraciones PI anteriores mantienen su estado de producción documentado.
+
 > Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
 
 # Product Intelligence MCP

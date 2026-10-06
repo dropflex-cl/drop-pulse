@@ -95,7 +95,7 @@ describe("PI · permisos, revisión y replay", () => {
   const now = new Date("2026-10-06T15:00:00Z");
   it("no permite acceso ajeno ni gasto con permiso write solamente", () => {
     expect(() => authorizeTool(principalFixture(), { ...product, userId: "merchant-b" }, "save_product_analysis", input, null, now)).toThrow("No encontramos");
-    const generate = parseToolInput("generate_ugc", requestFixture("start-script").payload);
+    const generate = parseToolInput("generate_ugc", requestFixture("start-keyframes").payload);
     expect(() => authorizeTool({ ...principalFixture(), scopes: ["product_intelligence:write"] }, product, "generate_ugc", generate, null, now)).toThrow();
   });
   it("revalida grants y limita scopes efectivos, incluso antes de replay", () => {

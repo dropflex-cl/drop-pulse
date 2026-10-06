@@ -56,7 +56,7 @@ export function parseToolInput<K extends ToolName>(tool: K, value: unknown): Too
   if (!result.success) throw new ProductIntelligenceError("VALIDATION_ERROR", "Revisa los campos de la solicitud.", { fields: [...new Set(result.error.issues.map((issue) => issue.path.join(".") || "input"))].slice(0, 100) });
   // Los esquemas existentes de Shopify quitan claves desconocidas. MCP debe rechazarlas:
   // ni URLs/HTML/estado de aprobación ni hechos adicionales se descartan en silencio.
-  if (tool === "save_landing_content") {
+  if (tool === "save_landing_content" || tool === "save_ugc_content") {
     const sameKeys = (raw: unknown, parsed: unknown): boolean => {
       if (Array.isArray(raw)) return Array.isArray(parsed) && raw.every((item, i) => sameKeys(item, parsed[i]));
       if (raw && typeof raw === "object") return Boolean(parsed) && typeof parsed === "object" && Object.keys(raw).every((key) => Object.hasOwn(parsed!, key) && sameKeys((raw as Record<string, unknown>)[key], (parsed as Record<string, unknown>)[key]));

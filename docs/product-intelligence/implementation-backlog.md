@@ -1,3 +1,5 @@
+> UGC desde chat implementado: ingestión, revisión, cola durable, renders, conciliación, montaje y vínculos Shopify/Meta. [Estado y pasos de despliegue](ugc-chat-mcp.md). Los paquetes históricos siguientes no reflejan por sí solos el avance actual.
+
 > Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
 
 # Landing por ángulo y hook completada localmente

@@ -518,6 +518,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         <DrawerContent className="h-[92svh] lg:h-auto lg:w-[min(--spacing(160),100vw)] lg:max-w-none">
           {editingView ? (
             <ComponentEditor
+              videos={state.videos}
               key={`${editingView.id}:${selection.angle_id}:${selection.hook_id}`}
               selection={selection}
               view={editingView}

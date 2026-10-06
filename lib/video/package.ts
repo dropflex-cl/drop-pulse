@@ -41,6 +41,7 @@ export interface PackageInput {
   language: string;
   accentColor: string | null;
   format?: VideoFormat;
+  executionKey?: string;
   watermark?: string | null;
   script: UgcScript;
   /** URL firmada de cada clip listo, por clave (A1…, B1…). */
@@ -95,7 +96,7 @@ export function buildPackage(p: PackageInput): MontagePackage {
   };
   return {
     version: PACKAGE_VERSION,
-    name: montageName(p.product.title, p.angle.slot, p.format ?? "ugc"),
+    name: montageName(p.product.title, p.angle.slot, p.format ?? "ugc", p.executionKey),
     product: p.product,
     angle: p.angle,
     format: p.format ?? "ugc",

@@ -41,7 +41,7 @@ export interface Upload {
 }
 
 /** Sube los archivos a destinos temporales de Shopify. Devuelve el resourceUrl de cada uno, en orden. */
-export async function stageUploads(conn: ShopifyConnection, resource: "IMAGE" | "FILE", uploads: Upload[]): Promise<string[]> {
+export async function stageUploads(conn: ShopifyConnection, resource: "IMAGE" | "FILE" | "VIDEO", uploads: Upload[]): Promise<string[]> {
   if (!uploads.length) return [];
   const res = await shopifyMutation<StagedResult>(conn, STAGED, {
     input: uploads.map((u) => ({ resource, filename: u.filename, mimeType: u.mimeType, httpMethod: "POST", fileSize: String(u.data.length) })),
@@ -75,6 +75,7 @@ const FILE_STATUS = /* GraphQL */ `
     nodes(ids: $ids) {
       ... on MediaImage { id fileStatus fileErrors { message } }
       ... on GenericFile { id fileStatus fileErrors { message } }
+      ... on Video { id fileStatus fileErrors { message } }
     }
   }
 `;
@@ -176,4 +177,48 @@ export async function ensureImages(conn: ShopifyConnection, productId: string, i
     batch.forEach((img, j) => out.set(img.key, gids[j]));
   }
   return out;
+}
+
+/** Videos aprobados, en el mismo cache y prefijo por producto que las imágenes. */
+export async function ensureVideos(conn: ShopifyConnection, productId: string, videos: SourceImage[]): Promise<Map<string, string>> {
+  const db = adminClient(), out = new Map<string, string>();
+  const unique = [...new Map(videos.map((v) => [v.key, v])).values()];
+  if (!unique.length) return out;
+  const cached = await db.from("shopify_files").select("source_key,file_gid").eq("user_id", conn.user_id).eq("shop_domain", conn.shop_domain).eq("product_id", productId).in("source_key", unique.map((v) => v.key));
+  if (cached.error) throw new PublishError("No pudimos leer los videos subidos.");
+  const rows = cached.data ?? [];
+  if (rows.length) {
+    const current = await shopifyQuery<{ nodes: ({ id: string; fileStatus: string } | null)[] }>(conn, FILE_STATUS, { ids: rows.map((v) => v.file_gid) });
+    const alive = new Set(current.nodes.filter((v) => v && v.fileStatus !== "FAILED").map((v) => v!.id));
+    for (const v of current.nodes) if (v && alive.has(v.id) && v.fileStatus !== "READY") await waitVideoFile(conn, v.id);
+    for (const v of rows) if (alive.has(v.file_gid)) out.set(v.source_key, v.file_gid);
+  }
+  for (const video of unique.filter((v) => !out.has(v.key))) {
+    const source = await readSource(video);
+    const filename = `dropflex-${source.name}`;
+    const [resourceUrl] = await stageUploads(conn, "VIDEO", [{ data: source.data, filename, mimeType: "video/mp4" }]);
+    const created = await shopifyMutation<{ fileCreate: { files: { id: string; fileStatus: string }[]; userErrors: UserError[] } }>(conn, FILE_CREATE, {
+      files: [{ originalSource: resourceUrl, contentType: "VIDEO", alt: video.alt, filename, duplicateResolutionMode: "APPEND_UUID" }],
+    });
+    assertNoUserErrors("Crear el video en Shopify", created.fileCreate.userErrors);
+    const id = created.fileCreate.files[0]?.id;
+    if (!id) throw new PublishError("Shopify no devolvió el video.");
+    // Guarda el GID antes del polling: reintentar no crea otro archivo mientras se procesa.
+    const saved = await db.from("shopify_files").upsert({ user_id: conn.user_id, product_id: productId, shop_domain: conn.shop_domain, source_key: video.key, file_gid: id }, { onConflict: "user_id,shop_domain,source_key" });
+    if (saved.error) throw new PublishError("No pudimos guardar el video subido.");
+    await waitVideoFile(conn, id);
+    out.set(video.key, id);
+  }
+  return out;
+}
+async function waitVideoFile(conn: ShopifyConnection, id: string) {
+  const deadline = Date.now()+120_000;
+  for (;;) {
+    const state = await shopifyQuery<{ nodes: ({ fileStatus: string; fileErrors: { message: string }[] } | null)[] }>(conn, FILE_STATUS, { ids: [id] });
+    const node = state.nodes[0];
+    if (!node || node.fileStatus === "FAILED") throw new PublishError("Shopify no pudo procesar el video. Revisa su formato y vuelve a publicar.");
+    if (node.fileStatus === "READY") return;
+    if (Date.now()>deadline) throw new PublishError("Shopify sigue procesando el video. Vuelve a publicar en unos minutos.");
+    await sleep(2000);
+  }
 }

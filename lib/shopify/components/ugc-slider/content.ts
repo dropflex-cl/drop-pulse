@@ -34,6 +34,7 @@ export const ugcSlider = defineComponent({
     "Reproductor flotante en escritorio: sigue mirando mientras baja y compra; acorta la distancia entre prueba y acción.",
   ],
   content: z.object({
+    script_ids: z.array(z.string().uuid()).max(10).refine((ids) => new Set(ids).size === ids.length, "No repitas videos.").optional().describe("IDs de video_scripts con video final aprobado de este producto, en el orden de captions. Consulta get_ugc_content. En variantes selecciona los videos correspondientes a su ángulo y hook."),
     heading: z
       .string()
       .min(8)
@@ -56,6 +57,7 @@ export const ugcSlider = defineComponent({
   rules: [
     "Título opcional, ≤ 48 caracteres: sin cifra, una frase que describe el contenido; con cifra, {count} + el sustantivo exacto de lo que se cuenta («reseñas de compradores»).",
     "Textos por video: describen la acción o el contexto visible, ≤ 40 caracteres, tuteo, sin emojis ni exclamaciones.",
+    "script_ids vincula videos finales aprobados de DropFlex; no aporta URLs ni archivos. Nunca presentarlos como clientes si son actores o IA.",
     "Si no conoces el contenido de un video, omite captions: mejor sin texto que un texto que no calza.",
   ],
   forbidden: [

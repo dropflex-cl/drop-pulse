@@ -1,3 +1,5 @@
+> UGC: 17 pares de schemas derivados y 16 tools habilitadas en runtime. [Contrato y flujo](../ugc-chat-mcp.md), [ejemplo completo](ugc.example.json). Los conteos y catálogo de diseño originales debajo son históricos.
+
 # Artefactos revisables de contrato
 
 Contrato `1.0` previo al despliegue. Hay dominio Zod y servidor SDK local; faltan endpoint remoto y tablas PI. Semántica: [mcp-contracts.md](../mcp-contracts.md), [GenerationContext](../generation-context.md), [ADR 007](../adrs/007-contracts-and-generation-boundaries.md) y [estado](../implementation-status.md).

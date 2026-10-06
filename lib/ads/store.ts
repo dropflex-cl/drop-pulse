@@ -66,6 +66,7 @@ export interface CampaignRow {
 }
 
 export interface MediaRow {
+  ugc_provenance?: Record<string, unknown>;
   id: string;
   user_id: string;
   product_id: string;

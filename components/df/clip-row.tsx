@@ -78,7 +78,7 @@ export function ClipRow(p: ClipRowProps) {
               Recuperar
             </Button>
           ) : null}
-          <Button size="sm" icon="undo" disabled={p.busy} onClick={p.onRedo}>
+          <Button size="sm" icon="undo" disabled={p.busy || !p.onRedo} onClick={p.onRedo}>
             {redo}
           </Button>
         </div>

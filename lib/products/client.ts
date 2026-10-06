@@ -61,9 +61,9 @@ export function uploadFinalVideo(
   onProgress: (p: number) => void,
 ): { done: Promise<VideosState>; cancel: () => void } {
   return signedUpload(file, onProgress, async (put) => {
-    const { path, uploadUrl } = await send<{ path: string; uploadUrl: string }>("POST", `/${productId}/videos/${scriptId}/final`, { type: file.type, size: file.size });
+    const { path, uploadUrl, artifactEtag } = await send<{ path: string; uploadUrl: string; artifactEtag: string }>("POST", `/${productId}/videos/${scriptId}/final`, { type: file.type, size: file.size });
     await put(uploadUrl);
-    return send<VideosState>("PUT", `/${productId}/videos/${scriptId}/final`, { path, ...facts });
+    return send<VideosState>("PUT", `/${productId}/videos/${scriptId}/final`, { path, ...facts, expected_artifact_etag: artifactEtag });
   });
 }
 
@@ -114,11 +114,12 @@ export const productsApi = {
   // Pestaña Videos (docs/spec-video-ugc.md): cada acción devuelve el estado completo de la pestaña.
   videos: (id: string) => call<VideosState>(`/${id}/videos`),
   writeScript: (id: string, slot: number, format: VideoFormat = "ugc") => send<VideosState>("POST", `/${id}/videos`, { slot, format }),
-  scriptAction: (id: string, scriptId: string, action: "approve" | "unapprove" | "keyframes" | "approve_keyframes" | "clips") => send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action }),
-  editScript: (id: string, scriptId: string, edit: { a_roll: { key: string; line: string; delivery: string }[]; text_beats: { text: string }[]; end_card: { title: string; subtitle: string; cta: string } }) =>
-    send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action: "edit", edit }),
-  shotAction: (id: string, shotId: string, action: "approve" | "reject" | "reopen" | "regenerate" | "recover") => send<VideosState>("PATCH", `/${id}/videos/shots/${shotId}`, { action }),
-  decideFinalVideo: (id: string, scriptId: string, action: "approve" | "reject" | "reopen") => send<VideosState>("PATCH", `/${id}/videos/${scriptId}/final`, { action }),
+  scriptAction: (id: string, scriptId: string, action: "approve" | "unapprove" | "keyframes" | "approve_keyframes" | "clips", expectedEtag?: string) => send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action, expected_artifact_etag: expectedEtag, idempotency_key: crypto.randomUUID() }),
+  editScript: (id: string, scriptId: string, edit: { a_roll: { key: string; line: string; delivery: string }[]; text_beats: { text: string }[]; end_card: { title: string; subtitle: string; cta: string } }, expectedEtag?: string) =>
+    send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action: "edit", edit, expected_artifact_etag: expectedEtag }),
+  shotAction: (id: string, shotId: string, action: "approve" | "reject" | "reopen" | "regenerate" | "recover", expectedEtag?: string, shotUpdatedAt?: string) => send<VideosState>("PATCH", `/${id}/videos/shots/${shotId}`, { action, expected_artifact_etag: expectedEtag, expected_shot_updated_at: shotUpdatedAt, idempotency_key: crypto.randomUUID() }),
+  reconcileVideoShot: (id: string, shotId: string, expectedEtag: string | undefined, shotUpdatedAt: string | undefined, requestId?: string, confirmNotSent = false) => send<VideosState>("PATCH", `/${id}/videos/shots/${shotId}`, { action: "reconcile", expected_artifact_etag: expectedEtag, expected_shot_updated_at: shotUpdatedAt, request_id: requestId, confirm_not_sent: confirmNotSent }),
+  decideFinalVideo: (id: string, scriptId: string, action: "approve" | "reject" | "reopen", expectedEtag?: string) => send<VideosState>("PATCH", `/${id}/videos/${scriptId}/final`, { action, expected_artifact_etag: expectedEtag }),
   // Etapa Imágenes (la página del producto): cada acción devuelve el estado completo de la etapa.
   pageImages: (id: string) => call<PageImagesState>(`/${id}/page-images`),
   proposePageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images`),

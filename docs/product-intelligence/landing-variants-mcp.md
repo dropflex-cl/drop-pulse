@@ -78,11 +78,11 @@ El MCP guarda propuestas; el comerciante revisa, edita y publica. La pantalla P�
 
 La UI envía ID y `updated_at` de la fila leída. La RPC `pi_review_landing` bloquea el producto y comprueba fila/contexto antes de aprobar o editar. Una pantalla vieja obtiene conflicto, sin sobrescribir otra propuesta. MCP conserva etag, revisión, recibo idempotente, historial y audit de la ingesta. La revisión UI usa los estados/filas existentes; no introduce una segunda revisión PI ni un nuevo historial inmutable de cada edición de UI.
 
-Antes de publicar se revalida cada variante con precio, evidencia y catálogo actuales. Los archivos salen de Storage y se optimizan/suben con el publicador existente. Shopify recibe JSON público y pools `list.file_reference`; los picks privados se sustituyen por `media_indices`. JSON e imágenes de variantes se guardan en un mismo `metafieldsSet` (21 claves como máximo en el catálogo actual; límite de petición 25 y pool 128). [Contrato oficial de atomicidad](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet).
+Antes de publicar se revalida cada variante con precio, evidencia y catálogo actuales. Los archivos salen de Storage y se optimizan/suben con el publicador existente. Shopify recibe JSON público y pools `list.file_reference`; los picks privados se sustituyen por `media_indices`. JSON e imágenes de variantes se guardan en un mismo `metafieldsSet` (22 claves como máximo en el catálogo actual; límite de petición 25 y pool 128). [Contrato oficial de atomicidad](https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet).
 
 Esta atomicidad cubre ese lote; producto nativo, datos compartidos, borrados y políticas de tienda siguen siendo pasos separados del publicador. Un fallo se muestra como error y permite reintentar; no se afirma una transacción global entre Supabase y Shopify.
 
-El publicador exige tema DropFlex publicado, versión del kit vigente y checksums remotos de bloques/secciones/renderers/selector. Impide guardar arrays en un tema anterior que los trataría como objetos y mostraría contenido vacío. `ugc-slider` cambia textos por selector; sus videos siguen siendo los existentes/configurados en el tema. El writer de `ugc_videos` desde la app continúa pendiente.
+El publicador exige tema DropFlex publicado, versión del kit vigente y checksums remotos de bloques/secciones/renderers/selector. Impide guardar arrays en un tema anterior que los trataría como objetos y mostraría contenido vacío. `ugc-slider` cambia textos y videos por selector: `script_ids` elige montajes aprobados; el publicador sube los MP4 y crea pools e índices ordenados. [Implementación UGC y despliegue](ugc-chat-mcp.md).
 
 ## Despliegue y rollback
 
