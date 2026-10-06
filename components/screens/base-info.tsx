@@ -10,7 +10,7 @@ import { IMAGE_QA_USD } from "@/lib/ai/costs";
 import { count } from "@/lib/format";
 import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
-import type { ProductData } from "@/lib/products/product-data";
+import { hasProductData, type ProductData } from "@/lib/products/product-data";
 import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
 import type { ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
@@ -22,7 +22,7 @@ import { ProductDataSection } from "./product-data-section";
 
 const AUTOSAVE_MS = 1500;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const NOTE = "La IA identifica tu producto en menos de un minuto. Nada se publica sin tu OK.";
+const NOTE = "Completa los datos y el precio. Prepara la estrategia desde el chat.";
 
 interface Upload extends UploadItem {
   file: File;
@@ -40,7 +40,7 @@ function savedLabel(at: number | undefined, now: number): string {
 }
 
 /** Autoguardado a los 1,5 s sin escribir; `save` guarda ya (antes de optimizar). */
-function useAutosave(productId: string, initial: string, initialSavedAt?: string) {
+function useAutosave(productId: string, initial: string, contextRevision: number, onSaved: (revision: number) => void, initialSavedAt?: string) {
   const [text, setText] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
@@ -48,16 +48,25 @@ function useAutosave(productId: string, initial: string, initialSavedAt?: string
   const [topics, setTopics] = useState<string[]>(() => detectTopics(initial));
   const [now, setNow] = useState(() => Date.now());
   const pending = useRef<string | null>(null);
+  const revision = useRef(contextRevision);
+  revision.current = contextRevision;
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
+  const inFlight = useRef(false);
   const timer = useRef<number | undefined>(undefined);
 
   const save = useCallback(async () => {
     window.clearTimeout(timer.current);
+    if (inFlight.current) return false;
     const value = pending.current;
     if (value === null) return true;
     pending.current = null;
+    inFlight.current = true;
     setSaving(true);
     try {
-      const res = await productsApi.saveBaseInfo(productId, value);
+      const res = await productsApi.saveBaseInfo(productId, value, revision.current);
+      revision.current = res.expected_context_revision;
+      onSavedRef.current(res.expected_context_revision);
       setSavedAt(Date.parse(res.savedAt));
       setTopics(res.topics);
       setError(undefined);
@@ -67,6 +76,7 @@ function useAutosave(productId: string, initial: string, initialSavedAt?: string
       setError(errorText(e, "No pudimos guardar. Revisa tu conexión; lo intentamos de nuevo al escribir."));
       return false;
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }, [productId]);
@@ -84,7 +94,7 @@ function useAutosave(productId: string, initial: string, initialSavedAt?: string
     // Si se cierra la pestaña con cambios, se intenta guardar igual.
     const beforeUnload = () => {
       if (pending.current !== null) {
-        navigator.sendBeacon?.(`/api/products/${productId}/base-info`, new Blob([JSON.stringify({ text: pending.current })], { type: "application/json" }));
+        navigator.sendBeacon?.(`/api/products/${productId}/base-info`, new Blob([JSON.stringify({ text: pending.current, expected_context_revision: revision.current })], { type: "application/json" }));
       }
     };
     window.addEventListener("beforeunload", beforeUnload);
@@ -133,7 +143,13 @@ function ImageQaSection({ productId, initial }: { productId: string; initial: bo
 export function BaseInfoScreen({ base }: { base: ProductBase }) {
   const desktop = useDesktop();
   const { product } = base;
-  const info = useAutosave(product.id, base.baseInfo, base.baseInfoUpdatedAt);
+  const [productData, setProductData] = useState<ProductData | undefined>(base.productData);
+  const contextRevision = useRef(base.productData?.expected_context_revision ?? 0);
+  const savedProductData = (data: ProductData) => { contextRevision.current = data.expected_context_revision ?? 0; setProductData(data); };
+  const info = useAutosave(product.id, base.baseInfo, contextRevision.current, (revision) => {
+    contextRevision.current = revision;
+    setProductData((data) => data ? { ...data, expected_context_revision: revision } : data);
+  }, base.baseInfoUpdatedAt);
 
   const [images, setImages] = useState<RefImage[]>(base.images);
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -144,8 +160,6 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
   const [fetching, setFetching] = useState(false);
 
   const [pricing, setPricing] = useState<SavedPricingDto | undefined>(base.pricing);
-  const [productData, setProductData] = useState<ProductData | undefined>(base.productData);
-
   const inUse = images.filter((i) => !i.excluded).length;
   const baseId = pickBase(images, (i) => i)?.id;
 
@@ -307,7 +321,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
 
   const status = (
     <>
-      <ProductDataSection productId={product.id} value={productData} onSaved={setProductData} />
+      <ProductDataSection productId={product.id} value={productData} onSaved={savedProductData} />
       {base.hasBrief ? (
         // Se reinicia si la estrategia nueva trae otra propuesta.
         <DifferentiatorSection key={JSON.stringify(base.differentiator.proposed)} productId={product.id} initial={base.differentiator} />
@@ -327,7 +341,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
       <span>
         <b className="block text-small font-medium">{reviewsStage?.state === "available" ? "Importa reseñas de AliExpress" : "Reseñas"}</b>
         <small className="block text-caption text-muted-foreground">
-          {reviewsStage?.state === "available" ? "Opcional. La IA las usa para escribir." : reviewsStage?.desc}
+          {reviewsStage?.state === "available" ? "Opcional. Úsalas como evidencia en el chat." : reviewsStage?.desc}
         </small>
       </span>
       <Icon name="chevron-right" size="sm" />
@@ -351,7 +365,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
   // Acción principal: una por vista (design-system › primary).
   let primary: React.ReactNode;
   let summary: React.ReactNode = NOTE;
-  if (productData) {
+  if (hasProductData(productData)) {
     primary = pricing ? (
       <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
         Continuar: Estrategia

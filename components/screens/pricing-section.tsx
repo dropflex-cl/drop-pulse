@@ -169,7 +169,7 @@ export function PricingSection({
           )}
         </span>
       </div>
-      <p className="mt-0.5 text-label font-normal text-muted-foreground">La IA escribe la ficha y el cliente ideal para este precio y estos packs.</p>
+      <p className="mt-0.5 text-label font-normal text-muted-foreground">El chat usa este precio y estos packs al preparar la estrategia y el contenido.</p>
 
       {/* La ganancia primero (design-system/arquitectura.md › 5). */}
       {plan ? <PriceBreakdown className="mt-4" price={plan.salePrice} parts={parts} currency={currency} /> : null}
@@ -249,7 +249,7 @@ export function PricingSection({
         />
       ) : null}
       {plan && !labels ? (
-        <p className="mt-3 text-caption text-muted-foreground">Al optimizar con IA te propone cómo nombrar cada pack, por ejemplo “2 meses de uso”.</p>
+        <p className="mt-3 text-caption text-muted-foreground">Describe qué incluye cada pack. Usa una duración solo si está comprobada en los datos del producto.</p>
       ) : null}
       {plan && !editingLabels ? (
         <ul aria-label="Packs" className="mt-3 divide-y rounded-md border">

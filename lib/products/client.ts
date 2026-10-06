@@ -129,13 +129,13 @@ export const productsApi = {
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean, expectedEtag?: string) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve, expected_etag: expectedEtag }),
   savePricing: (id: string, form: PricingForm, expectedPricingStamp: string | null) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, { ...form, expectedPricingStamp }),
   sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
-  saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),
+  saveBaseInfo: (id: string, text: string, expected_context_revision: number) => send<{ savedAt: string; topics: string[]; expected_revision: number; expected_context_revision: number }>("PATCH", `/${id}/base-info`, { text, expected_context_revision }),
   imageFromUrl: (id: string, url: string) => send<{ image: ReferenceImage }>("POST", `/${id}/images/url`, { url }),
   setExcluded: (id: string, imageId: string, excluded: boolean) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { excluded }),
   setBase: (id: string, imageId: string) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { base: true }),
   setImageQa: (id: string, enabled: boolean) => send<{ enabled: boolean }>("PUT", `/${id}/image-qa`, { enabled }),
   /** Edición manual del nombre y la descripción; no llama a un proveedor. */
-  saveProductData: (id: string, data: { name: string; description: string }) => send<{ productData: ProductData }>("PUT", `/${id}/product-data`, data),
+  saveProductData: (id: string, data: { name: string; description: string; expected_context_revision: number }) => send<{ productData: ProductData }>("PUT", `/${id}/product-data`, data),
   importReviews: (id: string, input: { url: string; minRating: 1 | 4 | 5; photosOnly: boolean; translate: boolean }) =>
     send<{ job: ReviewImport }>("POST", `/${id}/reviews/import`, input),
   reviewImport: (id: string) => call<{ job: ReviewImport | null }>(`/${id}/reviews/import`),

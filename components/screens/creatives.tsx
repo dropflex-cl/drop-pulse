@@ -515,7 +515,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
   } else if (!statics.length) {
-    body = <div className="flex flex-col gap-4"><Notice title="Prepara tus anuncios en el chat" body="La propuesta automática se retiró. Aquí podrás revisar y renderizar los conceptos guardados." />{state.angles.map((a) => <div key={a.slot}>{chatModule(a.slot)}</div>)}</div>;
+    body = <div className="flex flex-col gap-4"><Notice title="Prepara tus anuncios en el chat" body="Guarda los conceptos y las conversaciones con save_creative_content. Aquí podrás revisarlos y generar sus imágenes." />{state.angles.map((a) => <div key={a.slot}>{chatModule(a.slot)}</div>)}</div>;
     if (split && picked && selection) aside = selectionPanel(selection);
     footer = <StickyActions>{skip}</StickyActions>;
   } else {

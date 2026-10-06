@@ -12,6 +12,8 @@ export const TIP_MAX = 140;
 /** Lo que se guarda en `products.usage_tip`. */
 export interface UsageTip {
   text: string;
+  source?: "legacy" | "mcp_chat";
+  status?: "in_review" | "approved";
   basis: string;
   created_at: string;
   prompt_version: number;

@@ -1,0 +1,67 @@
+{
+  "environment": "local",
+  "date": "2026-10-06",
+  "production_mutations": false,
+  "external_paid_calls": false,
+  "general_tests": {
+    "passed": 1028,
+    "local_db_skipped": 94
+  },
+  "product_intelligence_suite": {
+    "passed": 313,
+    "transactional_local": 94
+  },
+  "oauth_native_checks": 20,
+  "chromium": {
+    "screens": 12,
+    "widths": [
+      390,
+      1280
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "wcag21aa": true,
+    "basic_context_cas": true,
+    "usage_tip_human_approval": true,
+    "revocation": true,
+    "delegated_cookie_isolation": true
+  },
+  "tools": {
+    "announced": 29,
+    "schema_pairs": 30,
+    "legacy_generate_landing": "gated"
+  },
+  "checks": {
+    "typescript": true,
+    "eslint_changed": true,
+    "contracts": true,
+    "tokens": true,
+    "diff": true,
+    "webpack_exit": 0,
+    "existing_prerender_diagnostics": 5
+  },
+  "local_migrations": [
+    "20261109000000",
+    "20261110000000",
+    "20261111000000",
+    "20261112000000",
+    "20261113000000",
+    "20261114000000",
+    "20261115000000",
+    "20261116000000",
+    "20261117000000"
+  ],
+  "hosted_readonly": {
+    "mcp_metadata_http": 404,
+    "supabase_oauth_metadata_consulted_http": 404,
+    "chatgpt_end_to_end_verified": false
+  },
+  "limits": [
+    "COD unavailable: no verified collection source",
+    "no historical causal angle/hook attribution",
+    "provider render and Shopify/Meta live publication require acceptance in test environment",
+    "nine new migrations not applied in production"
+  ]
+}

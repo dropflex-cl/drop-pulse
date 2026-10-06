@@ -13,8 +13,8 @@ describe("PI · contratos Zod y JSON Schema 2020-12", () => {
   const inputValidators = Object.fromEntries(Object.entries(generated).map(([name, schemas]) => [name, ajv.compile(schemas.input)]));
   const outputValidators = Object.fromEntries(Object.entries(generated).map(([name, schemas]) => [name, ajv.compile(schemas.output)]));
 
-  it("publica exactamente diecisiete schemas raíz objeto con ramas completas", () => {
-    expect(Object.keys(generated)).toHaveLength(17);
+  it("publica exactamente treinta schemas raíz objeto con ramas completas", () => {
+    expect(Object.keys(generated)).toHaveLength(30);
     for (const schemas of Object.values(generated)) {
       expect(schemas.input.type).toBe("object");
       expect(schemas.output.type).toBe("object");

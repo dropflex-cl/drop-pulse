@@ -2221,7 +2221,8 @@
                           "product_review",
                           "product_reference_image",
                           "merchant_note",
-                          "asset"
+                          "asset",
+                          "product_learning"
                         ]
                       },
                       "id": {

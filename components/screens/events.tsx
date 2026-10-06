@@ -318,7 +318,7 @@ function CopyEditor({ slug, product, onChange }: { slug: string; product: EventP
     }
   };
 
-  if (!copy || copy.status === "failed") return <Notice title="Prepara los textos del evento en el chat" body="La redacción automática se retiró. El evento conserva sus textos por defecto y puedes revisar los textos que ya están guardados." />;
+  if (!copy || copy.status === "failed") return <Notice title="Prepara los textos del evento en el chat" body="Guarda los textos con save_event_content. El evento conserva sus textos por defecto hasta que revises y apruebes la propuesta." />;
   if (copy.status === "generating") return <StateChip label="Escribiendo los textos" icon="loader" tone="progress" spin />;
 
   const approved = copy.status === "approved";

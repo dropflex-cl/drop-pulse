@@ -8,7 +8,9 @@ export interface ProductData {
   name: string;
   description: string;
   /** Quién escribió la última versión. */
-  source: "ai" | "merchant";
+  source: "ai" | "merchant" | "mcp_chat";
+  expected_revision?: number;
+  expected_context_revision?: number;
   updated_at: string;
   /** La versión del prompt y el modelo de la última identificación con IA. */
   prompt_version?: number | null;

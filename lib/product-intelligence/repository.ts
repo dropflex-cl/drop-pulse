@@ -6,6 +6,21 @@ import type { Principal } from "./policy";
 import type { DelegatedIdentity } from "./oauth";
 import type { DomainError } from "./schemas";
 
+export interface GalleryGenerationRepository {
+  loadGalleryGeneration(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  enqueueGalleryGeneration(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+}
+export interface LearningRepository {
+  loadPerformance(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  loadLearning(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  commitLearning(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+}
+export interface ContentRepository {
+  loadContent(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  commitContent(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  reviewTip?(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  loadTipReview?(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+}
 export interface ContextRepository {
   load(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
   commit(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
@@ -35,6 +50,7 @@ const messages: Partial<Record<DomainError["code"], string>> = {
   DEPENDENCY_IN_USE: "Esta entidad pertenece a la estrategia seleccionada. Sustituye o archiva la selección primero.",
   ARTIFACT_CONFLICT: "La propuesta cambió desde tu lectura. Recupera su contenido y concilia los cambios.",
   GENERATION_IN_PROGRESS: "Hay una generación en curso. Espera a que termine antes de cambiar el contenido.",
+  RESPONSE_TOO_LARGE: "La respuesta supera el límite. Consulta un periodo más corto.",
   RATE_LIMITED: "Llegaste al límite de generación. Espera antes de solicitar otra operación.",
 };
 export function contextDatabaseError(error: { code?: string; message?: string }): ProductIntelligenceError {
@@ -45,13 +61,13 @@ export function contextDatabaseError(error: { code?: string; message?: string })
   if (["23514", "22003", "22001", "22P02", "23502"].includes(error.code ?? "")) return new ProductIntelligenceError("VALIDATION_ERROR", "Revisa los campos y los números antes de guardar.");
   return new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos completar la transacción. Reintenta con la misma clave.", {}, true);
 }
-export function createContextRepository(db: SupabaseClient = adminClient()): KnowledgeRepository & LandingRepository & PackLabelsRepository & UgcRepository {
+export function createContextRepository(db: SupabaseClient = adminClient()): KnowledgeRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository {
   async function rpc(name: string, args: Record<string, unknown>, signal: AbortSignal) {
     const { data, error } = await db.rpc(name, args).abortSignal(AbortSignal.any([signal, AbortSignal.timeout(5000)]));
     if (error) throw contextDatabaseError(error);
     return data as unknown;
   }
-  return { loadUgc: (args, signal) => rpc("pi_load_ugc", args, signal), commitUgc: (args, signal) => rpc("pi_commit_ugc", args, signal), load: (args, signal) => rpc("pi_load_context", args, signal), commit: (args, signal) => rpc("pi_commit_context", args, signal),
+  return { loadGalleryGeneration: (args, signal) => rpc("pi_load_gallery_generation", args, signal), enqueueGalleryGeneration: (args, signal) => rpc("pi_enqueue_gallery_generation", args, signal), reviewTip: (args, signal) => rpc("pi_review_tip", args, signal), loadTipReview: (args, signal) => rpc("pi_load_tip_review", args, signal), loadPerformance: (args, signal) => rpc("pi_load_performance", args, signal), loadLearning: (args, signal) => rpc("pi_load_learning", args, signal), commitLearning: (args, signal) => rpc("pi_commit_learning", args, signal), loadContent: (args, signal) => rpc("pi_load_content", args, signal), commitContent: (args, signal) => rpc("pi_commit_content", args, signal), loadUgc: (args, signal) => rpc("pi_load_ugc", args, signal), commitUgc: (args, signal) => rpc("pi_commit_ugc", args, signal), load: (args, signal) => rpc("pi_load_context", args, signal), commit: (args, signal) => rpc("pi_commit_context", args, signal),
     loadKnowledge: (args, signal) => rpc("pi_load_knowledge", args, signal), commitKnowledge: (args, signal) => rpc("pi_commit_knowledge", args, signal),
     loadPackLabels: (args, signal) => rpc("pi_load_pack_labels", args, signal), commitPackLabels: (args, signal) => rpc("pi_commit_pack_labels", args, signal),
     loadLanding: (args, signal) => rpc("pi_load_landing", args, signal), commitLanding: (args, signal) => rpc("pi_commit_landing", args, signal) };

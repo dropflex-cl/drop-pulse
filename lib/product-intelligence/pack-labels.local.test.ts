@@ -149,7 +149,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     try {
       const names: string[] = []; let cursor: string | undefined;
       do { const p = await client.listTools(cursor ? { cursor } : {}); names.push(...p.tools.map((t) => t.name)); cursor = p.nextCursor; } while (cursor);
-      expect(names).toHaveLength(16); expect(names).toContain("save_pack_labels");
+      expect(names).toHaveLength(PERSISTED_INTELLIGENCE_TOOLS.length); expect(names).toContain("save_pack_labels");
       const i = await input(), r = await client.callTool({ name: "save_pack_labels", arguments: i }); expect(r.isError).toBe(false);
       expect(await client.callTool({ name: "save_pack_labels", arguments: i })).toEqual(r);
       expect((await client.callTool({ name: "get_pack_labels", arguments: { product_id: product } })).isError).toBe(false);

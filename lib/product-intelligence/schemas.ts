@@ -1,3 +1,6 @@
+import { galleryGenerationInputs, galleryGenerationOutputs } from "./gallery-generation-schemas";
+import { learningInputSchemas, learningOutputs } from "./learning-schemas";
+import { contentInputSchemas, contentOutputs } from "./content-schemas";
 // Contratos canónicos del dominio PI. Sin I/O, cookies ni proveedores.
 // El JSON Schema se exporta desde estos tipos; las reglas del grafo se validan
 // sobre el estado final en graph.ts, no con lecturas externas en el parser.
@@ -770,7 +773,7 @@ export const sourceUpsertSchema = z.union([z.strictObject({
   "editor": z.union([z.string().min(1).max(256), z.null()]),
   "url": z.union([z.string().max(2048).regex(new RegExp("^https://")).refine(isHttpsUrl, "Usa una URL HTTPS válida.").meta({ format: "uri" }), z.null()]),
   "internal_ref": z.union([z.strictObject({
-  "kind": z.enum(["product_review", "product_reference_image", "merchant_note", "asset"]),
+  "kind": z.enum(["product_review", "product_reference_image", "merchant_note", "asset", "product_learning"]),
   "id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" })
 }), z.null()])
 }), z.strictObject({
@@ -783,7 +786,7 @@ export const sourceUpsertSchema = z.union([z.strictObject({
   "editor": z.union([z.string().min(1).max(256), z.null()]).optional(),
   "url": z.union([z.string().max(2048).regex(new RegExp("^https://")).refine(isHttpsUrl, "Usa una URL HTTPS válida.").meta({ format: "uri" }), z.null()]).optional(),
   "internal_ref": z.union([z.strictObject({
-  "kind": z.enum(["product_review", "product_reference_image", "merchant_note", "asset"]),
+  "kind": z.enum(["product_review", "product_reference_image", "merchant_note", "asset", "product_learning"]),
   "id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" })
 }), z.null()]).optional()
 }).refine((value) => Object.keys(value).length >= 2, "Envía al menos un cambio.").meta({ minProperties: 2 })]);
@@ -797,7 +800,7 @@ export const sourceRecordSchema = z.strictObject({
   "editor": z.union([z.string().min(1).max(256), z.null()]),
   "url": z.union([z.string().max(2048).regex(new RegExp("^https://")).refine(isHttpsUrl, "Usa una URL HTTPS válida.").meta({ format: "uri" }), z.null()]),
   "internal_ref": z.union([z.strictObject({
-  "kind": z.enum(["product_review", "product_reference_image", "merchant_note", "asset"]),
+  "kind": z.enum(["product_review", "product_reference_image", "merchant_note", "asset", "product_learning"]),
   "id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" })
 }), z.null()]),
   "id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
@@ -1602,6 +1605,7 @@ export const generationContextSchema = z.strictObject({
 });
 
 export const inputSchemas = {
+  ...contentInputSchemas, ...learningInputSchemas, ...galleryGenerationInputs,
   get_ugc_content: getUgcInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
   get_pack_labels: getPackLabelsInput, save_pack_labels: savePackLabelsInput,
   "get_landing_content": getLandingInput,
@@ -1622,6 +1626,7 @@ const landingOutputSchemas = landingOutputs(errorSchema);
 const packOutputs = packLabelsOutputs(errorSchema);
 const ugcOutputSchemas = ugcOutputs(errorSchema);
 export const outputSchemas = {
+  ...contentOutputs(errorSchema), ...learningOutputs(errorSchema), ...galleryGenerationOutputs(errorSchema),
   get_ugc_content: ugcOutputSchemas.get, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
   get_pack_labels: packOutputs.get, save_pack_labels: packOutputs.save,
   "get_landing_content": landingOutputSchemas.get,

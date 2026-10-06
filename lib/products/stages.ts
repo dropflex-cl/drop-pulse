@@ -44,6 +44,7 @@ export interface ProductFacts {
   /** Información base: los datos del producto identificados y el precio guardado. */
   base?: { described: boolean; priced: boolean } | null;
   strategy?: StrategyFacts | null;
+  intelligence?: { selected: boolean; ready: boolean };
   /** Los ángulos elegidos y sus desarrollos (los escribe la estrategia al confirmar, o el flujo de antes). */
   angles?: AngleFacts | null;
   copy?: CopyFacts | null;
@@ -152,6 +153,7 @@ export function basePhase(f: ProductFacts): BasePhase {
 /** La etapa Estrategia se habilita con la información base lista y termina con los ángulos elegidos. */
 export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): AnglesPhase {
   if (base !== "done") return "locked";
+  if (f.intelligence) return f.intelligence.ready ? "done" : f.intelligence.selected ? "choose" : "new";
   // Con ángulos listos, la etapa está hecha aunque se esté generando otra estrategia: lo de después sigue.
   if (anglesReady(f.angles)) return "done";
   const s = f.strategy;
@@ -242,9 +244,9 @@ function anglesDesc(phase: AnglesPhase, f: ProductFacts): string {
     case "failed":
       return f.strategy?.error ?? "No se pudo generar la estrategia";
     case "choose":
-      return "Estrategia lista · elige 2 o 3 ángulos";
+      return f.intelligence ? "Revisa la estrategia en el chat" : "Estrategia lista · elige 2 o 3 ángulos";
     case "done":
-      return (f.angles?.briefs ?? []).map((b) => b.name).join(" · ");
+      return f.intelligence ? "Estrategia seleccionada" : (f.angles?.briefs ?? []).map((b) => b.name).join(" · ");
   }
 }
 

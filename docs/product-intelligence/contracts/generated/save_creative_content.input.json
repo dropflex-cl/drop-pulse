@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_content_etag",
+    "idempotency_key",
+    "content"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "__schema1": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "execution_key": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "angle_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "offer",
+            "before_after",
+            "explainer",
+            "headline",
+            "native",
+            "letter",
+            "proof",
+            "hero",
+            "whatsapp_chat"
+          ]
+        },
+        "landing_angle_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "landing_hook_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "name": {
+          "maxLength": 120,
+          "$ref": "#/$defs/__schema2"
+        },
+        "idea": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "why": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "look": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "art": {
+          "type": "object",
+          "properties": {
+            "palette": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "typography": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "mood": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "palette",
+            "typography",
+            "mood"
+          ],
+          "additionalProperties": false
+        },
+        "scene": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "layout": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "product_units": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "kit_parts": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        },
+        "texts": {
+          "maxItems": 7,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "chat": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "contact_name": {
+                  "type": "string",
+                  "description": "El nombre del amigo como lo guardó el lector, opcionalmente con UN emoji al final («Fran 💗», «Cami», «Javi ✨»). Hasta 21 caracteres."
+                },
+                "contact_gender": {
+                  "type": "string",
+                  "enum": [
+                    "woman",
+                    "man"
+                  ],
+                  "description": "woman o man, según el cliente ideal: quien compra le escribe a alguien como él."
+                },
+                "clock": {
+                  "description": "La hora de la barra de estado, «HH:MM» 24 h, uno o dos minutos después del último mensaje.",
+                  "$ref": "#/$defs/__schema5"
+                },
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema6"
+                  },
+                  "description": "De 5 a 7 burbujas, en orden."
+                }
+              },
+              "required": [
+                "contact_name",
+                "contact_gender",
+                "clock",
+                "messages"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "execution_key",
+        "angle_id",
+        "family",
+        "landing_angle_id",
+        "landing_hook_id",
+        "name",
+        "idea",
+        "why",
+        "look",
+        "art",
+        "scene",
+        "layout",
+        "product_units",
+        "kit_parts",
+        "texts",
+        "chat"
+      ],
+      "additionalProperties": false
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "headline",
+            "subheadline",
+            "callout",
+            "badge",
+            "table_header",
+            "table_row",
+            "note"
+          ]
+        },
+        "text": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "placement": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "points_to": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "text",
+        "placement",
+        "points_to"
+      ],
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "type": "string",
+      "description": "«HH:MM», 24 h."
+    },
+    "__schema6": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "enum": [
+            "friend",
+            "me"
+          ],
+          "description": "friend = el amigo que compró el producto (entrante, a la izquierda). me = el lector (saliente, a la derecha)."
+        },
+        "text": {
+          "type": "string",
+          "description": "El texto de la burbuja, hasta 108 caracteres. En la burbuja de foto, el pie bajo la foto (puede ir vacío)."
+        },
+        "time": {
+          "description": "«HH:MM» 24 h, creciente: la conversación entera dura pocos minutos.",
+          "$ref": "#/$defs/__schema5"
+        },
+        "photo": {
+          "type": "boolean",
+          "description": "true en EXACTAMENTE UNA burbuja: la foto del producto que manda el amigo."
+        }
+      },
+      "required": [
+        "from",
+        "text",
+        "time",
+        "photo"
+      ]
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_content_etag": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "strategy_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "angle_ids": {
+          "minItems": 1,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "fact_ids": {
+          "default": [],
+          "$ref": "#/$defs/__schema1"
+        },
+        "product_look": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "kit": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        },
+        "concepts": {
+          "minItems": 1,
+          "maxItems": 18,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        }
+      },
+      "required": [
+        "strategy_id",
+        "angle_ids",
+        "product_look",
+        "kit",
+        "concepts"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

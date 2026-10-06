@@ -64,6 +64,9 @@ export interface PageImageRow {
   input: Record<string, unknown>;
   baked_texts: ShotText[];
   render_status: "queued" | "running" | "succeeded" | "failed";
+  pi_operation_id?: string | null;
+  pi_base_reference_id?: string;
+  pi_qa_enabled?: boolean;
   hf_request_id: string | null;
   error_code: string | null;
   error_message: string | null;
@@ -90,9 +93,9 @@ export async function expireStalePageImages(userId: string): Promise<void> {
   const results = await Promise.all([
     db.from("page_image_runs").update(runPatch).eq("user_id", userId).eq("status", "running").lt("started_at", before(RUN_RUNNING_STALE_MS)),
     db.from("page_image_runs").update(runPatch).eq("user_id", userId).eq("status", "queued").lt("created_at", before(RUN_QUEUED_STALE_MS)),
-    db.from("page_images").update(imagePatch).eq("user_id", userId).eq("render_status", "running").lt("submitted_at", before(IMAGE_RUNNING_STALE_MS)),
-    db.from("page_images").update(imagePatch).eq("user_id", userId).eq("render_status", "running").eq("provider", "gemini").lt("submitted_at", before(GEMINI_RUNNING_STALE_MS)),
-    db.from("page_images").update(imagePatch).eq("user_id", userId).eq("render_status", "queued").lt("created_at", before(IMAGE_QUEUED_STALE_MS)),
+    db.from("page_images").update(imagePatch).eq("user_id", userId).is("pi_operation_id", null).eq("render_status", "running").lt("submitted_at", before(IMAGE_RUNNING_STALE_MS)),
+    db.from("page_images").update(imagePatch).eq("user_id", userId).is("pi_operation_id", null).eq("render_status", "running").eq("provider", "gemini").lt("submitted_at", before(GEMINI_RUNNING_STALE_MS)),
+    db.from("page_images").update(imagePatch).eq("user_id", userId).is("pi_operation_id", null).eq("render_status", "queued").lt("created_at", before(IMAGE_QUEUED_STALE_MS)),
   ]);
   for (const r of results) fail("Cerrar lo colgado de Imágenes", r.error);
   await purgeDiscardedPageImages(userId);
@@ -101,8 +104,8 @@ export async function expireStalePageImages(userId: string): Promise<void> {
 /**
  * Lo descartado se borra de verdad (archivo de page-media y fila):
  * - una opción descartada, pasado el plazo de Deshacer;
- * - al proponer otra galería, todas las imágenes generadas de las tomas reemplazadas, también las
- *   elegidas, salvo las que siguen generándose (se borran al terminar: si no, quedaría un archivo sin
+ * - al proponer otra galería, solo las imágenes rechazadas de las tomas reemplazadas, salvo las
+ *   que siguen generándose (se borran al terminar: si no, quedaría un archivo sin
  *   fila). Después, las tomas reemplazadas que quedan sin imágenes.
  * Las subidas y las fotos de Información base no dependen de la galería: se quedan.
  * Primero Storage y después la base: si Storage falla, la fila queda y se reintenta en la próxima
@@ -119,7 +122,7 @@ export async function purgeDiscardedPageImages(userId: string): Promise<void> {
   const oldShots = (superseded.data ?? []).map((s) => s.id as string);
   let orphans: { id: string; storage_path: string | null }[] = [];
   if (oldShots.length) {
-    const r = await db.from("page_images").select("id, storage_path").eq("user_id", userId).in("shot_id", oldShots).in("render_status", ["succeeded", "failed"]);
+    const r = await db.from("page_images").select("id, storage_path").eq("user_id", userId).in("shot_id", oldShots).eq("status", "rejected").in("render_status", ["succeeded", "failed"]);
     fail("Leer las imágenes reemplazadas", r.error);
     orphans = (r.data ?? []) as typeof orphans;
   }

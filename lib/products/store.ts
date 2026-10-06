@@ -100,19 +100,6 @@ export async function getProductRow(userId: string, id: string): Promise<Product
   return data as ProductRow | null;
 }
 
-export async function updateBaseInfo(userId: string, id: string, text: string): Promise<string> {
-  const now = new Date().toISOString();
-  const { data, error } = await adminClient()
-    .from("products")
-    .update({ base_info: text, base_info_updated_at: now, updated_at: now })
-    .eq("user_id", userId)
-    .eq("id", id)
-    .select("id");
-  fail("Guardar la información", error);
-  if (!data?.length) throw new Error("Producto no encontrado");
-  return now;
-}
-
 /** Guarda el color de acento de la página (ya normalizado a #rrggbb). */
 export async function updatePageAccent(userId: string, id: string, hex: string): Promise<void> {
   const { data, error } = await adminClient()

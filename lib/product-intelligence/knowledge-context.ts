@@ -23,6 +23,7 @@ export function knowledgeContextResponse(read: KnowledgeRead, input: ToolInputs[
   const pricing = contextPricing(read.snapshot), policiesStamp = canonicalHash(read.snapshot.settings as JsonValue);
   const page: { block: Response["data"]["blocks"][number]; item: Response["data"]["blocks"][number]["items"][number] }[] = [];
   for (const block of result.data.blocks) {
+    if (block.name === "performance") { block.summary = "Consulta get_product_performance con fechas explícitas y get_product_learning para recuperar mediciones y aprendizajes. Las métricas actuales no forman parte de esta revisión histórica."; continue; }
     if (block.name === "strategy") { block.strategy = strategy; block.count = strategy ? 1 : 0; continue; }
     const kinds = blockKinds[block.name];
     if (!kinds) continue;

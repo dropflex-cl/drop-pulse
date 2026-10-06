@@ -141,3 +141,9 @@ Errores tienen code, message en español, retryable y details cerrado. Details s
 Los [ejemplos](contracts/examples.json) cubren cuatro personas/ocho ángulos, research inicialmente no verificado, revisión sensible, selección, dry_run y jobs por etapa. Son datos ficticios; aprobaciones UI/credenciales y estados del escenario son precondiciones, no acciones ejecutadas. La [matriz de dominio](contracts/domain-cases.md) distingue pruebas puras y gates de servicios/DB/host.
 
 Verificación con `npm run pi:contracts`: exportación desde Zod y validación Ajv 8 draft 2020-12 completa de diseño/generated, ejemplos/rechazos, bytes y concordancia de pricing. Las pruebas PI comprueban dominio puro y SDK con Client/InMemoryTransport oficiales. Persistencia, OAuth, HTTP, proveedores y host real siguen pendientes; no se declaran probados por estas comprobaciones.
+
+## Ampliación vigente: contenido, galería y aprendizaje
+
+El runtime anuncia 29 tools con 30 pares de schemas. Se añadieron get/save_creative_content, get/save_gallery_content, get/save_event_content, get/save_usage_tip, generate_gallery_images/get_gallery_generation_status y get_product_performance/get_product_learning/save_product_learning. `generate_landing` conserva únicamente el contrato histórico cerrado.
+
+Las tools de contenido incluyen contrato JSON y paginación en la lectura; mutaciones requieren revisión/etag/key y aceptan dry_run. Aprendizaje exige revisión y etag de medición. Render de galería exige permiso landing:generate, proveedor y límite de estimación. [Recorrido y límites](chat-content-and-learning.md). Fuente ejecutable: `lib/product-intelligence/*-schemas.ts`; exports de `contracts/generated/` con `npm run pi:contracts`.

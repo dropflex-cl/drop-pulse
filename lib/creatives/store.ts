@@ -58,7 +58,8 @@ export type StoredConcept = Omit<ConceptPayload, ArtFields | "texts" | "family">
     kit?: string[];
     preset: Pick<Preset, "id" | "name" | "group" | "cover"> | null;
     /** El ángulo de venta del desarrollo del que sale. */
-    sales_angle: SalesAngle;
+    sales_angle: SalesAngle | null;
+    provenance?: Record<string, unknown>;
     /** El nombre del ángulo de testeo (desde CREATIVES_PROMPT_VERSION 3). */
     angle_name?: string;
   };
@@ -166,7 +167,7 @@ export async function removeAdCopies(ids: string[]): Promise<Set<string>> {
 /**
  * Lo descartado se borra de verdad (archivo de creative-media y fila):
  * - una pieza descartada, pasado el plazo de Deshacer;
- * - al proponer otros, todas las piezas de los conceptos reemplazados, también las aprobadas (con su
+ * - al proponer otros, solo las piezas rechazadas de los conceptos reemplazados (con su
  *   copia en Anuncios, ver removeAdCopies), salvo las que siguen generándose: se borran cuando
  *   terminan (si no, Higgsfield dejaría un archivo sin fila). Después, los conceptos reemplazados
  *   que quedan sin piezas.
@@ -194,6 +195,7 @@ export async function purgeDiscardedCreatives(userId: string): Promise<void> {
       .select("id, storage_path, ad_media_id")
       .eq("user_id", userId)
       .in("concept_id", oldConcepts)
+      .eq("status", "rejected")
       .in("render_status", ["succeeded", "failed"]);
     fail("Leer las piezas reemplazadas", r.error);
     const found = (r.data ?? []) as (typeof orphans[number] & { ad_media_id: string | null })[];
@@ -349,7 +351,7 @@ export function toConceptView(c: ConceptRow, assets: AssetRow[], urls: Map<strin
   return {
     id: c.id,
     angle: c.angle_slot,
-    angleName: p.angle_name || (ANGLES[p.sales_angle]?.name ?? ""),
+    angleName: p.angle_name || ((p.sales_angle ? ANGLES[p.sales_angle]?.name : null) ?? ""),
     family: c.family,
     familyName: conceptFamilyName(c.family),
     name: p.name,

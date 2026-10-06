@@ -29,4 +29,21 @@ La decisión del comerciante sustituye las acciones de redacción pagada de las 
 | Anthropic conectado | Revisión de imágenes | La revisión opcional de imágenes usa tu cuenta y tu saldo de Anthropic. El costo de cada producto aparece en su pantalla. |
 | Anthropic desconectado | Conectar | Pega tu clave de Anthropic si quieres activar la revisión de imágenes. Los textos se preparan desde el chat; esta revisión se cobra de tu saldo de Anthropic. |
 
-No se presenta una acción de envío para planes/conceptos/eventos/consejos hasta que exista su tool de ingestión MCP. Los avisos conservan la capacidad real actual: revisión/render de materiales ya guardados y carga de imágenes.
+Las tools de ingestión ya están implementadas. Guardar crea propuestas; el comerciante conserva la revisión y publicación.
+
+## Textos del cierre de ingestión
+
+- Datos base: «Completa los datos y el precio. Prepara la estrategia desde el chat.»
+- Contexto del proveedor: «Pega la descripción del proveedor, medidas, materiales, reseñas o lo que te hayan preguntado tus clientes. Usa esta información como contexto para el chat.» El detector local muestra «temas detectados», sin atribuirlo a IA.
+- Precio y packs: «El chat usa este precio y estos packs al preparar la estrategia y el contenido.» / «Describe qué incluye cada pack. Usa una duración solo si está comprobada en los datos del producto.»
+- Reseñas: «Opcional. Úsalas como evidencia en el chat.»
+- Galería: «Guarda el plan con save_gallery_content. Puedes generar sus imágenes desde el chat con generate_gallery_images o revisarlo y generarlas aquí.»
+- Creativos: «Guarda los conceptos y las conversaciones con save_creative_content. Aquí podrás revisarlos y generar sus imágenes.»
+- Eventos: «Guarda los textos con save_event_content. El evento conserva sus textos por defecto hasta que revises y apruebes la propuesta.»
+- WhatsApp: «Prepara el consejo con información comprobada del producto y guárdalo con save_usage_tip. Revísalo aquí antes de usarlo.»
+- Consejo pendiente: StatusBadge «Revisión», acción «Aprobar consejo», toast «Consejo aprobado». Error «No pudimos aprobar el consejo.»; la respuesta del servidor explica conflictos o evidencia inválida.
+- Fuente del consejo: «Consejo guardado · fuente: {basis}».
+
+Los avisos conservan los títulos de la tabla histórica. Los campos de datos base no guardan sobre una edición posterior: «Los datos del producto cambiaron desde tu lectura. Actualiza la página antes de guardar.»
+
+- Datos guardados desde el servicio compartido: «Contexto guardado». La etiqueta solo aparece cuando hay nombre y descripción. La navegación canónica muestra «Estrategia seleccionada» o «Revisa la estrategia en el chat», sin exigir dos ángulos si la selección válida tiene uno.

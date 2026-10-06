@@ -262,3 +262,15 @@ describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
     expect(byKey(approvedAvatar, "angulos")).toMatchObject({ state: "current" });
   });
 });
+
+
+describe("navegación canónica MCP", () => {
+  it("una estrategia lista habilita imágenes sin cliente ideal ni ángulos legacy", () => {
+    const result = productPosition({ ...ready, intelligence: { selected: true, ready: true } });
+    expect(result.anglesPhase).toBe("done");
+    expect(result.stages.find(s => s.key === "imagenes")?.state).not.toBe("locked");
+  });
+  it("no usa aprobaciones legacy para una estrategia canónica desactualizada", () => {
+    expect(anglesPhase({ ...ready, intelligence: { selected: true, ready: false }, angles: { ranking: { status: "succeeded", confirmed: true, chosen: 2 }, briefs: [1,2].map(slot => ({ slot, name: "Antiguo", status: "aprobado", generation: "succeeded" })) } })).toBe("choose");
+  });
+});

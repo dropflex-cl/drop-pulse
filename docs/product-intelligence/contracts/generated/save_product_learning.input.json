@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "from",
+    "through",
+    "expected_revision",
+    "expected_performance_etag",
+    "idempotency_key",
+    "learning"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "__schema1": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "__schema2": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+    },
+    "__schema3": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema4": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "__schema5": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "__schema6": {
+      "default": false,
+      "type": "boolean"
+    },
+    "__schema7": {
+      "type": "object",
+      "properties": {
+        "strategy_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "criteria": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "inconclusive",
+            "supports_hypothesis",
+            "contradicts_hypothesis"
+          ]
+        },
+        "limitations": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema8"
+          }
+        },
+        "next_action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "strategy_id",
+        "hypothesis",
+        "criteria",
+        "observation",
+        "outcome",
+        "limitations",
+        "next_action"
+      ],
+      "additionalProperties": false
+    },
+    "__schema8": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "from": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "through": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "expected_revision": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "expected_performance_etag": {
+      "$ref": "#/$defs/__schema4"
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/__schema5"
+    },
+    "dry_run": {
+      "$ref": "#/$defs/__schema6"
+    },
+    "learning": {
+      "$ref": "#/$defs/__schema7"
+    }
+  }
+}

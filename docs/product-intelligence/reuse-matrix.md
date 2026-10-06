@@ -31,3 +31,16 @@ Decisiones vigentes según [ADR 006](adrs/006-chat-first-optimization.md): no ba
 Los rangos se solapan entre dominio, integración y adaptación de consumidores: no sumarlos como presupuesto. El [backlog](implementation-backlog.md) estima paquetes completos con gates y reserva para incertidumbre.
 
 Validación empírica: [producción readonly](production-validation.md) confirma ocho productos, cinco planes de precio, ocho fichas, ocho avatares, siete rankings, trece desarrollos, cuatro publicaciones y dos filas de competencia. Las dos strategy_runs están fallidas. Según ADR 006, esos formatos de análisis no se migran: se prueba que outputs/campañas retenidos siguen funcionando, y el contexto nuevo empieza sin los payloads anteriores.
+
+## Cierre implementado: contenido y aprendizaje
+
+| Capacidad | Implementación comprobable | Decisión |
+|---|---|---|
+| Conceptos/arte/chats | `lib/product-intelligence/content-service.ts`, `lib/creatives/store.ts`, `lib/pipeline/creatives.ts` | Ingestión sobre runs/concepts y render existente; sin writer de texto. |
+| Planes/galería | `content-service.ts`, `gallery-generation-service.ts`, `lib/page-images/operations.ts` | Reusar shots/images/optimizador; nueva cola solo para despacho durable. |
+| Eventos/consejos | `content-service.ts`, `lib/whatsapp/store.ts`, `app/api/products/[id]/whatsapp/tip/route.ts` | Propuestas en tablas actuales; consejo necesita evidencia vigente y decisión humana. |
+| Datos base/etapas | `lib/pipeline/product-data.ts`, `lib/data/product-intelligence.ts`, `lib/products/stages.ts` | Writer de contexto compartido; CAS por contexto observado y transacción global; navegación canónica. |
+| Meta | `lib/ads/store.ts`, `lib/ads/ugc-link.ts`, `lib/pipeline/ads-launch.ts` | Mantener medios/campañas; procedencia estática y destino por selector; rechazo de pieza desactualizada. |
+| Medición/aprendizaje | `learning-service.ts`, migraciones 10/16 | Caché campaign diaria, snapshots inmutables y fuentes internas para siguiente research. COD no disponible. |
+
+[Contrato, límites y rollout](chat-content-and-learning.md), [ADR 016](adrs/016-chat-content-learning-and-render.md). Las referencias de archivos de esta tabla son relativas a la raíz del repositorio; no prueban el despliegue público.

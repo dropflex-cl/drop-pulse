@@ -25,7 +25,7 @@ async function connect(execute: DomainExecutor, userId = "merchant-a", requestTi
 }
 
 describe("PI · protocolo MCP oficial", () => {
-  it("inicializa y descubre diecisiete tools con outputSchema, incluidas unions raíz", async () => {
+  it("inicializa y descubre treinta tools con outputSchema, incluidas unions raíz", async () => {
     const session = await connect(async () => null);
     try {
       const tools = [];
@@ -36,7 +36,7 @@ describe("PI · protocolo MCP oficial", () => {
         expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThanOrEqual(PI_LIMITS.outputBytes);
         tools.push(...page.tools); cursor = page.nextCursor; pages++;
       } while (cursor);
-      expect(tools).toHaveLength(17);
+      expect(tools).toHaveLength(30);
       expect(pages).toBeGreaterThan(1);
       for (const tool of tools) { expect(tool.inputSchema.type).toBe("object"); expect(tool.outputSchema?.type).toBe("object"); }
       expect(tools.find((tool) => tool.name === "generate_ugc")?.inputSchema.properties?.stage).toMatchObject({ enum: ["keyframes", "clips"] });
@@ -47,7 +47,7 @@ describe("PI · protocolo MCP oficial", () => {
     const session = await connect(async () => null);
     try {
       await expect(session.client.listTools({ cursor: "foreign" })).rejects.toThrow("cursor");
-      await expect(session.client.listTools({ cursor: "pi-tools-v1:17" })).rejects.toThrow("cursor");
+      await expect(session.client.listTools({ cursor: "pi-tools-v1:30" })).rejects.toThrow("cursor");
     } finally { await session.close(); }
   });
   it("respuesta estructurada y texto JSON son idénticos; status es solo lectura", async () => {

@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_content_etag",
+    "idempotency_key",
+    "content"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "__schema1": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "__schema2": {
+      "type": "string"
+    },
+    "__schema3": {
+      "type": "string",
+      "description": "En inglés: 2 a 4 colores con nombre, los del mundo visual elegido; el producto contrasta con el fondo y los textos van en un acento que se lee."
+    },
+    "__schema4": {
+      "type": "string",
+      "description": "En inglés: el carácter de la tipografía (p. ej., heavy rounded sans for the headline, clean sans for badges)."
+    },
+    "__schema5": {
+      "type": "string",
+      "description": "En inglés: 3 a 6 palabras."
+    },
+    "__schema6": {
+      "type": "object",
+      "properties": {
+        "palette": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "typography": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "mood": {
+          "$ref": "#/$defs/__schema5"
+        }
+      },
+      "required": [
+        "palette",
+        "typography",
+        "mood"
+      ]
+    },
+    "__schema7": {
+      "type": "string"
+    },
+    "__schema8": {
+      "type": "string"
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "El beneficio en una frase, en el idioma del mercado, con un dato de la FICHA que lo sostiene."
+        },
+        "angle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema10"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "El número del ángulo (1, 2 o 3) que este beneficio prueba; null en el que sobra cuando hay menos ángulos que beneficios."
+        }
+      },
+      "required": [
+        "text",
+        "angle"
+      ]
+    },
+    "__schema10": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "__schema11": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "__schema12": {
+      "type": "string"
+    },
+    "__schema13": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "headline",
+            "subheadline",
+            "callout",
+            "badge",
+            "table_header",
+            "table_row",
+            "note"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "description": "Exactamente como va en la imagen, en el idioma del mercado. headline ≤ 40 caracteres; badge y callout, 1 o 2 líneas (con un salto de línea) de ≤ 28 cada una."
+        },
+        "placement": {
+          "type": "string",
+          "description": "En inglés: posición, líneas, peso, color y contenedor (solid pill with a line icon, round stamp, card, table cell)."
+        },
+        "points_to": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema14"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Solo callouts: la parte concreta y VISIBLE del producto a la que llega su línea (en inglés); null en los demás."
+        }
+      },
+      "required": [
+        "role",
+        "text",
+        "placement",
+        "points_to"
+      ]
+    },
+    "__schema14": {
+      "type": "string"
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_content_etag": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "strategy_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "angle_ids": {
+          "minItems": 1,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "fact_ids": {
+          "default": [],
+          "$ref": "#/$defs/__schema1"
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "product_look": {
+              "type": "string",
+              "description": "En inglés, ≤ 20 palabras: cómo se ve el producto principal en la IMAGEN BASE (tipo, color, material, detalles). Sin textos de la caja."
+            },
+            "kit": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "description": "En inglés: todo lo demás que aparece en la IMAGEN BASE (caja, repuestos, cables, accesorios)."
+            },
+            "visual_world": {
+              "type": "string",
+              "enum": [
+                "studio_color",
+                "real_home",
+                "clean_explainer",
+                "native_phone"
+              ],
+              "description": "El mundo visual de toda la galería, elegido para este producto (ver MUNDOS VISUALES)."
+            },
+            "visual_world_why": {
+              "type": "string",
+              "description": "Por qué ese mundo, en una frase para el comerciante, en el idioma del mercado: quién compra, dónde se usa y qué piden los ángulos."
+            },
+            "brand_art": {
+              "description": "La línea visual común de toda la galería, dentro del mundo elegido.",
+              "$ref": "#/$defs/__schema6"
+            },
+            "props_allowed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "description": "En inglés: props de ambiente que refuerzan la sensación del producto sin prometer nada, cada uno descrito con precisión visual."
+            },
+            "props_forbidden": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema8"
+              },
+              "description": "En inglés: props tentadores pero engañosos, cada uno con el motivo entre paréntesis."
+            },
+            "benefits": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema9"
+              },
+              "description": "Exactamente 3 beneficios distintos del producto, uno por cada ángulo en su orden y, si sobra, el que más vende del diferenciador."
+            },
+            "shots": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "slot": {
+                    "type": "string",
+                    "enum": [
+                      "cover",
+                      "gallery",
+                      "benefit"
+                    ]
+                  },
+                  "benefit": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/__schema11"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Solo slot benefit: el número del beneficio (1, 2…) de benefits. null en los demás."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "hero_clean",
+                      "hero_mood",
+                      "infographic",
+                      "comparison",
+                      "in_the_box",
+                      "detail",
+                      "in_use",
+                      "scale",
+                      "benefit"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Nombre corto para el comerciante, en el idioma del mercado."
+                  },
+                  "look": {
+                    "type": "string",
+                    "description": "Una frase para el comerciante: cómo se verá la imagen. En el idioma del mercado."
+                  },
+                  "art": {
+                    "$ref": "#/$defs/__schema6"
+                  },
+                  "scene": {
+                    "type": "string",
+                    "description": "En inglés, 30 a 70 palabras: fondo, superficie, props (solo de props_allowed, descritos con precisión), luz, elementos en movimiento."
+                  },
+                  "layout": {
+                    "type": "string",
+                    "description": "En inglés, 20 a 50 palabras: dónde va el producto, cuánto del cuadro ocupa, zonas para el texto."
+                  },
+                  "product_units": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "kit_parts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema12"
+                    },
+                    "description": "Partes del kit que aparecen, escritas igual que en kit. [] si ninguna."
+                  },
+                  "hands": {
+                    "type": "boolean",
+                    "description": "true si se ven manos o la parte del cuerpo donde se usa (nunca una cara)."
+                  },
+                  "texts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema13"
+                    },
+                    "description": "[] en las tomas sin texto."
+                  }
+                },
+                "required": [
+                  "slot",
+                  "benefit",
+                  "type",
+                  "name",
+                  "look",
+                  "art",
+                  "scene",
+                  "layout",
+                  "product_units",
+                  "kit_parts",
+                  "hands",
+                  "texts"
+                ]
+              }
+            }
+          },
+          "required": [
+            "product_look",
+            "kit",
+            "visual_world",
+            "visual_world_why",
+            "brand_art",
+            "props_allowed",
+            "props_forbidden",
+            "benefits",
+            "shots"
+          ]
+        }
+      },
+      "required": [
+        "strategy_id",
+        "angle_ids",
+        "plan"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

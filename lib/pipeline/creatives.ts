@@ -1,3 +1,5 @@
+import { contextDatabaseError } from "@/lib/product-intelligence/repository";
+import { renderBaseId } from "@/lib/products/render-context";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { type PackLabel } from "@/lib/ai/schemas";
@@ -83,10 +85,10 @@ export async function onGeminiError(userId: string, e: unknown) {
 }
 
 /** Gemini responde sin cola: la imagen llega en la respuesta. Descarga la foto base y genera. */
-export async function renderWithGemini(userId: string, productId: string, input: Record<string, unknown>) {
+export async function renderWithGemini(userId: string, productId: string, input: Record<string, unknown>, expectedBaseId?: string) {
   const apiKey = await geminiKey(userId);
   if (!apiKey) throw new GeminiError("invalid_key", "Conecta tu cuenta de Gemini en Ajustes y genera de nuevo.");
-  const [base] = await productImageUrls(userId, productId, 1);
+  const [base] = await productImageUrls(userId, productId, 1, expectedBaseId);
   if (!base) throw new GeminiError("bad_request", "El producto no tiene una imagen base. Elige una en Información base.");
   return generateImage({
     apiKey,
@@ -103,8 +105,9 @@ export async function onHiggsfieldError(userId: string, e: unknown) {
 
 // ---------------------------------------------------------------- 1. Conceptos
 
-export async function productImageUrls(userId: string, productId: string, max: number): Promise<string[]> {
+export async function productImageUrls(userId: string, productId: string, max: number, expectedBaseId?: string): Promise<string[]> {
   const rows = imagesForGeneration(await listImageRows(userId, [productId])).slice(0, max);
+  if (expectedBaseId && rows[0]?.id !== expectedBaseId) throw new OptimizeError("Cambió la imagen base. Revisa el plan antes de generar.", 409);
   const urls = await withDisplayUrls(rows);
   return rows.map((r) => urls.get(r.id)).filter((u): u is string => Boolean(u));
 }
@@ -199,6 +202,7 @@ async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, p
     })
     .select("*")
     .single();
+  if (error?.message.startsWith("PI_")) throw contextDatabaseError(error);
   fail("Crear la pieza", error);
   return data as AssetRow;
 }
@@ -232,7 +236,7 @@ export async function processAsset(assetId: string, force = false): Promise<void
   try {
     const key = await higgsfieldKey(a.user_id);
     if (!key) throw new HiggsfieldError("invalid_key", "Conecta tu cuenta de Higgsfield en Ajustes y genera de nuevo.");
-    const [base] = await productImageUrls(a.user_id, a.product_id, 1);
+    const [base] = await productImageUrls(a.user_id, a.product_id, 1, await renderBaseId("creative", a.id));
     if (!base) throw new HiggsfieldError("bad_request", "El producto no tiene una imagen base. Elige una en Información base.");
     // La foto base, en JPEG de hasta 2048 px, subida a Higgsfield como referencia (la URL firmada de
     // Supabase no siempre es alcanzable desde afuera, p. ej., en local).
@@ -253,9 +257,9 @@ export async function processAsset(assetId: string, force = false): Promise<void
       console.error("[creatives] render: se sigue con el sondeo", e.message);
       return;
     }
-    const message = e instanceof HiggsfieldError ? e.message : "No pudimos generar la imagen. Toca Generar de nuevo.";
-    if (!(e instanceof HiggsfieldError)) console.error("[creatives] render", e);
-    await patchAsset(a.id, { render_status: "failed", error_code: e instanceof HiggsfieldError ? e.code : "unexpected", error_message: message, finished_at: new Date().toISOString() });
+    const message = e instanceof HiggsfieldError || e instanceof OptimizeError ? e.message : "No pudimos generar la imagen. Toca Generar de nuevo.";
+    if (!(e instanceof HiggsfieldError) && !(e instanceof OptimizeError)) console.error("[creatives] render", e);
+    await patchAsset(a.id, { render_status: "failed", error_code: e instanceof OptimizeError ? "context_changed" : e instanceof HiggsfieldError ? e.code : "unexpected", error_message: message, finished_at: new Date().toISOString() });
     await logRender(a, false, e instanceof HiggsfieldError ? e.code : "unexpected", Date.now() - started);
   }
 }
@@ -278,7 +282,7 @@ async function processWithGemini(lease_: AssetRow): Promise<void> {
   const detail = await assetDetail(a);
   let result;
   try {
-    result = await renderWithGemini(a.user_id, a.product_id, a.input);
+    result = await renderWithGemini(a.user_id, a.product_id, a.input, await renderBaseId("creative", a.id));
   } catch (e) {
     const known = e instanceof GeminiError;
     if (!known) console.error("[creatives] render con Gemini", e);
@@ -495,6 +499,7 @@ async function copyToAds(a: AssetRow): Promise<string> {
       ratio: a.ratio,
       size_bytes: bytes.byteLength,
       status: "ready",
+      content_provenance: (concept.data?.payload as StoredConcept | undefined)?.provenance ? { ...(concept.data!.payload as StoredConcept).provenance, asset_id: a.id } : {},
       angle_slot: (concept.data as { angle_slot?: number } | null)?.angle_slot ?? null,
     })
     .select("id")

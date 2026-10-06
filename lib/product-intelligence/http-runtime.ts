@@ -1,3 +1,4 @@
+import { runGalleryOperation } from "@/lib/page-images/operations";
 import "server-only";
 import { after } from "next/server";
 import { runUgcOperation } from "@/lib/video/operations";
@@ -24,9 +25,10 @@ export async function serveMcpRequest(request: Request): Promise<Response> {
     if (!config) return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
     const repository = createContextRepository();
     const wake = (id: string) => after(() => runUgcOperation(id));
-    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake), {
+    const wakeGallery = (id: string) => after(() => runGalleryOperation(id));
+    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery), {
       availableTools: PERSISTED_INTELLIGENCE_TOOLS,
-      executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake),
+      executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery),
     })(request);
   } catch (error) {
     const response = mcpHttpError(error, config ?? undefined);

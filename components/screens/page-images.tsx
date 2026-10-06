@@ -157,7 +157,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
             <p className="m-0 mt-0.5 text-body">{state.style.why}</p>
           </div>
         ) : null}
-        {!hasShots ? <Notice title="Prepara las tomas en el chat" body="El director automático se retiró. Puedes subir imágenes, elegir fotos de Información base y generar las tomas que ya están guardadas." /> : null}
+        {!hasShots ? <Notice title="Prepara las tomas en el chat" body="Guarda el plan con save_gallery_content. Puedes generar sus imágenes desde el chat con generate_gallery_images o revisarlo y generarlas aquí." /> : null}
       </>
     );
     const benefitsAction =

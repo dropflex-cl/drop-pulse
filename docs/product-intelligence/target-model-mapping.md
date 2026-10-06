@@ -143,3 +143,13 @@ Cursor firmado liga actor/tenant/product/revision/include/view/include_archived/
 | Learning | `marketing_learnings` con experiment/ref observaciones, conclusion, evidence y proposal_revision; estado experimental por eventos | Regresa al análisis/selección por servicio, nunca sobrescribe estrategia histórica ni genera winner implícito. |
 
 V1 incorpora setup y generación, por lo que provenance de runs/medios y pi_generation_requests se implementan en esa entrega. PDPVersion completo, PublishOperation nuevo, experiments, observations y learnings quedan después; no se recrean módulos de Meta. Toda relación y asset nuevo entra al borrado central. Las migraciones se validan en entorno aislado antes de aplicar a datos reales.
+
+## Adiciones implementadas para el cierre
+
+`pi_product_learnings`: UUID, product/user, revisión única por producto, strategy_id, ventana de medición, contenido del chat, performance congelada, actor y fecha. Inmutable, lectura del dueño, FK compuesta hacia el agregado y FK de estrategia con cascada. Puede citarse como fuente interna `product_learning`.
+
+`pi_gallery_operations`: UUID, product/user, identidad delegada para reautorización interna, huella de contexto, UUID de imagen base congelado, coste estimado, QA, estado y timestamps. RLS sin SELECT del cliente: la consulta autorizada de estado proyecta solo datos públicos de la operación. `page_images.pi_operation_id` enlaza la cola con cascada. El UUID base es snapshot sin FK hacia la referencia: borrar una referencia no debe borrar assets antes de limpiar Storage.
+
+`event_copy.provenance` y `ad_media.content_provenance` conservan autoría/contexto y selectores. Los inputs de runs guardan estrategia, pricing, hechos verificados y huella/base de generación. `products.usage_tip` añade source/status/provenance/revisiones de hechos aprobados. Ningún valor de estado UI en español se persiste.
+
+El resto reutiliza entidades operativas. Nombre/descripción/proveedor van a `pi_product_inputs` por el writer canónico, sin seguir escribiendo `products.product_data`/`base_info`. No se importan avatares ni ángulos legacy al modelo PI. [ADR 016](adrs/016-chat-content-learning-and-render.md).

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Field, Notice, SegmentedControl, StageMeter, TopBar, notify } from "@/components/df";
+import { Button, Field, Notice, SegmentedControl, StageMeter, StatusBadge, TopBar, notify } from "@/components/df";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { money } from "@/lib/format";
@@ -103,14 +103,15 @@ function MessageCard({ template, message, onCopy, copied, children }: { template
 export function MessagesScreen({ data }: { data: ProductMessages }) {
   const { product } = data;
   const [order, setOrder] = useState<OrderFields>(EMPTY_ORDER);
-  const tip = data.tip;
+  const [tip, setTip] = useState(data.tip);
+  const [tipSaving, setTipSaving] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => () => clearTimeout(copiedTimer.current), []);
 
-  const facts = useMemo(() => ({ ...data.facts, tip: tip?.text ?? null }), [data.facts, tip]);
+  const facts = useMemo(() => ({ ...data.facts, tip: tip?.usable === false ? null : tip?.text ?? null }), [data.facts, tip]);
   const area = areaLabel(facts.countryCode);
   const missing = missingPolicies(facts);
   const packs = facts.packs.length > 1 ? facts.packs : [];
@@ -134,7 +135,17 @@ export function MessagesScreen({ data }: { data: ProductMessages }) {
 
   const tipControls = (
     <div className="flex flex-col gap-2 border-t pt-3">
-      <p className="text-caption text-muted-foreground">{tip ? `Consejo guardado · fuente: ${tip.basis}` : "Prepara el consejo de uso en el chat con información comprobada del producto. La redacción automática se retiró."}</p>
+      {tip && tip.usable === false ? <><StatusBadge status="revision" /><p className="text-body">{tip.text}</p><Button disabled={tipSaving} onClick={async () => {
+        setTipSaving(true);
+        try {
+          const response = await fetch(`/api/products/${product.id}/whatsapp/tip`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve", expected_etag: tip.etag }) });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error ?? "No pudimos aprobar el consejo.");
+          setTip({ ...tip, usable: true }); notify("Consejo aprobado");
+        } catch (error) { notify(error instanceof Error ? error.message : "No pudimos aprobar el consejo."); }
+        finally { setTipSaving(false); }
+      }}>Aprobar consejo</Button></> : null}
+      <p className="text-caption text-muted-foreground">{tip ? `Consejo guardado · fuente: ${tip.basis}` : "Prepara el consejo con información comprobada del producto y guárdalo con save_usage_tip. Revísalo aquí antes de usarlo."}</p>
     </div>
   );
 

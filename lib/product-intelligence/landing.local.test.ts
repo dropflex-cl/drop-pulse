@@ -108,7 +108,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · landing persistente en 
     try {
       const tools: string[] = []; let cursor: string | undefined;
       do { const page = await client.listTools(cursor ? { cursor } : {}); tools.push(...page.tools.map((t) => t.name)); cursor = page.nextCursor; } while (cursor);
-      expect(tools).toHaveLength(16);
+      expect(tools).toHaveLength(PERSISTED_INTELLIGENCE_TOOLS.length);
       const r = await client.callTool({ name: "get_landing_content", arguments: { product_id: product, component: "pain-block" } }); expect(r.isError).toBe(false);
     } finally { await client.close(); await server.close(); }
   });

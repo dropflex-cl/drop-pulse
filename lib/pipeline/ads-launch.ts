@@ -1,3 +1,5 @@
+import { contextAccess, contextDatabaseError } from "@/lib/product-intelligence/repository";
+import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { assertUgcPublishable } from "@/lib/video/publication";
 import "server-only";
 import { ugcDestination } from "@/lib/ads/ugc-link";
@@ -155,6 +157,11 @@ export async function runLaunch(campaignId: string): Promise<void> {
     const plan = planLaunch(c.structure, c.launch, media, { product: product.title, date: creationDate(new Date(), account.timezone) });
     for (const set of plan.adsets) for (const ad of set.ads) ugcDestination(link, media.filter((m) => ad.mediaIds.includes(m.id)));
     const ugcScripts = media.map((m) => m.ugc_provenance?.script_id).filter((id): id is string => typeof id === "string");
+    const staticIds = media.filter(m => m.content_provenance?.kind === "static").map(m => m.id);
+    if (staticIds.length) {
+      const checkedStatic = await adminClient().rpc("pi_assert_static_publishable", { p_access: contextAccess({ userId: c.user_id, actorId: c.user_id, actorKind: "merchant", scopes: PI_SCOPES }), p_product_id: c.product_id, p_media_ids: staticIds });
+      if (checkedStatic.error) throw contextDatabaseError(checkedStatic.error);
+    }
     await assertUgcPublishable(c.user_id, c.product_id, ugcScripts, media);
     total = planSteps(plan, media.length);
     const startTime = c.launch.start === "tomorrow" ? nextMorning(new Date(), c.launch.start_hour, account.timezone) : null;

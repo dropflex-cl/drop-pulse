@@ -1,7 +1,7 @@
 "use client";
 
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
-import { PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX, type ProductData } from "@/lib/products/product-data";
+import { hasProductData, PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX, type ProductData } from "@/lib/products/product-data";
 import { useEffect, useRef, useState } from "react";
 
 // Datos del producto guardados desde el chat o completados por el comerciante, con autoguardado.
@@ -40,7 +40,7 @@ export function ProductDataSection({
       setState("saving");
       setError(undefined);
       try {
-        const { productData } = await productsApi.saveProductData(productId, next);
+        const { productData } = await productsApi.saveProductData(productId, { ...next, expected_context_revision: value?.expected_context_revision ?? 0 });
         setShownFor(productData.updated_at);
         onSaved(productData);
         setState("saved");
@@ -59,9 +59,9 @@ export function ProductDataSection({
         <h2 id="datos-producto" className="text-heading">
           Datos del producto
         </h2>
-        {value ? (
+        {hasProductData(value) ? (
           <span className="text-caption text-muted-foreground" aria-live="polite">
-            {state === "saving" ? "Guardando…" : state === "saved" ? "Guardado" : value.source === "ai" ? "Identificado con IA" : "Editado por ti"}
+            {state === "saving" ? "Guardando…" : state === "saved" ? "Guardado" : value.source === "ai" ? "Identificado con IA" : value.source === "mcp_chat" ? "Contexto guardado" : "Editado por ti"}
           </span>
         ) : null}
       </div>
@@ -71,6 +71,7 @@ export function ProductDataSection({
             <input
               value={name}
               maxLength={PRODUCT_NAME_MAX}
+              disabled={state === "saving"}
               onChange={(e) => {
                 setName(e.target.value);
                 save({ name: e.target.value, description });
@@ -84,6 +85,7 @@ export function ProductDataSection({
               rows={8}
               value={description}
               maxLength={PRODUCT_DESCRIPTION_MAX}
+              disabled={state === "saving"}
               onChange={(e) => {
                 setDescription(e.target.value);
                 save({ name, description: e.target.value });

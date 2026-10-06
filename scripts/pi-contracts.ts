@@ -9,4 +9,4 @@ for (const [tool, schemas] of Object.entries(publishedSchemas())) {
   writeFileSync(join(destination, `${tool}.output.json`), `${JSON.stringify(schemas.output, null, 2)}\n`);
 }
 writeFileSync(join(destination, "generation-context.json"), `${JSON.stringify(generationContextJsonSchema(), null, 2)}\n`);
-console.log("Exported 17 input/output pairs and GenerationContext from the shared domain.");
+console.log(`Exported ${Object.keys(publishedSchemas()).length} input/output pairs and GenerationContext from the shared domain.`);

@@ -38,6 +38,10 @@ describe("UGC desde chat", () => {
     const p = (hook: string) => ({ ugc_provenance: { landing_angle_id: "desk", landing_hook_id: hook } });
     expect(ugcDestination("https://tienda.test/products/a?utm_source=meta", [p("a")])).toBe("https://tienda.test/products/a?utm_source=meta&df_angle=desk&df_hook=a");
     expect(() => ugcDestination("https://tienda.test/products/a", [p("a"), p("b")])).toThrow("anuncios distintos");
+    const staticMedia = { content_provenance: { kind: "static", landing_angle_id: "desk", landing_hook_id: "a" } };
+    expect(ugcDestination("https://tienda.test/products/a?utm_source=meta", [staticMedia, p("a")])).toContain("utm_source=meta&df_angle=desk&df_hook=a");
+    expect(() => ugcDestination("https://tienda.test/products/a", [staticMedia, p("b")])).toThrow("anuncios distintos");
+    expect(() => ugcDestination("https://tienda.test/products/a", [{content_provenance: {landing_angle_id:"desk", landing_hook_id:"<script>"}}])).toThrow("selectores");
     expect(ugcDestination("https://tienda.test/products/a", [{}])).toBe("https://tienda.test/products/a");
   });
 });

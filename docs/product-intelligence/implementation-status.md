@@ -1,3 +1,15 @@
+# Estado vigente: contenido y aprendizaje implementados
+
+Completadas las tools de conceptos/dirección de arte/conversaciones, planes de galería, eventos, consejos WhatsApp, render de galería y performance/aprendizaje persistentes. Información base y navegación leen el contexto/selección canónicos; los estáticos conservan selectores de landing en Meta. **29 tools anunciadas, 30 contratos derivados**. [Recorrido, migraciones, límites y rollback](chat-content-and-learning.md), [ADR 016](adrs/016-chat-content-learning-and-render.md).
+
+Verificación de cierre: **1.028 tests generales** aprobados, **94 transaccionales locales** aprobados (313 tests de PI contando sus unitarios), OAuth nativo con 20 checks y SDK MCP sobre Next real. Chromium comprueba **12 vistas** (consentimiento, Información base y consejo WhatsApp; 390/1280, claro/oscuro) sin fallos WCAG 2.1 AA ni desborde horizontal, con aprobación del consejo e aislamiento de token MCP en cookies. TypeScript, ESLint de los cambios, contratos Zod/Ajv, tokens y diff pasan. Build webpack finaliza con exit 0; persisten los cinco diagnósticos previos HANGING_PROMISE_REJECTION en Ads/onboarding. Capturas locales inspeccionadas; usuarios/clientes fixture eliminados.
+
+Las nueve migraciones `20261109000000`–`20261117000000` están aplicadas únicamente en Supabase local. Pendiente operacional: desplegar, configurar/verificar discovery OAuth/MCP público, aceptar desde ChatGPT y probar renders/publicación en ensayo. La comprobación pública actual devuelve 404. COD y atribución causal por ángulo/hook requieren una fuente comprobada adicional; no se inventan datos. No hubo gasto externo ni publicación durante esta entrega.
+
+Los apartados siguientes conservan el historial de entregas anteriores; sus conteos y pendientes corresponden a cada entrega.
+
+---
+
 # Estado actual: retiro de writers pagados de texto
 
 Retirados físicamente ejecución, prompts, arranque de corridas, acciones UI y scripts antiguos de redacción. POSTs de producto, textos de eventos y editor/activación de prompts responden 410 con sus permisos intactos. La UI conserva revisión/edición y consulta la estrategia seleccionada por el servicio PI compartido. Render de imágenes/video, cálculo de precios/packs, datos guardados y operación Shopify/Meta se conservan. Anthropic solo es requisito del QA visual opcional.

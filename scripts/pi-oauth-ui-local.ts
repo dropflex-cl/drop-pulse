@@ -2,6 +2,10 @@
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { PI_SCOPES } from "../lib/product-intelligence/policy";
+import { createContextRepository } from "../lib/product-intelligence/repository";
+import { requestFixture } from "../lib/product-intelligence/test-fixtures";
+import { createProductIntelligenceExecutor, PERSISTED_INTELLIGENCE_TOOLS } from "../lib/product-intelligence/knowledge-service";
 import { parseToolOutput } from "../lib/product-intelligence/validation";
 import { randomBytes, createHash, randomUUID } from "node:crypto";
 import { chromium, type Browser } from "@playwright/test";
@@ -81,21 +85,62 @@ async function main() {
     assert.equal(newPrice.status(), 200);
     const stalePrice = await context.request.put(`http://localhost:3000/api/products/${productId}/pricing`, { data: { ...form, expectedPricingStamp: observedStamp } });
     assert.equal(stalePrice.status(), 409, "Una pantalla vieja sobrescribió el precio nuevo.");
+    const basic = await context.request.put(`http://localhost:3000/api/products/${productId}/product-data`, {data: {name:"Organizador de prueba",description:"Organizador de escritorio con compartimentos para los útiles.",expected_context_revision:0}});
+    assert.equal(basic.status(),200,"La UI no guardó el contexto canónico.");
+    const basicRevision=(await basic.json()).productData.expected_context_revision;
+    const supplier=await context.request.patch(`http://localhost:3000/api/products/${productId}/base-info`, {data:{text:"Ficha proporcionada por el proveedor para este organizador.",expected_context_revision:basicRevision}});
+    assert.equal(supplier.status(),200,"El editor del proveedor no usa el contexto compartido.");
+    const staleBasic=await context.request.put(`http://localhost:3000/api/products/${productId}/product-data`, {data: {name:"Pantalla antigua",description:"Esta edición se hizo desde una pantalla anterior.",expected_context_revision:basicRevision}});
+    assert.equal(staleBasic.status(),409,"Una pantalla antigua sobrescribió el contexto del chat.");
+    for(const width of [390,1280]) for(const colorScheme of ["light","dark"] as const){
+      await page.setViewportSize({width,height:844});await page.emulateMedia({colorScheme});
+      await page.goto(`http://localhost:3000/products/${productId}/base`);
+      await page.getByRole("heading",{name:"Datos del producto",exact:true}).waitFor({timeout:30000});
+      assert.equal(await page.getByLabel("Producto",{exact:true}).inputValue(),"Organizador de prueba");
+      assert(await page.getByText("Ficha proporcionada por el proveedor para este organizador.").count() || await page.locator("textarea").evaluateAll(nodes=>nodes.some(n=>(n as HTMLTextAreaElement).value.includes("Ficha proporcionada"))));
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Información base desborda.");
+      const axe=await new AxeBuilder({page}).include("main").withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa"]).analyze();
+      assert.deepEqual(axe.violations.map(v=>v.id),[],`Información base: ${width}/${colorScheme}`);
+      await page.screenshot({path:`/private/tmp/pi-base-${width}-${colorScheme}.png`,fullPage:true});screens++;
+    }
     const mcp = new Client({ name: "pi-ui-runtime", version: "1" });
     try {
       await mcp.connect(new StreamableHTTPClientTransport(new URL(resourceUrl), { requestInit: { headers: { Authorization: `Bearer ${tokens.access_token}` } } }));
       const discovered: string[] = []; let cursor: string | undefined;
       do { const page = await mcp.listTools(cursor ? { cursor } : undefined); discovered.push(...page.tools.map(({ name }) => name)); cursor = page.nextCursor; } while (cursor);
-      assert.deepEqual(discovered, ["get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy"]);
+      assert.deepEqual(discovered, [...PERSISTED_INTELLIGENCE_TOOLS]);
       const missing = await mcp.callTool({ name: "get_product_context", arguments: { product_id: "00000000-0000-4000-8000-000000000099" } });
       const result = parseToolOutput("get_product_context", missing.structuredContent);
       assert(!result.ok); assert.equal(result.error.code, "NOT_FOUND");
       const persisted = parseToolOutput("get_product_context", (await mcp.callTool({ name: "get_product_context", arguments: { product_id: productId } })).structuredContent);
-      assert(persisted.ok); assert.equal(persisted.revision, 2); assert.equal(persisted.data.product.pricing?.unit_cost_minor, 4500);
+      assert(persisted.ok); assert.equal(persisted.revision, 4);
+      assert.equal(persisted.data.product.context?.supplier_text,"Ficha proporcionada por el proveedor para este organizador."); assert.equal(persisted.data.product.pricing?.unit_cost_minor, 4500);
       const forbidden = parseToolOutput("save_product_context", (await mcp.callTool({ name: "save_product_context", arguments: { product_id: productId,
-        schema_version: "1.0", expected_revision: 2, idempotency_key: "read-only-probe", pricing: { mode: "recommended", unit_cost_minor: 5000 } } })).structuredContent);
+        schema_version: "1.0", expected_revision: 4, idempotency_key: "read-only-probe", pricing: { mode: "recommended", unit_cost_minor: 5000 } } })).structuredContent);
       assert(!forbidden.ok); assert.equal(forbidden.error.code, "FORBIDDEN");
     } finally { await mcp.close(); }
+    const executor=createProductIntelligenceExecutor(createContextRepository(admin));
+    const principal={userId,actorId:userId,actorKind:"merchant" as const,scopes:PI_SCOPES};
+    const command=async(tool:"save_research"|"get_usage_tip"|"save_usage_tip",input:unknown)=>parseToolOutput(tool,await executor(principal,{tool,input} as Parameters<typeof executor>[1],AbortSignal.timeout(10000)));
+    const research=await command("save_research",{...requestFixture("propose-research").payload as object,product_id:productId,expected_revision:4,idempotency_key:randomUUID()});
+    assert(research.ok && "id_map" in research.data);const factId=research.data.id_map.compartments_fact;
+    await command("save_research",{product_id:productId,schema_version:"1.0",expected_revision:5,idempotency_key:randomUUID(),facts:[{id:factId,verification_status:"verified",usage_status:"approved",reason:"Verificado en la fuente ficticia local."}]});
+    const tipRead=await command("get_usage_tip",{product_id:productId});assert(tipRead.ok && "content_etag" in tipRead.data);
+    const tipText="Separa tus útiles en los compartimentos del organizador.";
+    await command("save_usage_tip",{product_id:productId,schema_version:"1.0",expected_revision:6,expected_content_etag:tipRead.data.content_etag,idempotency_key:randomUUID(),content:{text:tipText,basis:"Compartimentos comprobados",fact_ids:[factId]}});
+    await page.goto(`http://localhost:3000/products/${productId}/whatsapp`);
+    await page.getByRole("button",{name:"Aprobar consejo",exact:true}).waitFor({timeout:30000});
+    assert.equal(await page.locator("article .bg-success-soft").filter({hasText:tipText}).count(),0,"Se incluyó un consejo sin aprobación.");
+    for(const width of [390,1280]) for(const colorScheme of ["light","dark"] as const){
+      await page.setViewportSize({width,height:844});await page.emulateMedia({colorScheme});
+      const axe=await new AxeBuilder({page}).include("main").withTags(["wcag2a","wcag2aa","wcag21a","wcag21aa"]).analyze();
+      assert.deepEqual(axe.violations.map(v=>v.id),[],`Consejo WhatsApp: ${width}/${colorScheme}`);
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"WhatsApp desborda.");
+      await page.screenshot({path:`/private/tmp/pi-tip-${width}-${colorScheme}.png`,fullPage:true});screens++;
+    }
+    await page.getByRole("button",{name:"Aprobar consejo",exact:true}).click();
+    await page.getByText("Consejo aprobado",{exact:true}).waitFor();
+    assert.equal(await page.locator("article .bg-success-soft").filter({hasText:tipText}).count(),1,"El consejo aprobado no apareció en el mensaje.");
     const merchantCookies = await context.cookies();
     const authCookie = merchantCookies.find(({ name }) => /^sb-.+-auth-token(?:\.\d+)?$/.test(name));
     assert(authCookie, "No encontramos una cookie de sesión local para verificar aislamiento.");
@@ -115,7 +160,7 @@ async function main() {
     await page.getByRole("button", { name: "Revoca la conexión" }).click();
     await page.getByText("Acceso inactivo", { exact: true }).waitFor();
     await assert.rejects(authenticate(request()), { status: 401 });
-    console.log(JSON.stringify({ environment: "local", screens, wcag: true, consent: true, default_read_only: true, revoke_ui: true, delegated_cookie_blocked: true, domain_executor: true, pricing_ui_cas: true, persisted_context_read: true, published_tools: 11 }));
+    console.log(JSON.stringify({ environment: "local", screens, wcag: true, consent: true, default_read_only: true, revoke_ui: true, delegated_cookie_blocked: true, domain_executor: true, pricing_ui_cas: true, persisted_context_read: true, published_tools: PERSISTED_INTELLIGENCE_TOOLS.length, basic_ui_cas: true, usage_tip_review: true }));
     await context.close();
   } finally {
     await browser?.close();

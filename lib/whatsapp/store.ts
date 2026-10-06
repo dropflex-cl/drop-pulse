@@ -1,3 +1,5 @@
+import { createContextRepository, contextAccess } from "@/lib/product-intelligence/repository";
+import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { selectVariant } from "@/lib/copy/variants";
 // Etapa WhatsApp: los datos que completan los mensajes (la tienda, el producto, el precio y los packs,
 // Ajustes › Envíos y políticas) y el consejo de uso guardado en `products.usage_tip`.
@@ -31,17 +33,18 @@ async function approvedShortName(userId: string, productId: string): Promise<str
 }
 
 export async function messagesState(userId: string, row: ProductRow): Promise<MessagesState> {
-  const [shop, settings, pricing, shortName] = await Promise.all([
+  const [shop, settings, pricing, shortName, tipRead] = await Promise.all([
     getShopifyConnection(userId),
     getStorePolicies(userId),
     getPricingPlan(userId, row.id),
     approvedShortName(userId, row.id),
+    createContextRepository().loadTipReview!({ p_access: contextAccess({ userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES }), p_product_id: row.id }, AbortSignal.timeout(10000)) as Promise<{ content_etag: string; usable: boolean; current: import("./tip").UsageTip | null }>,
   ]);
   const { market } = await getMarket(userId, shop);
   const p = settings?.policies;
   const days = p ? deliveryDays(p) : null;
   const price = Number(row.price);
-  const tip = row.usage_tip ?? null;
+  const tip = tipRead.current;
   return {
     facts: {
       store: shop?.shop_name?.trim() || null,
@@ -52,9 +55,9 @@ export async function messagesState(userId: string, row: ProductRow): Promise<Me
       returnDays: p?.returnDays ?? null,
       warrantyMonths: p?.warrantyMonths ?? null,
       countryCode: market.countryCode,
-      tip: tip?.text ?? null,
+      tip: tipRead.usable ? tip?.text ?? null : null,
     },
-    tip: tip ? { text: tip.text, basis: tip.basis, createdAt: tip.created_at } : null,
+    tip: tip ? { text: tip.text, basis: tip.basis, createdAt: tip.created_at, usable: tipRead.usable, etag: tipRead.content_etag } : null,
     tipBlocked: null,
   };
 }

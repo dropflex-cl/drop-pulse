@@ -1,3 +1,11 @@
+import { createGalleryGenerationExecutor } from "./gallery-generation-service";
+import type { GalleryGenerationRepository } from "./repository";
+import { learningTools } from "./learning-schemas";
+import { createLearningExecutor } from "./learning-service";
+import type { LearningRepository } from "./repository";
+import { contentTools } from "./content-schemas";
+import { createContentExecutor } from "./content-service";
+import type { ContentRepository } from "./repository";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { commandHash } from "./concurrency";
@@ -19,12 +27,24 @@ import { createUgcExecutor } from "./ugc-service";
 import type { UgcRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = ["get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = [...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
 /** Adaptador común para UI/MCP. Los textos se guardan sin IA; generate_ugc encola renders con permiso explícito. */
-export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository & PackLabelsRepository & UgcRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void): DomainExecutor {
+export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     requireScopes(principal, toolScopes[command.tool]);
+    if (command.tool === "generate_gallery_images" || command.tool === "get_gallery_generation_status") {
+      if (!repository.loadGalleryGeneration || !repository.enqueueGalleryGeneration || !repository.loadContent) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de render de galería.");
+      return createGalleryGenerationExecutor(repository as GalleryGenerationRepository & ContentRepository & KnowledgeRepository, identity, wakeGallery)(principal, command, signal);
+    }
+    if (learningTools.includes(command.tool as typeof learningTools[number])) {
+      if (!repository.loadPerformance || !repository.loadLearning || !repository.commitLearning) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de aprendizajes.");
+      return createLearningExecutor(repository as LearningRepository, identity)(principal, command, signal);
+    }
+    if (contentTools.includes(command.tool as typeof contentTools[number])) {
+      if (!repository.loadContent || !repository.commitContent) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de contenido.");
+      return createContentExecutor(repository as KnowledgeRepository & ContentRepository, identity)(principal, command, signal);
+    }
     if (["get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"].includes(command.tool)) {
       if (!repository.loadUgc || !repository.commitUgc) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta el repositorio UGC.");
       return createUgcExecutor(repository as KnowledgeRepository & UgcRepository, identity, wakeUgc)(principal, command, signal);

@@ -37,7 +37,7 @@ import { messagesState } from "@/lib/whatsapp/store";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import "server-only";
-import { getLandingContextStale, getSelectedProductStrategy } from "./product-intelligence";
+import { getCanonicalProductData, getCanonicalProductStates, getLandingContextStale, getSelectedProductStrategy } from "./product-intelligence";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
 const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
@@ -132,11 +132,13 @@ function toProduct(
   images?: ImageFacts,
   publish?: PublishFacts | null,
   ai = true,
+  intelligence?: { hasContext: boolean; described: boolean; selected: boolean; ready: boolean },
 ): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
-    base: { described: hasProductData(row.product_data), priced },
+    base: { described: intelligence?.hasContext ? intelligence.described : hasProductData(row.product_data), priced },
+    intelligence: intelligence?.hasContext ? { selected: intelligence.selected, ready: intelligence.ready } : undefined,
     strategy: strategy ? { status: strategy.status, error: strategy.error_message, confirmed: Boolean(strategy.confirmed_at) } : null,
     reviews,
     angles,
@@ -177,7 +179,7 @@ function toProduct(
 export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [imageRows, priced, strategies, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic] = await Promise.all([
+  const [imageRows, priced, strategies, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic, intelligence] = await Promise.all([
     images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
     pricedProducts(uid, ids),
     latestStrategyStates(uid, ids),
@@ -190,6 +192,7 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
     pageImageCounts(uid, ids),
     getPublications(uid, ids),
     getAnthropicConnection(uid),
+    getCanonicalProductStates(uid, ids),
   ]);
   const ai = anthropic?.status === "connected";
   const covers = rows.map((r) => cover(imageRows.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
@@ -203,7 +206,7 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
     const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
     const angles = angleFacts(ranking, chosen);
     const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen, ranking);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), strategies.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai);
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), strategies.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id));
   });
 }
 
@@ -277,7 +280,7 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
   const uid = await userId();
   // Todo a la vez: la etapa no espera a la ruta del producto; solo los valores por defecto del precio esperan la fila.
   const row$ = productRow(uid, id);
-  const [product, row, images, brief, pricing, pricingDefaultsValue, packLabels, differentiator] = await Promise.all([
+  const [product, row, images, brief, pricing, pricingDefaultsValue, packLabels, differentiator, canonical] = await Promise.all([
     getProduct(id),
     row$,
     listImageRows(uid, [id]),
@@ -286,16 +289,17 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     row$.then((r) => (r ? pricingDefaults(uid, r) : null)),
     latestPackLabels(uid, id),
     confirmedDifferentiator(uid, id),
+    getCanonicalProductData(uid, id),
   ]);
   if (!product || !row || !pricingDefaultsValue) return null;
   const urls = await withDisplayUrls(images);
   return {
     product,
-    baseInfo: row.base_info,
-    baseInfoUpdatedAt: row.base_info_updated_at ?? undefined,
-    fromShopify: Boolean(row.description?.trim()) && row.base_info.includes(row.description!.trim().slice(0, 40)),
+    baseInfo: canonical.hasContext ? canonical.supplierText : row.base_info,
+    baseInfoUpdatedAt: canonical.hasContext ? undefined : row.base_info_updated_at ?? undefined,
+    fromShopify: !canonical.hasContext && Boolean(row.description?.trim()) && row.base_info.includes(row.description!.trim().slice(0, 40)),
     images: images.filter((i) => urls.has(i.id)).map((i) => toReferenceImage(i, urls.get(i.id)!)),
-    productData: hasProductData(row.product_data) ? row.product_data : undefined,
+    productData: canonical.hasContext ? canonical : { ...(row.product_data ?? canonical), expected_revision: canonical.expected_revision, expected_context_revision: canonical.expected_context_revision },
     pricing: pricing ?? undefined,
     packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
@@ -420,10 +424,7 @@ export async function videosState(uid: string, productId: string): Promise<Video
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/creatives). */
 export async function creativesState(uid: string, productId: string): Promise<CreativesState> {
-  const [choice, runs, concepts, rankings] = await Promise.all([imageProviderChoice(uid, "creatives"), latestCreativeRuns(uid, [productId]), activeConcepts(uid, [productId]), latestRankings(uid, [productId])]);
-  const ranking = rankings.get(productId);
-  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  const anglesDone = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
+  const [choice, runs, concepts, selection] = await Promise.all([imageProviderChoice(uid, "creatives"), latestCreativeRuns(uid, [productId]), activeConcepts(uid, [productId]), getSelectedProductStrategy(uid, productId)]);
   const connected = choice.value !== null;
   const noProvider = noProviderReason(choice, "anuncios");
   const rows = concepts.get(productId) ?? [];
@@ -439,7 +440,7 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
     imageProvider: choice,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     concepts: rows.map((c) => toConceptView(c, assets, urls, kept)),
-    angles: anglesDone && ranking ? chosenAngles(ranking).map((a) => ({ slot: a.slot, name: testAngleName(a) })) : [],
+    angles: selection?.snapshot.angles.map((angle, i) => ({ slot: i + 1, name: angle.name })) ?? [],
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
   };
 }
@@ -472,6 +473,10 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   const noProvider = noProviderReason(choice, "imágenes");
   // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
   const planned = briefStampOf((run?.input as { briefs?: unknown } | undefined)?.briefs);
+  const canonicalSelection = run?.input.source === "mcp_chat" ? await getSelectedProductStrategy(uid, productId) : null;
+  const chatPlan = run?.input.source === "mcp_chat" ? (run.input.content as { plan?: { visual_world?: string; visual_world_why?: string } } | undefined)?.plan : null;
+  const world = chatPlan?.visual_world ?? run?.world, worldWhy = chatPlan?.visual_world_why ?? run?.world_why;
+  const canonicalStale = run?.input.source === "mcp_chat" && (!canonicalSelection?.readiness.ready_for_execution || canonicalSelection.id !== (run.input.content as { strategy_id?: string } | undefined)?.strategy_id);
   return {
     locked: null,
     connected,
@@ -479,11 +484,11 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     imageProvider: choice,
     cannotGenerate: blocker ?? (connected ? null : noProvider),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
-    style: run?.status === "succeeded" && shots.length && isVisualWorld(run.world) && run.world_why ? { name: VISUAL_WORLD_NAMES[run.world], why: run.world_why } : undefined,
+    style: run?.status === "succeeded" && shots.length && isVisualWorld(world) && worldWhy ? { name: VISUAL_WORLD_NAMES[world], why: worldWhy } : undefined,
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
-    stale: Boolean(run?.status === "succeeded" && shots.length && planned && briefStamp && planned !== briefStamp),
+    stale: Boolean(canonicalStale || run?.status === "succeeded" && shots.length && planned && briefStamp && planned !== briefStamp),
   };
 }
 

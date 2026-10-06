@@ -1,6 +1,6 @@
 # Dominio Product Intelligence
 
-Implementación para el flujo desde chat, compartida por UI y MCP. El núcleo de dominio es puro; `repository.ts`/`service.ts`/`knowledge-service.ts` persisten contexto, precio, conocimiento y decisiones con RPC autorizada. Ningún módulo carga análisis legacy, publica o llama a IA/proveedores. `test-fixtures.ts`, `oauth-test-fixtures.ts` y los `.test.ts` usan datos ficticios; no deben importarse desde runtime.
+Implementación para el flujo desde chat, compartida por UI y MCP. El núcleo de dominio es puro; `repository.ts`/`service.ts`/`knowledge-service.ts` persisten contexto, precio, conocimiento y decisiones con RPC autorizada. Las tools de contenido guardan propuestas sin redacción pagada; las tools de ejecución explícita usan los renderizadores y proveedores conservados. No se reconstruye el análisis legacy. `test-fixtures.ts`, `oauth-test-fixtures.ts` y los `.test.ts` usan datos ficticios; no deben importarse desde runtime.
 
 - `schemas.ts`: contratos canónicos Zod y tipos. `lib/types.ts` reexporta los tipos públicos. Los archivos en `docs/product-intelligence/contracts/generated/` se derivan con `npm run pi:contracts`; nunca se leen para ejecutar tools.
 - `validation.ts`: parseo estricto, versión y presupuestos JSON/UTF-8/profundidad. Los adaptadores deben pasar por este parser antes de las funciones que reciben comandos tipados.
@@ -13,10 +13,10 @@ Implementación para el flujo desde chat, compartida por UI y MCP. El núcleo de
 - `generation.ts`: congela contexto autorizado sin lecturas latest, valida dependencias/stamps/assets y calcula hash. No crea jobs. Los workers aún deben comprobar providers, gasto, borrado, revocación, bytes/versiones de assets y el switch QA operativo.
 - `context.ts`, `repository.ts`, `service.ts`: lectura/preparación/commit de contexto y precio, revisión/huella, receipt antes de CAS, autorización transaccional y recuperación histórica. `lib/pricing/store.ts` usa el mismo comando; `lib/data/product-intelligence.ts` es el loader UI. La migración de contexto es requisito antes de desplegar ese writer UI.
 - `knowledge.ts`/`knowledge-service.ts`: grafo persistente, resultados/diff acotados y estrategia con versiones/eventos inmutables. SQL vuelve a comprobar verify/replay/CAS y el estado de borrado. `knowledge-context.ts`/`context-cursor.ts`: proyecciones, paginación total y cursor firmado con revisión fija y restricciones actuales. Ver ADR 010.
-- `mcp.ts`: adaptador oficial SDK 1.32.0 por principal, discovery paginado y envelopes tipados. Runtime publica once tools: siete de conocimiento/setup, get/save_landing_content y get/save_pack_labels. Conserva tres contratos de ejecución/status aún cerrados; la etapa de escritura de generate_landing queda sustituida por ingestión desde chat (ADR 011).
+- `mcp.ts`: adaptador oficial SDK 1.32.0 por principal, discovery paginado y envelopes tipados. Runtime publica 29 tools, con 30 contratos derivados. Solo generate_landing conserva su contrato histórico cerrado: save_landing_content y generate_gallery_images cubren sus capacidades vigentes.
 
 - `oauth.ts`, `oauth-store.ts` y `consent.ts`: bearer JWKS/audiencia/rol/sesiones exclusivas, grant vivo por petición y consentimiento/revocación con Supabase nativo. `consent-ticket.ts` vincula la decisión al usuario/cliente/autorización/recurso; UI bajo cookie merchant y Origin exacto.
-- `http.ts`: transporte oficial WebStandardStreamableHTTP stateless, body acotado, scopes y aislamiento por request. `http-runtime.ts` monta metadata/autenticación y liga el ejecutor a la identidad firmada. MCP_ENABLED está apagado por defecto. Las tres tools de generación/status pendientes no se anuncian y devuelven EXECUTION_NOT_READY si se invocan directamente.
+- `http.ts`: transporte oficial WebStandardStreamableHTTP stateless, body acotado, scopes y aislamiento por request. `http-runtime.ts` monta metadata/autenticación y liga el ejecutor a la identidad firmada. MCP_ENABLED está apagado por defecto. generate_landing no se anuncia y devuelve EXECUTION_NOT_READY si se invoca directamente; UGC y galería tienen colas propias.
 
 El deadline MCP comunica AbortSignal y limita la espera. No equivale a deshacer una transacción ya confirmada ni a detener un proveedor que aceptó un trabajo; la persistencia debe implementar receipt/outbox y reconciliación antes de habilitar generación.
 
@@ -25,3 +25,10 @@ Comprobaciones: `npx vitest run lib/product-intelligence`, `npm run pi:contracts
 - `landing-schemas.ts`/`landing-service.ts`: contrato derivado de los componentes Shopify y servicio común de lectura/ingestión final desde chat. Reutiliza copy_runs/page_components; sin generación. Migración de landing obligatoria antes de su loader UI. Ver [análisis](../../docs/product-intelligence/landing-content-mcp.md).
 
 - `pack-labels-schemas.ts`/`pack-labels-service.ts`/`pack-labels-validation.ts`: consulta/ingestión del chat y revisión humana compartida con el editor. Duración referida a facts actuales, no-op/replay, CAS de etiquetas/precio, snapshots y supersession en pack_labels. Migración de etiquetas obligatoria antes de loader/editor. Ver [flujo](../../docs/product-intelligence/pack-labels-mcp.md).
+
+- `content-schemas.ts`/`content-service.ts`: contratos, validadores de arte/texto, propuestas operativas, CAS/receipts y revisión del consejo; lecturas paginadas.
+- `learning-schemas.ts`/`learning-service.ts`: métricas reales cacheadas de campañas, medición inmutable y aprendizajes citables como fuente interna; sin atribución inventada ni selección automática.
+- `gallery-generation-*`, `lib/page-images/operations.ts`: render explícito, cola durable/claims/reautorización, cron y conciliación de respuesta ambigua.
+- `lib/products/render-context.ts`: preflight de vigencia/base también para renders de UI; `lib/pipeline/product-data.ts` comparte el writer de contexto con MCP.
+
+[Entrega de cierre y rollout](../../docs/product-intelligence/chat-content-and-learning.md), [ADR 016](../../docs/product-intelligence/adrs/016-chat-content-learning-and-render.md).

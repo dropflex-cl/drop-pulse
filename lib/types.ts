@@ -298,7 +298,7 @@ export interface ProductReviews {
 /** La etapa WhatsApp: datos de los mensajes y el consejo de uso conservado. */
 export interface MessagesState {
   facts: import("./whatsapp/messages").MessageFacts;
-  tip: { text: string; basis: string; createdAt: string } | null;
+  tip: { text: string; basis: string; createdAt: string; usable?: boolean; etag?: string } | null;
   /** Compatibilidad de lectura; el writer automático del consejo está retirado. */
   tipBlocked: string | null;
 }

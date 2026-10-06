@@ -12,6 +12,19 @@ export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }
 export type DomainExecutor = (principal: Principal, command: ToolCommand, signal: AbortSignal) => Promise<unknown>;
 
 const descriptions: Record<ToolName, string> = {
+  generate_gallery_images: "Renderiza tomas de galería guardadas desde chat, con consentimiento landing:generate y estimación explícita. Puede gastar créditos de tus proveedores; no escribe textos ni publica.",
+  get_gallery_generation_status: "Consulta la operación y las imágenes guardadas, sin llamar al proveedor. La UI permite elegirlas antes de publicar.",
+  get_product_performance: "Lee métricas Meta guardadas por periodo, separadas por moneda y zona horaria. No son pedidos entregados ni cobrados.",
+  get_product_learning: "Lee aprendizajes y sus mediciones inmutables, paginados por revisión.",
+  save_product_learning: "Guarda una evaluación de una hipótesis con criterios, limitaciones y una copia de métricas comprobadas. No declara ganadores ni cambia estrategia.",
+  get_creative_content: "Lee conceptos estáticos y chats publicitarios, contrato y etag. No genera imágenes.",
+  save_creative_content: "Guarda textos y dirección de arte desde chat para renderizar y revisar en DropFlex. Reemplaza la propuesta vigente, conserva assets.",
+  get_gallery_content: "Lee tomas de galería y el contrato del director de imágenes.",
+  save_gallery_content: "Guarda el plan de galería desde chat, sin iniciar render. Conserva las imágenes elegidas.",
+  get_event_content: "Lee textos del calendario comercial del producto y su contrato.",
+  save_event_content: "Guarda una propuesta de evento desde chat. El comerciante decide su aprobación y publicación.",
+  get_usage_tip: "Lee el consejo de uso de WhatsApp y su contrato.",
+  save_usage_tip: "Guarda un consejo de uso respaldado por facts verificados, sin llamada de IA.",
   get_ugc_content: "Lee guiones UGC, revisión, etags y contratos reales para escribir guion y plan en el chat.",
   save_ugc_content: "Guarda guion y plan del chat como propuesta, con estrategia, ángulo y hook. Sin redacción de pago ni aprobación.",
   get_ugc_montage: "Recupera el paquete de clips aprobado para el montaje local existente, con URLs que vencen en 24 horas.",

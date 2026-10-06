@@ -1,3 +1,5 @@
+import { contextDatabaseError } from "@/lib/product-intelligence/repository";
+import { renderBaseId } from "@/lib/products/render-context";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { failure, recordAiGeneration } from "@/lib/ai/track";
@@ -115,6 +117,7 @@ async function insertImage(shot: ShotRow, attempt: number, provider: ImageProvid
     })
     .select("*")
     .single();
+  if (error?.message.startsWith("PI_")) throw contextDatabaseError(error);
   fail("Crear la imagen", error);
   return data as PageImageRow;
 }
@@ -214,15 +217,26 @@ async function logRender(a: PageImageRow, ok: boolean, error?: string, latencyMs
  * la pantalla la termina). Pensada para `after()`: nunca lanza.
  */
 export async function processImage(imageId: string, force = false): Promise<void> {
-  const a = await lease(imageId, ["queued"], force);
+  const managed = await adminClient().from("page_images").select("pi_operation_id").eq("id", imageId).maybeSingle();
+  if (managed.error) throw new Error("No pudimos comprobar la operación de imágenes.");
+  let a: PageImageRow | null;
+  if (managed.data?.pi_operation_id) {
+    const claimed = await adminClient().rpc("pi_claim_gallery_image", { p_image_id: imageId });
+    if (claimed.error) return;
+    a = claimed.data as PageImageRow | null;
+  } else a = await lease(imageId, ["queued"], force);
   if (!a || a.source !== "ai") return;
+  if (!a.pi_operation_id) {
+    try { a.pi_base_reference_id = await renderBaseId("gallery", a.id); }
+    catch { await patchImage(a.id, { render_status: "failed", error_code: "context_changed", error_message: "Cambió el contexto o el plan. Revísalo en el chat antes de generar.", finished_at: stamp() }); return; }
+  }
   if (a.provider === "gemini") return processWithGemini(a);
   const started = Date.now();
   let submitted = false;
   try {
     const key = await higgsfieldKey(a.user_id);
     if (!key) throw new HiggsfieldError("invalid_key", "Conecta tu cuenta de Higgsfield en Ajustes y genera de nuevo.");
-    const [base] = await productImageUrls(a.user_id, a.product_id, 1);
+    const [base] = await productImageUrls(a.user_id, a.product_id, 1, a.pi_base_reference_id);
     if (!base) throw new HiggsfieldError("bad_request", "El producto no tiene una imagen base. Elige una en Información base.");
     const reference = await uploadImage(key, await toJpeg(await download(base), 2048), "image/jpeg");
     const { requestId } = await submit(key, a.endpoint!, { ...a.input, image_urls: [reference] });
@@ -242,7 +256,7 @@ export async function processImage(imageId: string, force = false): Promise<void
     }
     const message = e instanceof HiggsfieldError ? e.message : "No pudimos generar la imagen. Toca Generar otra.";
     if (!(e instanceof HiggsfieldError)) console.error("[page-images] render", e);
-    await patchImage(a.id, { render_status: "failed", error_code: e instanceof HiggsfieldError ? e.code : "unexpected", error_message: message, finished_at: stamp() });
+    await patchImage(a.id, { render_status: "failed", error_code: a.pi_operation_id && !submitted && (!(e instanceof HiggsfieldError) || ["network", "unavailable"].includes(e.code)) ? "dispatch_unknown" : e instanceof HiggsfieldError ? e.code : "unexpected", error_message: message, finished_at: stamp() });
     await logRender(a, false, e instanceof HiggsfieldError ? e.code : "unexpected", Date.now() - started);
   }
 }
@@ -261,11 +275,11 @@ async function processWithGemini(leased: PageImageRow): Promise<void> {
     .select("*")
     .maybeSingle();
   if (claimed.error || !claimed.data) return;
-  const a = claimed.data as PageImageRow;
+  const a = { ...claimed.data, pi_base_reference_id: leased.pi_base_reference_id, pi_qa_enabled: leased.pi_qa_enabled } as PageImageRow;
   const detail = await imageDetail(a);
   let result;
   try {
-    result = await renderWithGemini(a.user_id, a.product_id, a.input);
+    result = await renderWithGemini(a.user_id, a.product_id, a.input, a.pi_base_reference_id);
   } catch (e) {
     const known = e instanceof GeminiError;
     if (!known) console.error("[page-images] render con Gemini", e);
@@ -363,7 +377,7 @@ async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise
   fail("Guardar la imagen", up.error);
   await log();
 
-  const qa = (await imageQaEnabled(a.user_id, a.product_id))
+  const qa = (a.pi_qa_enabled ?? await imageQaEnabled(a.user_id, a.product_id))
     ? await runQa(a, bytes).catch((e) => {
         console.error("[page-images] QA", e);
         return null;
@@ -384,7 +398,7 @@ async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise
     return;
   }
   // Un reintento automático: otra generación de la misma toma. Si sale bien, reemplaza a esta.
-  if (qa && !qa.pass && a.attempt === 1) {
+  if (qa && !qa.pass && a.attempt === 1 && !a.pi_operation_id) {
     // Con el mismo proveedor que el primero, aunque la elección haya cambiado mientras.
     const retry = await insertImage(shot, 2, a.provider ?? "higgsfield", undefined, a.id);
     await processImage(retry.id, true);
@@ -394,8 +408,15 @@ async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise
 // ---------------------------------------------------------------- 3. QA
 
 async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> {
-  const [[base], brief] = await Promise.all([productImageUrls(a.user_id, a.product_id, 1), latestBrief(a.user_id, a.product_id)]);
-  if (!base || !brief) throw new Error("sin imagen base o sin ficha");
+  const [[base], brief, shot] = await Promise.all([productImageUrls(a.user_id, a.product_id, 1, a.pi_base_reference_id), latestBrief(a.user_id, a.product_id),
+    a.shot_id ? adminClient().from("page_image_shots").select("run_id").eq("id", a.shot_id).eq("user_id", a.user_id).maybeSingle() : Promise.resolve({ data: null, error: null })]);
+  fail("Leer la toma para QA", shot.error);
+  const run = shot.data ? await adminClient().from("page_image_runs").select("input").eq("id", shot.data.run_id).eq("user_id", a.user_id).single() : null;
+  if (run) fail("Leer los hechos para QA", run.error);
+  const input = run?.data?.input as { source?: string; verified_facts?: { statement: string; value: unknown }[] } | undefined;
+  const canonical = input?.source === "mcp_chat";
+  if (!base || (!canonical && !brief)) throw new Error("sin imagen base o sin contexto del producto");
+  const factText = canonical ? ["HECHOS VERIFICADOS", ...(input?.verified_facts ?? []).map(f => `${f.statement}: ${JSON.stringify(f.value)}`)].join("\n") : pageQaFacts(brief!);
   const detail = await imageDetail(a);
   let result;
   try {
@@ -408,7 +429,7 @@ async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> 
       content: [
         { type: "text", text: "Foto real del producto:" },
         await imageBlock(base),
-        { type: "text", text: pageQaFacts(brief), cache_control: { type: "ephemeral" } },
+        { type: "text", text: factText, cache_control: { type: "ephemeral" } },
         { type: "text", text: "Imagen generada:" },
         await imageBlockFromBytes(generated),
         { type: "text", text: pageQaTexts(a.baked_texts) },

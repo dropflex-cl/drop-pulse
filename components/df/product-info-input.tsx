@@ -44,7 +44,7 @@ export function ProductInfoInput({
   error,
   rows = 8,
   label = "Todo lo que sabes del producto",
-  hint = "Pega la descripción del proveedor, medidas, materiales, reseñas o lo que te hayan preguntado tus clientes. Sin orden: la IA lo organiza.",
+  hint = "Pega la descripción del proveedor, medidas, materiales, reseñas o lo que te hayan preguntado tus clientes. Usa esta información como contexto para el chat.",
   placeholder = "Ej.: Corrector de postura de neopreno, talla única ajustable hasta 110 cm de pecho…",
   suggest,
   onAddTopic,
@@ -129,7 +129,7 @@ export function ProductInfoInput({
       <div id={`${id}-cov`} className="flex flex-col gap-1.5">
         <span className="flex items-center gap-1 text-caption text-muted-foreground">
           <Icon name="sparkle" size="sm" />
-          {enough ? "Suficiente para empezar" : "Agrega un poco más"} · la IA encontró:
+          {enough ? "Suficiente para empezar" : "Agrega un poco más"} · temas detectados:
         </span>
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
           {INFO_TOPICS.map((t) => {
