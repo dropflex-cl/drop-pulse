@@ -1,7 +1,6 @@
 import { selectVariant } from "@/lib/copy/variants";
 // Eventos para las pantallas (/events y /events/[slug]): el calendario del mercado de la tienda, lo
 // que activó el comerciante, cómo se ve cada evento y, por producto, qué le toca y sus textos.
-import "server-only";
 import { accentCheck } from "@/lib/copy/accent";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { activeComponents, currentContent } from "@/lib/copy/store";
@@ -10,7 +9,6 @@ import { activationExtras, effectiveWindow, eventPhase, resolveProductEvents, th
 import { copyOf, listActivations, listEventCopies, listEvents } from "@/lib/events/store";
 import { tickerPolicyItems } from "@/lib/events/ticker";
 import { dateInput, phaseLabel, rangeLabel } from "@/lib/events/view";
-import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
 import { sessionUser } from "@/lib/integrations/session";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { countryName, DEFAULT_MARKET } from "@/lib/market";
@@ -21,6 +19,7 @@ import { baseImage, listImageRows, listProductRows, withDisplayUrls } from "@/li
 import { getMarket } from "@/lib/settings/market";
 import { getStorePolicies } from "@/lib/settings/policies-store";
 import type { EventActivationView, EventDetail, EventLook, EventProductView, EventsOverview, EventView } from "@/lib/types";
+import "server-only";
 
 async function context() {
   const user = await sessionUser();
@@ -125,16 +124,13 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
   if (!event || !view) return null;
 
   const ids = rows.map((r) => r.id);
-  const [components, copies, images, pricing, policies, anthropic] = await Promise.all([
+  const [components, copies, images, pricing, policies] = await Promise.all([
     activeComponents(ctx.userId, ids),
     listEventCopies(ctx.userId, { eventId: event.id }),
     listImageRows(ctx.userId, ids),
     Promise.all(rows.map((r) => getPricingPlan(ctx.userId, r.id))),
     getStorePolicies(ctx.userId),
-    getAnthropicConnection(ctx.userId),
   ]);
-  // Los textos del evento los escribe Claude: sin la clave de Anthropic, se pide conectarla (como Higgsfield).
-  const aiConnected = anthropic?.status === "connected";
   const thumbs = rows.map((r) => baseImage(images.filter((i) => i.product_id === r.id))).filter((i): i is NonNullable<typeof i> => Boolean(i));
   const urls = await withDisplayUrls(thumbs);
 
@@ -154,8 +150,8 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
       effective: resolved ? { scope: resolved.scope, intensity: resolved.intensity } : null,
       override: own ? activationView(own, ctx.timezone) : null,
       copy: copy ? { status: copy.status, text: copyOf(copy), error: copy.error_message } : null,
-      copyLocked: !listing ? "Aprueba la ficha en Página del producto para adaptar sus textos." : !aiConnected && !copy ? "Conecta tu cuenta de Anthropic en Ajustes para que la IA adapte sus textos." : null,
-      copyNeedsAi: Boolean(listing) && !aiConnected && !copy,
+      copyLocked: null,
+      copyNeedsAi: false,
       preview: {
         title: listing?.title ?? r.title,
         subtitle: listing?.short_description ?? "",

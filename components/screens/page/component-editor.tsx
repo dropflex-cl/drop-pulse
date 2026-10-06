@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { Button } from "@/components/df";
 import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
@@ -8,13 +7,14 @@ import { DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { formFields } from "@/lib/copy/form";
 import { LISTING } from "@/lib/copy/listing";
 import { baseContentSchema } from "@/lib/copy/page-schema";
-import { contentVariants, isVariants, selectVariant, variantsSchema, type LandingSelection } from "@/lib/copy/variants";
-import { LandingVariantPicker } from "./landing-variant-picker";
 import { componentName } from "@/lib/copy/page-ui";
+import { contentVariants, isVariants, selectVariant, variantsSchema, type LandingSelection } from "@/lib/copy/variants";
 import { componentById } from "@/lib/shopify/components/catalog";
 import type { StoreFacts } from "@/lib/store-preview/facts";
 import type { CatalogImage, ImagePick, PageComponentView } from "@/lib/types";
+import { useMemo, useState } from "react";
 import { ComponentForm } from "./component-form";
+import { LandingVariantPicker } from "./landing-variant-picker";
 import { SlotImagePicker } from "./slot-image-picker";
 
 // La hoja de edición de un componente o de la ficha: la vista previa arriba (se actualiza mientras
@@ -43,12 +43,10 @@ export interface ComponentEditorProps {
   error?: string;
   onCancel: () => void;
   onSave: (patch: { content: unknown; images?: ImagePick[]; expected_id?: string; expected_updated_at?: string }) => void;
-  /** «Volver a escribir con IA»: una escritura nueva solo de este componente (lo demás queda igual). */
-  onRewrite?: () => void;
-  rewriting?: boolean;
+
 }
 
-export function ComponentEditor({ view, selection = {}, facts, videos, accent, catalog, imagesHref, saving, error, onCancel, onSave, onRewrite, rewriting }: ComponentEditorProps) {
+export function ComponentEditor({ view, selection = {}, facts, videos, accent, catalog, imagesHref, saving, error, onCancel, onSave }: ComponentEditorProps) {
   const [expected] = useState({ expected_id: view.id, expected_updated_at: view.updatedAt });
   const [activeSelection, setActiveSelection] = useState<LandingSelection>(selection);
   const listing = view.component === LISTING;
@@ -117,11 +115,6 @@ export function ComponentEditor({ view, selection = {}, facts, videos, accent, c
           <p role="alert" className="text-label font-normal text-destructive">
             {error ?? (errors.size === 1 ? "Corrige el campo marcado para guardar." : `Corrige los ${errors.size} campos marcados para guardar.`)}
           </p>
-        ) : null}
-        {onRewrite ? (
-          <Button variant="ghost" icon="sparkle" className="self-start" loading={rewriting} disabled={saving} onClick={onRewrite}>
-            Volver a escribir con IA
-          </Button>
         ) : null}
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={onCancel} disabled={saving}>

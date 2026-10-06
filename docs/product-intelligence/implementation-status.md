@@ -1,3 +1,15 @@
+# Estado actual: retiro de writers pagados de texto
+
+Retirados físicamente ejecución, prompts, arranque de corridas, acciones UI y scripts antiguos de redacción. POSTs de producto, textos de eventos y editor/activación de prompts responden 410 con sus permisos intactos. La UI conserva revisión/edición y consulta la estrategia seleccionada por el servicio PI compartido. Render de imágenes/video, cálculo de precios/packs, datos guardados y operación Shopify/Meta se conservan. Anthropic solo es requisito del QA visual opcional.
+
+Verificación local: **1.023 tests aprobados**, 79 transaccionales opt-in omitidos (sin cambios SQL), TypeScript, ESLint de 57 archivos, contratos MCP/Ajv, tokens y diff pasan. Build Next webpack finaliza con exit 0 y mantiene los cinco diagnósticos previos HANGING_PROMISE_REJECTION en Ads/onboarding. Chromium comprueba 36 combinaciones de pantallas con fixtures (390/1280, claro/oscuro): ningún botón de writer pagado, sin desborde horizontal y sin otros errores React. Se observó un diagnóstico existente de hidratación en shipping-timeline por espacios diferentes en Intl.DateTimeFormat.formatRange entre Node y Chromium; ese componente no cambió. Capturas inspeccionadas. Usuarios temporales locales eliminados; sin gasto en proveedores ni llamadas a producción.
+
+Esta entrega no requiere migraciones y no borra contenido/tablas. Validación local completada; despliegue pendiente de verificación. [Inventario, rollout y límites](legacy-text-retirement.md), [ADR 015](adrs/015-retire-paid-text-writers.md).
+
+Faltan tools MCP de ingestión para conceptos estáticos/conversaciones creativas, planes de galería, textos de eventos y consejos de WhatsApp. Se conservan artefactos anteriores y defaults, sin fallback pagado. También queda adaptar toda la navegación y los datos base de las vistas conservadas al contexto PI canónico. Retirar los writers no equivale a completar esos adapters. Los siguientes apartados se conservan como historial.
+
+---
+
 > Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
 
 # Estado actual: UGC desde el chat

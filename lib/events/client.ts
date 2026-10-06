@@ -24,7 +24,6 @@ export const eventsApi = {
   saveActivation: (slug: string, productId: string | null, patch: ActivationPatch) => send<{ ok: true }>("PUT", `/${slug}/activation`, { productId, ...patch }),
   removeActivation: (slug: string, productId: string | null) => send<{ ok: true }>("DELETE", `/${slug}/activation${productId ? `?product=${encodeURIComponent(productId)}` : ""}`),
   copy: (slug: string, productId: string) => call<{ copy: Copy }>(`/${slug}/copy?product=${encodeURIComponent(productId)}`),
-  writeCopy: (slug: string, productId: string) => send<{ copy: Copy }>("POST", `/${slug}/copy`, { productId }),
   approveCopy: (slug: string, productId: string, copy?: { announcement: string; subtitle: string; badge_label: string }) => send<{ copy: Copy }>("PUT", `/${slug}/copy`, { productId, copy }),
   discardCopy: (slug: string, productId: string) => send<{ copy: null }>("DELETE", `/${slug}/copy?product=${encodeURIComponent(productId)}`),
   publish: () => send<{ products: number; withEvent: number; failed: string[] }>("POST", "/publish"),

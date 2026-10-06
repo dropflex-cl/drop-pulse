@@ -1,10 +1,10 @@
-import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { toJSONSchema } from "zod/v4";
-import type * as z from "zod/v4";
 import { accountError, anthropicClient } from "@/lib/integrations/anthropic/client";
 import { anthropicKey, markAnthropicInvalid, NO_ANTHROPIC_KEY } from "@/lib/integrations/anthropic/connection";
+import Anthropic from "@anthropic-ai/sdk";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import "server-only";
+import type * as z from "zod/v4";
+import { toJSONSchema } from "zod/v4";
 import { AI_MODEL } from "./model";
 import { firstText, readStructured, sumUsage } from "./structured";
 
@@ -259,86 +259,4 @@ async function generateUnconstrained<S extends z.ZodType>({
     throw new AiStepError("invalid_output", "La IA respondió en un formato inesperado. Reintenta.", usage);
   }
   return { data: parsed.data as z.infer<S>, usage };
-}
-
-/** Cada cuánto se avisa el texto acumulado mientras se escribe (la pantalla lo muestra en vivo). */
-const PROGRESS_MS = 3000;
-
-/**
- * Una respuesta de texto libre, transmitida (streaming): para un prompt que pide un informe largo (el mega
- * prompt de la estrategia, docs/spec-estrategia.md). Sin system: el prompt va entero en `content`.
- * `onText` recibe el texto acumulado cada ~3 s y al terminar; si falla, el error se ignora (es avance).
- * El streaming es obligatorio con respuestas largas: el SDK rechaza una llamada sin streaming que
- * podría pasar de 10 minutos.
- */
-export async function generateText({
-  content,
-  effort,
-  maxTokens,
-  model = AI_MODEL,
-  onText,
-  timeoutMs,
-  timeoutMessage = "La IA tardó demasiado y se cortó. Reintenta.",
-  ...auth
-}: AiAuth & {
-  content: Anthropic.Beta.BetaContentBlockParam[];
-  effort: "low" | "medium" | "high";
-  maxTokens: number;
-  model?: string;
-  onText?: (text: string) => Promise<void> | void;
-  /** Corta la respuesta pasado este tiempo (la función tiene un máximo): falla con `timeout` y su mensaje. */
-  timeoutMs?: number;
-  timeoutMessage?: string;
-}): Promise<{ text: string; usage: AiUsage }> {
-  const started = Date.now();
-  const anthropic = await client(auth);
-  let last = 0;
-  let pending: Promise<void> | null = null;
-  const report = (text: string) => {
-    if (!onText || pending) return;
-    last = Date.now();
-    pending = Promise.resolve(onText(text))
-      .catch((e: unknown) => console.warn("[ai] guardar el avance", (e as Error).message))
-      .finally(() => {
-        pending = null;
-      });
-  };
-  let res: Message;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let timedOut = false;
-  try {
-    const stream = anthropic.beta.messages.stream({
-      model,
-      max_tokens: maxTokens,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      thinking: { type: "adaptive" },
-      output_config: { effort },
-      messages: [{ role: "user", content }],
-    });
-    stream.on("text", (_delta, snapshot) => {
-      if (Date.now() - last >= PROGRESS_MS) report(snapshot);
-    });
-    if (timeoutMs) {
-      timer = setTimeout(() => {
-        timedOut = true;
-        stream.abort();
-      }, timeoutMs);
-    }
-    res = await stream.finalMessage();
-  } catch (e) {
-    if (timedOut && e instanceof Anthropic.APIUserAbortError) {
-      if (pending) await pending;
-      throw new AiStepError("timeout", timeoutMessage);
-    }
-    throw await apiError(e, auth);
-  } finally {
-    clearTimeout(timer);
-  }
-  const usage = usageOf(res, started);
-  checkStop(res, usage);
-  const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-  if (pending) await pending;
-  if (onText) await Promise.resolve(onText(text)).catch((e: unknown) => console.warn("[ai] guardar el texto final", (e as Error).message));
-  return { text, usage };
 }

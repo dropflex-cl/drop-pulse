@@ -1,37 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ACCEPTED_TYPES,
-  Button,
-  Icon,
-  ImageUploader,
-  ProductInfoInput,
-  ReferenceAddTile,
-  ReferenceImage,
-  StageMeter,
-  Switch,
-  TopBar,
-  notify,
-  type UploadItem,
-  type UploaderMode,
-} from "@/components/df";
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
-import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { ACCEPTED_TYPES, Button, Icon, ImageUploader, ProductInfoInput, ReferenceAddTile, ReferenceImage, StageMeter, Switch, TopBar, notify, type UploadItem, type UploaderMode, } from "@/components/df";
 import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider";
+import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { IMAGE_QA_USD } from "@/lib/ai/costs";
 import { count } from "@/lib/format";
 import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
+import type { ProductData } from "@/lib/products/product-data";
 import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
-import type { ProductData } from "@/lib/products/product-data";
 import type { ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
-import { AI_SETTINGS_HREF, CONNECT_AI_NOTE } from "./connect-anthropic";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DifferentiatorSection } from "./differentiator-section";
 import { PricingSection } from "./pricing-section";
 import { ProductDataSection } from "./product-data-section";
@@ -147,7 +131,6 @@ function ImageQaSection({ productId, initial }: { productId: string; initial: bo
 }
 
 export function BaseInfoScreen({ base }: { base: ProductBase }) {
-  const router = useRouter();
   const desktop = useDesktop();
   const { product } = base;
   const info = useAutosave(product.id, base.baseInfo, base.baseInfoUpdatedAt);
@@ -162,8 +145,6 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
 
   const [pricing, setPricing] = useState<SavedPricingDto | undefined>(base.pricing);
   const [productData, setProductData] = useState<ProductData | undefined>(base.productData);
-  const [identifying, setIdentifying] = useState(false);
-  const [startError, setStartError] = useState<string>();
 
   const inUse = images.filter((i) => !i.excluded).length;
   const baseId = pickBase(images, (i) => i)?.id;
@@ -263,23 +244,6 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
     }
   };
 
-  // ---------------------------------------------------------------- Identificar con IA
-  const identify = async () => {
-    setIdentifying(true);
-    setStartError(undefined);
-    try {
-      await info.save();
-      const res = await productsApi.identifyProduct(product.id);
-      setProductData(res.productData);
-      router.refresh();
-      notify("Revisa los datos del producto: es lo que recibe la estrategia");
-    } catch (e) {
-      setStartError(errorText(e, "No pudimos identificar el producto. Intenta de nuevo en un momento."));
-    } finally {
-      setIdentifying(false);
-    }
-  };
-
   // ---------------------------------------------------------------- Piezas
   const pendingUploads = uploads.filter((u) => u.state !== "done");
   const refsHeader = (
@@ -343,7 +307,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
 
   const status = (
     <>
-      <ProductDataSection productId={product.id} value={productData} identifying={identifying} onIdentify={identify} onSaved={setProductData} />
+      <ProductDataSection productId={product.id} value={productData} onSaved={setProductData} />
       {base.hasBrief ? (
         // Se reinicia si la estrategia nueva trae otra propuesta.
         <DifferentiatorSection key={JSON.stringify(base.differentiator.proposed)} productId={product.id} initial={base.differentiator} />
@@ -397,22 +361,10 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
         Continuar: Estrategia
       </Button>
     );
-    summary = pricing ? "Con estos datos y tu precio, la IA escribe la estrategia de venta." : "Guarda el precio y los packs para seguir: la estrategia parte de ese precio.";
-  } else if (product.aiConnected === false) {
-    // Como Creativos sin Higgsfield: la acción de IA lleva a Ajustes a conectar la clave.
-    primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="settings" href={AI_SETTINGS_HREF}>
-        Ir a Ajustes
-      </Button>
-    );
-    summary = CONNECT_AI_NOTE;
+    summary = pricing ? "Con estos datos y tu precio, prepara la estrategia en el chat." : "Guarda el precio y los packs para seguir: la estrategia parte de ese precio.";
   } else {
-    primary = (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" icon="sparkle" loading={identifying} disabled={inUse === 0} onClick={identify}>
-        Identificar con IA
-      </Button>
-    );
-    if (inUse === 0) summary = "Agrega o vuelve a usar al menos una imagen para identificar el producto.";
+    primary = <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className="max-lg:w-full lg:h-control lg:text-row">Continuar: Estrategia</Button>;
+    summary = "Completa el nombre y la descripción del producto.";
   }
 
   return (
@@ -462,12 +414,6 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
           {reviewsCta}
         </aside>
       </div>
-
-      {startError ? (
-        <p role="alert" className="px-4 pb-3 text-label font-normal text-destructive lg:px-8">
-          {startError}
-        </p>
-      ) : null}
 
       {primary ? (
         <StickyActions variant="bar" stack summary={summary} mobileNote={summary} className="lg:px-8">

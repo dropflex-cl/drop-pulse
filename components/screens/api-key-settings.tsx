@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Button, ConnectionCard, Field, notify } from "@/components/df";
 import { ProductApiClientError, apiKeyApi, type ApiKeyProvider } from "@/lib/products/client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 // Ajustes › Inteligencia artificial y Anuncios con IA: la clave propia del comerciante para cada
 // proveedor (docs/spec-creativos.md §6.3). Anthropic, Higgsfield y Gemini usan el mismo mecanismo: se
@@ -16,8 +16,8 @@ const COPY: Record<ApiKeyProvider, { name: string; consoleUrl: string; consoleLa
     consoleUrl: "https://console.anthropic.com/settings/keys",
     consoleLabel: "Abrir la consola",
     where: "La creas en la consola de Anthropic, en API keys. Tu cuenta necesita saldo para usar Claude.",
-    connected: "La IA escribe con tu cuenta y tu saldo de Anthropic (Claude Opus 5). El costo de cada producto aparece en su pantalla.",
-    empty: "Pega la clave de tu cuenta de Anthropic para usar la IA: ficha, cliente ideal, ángulos, página, creativos y la revisión de cada imagen. Se cobra de tu saldo de Anthropic.",
+    connected: "La revisión opcional de imágenes usa tu cuenta y tu saldo de Anthropic. El costo de cada producto aparece en su pantalla.",
+    empty: "Pega tu clave de Anthropic si quieres activar la revisión de imágenes. Los textos se preparan desde el chat; esta revisión se cobra de tu saldo de Anthropic.",
     invalid: "Anthropic rechazó tu clave. Pega una nueva.",
   },
   higgsfield: {

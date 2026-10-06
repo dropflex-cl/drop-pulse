@@ -28,7 +28,7 @@ describe("productPosition", () => {
     const p = productPosition(ready);
     expect(p.nextStage).toBe("angulos");
     expect(p.stages[0]).toMatchObject({ state: "done", desc: "Datos del producto · precio y packs listos" });
-    expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current", desc: "Genera la estrategia de venta con IA" });
+    expect(p.stages[2]).toMatchObject({ key: "angulos", state: "current", desc: "Define la estrategia desde el chat" });
     expect(p.stages.find((s) => s.key === "textos")).toMatchObject({ state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" });
     expect(p.stages.map((s) => s.key)).not.toContain("precio");
     expect(p.meter).toHaveLength(9);
@@ -240,22 +240,14 @@ describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
   };
   const byKey = (f: Parameters<typeof productPosition>[0], key: string) => productPosition(f).stages.find((s) => s.key === key)!;
 
-  it("Información base nunca se bloquea: dice que falta conectar Anthropic para identificar el producto", () => {
-    const p = productPosition({ ...base, ai: false });
-    expect(p.stages[0]).toMatchObject({ state: "current", desc: "Conecta Anthropic en Ajustes para identificar el producto" });
-    expect(p.reason).toBe("Sin identificar · conecta Anthropic en Ajustes");
-  });
-
-  it("la etapa de IA que no ha empezado queda bloqueada con el motivo", () => {
-    expect(byKey({ ...approvedAvatar, ai: false }, "angulos")).toMatchObject({ state: "locked", desc: "Conecta Anthropic en Ajustes" });
-    expect(productPosition({ ...approvedAvatar, ai: false }).reason).toBe("Conecta Anthropic en Ajustes");
-    expect(byKey({ ...anglesDone, ai: false }, "imagenes")).toMatchObject({ state: "locked", desc: "Conecta Anthropic en Ajustes" });
+  it("el contexto y la escritura desde el chat no requieren clave de Anthropic", () => {
+    expect(productPosition({ ...base, ai: false }).stages[0]).toMatchObject({ state: "current" });
+    expect(byKey({ ...approvedAvatar, ai: false }, "angulos")).toMatchObject({ state: "current", desc: "Define la estrategia desde el chat" });
+    expect(productPosition({ ...approvedAvatar, ai: false }).reason).toBe("Siguiente: estrategia de venta");
+    expect(byKey({ ...anglesDone, ai: false }, "imagenes")).toMatchObject({ state: "current" });
     const imagesDone = { ...anglesDone, images: { running: false, rendering: 0, options: 8, cover: true, gallery: 5 }, ai: false };
-    expect(byKey(imagesDone, "textos")).toMatchObject({ state: "locked", desc: "Conecta Anthropic en Ajustes" });
-    expect(byKey({ ...anglesDone, creatives: { connected: true, running: false, concepts: 0, rendering: 0, pending: 0, approved: 0 }, ai: false }, "creativos")).toMatchObject({
-      state: "locked",
-      desc: "Conecta Anthropic en Ajustes",
-    });
+    expect(byKey(imagesDone, "textos")).toMatchObject({ state: "current" });
+    expect(byKey({ ...anglesDone, creatives: { connected: true, running: false, concepts: 0, rendering: 0, pending: 0, approved: 0 }, ai: false }, "creativos")).toMatchObject({ state: "available" });
   });
 
   it("lo ya generado se sigue viendo y decidiendo", () => {

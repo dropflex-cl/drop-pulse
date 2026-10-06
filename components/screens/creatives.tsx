@@ -1,34 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AngleGroup,
-  Button,
-  ChatConsent,
-  ChatModule,
-  ChatPreview,
-  CreativeConcept,
-  CreativePiece,
-  CreativeSummary,
-  EmptyState,
-  Field,
-  Icon,
-  ImageProviderPicker as ProviderPicker,
-  Notice,
-  SegmentedControl,
-  TopBar,
-  linkClasses,
-  notify,
-  notifyUndo,
-  type ChatModuleState,
-  type ConceptText,
-  type PieceAction,
-  type PieceState,
-  type ProviderOption,
-} from "@/components/df";
-import { AiCostButton, useLocalCost, useStepCost } from "@/components/shell/ai-cost-provider";
+import { AngleGroup, Button, ChatModule, ChatPreview, CreativeConcept, CreativePiece, CreativeSummary, EmptyState, Field, Notice, ImageProviderPicker as ProviderPicker, SegmentedControl, TopBar, linkClasses, notify, notifyUndo, type ChatModuleState, type ConceptText, type PieceAction, type PieceState, type ProviderOption } from "@/components/df";
+import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
@@ -41,7 +14,9 @@ import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { CreativeAssetView, CreativeConceptView, CreativesState, ProductCreatives, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ConnectAnthropic } from "./connect-anthropic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CreativesSheet } from "./creatives-sheet";
 import { VideosPanel } from "./creatives-videos";
 import { useImageProviderPick } from "./image-provider-picker";
@@ -104,7 +79,7 @@ const storiesLocked = (c: CreativeConceptView, ratio: Ratio) => ratio === "9:16"
 
 type View = { kind: "list" } | { kind: "concept" | "edit" | "chat-edit"; id: string } | { kind: "piece"; id: string };
 type Selection = { kind: "concept" | "piece"; id: string };
-type Sheet = { kind: "replace" } | { kind: "provider" } | { kind: "chat"; angle: number } | null;
+type Sheet = { kind: "provider" } | null;
 
 export function CreativesScreen({ data, initialTab = "images" }: { data: ProductCreatives; initialTab?: "images" | "videos" }) {
   const router = useRouter();
@@ -113,8 +88,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   const [rootRef, width] = useWidth<HTMLDivElement>();
   const split = desktop && width >= SPLIT_MIN;
   const localCost = useLocalCost();
-  const proposeCost = useStepCost("creative_concepts", "creative_art");
-  const chatCost = useStepCost("creative_chat");
   const { product } = data;
   const [state, setState] = useState<CreativesState>(data);
   const [busy, setBusy] = useState<string | null>(null);
@@ -123,7 +96,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   const [view, setView] = useState<View>({ kind: "list" });
   const [picked, setPicked] = useState<Selection | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [ack, setAck] = useState(false);
   // Escritorio: el concepto que se está editando en el panel derecho.
   const [deskEditing, setDeskEditing] = useState<string | null>(null);
   // Ángulos plegados por el comerciante; sin elegir, se pliegan los que no piden revisar (menos el primero).
@@ -135,9 +107,8 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   const working = proposing || concepts.some((c) => c.assets.some(rendering));
   const costFor = useCallback((p: ImageProvider | null | undefined) => localCost(IMAGE_COST_BY_PROVIDER[p ?? "higgsfield"]), [localCost]);
   const assets = concepts.flatMap((c) => c.assets);
-  // El chat de WhatsApp no es de la propuesta: sin estáticos, la pantalla sigue en «Proponer anuncios».
+  // Las conversaciones guardadas se revisan por separado de los conceptos estáticos.
   const statics = concepts.filter((c) => c.family !== CHAT_FAMILY);
-  const staticAssets = statics.flatMap((c) => c.assets);
   const shown = concepts.flatMap((c) => latestPieces(c.assets));
   const approved = assets.filter((a) => a.status === "aprobado").length;
   const toReview = shown.filter((a) => pieceState(a) === "review").length;
@@ -182,7 +153,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     if (wasProposing.current && !proposing) {
       router.refresh();
       if (run?.status === "succeeded") notify(`La IA propuso tus anuncios: ${plural(concepts.length, "concepto", "conceptos")}.`, { action: "Ver", onAction: () => window.scrollTo({ top: 0 }) });
-      else if (run?.status === "failed") notify("No se pudieron proponer tus anuncios.", { action: "Reintentar", onAction: () => void propose() });
+      else if (run?.status === "failed") notify("La propuesta anterior no terminó. Prepara los cambios en el chat.");
     }
     wasProposing.current = proposing;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar el estado de la corrida
@@ -223,10 +194,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     }
   }
 
-  async function propose() {
-    setSheet(null);
-    await run_("propose", () => productsApi.proposeCreatives(product.id), "No pudimos empezar. Intenta de nuevo.");
-  }
   const render = (c: CreativeConceptView, ratio: Ratio, p?: ImageProvider) =>
     run_(`render-${c.id}-${ratio}`, () => productsApi.renderConcept(product.id, c.id, ratio, p), "No pudimos empezar a generar la imagen.");
 
@@ -243,14 +210,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     } finally {
       setBusy(null);
     }
-  }
-
-  async function createChat(angle: number) {
-    const next = await run_(`chat-${angle}`, () => productsApi.createChat(product.id, angle), "No pudimos escribir el chat. Intenta de nuevo.");
-    if (!next) return;
-    setSheet(null);
-    const chat = next.concepts.find((c) => c.angle === angle && c.family === CHAT_FAMILY);
-    if (chat) openConcept(chat);
   }
 
   async function reopen(a: CreativeAssetView) {
@@ -352,8 +311,8 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   }
 
   // ---------------------------------------------------------------- Vistas
-  const needsKey = Boolean(state.locked) && state.connected === false && !state.locked!.startsWith("Aprueba");
-  const anglesLocked = Boolean(state.locked) && !needsKey;
+  const needsKey = !concepts.length && Boolean(state.locked) && state.connected === false && !state.locked!.startsWith("Aprueba");
+  const anglesLocked = !concepts.length && Boolean(state.locked) && !needsKey;
   const hasPieces = assets.length > 0;
   const subtitle = anglesLocked ? "Bloqueada" : proposing ? "La IA está trabajando" : approved ? plural(approved, "pieza aprobada", "piezas aprobadas") : "Opcional";
 
@@ -471,9 +430,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
                 <Button icon="edit" disabled={inProgress} onClick={onEdit}>
                   Editar
                 </Button>
-                <Button icon="refresh" loading={busy === `chat-${c.angle}`} disabled={Boolean(busy) || inProgress} onClick={() => createChat(c.angle)}>
-                  {chatCost ? `Otro chat · ${chatCost}` : "Otro chat"}
-                </Button>
               </div>
               {inProgress ? <p className="text-caption text-muted-foreground">No se puede editar mientras se genera la captura.</p> : null}
             </div>
@@ -514,18 +470,10 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
   }
 
   // ---------------------------------------------------------------- Contenido de la pestaña Imágenes
-  /** El chat de un ángulo: abrirlo si existe; si no, la hoja con el aviso para crearlo. */
-  const chatModule = (angle: number, chat = concepts.find((c) => c.angle === angle && c.family === CHAT_FAMILY)) => (
-    <ChatModule
-      state={chatState(chat)}
-      disabled={proposing || Boolean(busy)}
-      onAction={() => {
-        if (chat) return openConcept(chat);
-        setAck(false);
-        setSheet({ kind: "chat", angle });
-      }}
-    />
-  );
+  /** Abre conversaciones guardadas; no propone ni escribe nuevas. */
+  const chatModule = (angle: number, chat = concepts.find((c) => c.angle === angle && c.family === CHAT_FAMILY)) => chat ? (
+    <ChatModule state={chatState(chat)} disabled={Boolean(busy)} onAction={() => openConcept(chat)} />
+  ) : <p className="text-caption text-muted-foreground">Prepara la conversación en el chat. Aquí podrás revisar y renderizar las conversaciones guardadas.</p>;
 
   let body: React.ReactNode;
   let footer: React.ReactNode = null;
@@ -548,11 +496,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
-  } else if (product.aiConnected === false && !concepts.length) {
-    // Como «Conecta un proveedor de imágenes»: Claude propone los conceptos y revisa cada pieza.
-    body = <ConnectAnthropic what="propone tus anuncios y revisa cada pieza" />;
-    footer = <StickyActions>{skip}</StickyActions>;
-    footerMobileOnly = true;
   } else if (needsKey) {
     body = (
       <div className="flex flex-col gap-4">
@@ -571,96 +514,18 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
-  } else if (proposing && !statics.length) {
-    body = (
-      <EmptyState
-        icon="sparkle"
-        busy
-        title="La IA está proponiendo tus anuncios"
-        body="Tarda ~1 min. Puedes salir de esta pantalla; te avisamos cuando termine."
-        secondary={<Button href={`/products/${product.id}`}>Volver al producto</Button>}
-      />
-    );
-    footer = <StickyActions>{skip}</StickyActions>;
-    footerMobileOnly = true;
-  } else if (!statics.length && run?.status === "failed") {
-    body = (
-      <EmptyState
-        icon="alert"
-        tone="error"
-        title="No se pudo proponer"
-        body={run.error ?? "La IA no terminó la propuesta. Tus ángulos y la foto base siguen igual."}
-        action={
-          <Button variant="primary" icon="undo" loading={busy === "propose"} onClick={propose}>
-            {proposeCost ? `Reintentar · ${proposeCost}` : "Reintentar"}
-          </Button>
-        }
-      />
-    );
-    footer = <StickyActions>{skip}</StickyActions>;
-    footerMobileOnly = true;
   } else if (!statics.length) {
-    body = (
-      <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-heading">Anuncios estáticos</h2>
-          <p className="mt-1 text-body text-muted-foreground">Claude lee tus ángulos y la foto base y propone unos 6 conceptos. Revisas cada uno antes de pagar su imagen.</p>
-        </div>
-        <div className="flex items-center gap-3 rounded-md border p-2">
-          {product.image ? (
-            // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage, sin optimizador
-            <img src={product.image} alt="" className="size-12 rounded-sm bg-muted object-cover" />
-          ) : (
-            <span className="size-12 rounded-sm bg-muted" />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col text-label font-normal text-muted-foreground">
-            <b className="text-small font-semibold text-foreground">Foto base</b>
-            Toda imagen parte de esta foto
-          </div>
-          <Link href={productHref(product.id, "importado")} className={linkClasses}>
-            Cambiar
-          </Link>
-        </div>
-        <ProviderPicker value={provider} providers={providerOptions} onChange={pick} />
-        {state.angles.length ? (
-          <section aria-labelledby="chat-whatsapp" className="flex flex-col gap-2.5 border-t pt-4">
-            <div>
-              <h2 id="chat-whatsapp" className="text-heading">
-                Chat de WhatsApp
-              </h2>
-              <p className="mt-1 text-body text-muted-foreground">Una captura de una conversación por ángulo. No necesita la propuesta de anuncios.</p>
-            </div>
-            {state.angles.map((a) => (
-              <div key={a.slot} className="flex flex-col gap-1.5">
-                <span className="text-label font-normal text-muted-foreground">{`Ángulo ${a.slot} · ${a.name}`}</span>
-                {chatModule(a.slot)}
-              </div>
-            ))}
-          </section>
-        ) : null}
-      </div>
-    );
-    // En escritorio, el chat abierto se ve a la derecha (solo si se eligió: la pantalla vacía no abre nada sola).
+    body = <div className="flex flex-col gap-4"><Notice title="Prepara tus anuncios en el chat" body="La propuesta automática se retiró. Aquí podrás revisar y renderizar los conceptos guardados." />{state.angles.map((a) => <div key={a.slot}>{chatModule(a.slot)}</div>)}</div>;
     if (split && picked && selection) aside = selectionPanel(selection);
-    footer = (
-      <StickyActions stack mobileNote="Tarda ~1 min. Puedes salir de la pantalla: te avisamos.">
-        <Button variant="primary" size="lg" block={!desktop} icon="sparkle" loading={busy === "propose"} onClick={propose}>
-          {proposeCost ? `Proponer anuncios · ${proposeCost}` : "Proponer anuncios"}
-        </Button>
-      </StickyActions>
-    );
+    footer = <StickyActions>{skip}</StickyActions>;
   } else {
-    const kept = staticAssets.filter((a) => a.kept).length;
-    const staticApproved = staticAssets.filter((a) => a.status === "aprobado").length;
     body = (
       <div className="flex flex-col gap-4">
         <CreativeSummary
           counts={{ review: toReview, pending: missing.length, approved }}
-          onProposeOther={() => setSheet({ kind: "replace" })}
-          proposeDisabled={proposing || Boolean(busy)}
           className="lg:max-w-130"
         />
-        {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos proponer otros anuncios." body={run.error ?? "Reintenta desde el menú ⋯ › Proponer otros conceptos."} /> : null}
+        {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos proponer otros anuncios." body="El contenido guardado sigue disponible. Prepara los cambios en el chat." /> : null}
         {proposing ? <Notice tone="info" icon="sparkle" title="La IA está proponiendo otros anuncios." body="Cuando termine, reemplazan a estos. Lo aprobado sigue en Anuncios mientras tanto." /> : null}
         {errorLine}
         {groups.map((g, gi) => {
@@ -704,38 +569,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
             </AngleGroup>
           );
         })}
-        <CreativesSheet
-          open={sheet?.kind === "replace"}
-          onClose={() => setSheet(null)}
-          title="¿Proponer otros conceptos?"
-          actions={
-            <>
-              <Button size="lg" onClick={() => setSheet(null)}>
-                Cancelar
-              </Button>
-              <Button variant="destructive" size="lg" loading={busy === "propose"} onClick={propose}>
-                Proponer otros
-              </Button>
-            </>
-          }
-        >
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-body">
-            <ReplaceItem icon="undo">{`${statics.length === 1 ? "El concepto se cambia" : `Los ${statics.length} conceptos se cambian`} por nuevos.`}</ReplaceItem>
-            <ReplaceItem icon="check">Mientras la IA trabaja, lo aprobado sigue en Anuncios.</ReplaceItem>
-            <ReplaceItem icon="alert" warn>
-              Al terminar se borran las piezas de los conceptos reemplazados
-              {staticApproved ? (
-                <>
-                  , <b>{staticApproved === 1 ? "también la aprobada" : `también las ${staticApproved} aprobadas`}</b>
-                </>
-              ) : null}
-              .
-            </ReplaceItem>
-            {statics.length < concepts.length ? <ReplaceItem icon="chat">El chat de WhatsApp se queda.</ReplaceItem> : null}
-            {kept ? <ReplaceItem icon="shield">{`Se ${kept === 1 ? "conserva 1 que ya está en Meta o la usa" : `conservan ${kept} que ya están en Meta o las usa`} un anuncio.`}</ReplaceItem> : null}
-          </ul>
-          <p className="text-caption text-muted-foreground">{`Tarda ~1 min${proposeCost ? ` · ${proposeCost}` : ""}`}</p>
-        </CreativesSheet>
       </div>
     );
 
@@ -899,10 +732,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
           }}
         />
       </CreativesSheet>
-      <CreativesSheet open={sheet?.kind === "chat"} onClose={() => setSheet(null)} title={`Chat de WhatsApp · Ángulo ${sheet?.kind === "chat" ? sheet.angle : ""}`}>
-        <ChatConsent checked={ack} onCheckedChange={setAck} cost={chatCost ?? undefined} loading={sheet?.kind === "chat" && busy === `chat-${sheet.angle}`} onCreate={() => sheet?.kind === "chat" && createChat(sheet.angle)} />
-        {errorLine}
-      </CreativesSheet>
     </div>
   );
 }
@@ -944,16 +773,6 @@ function resolveSelection(picked: Selection | null, concepts: CreativeConceptVie
   const review = shown.find((a) => pieceState(a) === "review");
   if (review) return { kind: "piece", id: review.id };
   return concepts[0] ? { kind: "concept", id: concepts[0].id } : null;
-}
-
-/** Una línea de «Proponer otros» (.df-replace): qué se reemplaza, qué sigue y qué se borra. */
-function ReplaceItem({ icon, warn, children }: { icon: "undo" | "check" | "alert" | "shield" | "chat"; warn?: boolean; children: React.ReactNode }) {
-  return (
-    <li className="flex gap-2.5">
-      <Icon name={icon} size="sm" className={cn("mt-0.75", warn ? "text-warning" : "text-muted-foreground")} />
-      <span>{children}</span>
-    </li>
-  );
 }
 
 // ---------------------------------------------------------------- Edición

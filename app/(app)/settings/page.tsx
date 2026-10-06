@@ -1,21 +1,20 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Button } from "@/components/df";
+import { LogoutButton } from "@/components/logout-button";
 import { Connections } from "@/components/onboarding/connections";
 import { SetupSlot } from "@/components/onboarding/setup-slot";
-import { Skeleton } from "@/components/shell/skeletons";
-import { LogoutButton } from "@/components/logout-button";
-import { AssumptionsForm } from "@/components/screens/assumptions-form";
-import { PageHeader } from "@/components/shell/page-header";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { getAdSettings, getAiCostSettings, getAnthropicSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings, getPromptSettings } from "@/lib/data/settings";
-import { PolicySettings } from "@/components/screens/policy-settings";
+import { AdSettings } from "@/components/screens/ad-settings";
 import { AiCostSettings } from "@/components/screens/ai-cost-settings";
 import { ApiKeySettings } from "@/components/screens/api-key-settings";
-import { AdSettings } from "@/components/screens/ad-settings";
+import { AssumptionsForm } from "@/components/screens/assumptions-form";
 import { MarketSettings } from "@/components/screens/market-settings";
-import { PromptSettings } from "@/components/screens/prompt-settings";
-import { Button } from "@/components/df";
+import { PolicySettings } from "@/components/screens/policy-settings";
+import { PageHeader } from "@/components/shell/page-header";
+import { Skeleton } from "@/components/shell/skeletons";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { getMcpAvailability } from "@/lib/data/oauth";
+import { getAdSettings, getAiCostSettings, getAnthropicSettings, getAssumptions, getGeminiSettings, getHiggsfieldSettings, getMarketSettings, getPolicySettings } from "@/lib/data/settings";
+import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -30,7 +29,7 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies, prompts, mcpEnabled] = await Promise.all([
+  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies, mcpEnabled] = await Promise.all([
     getAssumptions(),
     getMarketSettings(),
     getAdSettings(),
@@ -39,7 +38,6 @@ export default async function AjustesPage() {
     getGeminiSettings(),
     getAiCostSettings(),
     getPolicySettings(),
-    getPromptSettings(),
     getMcpAvailability(),
   ]);
   return (
@@ -54,7 +52,7 @@ export default async function AjustesPage() {
           <AssumptionsForm initial={assumptions} />
         </Section>
         {market ? (
-          <Section id="mercado" title="Dónde vendes" description="La IA escribe en este idioma y calcula en esta moneda, con pago contra entrega.">
+          <Section id="mercado" title="Dónde vendes" description="El contexto del producto usa este idioma y los precios se calculan en esta moneda, con pago contra entrega.">
             <MarketSettings initial={market.value} confirmed={market.confirmed} />
           </Section>
         ) : null}
@@ -77,7 +75,7 @@ export default async function AjustesPage() {
           </Section>
         ) : null}
         {anthropic ? (
-          <Section id="ia" title="Inteligencia artificial" description="Tu cuenta de Anthropic (Claude): la IA de DropFlex escribe y revisa con tu clave y tu saldo. Sin ella, la IA no corre.">
+          <Section id="ia" title="Inteligencia artificial" description="Tu cuenta de Anthropic (Claude) se usa solo al activar la revisión de imágenes. Los textos se preparan desde el chat.">
             <ApiKeySettings provider="anthropic" keyHint={anthropic.keyHint} status={anthropic.status} error={anthropic.error} />
           </Section>
         ) : null}
@@ -99,11 +97,7 @@ export default async function AjustesPage() {
             <AiCostSettings cap={aiCost.cap} currency={aiCost.currency} />
           </Section>
         ) : null}
-        {prompts ? (
-          <Section id="prompts" title="Prompts" description="Solo administradores. El texto de cada prompt de la IA: guardar crea una versión nueva y la deja activa para todos los comerciantes.">
-            <PromptSettings prompts={prompts} />
-          </Section>
-        ) : null}
+
         <Section id="apariencia" title="Apariencia" description="Claro, oscuro o el mismo del teléfono.">
           <div className="flex items-center justify-between gap-3">
             <span className="text-body">Tema</span>

@@ -1,39 +1,22 @@
-import { selectVariant } from "@/lib/copy/variants";
 // Eventos en Supabase (docs/spec-eventos.md): el calendario, lo que activa cada comerciante, los
 // textos del evento por producto (IA) y su publicación en el metafield dropflex.event.
 // Escrituras con service_role, siempre filtradas por el usuario.
-import "server-only";
-import { packLabelsStale } from "@/lib/pricing/labels";
-import { createHash } from "node:crypto";
-import { after } from "next/server";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { fail } from "@/lib/angles/store";
-import { LISTING, type Listing } from "@/lib/copy/listing";
-import { allowedAmounts } from "@/lib/copy/schemas";
-import { activeComponents, currentContent } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
-import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations/shopify/connection";
-import { DEFAULT_MARKET, type Market } from "@/lib/market";
-import { approvedAngles } from "@/lib/angles/store";
-import { getDifferentiator } from "@/lib/products/differentiator";
-import { testAngleName } from "@/lib/angles/catalog";
-import { OptimizeError, requireAiKey } from "@/lib/pipeline/errors";
-import { latestPackLabels } from "@/lib/pricing/labels-store";
-import { getPricingPlan } from "@/lib/pricing/store";
+import { type ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { ProductApiError } from "@/lib/products/http";
-import { getProductRow, latestAvatars } from "@/lib/products/store";
+import { getProductRow } from "@/lib/products/store";
 import { getMarket } from "@/lib/settings/market";
 import { SHARED_METAFIELDS } from "@/lib/shopify/components/define";
 import { deleteMetafields, setMetafields } from "@/lib/shopify/publish/metafields";
-import { activationOverridesSchema, eventTheme, INTENSITIES, type Intensity } from "./catalog";
-import { EVENT_COPY_PROMPT_VERSION, eventCopyProblems, eventCopySchema, eventCopySystem, eventCopyUser, type EventCopy } from "./copy";
+import { createHash } from "node:crypto";
+import "server-only";
+import { activationOverridesSchema, INTENSITIES, type Intensity } from "./catalog";
+import { type EventCopy } from "./copy";
 import { eventMetafield, resolveProductEvents, type ActivationRow, type ApprovedEventCopy, type EventRow } from "./resolve";
 
 /** Una escritura de textos que no terminó en este plazo se da por fallida (la instancia murió). */
 const STALE_MS = 5 * 60 * 1000;
-/** Tope de textos de evento por comerciante en 24 h. */
-const DAILY_COPIES = 40;
 
 export interface EventCopyRow {
   id: string;
@@ -170,93 +153,6 @@ export function approvedCopies(rows: EventCopyRow[]): ApprovedEventCopy[] {
     const c = r.status === "approved" ? copyOf(r) : null;
     return c ? [{ event_id: r.event_id, ...c }] : [];
   });
-}
-
-const dateLabel = (iso: string, timeZone: string) => new Intl.DateTimeFormat("es-CL", { timeZone, day: "numeric", month: "long" }).format(new Date(iso));
-
-/** Lo que necesita la llamada: la ficha aprobada, el cliente ideal, el diferenciador, los ángulos y el precio. */
-async function copyContext(userId: string, productId: string) {
-  const [components, avatars, briefs, pricing, labels, differentiator] = await Promise.all([
-    activeComponents(userId, [productId]).then((m) => m.get(productId) ?? []),
-    latestAvatars(userId, [productId]),
-    approvedAngles(userId, productId),
-    getPricingPlan(userId, productId),
-    latestPackLabels(userId, productId),
-    getDifferentiator(userId, productId),
-  ]);
-  const listingRow = components.find((c) => c.component === LISTING && c.status === "approved");
-  const avatar = avatars.get(productId);
-  if (!listingRow) throw new OptimizeError("Aprueba la ficha en Página del producto: los textos del evento parten de ella.", 409);
-  if (!avatar || avatar.status !== "approved" || !briefs || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y los desarrollos de tus ángulos primero.", 409);
-  return {
-    listing: selectVariant(currentContent(listingRow)).content as Listing,
-    avatarSummary: avatar.payload.summary,
-    differentiator: differentiator.value ? { versus: differentiator.value.versus, claim: differentiator.value.claim } : null,
-    angles: briefs.map((b) => testAngleName({ ...b.angle, frame: b.brief.angle })),
-    pricing,
-    labels: labels?.status === "approved" && !packLabelsStale(labels, pricing) ? labels.payload : undefined,
-  };
-}
-
-/** Deja la escritura «generando» y la corre en segundo plano. Tocar dos veces no cobra dos veces. */
-export async function startEventCopy(userId: string, productId: string, event: EventRow): Promise<void> {
-  await requireAiKey(userId);
-  await copyContext(userId, productId); // Falla antes de cobrar si falta algo.
-  const db = adminClient();
-  const current = (await listEventCopies(userId, { productId, eventId: event.id }))[0];
-  if (current?.status === "generating") return;
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-  const recent = await db.from("ai_generations").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("step", "event_copy").gte("created_at", since);
-  if ((recent.count ?? 0) >= DAILY_COPIES) throw new OptimizeError(`Llegaste al máximo de ${DAILY_COPIES} textos de evento en 24 horas. Vuelve mañana o escríbelos a mano.`, 429);
-  const now = new Date().toISOString();
-  const { error } = await db
-    .from("event_copy")
-    .upsert({ user_id: userId, product_id: productId, event_id: event.id, status: "generating", error_message: null, updated_at: now }, { onConflict: "product_id,event_id" });
-  fail("Empezar los textos del evento", error);
-  after(() => runEventCopy(userId, productId, event).catch((e) => console.error("[event-copy]", e)));
-}
-
-/** Pensada para `after()`: nunca lanza; deja el resultado en la fila. */
-export async function runEventCopy(userId: string, productId: string, event: EventRow): Promise<void> {
-  const db = adminClient();
-  const save = (patch: Record<string, unknown>) =>
-    db.from("event_copy").update({ ...patch, updated_at: new Date().toISOString() }).eq("user_id", userId).eq("product_id", productId).eq("event_id", event.id);
-  try {
-    const conn = await getShopifyConnection(userId);
-    const [ctx, { market }] = await Promise.all([copyContext(userId, productId), getMarket(userId, conn)]);
-    const theme = eventTheme(event.kind, event.theme);
-    const input = {
-      ...ctx,
-      event: { name: event.name, startsLabel: dateLabel(event.campaign_starts_at, market.timezone ?? DEFAULT_MARKET.timezone!), endsLabel: dateLabel(event.ends_at, market.timezone ?? DEFAULT_MARKET.timezone!), theme },
-    };
-    const facts = { currency: ctx.pricing.currency, amounts: allowedAmounts(ctx.pricing) };
-    let problems: string[] = [];
-    let data: EventCopy | null = null;
-    let model: string | null = null;
-    for (let i = 0; i < 2; i++) {
-      const result = await generateStructured({
-        userId,
-        system: eventCopySystem(market as Market),
-        content: [{ type: "text", text: eventCopyUser(input, problems) }],
-        schema: eventCopySchema,
-        effort: "low",
-        maxTokens: 4000,
-      });
-      problems = eventCopyProblems(result.data, facts);
-      await recordAiGeneration({ userId, productId, step: "event_copy", detail: event.name, usage: result.usage, error: problems.length ? "invalid_copy" : null, problems });
-      data = result.data;
-      model = result.usage.model;
-      if (!problems.length) break;
-      console.warn("[event-copy] textos inválidos", problems);
-    }
-    if (problems.length || !data) throw new AiStepError("invalid_output", "La IA escribió textos que no cumplen las reglas. Toca Reintentar.", undefined, true);
-    await save({ status: "generated", proposal: data, content: null, error_message: null, prompt_version: EVENT_COPY_PROMPT_VERSION, model, decided_at: null });
-  } catch (e) {
-    const known = e instanceof AiStepError || e instanceof OptimizeError;
-    if (!known) console.error("[event-copy]", e);
-    if (e instanceof AiStepError && !e.logged) await recordAiGeneration({ userId, productId, step: "event_copy", detail: event.name, ...failure(e) });
-    await save({ status: "failed", error_message: known ? (e as Error).message : "No pudimos escribir los textos. Intenta de nuevo." });
-  }
 }
 
 /** Guardar la hoja aprueba (con o sin cambios). `copy` null = aprobar la propuesta tal cual. */

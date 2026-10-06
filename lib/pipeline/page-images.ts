@@ -1,81 +1,38 @@
-import "server-only";
-import { randomUUID } from "node:crypto";
-import sharp from "sharp";
-import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
-import { retryableContent } from "@/lib/ai/content";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
+import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { failure, recordAiGeneration } from "@/lib/ai/track";
-import { readAvatar } from "@/lib/ai/schemas";
-import { stampEntries, stampKey, type BriefStampEntry } from "@/lib/angles/approved";
-import { anglesForPrompt } from "@/lib/angles/store";
-import { getDifferentiator } from "@/lib/products/differentiator";
-import { fail } from "@/lib/angles/store";
+import { stampKey, type BriefStampEntry } from "@/lib/angles/approved";
+import { approvedAngles, fail } from "@/lib/angles/store";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
+import type { ImageProvider } from "@/lib/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import { GEMINI_IMAGE_MODEL, GeminiError, geminiGeneration } from "@/lib/integrations/gemini/client";
-import type { ImageProvider } from "@/lib/image-provider";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
-import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import { higgsfieldKey } from "@/lib/integrations/higgsfield/connection";
-import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
+import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import type { Market } from "@/lib/market";
-import {
-  BENEFIT_SHOTS,
-  COVER,
-  DAILY_IMAGES,
-  DAILY_RUNS,
-  GALLERY,
-  GALLERY_MAX,
-  GIF_MAX,
-  GIF_MAX_UPLOAD_BYTES,
-  GIF_MAX_WIDTH,
-  GIF_MIN_SIDE,
-  GIFS,
-  MAX_OPTIONS_PER_SLOT,
-  ORDERED,
-  autoShotIds,
-  benefitSlot,
-  slotKind,
-} from "@/lib/page-images/catalog";
-import { PAGE_QA_SYSTEM, pageImagesContext, pageImagesSystem, pageImagesTail, pageQaFacts, pageQaTexts, type PageImagesContext } from "@/lib/page-images/prompts";
+import { optimizeImage } from "@/lib/media/optimize";
+import { COVER, DAILY_IMAGES, GALLERY, GALLERY_MAX, GIFS, GIF_MAX, GIF_MAX_UPLOAD_BYTES, GIF_MAX_WIDTH, GIF_MIN_SIDE, MAX_OPTIONS_PER_SLOT, ORDERED, autoShotIds, slotKind } from "@/lib/page-images/catalog";
+import { PAGE_QA_SYSTEM, pageQaFacts, pageQaTexts } from "@/lib/page-images/prompts";
 import { pageRenderRequest } from "@/lib/page-images/render";
-import { PAGE_IMAGES_PROMPT_VERSION, normalizePlan, pagePlanSchema, pageQaSchema, pageQaVerdict, planProblems, type PagePlan, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
-import {
-  PAGE_MEDIA_BUCKET,
-  activeShots,
-  getPageImageRow,
-  getShotRow,
-  isRecoverable,
-  purgeDiscardedPageImages,
-  type PageImageRow,
-  type PageImageRunRow,
-  type ShotRow,
-} from "@/lib/page-images/store";
+import { pageQaSchema, pageQaVerdict, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
+import { PAGE_MEDIA_BUCKET, activeShots, getPageImageRow, getShotRow, isRecoverable, purgeDiscardedPageImages, type PageImageRow, type ShotRow } from "@/lib/page-images/store";
 import { ProductApiError } from "@/lib/products/http";
 import { download as downloadFromLink } from "@/lib/products/images";
-import { imageQaEnabled, latestAvatars, latestBrief, listImageRows } from "@/lib/products/store";
-import { getMarket } from "@/lib/settings/market";
-import { approvedAngles } from "@/lib/angles/store";
+import { imageQaEnabled, latestBrief, listImageRows } from "@/lib/products/store";
+import { randomUUID } from "node:crypto";
+import "server-only";
+import sharp from "sharp";
 import { onGeminiError, onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
-import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
-import { optimizeImage } from "@/lib/media/optimize";
 import { OptimizeError, requireAiKey } from "./errors";
+import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
 
-// Etapa Imágenes (docs/spec-imagenes.md): las imágenes de la página del producto, por espacio.
-// 1. El director de galería (Claude) propone una toma por espacio con dirección de arte: portada, 5 de
-//    galería y una por cada beneficio aprobado en Textos.
-// 2. Se renderizan solas la portada y las primeras 4 de galería (autoShotIds), desde la foto base y con
-//    el proveedor que eligió el comerciante en la pantalla (Higgsfield Marketing Studio Flare, directo, o
-//    Gemini; lib/image-provider.ts). La quinta de galería y los beneficios quedan propuestos: se generan
-//    a pedido («Generar» por toma o «Generar los beneficios»).
-// 3. Un QA con Claude revisa producto, textos y props; si falla, un reintento automático.
-// El comerciante elige por espacio entre lo generado, sus fotos de Información base y lo que suba.
+// Render de tomas guardadas, selección, subidas y revisión opcional de imágenes.
+// El director automático de galería se retiró; no se redactan planes en el servidor.
 
 /** Cuánto espera el proceso en segundo plano antes de dejarle la imagen al sondeo de la pantalla. */
 const POLL_BUDGET_MS = 200_000;
-/** Intentos del director; cada uno recibe lo que falló en el anterior. */
-const PLAN_ATTEMPTS = 3;
 /** Otro proceso no toma una imagen que se tocó hace menos de esto (lease sobre updated_at). */
 const LEASE_MS = 20_000;
 /** Imágenes que se generan a la vez (la cuenta de Higgsfield tiene un cupo de concurrencia). */
@@ -114,18 +71,10 @@ type RunInput = {
 
 /** Lo que el director necesita: sin esto la etapa no genera (sí deja elegir y subir). */
 export async function generationBlocker(userId: string, productId: string): Promise<string | null> {
-  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedAngles(userId, productId)]);
-  if (!brief || avatars.get(productId)?.status !== "approved") return "Aprueba tu cliente ideal en Información base para generar imágenes.";
-  if (!briefs) return "Aprueba los desarrollos de tus ángulos para generar imágenes.";
+  if (await imageQaEnabled(userId, productId)) {
+    try { await requireAiKey(userId); } catch (error) { return error instanceof Error ? error.message : "Conecta Anthropic para revisar las imágenes."; }
+  }
   return null;
-}
-
-async function loadContext(userId: string, productId: string) {
-  const [brief, avatars, briefs] = await Promise.all([latestBrief(userId, productId), latestAvatars(userId, [productId]), approvedAngles(userId, productId)]);
-  const avatar = avatars.get(productId);
-  if (!avatar || avatar.status !== "approved" || !brief) throw new OptimizeError("Aprueba tu cliente ideal en Información base para generar imágenes.", 409);
-  if (!briefs) throw new OptimizeError("Aprueba los desarrollos de tus ángulos para generar imágenes.", 409);
-  return { brief, avatar, briefs };
 }
 
 /** Los desarrollos aprobados hoy («id1,id2,id3»): si cambian, la galería quedó desactualizada. */
@@ -136,130 +85,6 @@ export async function approvedBriefStamp(userId: string, productId: string): Pro
 
 /** La huella guardada en una corrida, en el mismo formato que approvedBriefStamp. */
 export const briefStampOf = (v: unknown): string | null => stampKey(v);
-
-/** Crea la corrida del director (queued). Tocar dos veces no cobra dos veces. */
-export async function startPageImages(userId: string, productId: string): Promise<{ run: PageImageRunRow; created: boolean }> {
-  await requireAiKey(userId);
-  const provider = await requireProvider(userId, "page_images", "imágenes");
-  const ctx = await loadContext(userId, productId);
-  const db = adminClient();
-  const active = await db.from("page_image_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).maybeSingle();
-  fail("Leer la corrida", active.error);
-  if (active.data) return { run: active.data as PageImageRunRow, created: false };
-
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { count, error: countError } = await db.from("page_image_runs").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since);
-  fail("Contar las corridas", countError);
-  if ((count ?? 0) >= DAILY_RUNS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_RUNS} galerías en 24 horas. Vuelve mañana.`, 429);
-
-  const { market } = await getMarket(userId, await getShopifyConnection(userId));
-  const input: RunInput = {
-    market,
-    avatar_id: ctx.avatar.id,
-    briefs: ctx.briefs.map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at })),
-    provider,
-  };
-  const { data, error } = await db.from("page_image_runs").insert({ product_id: productId, user_id: userId, status: "queued", input }).select("*").single();
-  if (error?.code === "23505") {
-    const again = await db.from("page_image_runs").select("*").eq("product_id", productId).in("status", ["queued", "running"]).single();
-    fail("Leer la corrida", again.error);
-    return { run: again.data as PageImageRunRow, created: false };
-  }
-  fail("Crear la corrida", error);
-  return { run: data as PageImageRunRow, created: true };
-}
-
-/**
- * Ejecuta el director y genera las tomas que van solas (autoShotIds). Pensada para `after()`: nunca lanza; deja el
- * resultado en las filas. Lo que no alcance a terminar lo termina el sondeo de la pantalla.
- */
-export async function runPageImages(runId: string): Promise<void> {
-  const db = adminClient();
-  const claimed = await db.from("page_image_runs").update({ status: "running", started_at: stamp(), updated_at: stamp() }).eq("id", runId).eq("status", "queued").select("*").maybeSingle();
-  if (claimed.error || !claimed.data) return;
-  const r = claimed.data as PageImageRunRow & { input: RunInput };
-  let created: PageImageRow[] = [];
-  try {
-    const input = r.input;
-    const provider = input.provider ?? "higgsfield";
-    if (provider === "higgsfield" && !(await higgsfieldKey(r.user_id))) throw new AiStepError("no_key", "Conecta tu cuenta de Higgsfield en Ajustes y reintenta.");
-    const [brief, avatarRow, angles, images, differentiator] = await Promise.all([
-      latestBrief(r.user_id, r.product_id),
-      db.from("customer_avatars").select("payload").eq("user_id", r.user_id).eq("id", input.avatar_id).single(),
-      anglesForPrompt(r.user_id, stampEntries(input.briefs).map((b) => b.id)),
-      productImageUrls(r.user_id, r.product_id, 3),
-      getDifferentiator(r.user_id, r.product_id),
-    ]);
-    fail("Leer el cliente ideal", avatarRow.error);
-    if (!brief || !avatarRow.data || !angles) throw new AiStepError("not_found", "Cambió algo en Ángulos. Vuelve a aprobar los desarrollos y reintenta.");
-    if (!images.length) throw new AiStepError("no_image", "El producto no tiene una imagen base. Elige una en Información base.");
-
-    const ctx: PageImagesContext = {
-      brief,
-      avatar: readAvatar(avatarRow.data.payload),
-      angles,
-      differentiator: differentiator.value,
-    };
-    const blocks = await Promise.all(images.map((u) => imageBlock(u).catch(() => null)));
-    const imageContent = blocks.filter((b): b is NonNullable<typeof b> => b !== null);
-    if (!imageContent.length) throw new AiStepError("no_image", "No pudimos leer la imagen base del producto. Revísala en Información base.");
-
-    let problems: string[] = [];
-    let plan: PagePlan | null = null;
-    let model = AI_MODEL;
-    const slots = angles.map((a) => a.slot);
-    for (let attempt = 0; attempt < PLAN_ATTEMPTS; attempt++) {
-      const result = await generateStructured({
-        userId: r.user_id,
-        system: pageImagesSystem(input.market),
-        // Las fotos y el contexto con punto de caché: un reintento los lee a 0,1×.
-        content: retryableContent(imageContent, pageImagesContext(ctx), pageImagesTail(slots, problems)),
-        schema: pagePlanSchema,
-        effort: "medium",
-        maxTokens: 20000,
-      });
-      plan = normalizePlan(result.data);
-      model = result.usage.model;
-      problems = planProblems(plan, BENEFIT_SHOTS, slots);
-      await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", usage: result.usage, error: problems.length ? "invalid_plan" : null, problems });
-      if (!problems.length) break;
-      console.warn("[page-images] plan inválido", problems);
-    }
-    if (problems.length || !plan) throw new AiStepError("invalid_output", "La IA propuso imágenes que no cumplen las reglas. Toca Reintentar.", undefined, true);
-
-    const rows = plan.shots.map((s, i) => {
-      const benefit = s.slot === "benefit" && s.benefit ? plan.benefits[s.benefit - 1] : undefined;
-      const payload: StoredShot = { ...s, product_look: plan.product_look, kit: plan.kit, props_forbidden: plan.props_forbidden, world: plan.visual_world, pairs: benefit?.text, angle: benefit?.angle ?? null };
-      return { product_id: r.product_id, user_id: r.user_id, run_id: r.id, slot: s.slot === "benefit" ? benefitSlot(s.benefit!) : s.slot === "cover" ? COVER : GALLERY, position: i, payload };
-    });
-    const now = stamp();
-    const inserted = await db.from("page_image_shots").insert(rows).select("id, product_id, user_id, run_id, slot, position, payload, created_at");
-    fail("Guardar las tomas", inserted.error);
-    // Las tomas anteriores quedan fuera; sus imágenes generadas se borran (también las elegidas).
-    fail("Reemplazar las tomas anteriores", (await db.from("page_image_shots").update({ superseded_at: now, updated_at: now }).eq("product_id", r.product_id).is("superseded_at", null).neq("run_id", r.id)).error);
-    await purgeDiscardedPageImages(r.user_id).catch((e) => console.error("[page-images] borrar lo reemplazado", e));
-    fail("Guardar la corrida", (await db.from("page_image_runs").update({ status: "succeeded", payload: { ...plan, shots: undefined }, prompt_version: PAGE_IMAGES_PROMPT_VERSION, model, finished_at: now, updated_at: now }).eq("id", r.id)).error);
-
-    // Solo lo que deja la etapa lista (el costo que vio el comerciante al tocar Generar); lo demás, a pedido.
-    const shots = (inserted.data ?? []) as ShotRow[];
-    const auto = autoShotIds(shots);
-    created = await Promise.all(shots.filter((s) => auto.has(s.id)).map((s) => insertImage(s, 1, provider, input.market)));
-  } catch (e) {
-    const known = e instanceof AiStepError;
-    if (!known) console.error("[page-images] director", e);
-    if (known && !e.logged) await recordAiGeneration({ userId: r.user_id, productId: r.product_id, step: "page_plan", ...failure(e) });
-    await onHiggsfieldError(r.user_id, e);
-    const message = known ? e.message : e instanceof HiggsfieldError ? e.message : "No pudimos proponer las imágenes. Toca Reintentar.";
-    const now = stamp();
-    const { error } = await db
-      .from("page_image_runs")
-      .update({ status: "failed", error_code: known ? e.code : e instanceof HiggsfieldError ? e.code : "unexpected", error_message: message, finished_at: now, updated_at: now })
-      .eq("id", r.id);
-    if (error) console.error("[page-images] guardar la falla", error.message);
-    return;
-  }
-  await inBatches(created, PARALLEL, (img) => processImage(img.id, true));
-}
 
 // ---------------------------------------------------------------- 2. Render
 
@@ -303,7 +128,7 @@ async function checkDailyImages(userId: string, adding: number) {
 
 /** «Generar otra»: una imagen más de la misma toma. Devuelve la fila creada (queued). */
 export async function startShotRender(userId: string, productId: string, shotId: string): Promise<PageImageRow> {
-  await requireAiKey(userId);
+  if (await imageQaEnabled(userId, productId)) await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const shot = await getShotRow(userId, productId, shotId);
   if (!shot) throw new OptimizeError("Esa toma ya no está vigente. Actualiza la página.", 409);
@@ -322,7 +147,7 @@ export async function startShotRender(userId: string, productId: string, shotId:
 export type FillScope = "required" | "benefits";
 
 export async function startFillEmpty(userId: string, productId: string, scope: FillScope = "required"): Promise<PageImageRow[]> {
-  await requireAiKey(userId);
+  if (await imageQaEnabled(userId, productId)) await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const db = adminClient();
   const [shots, images] = await Promise.all([

@@ -1,3 +1,5 @@
+> Textos y acciones de las pantallas actuales: [Contenido preparado desde el chat](chat-authored-content.md). Sustituye la redacción pagada de los ejemplos anteriores; render y revisión visual opcional se conservan.
+
 DropFlex ayuda a comerciantes de dropshipping con pago contra entrega a llevar productos de cero a publicados: la IA genera textos, imágenes y anuncios, y el comerciante decide. Esta interfaz es para alguien que maneja muchos productos desde el teléfono, en ratos de dos minutos, y necesita saber en segundos qué le toca decidir.
 
 ## Principios

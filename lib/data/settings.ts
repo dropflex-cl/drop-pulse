@@ -1,5 +1,4 @@
 // Supuestos del comerciante (Ajustes). Los supuestos, valores de ejemplo; el mercado, de Supabase.
-import "server-only";
 import { listTemplates } from "@/lib/ads/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
@@ -11,8 +10,8 @@ import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { getAiCostCap } from "@/lib/settings/ai-cost";
 import { getMarket } from "@/lib/settings/market";
 import { getStorePolicies } from "@/lib/settings/policies-store";
-import { promptSettings } from "@/lib/prompts/store";
 import type { Assumptions } from "@/lib/types";
+import "server-only";
 
 export async function getAssumptions(): Promise<Assumptions> {
   return { deliveryRate: 80, maxCpa: 6000, store: "tutienda.cl", metaAccount: "Cuenta publicitaria de Meta" };
@@ -41,7 +40,7 @@ export async function getAdSettings() {
   return { spendCap: row?.ad_daily_spend_cap == null ? null : Number(row.ad_daily_spend_cap), currency: meta?.ad_account_currency?.trim() || row?.currency || "CLP", templates };
 }
 
-/** Ajustes › Anthropic: la clave propia del comerciante para toda la IA de textos (la clave vive en Vault). */
+/** Ajustes › Anthropic: la clave propia del comerciante para la revisión opcional de imágenes (la clave vive en Vault). */
 export async function getAnthropicSettings() {
   const user = await sessionUser();
   if (!user) return null;
@@ -77,11 +76,4 @@ export async function getPolicySettings() {
   const user = await sessionUser();
   if (!user) return null;
   return getStorePolicies(user.id);
-}
-
-/** Ajustes › Prompts: solo para el equipo de DropFlex (app_metadata.role = "admin"); null para el resto. */
-export async function getPromptSettings() {
-  const user = await sessionUser();
-  if (!user?.admin) return null;
-  return promptSettings();
 }

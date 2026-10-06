@@ -1,21 +1,13 @@
-import { NextResponse } from "next/server";
-import { identifyProduct, saveProductData } from "@/lib/pipeline/product-data";
+import { saveProductData } from "@/lib/pipeline/product-data";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 import { productDataEditSchema } from "@/lib/products/product-data";
+import { retiredProductWriter } from "@/lib/products/retired-writer";
+import { NextResponse } from "next/server";
 
-// La IA mira las imágenes: ~20 a 60 s con la pantalla esperando.
 export const maxDuration = 300;
 
-/** «Identificar con IA»: la IA escribe el nombre y la descripción del producto y los guarda. */
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const { userId } = await ownedProduct(id);
-    return NextResponse.json({ productData: await identifyProduct(userId, id) });
-  } catch (e) {
-    return errorResponse(e, "No pudimos identificar el producto. Intenta de nuevo en un momento.");
-  }
-}
+/** Writer retirado: conserva autenticación y responde 410 sin crear una corrida. */
+export const POST = retiredProductWriter("Completa los datos del producto aquí o guárdalos desde el chat con save_product_context.");
 
 /** El comerciante edita el nombre o la descripción (autoguardado). */
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {

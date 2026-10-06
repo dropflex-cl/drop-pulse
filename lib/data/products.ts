@@ -2,56 +2,42 @@
 // precio, las reseñas importadas, la estrategia: strategy_runs y los ángulos elegidos en angle_rankings
 // y angle_briefs, y la página del producto: copy_runs, page_components). Las imágenes generadas todavía no existen: esa
 // lectura devuelve vacío y la pantalla muestra su espera.
-import "server-only";
-import { GALLERY_MIN, VISUAL_WORLD_NAMES, isVisualWorld } from "@/lib/page-images/catalog";
-import { redirect } from "next/navigation";
-import { cache } from "react";
-import { ANGLES } from "@/lib/angles/catalog";
+import { ANGLES, testAngleName } from "@/lib/angles/catalog";
 import { allApproved, chosenAngles, currentBriefs, currentBriefStates, latestRankings, latestRankingStates, type BriefsBySlot, type BriefState, type RankingState } from "@/lib/angles/store";
-import { testAngleName } from "@/lib/angles/catalog";
-import { confirmedDifferentiator, differentiatorState, getDifferentiator } from "@/lib/products/differentiator";
-import { copyProgress } from "@/lib/copy/progress";
-import { avatarStamp, differentiatorStamp, staleReasons } from "@/lib/copy/stale";
-import { getLandingContextStale } from "./product-intelligence";
-import { COPY_PROMPT_VERSION } from "@/lib/copy/schemas";
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
+import { copyProgress } from "@/lib/copy/progress";
+import { COPY_PROMPT_VERSION } from "@/lib/copy/schemas";
+import { avatarStamp, differentiatorStamp, staleReasons } from "@/lib/copy/stale";
 import { activeComponents, activeComponentStates, copyRunInputs, isStale, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
-import { sessionUser } from "@/lib/integrations/session";
-import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
-import { getPricingPlan, pricedProducts, pricingDefaults } from "@/lib/pricing/store";
-import { scheduleHousekeeping } from "@/lib/products/housekeeping";
-import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
-import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
+import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
-import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
-import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
+import { adminClient } from "@/lib/integrations/admin";
 import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
+import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
+import { getMetaConnection } from "@/lib/integrations/meta/connection";
+import { sessionUser } from "@/lib/integrations/session";
+import { GALLERY_MIN, isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
-import { latestStrategies, latestStrategyStates, strategyBlocker, toStrategyView, type StrategyState as StrategyRunState } from "@/lib/pipeline/strategy";
+import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
+import { latestStrategies, latestStrategyStates, toStrategyView, type StrategyState as StrategyRunState } from "@/lib/pipeline/strategy";
+import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
+import { getPricingPlan, pricedProducts, pricingDefaults } from "@/lib/pricing/store";
+import { confirmedDifferentiator, differentiatorState, getDifferentiator } from "@/lib/products/differentiator";
+import { scheduleHousekeeping } from "@/lib/products/housekeeping";
 import { hasProductData } from "@/lib/products/product-data";
-import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
-import { adminClient } from "@/lib/integrations/admin";
-import { getMetaConnection } from "@/lib/integrations/meta/connection";
+import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
+import { baseImage, getProductRow, latestAvatars, latestBrief, latestBriefId, listImageRows, listProductRows, toReferenceImage, toUiStatus, withDisplayUrls, type ImageRow, type ProductRow, } from "@/lib/products/store";
 import { customerReviews, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
-import {
-  baseImage,
-  getProductRow,
-  latestAvatars,
-  latestBrief,
-  latestBriefId,
-  listImageRows,
-  listProductRows,
-  toReferenceImage,
-  toUiStatus,
-  withDisplayUrls,
-  type ImageRow,
-  type ProductRow,
-} from "@/lib/products/store";
-import type { CopyState, CreativesState, VideosState, PageImagesState, Product, ProductPageImages, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductReviews, ProductStrategy, StrategyState, UpsellProduct } from "@/lib/types";
+import type { CopyState, CreativesState, PageImagesState, Product, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductPageImages, ProductReviews, ProductStrategy, StrategyState, UpsellProduct, VideosState } from "@/lib/types";
+import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
 import { messagesState } from "@/lib/whatsapp/store";
+import { redirect } from "next/navigation";
+import { cache } from "react";
+import "server-only";
+import { getLandingContextStale, getSelectedProductStrategy } from "./product-intelligence";
 
 /** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
 const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
@@ -337,7 +323,7 @@ export const getProductReviews = cache(async (id: string): Promise<ProductReview
   };
 });
 
-/** La etapa Estrategia: la corrida del mega prompt y los ángulos elegidos. */
+/** La etapa Estrategia: selección PI canónica y contenidos históricos para consulta. */
 export const getProductStrategy = cache(async (id: string): Promise<ProductStrategy | null> => {
   const found = await withProduct(id, (uid) => strategyState(uid, id));
   return found && { product: found.product, ...found.state };
@@ -345,13 +331,14 @@ export const getProductStrategy = cache(async (id: string): Promise<ProductStrat
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/strategy). */
 export async function strategyState(uid: string, productId: string): Promise<StrategyState> {
-  const [strategies, rankings, blocker] = await Promise.all([latestStrategies(uid, [productId]), latestRankings(uid, [productId]), strategyBlocker(uid, productId)]);
+  const [strategies, rankings, selection] = await Promise.all([latestStrategies(uid, [productId]), latestRankings(uid, [productId]), getSelectedProductStrategy(uid, productId)]);
   const run = strategies.get(productId);
   const ranking = rankings.get(productId);
   const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
   return {
+    selection,
     strategy: run ? toStrategyView(run) : undefined,
-    blocker,
+    blocker: null,
     chosen: ranking
       ? chosenAngles(ranking).flatMap((a) => (briefs[a.slot]?.status === "approved" ? [{ slot: a.slot, title: testAngleName(a), hook: a.hook ?? "" }] : []))
       : [],
@@ -401,7 +388,7 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
   const videos = videoRows.filter((s) => s.final_status === "approved" && s.approved_at && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
   return {
     videos,
-    locked: run?.input.source === "mcp_chat" ? null : !approved ? "angles" : imagesReady(chosen) ? null : "images",
+    locked: pageRows.length || run?.input.source === "mcp_chat" ? null : imagesReady(chosen) ? null : "images",
     fromChat: run?.input.source === "mcp_chat",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
@@ -447,7 +434,7 @@ export async function creativesState(uid: string, productId: string): Promise<Cr
   ]);
   const run = runs.get(productId);
   return {
-    locked: !anglesDone ? "Aprueba los desarrollos de tus ángulos para crear anuncios." : !connected ? noProvider : null,
+    locked: !connected ? noProvider : null,
     connected,
     imageProvider: choice,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
@@ -486,11 +473,11 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
   const planned = briefStampOf((run?.input as { briefs?: unknown } | undefined)?.briefs);
   return {
-    locked: briefStamp ? null : "Aprueba los desarrollos de tus ángulos para preparar las imágenes.",
+    locked: null,
     connected,
     aiConnected,
     imageProvider: choice,
-    cannotGenerate: blocker ?? (!aiConnected ? "Conecta tu cuenta de Anthropic en Ajustes: la IA propone las tomas y revisa cada imagen." : connected ? null : noProvider),
+    cannotGenerate: blocker ?? (connected ? null : noProvider),
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     style: run?.status === "succeeded" && shots.length && isVisualWorld(run.world) && run.world_why ? { name: VISUAL_WORLD_NAMES[run.world], why: run.world_why } : undefined,
     slots: toSlotViews(shots, rows, urls),

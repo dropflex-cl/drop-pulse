@@ -1,10 +1,10 @@
-import "server-only";
 import { requireUser } from "@/lib/integrations/session";
 import { createProductIntelligenceExecutor } from "@/lib/product-intelligence/knowledge-service";
-import { createContextRepository } from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
-import { parseToolInput, parseToolOutput } from "@/lib/product-intelligence/validation";
+import { createContextRepository } from "@/lib/product-intelligence/repository";
 import type { ToolInputs } from "@/lib/product-intelligence/schemas";
+import { parseToolInput, parseToolOutput } from "@/lib/product-intelligence/validation";
+import "server-only";
 
 /** Único loader UI del contexto canónico; sin lecturas directas a tablas PI desde componentes. */
 export async function getProductIntelligenceContext(input: ToolInputs["get_product_context"]) {
@@ -20,4 +20,14 @@ export async function getLandingContextStale(userId: string, productId: string):
     p_product_id: productId }, AbortSignal.timeout(10000));
   if (!result || typeof result !== "object" || !("context_stale" in result) || typeof result.context_stale !== "boolean") throw new Error("No pudimos comprobar el contexto de la página.");
   return result.context_stale;
+}
+
+/** Lee la selección por el mismo servicio autorizado que MCP; no proyecta el análisis en tablas antiguas. */
+export async function getSelectedProductStrategy(userId: string, productId: string) {
+  const result = await createProductIntelligenceExecutor(createContextRepository())(
+    { userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES },
+    { tool: "get_product_strategy", input: { product_id: productId, include: "core" } }, AbortSignal.timeout(10000));
+  const parsed = parseToolOutput("get_product_strategy", result);
+  if (!parsed.ok) throw new Error(parsed.error.message);
+  return parsed.data;
 }

@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 import { Button, Field, Icon, Notice, notify, SegmentedControl, StateChip, Switch } from "@/components/df";
 import { EventLayerPreview } from "@/components/store-preview/event-layer";
 import { StoreFrame } from "@/components/store-preview/store-frame";
@@ -13,7 +11,8 @@ import { tickerItems, type TickerItem } from "@/lib/events/ticker";
 import { ProductApiClientError } from "@/lib/products/client";
 import type { EventActivationView, EventDetail, EventIntensityUi, EventProductView, EventView } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { AI_SETTINGS_HREF } from "./connect-anthropic";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 // Eventos (docs/spec-eventos.md › UX): cómo se ve el evento, activarlo en toda la tienda o por
 // producto, adaptar los textos con IA y publicarlo. Guardar no cambia la tienda: «Publicar en la
@@ -319,34 +318,7 @@ function CopyEditor({ slug, product, onChange }: { slug: string; product: EventP
     }
   };
 
-  if (product.copyLocked) {
-    return (
-      <div className="flex flex-col gap-2">
-        <p className="text-caption text-muted-foreground">{product.copyLocked}</p>
-        {product.copyNeedsAi ? (
-          <div>
-            <Button icon="settings" href={AI_SETTINGS_HREF}>
-              Ir a Ajustes
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-  if (!copy || copy.status === "failed") {
-    return (
-      <div className="flex flex-col gap-2">
-        {copy?.error ? <Notice title="No se escribieron los textos." body={copy.error} /> : null}
-        {error ? <p className="text-caption text-destructive">{error.text}</p> : null}
-        <div>
-          <Button icon="sparkle" loading={busy} onClick={() => run(() => eventsApi.writeCopy(slug, product.id))}>
-            {copy ? "Reintentar" : "Adaptar textos al evento"}
-          </Button>
-        </div>
-        <p className="text-caption text-muted-foreground">La IA adapta la barra, la bajada y la etiqueta a este producto. Mantiene tu ángulo principal y no toca tu página: al terminar el evento vuelve sola.</p>
-      </div>
-    );
-  }
+  if (!copy || copy.status === "failed") return <Notice title="Prepara los textos del evento en el chat" body="La redacción automática se retiró. El evento conserva sus textos por defecto y puedes revisar los textos que ya están guardados." />;
   if (copy.status === "generating") return <StateChip label="Escribiendo los textos" icon="loader" tone="progress" spin />;
 
   const approved = copy.status === "approved";
@@ -372,9 +344,6 @@ function CopyEditor({ slug, product, onChange }: { slug: string; product: EventP
       <div className="flex flex-wrap gap-2">
         <Button loading={busy} icon="check" onClick={() => run(() => eventsApi.approveCopy(slug, product.id, draft ?? undefined), "Textos aprobados")}>
           {approved ? "Guardar cambios" : "Aprobar textos"}
-        </Button>
-        <Button variant="ghost" disabled={busy} onClick={() => run(() => eventsApi.writeCopy(slug, product.id))}>
-          Proponer otros
         </Button>
         <Button variant="ghost" disabled={busy} onClick={() => run(() => eventsApi.discardCopy(slug, product.id), "Vuelven los textos del evento")}>
           Descartar

@@ -1,17 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Field, Icon, Notice, SegmentedControl, StageMeter, TopBar, notify } from "@/components/df";
-import { AiCostButton, useStepCost } from "@/components/shell/ai-cost-provider";
+import { Button, Field, Notice, SegmentedControl, StageMeter, TopBar, notify } from "@/components/df";
+import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { money } from "@/lib/format";
-import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { ProductMessages } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { EMPTY_ORDER, MESSAGE_GROUPS, MESSAGES, TIP_MESSAGE, areaLabel, missingPolicies, orderTotal, renderMessage, type MessageTemplate, type OrderFields, type RenderedMessage } from "@/lib/whatsapp/messages";
-import { AI_SETTINGS_HREF } from "./connect-anthropic";
+import { EMPTY_ORDER, MESSAGES, MESSAGE_GROUPS, TIP_MESSAGE, areaLabel, missingPolicies, orderTotal, renderMessage, type MessageTemplate, type OrderFields, type RenderedMessage } from "@/lib/whatsapp/messages";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Etapa WhatsApp: los mensajes para confirmar y seguir los pedidos, con los datos del producto y de
 // Ajustes › Envíos y políticas. Los datos del cliente se escriben arriba (no se guardan) y cada mensaje
@@ -105,15 +102,11 @@ function MessageCard({ template, message, onCopy, copied, children }: { template
 
 export function MessagesScreen({ data }: { data: ProductMessages }) {
   const { product } = data;
-  const router = useRouter();
   const [order, setOrder] = useState<OrderFields>(EMPTY_ORDER);
-  const [tip, setTip] = useState(data.tip);
-  const [writing, setWriting] = useState(false);
-  const [tipError, setTipError] = useState<string | null>(null);
+  const tip = data.tip;
   const [copied, setCopied] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const tipCost = useStepCost("usage_tip");
 
   useEffect(() => () => clearTimeout(copiedTimer.current), []);
 
@@ -139,49 +132,9 @@ export function MessagesScreen({ data }: { data: ProductMessages }) {
     notify(message.missing.length ? `Mensaje copiado. Completa en WhatsApp: ${listText(message.missing)}.` : "Mensaje copiado. Pégalo en el chat de tu cliente.");
   }
 
-  async function writeTip() {
-    setWriting(true);
-    setTipError(null);
-    try {
-      const res = await productsApi.writeUsageTip(product.id);
-      setTip(res.tip);
-      notify(tip ? "Consejo nuevo listo en el mensaje «Entregado»." : "Consejo listo en el mensaje «Entregado».");
-      // El costo de IA del producto (barra superior y ruta) sale del servidor.
-      router.refresh();
-    } catch (e) {
-      setTipError(e instanceof ProductApiClientError ? e.message : "No pudimos escribir el consejo. Intenta de nuevo en un momento.");
-    } finally {
-      setWriting(false);
-    }
-  }
-
-  // Sin la clave de Anthropic, el consejo se pide en Ajustes (como Creativos sin Higgsfield); los mensajes siguen igual.
-  const tipBlocked = data.tipBlocked ?? (product.aiConnected === false ? "Conecta tu cuenta de Anthropic en Ajustes para que la IA escriba el consejo." : null);
   const tipControls = (
     <div className="flex flex-col gap-2 border-t pt-3">
-      {tip ? (
-        <p className="flex items-start gap-1.5 text-caption text-muted-foreground">
-          <Icon name="sparkle" size="sm" className="mt-px flex-none" />
-          <span>Consejo escrito por la IA · fuente: {tip.basis}</span>
-        </p>
-      ) : (
-        <p className="text-caption text-muted-foreground">{tipBlocked ?? "La IA escribe un consejo de uso con la información del producto y lo suma a este mensaje."}</p>
-      )}
-      {!data.tipBlocked && product.aiConnected === false ? (
-        <Button size="sm" icon="settings" href={AI_SETTINGS_HREF} className="self-start">
-          Ir a Ajustes
-        </Button>
-      ) : tipBlocked ? null : (
-        <Button size="sm" icon={tip ? "refresh" : "sparkle"} loading={writing} onClick={writeTip} className="self-start">
-          {tip ? "Otro consejo" : "Escribir consejo con IA"}
-          {tipCost ? <span className="font-normal text-muted-foreground">{tipCost}</span> : null}
-        </Button>
-      )}
-      {tipError ? (
-        <p role="alert" className="text-caption text-destructive">
-          {tipError}
-        </p>
-      ) : null}
+      <p className="text-caption text-muted-foreground">{tip ? `Consejo guardado · fuente: ${tip.basis}` : "Prepara el consejo de uso en el chat con información comprobada del producto. La redacción automática se retiró."}</p>
     </div>
   );
 

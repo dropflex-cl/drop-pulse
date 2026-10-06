@@ -1,3 +1,13 @@
+# Prioridad actual: completar cobertura de ingestión MCP
+
+Retirados físicamente los writers pagados de texto y las acciones UI, con APIs antiguas autenticadas 410. Sin migraciones ni eliminación de contenido. [Inventario y límites](legacy-text-retirement.md), [ADR 015](adrs/015-retire-paid-text-writers.md).
+
+Pendiente: get/save para conceptos estáticos/dirección de arte y conversaciones creativas, planes de galería, textos de eventos y consejos de WhatsApp. Reutilizar tablas/render/revisión existentes; agregar snapshots/CAS/receipts/audit y pruebas de aislamiento. Luego adaptar los datos base y el navegador de etapas al estado PI canónico sin proyectar análisis legacy y completar el piloto ChatGPT/Shopify/Meta. No reintroducir redacción pagada para cubrir estos huecos.
+
+Los siguientes apartados son registros de entregas anteriores.
+
+---
+
 > UGC desde chat implementado: ingestión, revisión, cola durable, renders, conciliación, montaje y vínculos Shopify/Meta. [Estado y pasos de despliegue](ugc-chat-mcp.md). Los paquetes históricos siguientes no reflejan por sí solos el avance actual.
 
 > Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.

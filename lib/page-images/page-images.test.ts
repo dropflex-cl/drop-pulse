@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AUTO_SHOTS, GALLERY_MIN, GALLERY_SHOTS, autoShotIds, benefitSlot, slotKind } from "./catalog";
 import { pageRenderRequest } from "./render";
-import { ANGLES, SALES_ANGLES } from "@/lib/angles/catalog";
-import { DEFAULT_MARKET } from "@/lib/market";
-import { AVATAR } from "@/app/dev/screens/base/fixture";
-import type { ProductBrief } from "@/lib/ai/schemas";
-import { angleForPrompt } from "@/lib/angles/approved";
-import type { AngleBriefPayload } from "@/lib/angles/schemas";
-import { pageImagesSystem, pageImagesUser, type PageImagesContext } from "./prompts";
 import { benefitAngles, normalizePlan, pageQaVerdict, planProblems, type PagePlan, type PlanShot, type StoredShot } from "./schemas";
 
 const art = { palette: "saturated blush pink scene, deep berry text", typography: "heavy rounded sans headline", mood: "fresh, bold, premium" };
@@ -198,36 +191,6 @@ describe("badges de 2 líneas", () => {
   });
 });
 
-describe("contexto del director (v5)", () => {
-  const brief = { product_name: "Lima eléctrica", what_it_does: "Lima los callos.", key_facts: [{ label: "Rodillo", value: "Cuarzo" }], alternatives_already_tried: ["piedra pómez"], forbidden_claims: ["No decir que cura hongos"] } as unknown as ProductBrief;
-  const payload = { core_message: "Talones suaves en casa", visual_concepts: ["UGC: el pie sobre la toalla"], static_ad_concepts: ["Adiós piedra | lima y piedra | Cambia"], compliance_flags: [] } as unknown as AngleBriefPayload;
-  const ctx: PageImagesContext = {
-    brief,
-    avatar: AVATAR,
-    angles: [angleForPrompt({ slot: 1, frame: "common_enemy", title: "Adiós piedra pómez", pain_or_desire: "", segment: "", promise: "", trigger_moment: "Antes de ponerse sandalias", competition: "", hook: "La piedra pómez no sirve." }, payload)],
-    differentiator: null,
-  };
-
-  it("es texto corto: sin la ficha ni el cliente ideal en JSON", () => {
-    const u = pageImagesUser(ctx);
-    expect(u).not.toMatch(/"(what_it_does|voice_of_customer|trigger_moments|summary|forbidden_claims)"\s*:/);
-    expect(u).not.toMatch(/^\s*[{[]/m);
-    expect(u).toContain("PRODUCTO: Lima eléctrica");
-    expect(u).toContain("Lo que el comprador usa hoy y le falla: piedra pómez");
-    expect(u).toContain("Promesas que no se pueden hacer: No decir que cura hongos");
-    expect(u).toContain(`QUIÉN COMPRA, SEGÚN EL COMERCIANTE: ${AVATAR.summary}`);
-    expect(u).not.toContain(AVATAR.why_buy);
-    expect(u).toContain("Ángulo 1: «Adiós piedra pómez»");
-    expect(u).toContain("- Forma: Enemigo común");
-    expect(u).toContain("  · Adiós piedra | lima y piedra | Cambia");
-    expect(u).toMatch(/Elige el visual_world y entrega 3 benefits/);
-  });
-
-  it("el system no le enseña a escribir «\\n» literal", () => {
-    expect(pageImagesSystem(DEFAULT_MARKET)).not.toContain("\\n");
-  });
-});
-
 describe("pageRenderRequest", () => {
   it("la galería va en 1:1, directa, sin reescritura y con los textos ubicados", () => {
     const req = pageRenderRequest("gallery", stored(shot()), "Spanish");
@@ -296,18 +259,5 @@ describe("pageQaVerdict", () => {
       "Las unidades del producto no son iguales entre sí.",
       "Manos o pies deformes.",
     ]);
-  });
-});
-
-describe("pageImagesSystem", () => {
-  const system = pageImagesSystem(DEFAULT_MARKET);
-
-  it("ofrece los mundos visuales en vez de una receta fija", () => {
-    for (const w of ["studio_color", "real_home", "clean_explainer", "native_phone"]) expect(system).toContain(`- ${w}:`);
-    expect(system).not.toContain("paleta monocromática saturada que sale del color del producto");
-  });
-
-  it("da el formato del beneficio para cada forma de ángulo", () => {
-    for (const k of SALES_ANGLES) expect(system).toContain(`- ${ANGLES[k].name}: `);
   });
 });

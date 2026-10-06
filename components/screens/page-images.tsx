@@ -1,20 +1,19 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 import { Button, EmptyState, Icon, IconButton, ImageUploader, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo, type UploadItem, type UploaderMode } from "@/components/df";
-import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
+import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { money } from "@/lib/format";
-import { IMAGE_COST_BY_PROVIDER, costSource, type ImageProviderChoice } from "@/lib/image-provider";
-import { AUTO_SHOTS, GALLERY_MAX, GALLERY_MIN, GALLERY_SHOTS, GIF_MAX } from "@/lib/page-images/catalog";
+import { IMAGE_COST_BY_PROVIDER, type ImageProviderChoice } from "@/lib/image-provider";
+import { GALLERY_MAX, GALLERY_MIN, GIF_MAX } from "@/lib/page-images/catalog";
 import { ProductApiClientError, productsApi, uploadPageImage } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { PageImageOptionView, PageImageSlotView, PageImagesState, ProductPageImages, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { AI_SETTINGS_HREF } from "./connect-anthropic";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ImageProviderPicker } from "./image-provider-picker";
 
 // Etapa Imágenes (docs/spec-imagenes.md, design-system imagenes.md): las imágenes de la página del
@@ -106,19 +105,8 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
     }
   }
 
-  // «Continuar» dispara la escritura de la página (design-system/textos.md › start): la página usa
-  // estas imágenes. Si ya estaba escrita, solo lleva a ella.
-  const continueToCopy = async () => {
-    setBusy("copy");
-    try {
-      await productsApi.writeCopy(product.id);
-    } catch {
-      // Si no se pudo empezar (tope diario, conexión), la página lo dice y ofrece empezar desde ahí.
-    }
-    router.push(productHref(product.id, "textos"));
-  };
+  const continueToCopy = () => router.push(productHref(product.id, "textos"));
 
-  const propose = () => act("propose", () => productsApi.proposePageImages(product.id), "No pudimos empezar. Intenta de nuevo.");
   const fill = () => act("fill", () => productsApi.fillPageImages(product.id), "No pudimos generar. Intenta de nuevo.", `Generando ${empty.length} ${empty.length === 1 ? "imagen" : "imágenes"}`);
   const fillBenefits = () =>
     act("benefits", () => productsApi.fillPageImages(product.id, "benefits"), "No pudimos generar los beneficios. Intenta de nuevo.", `Generando ${benefitsPending.length} ${benefitsPending.length === 1 ? "beneficio" : "beneficios"}`);
@@ -153,7 +141,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
             action={
               state.aiConnected === false || !state.connected ? (
                 // Falta Anthropic (la IA que propone y revisa) o un proveedor de imágenes: cada uno en su sección.
-                <Button size="sm" variant="secondary" icon="settings" href={state.aiConnected === false ? AI_SETTINGS_HREF : "/settings#creativos"}>
+                <Button size="sm" variant="secondary" icon="settings" href={state.aiConnected === false ? "/settings#ia" : "/settings#creativos"}>
                   Ir a Ajustes
                 </Button>
               ) : undefined
@@ -162,31 +150,14 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
         ) : null}
         {run?.status === "failed" ? <Notice tone="warning" icon="alert" title="No pudimos armar la galería." body={run.error ?? "Toca Reintentar."} /> : null}
         {proposing ? <Notice tone="info" icon="sparkle" title="La IA está armando tu galería." body="Lee tu foto base, tus ángulos y tu página. En un minuto empiezan a aparecer las imágenes; puedes salir: te avisamos." /> : null}
-        {state.stale && !proposing ? <Notice tone="warning" icon="refresh" title="Cambiaron los beneficios de tu página." body="Propón otra galería para que cada beneficio tenga su imagen." /> : null}
+        {state.stale && !proposing ? <Notice tone="warning" icon="refresh" title="Cambiaron los beneficios de tu página." body="Revisa el plan de imágenes en el chat antes de generar más tomas." /> : null}
         {state.style && hasShots && !proposing ? (
           <div className="rounded-md bg-muted p-3">
             <div className="text-micro text-muted-foreground">{`Estilo de la galería: ${state.style.name}`}</div>
             <p className="m-0 mt-0.5 text-body">{state.style.why}</p>
           </div>
         ) : null}
-        {!hasShots && !proposing && !state.cannotGenerate ? (
-          <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-soft text-primary">
-                <Icon name="sparkle" />
-              </span>
-              <div>
-                <h2 className="text-row font-semibold">{run?.status === "failed" ? "Reintenta la galería" : "La IA arma la galería de tu página"}</h2>
-                <p className="mt-0.5 text-label font-normal text-muted-foreground">
-                  {`Propone la portada, ${GALLERY_SHOTS} tomas de galería y un beneficio por cada ángulo, con un estilo elegido para quien compra. Genera la portada y ${GALLERY_MIN} de galería, lo que necesita tu página: ${AUTO_SHOTS} imágenes desde tu foto base, cerca de ${cost(AUTO_SHOTS)}${costSource(state.imageProvider.value)}. Las demás las generas si las quieres.`}
-                </p>
-              </div>
-            </div>
-            <Button variant="primary" icon="sparkle" loading={busy === "propose"} onClick={propose} className="self-start max-lg:w-full">
-              {run?.status === "failed" ? "Reintentar" : `Generar la galería · ${cost(AUTO_SHOTS)}`}
-            </Button>
-          </div>
-        ) : null}
+        {!hasShots ? <Notice title="Prepara las tomas en el chat" body="El director automático se retiró. Puedes subir imágenes, elegir fotos de Información base y generar las tomas que ya están guardadas." /> : null}
       </>
     );
     const benefitsAction =
@@ -243,11 +214,6 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
         }
         className="lg:px-8"
       >
-        {hasShots ? (
-          <Button size="lg" icon="sparkle" loading={busy === "propose"} disabled={proposing || !!state.cannotGenerate} onClick={propose} className={actionClass}>
-            {desktop ? `Proponer otra galería · ${cost(AUTO_SHOTS)}` : "Otra galería"}
-          </Button>
-        ) : null}
         {empty.length && !state.cannotGenerate ? (
           <Button variant="primary" size="lg" icon="sparkle" loading={busy === "fill"} disabled={!!busy || proposing} onClick={fill} className={actionClass}>
             {`Generar los vacíos · ${cost(empty.length)}`}

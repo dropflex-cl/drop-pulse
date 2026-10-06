@@ -1,19 +1,9 @@
-// Textos del evento por producto (docs/spec-eventos.md › Copy de evento): una llamada chica que
-// adapta al evento la barra de aviso, la bajada y la etiqueta del precio, a partir de lo que YA
-// aprobó el comerciante. Avatar, ángulos y ficha son solo de lectura: el texto del evento mantiene
-// el diferenciador del producto y cambia el enfoque; nunca crea ángulos ni cambia a quién le habla la página.
-// Se guarda aparte (event_copy): el copy de page_components nunca se toca. Puro.
-import * as z from "zod/v4";
-import { marketBlock } from "@/lib/ai/prompts";
-import { FORBIDDEN, INTERNAL, amountAllowed, amountsIn } from "@/lib/copy/schemas";
-import type { Market } from "@/lib/market";
-import type { PricingPlan } from "@/lib/pricing/plan";
-import { pricingBlock } from "@/lib/pricing/prompt";
-import type { PackLabel } from "@/lib/ai/schemas";
-import { ANNOUNCEMENT_MAX, BADGE_MAX, type EventTheme } from "./catalog";
+// Contrato y validadores de textos de eventos conservados. Sin redacción automática.
 
-/** Bump cuando cambie el prompt o el esquema. */
-export const EVENT_COPY_PROMPT_VERSION = 1;
+import { FORBIDDEN, INTERNAL, amountAllowed, amountsIn } from "@/lib/copy/schemas";
+import * as z from "zod/v4";
+import { ANNOUNCEMENT_MAX, BADGE_MAX } from "./catalog";
+
 export const SUBTITLE_MIN = 40;
 export const SUBTITLE_MAX = 160;
 
@@ -37,58 +27,6 @@ export const EVENT_COPY_FIELDS: Record<keyof EventCopy, { label: string; max: nu
   subtitle: { label: "Bajada bajo el título", max: SUBTITLE_MAX },
   badge_label: { label: "Etiqueta del precio", max: BADGE_MAX },
 };
-
-export interface EventCopyContext {
-  event: { name: string; startsLabel: string; endsLabel: string; theme: EventTheme };
-  /** La ficha aprobada (lib/copy/listing.ts). */
-  listing: { title: string; short_name: string; short_description: string; offer_line: string };
-  avatarSummary: string;
-  /** El diferenciador del producto (lo común a todos los ángulos): se mantiene, solo cambia el enfoque. */
-  differentiator: { versus: string; claim: string } | null;
-  /** Los ángulos de venta aprobados (nombres), para no contradecirlos. */
-  angles: string[];
-  pricing: PricingPlan;
-  labels?: PackLabel[];
-}
-
-export function eventCopySystem(market: Market): string {
-  return [
-    "Adaptas los textos de una página de producto a un evento de compras (Cyber, Black Friday, Navidad…) para una tienda de dropshipping con pago contra entrega. La página ya está escrita y aprobada: tú solo escribes tres textos que se ven mientras dura el evento y después desaparecen.",
-    "",
-    marketBlock(market),
-    "",
-    "REGLAS QUE NO SE NEGOCIAN",
-    "- No cambias a quién le habla la página ni el ángulo: mantienes el DIFERENCIADOR y el resultado de la bajada aprobada, y solo cambias el enfoque hacia el evento (ej.: «ahorra tiempo en la cocina» → «el regalo que le ahorra tiempo»).",
-    "- Nada inventado: ni descuentos, ni porcentajes, ni cupos, ni «últimas unidades», ni plazos de entrega. La tienda muestra el % de ahorro real y la cuenta regresiva hasta la fecha real del evento.",
-    "- Montos: solo los de PRECIO Y OFERTA, tal cual, y solo si hacen falta. Nunca un porcentaje.",
-    "- Fechas: solo las del EVENTO que te damos.",
-    "- Salud y bienestar: «ayuda a», «diseñado para». Nunca «cura», resultados garantizados ni enfermedades.",
-    "- Escribe para el comprador: nunca nombres «la ficha», los ángulos, «precio y oferta» ni el cliente ideal. Sin marcas de terceros. Texto plano, sin emojis.",
-  ].join("\n");
-}
-
-export function eventCopyUser(c: EventCopyContext, retry: string[] = []): string {
-  return [
-    `EVENTO: ${c.event.name}. En la tienda desde ${c.event.startsLabel} hasta ${c.event.endsLabel}.`,
-    `Concepto: ${c.event.theme.copy_concept}`,
-    `Textos por defecto del evento (genéricos, mejóralos para este producto): barra «${c.event.theme.announcement}», etiqueta «${c.event.theme.badge_label}».`,
-    "",
-    "PÁGINA APROBADA (no la cambias; tus textos tienen que calzar con ella)",
-    `- Título: ${c.listing.title}`,
-    `- Nombre corto: ${c.listing.short_name}`,
-    `- Bajada: ${c.listing.short_description}`,
-    `- Oferta: ${c.listing.offer_line}`,
-    "",
-    `CLIENTE IDEAL (solo lectura): ${c.avatarSummary}`,
-    `DIFERENCIADOR (solo lectura, se mantiene): ${c.differentiator ? `frente a ${c.differentiator.versus}, ${c.differentiator.claim}` : "el que dicen el título y la bajada aprobados"}`,
-    `Ángulos de venta que se testean (no los contradigas): ${c.angles.join(" · ") || "—"}`,
-    "",
-    pricingBlock(c.pricing, c.labels),
-    "",
-    ...(retry.length ? [`Tu respuesta anterior no cumple las reglas: ${retry.join(" ")} Corrige eso y responde de nuevo completa.`, ""] : []),
-    "Escribe los tres textos del evento.",
-  ].join("\n");
-}
 
 /** Lo que el esquema no puede ver: montos que no existen, porcentajes, palabras internas, promesas. */
 export function eventCopyProblems(copy: EventCopy, facts: { currency: string; amounts: number[] }): string[] {

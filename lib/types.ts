@@ -1,21 +1,21 @@
 // Tipos de dominio de DropFlex. Hoy los llenan los mocks de lib/mock/; mañana, Supabase
 // (ver docs/esquema-supabase.md). La UI solo los recibe a través de lib/data/*.
 
-import type { ContentStatus } from "@/components/df/status-badge";
-import type { MeterStage } from "@/components/df/stage-meter";
-import type { StageState } from "@/components/df/stage-list";
+import type { AttentionKind } from "@/components/df/attention-item";
 import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
-import type { AttentionKind } from "@/components/df/attention-item";
+import type { StageState } from "@/components/df/stage-list";
+import type { MeterStage } from "@/components/df/stage-meter";
+import type { ContentStatus } from "@/components/df/status-badge";
 import type { PackLabel } from "@/lib/ai/schemas";
+import type { AngleSlot } from "@/lib/angles/catalog";
 import type { ImageProvider, ImageProviderChoice } from "@/lib/image-provider";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
 import type { StoreFacts } from "@/lib/store-preview/facts";
-import type { AngleSlot } from "@/lib/angles/catalog";
 
-export type { ContentStatus, Verdict };
-export type { ToolName as ProductIntelligenceToolName, ToolInputs as ProductIntelligenceToolInputs, ToolOutputs as ProductIntelligenceToolOutputs, GenerationContext, FinancialSnapshot } from "@/lib/product-intelligence/schemas";
-export type { Principal as ProductIntelligencePrincipal, PiScope as ProductIntelligenceScope } from "@/lib/product-intelligence/policy";
+export type { Principal as ProductIntelligencePrincipal,PiScope as ProductIntelligenceScope } from "@/lib/product-intelligence/policy";
+export type { FinancialSnapshot,GenerationContext,ToolInputs as ProductIntelligenceToolInputs,ToolName as ProductIntelligenceToolName,ToolOutputs as ProductIntelligenceToolOutputs } from "@/lib/product-intelligence/schemas";
+export type { ContentStatus,Verdict };
 
 /** Etapas de la ruta de un producto, en orden. */
 export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "creativos" | "anuncios" | "mensajes";
@@ -61,8 +61,8 @@ export interface Product {
   /** Fase de la etapa Textos, la página del producto (lib/products/stages.ts › copyPhase). */
   copyPhase?: "locked" | "new" | "writing" | "failed" | "review" | "done";
   /**
-   * La clave de Anthropic del comerciante está conectada: sin ella, cada pantalla pide conectarla
-   * (ConnectAnthropic) donde arrancaría la IA, como Creativos sin Higgsfield.
+   * La clave de Anthropic del comerciante está conectada para la revisión opcional de imágenes.
+   * Los textos del chat y el render sin QA no requieren esta conexión.
    */
   aiConnected?: boolean;
   supplierCost: number;
@@ -115,8 +115,10 @@ export interface StrategyView {
 
 /** Lo que necesita la etapa Estrategia. */
 export interface StrategyState {
+  /** Selección canónica del chat; no se interpreta como resultado validado. */
+  selection?: import("@/lib/product-intelligence/schemas").Strategy | null;
   strategy?: StrategyView;
-  /** Lo que falta para generarla (datos del producto o precio); null si se puede. */
+  /** Compatibilidad UI: los requisitos de la selección se validan en MCP, sin gates legacy. */
   blocker: string | null;
   /** Los ángulos que leen los pasos siguientes (de esta estrategia o de una anterior). */
   chosen: { slot: number; title: string; hook: string }[];
@@ -293,11 +295,11 @@ export interface ProductReviews {
   lastImport?: ReviewImport;
 }
 
-/** La etapa WhatsApp: lo que completa los mensajes de los pedidos y el consejo de uso de la IA. */
+/** La etapa WhatsApp: datos de los mensajes y el consejo de uso conservado. */
 export interface MessagesState {
   facts: import("./whatsapp/messages").MessageFacts;
   tip: { text: string; basis: string; createdAt: string } | null;
-  /** Por qué no se puede escribir el consejo con IA (falta la ficha o el precio); null = se puede. */
+  /** Compatibilidad de lectura; el writer automático del consejo está retirado. */
   tipBlocked: string | null;
 }
 
@@ -728,7 +730,7 @@ export interface PageImagesState {
   locked: string | null;
   /** Hay un proveedor de imágenes: sin él se puede elegir y subir, pero no generar. */
   connected: boolean;
-  /** La clave de Anthropic está conectada (el director de galería y el QA): sin ella, tampoco se genera. */
+  /** La clave de Anthropic está conectada para el QA visual opcional. */
   aiConnected?: boolean;
   /** Con qué se genera y qué más se puede elegir (la elección queda guardada). */
   imageProvider: ImageProviderChoice;

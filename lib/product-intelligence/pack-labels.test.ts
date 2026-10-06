@@ -1,14 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
-import { randomUUID } from "node:crypto";
-import { buildPricingPlan, CLP_DEFAULTS } from "@/lib/pricing/plan";
 import { packLabelsStale } from "@/lib/pricing/labels";
+import { buildPricingPlan, CLP_DEFAULTS } from "@/lib/pricing/plan";
+import { randomUUID } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
 import { pricingPersistence } from "./context";
 import { createPackLabelsExecutor, decidePackLabels } from "./pack-labels-service";
 import { validateChatPackLabels } from "./pack-labels-validation";
-import { parseToolInput, parseToolOutput } from "./validation";
 import { PI_SCOPES, type Principal } from "./policy";
-import { regeneratePackLabels } from "@/lib/pipeline/pack-labels";
 import { contextFixture } from "./test-fixtures";
+import { parseToolInput, parseToolOutput } from "./validation";
 
 const id = randomUUID(), owner: Principal = { userId: id, actorId: id, actorKind: "merchant", scopes: PI_SCOPES };
 const plan = buildPricingPlan({ ...CLP_DEFAULTS, unitCost: 4000, salePrice: 29990, compareAtPrice: 39990, extraUnitDiscount: 50 }, "CLP")!;
@@ -79,9 +78,6 @@ describe("PI · etiquetas de packs escritas en chat", () => {
     expect(repository.commitPackLabels).toHaveBeenCalledWith(expect.objectContaining({ p_action: "approve", p_etag: "a".repeat(64), p_fact_ids: [f.id] }), expect.any(AbortSignal));
     repository.loadPackLabels.mockResolvedValueOnce({ ...raw(), current, snapshot: { pricing: pricingPersistence(plan), knowledge: { graph: { Fact: [{ ...f, usage_status: "prohibited" }] } } } });
     await expect(decidePackLabels(repository, owner, id, { action: "approve", expected_etag: "a".repeat(64) }, AbortSignal.timeout(1000))).rejects.toMatchObject({ code: "INVALID_REFERENCE" });
-  });
-  it("la acción anterior de generar etiquetas está retirada antes de cualquier llamada de IA", async () => {
-    await expect(regeneratePackLabels(id, id)).rejects.toMatchObject({ status: 409 });
   });
   it("stale cubre cambio de moneda, packs removidos y evidencia revocada", () => {
     const row = { prices: plan.packs.map(({ units, price }) => ({ units, price })), provenance: { currency: "CLP" } };

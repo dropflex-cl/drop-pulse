@@ -1,10 +1,9 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
 import type { PackLabel } from "@/lib/ai/schemas";
-import type { PricingForm } from "@/lib/pricing/plan";
 import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image-provider";
+import type { PricingForm } from "@/lib/pricing/plan";
 import type { ProductData } from "@/lib/products/product-data";
-import type { VideoFormat } from "@/lib/video/catalog";
-import type { MessagesState, PublishState, CopyState, ImagePick, CreativesState, VideosState, CustomerReview, PackLabelsProposal, PageImagesState, ReferenceImage, ReviewImport, SavedPricingDto, StrategyState } from "@/lib/types";
+import type { CopyState, CreativesState, CustomerReview, ImagePick, PackLabelsProposal, PageImagesState, PublishState, ReferenceImage, ReviewImport, SavedPricingDto, StrategyState, VideosState } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -104,16 +103,13 @@ export const productsApi = {
   publishState: (id: string) => call<PublishState>(`/${id}/publish`),
   publish: (id: string) => send<PublishState>("POST", `/${id}/publish`),
   creatives: (id: string) => call<CreativesState>(`/${id}/creatives`),
-  proposeCreatives: (id: string) => send<CreativesState>("POST", `/${id}/creatives`),
   editConcept: (id: string, conceptId: string, texts: { role: string; text: string }[]) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { texts }),
   editChat: (id: string, conceptId: string, chat: { contact_name: string; messages: { text: string }[] }) => send<CreativesState>("PATCH", `/${id}/creatives/concepts/${conceptId}`, { chat }),
-  createChat: (id: string, angle: number) => send<CreativesState>("POST", `/${id}/creatives/chat`, { angle, acknowledged: true }),
   renderConcept: (id: string, conceptId: string, ratio: "1:1" | "9:16", provider?: ImageProvider) =>
     send<CreativesState>("POST", `/${id}/creatives/concepts/${conceptId}/render`, provider ? { ratio, provider } : { ratio }),
   decideCreative: (id: string, assetId: string, action: "approve" | "reject" | "reopen" | "recover") => send<CreativesState>("PATCH", `/${id}/creatives/assets/${assetId}`, { action }),
   // Pestaña Videos (docs/spec-video-ugc.md): cada acción devuelve el estado completo de la pestaña.
   videos: (id: string) => call<VideosState>(`/${id}/videos`),
-  writeScript: (id: string, slot: number, format: VideoFormat = "ugc") => send<VideosState>("POST", `/${id}/videos`, { slot, format }),
   scriptAction: (id: string, scriptId: string, action: "approve" | "unapprove" | "keyframes" | "approve_keyframes" | "clips", expectedEtag?: string) => send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action, expected_artifact_etag: expectedEtag, idempotency_key: crypto.randomUUID() }),
   editScript: (id: string, scriptId: string, edit: { a_roll: { key: string; line: string; delivery: string }[]; text_beats: { text: string }[]; end_card: { title: string; subtitle: string; cta: string } }, expectedEtag?: string) =>
     send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action: "edit", edit, expected_artifact_etag: expectedEtag }),
@@ -122,7 +118,6 @@ export const productsApi = {
   decideFinalVideo: (id: string, scriptId: string, action: "approve" | "reject" | "reopen", expectedEtag?: string) => send<VideosState>("PATCH", `/${id}/videos/${scriptId}/final`, { action, expected_artifact_etag: expectedEtag }),
   // Etapa Imágenes (la página del producto): cada acción devuelve el estado completo de la etapa.
   pageImages: (id: string) => call<PageImagesState>(`/${id}/page-images`),
-  proposePageImages: (id: string) => send<PageImagesState>("POST", `/${id}/page-images`),
   /** «Generar los vacíos» (lo que va solo) o «Generar los beneficios» (`benefits`). */
   fillPageImages: (id: string, scope?: "required" | "benefits") => send<PageImagesState>("POST", `/${id}/page-images/fill`, scope ? { scope } : undefined),
   renderShot: (id: string, shotId: string) => send<PageImagesState>("POST", `/${id}/page-images/shots/${shotId}`),
@@ -132,8 +127,6 @@ export const productsApi = {
   orderGallery: (id: string, ids: string[], slot?: string) => send<PageImagesState>("PUT", `/${id}/page-images/order`, { ids, slot }),
   decidePackLabels: (id: string, action: "approve" | "reopen", expectedEtag?: string) => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action, expected_etag: expectedEtag }),
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean, expectedEtag?: string) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve, expected_etag: expectedEtag }),
-  regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
-  writeUsageTip: (id: string) => send<{ tip: MessagesState["tip"] }>("POST", `/${id}/whatsapp/tip`),
   savePricing: (id: string, form: PricingForm, expectedPricingStamp: string | null) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, { ...form, expectedPricingStamp }),
   sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
   saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),
@@ -141,8 +134,7 @@ export const productsApi = {
   setExcluded: (id: string, imageId: string, excluded: boolean) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { excluded }),
   setBase: (id: string, imageId: string) => send<{ ok: true }>("PATCH", `/${id}/images/${imageId}`, { base: true }),
   setImageQa: (id: string, enabled: boolean) => send<{ enabled: boolean }>("PUT", `/${id}/image-qa`, { enabled }),
-  /** «Identificar con IA»: la IA escribe el nombre y la descripción (~20 a 60 s). */
-  identifyProduct: (id: string) => send<{ productData: ProductData }>("POST", `/${id}/product-data`),
+  /** Edición manual del nombre y la descripción; no llama a un proveedor. */
   saveProductData: (id: string, data: { name: string; description: string }) => send<{ productData: ProductData }>("PUT", `/${id}/product-data`, data),
   importReviews: (id: string, input: { url: string; minRating: 1 | 4 | 5; photosOnly: boolean; translate: boolean }) =>
     send<{ job: ReviewImport }>("POST", `/${id}/reviews/import`, input),
@@ -152,12 +144,8 @@ export const productsApi = {
   editReview: (id: string, reviewId: string, text: string) => send<{ review: CustomerReview }>("PUT", `/${id}/reviews/${reviewId}`, { text }),
   // Etapa Estrategia: cada acción devuelve el estado completo de la etapa.
   strategy: (id: string) => call<StrategyState>(`/${id}/strategy`),
-  generateStrategy: (id: string) => send<StrategyState>("POST", `/${id}/strategy`),
-  /** Los índices (0 a 4) de los TOP 5 ángulos elegidos: 2 o 3. */
-  confirmStrategy: (id: string, indexes: number[]) => send<StrategyState>("POST", `/${id}/strategy/confirm`, { indexes }),
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
-  writeCopy: (id: string, redo = false, mode?: "all" | { component: string }) => send<CopyState>("POST", `/${id}/copy`, { redo, mode }),
   restoreComponent: (id: string, component: string) => send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, { restore: true }),
   updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean; expected_id?: string; expected_updated_at?: string }) =>
     send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, patch),

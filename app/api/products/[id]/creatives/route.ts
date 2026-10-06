@@ -1,14 +1,13 @@
-import { NextResponse, after } from "next/server";
 import { expireStaleCreatives } from "@/lib/creatives/store";
 import { creativesState } from "@/lib/data/products";
-import { runCreatives, startCreatives, syncCreatives } from "@/lib/pipeline/creatives";
+import { syncCreatives } from "@/lib/pipeline/creatives";
 import { errorResponse, ownedProduct } from "@/lib/products/http";
+import { retiredProductWriter } from "@/lib/products/retired-writer";
+import { NextResponse, after } from "next/server";
 
-// Etapa Creativos (docs/spec-creativos.md): los conceptos del generador de estáticos. La propuesta
-// sigue después de responder (after): una llamada a Claude con imágenes, ~40–90 s.
 export const maxDuration = 300;
 
-/** Sondeo de la pantalla: conceptos y piezas. De paso, termina las piezas que quedaron esperando. */
+/** Lectura del contenido guardado y conciliación de renders existentes. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -21,15 +20,5 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-/** «Proponer anuncios» y «Reintentar»: crea la corrida del generador y la ejecuta en segundo plano. */
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    const { userId } = await ownedProduct(id);
-    const { run, created } = await startCreatives(userId, id);
-    if (created) after(() => runCreatives(run.id));
-    return NextResponse.json(await creativesState(userId, id), { status: created ? 202 : 200 });
-  } catch (e) {
-    return errorResponse(e, "No pudimos empezar a proponer los anuncios. Intenta de nuevo en un momento.");
-  }
-}
+/** Writer retirado: conserva autenticación y responde 410 sin crear una corrida. */
+export const POST = retiredProductWriter("Prepara los conceptos y sus textos en el chat. La propuesta automática de anuncios se retiró; puedes renderizar y revisar los conceptos guardados.");

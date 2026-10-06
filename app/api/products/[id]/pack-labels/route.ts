@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
 import { packLabelsSchema } from "@/lib/ai/schemas";
 import { normalizePackLabels } from "@/lib/pricing/labels";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
-import { createContextRepository } from "@/lib/product-intelligence/repository";
 import { decidePackLabels } from "@/lib/product-intelligence/pack-labels-service";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
+import { createContextRepository } from "@/lib/product-intelligence/repository";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
+import { retiredProductWriter } from "@/lib/products/retired-writer";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
 export const maxDuration = 120;
 const etag = z.string().regex(/^[a-f0-9]{64}$/);
@@ -40,10 +41,4 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return respond(userId, id);
   } catch (e) { return errorResponse(e); }
 }
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    await ownedProduct(id);
-    throw new ProductApiError("Escribe otras etiquetas en el chat y guárdalas desde el MCP.", 409);
-  } catch (e) { return errorResponse(e, "No pudimos generar otras etiquetas. Intenta de nuevo en un momento."); }
-}
+export const POST = retiredProductWriter("Escribe las etiquetas en el chat y guárdalas con save_pack_labels.");

@@ -1,34 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Button, Icon } from "@/components/df";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX, type ProductData } from "@/lib/products/product-data";
+import { useEffect, useRef, useState } from "react";
 
-// Información base › Datos del producto: el nombre y la descripción que recibe la estrategia (DATOS DEL
-// PRODUCTO en el mega prompt). Los identifica la IA desde la imagen base y lo que sabe el comerciante; él
-// los corrige aquí y se guardan solos.
+// Datos del producto guardados desde el chat o completados por el comerciante, con autoguardado.
 
 const AUTOSAVE_MS = 1500;
 
 export function ProductDataSection({
   productId,
   value,
-  identifying,
-  onIdentify,
   onSaved,
 }: {
   productId: string;
   value?: ProductData;
-  identifying: boolean;
-  onIdentify: () => void;
   onSaved: (d: ProductData) => void;
 }) {
   const [name, setName] = useState(value?.name ?? "");
   const [description, setDescription] = useState(value?.description ?? "");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string>();
-  const [askRedo, setAskRedo] = useState(false);
   const timer = useRef<number | undefined>(undefined);
 
   // Una identificación nueva reemplaza lo que se ve.
@@ -73,17 +65,7 @@ export function ProductDataSection({
           </span>
         ) : null}
       </div>
-      {identifying ? (
-        <p role="status" className="flex items-center gap-2 text-small">
-          <Icon name="loader" size="sm" className="motion-exempt animate-spin text-muted-foreground" />
-          La IA está mirando las imágenes y lo que sabes del producto.
-        </p>
-      ) : !value ? (
-        <p className="text-small text-muted-foreground">
-          La IA mira la imagen base y lo que sabes del producto, y escribe su descripción. Esa descripción es lo que recibe la estrategia: revísala antes de generarla.
-        </p>
-      ) : (
-        <>
+      <p className="text-small text-muted-foreground">Completa el nombre y la descripción. Revisa que describan lo que el producto hace.</p>
           <label className="flex flex-col gap-1 text-label">
             Producto
             <input
@@ -114,32 +96,6 @@ export function ProductDataSection({
               {error}
             </p>
           ) : null}
-          {askRedo ? (
-            <div role="group" aria-label="Volver a identificar" className="flex flex-col gap-2 rounded-md bg-muted p-3">
-              <p className="text-label font-normal">La IA vuelve a escribir el nombre y la descripción: se reemplaza lo que editaste.</p>
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button size="sm" onClick={() => setAskRedo(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  icon="sparkle"
-                  onClick={() => {
-                    setAskRedo(false);
-                    onIdentify();
-                  }}
-                >
-                  Volver a identificar
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button size="sm" variant="ghost" icon="sparkle" className="self-start" onClick={() => (value.source === "merchant" ? setAskRedo(true) : onIdentify())}>
-              Volver a identificar
-            </Button>
-          )}
-        </>
-      )}
     </section>
   );
 }

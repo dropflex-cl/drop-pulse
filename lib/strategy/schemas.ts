@@ -1,20 +1,13 @@
-// La estrategia (docs/spec-estrategia.md): el mega prompt escribe un informe en texto y una segunda
-// llamada (paso strategy_extract) lo pasa a datos con este esquema. De aquí salen, al confirmar, las
-// mismas filas que leen los pasos siguientes (ficha, cliente ideal, ángulos con sus ganchos): Imágenes,
-// Página, Creativos y Video no cambian. Puro, con tests.
+// Contrato histórico de extracción para leer estrategias guardadas. Sin writer ni proyección automática.
 
-import * as z from "zod/v4";
-import { customerAvatarSchema, packLabelsSchema, type ProductBrief } from "@/lib/ai/schemas";
-import { ANGLES, SALES_ANGLES, SPEAKS_TO, type AngleSlot, type TestAngle } from "@/lib/angles/catalog";
-import type { AngleBriefPayload } from "@/lib/angles/schemas";
+import { customerAvatarSchema, packLabelsSchema } from "@/lib/ai/schemas";
+import { ANGLES, SALES_ANGLES, SPEAKS_TO } from "@/lib/angles/catalog";
 import { HOOK_DELIVERIES, OPENING_SHOT_DEFS, OPENING_SHOTS } from "@/lib/hooks/catalog";
-import { hookTextOk, type AngleHook } from "@/lib/hooks/schemas";
-import { money } from "@/lib/format";
-import type { PricingPlan } from "@/lib/pricing/plan";
+import * as z from "zod/v4";
 
 import { MAX_CHOSEN, MAX_HOOKS_PER_ANGLE, MIN_CHOSEN, MIN_HOOKS_PER_ANGLE, STRATEGY_ANGLES } from "./catalog";
 
-export { MAX_CHOSEN, MAX_HOOKS_PER_ANGLE, MIN_CHOSEN, MIN_HOOKS_PER_ANGLE, STRATEGY_ANGLES };
+export { MAX_CHOSEN,MAX_HOOKS_PER_ANGLE,MIN_CHOSEN,MIN_HOOKS_PER_ANGLE,STRATEGY_ANGLES };
 
 const text = z.string();
 const maybe = z.string().nullable();
@@ -105,120 +98,3 @@ export type ExtractedAngle = StrategyExtraction["angles"][number];
 export type ExtractedHook = ExtractedAngle["hooks"][number];
 
 /** Lo que el código revisa de los ángulos extraídos: si falla, se pide otra vez con estos problemas. */
-export function strategyExtractProblems(x: StrategyAngles): string[] {
-  const problems: string[] = [];
-  if (x.angles.length !== STRATEGY_ANGLES) problems.push(`angles trae ${x.angles.length} ángulos; tienen que ser los ${STRATEGY_ANGLES} del TOP 5 ÁNGULOS.`);
-  x.angles.forEach((a, i) => {
-    const n = a.hooks.length;
-    if (n < MIN_HOOKS_PER_ANGLE || n > MAX_HOOKS_PER_ANGLE) problems.push(`angles[${i}] («${a.title}») trae ${n} hooks; tienen que ser de ${MIN_HOOKS_PER_ANGLE} a ${MAX_HOOKS_PER_ANGLE}.`);
-    if (!a.title.trim() || !a.hook.trim()) problems.push(`angles[${i}] no trae nombre o hook.`);
-  });
-  const titles = x.angles.map((a) => a.title.trim().toLowerCase());
-  if (new Set(titles).size !== titles.length) problems.push("Hay ángulos repetidos: cada uno del TOP 5 va una sola vez.");
-  return problems;
-}
-
-/** Normaliza los slots elegidos: 2 o 3 índices distintos del TOP 5 (0..4). Null si no sirven. */
-export function chosenIndexes(raw: unknown, available = STRATEGY_ANGLES): number[] | null {
-  if (!Array.isArray(raw)) return null;
-  const idx = [...new Set(raw.map(Number))];
-  if (idx.length < MIN_CHOSEN || idx.length > MAX_CHOSEN) return null;
-  if (idx.some((i) => !Number.isInteger(i) || i < 0 || i >= available)) return null;
-  return idx;
-}
-
-// ---------------------------------------------------------------- Al confirmar: las filas de siempre
-
-/** El ángulo elegido como lo guarda angle_rankings.chosen_angles. */
-export function toTestAngle(a: ExtractedAngle, slot: AngleSlot): TestAngle {
-  return {
-    slot,
-    frame: a.frame,
-    title: a.title.trim(),
-    pain_or_desire: a.pain_or_desire.trim(),
-    segment: a.segment.trim(),
-    promise: a.promise.trim(),
-    trigger_moment: a.trigger_moment.trim(),
-    competition: "",
-    hook: a.hook.trim(),
-    aida: a.aida,
-    speaks_to: a.speaks_to,
-    tone: a.tone.trim(),
-    why: a.why.trim(),
-  };
-}
-
-function policy(h: ExtractedHook, pricing: PricingPlan): Pick<AngleHook, "policy_ok" | "risk" | "risk_reason"> {
-  const ok = hookTextOk(h.text, pricing) && hookTextOk(h.on_screen, pricing);
-  return ok ? { policy_ok: true, risk: "low", risk_reason: `Gatillo: ${h.trigger.trim()}` } : { policy_ok: false, risk: "high", risk_reason: "Roza la política de Meta" };
-}
-
-/** Un hook del informe como gancho guardado (lo que leen Creativos y Video con usableHooks). */
-export function toAngleHook(h: ExtractedHook, rank: number, pricing: PricingPlan): AngleHook {
-  return {
-    text: h.text.trim(),
-    on_screen: h.on_screen.trim(),
-    visual_first_3s: h.visual_first_3s.trim(),
-    opening_shot: h.opening_shot,
-    first_motion: h.first_motion.trim(),
-    needs_real_material: h.opening_shot === "real_footage" ? "Grabación real del producto" : null,
-    delivery: h.delivery,
-    rank,
-    // Lo comprobable lo decide el código, como en los ganchos de siempre: los que rozan la política
-    // quedan fuera de usableHooks, sin reescribir el informe.
-    ...policy(h, pricing),
-  };
-}
-
-/** El desarrollo del ángulo como lo guarda angle_briefs.payload. */
-export function toBriefPayload(a: ExtractedAngle, pricing: PricingPlan, missing: string[]): AngleBriefPayload {
-  const hooks = a.hooks.map((h, i) => toAngleHook(h, i + 1, pricing));
-  return {
-    psychological_lever: a.insight.trim(),
-    core_message: a.promise.trim(),
-    aida_summary: a.aida,
-    body_beats: [
-      `Atención: ${a.aida.attention}`,
-      `Interés: ${a.aida.interest}`,
-      `Deseo: ${a.aida.desire} Mecanismo: ${a.mechanism}`,
-      `Acción: ${a.aida.action}`,
-    ],
-    proof_to_show: [],
-    objection_handling: a.objection_handling,
-    offer_layer: a.offer.trim(),
-    visual_concepts: a.ugc_concepts,
-    static_ad_concepts: a.static_ads,
-    page_block: a.page_block.trim(),
-    compliance_flags: a.compliance_flags,
-    missing_inputs: missing,
-    handoff_to_ugc: [a.ugc_concepts[0], `Tono: ${a.tone}.`, `Beneficio principal: ${a.benefit}. CTA: ${a.cta}.`].filter(Boolean).join(" "),
-    details: { source: "strategy", benefit: a.benefit, mechanism: a.mechanism, objection: a.objection, cta: a.cta },
-    hooks,
-    recommended_hook: 0,
-  };
-}
-
-/** La ficha que leen los pasos siguientes: lo extraído más lo que pone el código (precio y reseñas reales). */
-export function toProductBrief(b: StrategyExtraction["brief"], pricing: PricingPlan, reviews: string[]): ProductBrief {
-  return {
-    product_name: b.product_name.trim(),
-    category: b.category.trim(),
-    what_it_does: b.what_it_does.trim(),
-    problem_solved: b.problem_solved.trim(),
-    how_it_works: b.how_it_works?.trim() || null,
-    key_facts: b.key_facts,
-    target_audience: b.target_audience,
-    alternatives_already_tried: b.alternatives_already_tried,
-    differentiator: b.differentiator,
-    price: pricing.salePrice,
-    unit_cost: pricing.unitCost,
-    bundle_options: pricing.packs.filter((k) => k.units > 1).map((k) => `${k.units} unidades: ${money(k.price, pricing.currency)}`),
-    real_deadline_or_event: null,
-    proof: { real_reviews: reviews, real_expert: null, studies_or_certifications: [], units_sold_or_social_proof: null, guarantee_days: null },
-    images: [],
-    known_objections: b.known_objections,
-    forbidden_claims: b.forbidden_claims,
-    inferred_fields: [],
-    missing_inputs: b.missing_inputs.map((q) => ({ field: "estrategia", question: q })),
-  };
-}

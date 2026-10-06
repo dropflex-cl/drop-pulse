@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Button, EmptyState, Icon, Notice, OfferPreview, StageMeter, StatusBadge, TopBar, notify, notifyUndo, type MeterStage } from "@/components/df";
-import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
+import { Button, EmptyState, Icon, Notice, OfferPreview, StageMeter, StatusBadge, TopBar, notify, type MeterStage } from "@/components/df";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
+import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { ListingPreview } from "@/components/store-preview/listing";
@@ -12,30 +10,21 @@ import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { LISTING, type Listing } from "@/lib/copy/listing";
-import { landingSelections, selectVariant, type LandingSelection } from "@/lib/copy/variants";
-import { LandingVariantPicker } from "./page/landing-variant-picker";
 import { LISTING_SLOTS, PAGE_GROUPS, componentName, missingImages, type ListingSlot } from "@/lib/copy/page-ui";
 import { copyProgress, enabledLabel } from "@/lib/copy/progress";
-import { COPY_STAGE_TITLE } from "@/lib/products/stages";
-import { STALE_REASON_LABEL } from "@/lib/copy/stale";
+import { landingSelections, selectVariant, type LandingSelection } from "@/lib/copy/variants";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
+import { COPY_STAGE_TITLE } from "@/lib/products/stages";
 import { productHref } from "@/lib/routes";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import type { CopyState, ImagePick, ProductCopy, RunStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ConnectAnthropic } from "./connect-anthropic";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { PageAccent } from "./page-accent";
 import { ComponentCard } from "./page/component-card";
 import { ComponentEditor, imagesBySlot } from "./page/component-editor";
-
-// Etapa Página del producto (docs/spec-pagina-componentes.md, design-system/textos.md): con los 2
-// desarrollos aprobados → «Escribir la página con IA» (una llamada) → la ficha (se aprueba) y los
-// componentes de conversión como se verán en la tienda, cada uno con «Usar en la página». Tocar un
-// componente abre su hoja de edición; guardar lo aprueba y lo usa.
-
-const POLL_MS = 2500;
-/** «a, b y c». */
-const listText = (items: string[]) => (items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`);
+import { LandingVariantPicker } from "./page/landing-variant-picker";
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 const errorText = (e: unknown, fallback: string) => (e instanceof ProductApiClientError ? e.message : fallback);
 
@@ -44,13 +33,10 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const desktop = useDesktop();
   const { product } = data;
   const [state, setState] = useState<CopyState>(data);
+  const [shownData, setShownData] = useState(data);
+  if (shownData !== data) { setShownData(data); setState(data); }
   const [accent, setAccent] = useState<string | null>(data.accent);
   const [editing, setEditing] = useState<string | null>(null);
-  // Dónde se abrió la confirmación de «Reescribir toda la página»: en el aviso de arriba o al final.
-  const [askAll, setAskAll] = useState<"top" | "bottom" | null>(null);
-  const rewrote = useRef<string | null>(null);
-  // «Deshacer» del toast: la función vigente, sin volver a armar el sondeo.
-  const restoreRef = useRef<(component: string) => void>(() => {});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [editError, setEditError] = useState<string>();
@@ -62,7 +48,6 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     const variant = selectVariant(v.content, selection);
     return { ...v, content: variant.content, images: variant.images ?? v.images };
   });
-  const editedNames = components.filter((c) => c.edited).map((c) => componentName(c.component));
   const writing = active(run?.status);
   const progress = copyProgress(components);
   const listing = components.find((c) => c.component === LISTING);
@@ -71,73 +56,6 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const anglesHref = productHref(product.id, "angulos");
   const imagesHref = productHref(product.id, "imagenes");
   const reviewsHref = productHref(product.id, "resenas");
-  // Hay algo que reescribir: lo no aprobado, la ficha que falta o un componente que ya tiene las reseñas que necesitaba.
-  const redoable =
-    !listing || components.some((c) => c.status !== "aprobado") || CATALOG.some((c) => c.metafield && !byId.has(c.id) && facts.count >= (c.minReviews ?? 0));
-
-  // ---------------------------------------------------------------- Sondeo
-  // Al llegar desde «Continuar» en Ángulos, el layout del producto se conserva de la pantalla
-  // anterior: se relee una vez para que diga «Escribiendo» y no «Ángulos listos».
-  useEffect(() => {
-    if (writing) router.refresh();
-    // Solo al montar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const wasWriting = useRef(writing);
-  useEffect(() => {
-    if (wasWriting.current && !writing) {
-      router.refresh();
-      const one = rewrote.current;
-      rewrote.current = null;
-      if (run?.status === "succeeded" && one) notifyUndo(`${componentName(one)}: nueva versión por revisar`, () => restoreRef.current(one));
-      else if (run?.status === "succeeded") notify("La página está escrita: aprueba la ficha y elige los componentes");
-      else if (run?.status === "failed") notify(run.error ?? "No pudimos escribir la página. Toca Reintentar.");
-    }
-    wasWriting.current = writing;
-    if (!writing) return;
-    const t = window.setInterval(async () => {
-      try {
-        setState(await productsApi.copy(product.id));
-      } catch {
-        // Un sondeo fallido no cambia nada: se intenta en el siguiente.
-      }
-    }, POLL_MS);
-    return () => window.clearInterval(t);
-  }, [writing, run, product.id, router]);
-
-  // ---------------------------------------------------------------- Acciones
-  const write = async (redo: boolean, mode?: "all" | { component: string }) => {
-    setBusy(mode === "all" ? "all" : mode ? `rewrite:${mode.component}` : redo ? "redo" : "write");
-    setError(undefined);
-    setEditError(undefined);
-    try {
-      setState(await productsApi.writeCopy(product.id, redo, mode));
-      setEditing(null);
-      setAskAll(null);
-      // Al terminar, «Deshacer» devuelve la versión anterior de ese componente.
-      rewrote.current = mode && mode !== "all" ? mode.component : null;
-      router.refresh();
-    } catch (e) {
-      const message = errorText(e, "No pudimos empezar a escribir la página. Intenta de nuevo.");
-      if (mode && mode !== "all" && editing) setEditError(message);
-      else setError(message);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  restoreRef.current = (component: string) => void restore(component);
-  async function restore(component: string) {
-    try {
-      setState(await productsApi.restoreComponent(product.id, component));
-      notify(`${componentName(component)}: volvió la versión anterior`);
-      router.refresh();
-    } catch (e) {
-      setError(errorText(e, "No pudimos recuperar la versión anterior."));
-    }
-  }
-
   const update = async (component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean; expected_id?: string; expected_updated_at?: string }, done?: string) => {
     setBusy(component);
     setError(undefined);
@@ -166,7 +84,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
 
   // ---------------------------------------------------------------- Piezas
   let view: "locked" | "start" | "writing" | "failed" | "page";
-  if (state.locked) view = "locked";
+  if (state.locked && !components.length) view = "locked";
   else if (writing && !components.length) view = "writing";
   else if (!components.length) view = run?.status === "failed" ? "failed" : "start";
   else view = "page";
@@ -178,71 +96,11 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         ? `Ficha aprobada · ${enabledText.toLowerCase()}`
         : "Falta aprobar la ficha"
       : writing
-        ? "La IA está escribiendo"
+        ? "Contenido enviado desde el chat"
         : "La página del producto en tu tienda";
 
-  const confirmAll = (where: "top" | "bottom") => (
-    <div role="group" aria-labelledby={`reescribir-todo-${where}`} className="flex flex-col gap-2.5 rounded-lg border bg-card p-4 lg:max-w-content">
-      <h3 id={`reescribir-todo-${where}`} className="text-heading">
-        ¿Reescribir toda la página?
-      </h3>
-      <p className="text-label font-normal text-muted-foreground">
-        Se reemplaza también lo que aprobaste; lo publicado en tu tienda no cambia hasta que vuelvas a publicar.
-        {editedNames.length ? ` Pierdes lo que editaste a mano en: ${editedNames.join(", ")}.` : ""}
-      </p>
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button size="sm" onClick={() => setAskAll(null)}>
-          Cancelar
-        </Button>
-        <Button size="sm" variant="primary" icon="sparkle" loading={busy === "all"} onClick={() => write(true, "all")}>
-          Reescribir toda la página
-        </Button>
-      </div>
-    </div>
-  );
-
-  // El contexto cambió (ángulos, cliente ideal, ficha, diferenciador o cómo escribe la IA): lo aprobado
-  // también quedó atrás, así que la acción principal es reescribir toda la página.
-  const reasons = state.staleReasons ?? [];
-  const onlyAngles = reasons.length === 1 && reasons[0] === "angles";
-  const staleNotice = !state.stale ? null : state.fromChat ? (
-    // Textos: design-system/copy-mcp.md.
-    <Notice title="Cambió el contexto de tu producto." body="Recupera el contexto en el chat, revisa el contenido y envía los cambios con save_landing_content. Después apruébalos aquí." />
-  ) : askAll === "top" ? (
-    confirmAll("top")
-  ) : (
-    <Notice
-      title={onlyAngles ? "Cambiaste tus ángulos." : "Cambió el contexto de tu producto."}
-      body={
-        onlyAngles
-          ? "Reescribe la página para que calce con ellos."
-          : `Desde que se escribió esta página cambió ${listText(reasons.map((r) => STALE_REASON_LABEL[r]))}. Reescríbela entera para que calce con todo.`
-      }
-      action={
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="primary" icon="sparkle" disabled={writing} onClick={() => setAskAll("top")}>
-            Reescribir toda la página
-          </Button>
-          {redoable ? (
-            <Button size="sm" variant="ghost" loading={busy === "redo"} disabled={writing} onClick={() => write(true)}>
-              Solo lo no aprobado
-            </Button>
-          ) : null}
-        </div>
-      }
-    />
-  );
-
-  // Una reescritura en curso o con error no tapa lo que ya está escrito.
-  const runNotice =
-    components.length && writing ? (
-      <Notice tone="info" icon="sparkle" title="La IA está reescribiendo lo que no aprobaste." body="Puedes seguir revisando: se actualiza solo." />
-    ) : components.length && run?.status === "failed" ? (
-      <div role="alert" className="rounded-md bg-destructive-soft p-3 text-label font-normal text-destructive">
-        {run.error ?? "No pudimos reescribir la página. Toca Reescribir lo no aprobado."}
-      </div>
-    ) : null;
-
+  const staleNotice = state.stale ? <Notice title="Cambió el contexto de tu producto." body="Recupera el contexto en el chat, revisa el contenido y envía los cambios con save_landing_content. Después apruébalos aquí." /> : null;
+  const runNotice = run?.status === "failed" ? <Notice title="La escritura anterior no terminó." body="El contenido guardado sigue disponible. Prepara los cambios en el chat y envíalos con save_landing_content." /> : null;
   const ficha = listing ? (listing.content as Partial<Listing>) : undefined;
   const listingCard = listing ? (
     <section aria-labelledby="ficha" className="flex flex-col gap-3 rounded-lg border bg-card p-4">
@@ -279,7 +137,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
       </div>
     </section>
   ) : (
-    <Notice tone="info" icon="sparkle" title="La ficha se escribe con lo que falta." body="Toca Reescribir lo no aprobado." />
+    <Notice tone="info" icon="sparkle" title="Falta la ficha del producto." body="Escríbela en el chat y envíala con save_landing_content." />
   );
 
   const cards = PAGE_GROUPS.map((g) => {
@@ -384,38 +242,8 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         />
       )
     );
-  } else if ((view === "start" || view === "failed") && product.aiConnected === false) {
-    // Como Creativos sin Higgsfield: sin la clave de Anthropic, en vez de «Escribir la página».
-    body = <ConnectAnthropic what="escribe la página de tu producto" />;
-  } else if (view === "start" || view === "failed") {
-    const failed = view === "failed";
-    body = (
-      <EmptyState
-        icon={failed ? "alert" : "text"}
-        tone={failed ? "error" : "neutral"}
-        title={failed ? "No se pudo escribir la página" : "Escribe la página de tu producto"}
-        body={
-          failed
-            ? (run?.error ?? "Toca Reintentar.")
-            : `La ficha (título, oferta y Google) y ${CATALOG.length} componentes que responden las dudas del comprador: beneficios, envío, reseñas, GIFs, preguntas y más. Tú eliges cuáles van.`
-        }
-        action={
-          <Button variant="primary" icon="sparkle" loading={busy === "write"} onClick={() => write(false)}>
-            {failed ? "Reintentar" : "Escribir la página con IA"}
-          </Button>
-        }
-      />
-    );
-  } else if (view === "writing") {
-    body = (
-      <EmptyState icon="sparkle" busy title="La IA está escribiendo la página" body="La ficha y todos los componentes, en una sola escritura. Suele tardar 1 a 2 minutos. Puedes salir: te avisamos en Hoy.">
-        <div aria-hidden className="mt-2 flex w-full flex-col items-center gap-2">
-          {["w-4/5", "w-2/3", "w-3/4"].map((w) => (
-            <span key={w} className={cn("block h-3.5 animate-pulse rounded-sm bg-muted", w)} />
-          ))}
-        </div>
-      </EmptyState>
-    );
+  } else if (view !== "page") {
+    body = <EmptyState icon="text" title="Escribe tu página desde el chat" body="Envía los textos con save_landing_content. Aquí podrás revisar la ficha, elegir componentes y aprobar la página antes de publicarla." />;
   } else {
     body = (
       <div className="flex flex-col gap-6">
@@ -428,13 +256,6 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         {listingCard}
         <PageAccent productId={product.id} initial={data.accent} onSaved={setAccent} />
         {cards}
-        {state.fromChat ? null : askAll === "bottom" ? (
-          confirmAll("bottom")
-        ) : (
-          <Button variant="ghost" icon="sparkle" className="self-start" disabled={writing} onClick={() => setAskAll("bottom")}>
-            Reescribir toda la página
-          </Button>
-        )}
       </div>
     );
     const nextLabel = desktop ? "Continuar: Publicar" : "Publicar";
@@ -447,9 +268,6 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         }
         className="lg:px-8"
       >
-        {!state.fromChat ? <Button size="lg" icon="sparkle" loading={busy === "redo"} disabled={!redoable || writing} onClick={() => write(true)} className={actionClass}>
-          {desktop ? "Reescribir lo no aprobado" : "Reescribir"}
-        </Button> : null}
         {progress.complete ? (
           <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "publicar")} className={actionClass}>
             {nextLabel}
@@ -530,8 +348,6 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
               error={editError}
               onCancel={() => setEditing(null)}
               onSave={save}
-              rewriting={busy === `rewrite:${editingView.component}`}
-              onRewrite={writing || state.fromChat ? undefined : () => write(true, { component: editingView.component })}
             />
           ) : null}
         </DrawerContent>

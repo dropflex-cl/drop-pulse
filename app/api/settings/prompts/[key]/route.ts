@@ -1,50 +1,28 @@
-import { NextResponse } from "next/server";
+import { adminClient } from "@/lib/integrations/admin";
 import { requireUser } from "@/lib/integrations/session";
-import { errorResponse, json } from "@/lib/products/http";
-import { PromptError, promptSettings, saveTemplate, type PromptEffort } from "@/lib/prompts/store";
-import { isPromptKey } from "@/lib/prompts/tags";
-
-// Ajustes › Prompts: solo el equipo de DropFlex (app_metadata.role = "admin") los ve y los cambia. Cada
-// guardado es una versión nueva y queda activa; el texto vive en prompt_templates.
-
-const EFFORTS: PromptEffort[] = ["low", "medium", "high"];
+import { errorResponse, ProductApiError } from "@/lib/products/http";
+import { NextResponse } from "next/server";
 
 async function admin() {
   const user = await requireUser();
-  if (!user.admin) throw new PromptError("Solo un administrador puede ver o cambiar los prompts.", 403);
-  return user;
+  if (!user.admin) throw new ProductApiError("Solo un administrador puede consultar el historial de prompts.", 403);
 }
 
-function promptError(e: unknown) {
-  if (e instanceof PromptError) return NextResponse.json({ error: e.message }, { status: e.status });
-  return errorResponse(e, "No pudimos guardar el prompt. Intenta de nuevo en un momento.");
-}
-
-export async function GET(_req: Request, { params }: { params: Promise<{ key: string }> }) {
+/** Solo historial; ninguna versión se ejecuta en la app. */
+export async function GET(_request: Request, { params }: { params: Promise<{ key: string }> }) {
   try {
     await admin();
     const { key } = await params;
-    if (!isPromptKey(key)) throw new PromptError("No existe ese prompt.", 404);
-    return NextResponse.json((await promptSettings()).find((p) => p.key === key));
-  } catch (e) {
-    return promptError(e);
-  }
+    if (!["strategy", "product_data"].includes(key)) throw new ProductApiError("No existe ese prompt.", 404);
+    const { data, error } = await adminClient().from("prompt_templates").select("id, key, version, body, created_at").eq("key", key).order("version", { ascending: false });
+    if (error) throw error;
+    return NextResponse.json({ retired: true, versions: data });
+  } catch (error) { return errorResponse(error); }
 }
 
-/** Guarda una versión nueva y la deja activa. */
-export async function PUT(req: Request, { params }: { params: Promise<{ key: string }> }) {
+export async function PUT() {
   try {
-    const user = await admin();
-    const { key } = await params;
-    if (!isPromptKey(key)) throw new PromptError("No existe ese prompt.", 404);
-    const body = await json<{ body: string; effort: PromptEffort; maxTokens: number; note?: string }>(req);
-    if (typeof body.body !== "string") throw new PromptError("Falta el texto del prompt.");
-    const effort = EFFORTS.includes(body.effort as PromptEffort) ? (body.effort as PromptEffort) : "high";
-    const maxTokens = Math.round(Number(body.maxTokens));
-    if (!Number.isFinite(maxTokens) || maxTokens < 1000 || maxTokens > 64000) throw new PromptError("El máximo de tokens va entre 1.000 y 64.000.");
-    await saveTemplate(key, { body: body.body, effort, maxTokens, note: body.note }, user.id);
-    return NextResponse.json((await promptSettings()).find((p) => p.key === key));
-  } catch (e) {
-    return promptError(e);
-  }
+    await admin();
+    throw new ProductApiError("El editor de prompts se retiró. El contenido se prepara desde el chat.", 410);
+  } catch (error) { return errorResponse(error); }
 }
