@@ -1,0 +1,114 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · Estrellas de reseñas (review-stars). Bloque de la columna del producto, sobre el
+  título: 5 estrellas con relleno parcial + «4,6 · 19 reseñas». Es un
+  enlace a las reseñas completas (ancla del ajuste `anchor`).
+
+  REGLA: la calificación y la cantidad salen SOLO de las reseñas aprobadas (metafield de la app
+  `dropflex.review_summary`). No hay modo manual: sin resumen, o con menos reseñas que el mínimo
+  del bloque, no se dibuja nada (nunca «0 reseñas»). 4,6 se dibuja como 4,6 (relleno al 92 %),
+  nunca redondeado a 5.
+
+  Contenido (texto): metafield `dropflex.review_stars` (json) → si falta, el texto del bloque.
+    { label } con los tokens {count} (obligatorio) y {rating}.
+    Con menos de 30 reseñas, si la proporción convence, la plantilla cede a «4,7 · 9 de cada 10
+    le dan 5 estrellas» (snippets/df-review-proof).
+  Datos reales: product.metafields.dropflex.review_summary = { rating, count, five, positive }.
+{%- enddoc -%}
+{%- liquid
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
+  assign s = block.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign summary = product.metafields.dropflex.review_summary.value
+
+  assign rating = summary.rating | default: 0 | plus: 0 | at_least: 0 | at_most: 5
+  assign count = summary.count | default: 0 | plus: 0
+
+  assign show = true
+  if product == blank or rating <= 0 or count < s.min_reviews
+    assign show = false
+  endif
+
+  if show
+    # 4.6 → «4,6»; 5 → «5,0». Siempre un decimal, con coma.
+    assign r10 = rating | times: 10 | round
+    assign r_int = r10 | divided_by: 10
+    assign r_dec = r10 | modulo: 10
+    assign rating_text = r_int | append: ',' | append: r_dec
+
+    # 1234 → «1.234».
+    assign count_text = count | append: ''
+    if count >= 1000
+      assign thousands = count | divided_by: 1000
+      assign rest = count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    endif
+
+    # Con pocas reseñas la proporción convence más que la cantidad (snippets/df-review-proof).
+    capture proof
+      render 'df-review-proof', summary: summary
+    endcapture
+    assign label = content.label | default: s.label
+    if proof != blank
+      assign label = rating_text | append: ' · ' | append: proof
+    elsif label contains '{count}'
+      assign label = label | replace: '{count}', count_text | replace: '{rating}', rating_text
+    else
+      # Una plantilla sin {count} escribiría la cantidad a mano: se descarta.
+      assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas'
+    endif
+
+    assign aria = 'Calificación ' | append: rating_text | append: ' de 5, basada en ' | append: count_text | append: ' reseñas'
+    assign anchor = s.anchor | remove: '#' | strip | handleize
+    if anchor != blank
+      assign aria = aria | append: '. Ir a las reseñas'
+    endif
+    assign star_size = s.star_size | append: 'px'
+  endif
+-%}
+
+{%- if show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  {%- if anchor != blank -%}
+
+
+  {%- endif -%}
+
+  <df-review-stars
+    class="df df-review-stars df-review-stars--{{ s.alignment }}"
+    style="{% render 'df-accent-vars', product: product %} --df-review-stars-text: {{ s.text_size }}px; --df-review-stars-offset: {{ s.scroll_offset }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if anchor != blank -%}
+      <a class="df-review-stars__row" href="#{{ anchor }}" aria-label="{{ aria | escape }}" data-df-review-stars-link>
+    {%- else -%}
+      <p class="df-review-stars__row" role="img" aria-label="{{ aria | escape }}">
+    {%- endif -%}
+      <span aria-hidden="true" class="df-review-stars__stars">
+        {%- render 'df-stars', rating: rating, size: star_size, label: aria -%}
+      </span>
+      {%- if s.show_text -%}
+        <span class="df-review-stars__label" aria-hidden="true">{{ label | escape }}</span>
+      {%- endif -%}
+    {%- if anchor != blank -%}
+      </a>
+    {%- else -%}
+      </p>
+    {%- endif -%}
+  </df-review-stars>
+
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Estrellas de reseñas: se muestran cuando el producto tiene al menos {{ s.min_reviews }} reseñas aprobadas en DropFlex.
+  </div>
+{%- endif -%}

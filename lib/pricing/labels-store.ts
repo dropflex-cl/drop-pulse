@@ -1,16 +1,25 @@
 import "server-only";
+import { createContextRepository, contextAccess } from "@/lib/product-intelligence/repository";
+import { parsePackLabelsRead } from "@/lib/product-intelligence/pack-labels-service";
+import { PI_SCOPES } from "@/lib/product-intelligence/policy";
+import { ProductIntelligenceError } from "@/lib/product-intelligence/errors";
 import type { PackLabel } from "@/lib/ai/schemas";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { PackLabelsProposal } from "@/lib/types";
-import { labelsStale, normalizePackLabels, packPrices } from "./labels";
+import { packLabelsStale, normalizePackLabels, packPrices } from "./labels";
 import type { PricingPlan } from "./plan";
 
-// pack_labels: la propuesta vigente de etiquetas de un producto (la última que no se rechazó). La IA
-// propone (`generated`) y el comerciante decide, igual que con el cliente ideal.
+// pack_labels: el chat propone (`generated`) y el comerciante decide.
+// La lectura y la decisión participan del servicio común y del lock del producto.
 
 export interface PackLabelsRow {
   id: string;
+  evidence_stale?: boolean;
+  catalog_currency?: string;
+  source?: "legacy" | "mcp_chat";
+  etag?: string;
+  provenance?: { currency?: string; duration_fact_ids?: string[] };
   product_id: string;
   status: DbContentStatus;
   payload: PackLabel[];
@@ -19,28 +28,27 @@ export interface PackLabelsRow {
   created_at: string;
 }
 
-const COLUMNS = "id, product_id, status, payload, prices, edited_at, created_at";
-
 export async function latestPackLabels(userId: string, productId: string): Promise<PackLabelsRow | null> {
-  const { data, error } = await adminClient()
-    .from("pack_labels")
-    .select(COLUMNS)
-    .eq("user_id", userId)
-    .eq("product_id", productId)
-    .neq("status", "rejected")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw new Error(`Leer las etiquetas: ${error.message}`);
-  return (data as PackLabelsRow | null) ?? null;
+  const principal = { userId, actorId: userId, actorKind: "merchant" as const, scopes: PI_SCOPES };
+  const read = parsePackLabelsRead(await createContextRepository().loadPackLabels({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(10000)));
+  return read.current ? { ...read.current, etag: read.pack_labels_etag } as unknown as PackLabelsRow : null;
 }
 
-export function toPackLabelsProposal(r: PackLabelsRow, plan: Pick<PricingPlan, "packs"> | null | undefined): PackLabelsProposal {
+/** Se comprueba antes de llamar un proveedor; el trigger cubre el writer legacy ya en vuelo. */
+export async function requireLegacyPackLabels(userId: string, productId: string) {
+  const { data, error } = await adminClient().from("pack_labels").select("id").eq("product_id", productId).eq("user_id", userId).eq("source", "mcp_chat").limit(1);
+  if (error) throw new Error(`Leer el origen de las etiquetas: ${error.message}`);
+  if (data?.length) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "Estas etiquetas se escriben en el chat. Pide otra propuesta desde el MCP.");
+}
+
+export function toPackLabelsProposal(r: PackLabelsRow, plan: Pick<PricingPlan, "packs"> & Partial<Pick<PricingPlan, "currency">> | null | undefined): PackLabelsProposal {
   return {
     id: r.id,
+    source: r.source,
+    etag: r.etag,
     status: toUiStatus(r.status),
     labels: r.payload,
-    stale: labelsStale(r.prices, plan),
+    stale: packLabelsStale(r, plan),
     prices: r.prices,
     createdAt: r.created_at,
     editedAt: r.edited_at ?? undefined,
@@ -54,6 +62,7 @@ export async function saveGeneratedPackLabels(
   plan: PricingPlan,
   meta: { promptVersion: number; model: string },
 ) {
+  await requireLegacyPackLabels(run.user_id, run.product_id);
   const clean = normalizePackLabels(labels, plan.packs);
   if (!clean.length) return;
   const db = adminClient();
@@ -74,17 +83,4 @@ export async function saveGeneratedPackLabels(
     model: meta.model,
   });
   if (error) throw new Error(`Guardar las etiquetas: ${error.message}`);
-}
-
-/** Cambia la propuesta vigente (aprobar, volver a revisión o guardar lo editado). */
-export async function updatePackLabels(userId: string, id: string, patch: Record<string, unknown>): Promise<PackLabelsRow> {
-  const { data, error } = await adminClient()
-    .from("pack_labels")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("user_id", userId)
-    .eq("id", id)
-    .select(COLUMNS)
-    .single();
-  if (error) throw new Error(`Guardar las etiquetas: ${error.message}`);
-  return data as PackLabelsRow;
 }

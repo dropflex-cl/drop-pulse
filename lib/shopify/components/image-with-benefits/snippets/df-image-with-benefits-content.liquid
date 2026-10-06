@@ -1,0 +1,140 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- comment -%}
+  DropFlex · Foto y razones (image-with-benefits). Sección «¿Por qué este producto?»: la foto del
+  producto al centro y 4 o 6 beneficios alrededor (mitad a cada lado en escritorio), como un
+  diagrama que explica el producto.
+
+  REGLA: la foto es real: la elegida en DropFlex (metafield `dropflex.image_with_benefits_image`,
+  file_reference), el ajuste del editor o la foto destacada del producto. La IA escribe solo
+  el título y los beneficios; los datos técnicos que mencione deben estar en la ficha.
+
+  Contenido: metafield `dropflex.image_with_benefits` (json) → si falta, el título y los bloques
+  «Beneficio» del editor.
+    { heading ({count} = cantidad de beneficios), benefits: [{ icon, title, body }] }
+
+  Orden de lectura: título → foto → beneficios 1..n (una lista por lado; en móvil se leen seguidas).
+  Sin JS propio. Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): al desplazar entra el
+  título, la foto crece apenas y los beneficios llegan escalonados; en escritorio, cada lado desde
+  su costado hacia la foto. Sin JS, todo quieto y a la vista.
+{%- endcomment -%}
+{%- liquid
+  if product == blank
+    assign product = section.settings.product
+  endif
+  assign s = section.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+
+  # La foto elegida en DropFlex (Publicar) → la del editor → la destacada del producto.
+  assign image = product.metafields.dropflex.image_with_benefits_image.value | default: s.image
+  if df_variant.media_indices.main != nil
+    assign df_pool = product.metafields.dropflex.image_with_benefits_image_variants.value
+    assign df_selected_files = '' | split: ','
+    for df_index in df_variant.media_indices.main
+      assign df_file = df_pool | slice: df_index, 1
+      assign df_selected_files = df_selected_files | concat: df_file
+    endfor
+    assign image = df_selected_files | first
+  endif
+  if image == blank and s.use_product_image
+    assign image = product.featured_image
+  endif
+
+  if content.benefits.size > 0
+    assign source = 'metafield'
+    assign total = content.benefits.size | at_most: 6
+  else
+    assign source = 'editor'
+    assign total = section.blocks.size | at_most: 6
+  endif
+  # Mitad y mitad; con un número impar, la izquierda lleva uno más.
+  assign left_count = total | plus: 1 | divided_by: 2
+
+  assign heading = content.heading | default: s.heading | replace: '{count}', total
+-%}
+
+{%- capture left_html -%}
+  {%- if source == 'metafield' -%}
+    {%- for benefit in content.benefits limit: left_count -%}
+      {%- render 'df-image-with-benefits-item', icon: benefit.icon, title: benefit.title, body: benefit.body -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%- for block in section.blocks limit: left_count -%}
+      {%- render 'df-image-with-benefits-item', icon: block.settings.icon, title: block.settings.title, body: block.settings.body, attributes: block.shopify_attributes -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture right_html -%}
+  {%- assign right_count = total | minus: left_count -%}
+  {%- if right_count > 0 -%}
+    {%- if source == 'metafield' -%}
+      {%- for benefit in content.benefits offset: left_count limit: right_count -%}
+        {%- render 'df-image-with-benefits-item', icon: benefit.icon, title: benefit.title, body: benefit.body -%}
+      {%- endfor -%}
+    {%- else -%}
+      {%- for block in section.blocks offset: left_count limit: right_count -%}
+        {%- render 'df-image-with-benefits-item', icon: block.settings.icon, title: block.settings.title, body: block.settings.body, attributes: block.shopify_attributes -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if left_html != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+
+  {%- capture color_style -%}
+    {%- if s.background_color != blank -%}--df-bg: {{ s.background_color }}; --df-iwb-bg: {{ s.background_color }};{%- endif -%}
+    {%- if s.text_color != blank -%} --df-fg: {{ s.text_color }};{%- endif -%}
+  {%- endcapture -%}
+
+  <div
+    class="df df-image-with-benefits{% if image != blank %} df-image-with-benefits--image{% endif %} df-image-with-benefits--align-{{ s.text_align }} df-image-with-benefits--shape-{{ s.image_shape }}"
+    style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ color_style }} --df-iwb-pt: {{ s.padding_top }}px; --df-iwb-pb: {{ s.padding_bottom }}px; --df-iwb-icon: {{ s.icon_size }}px; --df-iwb-heading: {{ s.heading_size }}px;"
+  >
+    <div class="df-image-with-benefits__inner">
+      {%- if heading != blank -%}
+        <h2 class="df-heading df-image-with-benefits__heading" data-df-reveal>{{ heading | escape }}</h2>
+      {%- endif -%}
+
+      <div class="df-image-with-benefits__grid">
+        {%- if image != blank -%}
+          <div class="df-image-with-benefits__media" data-df-reveal="scale">
+            {{-
+              image
+              | image_url: width: 1200
+              | image_tag:
+                widths: '360, 480, 600, 800, 1000, 1200',
+                sizes: '(min-width: 990px) 44vw, (min-width: 750px) 60vw, 90vw',
+                loading: 'lazy',
+                class: 'df-image-with-benefits__img'
+            -}}
+          </div>
+        {%- endif -%}
+
+        <ul class="df-image-with-benefits__list df-image-with-benefits__list--left" role="list">
+          {{ left_html }}
+        </ul>
+        {%- if right_html != blank -%}
+          <ul class="df-image-with-benefits__list df-image-with-benefits__list--right" role="list">
+            {{ right_html }}
+          </ul>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-image-with-benefits" style="--df-iwb-pt: {{ s.padding_top }}px; --df-iwb-pb: {{ s.padding_bottom }}px;">
+    <p class="df-placeholder">
+      Foto y razones: agrega bloques «Beneficio» (4 o 6) o genera el contenido desde DropFlex.
+    </p>
+  </div>
+{%- endif -%}

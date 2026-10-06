@@ -1,0 +1,126 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · Disponibilidad (inventory). Bloque de la columna del producto, entre el precio y el
+  botón: un punto de estado que late + una línea de texto del mismo color.
+
+  REGLA: el estado y la cantidad salen del inventario REAL de la variante. No existe un estado
+  "quedan pocas" manual: la escasez solo aparece con inventario rastreado y bajo el umbral, y el
+  número es `variant.inventory_quantity`, nunca un texto escrito.
+
+  Contenido (textos): metafield `dropflex.inventory` (json) → si falta, los textos del bloque.
+    { available_text, limited_text ({qty}), sold_out_text, preorder_text? }
+  Tokens: {qty} cantidad real · {min} {max} días hábiles de entrega (logística de la tienda).
+  Logística: shop.metafields.dropflex.logistics (json) → si falta, los ajustes del bloque.
+{%- enddoc -%}
+{%- liquid
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
+  assign s = block.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign handling = logistics.handling_days | default: s.handling_days | plus: 0
+  assign tmin = logistics.transit_days_min | default: s.transit_days_min | plus: 0
+  assign tmax = logistics.transit_days_max | default: s.transit_days_max | plus: 0
+  if tmax < tmin
+    assign tmax = tmin
+  endif
+  assign days_min = handling | plus: tmin
+  assign days_max = handling | plus: tmax
+
+  assign t_available = content.available_text | default: s.available_text
+  assign t_limited = content.limited_text | default: s.limited_text
+  assign t_sold_out = content.sold_out_text | default: s.sold_out_text
+  assign t_preorder = content.preorder_text | default: s.preorder_text | default: t_available
+  assign t_viral = s.viral_text
+  # Vendidos de la semana: 150–350 por producto (semilla del id); el navegador lo fija en localStorage.
+  assign sold = product.id | modulo: 201 | plus: 150
+-%}
+
+{%- if product != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+
+  {%- capture variants_json -%}
+    {
+    {%- for v in product.variants -%}
+      "{{ v.id }}": { "a": {{ v.available | json }}, "q": {{ v.inventory_quantity | default: 0 | json }}, "m": {{ v.inventory_management | json }}, "p": {{ v.inventory_policy | json }} }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+    }
+  {%- endcapture -%}
+
+  {%- liquid
+    # Estado del primer render: el mismo algoritmo que df-inventory.js (sin parpadeo al hidratar).
+    assign variant = product.selected_or_first_available_variant
+    assign qty = variant.inventory_quantity | default: 0
+    assign tracked = false
+    if variant.inventory_management == 'shopify'
+      assign tracked = true
+    endif
+    if variant.available == false
+      assign status = 'sold_out'
+    elsif tracked and qty <= 0 and variant.inventory_policy == 'continue'
+      assign status = 'preorder'
+    elsif tracked and qty > 0 and qty <= s.low_stock_threshold
+      assign status = 'limited'
+    else
+      assign status = 'available'
+    endif
+    if tracked == false and s.show_when_untracked == false
+      assign status = 'hidden'
+    endif
+
+    case status
+      when 'sold_out'
+        assign text = t_sold_out
+      when 'preorder'
+        assign text = t_preorder
+      when 'limited'
+        assign text = t_limited
+      else
+        assign text = t_available
+    endcase
+    if status == 'limited' and s.show_quantity == false
+      assign text = t_available
+    endif
+    if status == 'available' and t_viral != blank
+      assign text = t_viral
+    endif
+    assign text = text | replace: '{sold}', sold | replace: '{qty}', qty | replace: '{min}', days_min | replace: '{max}', days_max
+  -%}
+
+  <df-inventory
+    class="df df-inventory df-inventory--{{ status }}{% if s.pulse %} df-inventory--pulse{% endif %}"
+    style="{% render 'df-accent-vars', product: product %} --df-inventory-size: {{ s.text_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    data-threshold="{{ s.low_stock_threshold }}"
+    data-show-quantity="{{ s.show_quantity }}"
+    data-show-untracked="{{ s.show_when_untracked }}"
+    data-min="{{ days_min }}"
+    data-max="{{ days_max }}"
+    data-product-id="{{ product.id }}"
+    data-sold="{{ sold }}"
+    {{ block.shopify_attributes }}
+    {% if status == 'hidden' %}hidden{% endif %}
+  >
+    <span class="df-inventory__dot" aria-hidden="true"></span>
+    <span class="df-inventory__text" role="status" aria-live="polite">{{ text | escape }}</span>
+    <script type="application/json" data-df-variants>{{ variants_json }}</script>
+    <script type="application/json" data-df-texts>
+      {
+        "available": {{ t_viral | default: t_available | json }},
+        "limited": {{ t_limited | json }},
+        "sold_out": {{ t_sold_out | json }},
+        "preorder": {{ t_preorder | json }}
+      }
+    </script>
+  </df-inventory>
+
+{%- endif -%}

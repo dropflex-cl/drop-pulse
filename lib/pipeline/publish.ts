@@ -9,6 +9,11 @@
 import "server-only";
 import { after } from "next/server";
 import { LISTING, type Listing } from "@/lib/copy/listing";
+import { validateLandingProposal } from "@/lib/product-intelligence/landing-service";
+import { contextAccess, createContextRepository } from "@/lib/product-intelligence/repository";
+import { PI_SCOPES } from "@/lib/product-intelligence/policy";
+import { assertLandingVariantTheme } from "@/lib/shopify/publish/theme";
+import { contentVariants, isVariants, selectVariant } from "@/lib/copy/variants";
 import { activeComponents, currentContent } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
@@ -16,7 +21,7 @@ import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations
 import { missingPublishScopes } from "@/lib/integrations/shopify/oauth";
 import { COVER, GALLERY, GALLERY_MIN, GIFS, slotKind } from "@/lib/page-images/catalog";
 import { PAGE_MEDIA_BUCKET, pageImageRows } from "@/lib/page-images/store";
-import { labelsStale } from "@/lib/pricing/labels";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
@@ -29,7 +34,7 @@ import { EVENT_KEY, publishProductEvent } from "@/lib/events/store";
 import { ensureDefinitions } from "@/lib/shopify/publish/definitions";
 import { assertNoUserErrors, ensureImages, PublishError, type SourceImage } from "@/lib/shopify/publish/files";
 import { deleteMetafields, setMetafields } from "@/lib/shopify/publish/metafields";
-import { fingerprint, MappingError, PACK_OPTION, productMetafields, productSetInput, type ExistingProduct, type PublishInput } from "@/lib/shopify/publish/mapping";
+import { fingerprint, landingAtomicKeys, MappingError, PACK_OPTION, productMetafields, productSetInput, type ExistingProduct, type PublishInput } from "@/lib/shopify/publish/mapping";
 import { packCompareAt } from "@/lib/store-preview/facts";
 import type { ImagePick } from "@/lib/types";
 
@@ -113,7 +118,8 @@ export async function preparePublish(userId: string, productId: string): Promise
 
   const listingRow = rows.find((r) => r.component === LISTING && r.status === "approved");
   if (!listingRow) missing.push("Aprueba la ficha en Página del producto.");
-  const listing = (listingRow ? currentContent(listingRow) : null) as Listing | null;
+  const listingContent = listingRow ? currentContent(listingRow) : null;
+  const listing = (listingRow ? selectVariant(listingContent).content : null) as Listing | null;
 
   // Imágenes: portada, galería en su orden y los beneficios elegidos en la etapa Imágenes.
   const images: SourceImage[] = [];
@@ -142,10 +148,10 @@ export async function preparePublish(userId: string, productId: string): Promise
   const resolvePick = (pick: ImagePick): SourceImage | null => {
     if (pick.source === "reference") {
       const ref = refById.get(pick.id);
-      return ref ? refSource(ref, name) : null;
+      return ref && !ref.excluded ? refSource(ref, name) : null;
     }
     const p = pageRows.find((x) => x.id === pick.id);
-    return p ? pageSource(p, name) : null;
+    return p && p.render_status === "succeeded" && p.status !== "rejected" ? pageSource(p, name) : null;
   };
   // Los GIF de Imágenes, en su orden: el GIF N lleva el texto N de gif-strip.
   const gifs = chosen
@@ -167,8 +173,29 @@ export async function preparePublish(userId: string, productId: string): Promise
         images.push(...gifs);
         bySlot[GIFS] = gifs.map((g) => g.key);
       }
-      return { id: r.component, content: currentContent(r), images: bySlot };
+      const content = currentContent(r);
+      const variantImages = isVariants(content) ? contentVariants(content).map((v) => {
+        const slots: Record<string, string[]> = {};
+        for (const pick of v.images ?? r.images ?? []) {
+          const src = resolvePick(pick);
+          if (!src) { missing.push(`${r.component} (${v.key}): una imagen ya no está disponible.`); continue; }
+          images.push(src); (slots[pick.slot] ??= []).push(src.key);
+        }
+        for (const slot of componentById(r.component)?.imageSlots ?? []) if ((slots[slot.key] ?? []).length < slot.min) missing.push(`${r.component} (${v.key}): elige al menos ${slot.min} imágenes para ${slot.label}.`);
+        if (r.component === "gif-strip") slots[GIFS] = gifs.map((g) => g.key);
+        return { key: v.key, images: slots };
+      }) : undefined;
+      return { id: r.component, content, images: bySlot, variantImages };
     });
+
+  const variantRows = rows.filter((r) => r.status === "approved" && r.enabled && isVariants(currentContent(r)));
+  if (variantRows.length) {
+    try {
+      const access = contextAccess({ userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES });
+      const current = await createContextRepository().loadLanding({ p_access: access, p_product_id: productId }, AbortSignal.timeout(10000));
+      validateLandingProposal(userId, current, variantRows.map((r) => ({ component: r.component, content: currentContent(r) })), productId);
+    } catch (error) { missing.push(error instanceof Error ? error.message : "Revisa las variantes antes de publicar."); }
+  }
 
   // Reseñas aprobadas con sus fotos.
   const publishReviews = reviews.map((r) => {
@@ -189,7 +216,7 @@ export async function preparePublish(userId: string, productId: string): Promise
   // Las tarjetas de packs de la tienda usan las etiquetas («Uno solo para ti»): si hay una propuesta
   // sin decidir (o quedó vieja porque cambiaron los precios), se decide antes de publicar; si no, la
   // tienda caería en «1 unidad», «2 unidades».
-  const labelsReady = labels?.status === "approved" && !labelsStale(labels.prices, pricing);
+  const labelsReady = labels?.status === "approved" && !packLabelsStale(labels, pricing);
   if (pricing && pricing.packs.length > 1 && labels && !labelsReady) missing.push("Acepta las etiquetas de los packs en Información base.");
   const approvedLabels = labelsReady ? labels!.payload : [];
   const packs = (pricing?.packs ?? []).map((p) => {
@@ -206,6 +233,7 @@ export async function preparePublish(userId: string, productId: string): Promise
 
   const input: PublishInput = {
     listing: listing ?? { title: row.title, short_name: row.title, short_description: "", offer_line: "", seo_title: "", seo_description: "" },
+    ...(isVariants(listingContent) ? { listingVariants: listingContent } : {}),
     components,
     reviews: publishReviews,
     packs,
@@ -338,6 +366,7 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     const { input, images, missing } = await preparePublish(userId, productId);
     if (missing.length) throw new PublishError(missing[0]);
 
+    if (input.listingVariants || input.components.some((c) => isVariants(c.content))) await assertLandingVariantTheme(conn);
     const gid = productGid(row.shopify_product_id);
     const found = gid ? await shopifyQuery<ProductQuery>(conn, PRODUCT, { id: gid }) : { product: null };
     if (!found.product) throw new PublishError("Este producto ya no existe en tu tienda Shopify. Sincroniza tus productos.");
@@ -354,13 +383,13 @@ export async function runPublish(userId: string, productId: string): Promise<voi
 
     await ensureDefinitions(conn);
     const gids = await ensureImages(conn, productId, images);
+    const meta = productMetafields(input, gids);
     const set = await shopifyMutation<{ productSet: { product: { handle: string; onlineStoreUrl: string | null } | null; userErrors: { message: string }[] } }>(conn, PRODUCT_SET, {
       input: productSetInput(input, existing, gids),
     });
     assertNoUserErrors("Actualizar el producto", set.productSet.userErrors);
 
-    const meta = productMetafields(input, gids);
-    await setMetafields(conn, existing.id, meta.set);
+    await setMetafields(conn, existing.id, meta.set, landingAtomicKeys(input));
     const present = new Set(found.product.metafields.nodes.map((n) => n.key));
     // El evento va aparte (publishProductEvent): lo escribe o lo borra después de guardar la publicación.
     await deleteMetafields(conn, existing.id, meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY));

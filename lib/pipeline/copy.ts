@@ -1,4 +1,9 @@
 import "server-only";
+import { isVariants, selectVariant } from "@/lib/copy/variants";
+import { validateLandingProposal } from "@/lib/product-intelligence/landing-service";
+import { contextAccess, contextDatabaseError, createContextRepository } from "@/lib/product-intelligence/repository";
+import { PI_SCOPES } from "@/lib/product-intelligence/policy";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import { pageImageCounts } from "@/lib/page-images/store";
 import { AiStepError } from "@/lib/ai/claude";
@@ -63,7 +68,7 @@ async function loadContext(userId: string, productId: string) {
   // Imágenes va antes: los componentes de la página usan las imágenes elegidas.
   const images = counts(productId);
   if (!images.cover || images.gallery < GALLERY_MIN) throw new OptimizeError(`Elige la portada y al menos ${GALLERY_MIN} imágenes de galería en Imágenes para escribir la página.`, 409);
-  return { product, brief, avatar, pricing: pricing as PricingPlan, labels: labels?.status === "approved" ? labels.payload : undefined, briefs };
+  return { product, brief, avatar, pricing: pricing as PricingPlan, labels: labels?.status === "approved" && !packLabelsStale(labels, pricing) ? labels.payload : undefined, briefs };
 }
 
 /**
@@ -233,7 +238,7 @@ export async function runCopy(runId: string): Promise<void> {
       ...policies,
       reviews: reviews.map((v) => ({ id: v.id, rating: v.rating, text: displayText(v), country: v.country ?? undefined, photos: v.photos.length })),
       write,
-      approved: approved.map((a) => ({ component: a.component, content: currentContent(a) })),
+      approved: approved.map((a) => ({ component: a.component, content: selectVariant(currentContent(a)).content })),
     };
     // Los números de uso que puede citar la pregunta de duración: los que dio el comerciante.
     const facts = { currency: input.pricing.currency, amounts: allowedAmounts(input.pricing), reviewIds: reviews.map((v) => v.id), factText: productFactText(brief, product.base_info) };
@@ -300,6 +305,8 @@ export async function runCopy(runId: string): Promise<void> {
 // ---------------------------------------------------------------- Decidir
 
 export interface ComponentPatch {
+  expected_id?: string;
+  expected_updated_at?: string;
   /** Tu versión (valida con el esquema del componente). */
   content?: unknown;
   /** «Usar en la página». Activar aprueba. */
@@ -331,6 +338,30 @@ export function imageProblem(component: string, images: ImagePick[], allowed: Se
 export async function updateComponent(userId: string, productId: string, component: string, patch: ComponentPatch) {
   const row = await getComponentRow(userId, productId, component);
   if (!row) throw new OptimizeError("Ese componente ya no está en la página. Actualiza.", 409);
+  const content = patch.content ?? currentContent(row);
+  if ((patch.expected_id && patch.expected_id !== row.id) || (patch.expected_updated_at && patch.expected_updated_at !== row.updated_at)) throw new OptimizeError("El componente cambió desde tu lectura. Actualiza antes de guardar.", 409);
+  if (isVariants(content) || isVariants(currentContent(row))) {
+    if (!patch.expected_id || !patch.expected_updated_at) throw new OptimizeError("Actualiza la página antes de revisar estas variantes.", 409);
+    const access = contextAccess({ userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES });
+    const raw = await createContextRepository().loadLanding({ p_access: access, p_product_id: productId }, AbortSignal.timeout(10000));
+    const approving = patch.approve || patch.content !== undefined || patch.images !== undefined || patch.enabled === true;
+    try {
+      if (approving) validateLandingProposal(userId, raw, [{ component, content }], productId);
+      if (patch.images) {
+        const allowed = new Set((await catalogImages(userId, productId, false)).map((i) => `${i.source}:${i.id}`));
+        const problem = imageProblem(component, patch.images, allowed);
+        if (problem) throw new OptimizeError(problem, 400);
+      }
+      const { expected_id, expected_updated_at, ...changes } = patch;
+      const { error } = await adminClient().rpc("pi_review_landing", { p_access: access, p_product_id: productId, p_component: component,
+        p_id: expected_id, p_updated_at: expected_updated_at, p_stamp: (raw as { stamp: string }).stamp, p_patch: changes });
+      if (error) throw contextDatabaseError(error);
+    } catch (error) {
+      if (error instanceof OptimizeError) throw error;
+      throw new OptimizeError(error instanceof Error ? error.message : "No pudimos revisar las variantes.", 409);
+    }
+    return;
+  }
   const listing = component === LISTING;
   const now = new Date().toISOString();
   const update: Record<string, unknown> = { updated_at: now };
@@ -362,7 +393,7 @@ export async function updateComponent(userId: string, productId: string, compone
     update.decided_at = now;
     if (!listing && (patch.content !== undefined || patch.images !== undefined) && patch.enabled === undefined) update.enabled = true;
   }
-  const saved = await adminClient().from("page_components").update(update).eq("id", row.id).eq("user_id", userId).eq("product_id", productId).is("superseded_at", null).select("id").maybeSingle();
+  const saved = await adminClient().from("page_components").update(update).eq("id", row.id).eq("user_id", userId).eq("product_id", productId).eq("updated_at", row.updated_at).is("superseded_at", null).select("id").maybeSingle();
   fail("Guardar el componente", saved.error);
   if (!saved.data) throw new OptimizeError("La página cambió desde tu lectura. Actualiza antes de editar este componente.", 409);
 }

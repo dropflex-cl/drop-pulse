@@ -1,3 +1,25 @@
+# Estado actual: landing por ángulo y hook
+
+Implementación y pruebas locales de arrays por componente, edición/revisión, medios por variante y selección URL en el template Shopify. [Contrato, despliegue y rollback](landing-variants-mcp.md), [ADR 013](adrs/013-component-landing-variants.md). Se mantienen once tools persistentes; get/save_landing_content usan contrato 1.1 con compatibilidad 1.0. Migración 20261107000000 aplicada solo en local. Producción sigue readonly.
+
+Verificación final: 1.034 tests habituales aprobados y 65 transaccionales en Supabase local, ejecutados secuencialmente. Typecheck, ESLint de archivos tocados, contratos, tokens UI, sincronización de copias y build Next webpack pasan. Shopify Theme Check: cero errores, 43 warnings (incluye documentación de parámetros y ajustes existentes). Chromium valida 19 bloques × 8 URLs × móvil/escritorio, imágenes por selector, FAQ, IDs únicos, navegación y default sin JS. El build mantiene los cinco diagnósticos previos HANGING_PROMISE_REJECTION en ads/onboarding. Sin publicación hosted ni consumo de proveedores.
+
+El siguiente paso operacional es aplicar migraciones, desplegar app/MCP y actualizar/probar el tema en una tienda de prueba. El siguiente paquete de producto sigue siendo guiones y planificación UGC desde chat. Videos del carrusel, atribución por selector y host ChatGPT remoto siguen pendientes.
+
+---
+
+# Estado actual: etiquetas de packs desde chat
+
+Se agregan `get_pack_labels` y `save_pack_labels`: **once tools persistentes anunciadas localmente**, catorce pares de contratos con tres de ejecución todavía cerrados. [ADR 012](adrs/012-chat-authored-pack-labels.md) y [flujo/límites](pack-labels-mcp.md).
+
+Se reutiliza pack_labels y su editor/publicador. Chat escribe; MCP guarda una propuesta con snapshot, CAS, receipt y audit. La UI decide con etag de etiquetas/precio y transacción compartida. Duración requiere facts revisados; precio/moneda o respaldo stale impiden consumo en contexto, prompts, preview y publicación. Se retira la generación independiente «Otras etiquetas», sin llamar IA. Los writers de estrategia legacy no pueden reemplazar propuestas MCP.
+
+Verificación final: 1.025 tests habituales aprobados y 61 pruebas DB locales adicionales, con OAuth nativo/SDK HTTP. Typecheck, lint de archivos tocados, contratos, valores UI y build Next webpack pasan. El build conserva los cinco diagnósticos previos HANGING_PROMISE_REJECTION de cookies en onboarding/ads. La migración completa también se compiló desde su estado previo en una transacción con rollback y checks de ACL. No hubo consumo de proveedores ni publicación.
+
+La migración 20261106000000 está aplicada solo localmente. Aplicar las cinco migraciones antes del código, incluso con MCP apagado. Pendientes: guiones/conceptos/plans/eventos/WhatsApp, retiro completo legacy, videos en landing, render/jobs y conexión de ChatGPT remoto. Producción permanece readonly. Las entregas previas se conservan debajo como historial.
+
+---
+
 # Estado actual: contenido final de landing desde chat
 
 La última decisión del comerciante cambia la frontera de ejecución: la escritura se hace en el chat. [ADR 011](adrs/011-chat-authored-store-content.md) y [análisis de componentes/tools](landing-content-mcp.md) sustituyen la suposición anterior de conservar redacción final de landing/UGC en proveedores del servidor.

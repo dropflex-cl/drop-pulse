@@ -115,7 +115,7 @@ async function main() {
     await page.getByRole("button", { name: "Revoca la conexión" }).click();
     await page.getByText("Acceso inactivo", { exact: true }).waitFor();
     await assert.rejects(authenticate(request()), { status: 401 });
-    console.log(JSON.stringify({ environment: "local", screens, wcag: true, consent: true, default_read_only: true, revoke_ui: true, delegated_cookie_blocked: true, domain_executor: true, pricing_ui_cas: true, persisted_context_read: true, published_tools: 9 }));
+    console.log(JSON.stringify({ environment: "local", screens, wcag: true, consent: true, default_read_only: true, revoke_ui: true, delegated_cookie_blocked: true, domain_executor: true, pricing_ui_cas: true, persisted_context_read: true, published_tools: 11 }));
     await context.close();
   } finally {
     await browser?.close();

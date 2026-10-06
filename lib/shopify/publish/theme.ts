@@ -86,6 +86,20 @@ async function remoteFiles(conn: ShopifyConnection, themeGid: string): Promise<R
   }
 }
 
+/** No escribir arrays que un tema anterior trataría como un objeto y mostraría vacío. */
+export async function assertLandingVariantTheme(conn: ShopifyConnection): Promise<void> {
+  const installed = await getThemeInstallation(conn.user_id);
+  const kit = readKit();
+  if (!installed?.theme_gid || installed.shop_domain !== conn.shop_domain || installed.status !== "published" || installed.kit_version !== kit.version) {
+    throw new PublishError("Actualiza y publica el tema de DropFlex antes de publicar variantes por ángulo y hook.");
+  }
+  const live = (await listThemes(conn)).find((theme) => theme.role === "MAIN");
+  if (live?.id !== installed.theme_gid) throw new PublishError("Publica el tema de DropFlex para mostrar las variantes de la página.");
+  const files = new Map((await remoteFiles(conn, installed.theme_gid)).map((f) => [f.path, f.md5]));
+  const required = kit.files.filter((f) => /^(blocks|sections)\/df-/.test(f.path) || /^snippets\/df-.*(?:content|selector|design-system)\.liquid$/.test(f.path));
+  if (required.some((f) => files.get(f.path) !== f.md5)) throw new PublishError("Actualiza el código del tema antes de publicar las variantes de la página.");
+}
+
 const FILE_BODY = /* GraphQL */ `
   query FileBody($id: ID!, $names: [String!]!) {
     theme(id: $id) {

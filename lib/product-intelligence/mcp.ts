@@ -12,6 +12,8 @@ export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }
 export type DomainExecutor = (principal: Principal, command: ToolCommand, signal: AbortSignal) => Promise<unknown>;
 
 const descriptions: Record<ToolName, string> = {
+  get_pack_labels: "Consulta precio, propuesta y contrato de las etiquetas de packs para escribirlas en chat.",
+  save_pack_labels: "Guarda etiquetas de packs como propuesta vinculada al precio, sin IA, aprobación ni publicación.",
   get_landing_content: "Lee el contrato real de un componente de Shopify, contenido actual, reseñas aprobadas y pricing. Consulta cada componente antes de escribirlo.",
   save_landing_content: "Guarda textos creados en el chat en los componentes de la landing como propuestas por revisar. Merge atómico con CAS e idempotencia; sin IA, imágenes ni publicación.",
   get_product_context: "Recupera producto, pricing, conocimiento y selección en una revisión consistente.",

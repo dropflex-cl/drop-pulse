@@ -1,0 +1,244 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- comment -%}
+  DropFlex · Tabla comparativa (comparison-table). Sección de la landing, después de beneficios y
+  antes de reseñas o FAQ: «[Producto] vs. [categoría genérica]» con la columna nuestra destacada
+  como un pilar de color de acento que atraviesa la tabla.
+
+  REGLA: la competencia es SIEMPRE una categoría genérica («Genéricos», «Tiendas internacionales»),
+  nunca una marca. El metafield solo existe después de que el comerciante aprobó la tabla en la
+  app (approved_by_merchant): la sección no vuelve a validar eso, solo lo dibuja.
+
+  Contenido: metafield `dropflex.comparison_table` (json) → si falta, los ajustes y bloques «Fila».
+    { heading, us_label, other_labels[1..2], rows[{ feature, us, others[], basis }], footnote? }
+    valor de celda: "yes" | "no" | "partial" | { text }
+  Tokens en textos: {min} {max} días hábiles (logística) · {return_days} · {warranty_months}
+  (políticas). Una fila con un token sin dato real no se muestra.
+
+  Tabla semántica: <table> con <th scope="col"> y <th scope="row">; cada ícono lleva su texto
+  oculto (Sí / No / Parcial). Con dos competidores, en móvil la tabla se desplaza en horizontal con
+  la primera columna fija.
+{%- endcomment -%}
+{%- liquid
+  assign s = section.settings
+  if product == blank
+    assign product = s.product
+  endif
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign logistics = shop.metafields.dropflex.logistics.value
+  assign policies = shop.metafields.dropflex.policies.value
+
+  # Datos reales para los tokens. Sin logística no hay {min}/{max}: esas filas se omiten.
+  assign days_min = nil
+  assign days_max = nil
+  if logistics.transit_days_min != blank
+    assign handling = logistics.handling_days | default: 0 | plus: 0
+    assign days_min = logistics.transit_days_min | plus: handling
+    assign days_max = logistics.transit_days_max | default: logistics.transit_days_min | plus: handling
+    if days_max < days_min
+      assign days_max = days_min
+    endif
+  endif
+  assign return_days = policies.return_days
+  assign warranty_months = policies.warranty_months
+
+  if content.rows.size > 0
+    assign rows = content.rows
+    assign heading = content.heading | default: s.heading
+    assign us_label = content.us_label | default: s.us_label
+    assign o1_label = content.other_labels[0]
+    assign o2_label = content.other_labels[1]
+    assign footnote = content.footnote
+  else
+    assign rows = section.blocks
+    assign heading = s.heading
+    assign us_label = s.us_label
+    assign o1_label = s.other_label_1
+    assign o2_label = s.other_label_2
+    assign footnote = s.footnote
+  endif
+  assign us_label = us_label | default: shop.name
+
+  assign cols = 1
+  if o2_label != blank
+    assign cols = 2
+  endif
+
+  assign bg = s.background
+  assign bg_hex = nil
+  assign dark_bg = false
+  if bg != blank and bg.alpha != 0
+    assign bg_hex = bg | color_to_hex
+    assign bg_brightness = bg | color_brightness
+    if bg_brightness < 128
+      assign dark_bg = true
+    endif
+  endif
+
+  assign sep = '~|~'
+  assign heading_id = 'DfComparisonHeading-' | append: section.id
+-%}
+
+{%- capture rows_html -%}
+  {%- if o1_label != blank -%}
+    {%- for row in rows limit: 8 -%}
+      {%- liquid
+        # Un bloque del editor trae settings; un ítem del metafield trae las claves directas.
+        if row.settings != blank
+          assign feature = row.settings.feature
+          assign us_val = row.settings.us
+          assign us_text = row.settings.us_text
+          assign o1_val = row.settings.other_1
+          assign o1_text = row.settings.other_1_text
+          assign o2_val = row.settings.other_2
+          assign o2_text = row.settings.other_2_text
+          assign row_attrs = row.shopify_attributes
+        else
+          assign feature = row.feature
+          assign us_text = row.us.text
+          assign us_val = row.us
+          if us_text != blank
+            assign us_val = 'text'
+          endif
+          assign o1_cell = row.others[0]
+          assign o1_text = o1_cell.text
+          assign o1_val = o1_cell
+          if o1_text != blank
+            assign o1_val = 'text'
+          endif
+          assign o2_cell = row.others[1]
+          assign o2_text = o2_cell.text
+          assign o2_val = o2_cell
+          if o2_text != blank
+            assign o2_val = 'text'
+          endif
+          assign row_attrs = ''
+        endif
+
+        if feature == blank
+          continue
+        endif
+
+        # Los cuatro textos de la fila pasan juntos por los tokens: si queda uno sin dato, la fila se omite.
+        assign joined = feature | append: sep | append: us_text | append: sep | append: o1_text | append: sep | append: o2_text
+        if days_min != blank
+          assign joined = joined | replace: '{min}', days_min | replace: '{max}', days_max
+        endif
+        if return_days != blank
+          assign joined = joined | replace: '{return_days}', return_days
+        endif
+        if warranty_months != blank
+          assign joined = joined | replace: '{warranty_months}', warranty_months
+        endif
+        if joined contains '{'
+          continue
+        endif
+        assign parts = joined | split: sep
+        assign feature = parts[0]
+        assign us_text = parts[1]
+        assign o1_text = parts[2]
+        assign o2_text = parts[3]
+      -%}
+      <tr class="df-comparison-table__row" data-df-reveal="fade" {{ row_attrs }}>
+        <th scope="row" class="df-comparison-table__feature">{{ feature | escape }}</th>
+        <td class="df-comparison-table__us">{% render 'df-comparison-table-cell', value: us_val, text: us_text %}</td>
+        <td class="df-comparison-table__other">{% render 'df-comparison-table-cell', value: o1_val, text: o1_text %}</td>
+        {%- if cols == 2 -%}
+          <td class="df-comparison-table__other">{% render 'df-comparison-table-cell', value: o2_val, text: o2_text %}</td>
+        {%- endif -%}
+      </tr>
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- assign rows_html = rows_html | strip -%}
+
+{%- if rows_html != blank or request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+  {%- if s.pulse -%}
+
+  {%- endif -%}
+
+  <df-comparison-table
+    class="df df-comparison-table{% if s.red_crosses %} df-comparison-table--red-crosses{% endif %}{% if s.pulse %} df-comparison-table--pulse{% endif %}"
+    style="{% render 'df-accent-vars', product: product, background: bg_hex %} padding-block: calc({{ s.padding_top }}px * var(--df-space, 1)) calc({{ s.padding_bottom }}px * var(--df-space, 1));{% if bg_hex != blank %} --df-bg: {{ bg_hex }}; background: {{ bg_hex }};{% endif %}{% if dark_bg %} --df-fg: #ffffff;{% endif %}"
+  >
+    <div class="df-comparison-table__inner">
+      {%- if rows_html == blank -%}
+        <p class="df-placeholder">
+          Tabla comparativa: agrega filas o publica el contenido aprobado desde DropFlex. Sin filas no se muestra en la tienda.
+        </p>
+      {%- else -%}
+        {%- if heading != blank -%}
+          <h2 id="{{ heading_id }}" class="df-heading df-comparison-table__heading{% if s.heading_italic %} df-comparison-table__heading--italic{% endif %}" data-df-reveal>
+            {{- heading | escape -}}
+          </h2>
+        {%- endif -%}
+
+        <div
+          class="df-comparison-table__scroll df-comparison-table__scroll--cols-{{ cols }}"
+          {% if cols == 2 %}
+            tabindex="0" role="region"
+            {% if heading != blank %}aria-labelledby="{{ heading_id }}"{% else %}aria-label="Tabla comparativa"{% endif %}
+          {% endif %}
+        >
+          <table
+            class="df-comparison-table__table"
+            {% if heading != blank %}aria-labelledby="{{ heading_id }}"{% else %}aria-label="Tabla comparativa"{% endif %}
+          >
+            <thead>
+              <tr>
+                <td class="df-comparison-table__corner"><span class="df-visually-hidden">Característica</span></td>
+                <th scope="col" class="df-comparison-table__us df-comparison-table__us--head">
+                  {%- if s.us_logo != blank -%}
+                    {{
+                      s.us_logo
+                      | image_url: width: 360
+                      | image_tag:
+                        widths: '120, 180, 270, 360',
+                        sizes: '(min-width: 750px) 180px, 28vw',
+                        alt: us_label,
+                        loading: 'lazy',
+                        class: 'df-comparison-table__logo'
+                    }}
+                  {%- else -%}
+                    {{ us_label | escape }}
+                  {%- endif -%}
+                </th>
+                <th scope="col" class="df-comparison-table__other df-comparison-table__other--head">{{ o1_label | escape }}</th>
+                {%- if cols == 2 -%}
+                  <th scope="col" class="df-comparison-table__other df-comparison-table__other--head">{{ o2_label | escape }}</th>
+                {%- endif -%}
+              </tr>
+            </thead>
+            <tbody>
+              {{ rows_html }}
+            </tbody>
+          </table>
+        </div>
+
+        {%- if rows_html contains 'mark--partial' or footnote != blank -%}
+          <div class="df-comparison-table__notes">
+            {%- if rows_html contains 'mark--partial' -%}
+              <p class="df-comparison-table__legend">
+                <span class="df-comparison-table__mark df-comparison-table__mark--partial" aria-hidden="true"></span>
+                Parcial: solo en algunos casos o modelos.
+              </p>
+            {%- endif -%}
+            {%- if footnote != blank -%}
+              <p class="df-text df-comparison-table__footnote">{{ footnote | escape }}</p>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  </df-comparison-table>
+
+{%- endif -%}

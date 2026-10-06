@@ -1,48 +1,19 @@
-{%- doc -%}
-  DropFlex · Bajada (subtitle). Bloque de la columna del producto, bajo el título: una frase que
-  dice qué es y para quién.
+{%- assign df_product = closest.product | default: product -%}
+{%- assign df_variants = df_product.metafields.dropflex.landing_listing.value -%}
 
-  Contenido: metafield `dropflex.subtitle` (single_line_text_field, la descripción corta de la
-  ficha aprobada en DropFlex) → si falta, el texto del bloque → si tampoco, nada.
-  Eventos: si el evento que se ve trae su bajada (intensidad total, textos aprobados), se muestra
-  esa mientras dura y la de siempre queda lista para cuando termine (df-ev-only / df-ev-off).
-{%- enddoc -%}
-{%- liquid
-  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
-  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
-  assign product = closest.product | default: product
-  assign s = block.settings
-  assign text = product.metafields.dropflex.subtitle.value | default: s.text
-  assign event_text = blank
-  if product != blank
-    capture df_i
-      render 'df-event-pick', product: product
-    endcapture
-    if df_i != blank
-      assign df_i = df_i | plus: 0
-      assign event_text = product.metafields.dropflex.event.value.events[df_i].subtitle
-    endif
-  endif
--%}
-{%- if text != blank -%}
-  {{ 'df-components.css' | asset_url | stylesheet_tag }}
-  <p
-    class="df df-subtitle"
-    style="--df-subtitle-size: {{ s.text_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
-    {{ block.shopify_attributes }}
-  >
-    {%- if event_text != blank -%}
-      <span class="df-ev-off">{{- text | escape -}}</span>
-      <span class="df-ev-only">{{- event_text | escape -}}</span>
-    {%- else -%}
-      {{- text | escape -}}
-    {%- endif -%}
-  </p>
-{%- elsif request.design_mode -%}
-  {{ 'df-components.css' | asset_url | stylesheet_tag }}
-  <div class="df df-placeholder" {{ block.shopify_attributes }}>
-    Bajada: sale de la ficha aprobada en DropFlex, o escribe una aquí.
-  </div>
+{%- if df_variants.first.key != blank -%}
+  <df-landing-content data-df-component="df-subtitle">
+    {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
+    <div data-df-active>{% render 'df-subtitle-content', product: df_product, section: section, block: block, content: df_default.content, df_variant: df_default %}</div>
+    {%- for df_variant in df_variants -%}
+      <template data-df-variant="{{ df_variant.key | escape }}" data-angle="{{ df_variant.angle_id | escape }}" data-hook="{{ df_variant.hook_id | escape }}">
+        {% render 'df-subtitle-content', product: df_product, section: section, block: block, content: df_variant.content, df_variant: df_variant %}
+      </template>
+    {%- endfor -%}
+    <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
+  </df-landing-content>
+{%- else -%}
+  {% render 'df-subtitle-content', product: df_product, section: section, block: block %}
 {%- endif -%}
 
 {% stylesheet %}

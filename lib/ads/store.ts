@@ -1,3 +1,4 @@
+import { selectVariant } from "@/lib/copy/variants";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { adHookText } from "@/lib/hooks/select";
@@ -133,7 +134,7 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
   ]);
   const { market } = await getMarket(userId, shop);
   const listingRow = (items.get(product.id) ?? []).find((r) => r.component === LISTING && r.status === "approved");
-  const listing = listingRow ? (currentContent(listingRow) as Listing) : null;
+  const listing = listingRow ? (selectVariant(currentContent(listingRow)).content as Listing) : null;
   // Un texto por ángulo, en orden de slot: el anuncio de un creativo del ángulo N lleva el texto N (lib/ads/plan.ts).
   // El mejor gancho usable (lib/hooks/select.ts): sin los que piden material real ni los de riesgo alto.
   const hooks = briefs ? briefs.map((b) => adHookText(b.brief.payload)) : [];

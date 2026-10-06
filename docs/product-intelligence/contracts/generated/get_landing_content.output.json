@@ -160,7 +160,7 @@
             },
             "contract_version": {
               "type": "string",
-              "const": "1.0"
+              "const": "1.1"
             },
             "context_stale": {
               "type": "boolean"
@@ -272,11 +272,18 @@
                 }
               ]
             },
+            "image_catalog": {
+              "maxItems": 500,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            },
             "approved_reviews": {
               "maxItems": 30,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema5"
+                "$ref": "#/$defs/__schema6"
               }
             },
             "review_count": {
@@ -297,6 +304,7 @@
             "catalog",
             "contract",
             "current",
+            "image_catalog",
             "approved_reviews",
             "review_count",
             "pricing",
@@ -364,6 +372,26 @@
     },
     "__schema4": {},
     "__schema5": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "page_image"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "source",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "__schema6": {
       "type": "object",
       "properties": {
         "id": {

@@ -4,6 +4,7 @@ import "server-only";
 import { shopifyMutation } from "@/lib/integrations/shopify/client";
 import type { ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { assertNoUserErrors } from "./files";
+import { metafieldBatches } from "./batches";
 
 const METAFIELDS_SET = /* GraphQL */ `
   mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -23,10 +24,10 @@ const METAFIELDS_DELETE = /* GraphQL */ `
   }
 `;
 
-export async function setMetafields(conn: ShopifyConnection, ownerId: string, list: { namespace: string; key: string; type: string; value: string }[]) {
-  for (let i = 0; i < list.length; i += 25) {
+export async function setMetafields(conn: ShopifyConnection, ownerId: string, list: { namespace: string; key: string; type: string; value: string }[], atomicKeys: string[] = []) {
+  for (const batch of metafieldBatches(list, atomicKeys)) {
     const res = await shopifyMutation<{ metafieldsSet: { userErrors: { message: string }[] } }>(conn, METAFIELDS_SET, {
-      metafields: list.slice(i, i + 25).map((m) => ({ ...m, ownerId })),
+      metafields: batch.map((m) => ({ ...m, ownerId })),
     });
     assertNoUserErrors("Guardar el contenido de la página", res.metafieldsSet.userErrors);
   }

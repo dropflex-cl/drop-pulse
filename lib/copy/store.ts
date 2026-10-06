@@ -32,6 +32,7 @@ export interface CopyRunRow {
 
 export interface PageComponentRow {
   id: string;
+  updated_at: string;
   product_id: string;
   user_id: string;
   run_id: string;
@@ -46,7 +47,7 @@ export interface PageComponentRow {
   created_at: string;
 }
 
-const COMPONENT_COLUMNS = "id, product_id, user_id, run_id, component, position, proposal, content, enabled, images, status, decided_at, created_at";
+const COMPONENT_COLUMNS = "id, product_id, user_id, run_id, component, position, proposal, content, enabled, images, status, decided_at, created_at, updated_at";
 
 /** Cierra las escrituras colgadas (el proceso murió). */
 export async function expireStaleCopy(userId: string): Promise<void> {
@@ -162,6 +163,7 @@ export function isStale(run: Pick<CopyRunRow, "input"> | undefined, current: Bri
 export function toComponentViews(rows: PageComponentRow[]): PageComponentView[] {
   return rows.map((r) => ({
     id: r.id,
+    updatedAt: r.updated_at,
     component: r.component,
     content: currentContent(r),
     edited: r.content != null,

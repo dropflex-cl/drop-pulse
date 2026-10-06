@@ -24,7 +24,7 @@ describe("PI · HTTP oficial", () => {
       await session.client.connect(session.transport);
       const tools = []; let cursor: string | undefined;
       do { const page = await session.client.listTools(cursor ? { cursor } : undefined); tools.push(...page.tools); cursor = page.nextCursor; } while (cursor);
-      expect(tools).toHaveLength(12);
+      expect(tools).toHaveLength(14);
       const result = await session.client.callTool({ name: "get_product_context", arguments: { product_id: "00000000-0000-4000-8000-000000000009" } });
       expect(result.structuredContent).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
     } finally { await session.client.close(); }

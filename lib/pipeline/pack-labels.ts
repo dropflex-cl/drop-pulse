@@ -1,70 +1,8 @@
 import "server-only";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { failure, recordAiGeneration } from "@/lib/ai/track";
-import { packLabelsSystem, packLabelsUser } from "@/lib/ai/prompts";
-import { PACK_LABELS_PROMPT_VERSION, packLabelsOnlySchema } from "@/lib/ai/schemas";
-import { adminClient } from "@/lib/integrations/admin";
-import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
-import { latestPackLabels, saveGeneratedPackLabels } from "@/lib/pricing/labels-store";
-import { getPricingPlan } from "@/lib/pricing/store";
-import { latestAvatars, latestBrief } from "@/lib/products/store";
-import { getMarket } from "@/lib/settings/market";
-import { OptimizeError, requireAiKey } from "./errors";
+import { OptimizeError } from "./errors";
 
-// “Otras etiquetas” en Precio y packs: una llamada chica, solo con las etiquetas, que parte de la
-// ficha, el cliente ideal y el precio vigentes. Las primeras salen con el cliente ideal (optimize.ts).
-
-/** Tope de “Otras etiquetas” por comerciante en 24 h. */
-const DAILY_LIMIT = 40;
-
-
-export async function regeneratePackLabels(userId: string, productId: string) {
-  await requireAiKey(userId);
-  const [brief, pricing, avatars, previous] = await Promise.all([
-    latestBrief(userId, productId),
-    getPricingPlan(userId, productId),
-    latestAvatars(userId, [productId]),
-    latestPackLabels(userId, productId),
-  ]);
-  if (!pricing) throw new OptimizeError("Guarda el precio y los packs primero.", 409);
-  if (!brief) throw new OptimizeError("Optimiza con IA primero: las etiquetas parten de la ficha del producto.", 409);
-
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-  const recent = await adminClient()
-    .from("ai_generations")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("step", "pack_labels")
-    .gte("created_at", since);
-  if ((recent.count ?? 0) >= DAILY_LIMIT) throw new OptimizeError(`Llegaste al máximo de ${DAILY_LIMIT} etiquetas nuevas en 24 horas. Vuelve mañana o edítalas a mano.`, 429);
-
-  const { market } = await getMarket(userId, await getShopifyConnection(userId));
-  const avatar = avatars.get(productId)?.payload;
-  let result;
-  try {
-    result = await generateStructured({
-      userId,
-      system: packLabelsSystem(market),
-      content: [
-        {
-          type: "text",
-          text: packLabelsUser(brief, avatar ?? null, pricing, (previous?.payload ?? []).map((l) => l.label)),
-        },
-      ],
-      schema: packLabelsOnlySchema,
-      effort: "medium",
-      maxTokens: 8000,
-    });
-  } catch (e) {
-    if (e instanceof AiStepError) {
-      await recordAiGeneration({ userId, productId, step: "pack_labels", ...failure(e) });
-      throw new OptimizeError(e.message, 502);
-    }
-    throw e;
-  }
-  await recordAiGeneration({ userId, productId, step: "pack_labels", usage: result.usage });
-  await saveGeneratedPackLabels({ id: null, user_id: userId, product_id: productId }, result.data.pack_labels, pricing, {
-    promptVersion: PACK_LABELS_PROMPT_VERSION,
-    model: result.usage.model,
-  });
+/** @deprecated Escribe la propuesta en chat y persístela con save_pack_labels. */
+export async function regeneratePackLabels(_userId: string, _productId: string): Promise<never> {
+  void _userId; void _productId;
+  throw new OptimizeError("Escribe otras etiquetas en el chat y guárdalas desde el MCP.", 409);
 }

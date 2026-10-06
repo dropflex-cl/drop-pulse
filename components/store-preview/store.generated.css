@@ -481,6 +481,10 @@ df-slider {
   display: none !important;
 }
 
+/* La selección conserva la estructura visual del componente y solo activa una variante. */
+df-landing-content,
+df-landing-content > [data-df-active] { display: contents; }
+
 /* _event/snippets/df-event-badge.liquid */
 .df-event-badge {
   display: inline-flex;

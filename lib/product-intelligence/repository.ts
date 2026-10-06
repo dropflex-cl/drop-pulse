@@ -14,6 +14,10 @@ export interface KnowledgeRepository extends ContextRepository {
   loadKnowledge(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
   commitKnowledge(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
 }
+export interface PackLabelsRepository {
+  loadPackLabels(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+  commitPackLabels(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+}
 export interface LandingRepository {
   loadLanding(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
   commitLanding(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
@@ -25,7 +29,7 @@ const messages: Partial<Record<DomainError["code"], string>> = {
   IDEMPOTENCY_KEY_REUSED: "Esta clave ya se usó con otro contenido. Envía una clave nueva.",
   VALIDATION_ERROR: "Revisa el contexto y los números antes de guardar.",
   DEPENDENCY_IN_USE: "Esta entidad pertenece a la estrategia seleccionada. Sustituye o archiva la selección primero.",
-  ARTIFACT_CONFLICT: "La página cambió desde tu lectura. Recupera su contenido y concilia los cambios.",
+  ARTIFACT_CONFLICT: "La propuesta cambió desde tu lectura. Recupera su contenido y concilia los cambios.",
   GENERATION_IN_PROGRESS: "Hay una escritura de página en curso. Espera a que termine antes de enviar contenido.",
 };
 export function contextDatabaseError(error: { code?: string; message?: string }): ProductIntelligenceError {
@@ -36,7 +40,7 @@ export function contextDatabaseError(error: { code?: string; message?: string })
   if (["23514", "22003", "22001", "22P02", "23502"].includes(error.code ?? "")) return new ProductIntelligenceError("VALIDATION_ERROR", "Revisa los campos y los números antes de guardar.");
   return new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos completar la transacción. Reintenta con la misma clave.", {}, true);
 }
-export function createContextRepository(db: SupabaseClient = adminClient()): KnowledgeRepository & LandingRepository {
+export function createContextRepository(db: SupabaseClient = adminClient()): KnowledgeRepository & LandingRepository & PackLabelsRepository {
   async function rpc(name: string, args: Record<string, unknown>, signal: AbortSignal) {
     const { data, error } = await db.rpc(name, args).abortSignal(AbortSignal.any([signal, AbortSignal.timeout(5000)]));
     if (error) throw contextDatabaseError(error);
@@ -44,6 +48,7 @@ export function createContextRepository(db: SupabaseClient = adminClient()): Kno
   }
   return { load: (args, signal) => rpc("pi_load_context", args, signal), commit: (args, signal) => rpc("pi_commit_context", args, signal),
     loadKnowledge: (args, signal) => rpc("pi_load_knowledge", args, signal), commitKnowledge: (args, signal) => rpc("pi_commit_knowledge", args, signal),
+    loadPackLabels: (args, signal) => rpc("pi_load_pack_labels", args, signal), commitPackLabels: (args, signal) => rpc("pi_commit_pack_labels", args, signal),
     loadLanding: (args, signal) => rpc("pi_load_landing", args, signal), commitLanding: (args, signal) => rpc("pi_commit_landing", args, signal) };
 }
 

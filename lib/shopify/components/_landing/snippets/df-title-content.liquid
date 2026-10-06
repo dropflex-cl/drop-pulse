@@ -1,0 +1,27 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · Título (title). El nombre del producto como el <h1> de la ficha (el título del tema es
+  un <p role="heading" aria-level="3">: la página quedaba sin h1, mal para Google y para lectores
+  de pantalla). Escala del design system: 26px en móvil, 36px en escritorio.
+{%- enddoc -%}
+{%- liquid
+  assign product = closest.product | default: product
+  assign s = block.settings
+-%}
+{%- if product != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <h1
+    class="df df-heading df-title"
+    style="margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {{- content.title | default: product.title | escape -}}
+  </h1>
+{%- endif -%}

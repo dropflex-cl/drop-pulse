@@ -1,4 +1,5 @@
 import "server-only";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { GIFS } from "@/lib/page-images/catalog";
 import { pageImageRows, signedPageUrls } from "@/lib/page-images/store";
@@ -38,7 +39,7 @@ export async function storeFacts(userId: string, productId: string): Promise<Sto
   ]);
   const p = settings?.policies;
   // Solo las etiquetas aprobadas llegan a la tienda (igual que a los prompts).
-  const approved = labels?.status === "approved" ? labels.payload : [];
+  const approved = labels?.status === "approved" && !packLabelsStale(labels, pricing) ? labels.payload : [];
   return {
     productName: product?.title ?? "",
     productImage: cover ? urls.get(cover.id) : undefined,

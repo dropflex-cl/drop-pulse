@@ -27,6 +27,14 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json(await copyState(userId, id));
     }
     const patch: ComponentPatch = {};
+    if (body.expected_id !== undefined) {
+      if (typeof body.expected_id !== "string" || !/^[0-9a-f-]{36}$/.test(body.expected_id)) throw new ProductApiError("La versión del componente no es válida.", 400);
+      patch.expected_id = body.expected_id;
+    }
+    if (body.expected_updated_at !== undefined) {
+      if (typeof body.expected_updated_at !== "string" || !Number.isFinite(Date.parse(body.expected_updated_at))) throw new ProductApiError("La fecha de revisión no es válida.", 400);
+      patch.expected_updated_at = body.expected_updated_at;
+    }
     if (body.content !== undefined) {
       if (!body.content || typeof body.content !== "object") throw new ProductApiError("El contenido no es válido.", 400, "content");
       patch.content = body.content;
@@ -40,7 +48,7 @@ export async function PATCH(req: Request, { params }: Params) {
       patch.images = body.images;
     }
     if (body.approve === true) patch.approve = true;
-    if (!Object.keys(patch).length) throw new ProductApiError("No hay nada que guardar.", 400);
+    if (!Object.keys(patch).some((key) => !key.startsWith("expected_"))) throw new ProductApiError("No hay nada que guardar.", 400);
     await updateComponent(userId, id, decodeURIComponent(component), patch);
     return NextResponse.json(await copyState(userId, id));
   } catch (e) {

@@ -13,14 +13,20 @@ import { contextAccess, type KnowledgeRepository } from "./repository";
 import { createContextExecutor } from "./service";
 import { parseToolInput, parseToolOutput } from "./validation";
 import { createLandingExecutor } from "./landing-service";
+import { createPackLabelsExecutor } from "./pack-labels-service";
+import type { PackLabelsRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = ["get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = ["get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels"] as const;
 /** Adaptador común para UI/MCP. Ningún comando llama proveedores o publica. */
-export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? ""): DomainExecutor {
+export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository & PackLabelsRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? ""): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     requireScopes(principal, toolScopes[command.tool]);
+    if (command.tool === "get_pack_labels" || command.tool === "save_pack_labels") {
+      if (!repository.loadPackLabels || !repository.commitPackLabels) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta el repositorio de etiquetas de packs.");
+      return createPackLabelsExecutor(repository as PackLabelsRepository, identity)(principal, command, signal);
+    }
     if (command.tool === "get_landing_content" || command.tool === "save_landing_content") {
       if (!repository.loadLanding || !repository.commitLanding) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta el repositorio de contenido de página.");
       return createLandingExecutor(repository as KnowledgeRepository & LandingRepository, identity)(principal, command, signal);

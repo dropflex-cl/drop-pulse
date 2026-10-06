@@ -196,7 +196,7 @@ describe("prompts del redactor de página (page_copy)", () => {
 
   it("la forma de un componente sale de su esquema", () => {
     const pain = WRITTEN.find((c) => c.id === "pain-block")!;
-    expect(componentBrief(pain)).toMatch(/^### pain-block \(DropFlex · Lo que te pasa\)\nDónde va: Primer bloque del cuerpo[^\n]*\nForma: heading: Una pregunta de reconocimiento, sin diagnosticar\. · moments: Exactamente 3 momentos/);
+    expect(componentBrief(pain)).toMatch(/^### pain-block \(DropFlex · Lo que te pasa\)\nDónde va: Primer bloque del cuerpo[^\n]*\nForma: heading: Una pregunta de reconocimiento, sin diagnosticar\. · moments: De 1 a 3 momentos del mensaje activo/);
   });
 
   it("el usuario lleva el producto, el precio, las políticas, las reseñas con id, el argumento y qué escribir: sin la ficha ni el cliente ideal en JSON", () => {

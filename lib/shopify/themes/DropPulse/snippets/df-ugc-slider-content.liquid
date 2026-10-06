@@ -1,0 +1,241 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · Videos de clientes (ugc-slider). Bloque de la columna del producto, bajo el botón:
+  pista de videos verticales (o círculos tipo historias) que abre un reproductor.
+
+  Liviano: la pista solo carga pósters. Hay un único <video> (en el modal) con preload="none"
+  que toma la URL al abrir; la vista previa en movimiento es opcional, solo para las tarjetas
+  visibles y nunca con movimiento reducido o ahorro de datos. El sonido solo arranca por un
+  toque del comprador.
+
+  REGLA: los videos los sube el comerciante (metafield de la app `dropflex.ugc_videos`,
+  list.file_reference); los ajustes de video del bloque son el respaldo. La IA no aporta
+  archivos ni cifras: solo escribe el título y los textos cortos de cada video.
+
+  Contenido: metafield `dropflex.ugc_slider` (json) → si falta, los textos del bloque.
+    { heading? (tokens {count} {rating}, **resaltado**), captions?: string[] (por índice) }
+  Encabezado con calificación: product.metafields.dropflex.review_summary (real).
+{%- enddoc -%}
+{%- liquid
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
+  assign s = block.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign mf_videos = product.metafields.dropflex.ugc_videos.value
+
+  # Videos: los del metafield; si no hay, los del bloque (hasta 6).
+  assign total = 0
+  for v in mf_videos
+    if v.sources.size > 0
+      assign total = total | plus: 1
+    endif
+  endfor
+  assign from_metafield = true
+  if total == 0
+    assign from_metafield = false
+    for i in (1..6)
+      assign key = 'video_' | append: i
+      if s[key].sources.size > 0
+        assign total = total | plus: 1
+      endif
+    endfor
+  endif
+
+  assign show = true
+  if product == blank or total == 0
+    assign show = false
+  endif
+
+  if show
+    # Datos reales de reseñas para {count}, {rating} y la fila de estrellas.
+    assign rating = summary.rating | default: 0 | plus: 0
+    assign count = summary.count | default: 0 | plus: 0
+    assign has_reviews = false
+    if rating > 0 and count >= s.min_reviews
+      assign has_reviews = true
+    endif
+    assign r10 = rating | times: 10 | round
+    assign r_int = r10 | divided_by: 10
+    assign r_dec = r10 | modulo: 10
+    assign rating_text = r_int | append: ',' | append: r_dec
+    assign count_text = count | append: ''
+    if count >= 1000
+      assign thousands = count | divided_by: 1000
+      assign rest = count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    endif
+
+    assign heading = content.heading | default: s.heading
+    if heading contains '{count}' or heading contains '{rating}'
+      if has_reviews
+        assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
+      else
+        # Sin dato real, un título con cifra no se muestra.
+        assign heading = ''
+      endif
+    endif
+
+    assign per_view = s.cards_visible | default: '3'
+    assign show_controls = false
+    if total > 1
+      if s.show_arrows or s.pagination != 'none'
+        assign show_controls = true
+      endif
+    endif
+  endif
+-%}
+
+{%- if show -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+
+
+
+  {%- capture accent_vars -%}{% render 'df-accent-vars', product: product %}{%- endcapture -%}
+
+  <df-ugc-slider
+    class="df df-ugc-slider df-ugc-slider--{{ s.shape }} df-ugc-slider--play-{{ s.play_style }}{% if s.boxed %} df-ugc-slider--boxed{% endif %}"
+    data-player="{{ s.player }}"
+    data-preview-motion="{{ s.preview_motion }}"
+    style="{{ accent_vars }} --df-ugc-per-view: {{ per_view }}; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if heading != blank or s.show_rating and has_reviews -%}
+      <div class="df-ugc-slider__header">
+        {%- if heading != blank -%}
+          {%- assign parts = heading | escape | split: '**' -%}
+          <p class="df-heading df-ugc-slider__heading">
+            {%- for part in parts -%}
+              {%- assign odd = forloop.index0 | modulo: 2 -%}
+              {%- if odd == 1 -%}<strong class="df-ugc-slider__highlight">{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
+            {%- endfor -%}
+          </p>
+        {%- endif -%}
+        {%- if s.show_rating and has_reviews -%}
+          {%- assign rating_label = 'Calificación ' | append: rating_text | append: ' de 5, ' | append: count_text | append: ' reseñas' -%}
+          <p class="df-ugc-slider__rating">
+            {%- render 'df-stars', rating: rating, size: '1rem', label: rating_label -%}
+            <span aria-hidden="true">{{ rating_text }} · {{ count_text }} reseñas</span>
+          </p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <df-slider
+      data-dot-label="Ir al video"
+      role="region"
+      aria-roledescription="carrusel"
+      aria-label="Videos de clientes"
+    >
+      <div class="df-slider__track" data-df-track>
+        {%- if from_metafield -%}
+          {%- assign n = 0 -%}
+          {%- for video in mf_videos -%}
+            {%- if video.sources.size > 0 -%}
+              {%- liquid
+                assign caption = content.captions[n]
+                assign n = n | plus: 1
+              -%}
+              {%- render 'df-ugc-slider-card', video: video, n: n, total: total, caption: caption, shape: s.shape -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- assign n = 0 -%}
+          {%- for i in (1..6) -%}
+            {%- liquid
+              assign key = 'video_' | append: i
+              assign caption_key = 'caption_' | append: i
+              assign video = s[key]
+            -%}
+            {%- if video.sources.size > 0 -%}
+              {%- liquid
+                assign caption = content.captions[n] | default: s[caption_key]
+                assign n = n | plus: 1
+              -%}
+              {%- render 'df-ugc-slider-card', video: video, n: n, total: total, caption: caption, shape: s.shape -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+
+      {%- if show_controls -%}
+        <div class="df-slider__controls df-ugc-slider__controls">
+          {%- if s.show_arrows -%}
+            <button type="button" class="df-slider__arrow" data-df-prev aria-label="Videos anteriores">
+              {% render 'df-icon', name: 'chevron-left' %}
+            </button>
+          {%- endif -%}
+          {%- case s.pagination -%}
+            {%- when 'dots' -%}
+              <div class="df-slider__dots" data-df-dots></div>
+            {%- when 'bar' -%}
+              <div class="df-ugc-slider__bar" data-df-ugc-bar aria-hidden="true"><span></span></div>
+          {%- endcase -%}
+          {%- if s.show_arrows -%}
+            <button type="button" class="df-slider__arrow" data-df-next aria-label="Videos siguientes">
+              {% render 'df-icon', name: 'chevron-right' %}
+            </button>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </df-slider>
+
+    {%- if s.sponsored -%}
+      <p class="df-ugc-slider__note">Incluye contenido patrocinado</p>
+    {%- endif -%}
+
+    <dialog
+      class="df df-ugc-slider__dialog df-dialog-motion"
+      data-df-ugc-dialog
+      aria-label="Videos de clientes"
+      style="{{ accent_vars }}"
+    >
+      <div class="df-ugc-slider__stage" data-df-ugc-stage>
+        <video class="df-ugc-slider__video" playsinline loop preload="none" data-df-ugc-video></video>
+        {%- if s.show_progress -%}
+          <span class="df-ugc-slider__progress" aria-hidden="true"><span data-df-ugc-progress></span></span>
+        {%- endif -%}
+
+        <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--sound" data-df-ugc-sound aria-pressed="false" aria-label="Silenciar">
+          {% render 'df-icon', name: 'volume', class: 'df-ugc-slider__icon-on' %}
+          {% render 'df-icon', name: 'volume-off', class: 'df-ugc-slider__icon-off' %}
+        </button>
+        <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--close" data-df-ugc-close aria-label="Cerrar video">
+          {% render 'df-icon', name: 'x' %}
+        </button>
+        <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--toggle" data-df-ugc-toggle aria-pressed="false" aria-label="Pausar video">
+          {% render 'df-icon', name: 'pause', class: 'df-ugc-slider__icon-pause' %}
+          {% render 'df-icon', name: 'play', class: 'df-ugc-slider__icon-play' %}
+        </button>
+        {%- if total > 1 -%}
+          <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--prev" data-df-ugc-prev aria-label="Video anterior">
+            {% render 'df-icon', name: 'chevron-left' %}
+          </button>
+          <button type="button" class="df-ugc-slider__btn df-ugc-slider__btn--next" data-df-ugc-next aria-label="Video siguiente">
+            {% render 'df-icon', name: 'chevron-right' %}
+          </button>
+        {%- endif -%}
+
+        <div class="df-ugc-slider__info">
+          <p class="df-ugc-slider__dialog-caption" data-df-ugc-caption></p>
+          <p class="df-ugc-slider__counter" data-df-ugc-counter aria-live="polite"></p>
+        </div>
+      </div>
+    </dialog>
+  </df-ugc-slider>
+
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Videos de clientes: sube videos en DropFlex o elige hasta 6 videos en los ajustes de este bloque.
+  </div>
+{%- endif -%}

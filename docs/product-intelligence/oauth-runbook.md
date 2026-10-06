@@ -1,3 +1,5 @@
+> Estado actual: aplicar las cinco migraciones PI, incluyendo `20261105000000_product_intelligence_landing.sql` y `20261106000000_product_intelligence_pack_labels.sql`, antes del código. Runtime anuncia once tools persistentes. Producción continúa readonly; este runbook no autoriza desplegar/configurar producción.
+
 # Verificación y activación OAuth MCP
 
 Estado: local comprobado; piloto no activado. Producción sigue en solo lectura.

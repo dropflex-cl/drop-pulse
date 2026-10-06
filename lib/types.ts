@@ -126,9 +126,11 @@ export interface ProductStrategy extends StrategyState {
   product: Product;
 }
 
-/** Etiquetas de los packs propuestas por la IA; se aprueban aparte del cliente ideal. */
+/** Etiquetas propuestas en el chat o conservadas de antes; aprobación humana aparte. */
 export interface PackLabelsProposal {
   id: string;
+  source?: "legacy" | "mcp_chat";
+  etag?: string;
   status: ContentStatus;
   labels: PackLabel[];
   /** Los precios de los packs cambiaron desde que se generaron: hay que revisarlas. */
@@ -207,6 +209,7 @@ export interface CatalogImage {
 /** La ficha o un componente de la página (lib/shopify/components/catalog.ts), en la etapa Página del producto. */
 export interface PageComponentView {
   id: string;
+  updatedAt?: string;
   /** "listing" (la ficha) o el id del catálogo. */
   component: string;
   /** La versión vigente: la tuya si la editaste, si no la propuesta de la IA. */

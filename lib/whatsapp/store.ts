@@ -1,3 +1,4 @@
+import { selectVariant } from "@/lib/copy/variants";
 // Etapa WhatsApp: los datos que completan los mensajes (la tienda, el producto, el precio y los packs,
 // Ajustes › Envíos y políticas) y el consejo de uso guardado en `products.usage_tip`.
 import "server-only";
@@ -26,7 +27,7 @@ async function approvedShortName(userId: string, productId: string): Promise<str
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(`Leer la ficha del producto: ${error.message}`);
-  const listing = data ? (currentContent(data) as Partial<Listing> | null) : null;
+  const listing = data ? (selectVariant(currentContent(data)).content as Partial<Listing> | null) : null;
   return listing?.short_name?.trim() || null;
 }
 

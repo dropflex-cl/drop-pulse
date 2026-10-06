@@ -13,6 +13,7 @@
 import * as z from "zod/v4";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import type { ConversionComponent } from "@/lib/shopify/components/define";
+import { contentVariants, isVariants, landingSelections, selectVariant, storedContentSchema, variantsSchema } from "./variants";
 import { LISTING, listingSchema } from "./listing";
 import { COD, FORBIDDEN, INTERNAL, amountAllowed, amountsIn } from "./schemas";
 
@@ -44,9 +45,15 @@ export function toWrite(rows: { component: string; status: string }[], approvedR
 }
 
 /** El esquema estricto de la ficha o de un componente. */
-export function strictSchema(id: string): z.ZodType | null {
+export function baseContentSchema(id: string): z.ZodType | null {
   if (id === LISTING) return listingSchema;
   return componentById(id)?.content ?? null;
+}
+
+/** El editor y el MCP guardan objetos legacy o arrays de variantes validadas. */
+export function strictSchema(id: string): z.ZodType | null {
+  const schema = baseContentSchema(id);
+  return schema ? storedContentSchema(schema) : null;
 }
 
 // ---------------------------------------------------------------- Holgado
@@ -158,7 +165,8 @@ export function unsupportedNumbers(answer: string, factText: string): string[] {
 
 /** Los problemas del esquema estricto, en el formato que entiende el modelo («faq-and-text.items.2.answer: …»). */
 export function schemaProblems(id: string, value: unknown): string[] {
-  const schema = strictSchema(id);
+  const base = baseContentSchema(id);
+  const schema = base && isVariants(value) ? variantsSchema(base) : base;
   if (!schema) return [`${id}: no existe en el catálogo.`];
   const parsed = schema.safeParse(value);
   if (parsed.success) return [];
@@ -192,6 +200,21 @@ function reviewIdsIn(id: string, value: unknown): string[] {
  * sin el pago al recibir y el mismo texto en dos componentes. Vacío si se puede guardar.
  */
 export function pageProblems(out: PageOutput, ids: string[], facts: PageFacts): string[] {
+  if (ids.some((id) => isVariants(id === LISTING ? out.listing : out.components?.[id]))) {
+    const all = ids.map((id) => id === LISTING ? out.listing : out.components?.[id]);
+    const shape = ids.flatMap((id, i) => schemaProblems(id, all[i]));
+    if (shape.length) return shape;
+    const checks = landingSelections(all).flatMap((selection) => {
+      const selected = Object.fromEntries(ids.map((id, i) => [id, selectVariant(all[i], selection).content]));
+      return pageProblems({ listing: selected.listing ?? null, components: selected }, ids, facts)
+        .map((p) => `${selection.key}: ${p}`);
+    });
+    // También validar variantes que comparten selector entre componentes (no se pierden por el map).
+    for (const id of ids) for (const v of contentVariants(id === LISTING ? out.listing : out.components?.[id])) {
+      checks.push(...pageProblems({ listing: id === LISTING ? v.content : null, components: { [id]: v.content } }, [id], facts).map((p) => `${v.key}: ${p}`));
+    }
+    return [...new Set(checks)];
+  }
   const problems: string[] = [];
   const parts: [string, unknown][] = [];
   for (const id of ids) {

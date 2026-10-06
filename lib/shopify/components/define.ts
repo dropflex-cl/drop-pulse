@@ -68,6 +68,7 @@ export const SHARED_METAFIELDS = {
    * Producto · single_line_text_field. La bajada bajo el título de la ficha: `short_description`
    * de la ficha aprobada (lib/copy/listing.ts). Lo lee `df-subtitle` (_landing).
    */
+  landingListing: { owner: "product", namespace: "dropflex", key: "landing_listing", type: "json" },
   subtitle: { owner: "product", namespace: "dropflex", key: "subtitle", type: "single_line_text_field" },
   /**
    * Producto · json. La oferta de la ficha: `offer_line` de la ficha aprobada y los packs del plan de

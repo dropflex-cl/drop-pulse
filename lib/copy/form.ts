@@ -19,7 +19,7 @@ export const FIELD_LABELS: Record<string, string> = {
   ...LISTING_FIELDS,
   heading: "Título",
   moments: "Momentos",
-  slot: "Ángulo",
+  slot: "Orden",
   bridge: "Remate",
   eyebrow: "Rótulo",
   heading_highlight: "Palabras en color",
@@ -182,7 +182,7 @@ function field(key: string, label: string, schema: z.ZodType, optional: boolean,
       const lo = js.minimum ?? 1;
       const hi = js.maximum ?? lo;
       if (hi - lo > 10) throw new Error(`form: número sin rango chico en ${key}`);
-      const options = Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i)).map((v) => ({ value: v, label: key === "slot" ? `Ángulo ${v}` : v }));
+      const options = Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i)).map((v) => ({ value: v, label: key === "slot" ? `Momento ${v}` : v }));
       return { kind: "choice", key, label, options, optional, numeric: true };
     }
     default:

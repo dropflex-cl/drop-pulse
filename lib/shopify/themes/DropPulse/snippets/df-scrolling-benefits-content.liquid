@@ -1,0 +1,150 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- comment -%}
+  DropFlex · Cinta de beneficios (scrolling-benefits). Sección de ancho completo: una franja
+  delgada con beneficios de servicio (ícono + texto corto) que se desplaza sin fin.
+
+  REGLA: los beneficios son promesas de la tienda. Cada ítem puede atarse a una política real
+  (`requires`) y sus números son tokens que llena la tienda; si la política o el dato falta, el
+  ítem no se publica (lo decide snippets/df-scrolling-benefits-item.liquid).
+
+  Contenido: metafield `dropflex.scrolling_benefits` (json) → si falta, los bloques «Beneficio».
+    { heading?, items: [{ icon, text, requires? }] }
+  Tokens: {min} {max} días hábiles (logística) · {return_days} · {warranty_months} · {threshold}.
+  Datos: shop.metafields.dropflex.policies y shop.metafields.dropflex.logistics (json).
+
+  Movimiento: <df-scrolling-benefits> (assets/df-scrolling-benefits.js) mide un set, clona los
+  que falten para cubrir la pantalla y fija la duración según la velocidad en px/s. Sin JS, el CSS
+  anima dos sets con una duración estimada. Con menos de 3 ítems o prefers-reduced-motion, la
+  franja queda quieta y centrada.
+{%- endcomment -%}
+{%- liquid
+  if product == blank
+    assign product = section.settings.product
+  endif
+  assign s = section.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign policies = shop.metafields.dropflex.policies.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign days_min = blank
+  assign days_max = blank
+  if logistics != blank
+    assign handling = logistics.handling_days | plus: 0
+    assign tmin = logistics.transit_days_min | plus: 0
+    assign tmax = logistics.transit_days_max | plus: 0
+    if tmax < tmin
+      assign tmax = tmin
+    endif
+    assign days_min = handling | plus: tmin
+    assign days_max = handling | plus: tmax
+  endif
+
+  assign heading = content.heading | default: s.heading
+  if s.show_heading == false
+    assign heading = blank
+  endif
+-%}
+
+{%- liquid
+  # Un set con los atributos del editor (el original) y otro sin ellos (las copias del loop).
+  assign items_html = ''
+  assign copy_html = ''
+  if content.items.size > 0
+    for item in content.items limit: 8
+      capture one
+        render 'df-scrolling-benefits-item', icon: item.icon, text: item.text, requires: item.requires, policies: policies, days_min: days_min, days_max: days_max
+      endcapture
+      assign items_html = items_html | append: one
+    endfor
+    assign copy_html = items_html
+  else
+    for block in section.blocks
+      capture one
+        render 'df-scrolling-benefits-item', icon: block.settings.icon, text: block.settings.text, requires: block.settings.requires, policies: policies, days_min: days_min, days_max: days_max
+      endcapture
+      assign copy_html = copy_html | append: one
+      capture one
+        render 'df-scrolling-benefits-item', icon: block.settings.icon, text: block.settings.text, requires: block.settings.requires, policies: policies, days_min: days_min, days_max: days_max, attributes: block.shopify_attributes
+      endcapture
+      assign items_html = items_html | append: one
+    endfor
+  endif
+-%}
+
+{%- liquid
+  assign count = items_html | split: '<li ' | size | minus: 1
+  assign is_static = false
+  if count < 3
+    assign is_static = true
+  endif
+  # Duración estimada sin JS (~220 px por ítem); el JS la corrige con el ancho real.
+  assign estimate = count | times: 220 | divided_by: s.speed
+  if estimate < 8
+    assign estimate = 8
+  endif
+-%}
+
+{%- if count > 0 -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  {%- unless is_static -%}
+
+  {%- endunless -%}
+
+  {%- capture bg_style -%}
+    {%- if s.background_color != blank -%}--df-bg: {{ s.background_color }}; --df-sb-bg: {{ s.background_color }};{%- endif -%}
+    {%- if s.text_color != blank -%} --df-fg: {{ s.text_color }};{%- endif -%}
+  {%- endcapture -%}
+
+  <df-scrolling-benefits
+    class="df df-scrolling-benefits{% if is_static %} df-scrolling-benefits--static{% endif %}{% if s.pause_on_hover %} df-scrolling-benefits--hover-pause{% endif %}{% if s.fade_edges %} df-scrolling-benefits--fade{% endif %}{% if s.direction == 'right' %} df-scrolling-benefits--right{% endif %}"
+    style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ bg_style }} --df-sb-pt: {{ s.padding_top }}px; --df-sb-pb: {{ s.padding_bottom }}px; --df-sb-gap: {{ s.item_gap }}px; --df-sb-text: {{ s.text_size }}px; --df-sb-icon: {{ s.icon_size }}px; --df-marquee-duration: {{ estimate }}s;"
+    data-speed="{{ s.speed }}"
+    {% if is_static %}data-static{% endif %}
+  >
+    {%- if heading != blank -%}
+      {%- liquid
+        assign parts = heading | escape | split: '**'
+        capture heading_html
+          for part in parts
+            if forloop.index0 == 1 or forloop.index0 == 3
+              echo '<span class="df-scrolling-benefits__hl">' | append: part | append: '</span>'
+            else
+              echo part
+            endif
+          endfor
+        endcapture
+      -%}
+      <h2 class="df-heading df-scrolling-benefits__heading">{{ heading_html }}</h2>
+    {%- endif -%}
+
+    <div class="df-scrolling-benefits__bar">
+      <div class="df-scrolling-benefits__viewport">
+        <div class="df-scrolling-benefits__track" data-df-track>
+          <ul class="df-scrolling-benefits__set" role="list" data-df-set>
+            {{ items_html }}
+          </ul>
+          {%- unless is_static -%}
+            <ul class="df-scrolling-benefits__set" role="list" aria-hidden="true" inert>
+              {{ copy_html }}
+            </ul>
+          {%- endunless -%}
+        </div>
+      </div>
+
+    </div>
+  </df-scrolling-benefits>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-scrolling-benefits" style="--df-sb-pt: {{ s.padding_top }}px; --df-sb-pb: {{ s.padding_bottom }}px;">
+    <p class="df-placeholder">
+      Cinta de beneficios: agrega bloques «Beneficio» o genera el contenido desde DropFlex. Los ítems atados a una política que la tienda no tiene no se muestran.
+    </p>
+  </div>
+{%- endif -%}

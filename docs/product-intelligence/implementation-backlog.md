@@ -1,3 +1,17 @@
+# Landing por ángulo y hook completada localmente
+
+Implementación y pruebas locales de arrays por componente, edición/revisión, medios por variante y selección URL en el template Shopify. [Contrato, despliegue y rollback](landing-variants-mcp.md), [ADR 013](adrs/013-component-landing-variants.md). Se mantienen once tools persistentes; get/save_landing_content usan contrato 1.1 con compatibilidad 1.0. Migración 20261107000000 aplicada solo en local. Producción sigue readonly.
+
+El siguiente paso operacional es aplicar migraciones, desplegar app/MCP y actualizar/probar el tema en una tienda de prueba. El siguiente paquete de producto sigue siendo guiones y planificación UGC desde chat. Videos del carrusel, atribución por selector y host ChatGPT remoto siguen pendientes.
+
+---
+
+# Prioridad actual: guiones y conceptos desde chat
+
+Landing y etiquetas de packs completadas localmente. Once tools anunciadas; [etiquetas y límites](pack-labels-mcp.md). Siguiente paquete: consulta/ingestión de guiones y planificación UGC, después conceptos/dirección de arte y prompts de anuncios. Imágenes permanecen con proveedores del SaaS; render de clips pendiente de aclaración de alcance. Continúan planes de imágenes, eventos, WhatsApp, retiro completo legacy y piloto ChatGPT remoto.
+
+---
+
 # Prioridad actual: todo el texto desde chat
 
 La decisión actual y [ADR 011](adrs/011-chat-authored-store-content.md) sustituyen la estimación/suposición de writers finales pagados de abajo. Landing completada localmente con dos tools de ingestión/lectura; quedan adapters de guiones/planes/conceptos/packs/eventos/WhatsApp, ver [inventario y límites comprobados](landing-content-mcp.md). Imágenes permanecen con providers del SaaS. Render de clips pendiente de aclaración. Los jobs de escritura de texto ya no son el siguiente paquete.

@@ -1,4 +1,5 @@
 import "server-only";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { AI_MODEL, AiStepError, generateStructured, type AiUsage } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { retryableContent } from "@/lib/ai/content";
@@ -157,7 +158,7 @@ async function loadContext(userId: string, productId: string) {
   const avatar = avatars.get(productId);
   if (!avatar || avatar.status !== "approved" || !brief || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y guarda el precio en Información base.", 409);
   if (!briefs) throw new OptimizeError("Aprueba los desarrollos de tus ángulos para crear anuncios.", 409);
-  return { brief, avatar, pricing: pricing as PricingPlan, labels: labels?.status === "approved" ? labels.payload : undefined, briefs };
+  return { brief, avatar, pricing: pricing as PricingPlan, labels: labels?.status === "approved" && !packLabelsStale(labels, pricing) ? labels.payload : undefined, briefs };
 }
 
 /** Crea la corrida del generador (queued). Tocar dos veces no cobra dos veces. */

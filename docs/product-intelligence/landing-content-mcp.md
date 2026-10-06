@@ -1,5 +1,7 @@
 # Contenido de tienda escrito en el chat
 
+Contrato actual 1.1: objetos anteriores o arrays por componente/listing, selector URL por ángulo y hook, imágenes por variante y revisión del conjunto. [Especificación y despliegue](landing-variants-mcp.md). El comportamiento base documentado abajo se conserva.
+
 Decisión del comerciante: la investigación, estrategia y escritura de contenido se hacen en el chat. El MCP expone el contrato, recupera datos, valida y persiste. La generación de imágenes continúa con los proveedores del SaaS. No se cobra una llamada de escritura desde estas tools. Las etapas de texto legacy todavía pendientes se enumeran al final; esto no declara migrado todo el SaaS.
 
 ## Estructura comprobada
@@ -68,7 +70,7 @@ No hay nuevas tablas de páginas, activos o publicación. La migración [`202611
 | Texto/planning que hoy usa IA del servidor | Código actual | Siguiente contrato propuesto (aún no implementado) |
 |---|---|---|
 | Datos y estrategia antiguos | `lib/pipeline/product-data.ts`, `lib/pipeline/strategy.ts` | Retirar sus writers/UI cuando todos sus consumidores usen PI; contexto/research/análisis/selección ya tienen tools |
-| Nombres de packs | `lib/pipeline/pack-labels.ts` | Ingestión de etiquetas, revisión y stamp de precio; reutilizar `pack_labels` |
+| Nombres de packs | `lib/pipeline/pack-labels.ts` | Implementado localmente: `get_pack_labels`/`save_pack_labels`, revisión y CAS de precio; ver [etiquetas](pack-labels-mcp.md) |
 | Conceptos/dirección de arte y chat de anuncios | `lib/pipeline/creatives.ts`, `lib/creatives/` | Consultar/guardar conceptos y prompts; render de imágenes separado |
 | Guion y planificación UGC | `lib/pipeline/video.ts`, `lib/video/` | Consultar/guardar guion y plan existentes; imágenes clave/render separados. La permanencia del render de clips quedó como aclaración pendiente |
 | Plan de imágenes | `lib/pipeline/page-images.ts`, `lib/page-images/` | Guardar el plan escrito en chat; conservar render, optimización, tracking y QA operativo |

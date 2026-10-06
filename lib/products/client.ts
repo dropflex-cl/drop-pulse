@@ -129,8 +129,8 @@ export const productsApi = {
   chooseReference: (id: string, slot: string, referenceId: string) => send<PageImagesState>("POST", `/${id}/page-images/references`, { slot, referenceId }),
   importPageImageUrl: (id: string, slot: string, url: string) => send<PageImagesState>("POST", `/${id}/page-images/url`, { slot, url }),
   orderGallery: (id: string, ids: string[], slot?: string) => send<PageImagesState>("PUT", `/${id}/page-images/order`, { ids, slot }),
-  decidePackLabels: (id: string, action: "approve" | "reopen") => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action }),
-  editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
+  decidePackLabels: (id: string, action: "approve" | "reopen", expectedEtag?: string) => send<{ packLabels: PackLabelsProposal | null }>("PATCH", `/${id}/pack-labels`, { action, expected_etag: expectedEtag }),
+  editPackLabels: (id: string, labels: PackLabel[], approve: boolean, expectedEtag?: string) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve, expected_etag: expectedEtag }),
   regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
   writeUsageTip: (id: string) => send<{ tip: MessagesState["tip"] }>("POST", `/${id}/whatsapp/tip`),
   savePricing: (id: string, form: PricingForm, expectedPricingStamp: string | null) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, { ...form, expectedPricingStamp }),
@@ -158,7 +158,7 @@ export const productsApi = {
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
   writeCopy: (id: string, redo = false, mode?: "all" | { component: string }) => send<CopyState>("POST", `/${id}/copy`, { redo, mode }),
   restoreComponent: (id: string, component: string) => send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, { restore: true }),
-  updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean }) =>
+  updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean; expected_id?: string; expected_updated_at?: string }) =>
     send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, patch),
   saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),
   // Información base › Diferenciador.

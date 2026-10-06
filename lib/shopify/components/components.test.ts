@@ -99,7 +99,14 @@ describe("movimiento", () => {
       const name = f.split("/").pop()!.replace(".liquid", "");
       const users = all.filter((u) => u !== f && readFileSync(u, "utf8").includes(`render '${name}'`));
       expect(users.length, f).toBeGreaterThan(0);
-      for (const u of users) expect(readFileSync(u, "utf8"), u).toContain("'df-motion.js' | asset_url");
+      const loadsMotion = (file: string, seen = new Set<string>()): boolean => {
+        if (seen.has(file)) return false;
+        seen.add(file);
+        if (readFileSync(file, "utf8").includes("'df-motion.js' | asset_url")) return true;
+        const snippet = file.split("/").pop()!.replace(".liquid", "");
+        return all.filter((parent) => parent !== file && readFileSync(parent, "utf8").includes(`render '${snippet}'`)).some((parent) => loadsMotion(parent, seen));
+      };
+      for (const u of users) expect(loadsMotion(u), u).toBe(true);
     }
   });
 });

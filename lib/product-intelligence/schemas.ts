@@ -2,6 +2,7 @@
 // El JSON Schema se exporta desde estos tipos; las reglas del grafo se validan
 // sobre el estado final en graph.ts, no con lecturas externas en el parser.
 import { z } from "zod";
+import { getPackLabelsInput, savePackLabelsInput, packLabelsOutputs } from "./pack-labels-schemas";
 import { getLandingInput, saveLandingInput, landingOutputs } from "./landing-schemas";
 
 function isHttpsUrl(value: string): boolean {
@@ -1622,6 +1623,7 @@ export const generationContextSchema = z.strictObject({
 });
 
 export const inputSchemas = {
+  get_pack_labels: getPackLabelsInput, save_pack_labels: savePackLabelsInput,
   "get_landing_content": getLandingInput,
   "save_landing_content": saveLandingInput,
   "get_product_context": get_product_contextInputSchema,
@@ -1637,7 +1639,9 @@ export const inputSchemas = {
 } as const;
 
 const landingOutputSchemas = landingOutputs(errorSchema);
+const packOutputs = packLabelsOutputs(errorSchema);
 export const outputSchemas = {
+  get_pack_labels: packOutputs.get, save_pack_labels: packOutputs.save,
   "get_landing_content": landingOutputSchemas.get,
   "save_landing_content": landingOutputSchemas.save,
   "get_product_context": get_product_contextOutputSchema,

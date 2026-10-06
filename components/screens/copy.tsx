@@ -12,6 +12,8 @@ import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { LISTING, type Listing } from "@/lib/copy/listing";
+import { landingSelections, selectVariant, type LandingSelection } from "@/lib/copy/variants";
+import { LandingVariantPicker } from "./page/landing-variant-picker";
 import { LISTING_SLOTS, PAGE_GROUPS, componentName, missingImages, type ListingSlot } from "@/lib/copy/page-ui";
 import { copyProgress, enabledLabel } from "@/lib/copy/progress";
 import { COPY_STAGE_TITLE } from "@/lib/products/stages";
@@ -53,13 +55,19 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const [error, setError] = useState<string>();
   const [editError, setEditError] = useState<string>();
 
-  const { components, run, facts, images } = state;
+  const { components: rawComponents, run, facts, images } = state;
+  const [selection, setSelection] = useState<LandingSelection>({});
+  const variants = landingSelections(rawComponents.map((v) => v.content));
+  const components = rawComponents.map((v) => {
+    const variant = selectVariant(v.content, selection);
+    return { ...v, content: variant.content, images: variant.images ?? v.images };
+  });
   const editedNames = components.filter((c) => c.edited).map((c) => componentName(c.component));
   const writing = active(run?.status);
   const progress = copyProgress(components);
   const listing = components.find((c) => c.component === LISTING);
   const byId = new Map(components.map((c) => [c.component, c]));
-  const editingView = editing ? byId.get(editing) : undefined;
+  const editingView = editing ? rawComponents.find((v) => v.component === editing) : undefined;
   const anglesHref = productHref(product.id, "angulos");
   const imagesHref = productHref(product.id, "imagenes");
   const reviewsHref = productHref(product.id, "resenas");
@@ -130,12 +138,12 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     }
   }
 
-  const update = async (component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean }, done?: string) => {
+  const update = async (component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean; expected_id?: string; expected_updated_at?: string }, done?: string) => {
     setBusy(component);
     setError(undefined);
     setEditError(undefined);
     try {
-      setState(await productsApi.updateComponent(product.id, component, patch));
+      setState(await productsApi.updateComponent(product.id, component, { expected_id: rawComponents.find((v) => v.component === component)?.id, expected_updated_at: rawComponents.find((v) => v.component === component)?.updatedAt, ...patch }));
       if (done) notify(done);
       router.refresh();
       return true;
@@ -150,7 +158,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   };
 
   const toggle = (id: string, enabled: boolean) => update(id, { enabled }, enabled ? `${componentName(id)} va en la página` : `${componentName(id)} ya no va en la página`);
-  const save = async (patch: { content: unknown; images?: ImagePick[] }) => {
+  const save = async (patch: { content: unknown; images?: ImagePick[]; expected_id?: string; expected_updated_at?: string }) => {
     if (!editing) return;
     const listingEdit = editing === LISTING;
     if (await update(editing, patch, listingEdit ? "Ficha aprobada" : `${componentName(editing)} guardado y en la página`)) setEditing(null);
@@ -492,7 +500,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
               </span>
             ) : null}
           </div>
-          <div className="lg:max-w-content">{body}</div>
+          <div className="lg:max-w-content">{variants.length > 1 ? <div className="mb-4 rounded-lg border bg-card p-4"><LandingVariantPicker variants={variants} selection={selection} onChange={setSelection} /><p className="mt-2 text-caption text-muted-foreground">Revisa el recorrido de cada anuncio. Guardar un componente aprueba todas sus variantes.</p></div> : null}{body}</div>
           {view === "start" || view === "failed" || view === "writing" ? <PageAccent productId={product.id} initial={data.accent} onSaved={setAccent} className="lg:max-w-content" /> : null}
           {error ? (
             <p role="alert" className="text-label font-normal text-destructive">
@@ -510,7 +518,8 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         <DrawerContent className="h-[92svh] lg:h-auto lg:w-[min(--spacing(160),100vw)] lg:max-w-none">
           {editingView ? (
             <ComponentEditor
-              key={editingView.id}
+              key={`${editingView.id}:${selection.angle_id}:${selection.hook_id}`}
+              selection={selection}
               view={editingView}
               facts={facts}
               accent={accent}

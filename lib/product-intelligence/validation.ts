@@ -51,7 +51,7 @@ export function validateFactValues(value: unknown): void {
 export function parseToolInput<K extends ToolName>(tool: K, value: unknown): ToolInputs[K] {
   jsonBytes(value, PI_LIMITS.inputBytes);
   validateFactValues(value);
-  if (value && typeof value === "object" && "schema_version" in value && value.schema_version !== "1.0") throw new ProductIntelligenceError("SCHEMA_VERSION_UNSUPPORTED", "Esta versión de contrato no está disponible.");
+  if (value && typeof value === "object" && "schema_version" in value && value.schema_version !== "1.0" && !(tool === "save_landing_content" && value.schema_version === "1.1")) throw new ProductIntelligenceError("SCHEMA_VERSION_UNSUPPORTED", "Esta versión de contrato no está disponible.");
   const result = inputSchemas[tool].safeParse(value);
   if (!result.success) throw new ProductIntelligenceError("VALIDATION_ERROR", "Revisa los campos de la solicitud.", { fields: [...new Set(result.error.issues.map((issue) => issue.path.join(".") || "input"))].slice(0, 100) });
   // Los esquemas existentes de Shopify quitan claves desconocidas. MCP debe rechazarlas:

@@ -1,0 +1,41 @@
+<script>
+// Solo selecciona HTML escapado y aprobado por DropFlex. Sin red, IA ni contenido de la URL.
+(() => {
+  if (window.DropFlexLanding) return;
+  const valid = (value) => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value || '');
+  const selection = () => {
+    const params = new URLSearchParams(location.search);
+    const angle = params.getAll('df_angle'), hook = params.getAll('df_hook');
+    return { angle: angle.length === 1 && valid(angle[0]) ? angle[0] : '',
+      hook: hook.length === 1 && valid(hook[0]) ? hook[0] : '' };
+  };
+  const mount = (host) => {
+    if (!host?.matches('df-landing-content')) return;
+    const active = host.querySelector(':scope > [data-df-active]');
+    const templates = [...host.querySelectorAll(':scope > template[data-df-variant]')];
+    if (!active || !templates.length) return;
+    const { angle, hook } = selection();
+    const chosen = (angle && hook ? templates.find((t) => t.dataset.angle === angle && t.dataset.hook === hook) : null)
+      || (angle ? templates.find((t) => t.dataset.angle === angle && !t.dataset.hook) : null)
+      || templates.find((t) => t.dataset.dfVariant === 'default');
+    if (!chosen || host.dataset.dfSelected === chosen.dataset.dfVariant) return;
+    // La versión default ya llegó del servidor. No remontarla evita reiniciar controles.
+    if (chosen.dataset.dfVariant !== 'default' || host.dataset.dfSelected) {
+      active.replaceChildren(chosen.content.cloneNode(true));
+    }
+    host.dataset.dfSelected = chosen.dataset.dfVariant;
+    host.dispatchEvent(new CustomEvent('df:landing-selected', { bubbles: true, detail: {
+      component: host.dataset.dfComponent, key: chosen.dataset.dfVariant, angle_id: chosen.dataset.angle || null, hook_id: chosen.dataset.hook || null,
+    } }));
+  };
+  const scan = (root = document) => {
+    if (root.matches?.('df-landing-content')) mount(root);
+    root.querySelectorAll?.('df-landing-content').forEach(mount);
+  };
+  window.DropFlexLanding = { mount, scan, selection };
+  document.addEventListener('DOMContentLoaded', () => scan());
+  document.addEventListener('shopify:section:load', (event) => scan(event.target));
+  window.addEventListener('popstate', () => scan());
+})();
+
+</script>

@@ -5,6 +5,7 @@
 //   resumen, acento, oferta, bajada). Lo que ya no va se borra: publicar también baja lo retirado.
 // Sin red ni base: todo entra por parámetro (con tests).
 import { createHash } from "node:crypto";
+import { isVariants, selectVariant, type LandingVariant } from "@/lib/copy/variants";
 import type { Listing } from "@/lib/copy/listing";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import { SHARED_METAFIELDS } from "@/lib/shopify/components/define";
@@ -65,10 +66,12 @@ export interface PublishComponent {
   content: unknown;
   /** Por espacio (imageSlots.key), las llaves de las fotos elegidas en orden. */
   images: Record<string, string[]>;
+  variantImages?: { key: string; images: Record<string, string[]> }[];
 }
 
 export interface PublishInput {
   listing: Listing;
+  listingVariants?: LandingVariant[];
   /** Componentes aprobados y en uso («Usar en la página»). */
   components: PublishComponent[];
   reviews: PublishReview[];
@@ -101,8 +104,9 @@ const packValue = (units: number) => `${units} ${units === 1 ? "unidad" : "unida
 /** La descripción nativa (respaldo para Google, apps y el acordeón «Descripción»): la ficha y sus razones, en HTML escapado. */
 export function descriptionHtml(input: PublishInput): string {
   const parts = [`<p>${esc(input.listing.short_description)}</p>`];
-  const iwb = input.components.find((c) => c.id === "image-with-benefits")?.content as { benefits?: { title: string; body: string }[] } | undefined;
-  const benefits = iwb?.benefits ?? [];
+  const iwb = input.components.find((c) => c.id === "image-with-benefits")?.content;
+  const iwbContent = selectVariant(iwb).content as { benefits?: { title: string; body: string }[] } | undefined;
+  const benefits = iwbContent?.benefits ?? [];
   if (benefits.length) {
     parts.push(`<ul>${benefits.map((b) => `<li><strong>${esc(b.title.replaceAll("**", ""))}</strong>: ${esc(b.body.replaceAll("**", ""))}</li>`).join("")}</ul>`);
   }
@@ -176,9 +180,20 @@ export function productKeys(): string[] {
     if (c.metafield) keys.add(c.metafield.key);
     for (const m of c.media) keys.add(m.key);
   }
-  for (const slots of Object.values(SLOT_METAFIELD)) for (const s of Object.values(slots)) keys.add(s.key);
+  for (const slots of Object.values(SLOT_METAFIELD)) for (const s of Object.values(slots)) { keys.add(s.key); keys.add(`${s.key}_variants`); }
   for (const m of Object.values(SHARED_METAFIELDS)) if (m.owner === "product") keys.add(m.key);
   return [...keys].sort();
+}
+
+/** Hasta 21 claves del catálogo actual: 16 componentes, listing y cuatro pools de archivos. */
+export function landingAtomicKeys(input: PublishInput): string[] {
+  const keys: string[] = input.listingVariants ? [SHARED_METAFIELDS.landingListing.key] : [];
+  for (const c of input.components) if (isVariants(c.content)) {
+    const def = componentById(c.id);
+    if (def?.metafield) keys.push(def.metafield.key);
+    for (const meta of Object.values(SLOT_METAFIELD[c.id] ?? {})) keys.push(`${meta.key}_variants`);
+  }
+  return keys;
 }
 
 /** Los metafields del producto y los que hay que borrar (componentes retirados, datos vacíos). */
@@ -205,6 +220,7 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
   );
   if (input.accent) set.push(mf(SHARED_METAFIELDS.accent.key, "color", input.accent.toLowerCase()));
 
+  if (input.listingVariants) set.push(mf(SHARED_METAFIELDS.landingListing.key, "json", input.listingVariants.map((v) => ({ key: v.key, angle_id: v.angle_id, hook_id: v.hook_id, content: v.content }))));
   const reviews = input.reviews.slice(0, REVIEWS_MAX);
   if (reviews.length) {
     const photos: string[] = [];
@@ -227,7 +243,24 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
   for (const c of input.components) {
     const def = componentById(c.id);
     if (!def?.metafield) continue;
-    set.push(mf(def.metafield.key, "json", c.content));
+    const content = isVariants(c.content) ? c.content.map((v) => {
+      const media_indices: Record<string, number[]> = {};
+      const own = c.variantImages?.find((i) => i.key === v.key)?.images ?? c.images;
+      for (const slot of Object.keys(SLOT_METAFIELD[c.id] ?? {})) {
+        const pool = [...new Set([...(c.images[slot] ?? []), ...(c.variantImages ?? []).flatMap((i) => i.images[slot] ?? [])])];
+        const validPool = pool.filter((key) => Boolean(gid(key)));
+        const selected = own[slot] ?? c.images[slot] ?? [];
+        media_indices[slot] = selected.map((key) => validPool.indexOf(key)).filter((i) => i >= 0);
+      }
+      return { key: v.key, angle_id: v.angle_id, hook_id: v.hook_id, content: v.content, media_indices };
+    }) : c.content;
+    set.push(mf(def.metafield.key, "json", content));
+    if (isVariants(c.content)) for (const [slot, meta] of Object.entries(SLOT_METAFIELD[c.id] ?? {})) {
+      const pool = [...new Set([...(c.images[slot] ?? []), ...(c.variantImages ?? []).flatMap((i) => i.images[slot] ?? [])])];
+      const files = pool.map(gid).filter((g): g is string => Boolean(g));
+      if (files.length > 128) throw new MappingError("Este componente supera 128 imágenes entre sus variantes. Reduce las imágenes y reintenta.");
+      if (files.length) set.push(mf(`${meta.key}_variants`, "list.file_reference", files));
+    }
     for (const [slot, meta] of Object.entries(SLOT_METAFIELD[c.id] ?? {})) {
       const files = (c.images[slot] ?? []).map(gid).filter((g): g is string => Boolean(g));
       if (!files.length) continue;

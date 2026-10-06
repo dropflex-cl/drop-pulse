@@ -26,7 +26,10 @@ export function definitions(): Definition[] {
     for (const m of c.media) add({ ownerType: "PRODUCT", key: m.key, type: m.type, name: `${name} (archivos)` });
   }
   for (const [id, slots] of Object.entries(SLOT_METAFIELD)) {
-    for (const s of Object.values(slots)) add({ ownerType: "PRODUCT", key: s.key, type: s.type, name: `DropFlex · ${id} (fotos)` });
+    for (const s of Object.values(slots)) {
+      add({ ownerType: "PRODUCT", key: s.key, type: s.type, name: `DropFlex · ${id} (fotos)` });
+      add({ ownerType: "PRODUCT", key: `${s.key}_variants`, type: "list.file_reference", name: `DropFlex · ${id} (variantes)` });
+    }
   }
   for (const m of Object.values(SHARED_METAFIELDS)) add({ ownerType: m.owner === "shop" ? "SHOP" : "PRODUCT", key: m.key, type: m.type, name: `DropFlex · ${m.key}` });
   return [...out.values()];

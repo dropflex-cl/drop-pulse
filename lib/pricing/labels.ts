@@ -46,5 +46,12 @@ export const packPrices = (plan: Pick<PricingPlan, "packs">) => plan.packs.map((
 /** ¿Cambiaron los precios desde que se generaron? (“3 al precio de 2” puede haber dejado de ser cierto). */
 export function labelsStale(prices: { units: number; price: number }[], plan: Pick<PricingPlan, "packs"> | null | undefined): boolean {
   if (!plan || !prices.length) return false;
-  return plan.packs.some((p) => prices.find((x) => x.units === p.units)?.price !== p.price);
+  return plan.packs.length !== prices.length || plan.packs.some((p) => prices.find((x) => x.units === p.units)?.price !== p.price);
+}
+
+/** Aprobación vigente: precio/moneda y facts de duración revisados siguen válidos. */
+export function packLabelsStale(labels: { prices: { units: number; price: number }[]; evidence_stale?: boolean; catalog_currency?: string; currency?: string | null; provenance?: { currency?: string } } | null | undefined,
+  plan: (Pick<PricingPlan, "packs"> & Partial<Pick<PricingPlan, "currency">>) | null | undefined): boolean {
+  const originalCurrency = labels?.currency ?? labels?.provenance?.currency;
+  return Boolean(labels && (labels.evidence_stale || (labels.catalog_currency && plan?.currency && labels.catalog_currency !== plan.currency) || (originalCurrency && plan?.currency && originalCurrency !== plan.currency) || labelsStale(labels.prices, plan)));
 }

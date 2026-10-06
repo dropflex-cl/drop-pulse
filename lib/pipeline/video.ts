@@ -1,4 +1,5 @@
 import "server-only";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { randomUUID } from "node:crypto";
 import { AI_MODEL, AiStepError, generateStructured } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
@@ -167,7 +168,7 @@ export async function startScript(userId: string, productId: string, slot: numbe
   const input: ScriptInput = {
     market,
     pricing: pricing as PricingPlan,
-    labels: labels?.status === "approved" ? labels.payload : null,
+    labels: labels?.status === "approved" && !packLabelsStale(labels, pricing) ? labels.payload : null,
     avatar_id: avatar.id,
     brief_id: angle.brief.id,
     brief_edited_at: angle.brief.edited_at,

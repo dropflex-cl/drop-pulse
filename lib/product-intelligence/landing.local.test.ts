@@ -96,7 +96,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · landing persistente en 
     expect(results[0]).toEqual(results[1]);
     expect((await checked(db.from("page_components").select("id").eq("product_id", product).is("superseded_at", null))).data).toHaveLength(2);
   });
-  it("rollback integral con componente inválido en RPC; SDK descubre nueve tools", async () => {
+  it("rollback integral con componente inválido en RPC; SDK descubre once tools", async () => {
     const loaded = (await checked(db.rpc("pi_load_landing", { p_access: contextAccess(owner), p_product_id: product }))).data;
     const before = await Promise.all(["copy_runs", "page_components", "pi_audit_events", "pi_idempotency_records"].map(count));
     const fail = await db.rpc("pi_commit_landing", { p_access: contextAccess(owner), p_product_id: product, p_expected_revision: loaded.revision,
@@ -108,9 +108,58 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · landing persistente en 
     try {
       const tools: string[] = []; let cursor: string | undefined;
       do { const page = await client.listTools(cursor ? { cursor } : {}); tools.push(...page.tools.map((t) => t.name)); cursor = page.nextCursor; } while (cursor);
-      expect(tools).toHaveLength(9);
+      expect(tools).toHaveLength(11);
       const r = await client.callTool({ name: "get_landing_content", arguments: { product_id: product, component: "pain-block" } }); expect(r.isError).toBe(false);
     } finally { await client.close(); await server.close(); }
+  });
+  it("persiste arrays completos, replay y validación de selectores en RPC", async () => {
+    const array = [
+      { key: "default", angle_id: null, hook_id: null, content: listing },
+      { key: "comfort", angle_id: "angle_1", hook_id: null, content: { ...listing, title: "Organiza tus útiles con comodidad" } },
+      { key: "opening", angle_id: "angle_1", hook_id: "hook_2", content: { ...listing, title: "Encuentra tus útiles en el escritorio" } },
+    ];
+    const request = { ...await input(), schema_version: "1.1", entries: [{ component: "listing", content: array }] };
+    const saved = await call("save_landing_content", request);
+    expect(await call("save_landing_content", request)).toEqual(saved);
+    expect((await read()).data.current!.content).toEqual(array);
+    const loaded = (await checked(db.rpc("pi_load_landing", { p_access: contextAccess(owner), p_product_id: product }))).data;
+    const fail = await db.rpc("pi_commit_landing", { p_access: contextAccess(owner), p_product_id: product, p_expected_revision: loaded.revision,
+      p_etag: loaded.landing_etag, p_stamp: loaded.stamp, p_key: randomUUID(), p_hash: "b".repeat(64),
+      p_entries: [{ component: "listing", content: array.slice(1) }] });
+    expect(fail.error?.message).toBe("PI_VALIDATION_ERROR");
+    expect((await read()).data.current!.content).toEqual(array);
+  });
+  it("revisión UI serializada: aprueba arrays, rechaza edición vieja y grant delegado", async () => {
+    const loaded = (await checked(db.rpc("pi_load_landing", { p_access: contextAccess(owner), p_product_id: product }))).data;
+    const row = loaded.rows.find((r: { component: string }) => r.component === "listing");
+    const args = { p_access: contextAccess(owner), p_product_id: product, p_component: "listing", p_id: row.id,
+      p_updated_at: row.updated_at, p_stamp: loaded.stamp, p_patch: { approve: true } };
+    await checked(db.rpc("pi_review_landing", args));
+    expect((await read()).data.current!.status).toBe("approved");
+    expect((await db.rpc("pi_review_landing", { ...args, p_patch: { content: listing } })).error?.message).toBe("PI_ARTIFACT_CONFLICT");
+    expect((await db.rpc("pi_review_landing", { ...args, p_access: { ...args.p_access, actor_kind: "delegated" } })).error).toBeTruthy();
+    const noOwner = { ...args, p_access: contextAccess(other) };
+    expect((await db.rpc("pi_review_landing", noOwner)).error?.message).toBe("PI_NOT_FOUND");
+  });
+  it("revisión UI detecta cambio de contexto entre validación y commit", async () => {
+    const loaded = (await checked(db.rpc("pi_load_landing", { p_access: contextAccess(owner), p_product_id: product }))).data;
+    const row = loaded.rows.find((r: { component: string }) => r.component === "listing");
+    await checked(db.from("product_pricing").update({ sale_price: 20990 }).eq("product_id", product));
+    expect((await db.rpc("pi_review_landing", { p_access: contextAccess(owner), p_product_id: product, p_component: "listing", p_id: row.id,
+      p_updated_at: row.updated_at, p_stamp: loaded.stamp, p_patch: { approve: true } })).error?.message).toBe("PI_REVISION_CONFLICT");
+    await checked(db.from("product_pricing").update({ sale_price: loaded.snapshot.pricing.sale_price }).eq("product_id", product));
+  });
+  it("rechaza imágenes ajenas en variantes sin crear propuestas ni archivos", async () => {
+    const request = { ...await input(), entries: [{ component: "image-with-benefits", content: [{ key: "default", angle_id: null, hook_id: null,
+      content: CATALOG.find((c) => c.id === "image-with-benefits")!.examples[0], images: [{ slot: "main", source: "reference", id: randomUUID() }] }] }] };
+    const before = await count("copy_runs");
+    await expect(call("save_landing_content", request)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(await count("copy_runs")).toBe(before);
+    const loaded = (await checked(db.rpc("pi_load_landing", { p_access: contextAccess(owner), p_product_id: product }))).data;
+    const result = await db.rpc("pi_commit_landing", { p_access: contextAccess(owner), p_product_id: product, p_expected_revision: loaded.revision,
+      p_etag: loaded.landing_etag, p_stamp: loaded.stamp, p_key: randomUUID(), p_hash: "c".repeat(64), p_entries: request.entries });
+    expect(result.error?.message).toBe("PI_INVALID_REFERENCE");
+    expect(await count("copy_runs")).toBe(before);
   });
   it("producto en borrado impide replay y cascada borra propuestas/receipts", async () => {
     expect((await read()).data.context_stale).toBe(false);

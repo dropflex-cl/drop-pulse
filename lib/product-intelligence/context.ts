@@ -2,7 +2,7 @@ import { z } from "zod";
 import { CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT, type PricingForm, type PricingPlan } from "@/lib/pricing/plan";
 import { pricingPlanFromRow } from "@/lib/pricing/rows";
 import { deliveryDays, fromRow } from "@/lib/settings/policies";
-import { labelsStale } from "@/lib/pricing/labels";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { canonicalHash } from "./concurrency";
 import { invalidField, invalidReference, ProductIntelligenceError } from "./errors";
 import { checkRevision } from "./policy";
@@ -21,7 +21,7 @@ export const storedContextSchema = z.object({
   catalog: z.object({ id: z.uuid(), title: z.string(), shopify_product_id: z.string(), currency: z.string(), is_upsell: z.boolean() }),
   context: basicRecordSchema.nullable(), pricing: pricingRowSchema.nullable(),
   settings: z.record(z.string(), z.unknown()).nullable(), numbers: z.record(z.string(), z.unknown()).nullable(),
-  pack_labels: z.object({ status: z.string(), payload: z.array(z.object({ units: z.number().int(), label: z.string().max(160) })),
+  pack_labels: z.object({ status: z.string(), currency: z.string().nullable().optional(), evidence_stale: z.boolean().optional(), payload: z.array(z.object({ units: z.number().int(), label: z.string().max(160) })),
     prices: z.array(z.object({ units: z.number().int(), price: numeric })) }).nullable().optional(),
   images: z.array(z.object({ id: z.uuid(), is_base: z.boolean(), is_cover: z.boolean(), excluded: z.boolean(), position: z.number() })),
 });
@@ -40,7 +40,7 @@ export function storedPricingPlan(row: StoredContext["pricing"]): PricingPlan | 
 
 function approvedLabels(state: StoredContext, plan: PricingPlan | null): Map<number, string> {
   const labels = state.pack_labels;
-  return !plan || !labels || labels.status !== "approved" || labelsStale(labels.prices, plan) ? new Map() : new Map(labels.payload.map((item) => [item.units, item.label]));
+  return !plan || plan.currency !== state.catalog.currency || !labels || labels.status !== "approved" || packLabelsStale(labels, plan) ? new Map() : new Map(labels.payload.map((item) => [item.units, item.label]));
 }
 export function contextPricing(state: StoredContext) {
   const plan = storedPricingPlan(state.pricing);

@@ -1,0 +1,114 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · GIFs (gif-strip). Bloque de la columna del producto, bajo el botón: animaciones cortas
+  del producto funcionando, cada una con una línea arriba (qué mirar) y otra abajo (la promesa).
+
+  REGLA: los GIF los sube el comerciante en DropFlex (metafield de la app
+  `dropflex.gif_strip_media`, list.file_reference, WebP animado). La IA escribe 5 textos, el más
+  fuerte primero; el GIF N usa el texto N, así que con 3 GIF se ven los 3 primeros. Sin GIF, el
+  bloque no aparece.
+
+  El `src` va SIN width: toda variante que Shopify transforma se re-codifica y una animación
+  re-codificada conserva un solo cuadro (el bloque entero quedaría en imágenes fijas, sin error).
+  El tamaño intrínseco sí va en la etiqueta, para que la página no salte al cargar.
+
+  Contenido: metafield `dropflex.gif_strip` (json).
+    { gifs: [{ heading (≤ 70), text? (párrafo, ≤ 160) | bullets?: [{ icon (IconKey), text (≤ 40) }] }]
+      (5, en orden; bajo cada GIF, el párrafo o la lista) }
+  Texto plano: todo se imprime con escape.
+  Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): cada fila entra al desplazar y el GIF
+  aparece con un fundido al cargar, sobre el fondo de reserva. Sin JS, todo a la vista.
+{%- enddoc -%}
+{%- liquid
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
+  assign s = block.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign gifs = product.metafields.dropflex.gif_strip_media.value
+  if df_variant.media_indices.gifs != nil
+    assign df_pool = product.metafields.dropflex.gif_strip_media_variants.value
+    assign df_selected_files = '' | split: ','
+    for df_index in df_variant.media_indices.gifs
+      assign df_file = df_pool | slice: df_index, 1
+      assign df_selected_files = df_selected_files | concat: df_file
+    endfor
+    assign gifs = df_selected_files
+  endif
+  assign known_icons = 'check,check-circle,x-circle,truck,package,home,cart,cash,shield,lock,return,clock,calendar,star,heart,sparkles,bolt,leaf,droplet,sun,moon,battery,feather,ruler,target,thumbs-up,users,chat,gift,fire,eye,hand,globe,award,phone,headset,flag' | split: ','
+-%}
+
+{%- if product != blank and gifs != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+  <div
+    class="df df-gif-strip"
+    style="{% render 'df-accent-vars', product: product %} --df-gif-radius: {{ s.radius }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    lang="{{ request.locale.iso_code | default: 'es' }}"
+    {{ block.shopify_attributes }}
+  >
+    {%- if s.heading != blank -%}
+      <p class="df-heading df-gif-strip__heading">{{ s.heading | escape }}</p>
+    {%- endif -%}
+    <ul class="df-gif-strip__list" role="list">
+      {%- for gif in gifs limit: 5 -%}
+        {%- liquid
+          # Un file_reference a una imagen llega como MediaImage; `.image` trae el tamaño.
+          assign src = gif.image | default: gif
+          assign item = content.gifs[forloop.index0]
+          assign heading = item.heading
+          assign alt = heading | default: product.title
+        -%}
+        <li class="df-gif-strip__item" data-df-reveal>
+          <figure class="df-gif-strip__figure">
+            {%- if heading != blank -%}
+              <p class="df-gif-strip__lead">{{ heading | escape }}</p>
+            {%- endif -%}
+            <span class="df-gif-strip__frame">
+              <img
+                src="{{ src | image_url }}"
+                alt="{{ alt | escape }}"
+                width="{{ src.width }}"
+                height="{{ src.height }}"
+                loading="lazy"
+                decoding="async"
+              >
+            </span>
+            {%- if item.bullets != blank -%}
+              <figcaption class="df-gif-strip__caption">
+                <ul class="df-gif-strip__bullets" role="list">
+                  {%- for line in item.bullets -%}
+                    {%- liquid
+                      assign icon = line.icon
+                      unless known_icons contains icon
+                        assign icon = 'check'
+                      endunless
+                    -%}
+                    <li class="df-gif-strip__bullet">
+                      {% render 'df-icon', name: icon %}
+                      <span>{{ line.text | escape }}</span>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              </figcaption>
+            {%- elsif item.text != blank -%}
+              <figcaption class="df-gif-strip__caption">{{ item.text | escape }}</figcaption>
+            {%- endif -%}
+          </figure>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    GIFs: sube los GIF del producto en DropFlex (Imágenes) y publica. Sin GIF, este bloque no se muestra.
+  </div>
+{%- endif -%}

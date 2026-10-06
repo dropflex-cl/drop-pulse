@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Field, Icon, PriceBreakdown } from "@/components/df";
 import { amount, currencySymbol, fractionDigits, money, parseAmount } from "@/lib/format";
 import { roundingFor, suggestCompareAtPrice } from "@/lib/pricing/calculator";
@@ -69,6 +70,7 @@ export function PricingSection({
   packLabels?: PackLabelsProposal;
   onSaved: (pricing: SavedPricingDto) => void;
 }) {
+  const router = useRouter();
   const saved = savedFromServer?.currency === currency ? savedFromServer : undefined;
   const [pricingStamp, setPricingStamp] = useState<string | null>(saved?.pricingStamp ?? null);
   const [labels, setLabels] = usePackLabels(packLabelsFromServer);
@@ -121,6 +123,7 @@ export function PricingSection({
       setPriceTouched(true);
       setCompareTouched(true);
       onSaved(pricing);
+      router.refresh();
     } catch (e) {
       setServerError({
         field: e instanceof ProductApiClientError ? e.field : undefined,
@@ -227,6 +230,9 @@ export function PricingSection({
           hint={Number(texts.extraUnitDiscount) === 50 ? "El pack de 3 queda al precio de 2" : "Con 50%, el de 3 queda al precio de 2"}
         />
       </div>
+      {plan && !labels ? (
+        <p className="mt-3 text-caption text-muted-foreground">Escribe las etiquetas de los packs en el chat y guárdalas desde el MCP. Después podrás revisarlas aquí.</p>
+      ) : null}
       {plan && labels && !editingLabels ? (
         <PackLabelsBar productId={productId} proposal={labels} packs={plan.packs} onChange={setLabels} onEdit={() => setEditingLabels(true)} />
       ) : null}

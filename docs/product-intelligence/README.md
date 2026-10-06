@@ -6,6 +6,8 @@ Dirección vigente: **el chat prepara análisis/estrategia y el contrato MCP def
 
 El workflow sigue siendo **Research → Strategy → Execution → Performance → Learning → Strategy**; research/strategy/refinamiento se hacen desde chat, y el SaaS valida/persiste y ejecuta las salidas conservadas.
 
+La escritura final de landing y etiquetas ya tiene ingestión desde chat; runtime anuncia **once tools persistentes**. [Etiquetas de packs](pack-labels-mcp.md), [ADR 012](adrs/012-chat-authored-pack-labels.md). [Variantes de landing por URL](landing-variants-mcp.md), [ADR 013](adrs/013-component-landing-variants.md), implementadas localmente. Otros textos/guiones y host remoto siguen pendientes.
+
 ## Entregables
 
 - [Estado de implementación](implementation-status.md), [código de dominio](../../lib/product-intelligence/README.md) y [cambio de auth implementado](auth-change-plan.md) y [runbook OAuth](oauth-runbook.md).

@@ -21,7 +21,7 @@ export class ProductApiError extends Error {
 
 export function errorResponse(e: unknown, fallback = "No pudimos guardar el cambio. Intenta de nuevo en un momento.") {
   if (e instanceof ProductIntelligenceError) {
-    const status = e.code === "REVISION_CONFLICT" ? 409 : e.code === "NOT_FOUND" ? 404 : e.code === "FORBIDDEN" ? 403 : e.code === "INTERNAL_ERROR" ? 503 : 400;
+    const status = ["REVISION_CONFLICT", "ARTIFACT_CONFLICT", "GENERATION_IN_PROGRESS"].includes(e.code) ? 409 : e.code === "NOT_FOUND" ? 404 : e.code === "FORBIDDEN" ? 403 : e.code === "INTERNAL_ERROR" ? 503 : 400;
     return NextResponse.json({ error: e.message, field: e.details.fields?.[0] }, { status });
   }
   if (e instanceof ProductApiError || e instanceof OnboardingError) {

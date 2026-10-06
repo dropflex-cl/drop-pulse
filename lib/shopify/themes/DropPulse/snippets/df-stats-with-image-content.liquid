@@ -1,0 +1,357 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- comment -%}
+  DropFlex · Hero y cifras (stats-with-image). Sección de dos columnas: un collage de 1 a 4
+  fotos y una columna de texto que arma un mini embudo completo: calificación real → título con
+  palabra destacada → descripción → 3 razones → cifras reales → testimonio real → botón.
+
+  REGLA: la IA escribe palabras, nunca hechos. La calificación y la cantidad de reseñas salen de
+  `dropflex.review_summary`; el testimonio es una reseña aprobada de `dropflex.reviews`, elegida
+  por id y mostrada tal cual; las cifras salen de las reseñas, las políticas y la logística reales
+  (o las escribe el comerciante en el editor). Sin dato, la pieza no se muestra.
+
+  Contenido: metafield `dropflex.stats_with_image` (json) → si falta, los ajustes de la sección.
+    { heading (**destacado**), description, bullets[], cta_label, rating_label ({rating} {count}),
+      review_id?, stats?: [{ fact, label }] }
+    Con menos de 30 reseñas, si la proporción convence, rating_label cede a «4,7 de 5 · 9 de cada
+    10 le dan 5 estrellas» (snippets/df-review-proof).
+  Fotos: ajustes image_1..4 → metafield `dropflex.stats_with_image_images` (list.file_reference)
+  → imágenes del producto (la destacada primero).
+  Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): las fotos y el texto entran
+  escalonados al desplazar y las cifras reales cuentan desde 0 una vez (la cifra animada va
+  aria-hidden; el lector oye la copia oculta con el valor final). Sin JS, todo quieto y a la vista.
+{%- endcomment -%}
+{%- liquid
+  if product == blank
+    assign product = section.settings.product
+  endif
+  assign s = section.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign policies = shop.metafields.dropflex.policies.value
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign heading = content.heading | default: s.heading
+  assign description = content.description | default: s.description
+  assign cta_label = content.cta_label | default: s.button_label
+  assign rating_label = content.rating_label | default: s.rating_label
+  assign review_id = content.review_id | default: s.review_id
+
+  # ── Calificación real (solo con suficientes reseñas) ──
+  assign has_rating = false
+  assign review_count = summary.count | plus: 0
+  if summary.rating > 0 and review_count >= s.min_reviews
+    assign has_rating = true
+    assign rating_text = summary.rating | round: 1 | append: '' | replace: '.', ','
+    if review_count >= 1000
+      assign thousands = review_count | divided_by: 1000
+      assign rest = review_count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+      assign count_text = thousands | append: '.' | append: rest
+    else
+      assign count_text = review_count | append: ''
+    endif
+  endif
+  assign show_rating = false
+  if s.show_rating and has_rating and rating_label != blank
+    assign show_rating = true
+  endif
+
+  # ── Testimonio real, elegido por id ──
+  assign review = blank
+  if s.show_testimonial and review_id != blank
+    assign reviews = product.metafields.dropflex.reviews.value
+    for r in reviews.items
+      assign rid = r.id | append: ''
+      if rid == review_id
+        assign review = r
+        break
+      endif
+    endfor
+  endif
+
+  # ── Fotos: editor → metafield del componente → producto ──
+  assign media_files = product.metafields.dropflex.stats_with_image_images.value
+  if df_variant.media_indices.collage != nil
+    assign df_pool = product.metafields.dropflex.stats_with_image_images_variants.value
+    assign df_selected_files = '' | split: ','
+    for df_index in df_variant.media_indices.collage
+      assign df_file = df_pool | slice: df_index, 1
+      assign df_selected_files = df_selected_files | concat: df_file
+    endfor
+    assign media_files = df_selected_files
+  endif
+  assign image_source = blank
+  assign image_count = 0
+  for i in (1..4)
+    assign key = 'image_' | append: i
+    if s[key] != blank
+      assign image_count = image_count | plus: 1
+    endif
+  endfor
+  if image_count > 0
+    assign image_source = 'editor'
+  else
+    for f in media_files limit: 4
+      if f.media_type == 'image'
+        assign image_count = image_count | plus: 1
+      endif
+    endfor
+    if image_count > 0
+      assign image_source = 'metafield'
+    elsif product.images.size > 0
+      assign image_source = 'product'
+      assign image_count = product.images.size | at_most: s.max_images
+    endif
+  endif
+
+  assign eager = false
+  if section.index != blank and section.index <= 2
+    assign eager = true
+  endif
+
+  # ── Días de entrega (para la cifra delivery_days_max) ──
+  assign days_max = blank
+  if logistics != blank
+    assign tmin = logistics.transit_days_min | plus: 0
+    assign tmax = logistics.transit_days_max | plus: 0
+    if tmax < tmin
+      assign tmax = tmin
+    endif
+    assign days_max = logistics.handling_days | plus: tmax
+  endif
+-%}
+
+{%- capture bullets_html -%}
+  {%- if content.bullets.size > 0 -%}
+    {%- for bullet in content.bullets limit: 4 -%}
+      {%- assign text = bullet | strip | escape -%}
+      {%- if text != blank -%}
+        <li class="df-stats-with-image__bullet">{% render 'df-icon', name: 'check-circle' %}<span>{{ text }}</span></li>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%- for i in (1..4) -%}
+      {%- assign key = 'bullet_' | append: i -%}
+      {%- assign text = s[key] | strip | escape -%}
+      {%- if text != blank -%}
+        <li class="df-stats-with-image__bullet">{% render 'df-icon', name: 'check-circle' %}<span>{{ text }}</span></li>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture stats_html -%}
+  {%- if s.show_stats -%}
+    {%- if content.stats.size > 0 -%}
+      {%- for stat in content.stats limit: 3 -%}
+        {%- liquid
+          assign value = blank
+          case stat.fact
+            when 'rating'
+              if has_rating
+                assign value = rating_text | append: '/5'
+              endif
+            when 'review_count'
+              if has_rating
+                assign value = count_text
+              endif
+            when 'return_days'
+              if policies.return_days > 0
+                assign value = policies.return_days
+              endif
+            when 'warranty_months'
+              if policies.warranty_months > 0
+                assign value = policies.warranty_months
+              endif
+            when 'delivery_days_max'
+              assign value = days_max
+          endcase
+          assign label = stat.label | escape
+        -%}
+        {%- if value != blank and label != blank -%}
+          <li class="df-stats-with-image__stat">
+            <span class="df-stats-with-image__stat-value"><span aria-hidden="true" data-df-count>{{ value | escape }}</span><span class="df-visually-hidden">{{ value | escape }}</span></span>
+            <span class="df-stats-with-image__stat-label">{{ label }}</span>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- else -%}
+      {%- for i in (1..3) -%}
+        {%- liquid
+          assign vkey = 'stat_' | append: i | append: '_value'
+          assign lkey = 'stat_' | append: i | append: '_label'
+          assign value = s[vkey] | strip | escape
+          assign label = s[lkey] | strip | escape
+        -%}
+        {%- if value != blank and label != blank -%}
+          <li class="df-stats-with-image__stat">
+            <span class="df-stats-with-image__stat-value">{{ value }}</span>
+            <span class="df-stats-with-image__stat-label">{{ label }}</span>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- liquid
+  # **palabra** → destacado (título) y <strong> (descripción), después de escapar.
+  assign parts = heading | escape | split: '**'
+  capture heading_html
+    for part in parts
+      if forloop.index0 == 1
+        echo '<span class="df-stats-with-image__hl">' | append: part | append: '</span>'
+      else
+        echo part
+      endif
+    endfor
+  endcapture
+
+  assign parts = description | escape | split: '**'
+  capture description_html
+    for part in parts
+      if forloop.index0 == 1
+        echo '<strong>' | append: part | append: '</strong>'
+      else
+        echo part
+      endif
+    endfor
+  endcapture
+
+  # Sin enlace propio, en la ficha el botón baja al formulario de compra (df-stats-with-image.js);
+  # el href a la ficha es el respaldo sin JS y fuera de la ficha.
+  assign scroll_to_form = false
+  if s.button_link == blank and request.page_type == 'product'
+    assign scroll_to_form = true
+  endif
+  if s.button_link != blank
+    assign cta_href = s.button_link
+  elsif product != blank
+    assign cta_href = product.url
+  else
+    assign cta_href = routes.all_products_collection_url
+  endif
+-%}
+
+{%- if heading != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+  {%- if scroll_to_form and cta_label != blank -%}
+
+  {%- endif -%}
+
+  {%- capture color_style -%}
+    {%- if s.background_color != blank -%}--df-bg: {{ s.background_color }}; --df-swi-bg: {{ s.background_color }};{%- endif -%}
+    {%- if s.text_color != blank -%} --df-fg: {{ s.text_color }};{%- endif -%}
+  {%- endcapture -%}
+
+  <div
+    class="df df-stats-with-image{% if image_count > 0 %} df-stats-with-image--media{% endif %}{% if s.image_position == 'right' %} df-stats-with-image--reverse{% endif %}{% unless s.mobile_image_first %} df-stats-with-image--media-last{% endunless %}"
+    style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ color_style }} --df-swi-pt: {{ s.padding_top }}px; --df-swi-pb: {{ s.padding_bottom }}px; --df-swi-radius: {{ s.card_radius }}px;"
+  >
+    <div class="df-stats-with-image__card">
+      {%- if image_count > 0 -%}
+        <div class="df-stats-with-image__collage df-stats-with-image__collage--{{ image_count }}">
+          {%- case image_source -%}
+            {%- when 'editor' -%}
+              {%- assign position = 0 -%}
+              {%- for i in (1..4) -%}
+                {%- assign key = 'image_' | append: i -%}
+                {%- if s[key] != blank -%}
+                  {%- assign position = position | plus: 1 -%}
+                  {%- render 'df-stats-with-image-image', image: s[key], position: position, count: image_count, eager: eager -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- when 'metafield' -%}
+              {%- assign position = 0 -%}
+              {%- for f in media_files limit: 4 -%}
+                {%- if f.media_type == 'image' -%}
+                  {%- assign position = position | plus: 1 -%}
+                  {%- render 'df-stats-with-image-image', image: f.preview_image, position: position, count: image_count, eager: eager -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- when 'product' -%}
+              {%- for img in product.images limit: image_count -%}
+                {%- render 'df-stats-with-image-image', image: img, position: forloop.index, count: image_count, eager: eager -%}
+              {%- endfor -%}
+          {%- endcase -%}
+        </div>
+      {%- endif -%}
+
+      <div class="df-stats-with-image__body">
+        {%- if show_rating -%}
+          {%- comment -%} Con pocas reseñas la proporción convence más que la cantidad (snippets/df-review-proof). {%- endcomment -%}
+          {%- capture proof -%}{%- render 'df-review-proof', summary: summary -%}{%- endcapture -%}
+          {%- if proof != blank -%}
+            {%- assign rating_line = rating_text | append: ' de 5 · ' | append: proof | escape -%}
+          {%- else -%}
+            {%- assign rating_line = rating_label | escape | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
+          {%- endif -%}
+          <div class="df-stats-with-image__rating" data-df-reveal>
+            <span aria-hidden="true">{% render 'df-stars', rating: summary.rating, size: '1.125rem' %}</span>
+            <p class="df-stats-with-image__rating-text">{{ rating_line }}</p>
+          </div>
+        {%- endif -%}
+
+        <h2 class="df-heading df-stats-with-image__heading" data-df-reveal>{{ heading_html }}</h2>
+
+        {%- if description != blank -%}
+          <p class="df-text df-stats-with-image__description" data-df-reveal>{{ description_html }}</p>
+        {%- endif -%}
+
+        {%- if bullets_html != blank -%}
+          <ul class="df-stats-with-image__bullets" role="list" data-df-reveal>{{ bullets_html }}</ul>
+        {%- endif -%}
+
+        {%- if stats_html != blank -%}
+          <ul class="df-stats-with-image__stats" role="list" data-df-reveal>{{ stats_html }}</ul>
+        {%- endif -%}
+
+        {%- if review != blank and review.body != blank -%}
+          {%- liquid
+            assign review_body = review.body | strip | truncate: 240 | escape
+            assign review_author = review.author | escape
+            assign initial = review.author | strip | slice: 0 | upcase | escape
+          -%}
+          <figure class="df-stats-with-image__review" data-df-reveal>
+            <span class="df-stats-with-image__avatar" aria-hidden="true">{{ initial }}</span>
+            <div class="df-stats-with-image__review-body">
+              <blockquote class="df-stats-with-image__quote"><p>«{{ review_body }}»</p></blockquote>
+              <figcaption class="df-stats-with-image__review-meta">
+                {% render 'df-stars', rating: review.rating, size: '0.875rem' %}
+                <span class="df-stats-with-image__author">{{ review_author }}</span>
+              </figcaption>
+            </div>
+          </figure>
+        {%- endif -%}
+
+        {%- if cta_label != blank -%}
+          {%- capture cta -%}
+            <a class="df-stats-with-image__cta df-press" href="{{ cta_href }}">
+              <span>{{ cta_label | escape }}</span>
+              {% render 'df-icon', name: 'arrow-right' %}
+            </a>
+          {%- endcapture -%}
+          {%- if scroll_to_form -%}
+            <df-buy-link class="df-stats-with-image__cta-wrap">{{ cta }}</df-buy-link>
+          {%- else -%}
+            <div class="df-stats-with-image__cta-wrap">{{ cta }}</div>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-stats-with-image" style="--df-swi-pt: {{ s.padding_top }}px; --df-swi-pb: {{ s.padding_bottom }}px;">
+    <p class="df-placeholder">
+      Hero y cifras: escribe un título en los ajustes o genera el contenido desde DropFlex.
+    </p>
+  </div>
+{%- endif -%}

@@ -1,10 +1,10 @@
 # pain-block — Lo que te pasa
 
-Bloque de dolor: «¿Esto es para mí? ¿Entienden lo que me pasa?». Un título, **exactamente 3 momentos** del cliente (uno por ángulo de venta) y un remate que lleva del dolor al diferenciador del producto. Archivo: `sections/df-pain-block.liquid`. Contrato: [`content.ts`](content.ts). Origen: `docs/spec-angulos-testeo.md` › 5.3.
+Bloque de dolor: «¿Esto es para mí? ¿Entienden lo que me pasa?». Un título, **1–3 momentos** del argumento activo y un remate que lleva del dolor al diferenciador del producto. Archivo: `sections/df-pain-block.liquid`. Contrato: [`content.ts`](content.ts). Origen: `docs/spec-angulos-testeo.md` › 5.3.
 
 ## Dónde va y por qué
 
-Primer bloque del cuerpo: después de la galería y la ficha y **antes de `image-with-benefits`**. La página recibe tráfico de 3 anuncios distintos; antes de explicar el producto, quien llega desde cualquiera se reconoce en una escena suya. Recién después la foto con razones responde «¿qué tiene de especial?».
+Primer bloque del cuerpo: después de la galería y la ficha y **antes de `image-with-benefits`**. Cada variante desarrolla el argumento del ángulo y hook del enlace; el contenido default sirve como respaldo. Recién después la foto con razones responde «¿qué tiene de especial?».
 
 ## Anatomía
 
@@ -18,7 +18,7 @@ Primer bloque del cuerpo: después de la galería y la ficha y **antes de `image
 
 | Origen | Qué |
 |---|---|
-| Metafield `dropflex.pain_block` (IA) | `heading`, `moments[]` con `slot` (1..3, el ángulo al que le hace puente; no se muestra), `title`, `text` (3), `bridge` |
+| Metafield `dropflex.pain_block` (IA) | `heading`, `moments[]` con `slot` (1..3, orden del momento; no se muestra), `title`, `text`, `bridge` |
 | Ajustes y bloques «Momento» del editor | respaldo: título (por defecto «¿Te pasa esto?»), remate y hasta 3 momentos |
 | Ajustes de la sección | producto fuera de la ficha, diseño en escritorio, tamaño del título, colores, rellenos |
 
@@ -34,14 +34,14 @@ No hay datos reales: es solo texto, sin cifras, plazos ni tokens. Sin imagen en 
 ## Psicología de venta
 
 - **Reconocimiento:** una escena concreta con las palabras del cliente hace sentir «me entienden».
-- **Un momento por ángulo:** cada anuncio del testeo encuentra su escena en la página común.
+- **Coherencia con el anuncio:** los momentos pertenecen al argumento de la variante seleccionada.
 - **Dolor antes que producto:** la solución vale más con el problema ya nombrado.
 - **Puente al diferenciador:** el remate dice qué faltaba; la página sigue con el producto que lo trae.
 
 ## Reglas del copy (IA)
 
 - **Título:** pregunta de reconocimiento, 8 a 48 caracteres.
-- **Momentos:** exactamente 3, `slot` distintos (uno por ángulo de venta; sin tercer ángulo, el tercero es el momento extra del argumento de venta).
+- **Momentos:** 1–3, `slot` distintos para ordenar momentos del argumento activo.
   - `title`: la escena en 3 a 6 palabras, 8 a 40 caracteres.
   - `text`: 1 o 2 oraciones, 30 a 160 caracteres, en **primera** («me lavo la cara…») o **tercera persona** («quienes ya usan crema…»), con palabras de todos los días: cada momento sale del argumento de venta (el de su ángulo).
 - **Remate** (`bridge`): 20 a 120 caracteres; lleva al **diferenciador**, no a la oferta.

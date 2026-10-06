@@ -9,18 +9,18 @@ import type { PackPrice } from "@/lib/pricing/plan";
 import { productsApi } from "@/lib/products/client";
 import type { PackLabelsProposal } from "@/lib/types";
 
-// Etiquetas de los packs (“2 meses de uso”): la IA las propone con el cliente ideal y el comerciante
-// las decide aquí, aparte. Aceptar, editar u “Otras etiquetas” (una llamada chica a la IA).
+// Las etiquetas se escriben en el chat; el comerciante las revisa, edita y acepta aquí.
 
 const errorText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 
 /** Estado de la propuesta vigente, sincronizado con lo que llega del servidor (router.refresh). */
 export function usePackLabels(fromServer: PackLabelsProposal | undefined) {
   const [labels, setLabels] = useState(fromServer);
-  const [seen, setSeen] = useState(fromServer?.id);
-  // Una propuesta nueva del servidor (terminó una optimización) reemplaza a la local.
-  if (fromServer?.id !== seen) {
-    setSeen(fromServer?.id);
+  const serverKey = fromServer ? `${fromServer.id}:${fromServer.etag ?? ""}` : undefined;
+  const [seen, setSeen] = useState(serverKey);
+  // Un cambio de propuesta, estado o precio del servidor reemplaza la versión local.
+  if (serverKey !== seen) {
+    setSeen(serverKey);
     setLabels(fromServer);
   }
   return [labels, setLabels] as const;
@@ -40,31 +40,18 @@ export function PackLabelsBar({
   onChange: (p: PackLabelsProposal | undefined) => void;
   onEdit: () => void;
 }) {
-  const [busy, setBusy] = useState<"approve" | "regenerate" | null>(null);
-  const stale = labelsStale(proposal.prices, { packs });
+  const [busy, setBusy] = useState<"approve" | null>(null);
+  const stale = proposal.stale || labelsStale(proposal.prices, { packs });
   const approved = proposal.status === "aprobado";
 
-  const decide = async (action: "approve" | "reopen") => {
+  const decide = async (action: "approve" | "reopen", expectedEtag = proposal.etag) => {
     setBusy(action === "approve" ? "approve" : null);
     try {
-      const { packLabels } = await productsApi.decidePackLabels(productId, action);
+      const { packLabels } = await productsApi.decidePackLabels(productId, action, expectedEtag);
       onChange(packLabels ?? undefined);
-      if (action === "approve") notifyUndo("Etiquetas aceptadas", () => decide("reopen"));
+      if (action === "approve") notifyUndo("Etiquetas aceptadas", () => decide("reopen", packLabels?.etag));
     } catch (e) {
       notify(errorText(e, "No pudimos guardar tu decisión. Intenta de nuevo."));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const regenerate = async () => {
-    setBusy("regenerate");
-    try {
-      const { packLabels } = await productsApi.regeneratePackLabels(productId);
-      onChange(packLabels ?? undefined);
-      notify("Etiquetas nuevas listas para revisar");
-    } catch (e) {
-      notify(errorText(e, "No pudimos generar otras etiquetas. Intenta de nuevo."));
     } finally {
       setBusy(null);
     }
@@ -78,7 +65,7 @@ export function PackLabelsBar({
       </div>
       {stale ? (
         <p role="status" className="text-caption text-warning">
-          Cambiaste los precios después de estas etiquetas. Revísalas: una como “3 al precio de 2” puede haber dejado de ser cierta.
+          Cambió el precio o el respaldo de estas etiquetas. Revísalas antes de aceptarlas.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
@@ -90,9 +77,7 @@ export function PackLabelsBar({
         <Button size="sm" variant="ghost" icon="edit" disabled={busy !== null} onClick={onEdit}>
           Editar
         </Button>
-        <Button size="sm" variant="ghost" icon="sparkle" loading={busy === "regenerate"} disabled={busy !== null} onClick={regenerate}>
-          Otras etiquetas
-        </Button>
+        <p className="text-caption text-muted-foreground">Pide otras etiquetas en el chat y guárdalas desde el MCP.</p>
       </div>
     </div>
   );
@@ -125,6 +110,8 @@ export function PackLabelsEditor({
   onSaved: (p: PackLabelsProposal | undefined) => void;
   onCancel: () => void;
 }) {
+  // Conservar la versión con que se abrió el editor, aunque router.refresh traiga otra propuesta.
+  const [editingEtag] = useState(proposal.etag);
   const [draft, setDraft] = useState<PackLabel[]>(() =>
     packs.map(
       (p) =>
@@ -147,7 +134,7 @@ export function PackLabelsEditor({
     setSaving(true);
     setError(undefined);
     try {
-      const { packLabels } = await productsApi.editPackLabels(productId, draft, true);
+      const { packLabels } = await productsApi.editPackLabels(productId, draft, true, editingEtag);
       onSaved(packLabels ?? undefined);
       notify("Etiquetas guardadas y aceptadas");
     } catch (e) {

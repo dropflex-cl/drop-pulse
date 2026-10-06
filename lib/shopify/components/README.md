@@ -25,7 +25,7 @@ Los patrones vienen del análisis funcional de una demo comercial (Sternify). **
 | `insta-story` | sección | cuerpo de la landing | `dropflex.insta_story` | imágenes y videos subidos |
 | `review-wall` | sección | cuerpo de la landing, tras las historias | `dropflex.review_wall` | reseñas aprobadas y sus fotos (publicaciones de Facebook, 2 por fila en el teléfono) |
 
-Fuera del catálogo, `_landing/` tiene lo que hace de la tienda la landing de un producto (modo landing, design system de DropFlex y los bloques de la ficha: prueba social, bajada, precio, packs y nota de confianza). No lleva contenido de la IA; ver su `README.md`.
+Fuera del catálogo, `_landing/` tiene lo que hace de la tienda la landing de un producto (modo landing, design system de DropFlex y los bloques de la ficha: prueba social, bajada, precio, packs y nota de confianza). Título, subtítulo y frase de oferta leen también las variantes de listing; precios y packs permanecen compartidos. Ver su `README.md`.
 
 El detalle de cada uno (datos que necesita, comportamiento, psicología y reglas del copy) está en su `README.md`; lo que la app consume está en su `content.ts`.
 
@@ -74,3 +74,8 @@ Las carpetas `sections/`, `blocks/`, `snippets/` y `assets/` replican las de un 
 2. Registrarlo en `catalog.ts`.
 3. `npm test` (catálogo: archivos, íconos, schema, ejemplos) y `npx tsx scripts/shopify-components.ts`.
 4. Probar en una tienda de desarrollo: claro y oscuro, 375 px y escritorio, sin metafield (respaldo del editor) y con metafield.
+
+
+## Contenido condicionado por URL
+
+Los componentes leen objetos históricos o arrays de variantes. El archivo principal mantiene stylesheet/schema y scripts; `df-<id>-content.liquid` renderiza contenido/medios efectivos. `_shared/snippets/df-landing-selector.liquid` selecciona HTML inerte por `df_angle`/`df_hook`; default se renderiza desde servidor. [Contrato y límites](../../../docs/product-intelligence/landing-variants-mcp.md). Editar estas fuentes y regenerar copias y preview; nunca editar df-* directamente en el tema.

@@ -436,3 +436,7 @@ df-slider {
 :root.df-event-on .df-ev-off {
   display: none !important;
 }
+
+/* La selección conserva la estructura visual del componente y solo activa una variante. */
+df-landing-content,
+df-landing-content > [data-df-active] { display: contents; }

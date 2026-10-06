@@ -35,7 +35,7 @@ export const painBlock = defineComponent({
   objection: "¿Esto es para mí? ¿Entienden lo que me pasa?",
   levers: [
     "Reconocimiento: el lector se ve en una escena concreta con sus propias palabras y siente que la tienda lo entiende.",
-    "Un momento por ángulo de venta: quien llega desde cualquiera de los anuncios encuentra su escena.",
+    "Coherencia con el anuncio: los momentos desarrollan el argumento de la variante seleccionada.",
     "Dolor antes que producto: la solución vale más cuando el problema ya está nombrado.",
     "Puente al diferenciador: el remate explica qué faltaba, y la página sigue con el producto que lo trae.",
   ],
@@ -46,29 +46,29 @@ export const painBlock = defineComponent({
       moments: z
         .array(
           z.object({
-            slot: z.number().int().min(1).max(3).describe("El ángulo de venta al que le hace puente (1, 2 o 3)."),
+            slot: z.number().int().min(1).max(3).describe("Orden del momento dentro del argumento activo (1, 2 o 3)."),
             title: text("title").pipe(z.string().min(8).max(40))
               .describe("La escena en pocas palabras, sin punto final. Ej.: «La cara tirante a las siete»."),
             text: text("text").pipe(z.string().min(30).max(160))
               .describe("1 o 2 oraciones en primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»), con palabras de todos los días."),
           }),
         )
-        .length(3)
-        .describe("Exactamente 3 momentos, uno por ángulo de venta (slot 1, 2 y 3)."),
+        .min(1).max(3)
+        .describe("De 1 a 3 momentos del mensaje activo. slot identifica el momento, sin repetir."),
       bridge: text("bridge").pipe(z.string().min(20).max(120))
         .describe("Una frase que lleva del dolor al diferenciador del producto (qué faltaba), no a la oferta. Ej.: «La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.». Es la solución, no un complemento."),
     })
     .superRefine((c, ctx) => {
       const slots = c.moments.map((m) => m.slot);
       if (new Set(slots).size !== slots.length) {
-        ctx.addIssue({ code: "custom", path: ["moments"], message: "un momento por ángulo: los slot no se repiten" });
+        ctx.addIssue({ code: "custom", path: ["moments"], message: "los momentos no repiten su orden" });
       }
     }),
   realData: ["Ninguno: es solo texto. No lleva cifras, plazos ni tokens de la tienda."],
   rules: [
     "Primera persona («me lavo la cara y a media mañana…») o tercera («quienes ya usan crema…»); nunca la segunda persona para describir el problema.",
     "Cada momento sale del argumento de venta (el momento de su ángulo); nada de contexto inventado.",
-    "Cada momento le hace puente a un ángulo de venta distinto (slot 1, 2 y 3). Si hay menos ángulos, el que falta es el momento extra del argumento.",
+    "Cada momento sostiene el ángulo activo. Usa slot 1, 2 y 3 para ordenar, sin mezclar mensajes de otras variantes.",
     "Título del momento: la escena en 3 a 6 palabras, concreta y sin punto final.",
     "El remate (bridge) lleva al diferenciador del producto (qué faltaba), no a la oferta, al precio ni al pago al recibir.",
     "Sobrio y cercano: sin exclamaciones, sin mayúsculas sostenidas, sin dramatizar.",

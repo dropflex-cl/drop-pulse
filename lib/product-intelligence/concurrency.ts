@@ -3,7 +3,7 @@ import { ProductIntelligenceError } from "./errors";
 import { requireScopes, type PiScope, type Principal } from "./policy";
 import type { JsonValue, ToolInputs, ToolName, ToolOutputs } from "./schemas";
 
-const unorderedRelations = new Set(["jtbd_refs", "pain_refs", "desire_refs", "fact_refs", "objection_refs", "proof_fact_refs", "jtbd_ids", "pain_ids", "desire_ids", "fact_ids", "objection_ids", "proof_fact_ids", "approved_fact_ids"]);
+const unorderedRelations = new Set(["jtbd_refs", "pain_refs", "desire_refs", "fact_refs", "objection_refs", "proof_fact_refs", "jtbd_ids", "pain_ids", "desire_ids", "fact_ids", "objection_ids", "proof_fact_ids", "approved_fact_ids", "duration_fact_ids"]);
 
 function canonicalize(value: JsonValue, key = ""): JsonValue {
   if (Array.isArray(value)) {

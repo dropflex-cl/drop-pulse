@@ -1,0 +1,54 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · Bajada (subtitle). Bloque de la columna del producto, bajo el título: una frase que
+  dice qué es y para quién.
+
+  Contenido: metafield `dropflex.subtitle` (single_line_text_field, la descripción corta de la
+  ficha aprobada en DropFlex) → si falta, el texto del bloque → si tampoco, nada.
+  Eventos: si el evento que se ve trae su bajada (intensidad total, textos aprobados), se muestra
+  esa mientras dura y la de siempre queda lista para cuando termine (df-ev-only / df-ev-off).
+{%- enddoc -%}
+{%- liquid
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
+  assign s = block.settings
+  assign text = content.short_description | default: product.metafields.dropflex.subtitle.value | default: s.text
+  assign event_text = blank
+  if product != blank and df_variant.angle_id == blank
+    capture df_i
+      render 'df-event-pick', product: product
+    endcapture
+    if df_i != blank
+      assign df_i = df_i | plus: 0
+      assign event_text = product.metafields.dropflex.event.value.events[df_i].subtitle
+    endif
+  endif
+-%}
+{%- if text != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <p
+    class="df df-subtitle"
+    style="--df-subtitle-size: {{ s.text_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if event_text != blank -%}
+      <span class="df-ev-off">{{- text | escape -}}</span>
+      <span class="df-ev-only">{{- event_text | escape -}}</span>
+    {%- else -%}
+      {{- text | escape -}}
+    {%- endif -%}
+  </p>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Bajada: sale de la ficha aprobada en DropFlex, o escribe una aquí.
+  </div>
+{%- endif -%}

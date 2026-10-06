@@ -1,0 +1,223 @@
+{%- doc -%}
+  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- doc -%}
+  DropFlex · Línea de tiempo de envío (shipping-timeline). Bloque de la columna del producto, bajo
+  el botón: "Pide dentro de 3 h 05 min y sale hoy" + tres hitos (Pedido → Despachado → Entregado)
+  con fechas reales unidos por una línea punteada.
+
+  REGLA: plazos, hora de corte, feriados y zona horaria salen de la logística REAL de la tienda.
+  Las fechas y la cuenta regresiva se calculan en df-shipping-timeline.js con el reloj de la
+  tienda (la página puede venir cacheada: Liquid no puede saber qué hora es).
+
+  Contenido (textos): metafield `dropflex.shipping_timeline` (json) → si falta, los del bloque.
+    { countdown_template ({time}, {ship}?), closed_template? ({ship}), node_ordered_label,
+      node_ordered_sub, node_shipped_label, node_delivered_label, node_delivered_sub_suffix? }
+  Tokens: {time} tiempo al corte · {ship} día de despacho ("hoy", "mañana", "el viernes") ·
+  {arrive} primer día de entrega en la ciudad principal ("mañana", "el martes").
+  Logística: shop.metafields.dropflex.logistics (json) → si falta, los ajustes del bloque.
+{%- enddoc -%}
+{%- liquid
+  # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
+  # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
+  assign product = closest.product | default: product
+  assign s = block.settings
+  # content llega de la variante seleccionada (o del objeto legacy).
+  assign logistics = shop.metafields.dropflex.logistics.value
+
+  assign cutoff = logistics.cutoff_hour | default: s.cutoff_hour | plus: 0
+  assign handling = logistics.handling_days | default: s.handling_days | plus: 0
+  assign tmin = logistics.transit_days_min | default: s.transit_days_min | plus: 0
+  assign tmax = logistics.transit_days_max | default: s.transit_days_max | plus: 0
+  if tmax < tmin
+    assign tmax = tmin
+  endif
+  assign biz = logistics.business_days_only | default: s.business_days_only, allow_false: true
+  assign sat = logistics.saturday_delivery | default: s.saturday_delivery, allow_false: true
+  assign ship_sat = logistics.saturday_dispatch | default: s.saturday_dispatch, allow_false: true
+
+  # Plazo de regiones: el tránsito de la logística es el máximo de regiones (así «llega en {min} a
+  # {max} días» es verdad en todo el país); la ciudad principal tiene el suyo y regiones suma `extra`.
+  # Sin logística, los ajustes del bloque: su tránsito ya es el de la ciudad principal.
+  if logistics
+    assign extra = logistics.regions_extra_days | plus: 0
+    assign city = logistics.main_city | strip
+  else
+    assign extra = s.regions_extra_days | plus: 0
+    assign city = s.main_city | strip
+  endif
+  if extra > 0 and city != blank
+    if logistics
+      assign tmax = logistics.main_city_transit_max | plus: 0
+    endif
+    if tmax < tmin
+      assign tmax = tmin
+    endif
+  else
+    assign extra = 0
+  endif
+  assign tz = logistics.timezone | default: s.timezone | default: 'America/Santiago'
+  assign days_min = handling | plus: tmin
+  assign days_max = handling | plus: tmax
+  assign regions_min = days_min | plus: extra
+  assign regions_max = days_max | plus: extra
+  assign t_regions = s.regions_label | default: 'Regiones'
+
+  if logistics.holidays
+    assign holidays_json = logistics.holidays | json
+  else
+    assign holiday_list = s.holidays | split: ','
+    capture holidays_json
+      echo '['
+      for h in holiday_list
+        assign h_clean = h | strip
+        echo h_clean | json
+        unless forloop.last
+          echo ','
+        endunless
+      endfor
+      echo ']'
+    endcapture
+  endif
+
+  assign t_countdown = content.countdown_template | default: s.countdown_text
+  assign t_closed = content.closed_template | default: s.closed_text
+  assign t_ordered = content.node_ordered_label | default: s.ordered_label
+  assign t_ordered_sub = content.node_ordered_sub | default: s.ordered_sub
+  assign t_shipped = content.node_shipped_label | default: s.shipped_label
+  assign t_delivered = content.node_delivered_label | default: s.delivered_label
+  assign t_suffix = content.node_delivered_sub_suffix | default: s.delivered_suffix
+  if s.show_countdown == false
+    assign t_countdown = ''
+    assign t_closed = ''
+  endif
+  unless t_countdown contains '{time}'
+    assign t_countdown = ''
+  endunless
+
+  assign has_content = false
+  if t_ordered != blank and t_shipped != blank and t_delivered != blank
+    assign has_content = true
+  endif
+
+  if biz
+    assign days_word = 'días hábiles'
+  else
+    assign days_word = 'días'
+  endif
+  # Las fechas van en el idioma de los textos (el del mercado, que publica DropFlex en
+  # dropflex.policies.locale), aunque el idioma de Shopify sea otro.
+  assign locale = shop.metafields.dropflex.policies.value.locale | default: request.locale.iso_code | default: 'es'
+  if localization.country.iso_code != blank and locale.size == 2
+    assign locale = locale | append: '-' | append: localization.country.iso_code
+  endif
+-%}
+
+{%- if has_content -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+
+
+  <df-shipping-timeline
+    class="df df-shipping-timeline df-shipping-timeline--icons-{{ s.icon_style }} df-shipping-timeline--time-{{ s.time_color }}{% if s.animate_line %} df-shipping-timeline--animate{% endif %}"
+    style="{% render 'df-accent-vars', product: product %} margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    {{ block.shopify_attributes }}
+  >
+    {%- if t_countdown != blank or t_closed != blank -%}
+      {%- comment -%} Lo llena el JS; reserva su línea mientras tanto (sin salto de diseño). {%- endcomment -%}
+      <p class="df-shipping-timeline__title" data-df-title data-pending>&nbsp;</p>
+    {%- endif -%}
+
+    <ol class="df-shipping-timeline__steps">
+      <li class="df-shipping-timeline__step">
+        <span class="df-shipping-timeline__circle">
+          {%- if s.icon_ordered != blank -%}
+            {{ s.icon_ordered | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '28px', alt: '', class: 'df-shipping-timeline__img' }}
+          {%- else -%}
+            {% render 'df-icon', name: 'cart' %}
+          {%- endif -%}
+        </span>
+        <span class="df-shipping-timeline__label">{{ t_ordered | escape }}</span>
+        <span class="df-shipping-timeline__sub">{{ t_ordered_sub | escape }}</span>
+      </li>
+      <li class="df-shipping-timeline__step">
+        <span class="df-shipping-timeline__circle">
+          {%- if s.icon_shipped != blank -%}
+            {{ s.icon_shipped | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '28px', alt: '', class: 'df-shipping-timeline__img' }}
+          {%- else -%}
+            {% render 'df-icon', name: 'truck' %}
+          {%- endif -%}
+        </span>
+        <span class="df-shipping-timeline__label">{{ t_shipped | escape }}</span>
+        {%- if s.show_ship_date -%}
+          <span class="df-shipping-timeline__sub" data-df-ship>
+            {%- if handling == 0 -%}{{ t_ordered_sub | escape }}{%- else -%}{{ handling }} {{ days_word }}{%- endif -%}
+          </span>
+        {%- endif -%}
+      </li>
+      <li class="df-shipping-timeline__step">
+        <span class="df-shipping-timeline__circle">
+          {%- if s.icon_delivered != blank -%}
+            {{ s.icon_delivered | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '28px', alt: '', class: 'df-shipping-timeline__img' }}
+          {%- else -%}
+            {% render 'df-icon', name: 'package' %}
+          {%- endif -%}
+        </span>
+        <span class="df-shipping-timeline__label">{{ t_delivered | escape }}</span>
+        <span class="df-shipping-timeline__sub" data-df-delivery>
+          {%- if extra > 0 %}{{ city | escape }}: {% endif -%}
+          {%- if days_min == days_max -%}{{ days_min }}{%- else -%}{{ days_min }} a {{ days_max }}{%- endif %} {{ days_word -}}
+        </span>
+        {%- if extra > 0 -%}
+          <span class="df-shipping-timeline__sub" data-df-delivery-regions>
+            {{- t_regions | escape }}: {{ regions_min }} a {{ regions_max }} {{ days_word -}}
+          </span>
+        {%- endif -%}
+        {%- if t_suffix != blank -%}
+          <span class="df-shipping-timeline__sub df-shipping-timeline__suffix">{{ t_suffix | escape }}</span>
+        {%- endif -%}
+      </li>
+    </ol>
+
+    <p class="df-visually-hidden" data-df-summary>
+      Entrega estimada en {{ days_min }} a {{ days_max }} {{ days_word }}
+      {%- if extra > 0 %} en {{ city | escape }}; {{ t_regions | downcase | escape }}, {{ regions_min }} a {{ regions_max }} {{ days_word }}{% endif %}
+    </p>
+
+    <script type="application/json" data-df-config>
+      {
+        "cutoff": {{ cutoff | json }},
+        "handling": {{ handling | json }},
+        "tmin": {{ tmin | json }},
+        "tmax": {{ tmax | json }},
+        "biz": {{ biz | json }},
+        "sat": {{ sat | json }},
+        "shipSat": {{ ship_sat | json }},
+        "extra": {{ extra | json }},
+        "city": {{ city | json }},
+        "holidays": {{ holidays_json }},
+        "tz": {{ tz | json }},
+        "locale": {{ locale | json }},
+        "format": {{ s.date_format | json }}
+      }
+    </script>
+    <script type="application/json" data-df-texts>
+      {
+        "countdown": {{ t_countdown | json }},
+        "closed": {{ t_closed | json }},
+        "summary_range": "Entrega estimada entre el {from} y el {to}",
+        "summary_single": "Entrega estimada el {from}",
+        "regions": {{ t_regions | json }}
+      }
+    </script>
+  </df-shipping-timeline>
+{%- elsif request.design_mode -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <div class="df df-placeholder" {{ block.shopify_attributes }}>
+    Línea de tiempo de envío: completa los nombres de los tres hitos o genera el contenido con DropFlex.
+  </div>
+{%- endif -%}

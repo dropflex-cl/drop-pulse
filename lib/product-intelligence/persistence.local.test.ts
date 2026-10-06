@@ -169,7 +169,7 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
     expect((await read()).revision).toBe(before.revision);
   });
 
-  let auth: McpAuthentication, bearer: string, nativeResearch: ToolInputs["save_research"];
+  let auth: McpAuthentication, bearer: string, nativeResearch: ToolInputs["save_research"], nativePackLabels: ToolInputs["save_pack_labels"];
   const config: McpConfiguration = { resourceUrl: "http://localhost:3000/api/mcp", issuer: "http://127.0.0.1:55321/auth/v1", jwksUrl: "http://127.0.0.1:55321/auth/v1/.well-known/jwks.json", allowedOrigins: ["http://localhost:3000"] };
   async function live(identity: McpAuthentication["identity"]) {
     return rpc("pi_check_oauth_grant", { p_user_id: identity.userId, p_client_id: identity.clientId, p_session_id: identity.sessionId,
@@ -235,27 +235,38 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
       const landed = await client.callTool({ name: "save_landing_content", arguments: landingRequest });
       expect(parseToolOutput("save_landing_content", landed.structuredContent)).toMatchObject({ ok: true, revision: 11, data: { applied: true } });
       expect((await client.callTool({ name: "save_landing_content", arguments: landingRequest })).structuredContent).toEqual(landed.structuredContent);
+      const packs = parseToolOutput("get_pack_labels", (await client.callTool({ name: "get_pack_labels", arguments: { product_id: productId } })).structuredContent);
+      if (!packs.ok) throw new Error("packs read");
+      nativePackLabels = parseToolInput("save_pack_labels", { product_id: productId, schema_version: "1.0", expected_revision: packs.revision,
+        expected_pack_labels_etag: packs.data.pack_labels_etag, idempotency_key: randomUUID(), labels: [1, 2, 3].map((units) => ({ units,
+          label: units === 1 ? "Uno para ti" : "Para compartir", support: null, badge: null, basis: "sharing", reason: "Unidades para compartir." })) });
+      const packed = await client.callTool({ name: "save_pack_labels", arguments: nativePackLabels });
+      expect(packed.structuredContent).toMatchObject({ ok: true, revision: 12, data: { status: "generated" } });
+      expect((await client.callTool({ name: "save_pack_labels", arguments: nativePackLabels })).structuredContent).toEqual(packed.structuredContent);
+      await expect(expiredKnowledge(auth.principal, { tool: "save_pack_labels", input: nativePackLabels }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(expiredKnowledge(auth.principal, { tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     } finally { await client.close(); }
   }, 20000);
   it("revocar después de autenticar bloquea lectura, replay y commit dentro del dominio", async () => {
     const delegated = createContextExecutor(repository, auth.identity);
-    const request = { ...input(11), context: { description: "Revoke race" } };
+    const request = { ...input(12), context: { description: "Revoke race" } };
     const loaded = await repository.load({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId }, signal());
-    expect(parseContextRead(loaded).revision).toBe(11);
+    expect(parseContextRead(loaded).revision).toBe(12);
     await rpc("pi_revoke_oauth_grant", { p_user_id: owner.userId, p_client_id: auth.identity.clientId });
     await expect(delegated(auth.principal, { tool: "save_product_context", input: request }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(delegated(auth.principal, { tool: "save_product_context", input: initialInput }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(delegated(auth.principal, { tool: "get_product_context", input: parseToolInput("get_product_context", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     const candidate = prepareProductContext(parseContextRead(loaded), request, randomUUID());
-    await expect(repository.commit({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId, p_expected_revision: 11,
+    await expect(repository.commit({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId, p_expected_revision: 12,
       p_stamp: parseContextRead(loaded).stamp, p_key: request.idempotency_key, p_hash: commandHash("save_product_context", request), p_context: candidate.context,
       p_pricing: candidate.pricing, p_base_image: null, p_result: candidate.result, p_dry_run: false }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     const knowledge = createProductIntelligenceExecutor(repository, auth.identity);
+    await expect(knowledge(auth.principal, { tool: "get_pack_labels", input: { product_id: productId } }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(knowledge(auth.principal, { tool: "save_pack_labels", input: nativePackLabels }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(knowledge(auth.principal, { tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(knowledge(auth.principal, { tool: "save_research", input: nativeResearch }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(knowledge(auth.principal, { tool: "get_product_context", input: parseToolInput("get_product_context", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
-    expect((await read()).revision).toBe(11);
+    expect((await read()).revision).toBe(12);
   });
   it("RLS/ACL impiden leer receipts o ejecutar RPC desde una sesión SaaS", async () => {
     const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });

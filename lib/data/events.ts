@@ -1,3 +1,4 @@
+import { selectVariant } from "@/lib/copy/variants";
 // Eventos para las pantallas (/events y /events/[slug]): el calendario del mercado de la tienda, lo
 // que activó el comerciante, cómo se ve cada evento y, por producto, qué le toca y sus textos.
 import "server-only";
@@ -139,7 +140,7 @@ export async function getEventDetail(slug: string, at?: number): Promise<EventDe
 
   const products: EventProductView[] = rows.map((r, i) => {
     const listingRow = (components.get(r.id) ?? []).find((c) => c.component === LISTING && c.status === "approved");
-    const listing = listingRow ? (currentContent(listingRow) as Listing) : null;
+    const listing = listingRow ? (selectVariant(currentContent(listingRow)).content as Listing) : null;
     const resolved = resolveProductEvents([event], activations, r.id, Number.NEGATIVE_INFINITY)[0] ?? null;
     const own = activations.find((a) => a.event_id === event.id && a.product_id === r.id);
     const copy = copies.find((c) => c.product_id === r.id);

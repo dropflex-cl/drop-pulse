@@ -52,3 +52,10 @@ La vista previa es otra superficie (la tienda): su CSS sale del tema (`component
 ## Retirados
 
 `PageOutline` y `CopySummary` (índice y resumen de bloques) ya no se usan: la vista previa de la página los reemplaza. Siguen en `reference/` como historia del diseño.
+
+
+## Variantes por ángulo y hook
+
+La pantalla y el editor usan un select nativo “Versión de la página”, con área táctil `h-touch`, textos y espacios de los tokens existentes. “Sin parámetros” corresponde a default; las otras opciones nombran la clave y “Ángulo” o “Ángulo y hook”. Debajo se muestra “Parámetros del enlace: ?df_angle=…&df_hook=…” o “Se muestra al entrar sin parámetros o con una combinación desconocida.”
+
+La selección aplica a ficha, tarjetas y preview. La aprobación es de todas las variantes; el editor dice “Guardar y aprobar variantes”. El usuario revisa cada versión antes de aprobar el conjunto. El orden de los momentos de pain-block se presenta como “Orden” / “Momento 1…3”, sin mezclar obligatoriamente tres ángulos.

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { FEM_MARKS, INITIALS, MASC_MARKS, MEN, MONTHS, SHORT_MONTHS, WOMEN, wallAuthor, wallCounters, wallDate } from "./review-wall";
 
-const LIQUID = readFileSync(join(__dirname, "../shopify/components/review-wall/sections/df-review-wall.liquid"), "utf8");
+const LIQUID = readFileSync(join(__dirname, "../shopify/components/review-wall/snippets/df-review-wall-content.liquid"), "utf8");
 // Las reseñas flotantes ponen a cada reseña el mismo nombre que el muro.
 const POPUP = readFileSync(join(__dirname, "../shopify/components/_landing/snippets/df-review-popup.liquid"), "utf8");
 

@@ -1,7 +1,9 @@
+import { selectVariant } from "@/lib/copy/variants";
 // Eventos en Supabase (docs/spec-eventos.md): el calendario, lo que activa cada comerciante, los
 // textos del evento por producto (IA) y su publicación en el metafield dropflex.event.
 // Escrituras con service_role, siempre filtradas por el usuario.
 import "server-only";
+import { packLabelsStale } from "@/lib/pricing/labels";
 import { createHash } from "node:crypto";
 import { after } from "next/server";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
@@ -187,12 +189,12 @@ async function copyContext(userId: string, productId: string) {
   if (!listingRow) throw new OptimizeError("Aprueba la ficha en Página del producto: los textos del evento parten de ella.", 409);
   if (!avatar || avatar.status !== "approved" || !briefs || !pricing) throw new OptimizeError("Aprueba tu cliente ideal y los desarrollos de tus ángulos primero.", 409);
   return {
-    listing: currentContent(listingRow) as Listing,
+    listing: selectVariant(currentContent(listingRow)).content as Listing,
     avatarSummary: avatar.payload.summary,
     differentiator: differentiator.value ? { versus: differentiator.value.versus, claim: differentiator.value.claim } : null,
     angles: briefs.map((b) => testAngleName({ ...b.angle, frame: b.brief.angle })),
     pricing,
-    labels: labels?.status === "approved" ? labels.payload : undefined,
+    labels: labels?.status === "approved" && !packLabelsStale(labels, pricing) ? labels.payload : undefined,
   };
 }
 
