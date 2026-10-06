@@ -12,6 +12,7 @@ import { testAngleName } from "@/lib/angles/catalog";
 import { confirmedDifferentiator, differentiatorState, getDifferentiator } from "@/lib/products/differentiator";
 import { copyProgress } from "@/lib/copy/progress";
 import { avatarStamp, differentiatorStamp, staleReasons } from "@/lib/copy/stale";
+import { getLandingContextStale } from "./product-intelligence";
 import { COPY_PROMPT_VERSION } from "@/lib/copy/schemas";
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
@@ -102,6 +103,7 @@ function stampOfBriefs(ranking: Pick<RankingState, "chosen_angles" | "confirmed_
 function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined, briefs: Briefs | undefined, ranking?: RankingState): CopyFacts | null {
   if (!run && !rows?.length) return null;
   return {
+    fromChat: run?.input.source === "mcp_chat",
     run: run ? { status: run.status, error: run.error_message } : null,
     progress: copyProgress((rows ?? []).map((r) => ({ component: r.component, status: toUiStatus(r.status), enabled: r.enabled }))),
     stale: isStale(run, stampOfBriefs(ranking, briefs)),
@@ -396,8 +398,10 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
           context: { brief: briefId, differentiator: differentiatorStamp(differentiator.value), prompt_version: COPY_PROMPT_VERSION },
         })
       : [];
+  if (run?.input.source === "mcp_chat" && await getLandingContextStale(uid, productId)) reasons.push("product_context");
   return {
-    locked: !approved ? "angles" : imagesReady(chosen) ? null : "images",
+    locked: run?.input.source === "mcp_chat" ? null : !approved ? "angles" : imagesReady(chosen) ? null : "images",
+    fromChat: run?.input.source === "mcp_chat",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
     images,

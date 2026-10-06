@@ -5,7 +5,7 @@ import type { Differentiator } from "@/lib/ai/schemas";
 // `input.context` la huella de lo que usó (cliente ideal, ficha, diferenciador, versión del prompt);
 // los desarrollos de ángulo ya iban en `input.briefs`. Puro.
 
-export type CopyStaleReason = "angles" | "avatar" | "brief" | "differentiator" | "prompt";
+export type CopyStaleReason = "angles" | "avatar" | "brief" | "differentiator" | "prompt" | "product_context";
 
 export interface CopyContextStamp {
   /** El cliente ideal aprobado: id y última edición. */
@@ -19,6 +19,7 @@ export interface CopyContextStamp {
 
 /** Lo que una escritura guardó en `input`. Las de antes de la huella solo traen avatar_id y briefs. */
 export interface CopyRunContext {
+  source?: string;
   avatar_id?: string;
   briefs?: unknown;
   context?: CopyContextStamp;
@@ -30,6 +31,7 @@ export const differentiatorStamp = (d: Differentiator | null | undefined) => (d 
 
 /** Lo que diría la pantalla, en el orden en que se muestra. */
 export const STALE_REASON_LABEL: Record<CopyStaleReason, string> = {
+  product_context: "el contexto guardado desde el chat",
   angles: "tus ángulos",
   avatar: "tu cliente ideal",
   brief: "la ficha del producto",
@@ -47,6 +49,8 @@ const ORDER: CopyStaleReason[] = ["angles", "avatar", "brief", "differentiator",
 export function staleReasons(runs: CopyRunContext[], current: { briefs: BriefStampEntry[]; avatar: string | null; context: Omit<CopyContextStamp, "avatar"> }): CopyStaleReason[] {
   const found = new Set<CopyStaleReason>();
   for (const run of runs) {
+    // El chat no depende de prompts, avatares ni desarrollos legacy.
+    if (run.source === "mcp_chat") continue;
     if (stampChanged(run.briefs, current.briefs)) found.add("angles");
     const c = run.context;
     if (c) {

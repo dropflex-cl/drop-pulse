@@ -1,0 +1,371 @@
+{
+  "schema_version": "1.0",
+  "product_id": "00000000-0000-0000-0000-000000000001",
+  "strategy_id": "00000000-0000-0000-0000-000000000032",
+  "analysis_revision": 4,
+  "request_revision": 5,
+  "captured_at": "2026-10-06T15:00:00Z",
+  "product": {
+    "display_name": "Organizador de escritorio",
+    "category": "home",
+    "description": "Organizador para objetos de escritorio. Material y dimensiones pendientes de verificar.",
+    "supplier_text": "Organizador con tres compartimentos.",
+    "base_reference_image_id": "00000000-0000-0000-0000-000000000005",
+    "last_revision": 1
+  },
+  "market": {
+    "country_code": "CL",
+    "currency": "CLP",
+    "language": "es",
+    "timezone": "America/Santiago",
+    "confirmed": true
+  },
+  "policies": {
+    "cod": true,
+    "free_shipping": null,
+    "delivery": null,
+    "returns": null,
+    "warranty": null,
+    "restrictions": [],
+    "policies_stamp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "pricing": {
+    "currency": "CLP",
+    "currency_scale": 0,
+    "pricing_stamp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "unit_cost_minor": 7000,
+    "avg_shipping_cost_minor": 9000,
+    "purchase_cost_limit_minor": 5000,
+    "confirmation_rate": 75,
+    "delivery_rate": 75,
+    "extra_unit_discount": 50,
+    "sale_price_minor": 29990,
+    "compare_at_price_minor": 44990,
+    "minimum_price_minor": 27900,
+    "recommended_price_minor": 27990,
+    "profit_decimal": "2090",
+    "margin": 0.06968989663221074,
+    "max_cpa_decimal": "6181.875",
+    "beroas": 4.851278940450915,
+    "packs": [
+      {
+        "units": 1,
+        "price_minor": 29990,
+        "profit_decimal": "2090",
+        "per_unit_price_decimal": "29990",
+        "savings_minor": 0,
+        "recommended": false,
+        "approved_label": null
+      },
+      {
+        "units": 2,
+        "price_minor": 44990,
+        "profit_decimal": "10090",
+        "per_unit_price_decimal": "22495",
+        "savings_minor": 14990,
+        "recommended": false,
+        "approved_label": null
+      },
+      {
+        "units": 3,
+        "price_minor": 59990,
+        "profit_decimal": "18090",
+        "per_unit_price_decimal": "19996.666666666668",
+        "savings_minor": 29980,
+        "recommended": true,
+        "approved_label": null
+      }
+    ]
+  },
+  "strategy": {
+    "persona": {
+      "name": "Personas que trabajan en casa",
+      "situation": "Usa una mesa con objetos de uso diario.",
+      "trigger": "Quiere ordenar el espacio.",
+      "context": "Situación propuesta por el chat; sin estudio de clientes.",
+      "purchase_criteria": [
+        "Espacio disponible",
+        "Precio"
+      ],
+      "priority": 1,
+      "epistemic_status": "hypothesis",
+      "id": "00000000-0000-0000-0000-0000000000c8",
+      "lifecycle": "active",
+      "archived_reason": null,
+      "last_revision": 3,
+      "validation_note": null,
+      "evidence": []
+    },
+    "jtbd": {
+      "circumstance": "Cuando prepara la mesa para estudiar o trabajar",
+      "desired_progress": "Tener a mano objetos de uso frecuente",
+      "outcome": "Acceder a esos objetos sin interrumpir la tarea",
+      "dimension": "functional",
+      "priority": 1,
+      "epistemic_status": "hypothesis",
+      "id": "00000000-0000-0000-0000-0000000000cc",
+      "persona_id": "00000000-0000-0000-0000-0000000000c8",
+      "lifecycle": "active",
+      "archived_reason": null,
+      "last_revision": 3,
+      "validation_note": null,
+      "evidence": []
+    },
+    "pain": {
+      "description": "Le molesta buscar objetos entre varias cosas.",
+      "basis": "Hipótesis del chat; no medida.",
+      "priority": 1,
+      "epistemic_status": "hypothesis",
+      "id": "00000000-0000-0000-0000-0000000000d0",
+      "persona_id": "00000000-0000-0000-0000-0000000000c8",
+      "lifecycle": "active",
+      "archived_reason": null,
+      "last_revision": 3,
+      "validation_note": null,
+      "frequency": null,
+      "severity": null,
+      "evidence": []
+    },
+    "angles": [
+      {
+        "name": "Orden a tu alcance",
+        "promise": "Una forma de organizar objetos de uso diario",
+        "hook": "¿Otra vez buscando ese lápiz?",
+        "priority": 1,
+        "epistemic_status": "hypothesis",
+        "speaks_to": "buyer",
+        "tone": "Conversacional",
+        "generation_guidance": {
+          "central_message": "Presentar una opción de organización, sin prometer productividad medida.",
+          "hook_delivery": "intrigued",
+          "opening_shot": "pov_hands",
+          "first_motion": "Una mano busca un lápiz sobre una mesa.",
+          "spoken_hook": "¿Otra vez buscando ese lápiz?",
+          "screen_hook": "¿Dónde quedó?",
+          "objection_ids": [
+            "00000000-0000-0000-0000-0000000000d8"
+          ],
+          "proof_fact_ids": []
+        },
+        "id": "00000000-0000-0000-0000-0000000000dc",
+        "persona_id": "00000000-0000-0000-0000-0000000000c8",
+        "jtbd_ids": [
+          "00000000-0000-0000-0000-0000000000cc"
+        ],
+        "pain_ids": [
+          "00000000-0000-0000-0000-0000000000d0"
+        ],
+        "desire_ids": [
+          "00000000-0000-0000-0000-0000000000d4"
+        ],
+        "fact_ids": [
+          "00000000-0000-0000-0000-00000000000b"
+        ],
+        "lifecycle": "active",
+        "archived_reason": null,
+        "last_revision": 3,
+        "validation_note": null,
+        "mechanism": null,
+        "frame": null,
+        "trigger": null,
+        "evidence": []
+      }
+    ],
+    "offer": {
+      "name": "Pack de escritorio",
+      "headline": "Elige cuántos necesitas",
+      "items": [
+        {
+          "units": 1,
+          "label_proposal": null,
+          "price_minor": 29990,
+          "approved_label": null
+        },
+        {
+          "units": 2,
+          "label_proposal": "Para dos espacios",
+          "price_minor": 44990,
+          "approved_label": null
+        },
+        {
+          "units": 3,
+          "label_proposal": null,
+          "price_minor": 59990,
+          "approved_label": null
+        }
+      ],
+      "priority": 1,
+      "id": "00000000-0000-0000-0000-0000000000f0",
+      "lifecycle": "active",
+      "archived_reason": null,
+      "last_revision": 3,
+      "financial_snapshot": {
+        "currency": "CLP",
+        "currency_scale": 0,
+        "pricing_stamp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "unit_cost_minor": 7000,
+        "avg_shipping_cost_minor": 9000,
+        "purchase_cost_limit_minor": 5000,
+        "confirmation_rate": 75,
+        "delivery_rate": 75,
+        "extra_unit_discount": 50,
+        "sale_price_minor": 29990,
+        "compare_at_price_minor": 44990,
+        "minimum_price_minor": 27900,
+        "recommended_price_minor": 27990,
+        "profit_decimal": "2090",
+        "margin": 0.06968989663221074,
+        "max_cpa_decimal": "6181.875",
+        "beroas": 4.851278940450915,
+        "packs": [
+          {
+            "units": 1,
+            "price_minor": 29990,
+            "profit_decimal": "2090",
+            "per_unit_price_decimal": "29990",
+            "savings_minor": 0,
+            "recommended": false,
+            "approved_label": null
+          },
+          {
+            "units": 2,
+            "price_minor": 44990,
+            "profit_decimal": "10090",
+            "per_unit_price_decimal": "22495",
+            "savings_minor": 14990,
+            "recommended": false,
+            "approved_label": null
+          },
+          {
+            "units": 3,
+            "price_minor": 59990,
+            "profit_decimal": "18090",
+            "per_unit_price_decimal": "19996.666666666668",
+            "savings_minor": 29980,
+            "recommended": true,
+            "approved_label": null
+          }
+        ]
+      },
+      "pricing_stamp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policies_stamp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "stale": false
+    },
+    "facts": [
+      {
+        "id": "00000000-0000-0000-0000-00000000000b",
+        "last_revision": 4,
+        "key": "compartment_count",
+        "statement": "La ficha del proveedor indica tres compartimentos.",
+        "value": 3,
+        "unit": "compartments",
+        "verification_status": "verified",
+        "usage_status": "approved",
+        "reason": "Revisión autorizada del número de compartimentos."
+      }
+    ],
+    "sources": [
+      {
+        "id": "00000000-0000-0000-0000-00000000000a",
+        "last_revision": 2,
+        "title": "Ficha de ejemplo del proveedor",
+        "source_type": "supplier",
+        "retrieved_at": "2026-10-06T15:00:00Z",
+        "excerpt": "Organizador con tres compartimentos.",
+        "author": null,
+        "editor": null,
+        "url": "https://example.com/organizer",
+        "internal_ref": null
+      }
+    ],
+    "evidence_links": [
+      {
+        "id": "00000000-0000-0000-0000-00000000000c",
+        "last_revision": 2,
+        "fact_id": "00000000-0000-0000-0000-00000000000b",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "relation": "supports",
+        "fragment": "Organizador con tres compartimentos."
+      }
+    ],
+    "objections": [
+      {
+        "objection": "¿Cabe en mi escritorio?",
+        "proposed_response": null,
+        "priority": 1,
+        "epistemic_status": "hypothesis",
+        "id": "00000000-0000-0000-0000-0000000000d8",
+        "persona_id": "00000000-0000-0000-0000-0000000000c8",
+        "fact_ids": [],
+        "lifecycle": "active",
+        "archived_reason": null,
+        "last_revision": 3,
+        "validation_note": null,
+        "evidence": []
+      }
+    ],
+    "customer_language": [
+      {
+        "text": "¿Otra vez buscando ese lápiz?",
+        "type": "hook",
+        "origin": "synthetic",
+        "id": "00000000-0000-0000-0000-0000000000e4",
+        "persona_id": "00000000-0000-0000-0000-0000000000c8",
+        "angle_id": "00000000-0000-0000-0000-0000000000dc",
+        "source_id": null,
+        "lifecycle": "active",
+        "archived_reason": null,
+        "last_revision": 3
+      }
+    ],
+    "positioning": "Una opción para organizar objetos en el escritorio.",
+    "rationale": "Primera hipótesis que se quiere ejecutar, sin declarar ganador.",
+    "related_jtbd": [],
+    "related_pains": [],
+    "desires": [
+      {
+        "desired_outcome": "Una mesa organizada a su manera",
+        "dimension": "functional",
+        "priority": 1,
+        "epistemic_status": "hypothesis",
+        "id": "00000000-0000-0000-0000-0000000000d4",
+        "persona_id": "00000000-0000-0000-0000-0000000000c8",
+        "lifecycle": "active",
+        "archived_reason": null,
+        "last_revision": 3,
+        "validation_note": null,
+        "evidence": []
+      }
+    ]
+  },
+  "reference_images": [
+    {
+      "id": "00000000-0000-0000-0000-000000000005",
+      "is_base": true,
+      "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "selected_page_image_ids": [
+    "00000000-0000-0000-0000-00000000012d",
+    "00000000-0000-0000-0000-00000000012e",
+    "00000000-0000-0000-0000-00000000012f",
+    "00000000-0000-0000-0000-000000000130",
+    "00000000-0000-0000-0000-000000000131"
+  ],
+  "selected_angle_ids": [
+    "00000000-0000-0000-0000-0000000000dc"
+  ],
+  "approved_fact_ids": [
+    "00000000-0000-0000-0000-00000000000b"
+  ],
+  "blocked_claims": [],
+  "image_qa_enabled": false,
+  "prompt_versions": {
+    "writer": 1,
+    "planner": 1
+  },
+  "cost_policy": {
+    "merchant_cap_usd": null,
+    "automatic_retry_limit": 1
+  }
+}

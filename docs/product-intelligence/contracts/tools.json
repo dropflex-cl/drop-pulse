@@ -1,0 +1,162 @@
+{
+  "schema_version": "1.0",
+  "status": "design_only",
+  "tools": [
+    {
+      "name": "get_product_context",
+      "input_schema": "schemas.json#/$defs/get_product_contextInput",
+      "output_schema": "schemas.json#/$defs/get_product_contextOutput",
+      "required_scopes": [
+        "product_intelligence:read"
+      ],
+      "conditional_scopes": {
+        "include_performance": "performance:read"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "save_product_context",
+      "input_schema": "schemas.json#/$defs/save_product_contextInput",
+      "output_schema": "schemas.json#/$defs/save_product_contextOutput",
+      "required_scopes": [
+        "product_intelligence:write"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "save_product_analysis",
+      "input_schema": "schemas.json#/$defs/save_product_analysisInput",
+      "output_schema": "schemas.json#/$defs/save_product_analysisOutput",
+      "required_scopes": [
+        "product_intelligence:write"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "patch_product_analysis",
+      "input_schema": "schemas.json#/$defs/patch_product_analysisInput",
+      "output_schema": "schemas.json#/$defs/patch_product_analysisOutput",
+      "required_scopes": [
+        "product_intelligence:write"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "save_research",
+      "input_schema": "schemas.json#/$defs/save_researchInput",
+      "output_schema": "schemas.json#/$defs/save_researchOutput",
+      "required_scopes": [
+        "product_intelligence:write"
+      ],
+      "conditional_scopes": {
+        "verification_or_approval": "product_intelligence:verify"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_product_strategy",
+      "input_schema": "schemas.json#/$defs/get_product_strategyInput",
+      "output_schema": "schemas.json#/$defs/get_product_strategyOutput",
+      "required_scopes": [
+        "product_intelligence:read"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_generation_status",
+      "input_schema": "schemas.json#/$defs/get_generation_statusInput",
+      "output_schema": "schemas.json#/$defs/get_generation_statusOutput",
+      "required_scopes": [
+        "product_intelligence:read"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "set_product_strategy",
+      "input_schema": "schemas.json#/$defs/set_product_strategyInput",
+      "output_schema": "schemas.json#/$defs/set_product_strategyOutput",
+      "required_scopes": [
+        "product_intelligence:write"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "generate_landing",
+      "input_schema": "schemas.json#/$defs/generate_landingInput",
+      "output_schema": "schemas.json#/$defs/generate_landingOutput",
+      "required_scopes": [
+        "product_intelligence:read",
+        "landing:generate"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "generate_ugc",
+      "input_schema": "schemas.json#/$defs/generate_ugcInput",
+      "output_schema": "schemas.json#/$defs/generate_ugcOutput",
+      "required_scopes": [
+        "product_intelligence:read",
+        "ugc:generate"
+      ],
+      "conditional_scopes": {},
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    }
+  ]
+}

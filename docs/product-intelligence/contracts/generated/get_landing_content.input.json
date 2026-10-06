@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "component": {
+      "default": "listing",
+      "type": "string",
+      "enum": [
+        "listing",
+        "review-stars",
+        "benefit-usps",
+        "inventory",
+        "shipping-timeline",
+        "benefit-double-box",
+        "gif-strip",
+        "review-slider",
+        "ugc-slider",
+        "pain-block",
+        "stats-with-image",
+        "scrolling-benefits",
+        "image-with-benefits",
+        "insta-story",
+        "review-wall",
+        "comparison-table",
+        "faq-and-text"
+      ]
+    }
+  }
+}

@@ -121,6 +121,9 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
   let deleted = 0;
   for (const id of productIds) {
     try {
+      // Cierra escrituras PI antes de limpiar Storage; si algo falla, el próximo sync reintenta.
+      const begun = await db.rpc("pi_begin_product_deletion", { p_user_id: userId, p_product_id: id });
+      if (begun.error) throw new Error(`Preparar el borrado de ${id}: ${begun.error.message}`);
       await pauseCampaigns(userId, id);
       await removeFiles(userId, id);
       // ai_generations tiene "on delete set null": se borra antes para no dejar filas sueltas.

@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/integrations/session";
 import { OnboardingError } from "@/lib/onboarding/types";
 import { OptimizeError } from "@/lib/pipeline/errors";
 import { getProductRow, type ProductRow } from "./store";
+import { ProductIntelligenceError } from "@/lib/product-intelligence/errors";
 
 // Rutas /api/products/*: errores { error, field? } en español con el código HTTP que corresponde
 // (el mismo contrato de /api/onboarding), y el producto verificado contra el usuario de la sesión.
@@ -19,6 +20,10 @@ export class ProductApiError extends Error {
 }
 
 export function errorResponse(e: unknown, fallback = "No pudimos guardar el cambio. Intenta de nuevo en un momento.") {
+  if (e instanceof ProductIntelligenceError) {
+    const status = e.code === "REVISION_CONFLICT" ? 409 : e.code === "NOT_FOUND" ? 404 : e.code === "FORBIDDEN" ? 403 : e.code === "INTERNAL_ERROR" ? 503 : 400;
+    return NextResponse.json({ error: e.message, field: e.details.fields?.[0] }, { status });
+  }
   if (e instanceof ProductApiError || e instanceof OnboardingError) {
     return NextResponse.json({ error: e.message, field: e.field }, { status: e.status });
   }

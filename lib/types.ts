@@ -14,6 +14,8 @@ import type { StoreFacts } from "@/lib/store-preview/facts";
 import type { AngleSlot } from "@/lib/angles/catalog";
 
 export type { ContentStatus, Verdict };
+export type { ToolName as ProductIntelligenceToolName, ToolInputs as ProductIntelligenceToolInputs, ToolOutputs as ProductIntelligenceToolOutputs, GenerationContext, FinancialSnapshot } from "@/lib/product-intelligence/schemas";
+export type { Principal as ProductIntelligencePrincipal, PiScope as ProductIntelligenceScope } from "@/lib/product-intelligence/policy";
 
 /** Etapas de la ruta de un producto, en orden. */
 export type StageKey = "importado" | "resenas" | "angulos" | "textos" | "imagenes" | "publicar" | "creativos" | "anuncios" | "mensajes";
@@ -86,7 +88,7 @@ export interface ReferenceImage {
 }
 
 /** Plan de precios guardado (lib/pricing/store.ts), tal como lo recibe la pantalla. */
-export type SavedPricingDto = PricingPlan & { updatedAt: string };
+export type SavedPricingDto = PricingPlan & { updatedAt: string; pricingStamp?: string };
 
 /** Una corrida de la estrategia (strategy_runs), como la ve la pantalla. */
 export interface StrategyView {
@@ -218,6 +220,7 @@ export interface PageComponentView {
 
 /** El estado de la etapa Página del producto (lo que devuelve el sondeo). */
 export interface CopyState {
+  fromChat?: boolean;
   /** Qué falta para habilitarla: los 2 desarrollos de Ángulos, o las imágenes (Imágenes va antes). null si está habilitada. */
   locked: "angles" | "images" | null;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
@@ -926,4 +929,3 @@ export interface DifferentiatorView {
   /** La ficha es de antes del diferenciador: la IA no llegó a proponerlo. */
   oldBrief?: boolean;
 }
-

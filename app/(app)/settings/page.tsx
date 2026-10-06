@@ -14,6 +14,8 @@ import { ApiKeySettings } from "@/components/screens/api-key-settings";
 import { AdSettings } from "@/components/screens/ad-settings";
 import { MarketSettings } from "@/components/screens/market-settings";
 import { PromptSettings } from "@/components/screens/prompt-settings";
+import { Button } from "@/components/df";
+import { getMcpAvailability } from "@/lib/data/oauth";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
@@ -28,7 +30,7 @@ function Section({ id, title, children, description }: { id: string; title: stri
 }
 
 export default async function AjustesPage() {
-  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies, prompts] = await Promise.all([
+  const [assumptions, market, ads, anthropic, higgsfield, gemini, aiCost, policies, prompts, mcpEnabled] = await Promise.all([
     getAssumptions(),
     getMarketSettings(),
     getAdSettings(),
@@ -38,6 +40,7 @@ export default async function AjustesPage() {
     getAiCostSettings(),
     getPolicySettings(),
     getPromptSettings(),
+    getMcpAvailability(),
   ]);
   return (
     <>
@@ -68,6 +71,11 @@ export default async function AjustesPage() {
             </div>
           </Suspense>
         </Section>
+        {mcpEnabled ? (
+          <Section id="mcp" title="Conexiones MCP" description="Revisa los clientes con acceso a tu catálogo. Revoca una conexión para cortar su acceso.">
+            <Button href="/oauth/connections">Revisa tus conexiones</Button>
+          </Section>
+        ) : null}
         {anthropic ? (
           <Section id="ia" title="Inteligencia artificial" description="Tu cuenta de Anthropic (Claude): la IA de DropFlex escribe y revisa con tu clave y tu saldo. Sin ella, la IA no corre.">
             <ApiKeySettings provider="anthropic" keyHint={anthropic.keyHint} status={anthropic.status} error={anthropic.error} />

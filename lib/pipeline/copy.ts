@@ -15,7 +15,7 @@ import { avatarStamp, differentiatorStamp, staleReasons, type CopyContextStamp, 
 import { policiesBlock, type CopyContext } from "@/lib/copy/prompts";
 import { writeArgument, writePage } from "@/lib/copy/write";
 import { COPY_PROMPT_VERSION, allowedAmounts } from "@/lib/copy/schemas";
-import { activeComponents, currentContent, getComponentRow, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
+import { activeComponents, currentContent, getComponentRow, latestCopyRuns, type BriefStamp, type CopyRunRow } from "@/lib/copy/store";
 import { approvedAngles } from "@/lib/angles/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
@@ -79,6 +79,9 @@ export type CopyMode = { kind: "missing" } | { kind: "all" } | { kind: "only"; c
  * está escrita, nada nuevo: tocar dos veces no cobra dos veces.
  */
 export async function startCopy(userId: string, productId: string, redo = false, mode: CopyMode = { kind: "missing" }): Promise<{ run: CopyRunRow | null; created: boolean }> {
+  if ((await latestCopyRuns(userId, [productId])).get(productId)?.input.source === "mcp_chat") {
+    throw new OptimizeError("Esta página se escribe desde el chat. Envía los cambios con save_landing_content y revísalos aquí.", 409);
+  }
   await requireAiKey(userId);
   const ctx = await loadContext(userId, productId);
   const db = adminClient();
@@ -359,7 +362,9 @@ export async function updateComponent(userId: string, productId: string, compone
     update.decided_at = now;
     if (!listing && (patch.content !== undefined || patch.images !== undefined) && patch.enabled === undefined) update.enabled = true;
   }
-  fail("Guardar el componente", (await adminClient().from("page_components").update(update).eq("id", row.id)).error);
+  const saved = await adminClient().from("page_components").update(update).eq("id", row.id).eq("user_id", userId).eq("product_id", productId).is("superseded_at", null).select("id").maybeSingle();
+  fail("Guardar el componente", saved.error);
+  if (!saved.data) throw new OptimizeError("La página cambió desde tu lectura. Actualiza antes de editar este componente.", 409);
 }
 
 /**

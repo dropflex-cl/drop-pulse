@@ -197,7 +197,10 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   // también quedó atrás, así que la acción principal es reescribir toda la página.
   const reasons = state.staleReasons ?? [];
   const onlyAngles = reasons.length === 1 && reasons[0] === "angles";
-  const staleNotice = !state.stale ? null : askAll === "top" ? (
+  const staleNotice = !state.stale ? null : state.fromChat ? (
+    // Textos: design-system/copy-mcp.md.
+    <Notice title="Cambió el contexto de tu producto." body="Recupera el contexto en el chat, revisa el contenido y envía los cambios con save_landing_content. Después apruébalos aquí." />
+  ) : askAll === "top" ? (
     confirmAll("top")
   ) : (
     <Notice
@@ -417,7 +420,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         {listingCard}
         <PageAccent productId={product.id} initial={data.accent} onSaved={setAccent} />
         {cards}
-        {askAll === "bottom" ? (
+        {state.fromChat ? null : askAll === "bottom" ? (
           confirmAll("bottom")
         ) : (
           <Button variant="ghost" icon="sparkle" className="self-start" disabled={writing} onClick={() => setAskAll("bottom")}>
@@ -436,9 +439,9 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
         }
         className="lg:px-8"
       >
-        <Button size="lg" icon="sparkle" loading={busy === "redo"} disabled={!redoable || writing} onClick={() => write(true)} className={actionClass}>
+        {!state.fromChat ? <Button size="lg" icon="sparkle" loading={busy === "redo"} disabled={!redoable || writing} onClick={() => write(true)} className={actionClass}>
           {desktop ? "Reescribir lo no aprobado" : "Reescribir"}
-        </Button>
+        </Button> : null}
         {progress.complete ? (
           <Button variant="primary" size="lg" iconEnd="chevron-right" href={productHref(product.id, "publicar")} className={actionClass}>
             {nextLabel}
@@ -518,7 +521,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
               onCancel={() => setEditing(null)}
               onSave={save}
               rewriting={busy === `rewrite:${editingView.component}`}
-              onRewrite={writing ? undefined : () => write(true, { component: editingView.component })}
+              onRewrite={writing || state.fromChat ? undefined : () => write(true, { component: editingView.component })}
             />
           ) : null}
         </DrawerContent>
@@ -526,4 +529,3 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     </div>
   );
 }
-

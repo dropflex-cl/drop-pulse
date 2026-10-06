@@ -93,14 +93,14 @@ export async function latestCopyRunStates(userId: string, productIds: string[]):
   if (!productIds.length) return new Map();
   const { data, error } = await adminClient()
     .from("copy_runs")
-    .select("product_id, status, error_message, briefs:input->briefs")
+    .select("product_id, status, error_message, briefs:input->briefs, source:input->>source")
     .eq("user_id", userId)
     .in("product_id", productIds)
     .order("created_at", { ascending: false });
   fail("Leer las escrituras", error);
   const map = new Map<string, CopyRunState>();
-  for (const r of (data ?? []) as (Omit<CopyRunState, "input"> & { briefs: BriefStamp | null })[]) {
-    if (!map.has(r.product_id)) map.set(r.product_id, { product_id: r.product_id, status: r.status, error_message: r.error_message, input: r.briefs ? { briefs: r.briefs } : {} });
+  for (const r of (data ?? []) as (Omit<CopyRunState, "input"> & { briefs: BriefStamp | null; source: string | null })[]) {
+    if (!map.has(r.product_id)) map.set(r.product_id, { product_id: r.product_id, status: r.status, error_message: r.error_message, input: { ...(r.briefs ? { briefs: r.briefs } : {}), source: r.source } });
   }
   return map;
 }
@@ -155,6 +155,7 @@ export const currentContent = (r: Pick<PageComponentRow, "content" | "proposal">
 
 /** Los desarrollos cambiaron (otro, editado o un ángulo más) después de escribir la página. `current`: los aprobados hoy, en orden de slot. */
 export function isStale(run: Pick<CopyRunRow, "input"> | undefined, current: BriefStampEntry[]): boolean {
+  if (run?.input.source === "mcp_chat") return false;
   return stampChanged(run?.input.briefs, current);
 }
 

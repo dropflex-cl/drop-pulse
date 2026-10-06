@@ -133,7 +133,7 @@ export const productsApi = {
   editPackLabels: (id: string, labels: PackLabel[], approve: boolean) => send<{ packLabels: PackLabelsProposal | null }>("PUT", `/${id}/pack-labels`, { labels, approve }),
   regeneratePackLabels: (id: string) => send<{ packLabels: PackLabelsProposal | null }>("POST", `/${id}/pack-labels`),
   writeUsageTip: (id: string) => send<{ tip: MessagesState["tip"] }>("POST", `/${id}/whatsapp/tip`),
-  savePricing: (id: string, form: PricingForm) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, form),
+  savePricing: (id: string, form: PricingForm, expectedPricingStamp: string | null) => send<{ pricing: SavedPricingDto }>("PUT", `/${id}/pricing`, { ...form, expectedPricingStamp }),
   sync: () => send<{ created: number; deleted: number; pending: number }>("POST", "/sync"),
   saveBaseInfo: (id: string, text: string) => send<{ savedAt: string; topics: string[] }>("PATCH", `/${id}/base-info`, { text }),
   imageFromUrl: (id: string, url: string) => send<{ image: ReferenceImage }>("POST", `/${id}/images/url`, { url }),
@@ -211,4 +211,3 @@ export const themeApi = {
   /** Vuelve a pedir permisos en Shopify (temas y archivos): responde con la URL de autorización. */
   permissions: (shop: string) => post<{ authorizeUrl: string }>("/api/onboarding/shopify/connect", { shop }, "No pudimos abrir Shopify. Intenta de nuevo."),
 };
-

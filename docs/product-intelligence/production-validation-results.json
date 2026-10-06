@@ -1,0 +1,2031 @@
+{
+  "project_ref": "oukcswnfrzroxgwqmujf",
+  "baseline_commit": "a2c272729b0299f4b073bbd3db2b54b661791aa5",
+  "access": "Management API database/query/read-only; SELECT only",
+  "scope": "Aggregated metadata and structural diagnostics, no full payload export",
+  "provenance": [
+    {
+      "query": "00-schema",
+      "captured_at": "2026-10-06T10:35:15.980526+00:00",
+      "query_sha256": "b9fe69f256c6ba6deeac90373642e3cbf93eed2b5a842842db4052e255bcbc37",
+      "response_sha256": "405644e1b82be9e04655987b791962c3a3b75c708727d5ba796a46843d4f253f",
+      "rows": 6
+    },
+    {
+      "query": "01-counts",
+      "captured_at": "2026-10-06T10:36:02.434976+00:00",
+      "query_sha256": "3b97d11bbc311322c8237d7e208b53edbbf0896f2537004c40eea2594e57e433",
+      "response_sha256": "d64ac116885ea8c9e56adf7687abbbe0dd38811469ec07852dceb335cb764be4",
+      "rows": 52
+    },
+    {
+      "query": "02-migrations",
+      "captured_at": "2026-10-06T10:36:07.359253+00:00",
+      "query_sha256": "9d66edbb037e6625de716b9a890b7ad023d794a96d8dd634adfa6fdea47fb523",
+      "response_sha256": "4b36b8160e78de05f2f2e52f93d174c68e7b9537d3828e22828ccc2ae5fad7de",
+      "rows": 36
+    },
+    {
+      "query": "03-fk-metadata",
+      "captured_at": "2026-10-06T10:36:06.041617+00:00",
+      "query_sha256": "f56dbdf3742d60b9aa9bd43a4e07ade7629cd4dae40fadc7c84725fcd27b302a",
+      "response_sha256": "05094dfa56b0ef7cd941ca066cea7ef66a8919888cf10223c2d09ffa6938855f",
+      "rows": 111
+    },
+    {
+      "query": "04-fk-integrity",
+      "captured_at": "2026-10-06T10:37:34.853918+00:00",
+      "query_sha256": "18d803eacbce4318a1a76caf3360ecf12b95dc8408d8746859945e8cfc2a5d8c",
+      "response_sha256": "43c99c4ff08b076600a92d10856102d65f66a26a753b1d1ca74af2930fde2edd",
+      "rows": 62
+    },
+    {
+      "query": "05-formats",
+      "captured_at": "2026-10-06T10:37:37.680419+00:00",
+      "query_sha256": "1f34d2a0b44cf86a16e882c38d6c05215a8e71e2d6cd6a63be9e56d8af9cddb4",
+      "response_sha256": "1e2a808dcb224588a6c8763518f1494d3e77b97b82d6333455fae8c60ac0eb8d",
+      "rows": 17
+    },
+    {
+      "query": "06-coverage",
+      "captured_at": "2026-10-06T10:37:38.905189+00:00",
+      "query_sha256": "be3536a5d89f9a95cadb0b8420e3927007ed04516c0deadbed53fcbfae25facc",
+      "response_sha256": "259895aa7b087bf44981947cf6893d5b61782e703a4f59cf80bbd1d1131ee555",
+      "rows": 8
+    },
+    {
+      "query": "07-lifecycle",
+      "captured_at": "2026-10-06T10:37:34.317254+00:00",
+      "query_sha256": "a34dbbb410905c70110c70f41c8ccb365aea1e62c99a0e7cd6a91ee694e73dd5",
+      "response_sha256": "7a490d3ae00b2e4674f10ab0fce11c2d72e1cc3f99a8c4cdd346cd62dcb7e489",
+      "rows": 10
+    },
+    {
+      "query": "08-details",
+      "captured_at": "2026-10-06T10:38:44.440907+00:00",
+      "query_sha256": "07ac325558a0bfbc5c386da0a8bd1a317089c59f4f358fdf11ece267c172d44b",
+      "response_sha256": "edfeb29e2463c14dac71087c5c11288712d57b87fcae2e464b6482e3c6bd5b71",
+      "rows": 8
+    },
+    {
+      "query": "09-storage",
+      "captured_at": "2026-10-06T10:38:42.291467+00:00",
+      "query_sha256": "90114facab9dfecd648decdb136f409b2ee93d29542e8331b500975980e46d2e",
+      "response_sha256": "d4136c197a3b6b0fd6fbaf779bde72c057b178c9dc0733dbc56f475f2d1ac3e0",
+      "rows": 2
+    },
+    {
+      "query": "10-permissions",
+      "captured_at": "2026-10-06T10:38:40.856752+00:00",
+      "query_sha256": "11f960245cec31e75e6cb160d49d7cdb7978fc5d90d4e49e4981bd7afcc44fe3",
+      "response_sha256": "8a2241b6ef29f58c522a8fdea533f916c0235ee76c9608c5cdf036155b2664f6",
+      "rows": 3
+    },
+    {
+      "query": "11-storage-integrity",
+      "captured_at": "2026-10-06T10:39:34.820754+00:00",
+      "query_sha256": "cc0ba6b3321f1c283c7f725633c02804679d35f6e18c375ca88157416f1b7b4a",
+      "response_sha256": "507e03caa5c6181600e1dd6381ab4a9e1609c46f7375664c9e7a19c23d2f0b65",
+      "rows": 6
+    },
+    {
+      "query": "12-auth-and-untyped-links",
+      "captured_at": "2026-10-06T10:39:54.484399+00:00",
+      "query_sha256": "372c4c3aa5c596419699dc987d4da0c8369a72c5b61ed6b14a5c4bbe46aada88",
+      "response_sha256": "eb51c59015261f0afe14b93a199aa9a1201f503f23e892560d3459fb03f0bfa6",
+      "rows": 4
+    },
+    {
+      "query": "14-schema-checks",
+      "captured_at": "2026-10-06T10:42:57.727829+00:00",
+      "query_sha256": "6bff4b7d7b11d0525dcd8f1df8899119c14ae314b10da03819691a80e096bc84",
+      "response_sha256": "5e7fc6a3db71f4d556c5475d9d575b1e2fd5651899eefca36d7461f5cd4bf3c0",
+      "rows": 143
+    },
+    {
+      "query": "15-final-checks",
+      "captured_at": "2026-10-06T10:44:53.901135+00:00",
+      "query_sha256": "de718a8b2bc67fc140e2ae89440c6517493e12bb8fe4ab5f31282cda09f75b47",
+      "response_sha256": "ab11f969bcec1355d3dff04fc19b1c17ae09e1f26e073e87758d1f762faeb721",
+      "rows": 5
+    }
+  ],
+  "results": {
+    "00-schema": {
+      "session": {
+        "captured_at": "2026-10-06T10:35:15.155108+00:00",
+        "current_user": "supabase_read_only_user",
+        "postgres_version": "17.6",
+        "transaction_read_only": "on"
+      },
+      "tables": [
+        {
+          "kind": "r",
+          "name": "ad_campaigns",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_changes",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_decisions",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_insights_daily",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_insights_snapshots",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_media",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_sets",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ad_templates",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ads",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "ai_generations",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "angle_briefs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "angle_rankings",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "anthropic_connections",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "catalog_items",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "copy_runs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "creative_assets",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "creative_concepts",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "creative_runs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "customer_avatars",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "data_deletion_requests",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "event_activations",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "event_copy",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "events",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "gemini_connections",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "higgsfield_connections",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "image_provider_choices",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "merchant_settings",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "meta_connections",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "onboarding",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "pack_labels",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "page_components",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "page_image_runs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "page_image_shots",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "page_images",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "pipeline_runs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "product_briefs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "product_competitors",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "product_pricing",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "product_publications",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "product_reference_images",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "product_reviews",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "products",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "prompt_templates",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "review_imports",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "review_sources",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "shopify_connections",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "shopify_files",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "shopify_theme_installations",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "strategy_runs",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "video_scripts",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "video_shots",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "webhook_events",
+          "rls_forced": false,
+          "rls_enabled": true
+        }
+      ],
+      "policy_commands": [
+        "SELECT"
+      ],
+      "policy_count": 53
+    },
+    "01-counts": [
+      {
+        "table_name": "ad_campaigns",
+        "row_count": 3
+      },
+      {
+        "table_name": "ad_changes",
+        "row_count": 6
+      },
+      {
+        "table_name": "ad_decisions",
+        "row_count": 17
+      },
+      {
+        "table_name": "ad_insights_daily",
+        "row_count": 48
+      },
+      {
+        "table_name": "ad_insights_snapshots",
+        "row_count": 3258
+      },
+      {
+        "table_name": "ad_media",
+        "row_count": 20
+      },
+      {
+        "table_name": "ad_sets",
+        "row_count": 6
+      },
+      {
+        "table_name": "ad_templates",
+        "row_count": 0
+      },
+      {
+        "table_name": "ads",
+        "row_count": 6
+      },
+      {
+        "table_name": "ai_generations",
+        "row_count": 350
+      },
+      {
+        "table_name": "angle_briefs",
+        "row_count": 13
+      },
+      {
+        "table_name": "angle_rankings",
+        "row_count": 7
+      },
+      {
+        "table_name": "anthropic_connections",
+        "row_count": 1
+      },
+      {
+        "table_name": "catalog_items",
+        "row_count": 2
+      },
+      {
+        "table_name": "copy_runs",
+        "row_count": 11
+      },
+      {
+        "table_name": "creative_assets",
+        "row_count": 19
+      },
+      {
+        "table_name": "creative_concepts",
+        "row_count": 22
+      },
+      {
+        "table_name": "creative_runs",
+        "row_count": 6
+      },
+      {
+        "table_name": "customer_avatars",
+        "row_count": 8
+      },
+      {
+        "table_name": "data_deletion_requests",
+        "row_count": 0
+      },
+      {
+        "table_name": "event_activations",
+        "row_count": 1
+      },
+      {
+        "table_name": "event_copy",
+        "row_count": 0
+      },
+      {
+        "table_name": "events",
+        "row_count": 8
+      },
+      {
+        "table_name": "gemini_connections",
+        "row_count": 0
+      },
+      {
+        "table_name": "higgsfield_connections",
+        "row_count": 1
+      },
+      {
+        "table_name": "image_provider_choices",
+        "row_count": 2
+      },
+      {
+        "table_name": "merchant_settings",
+        "row_count": 1
+      },
+      {
+        "table_name": "meta_connections",
+        "row_count": 1
+      },
+      {
+        "table_name": "onboarding",
+        "row_count": 1
+      },
+      {
+        "table_name": "pack_labels",
+        "row_count": 9
+      },
+      {
+        "table_name": "page_components",
+        "row_count": 116
+      },
+      {
+        "table_name": "page_image_runs",
+        "row_count": 6
+      },
+      {
+        "table_name": "page_image_shots",
+        "row_count": 38
+      },
+      {
+        "table_name": "page_images",
+        "row_count": 36
+      },
+      {
+        "table_name": "pipeline_runs",
+        "row_count": 8
+      },
+      {
+        "table_name": "product_briefs",
+        "row_count": 8
+      },
+      {
+        "table_name": "product_competitors",
+        "row_count": 2
+      },
+      {
+        "table_name": "product_pricing",
+        "row_count": 5
+      },
+      {
+        "table_name": "product_publications",
+        "row_count": 4
+      },
+      {
+        "table_name": "product_reference_images",
+        "row_count": 12
+      },
+      {
+        "table_name": "product_reviews",
+        "row_count": 78
+      },
+      {
+        "table_name": "products",
+        "row_count": 8
+      },
+      {
+        "table_name": "prompt_templates",
+        "row_count": 3
+      },
+      {
+        "table_name": "review_imports",
+        "row_count": 9
+      },
+      {
+        "table_name": "review_sources",
+        "row_count": 8
+      },
+      {
+        "table_name": "shopify_connections",
+        "row_count": 1
+      },
+      {
+        "table_name": "shopify_files",
+        "row_count": 94
+      },
+      {
+        "table_name": "shopify_theme_installations",
+        "row_count": 1
+      },
+      {
+        "table_name": "strategy_runs",
+        "row_count": 2
+      },
+      {
+        "table_name": "video_scripts",
+        "row_count": 9
+      },
+      {
+        "table_name": "video_shots",
+        "row_count": 101
+      },
+      {
+        "table_name": "webhook_events",
+        "row_count": 0
+      }
+    ],
+    "02-migrations": [
+      {
+        "version": "20260923000000",
+        "name": "integrations"
+      },
+      {
+        "version": "20260924000000",
+        "name": "products_and_optimization"
+      },
+      {
+        "version": "20260925000000",
+        "name": "base_reference_image"
+      },
+      {
+        "version": "20260926000000",
+        "name": "product_pricing"
+      },
+      {
+        "version": "20260927000000",
+        "name": "pack_labels"
+      },
+      {
+        "version": "20260928000000",
+        "name": "product_reviews"
+      },
+      {
+        "version": "20260930000000",
+        "name": "sales_angles"
+      },
+      {
+        "version": "20261001000000",
+        "name": "page_copy"
+      },
+      {
+        "version": "20261002000000",
+        "name": "page_accent_color"
+      },
+      {
+        "version": "20261003000000",
+        "name": "ads"
+      },
+      {
+        "version": "20261004000000",
+        "name": "creatives"
+      },
+      {
+        "version": "20261005000000",
+        "name": "ai_costs"
+      },
+      {
+        "version": "20261006000000",
+        "name": "angle_brief_reuse"
+      },
+      {
+        "version": "20261007000000",
+        "name": "page_images"
+      },
+      {
+        "version": "20261008000000",
+        "name": "page_components"
+      },
+      {
+        "version": "20261009000000",
+        "name": "store_policies"
+      },
+      {
+        "version": "20261010000000",
+        "name": "publish"
+      },
+      {
+        "version": "20261011000000",
+        "name": "page_gifs"
+      },
+      {
+        "version": "20261015000000",
+        "name": "events"
+      },
+      {
+        "version": "20261016000000",
+        "name": "copy_run_problems"
+      },
+      {
+        "version": "20261017000000",
+        "name": "shipping_regions"
+      },
+      {
+        "version": "20261018000000",
+        "name": "differentiator_and_competitors"
+      },
+      {
+        "version": "20261019000000",
+        "name": "test_angles"
+      },
+      {
+        "version": "20261020000000",
+        "name": "ad_media_angle"
+      },
+      {
+        "version": "20261021000000",
+        "name": "ad_campaign_angles"
+      },
+      {
+        "version": "20261022000000",
+        "name": "image_providers"
+      },
+      {
+        "version": "20261023000000",
+        "name": "gemini_connections"
+      },
+      {
+        "version": "20261024000000",
+        "name": "video_ugc"
+      },
+      {
+        "version": "20261025000000",
+        "name": "ai_generation_problems"
+      },
+      {
+        "version": "20261026000000",
+        "name": "product_upsell"
+      },
+      {
+        "version": "20261027000000",
+        "name": "video_script_format"
+      },
+      {
+        "version": "20261028000000",
+        "name": "usage_tip"
+      },
+      {
+        "version": "20261029000000",
+        "name": "anthropic_connections"
+      },
+      {
+        "version": "20261030000000",
+        "name": "product_image_qa"
+      },
+      {
+        "version": "20261031000000",
+        "name": "ai_generation_prompt_version"
+      },
+      {
+        "version": "20261101000000",
+        "name": "prompt_templates"
+      }
+    ],
+    "03-fk-metadata": {
+      "foreign_keys_total": 111,
+      "public_parent_count": 62,
+      "unvalidated_count": 0
+    },
+    "04-fk-integrity": {
+      "constraints_checked": 62,
+      "reference_checks": 4842,
+      "orphan_count": 0,
+      "owner_mismatch": 0,
+      "cross_product": 0,
+      "owner_comparable_constraints": 59,
+      "product_comparable_constraints": 19,
+      "violations": []
+    },
+    "05-formats": [
+      {
+        "entity": "angle_briefs",
+        "version": 2,
+        "status": "approved",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "aida_summary",
+          "body_beats",
+          "compliance_flags",
+          "core_message",
+          "details",
+          "fit_reason",
+          "go",
+          "handoff_to_ugc",
+          "hooks",
+          "landing",
+          "missing_inputs",
+          "objection_handling",
+          "offer_layer",
+          "proof_to_show",
+          "psychological_lever",
+          "recommended_hook",
+          "static_ad_concepts",
+          "visual_concepts"
+        ],
+        "row_count": 4
+      },
+      {
+        "entity": "angle_briefs",
+        "version": 3,
+        "status": "approved",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "aida_summary",
+          "body_beats",
+          "compliance_flags",
+          "core_message",
+          "details",
+          "fit_reason",
+          "go",
+          "handoff_to_ugc",
+          "hooks",
+          "missing_inputs",
+          "objection_handling",
+          "offer_layer",
+          "page_block",
+          "proof_to_show",
+          "psychological_lever",
+          "recommended_hook",
+          "static_ad_concepts",
+          "visual_concepts"
+        ],
+        "row_count": 6
+      },
+      {
+        "entity": "angle_briefs",
+        "version": 5,
+        "status": "approved",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "aida_summary",
+          "body_beats",
+          "compliance_flags",
+          "core_message",
+          "details",
+          "fit_reason",
+          "go",
+          "handoff_to_ugc",
+          "hooks",
+          "hooks_error",
+          "missing_inputs",
+          "objection_handling",
+          "offer_layer",
+          "page_block",
+          "proof_to_show",
+          "psychological_lever",
+          "recommended_hook",
+          "static_ad_concepts",
+          "visual_concepts"
+        ],
+        "row_count": 1
+      },
+      {
+        "entity": "angle_briefs",
+        "version": 5,
+        "status": "approved",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "aida_summary",
+          "body_beats",
+          "compliance_flags",
+          "core_message",
+          "details",
+          "fit_reason",
+          "go",
+          "handoff_to_ugc",
+          "hook_diagnosis",
+          "hook_notes",
+          "hook_top",
+          "hooks",
+          "hooks_error",
+          "hooks_version",
+          "missing_inputs",
+          "objection_handling",
+          "offer_layer",
+          "page_block",
+          "proof_to_show",
+          "psychological_lever",
+          "recommended_hook",
+          "static_ad_concepts",
+          "visual_concepts"
+        ],
+        "row_count": 2
+      },
+      {
+        "entity": "angle_rankings",
+        "version": 4,
+        "status": "succeeded",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "angles",
+          "available_proof",
+          "awareness_level",
+          "combinations",
+          "compliance_flags",
+          "diagnosis",
+          "missing_inputs",
+          "result_visible",
+          "sophistication"
+        ],
+        "row_count": 1
+      },
+      {
+        "entity": "angle_rankings",
+        "version": 5,
+        "status": "succeeded",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "angles",
+          "available_proof",
+          "awareness_level",
+          "combinations",
+          "compliance_flags",
+          "diagnosis",
+          "missing_inputs",
+          "result_visible",
+          "sophistication"
+        ],
+        "row_count": 1
+      },
+      {
+        "entity": "angle_rankings",
+        "version": 6,
+        "status": "succeeded",
+        "payload_type": "object",
+        "keys": [
+          "aida_emphasis",
+          "angles",
+          "available_proof",
+          "awareness_level",
+          "compliance_flags",
+          "diagnosis",
+          "missing_inputs",
+          "result_visible",
+          "sophistication",
+          "test_angles"
+        ],
+        "row_count": 3
+      },
+      {
+        "entity": "angle_rankings",
+        "version": null,
+        "status": "failed",
+        "payload_type": null,
+        "keys": [],
+        "row_count": 2
+      },
+      {
+        "entity": "customer_avatars",
+        "version": 4,
+        "status": "approved",
+        "payload_type": "object",
+        "keys": [
+          "awareness_level",
+          "awareness_reason",
+          "demographics",
+          "emotions",
+          "enemies",
+          "formula",
+          "identity",
+          "market_sophistication",
+          "name",
+          "objections",
+          "priorities",
+          "problems",
+          "sophistication_reason",
+          "summary",
+          "vision",
+          "voice_of_customer"
+        ],
+        "row_count": 5
+      },
+      {
+        "entity": "customer_avatars",
+        "version": 4,
+        "status": "rejected",
+        "payload_type": "object",
+        "keys": [
+          "awareness_level",
+          "awareness_reason",
+          "demographics",
+          "emotions",
+          "enemies",
+          "formula",
+          "identity",
+          "market_sophistication",
+          "name",
+          "objections",
+          "priorities",
+          "problems",
+          "sophistication_reason",
+          "summary",
+          "vision",
+          "voice_of_customer"
+        ],
+        "row_count": 2
+      },
+      {
+        "entity": "customer_avatars",
+        "version": 6,
+        "status": "approved",
+        "payload_type": "object",
+        "keys": [
+          "age_range",
+          "buyer",
+          "cash_on_delivery",
+          "doubts",
+          "more_than_one",
+          "summary",
+          "user",
+          "why_buy"
+        ],
+        "row_count": 1
+      },
+      {
+        "entity": "product_briefs",
+        "version": 6,
+        "status": null,
+        "payload_type": "object",
+        "keys": [
+          "alternatives_already_tried",
+          "bundle_options",
+          "category",
+          "forbidden_claims",
+          "how_it_works",
+          "images",
+          "inferred_fields",
+          "key_facts",
+          "known_objections",
+          "missing_inputs",
+          "price",
+          "problem_solved",
+          "product_name",
+          "proof",
+          "real_deadline_or_event",
+          "target_audience",
+          "unit_cost",
+          "what_it_does"
+        ],
+        "row_count": 3
+      },
+      {
+        "entity": "product_briefs",
+        "version": 7,
+        "status": null,
+        "payload_type": "object",
+        "keys": [
+          "alternatives_already_tried",
+          "bundle_options",
+          "category",
+          "differentiator",
+          "forbidden_claims",
+          "how_it_works",
+          "images",
+          "inferred_fields",
+          "key_facts",
+          "known_objections",
+          "missing_inputs",
+          "price",
+          "problem_solved",
+          "product_name",
+          "proof",
+          "real_deadline_or_event",
+          "target_audience",
+          "unit_cost",
+          "what_it_does"
+        ],
+        "row_count": 1
+      },
+      {
+        "entity": "product_briefs",
+        "version": 8,
+        "status": null,
+        "payload_type": "object",
+        "keys": [
+          "alternatives_already_tried",
+          "bundle_options",
+          "category",
+          "differentiator",
+          "forbidden_claims",
+          "how_it_works",
+          "images",
+          "inferred_fields",
+          "key_facts",
+          "known_objections",
+          "missing_inputs",
+          "price",
+          "problem_solved",
+          "product_name",
+          "proof",
+          "real_deadline_or_event",
+          "target_audience",
+          "unit_cost",
+          "what_it_does"
+        ],
+        "row_count": 3
+      },
+      {
+        "entity": "product_briefs",
+        "version": 9,
+        "status": null,
+        "payload_type": "object",
+        "keys": [
+          "alternatives_already_tried",
+          "bundle_options",
+          "category",
+          "differentiator",
+          "forbidden_claims",
+          "how_it_works",
+          "images",
+          "inferred_fields",
+          "key_facts",
+          "known_objections",
+          "missing_inputs",
+          "price",
+          "problem_solved",
+          "product_name",
+          "proof",
+          "real_deadline_or_event",
+          "target_audience",
+          "unit_cost",
+          "what_it_does"
+        ],
+        "row_count": 1
+      },
+      {
+        "entity": "strategy_runs",
+        "version": 1,
+        "status": "failed",
+        "payload_type": null,
+        "keys": [],
+        "row_count": 1
+      },
+      {
+        "entity": "strategy_runs",
+        "version": 2,
+        "status": "failed",
+        "payload_type": null,
+        "keys": [],
+        "row_count": 1
+      }
+    ],
+    "06-coverage": [
+      {
+        "product_alias": "P01",
+        "is_upsell": false,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": false,
+        "differentiator_confirmed": false,
+        "pricing_rows": 1,
+        "brief_rows": 2,
+        "avatar_rows": 2,
+        "approved_avatars": 1,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 1,
+        "approved_angle_briefs": 2,
+        "review_rows": 7,
+        "approved_reviews": 7,
+        "copy_runs": 2,
+        "current_components": 14,
+        "published_rows": 1,
+        "competitor_rows": 0
+      },
+      {
+        "product_alias": "P02",
+        "is_upsell": false,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": true,
+        "differentiator_confirmed": true,
+        "pricing_rows": 1,
+        "brief_rows": 3,
+        "avatar_rows": 3,
+        "approved_avatars": 2,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 2,
+        "approved_angle_briefs": 5,
+        "review_rows": 14,
+        "approved_reviews": 10,
+        "copy_runs": 5,
+        "current_components": 16,
+        "published_rows": 1,
+        "competitor_rows": 0
+      },
+      {
+        "product_alias": "P03",
+        "is_upsell": true,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": false,
+        "differentiator_confirmed": false,
+        "pricing_rows": 0,
+        "brief_rows": 0,
+        "avatar_rows": 0,
+        "approved_avatars": 0,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 0,
+        "approved_angle_briefs": 0,
+        "review_rows": 0,
+        "approved_reviews": 0,
+        "copy_runs": 0,
+        "current_components": 0,
+        "published_rows": 0,
+        "competitor_rows": 0
+      },
+      {
+        "product_alias": "P04",
+        "is_upsell": false,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": true,
+        "differentiator_confirmed": true,
+        "pricing_rows": 1,
+        "brief_rows": 1,
+        "avatar_rows": 1,
+        "approved_avatars": 1,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 1,
+        "approved_angle_briefs": 3,
+        "review_rows": 10,
+        "approved_reviews": 6,
+        "copy_runs": 1,
+        "current_components": 16,
+        "published_rows": 1,
+        "competitor_rows": 0
+      },
+      {
+        "product_alias": "P05",
+        "is_upsell": false,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": true,
+        "differentiator_confirmed": true,
+        "pricing_rows": 1,
+        "brief_rows": 1,
+        "avatar_rows": 1,
+        "approved_avatars": 1,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 1,
+        "approved_angle_briefs": 3,
+        "review_rows": 0,
+        "approved_reviews": 0,
+        "copy_runs": 0,
+        "current_components": 0,
+        "published_rows": 0,
+        "competitor_rows": 2
+      },
+      {
+        "product_alias": "P06",
+        "is_upsell": false,
+        "currency": "CLP",
+        "identified": true,
+        "has_differentiator": true,
+        "differentiator_confirmed": true,
+        "pricing_rows": 1,
+        "brief_rows": 1,
+        "avatar_rows": 1,
+        "approved_avatars": 1,
+        "strategy_runs": 2,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 0,
+        "approved_angle_briefs": 0,
+        "review_rows": 47,
+        "approved_reviews": 14,
+        "copy_runs": 3,
+        "current_components": 17,
+        "published_rows": 1,
+        "competitor_rows": 0
+      },
+      {
+        "product_alias": "P07",
+        "is_upsell": false,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": false,
+        "differentiator_confirmed": false,
+        "pricing_rows": 0,
+        "brief_rows": 0,
+        "avatar_rows": 0,
+        "approved_avatars": 0,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 0,
+        "approved_angle_briefs": 0,
+        "review_rows": 0,
+        "approved_reviews": 0,
+        "copy_runs": 0,
+        "current_components": 0,
+        "published_rows": 0,
+        "competitor_rows": 0
+      },
+      {
+        "product_alias": "P08",
+        "is_upsell": true,
+        "currency": "CLP",
+        "identified": false,
+        "has_differentiator": false,
+        "differentiator_confirmed": false,
+        "pricing_rows": 0,
+        "brief_rows": 0,
+        "avatar_rows": 0,
+        "approved_avatars": 0,
+        "strategy_runs": 0,
+        "confirmed_strategy_runs": 0,
+        "confirmed_rankings": 0,
+        "approved_angle_briefs": 0,
+        "review_rows": 0,
+        "approved_reviews": 0,
+        "copy_runs": 0,
+        "current_components": 0,
+        "published_rows": 0,
+        "competitor_rows": 0
+      }
+    ],
+    "07-lifecycle": [
+      {
+        "metric": "product_owner_count",
+        "value": 1
+      },
+      {
+        "metric": "confirmed_run_without_ranking",
+        "value": 0
+      },
+      {
+        "metric": "unconfirmed_run_with_ranking",
+        "value": 0
+      },
+      {
+        "metric": "strategy_run_multiple_rankings",
+        "value": 0
+      },
+      {
+        "metric": "rankings_unknown_strategy_run",
+        "value": 0
+      },
+      {
+        "metric": "current_product_multiple_approved_avatars",
+        "value": 1
+      },
+      {
+        "metric": "duplicate_product_review_identity",
+        "value": 0
+      },
+      {
+        "metric": "duplicate_shopify_product_identity",
+        "value": 0
+      },
+      {
+        "metric": "base_image_multiple",
+        "value": 0
+      },
+      {
+        "metric": "base_image_excluded",
+        "value": 0
+      }
+    ],
+    "08-details": [
+      {
+        "section": "strategy_run_outcomes",
+        "data": [
+          {
+            "status": "failed",
+            "confirmed": false,
+            "error_code": "timeout",
+            "current_step": "report",
+            "report_chars": 34828,
+            "elapsed_seconds": 211,
+            "extraction_type": null,
+            "template_version": 2
+          },
+          {
+            "status": "failed",
+            "confirmed": false,
+            "error_code": "timeout",
+            "current_step": "report",
+            "report_chars": 30206,
+            "elapsed_seconds": 211,
+            "extraction_type": null,
+            "template_version": 1
+          }
+        ]
+      },
+      {
+        "section": "reviews",
+        "data": [
+          {
+            "rows": 33,
+            "edited": 0,
+            "status": "in_review",
+            "approved": false,
+            "translated": 20,
+            "photo_items": 1,
+            "empty_original": 0
+          },
+          {
+            "rows": 8,
+            "edited": 0,
+            "status": "rejected",
+            "approved": false,
+            "translated": 4,
+            "photo_items": 14,
+            "empty_original": 3
+          },
+          {
+            "rows": 37,
+            "edited": 8,
+            "status": "approved",
+            "approved": true,
+            "translated": 15,
+            "photo_items": 63,
+            "empty_original": 4
+          }
+        ]
+      },
+      {
+        "section": "pack_labels",
+        "data": [
+          {
+            "rows": 6,
+            "status": "approved"
+          },
+          {
+            "rows": 2,
+            "status": "rejected"
+          },
+          {
+            "rows": 1,
+            "status": "generated"
+          }
+        ]
+      },
+      {
+        "section": "competitors",
+        "data": [
+          {
+            "rows": 2,
+            "source": "manual",
+            "status": "succeeded",
+            "analysis_type": "object"
+          }
+        ]
+      },
+      {
+        "section": "brief_missingness",
+        "data": {
+          "rows": 8,
+          "key_facts_total": 76,
+          "empty_inferred_fields": 0,
+          "proof_with_real_reviews": 4,
+          "without_canonical_relation_ids": 8
+        }
+      },
+      {
+        "section": "ranking_formats",
+        "data": [
+          {
+            "rows": 3,
+            "status": "succeeded",
+            "confirmed": true,
+            "chosen_type": "array",
+            "chosen_count": 3,
+            "input_source": null,
+            "prompt_version": 6,
+            "has_legacy_primary": false,
+            "has_legacy_secondary": false
+          },
+          {
+            "rows": 1,
+            "status": "succeeded",
+            "confirmed": true,
+            "chosen_type": "array",
+            "chosen_count": 2,
+            "input_source": null,
+            "prompt_version": 5,
+            "has_legacy_primary": true,
+            "has_legacy_secondary": true
+          },
+          {
+            "rows": 1,
+            "status": "succeeded",
+            "confirmed": true,
+            "chosen_type": "array",
+            "chosen_count": 2,
+            "input_source": null,
+            "prompt_version": 4,
+            "has_legacy_primary": true,
+            "has_legacy_secondary": true
+          },
+          {
+            "rows": 2,
+            "status": "failed",
+            "confirmed": false,
+            "chosen_type": null,
+            "chosen_count": 0,
+            "input_source": null,
+            "prompt_version": null,
+            "has_legacy_primary": false,
+            "has_legacy_secondary": false
+          }
+        ]
+      },
+      {
+        "section": "pdp_components",
+        "data": [
+          {
+            "rows": 27,
+            "status": "approved",
+            "superseded": true,
+            "enabled_rows": 27
+          },
+          {
+            "rows": 8,
+            "status": "generated",
+            "superseded": false,
+            "enabled_rows": 0
+          },
+          {
+            "rows": 55,
+            "status": "approved",
+            "superseded": false,
+            "enabled_rows": 54
+          },
+          {
+            "rows": 26,
+            "status": "generated",
+            "superseded": true,
+            "enabled_rows": 0
+          }
+        ]
+      },
+      {
+        "section": "metrics_coverage",
+        "data": {
+          "levels": [
+            "ad",
+            "adset",
+            "campaign"
+          ],
+          "date_max": "2026-09-29",
+          "date_min": "2026-09-26",
+          "daily_rows": 48,
+          "rows_with_purchases": 3
+        }
+      }
+    ],
+    "09-storage": [
+      {
+        "section": "buckets",
+        "data": [
+          {
+            "id": "ad-media",
+            "public": false,
+            "file_size_limit": 1073741824,
+            "allowed_mime_types": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "video/mp4",
+              "video/quicktime"
+            ]
+          },
+          {
+            "id": "creative-media",
+            "public": false,
+            "file_size_limit": 104857600,
+            "allowed_mime_types": [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "video/mp4"
+            ]
+          },
+          {
+            "id": "page-media",
+            "public": false,
+            "file_size_limit": 26214400,
+            "allowed_mime_types": [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/gif",
+              "image/apng"
+            ]
+          },
+          {
+            "id": "product-references",
+            "public": false,
+            "file_size_limit": 10485760,
+            "allowed_mime_types": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          }
+        ]
+      },
+      {
+        "section": "object_counts",
+        "data": [
+          {
+            "rows": 34,
+            "bucket_id": "page-media"
+          },
+          {
+            "rows": 113,
+            "bucket_id": "creative-media"
+          },
+          {
+            "rows": 82,
+            "bucket_id": "product-references"
+          },
+          {
+            "rows": 20,
+            "bucket_id": "ad-media"
+          }
+        ]
+      }
+    ],
+    "10-permissions": [
+      {
+        "section": "function_permissions",
+        "data": [
+          {
+            "name": "activate_prompt_template",
+            "anon_execute": false,
+            "service_role_execute": true,
+            "authenticated_execute": false
+          },
+          {
+            "name": "delete_integration_token",
+            "anon_execute": false,
+            "service_role_execute": true,
+            "authenticated_execute": false
+          },
+          {
+            "name": "delete_user_tokens",
+            "anon_execute": true,
+            "service_role_execute": true,
+            "authenticated_execute": true
+          },
+          {
+            "name": "get_integration_token",
+            "anon_execute": false,
+            "service_role_execute": true,
+            "authenticated_execute": false
+          },
+          {
+            "name": "set_base_reference_image",
+            "anon_execute": false,
+            "service_role_execute": true,
+            "authenticated_execute": false
+          },
+          {
+            "name": "set_integration_token",
+            "anon_execute": false,
+            "service_role_execute": true,
+            "authenticated_execute": false
+          }
+        ]
+      },
+      {
+        "section": "readonly_role",
+        "data": {
+          "bypassrls": true,
+          "superuser": false
+        }
+      }
+    ],
+    "11-storage-integrity": [
+      {
+        "section": "references",
+        "entity": "ad_media",
+        "bucket_id": "ad-media",
+        "rows": 20,
+        "missing_objects": 0,
+        "owner_prefix_mismatch": 0,
+        "product_prefix_mismatch": 0
+      },
+      {
+        "section": "references",
+        "entity": "creative_assets",
+        "bucket_id": "creative-media",
+        "rows": 12,
+        "missing_objects": 0,
+        "owner_prefix_mismatch": 0,
+        "product_prefix_mismatch": 0
+      },
+      {
+        "section": "references",
+        "entity": "video_shots",
+        "bucket_id": "creative-media",
+        "rows": 101,
+        "missing_objects": 0,
+        "owner_prefix_mismatch": 0,
+        "product_prefix_mismatch": 0
+      },
+      {
+        "section": "references",
+        "entity": "page_images",
+        "bucket_id": "page-media",
+        "rows": 34,
+        "missing_objects": 0,
+        "owner_prefix_mismatch": 0,
+        "product_prefix_mismatch": 0
+      },
+      {
+        "section": "references",
+        "entity": "product_reference_images",
+        "bucket_id": "product-references",
+        "rows": 4,
+        "missing_objects": 0,
+        "owner_prefix_mismatch": 0,
+        "product_prefix_mismatch": 0
+      },
+      {
+        "section": "references",
+        "entity": "review_photos",
+        "bucket_id": "product-references",
+        "rows": 78,
+        "missing_objects": 0,
+        "owner_prefix_mismatch": 0,
+        "product_prefix_mismatch": 0
+      }
+    ],
+    "12-auth-and-untyped-links": [
+      {
+        "section": "function_result_types",
+        "data": [
+          {
+            "name": "activate_prompt_template",
+            "result": "void"
+          },
+          {
+            "name": "delete_integration_token",
+            "result": "void"
+          },
+          {
+            "name": "delete_user_tokens",
+            "result": "trigger"
+          },
+          {
+            "name": "get_integration_token",
+            "result": "text"
+          },
+          {
+            "name": "set_base_reference_image",
+            "result": "boolean"
+          },
+          {
+            "name": "set_integration_token",
+            "result": "void"
+          }
+        ]
+      },
+      {
+        "section": "table_permission_counts",
+        "data": [
+          {
+            "role_name": "service_role",
+            "delete_tables": 52,
+            "insert_tables": 52,
+            "select_tables": 52,
+            "update_tables": 52
+          },
+          {
+            "role_name": "authenticated",
+            "delete_tables": 52,
+            "insert_tables": 52,
+            "select_tables": 52,
+            "update_tables": 52
+          },
+          {
+            "role_name": "anon",
+            "delete_tables": 52,
+            "insert_tables": 52,
+            "select_tables": 52,
+            "update_tables": 52
+          }
+        ]
+      },
+      {
+        "section": "daily_unit_links",
+        "data": {
+          "rows": 48,
+          "unresolved": 0
+        }
+      },
+      {
+        "section": "snapshot_unit_links",
+        "data": {
+          "rows": 3258,
+          "unresolved": 0
+        }
+      }
+    ],
+    "14-schema-checks": [
+      {
+        "entity": "product_briefs",
+        "field": "whole_schema",
+        "prompt_version": 9,
+        "rows": 1,
+        "incompatible": 0
+      },
+      {
+        "entity": "product_briefs",
+        "field": "whole_schema",
+        "prompt_version": 6,
+        "rows": 3,
+        "incompatible": 3
+      },
+      {
+        "entity": "product_briefs",
+        "field": "whole_schema",
+        "prompt_version": 7,
+        "rows": 1,
+        "incompatible": 0
+      },
+      {
+        "entity": "product_briefs",
+        "field": "whole_schema",
+        "prompt_version": 8,
+        "rows": 3,
+        "incompatible": 0
+      },
+      {
+        "entity": "product_briefs",
+        "field": "differentiator",
+        "prompt_version": 6,
+        "rows": 3,
+        "incompatible": 3
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "whole_schema",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "whole_schema",
+        "prompt_version": 6,
+        "rows": 1,
+        "incompatible": 0
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "buyer",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "user",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "age_range",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "why_buy",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "doubts",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "cash_on_delivery",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "customer_avatars",
+        "field": "more_than_one",
+        "prompt_version": 4,
+        "rows": 7,
+        "incompatible": 7
+      },
+      {
+        "entity": "angle_briefs",
+        "field": "whole_schema",
+        "prompt_version": 3,
+        "rows": 6,
+        "incompatible": 0
+      },
+      {
+        "entity": "angle_briefs",
+        "field": "whole_schema",
+        "prompt_version": 5,
+        "rows": 3,
+        "incompatible": 0
+      },
+      {
+        "entity": "angle_briefs",
+        "field": "whole_schema",
+        "prompt_version": 2,
+        "rows": 4,
+        "incompatible": 4
+      },
+      {
+        "entity": "angle_briefs",
+        "field": "page_block",
+        "prompt_version": 2,
+        "rows": 4,
+        "incompatible": 4
+      }
+    ],
+    "15-final-checks": [
+      {
+        "section": "approved_review_text",
+        "data": {
+          "rows": 37,
+          "empty_original": 4,
+          "empty_effective_text": 3,
+          "empty_original_with_photos": 4
+        }
+      },
+      {
+        "section": "legacy_avatar_adapter_preconditions",
+        "data": {
+          "rows": 7,
+          "invalid_summary": 0,
+          "invalid_objections": 0,
+          "invalid_trim_fields": 0,
+          "invalid_demographics": 0
+        }
+      },
+      {
+        "section": "metrics_freshness",
+        "data": {
+          "rows": 3258,
+          "last_snapshot": "2026-10-06T10:05:08.665+00:00",
+          "daily_max_date": "2026-09-29",
+          "snapshot_max_date": "2026-10-06",
+          "daily_last_updated": "2026-10-03T03:05:04.537+00:00"
+        }
+      },
+      {
+        "section": "snapshot_shape",
+        "data": [
+          {
+            "rows": 3258,
+            "today_type": "object",
+            "lifetime_type": "object"
+          }
+        ]
+      },
+      {
+        "section": "final_recount",
+        "data": {
+          "products": 8,
+          "angle_briefs": 13,
+          "strategy_runs": 2,
+          "angle_rankings": 7,
+          "product_briefs": 8,
+          "storage_objects": 249,
+          "customer_avatars": 8
+        }
+      }
+    ]
+  }
+}

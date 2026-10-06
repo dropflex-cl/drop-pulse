@@ -1,87 +1,28 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import type { ProductRow } from "@/lib/products/store";
-import { buildPricingPlan, CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT, withRecommendation, type PackPrice, type PricingForm, type PricingPlan } from "./plan";
+import { buildPricingPlan, CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT, type PricingForm } from "./plan";
+import { pricingPlanFromRow as toPlan, type PricingRow } from "./rows";
+import { randomUUID } from "node:crypto";
+import { pricingFormInput, parseContextRead, storedPricingPlan } from "@/lib/product-intelligence/context";
+import { pricingSnapshot } from "@/lib/product-intelligence/pricing";
+import { ProductIntelligenceError } from "@/lib/product-intelligence/errors";
+import { PRICE_CHANGED } from "./copy";
+import { createContextRepository, contextAccess } from "@/lib/product-intelligence/repository";
+import { createContextExecutor } from "@/lib/product-intelligence/service";
+import { PI_SCOPES, type Principal } from "@/lib/product-intelligence/policy";
 
 // product_pricing: el plan de precios guardado. Escrituras solo desde el servidor (service_role),
 // siempre recalculadas con la calculadora: nunca se guarda un número derivado que mande el navegador.
 
-interface PricingRow {
-  currency: string;
-  unit_cost: number | string;
-  avg_shipping_cost: number | string;
-  purchase_cost_limit: number | string;
-  confirmation_rate: number | string;
-  delivery_rate: number | string;
-  sale_price: number | string;
-  compare_at_price: number | string | null;
-  extra_unit_discount: number | string;
-  minimum_price: number | string;
-  recommended_price: number | string;
-  profit: number | string;
-  max_cpa: number | string | null;
-  beroas: number | string | null;
-  packs: {
-    units: number;
-    price: number;
-    profit: number;
-    margin: number;
-    per_unit_price: number;
-    savings: number;
-    savings_rate: number;
-    earns_more_than_previous: boolean;
-  }[];
-  updated_at: string;
-}
-
-const n = (v: number | string) => Number(v);
-const nn = (v: number | string | null) => (v == null ? null : Number(v));
-
-function toPlan(r: PricingRow): PricingPlan & { updatedAt: string } {
-  const salePrice = n(r.sale_price);
-  return {
-    currency: r.currency,
-    unitCost: n(r.unit_cost),
-    avgShippingCost: n(r.avg_shipping_cost),
-    purchaseCostLimit: n(r.purchase_cost_limit),
-    confirmationRate: n(r.confirmation_rate),
-    deliveryRate: n(r.delivery_rate),
-    salePrice,
-    compareAtPrice: nn(r.compare_at_price),
-    extraUnitDiscount: n(r.extra_unit_discount),
-    minimumPrice: n(r.minimum_price),
-    recommendedPrice: n(r.recommended_price),
-    discountPercent: r.compare_at_price == null ? null : Math.round(((n(r.compare_at_price) - salePrice) / n(r.compare_at_price)) * 100),
-    profit: n(r.profit),
-    margin: salePrice > 0 ? n(r.profit) / salePrice : 0,
-    maxCpa: nn(r.max_cpa),
-    beroas: nn(r.beroas),
-    packs: withRecommendation(
-      r.packs.map(
-      (p): PackPrice => ({
-        units: p.units,
-        price: p.price,
-        profit: p.profit,
-        margin: p.margin,
-        perUnitPrice: p.per_unit_price,
-        savings: p.savings,
-        savingsRate: p.savings_rate,
-        earnsMoreThanPrevious: p.earns_more_than_previous,
-        profitMultiple: null,
-        recommended: false,
-      }),
-      ),
-    ),
-    updatedAt: r.updated_at,
-  };
-}
-
-export type SavedPricing = ReturnType<typeof toPlan>;
+export type SavedPricing = ReturnType<typeof toPlan> & { pricingStamp: string };
 
 export async function getPricingPlan(userId: string, productId: string): Promise<SavedPricing | null> {
   const { data, error } = await adminClient().from("product_pricing").select("*").eq("user_id", userId).eq("product_id", productId).maybeSingle();
   if (error) throw new Error(`Leer el precio: ${error.message}`);
-  return data ? toPlan(data as PricingRow) : null;
+  if (!data) return null;
+  const plan = toPlan(data as PricingRow);
+  return { ...plan, pricingStamp: pricingSnapshot(plan).pricing_stamp };
 }
 
 /**
@@ -104,47 +45,26 @@ export async function pricingDefaults(userId: string, product: Pick<ProductRow, 
 }
 
 /** Recalcula y guarda. Devuelve null si el formulario no alcanza para un plan (la API responde 400). */
-export async function savePricingPlan(userId: string, product: Pick<ProductRow, "id" | "currency">, form: PricingForm): Promise<SavedPricing | null> {
+export async function savePricingPlan(userId: string, product: Pick<ProductRow, "id" | "currency">, form: PricingForm, expectedPricingStamp: string | null): Promise<SavedPricing | null> {
   const plan = buildPricingPlan(form, product.currency);
   if (!plan) return null;
-  const { data, error } = await adminClient()
-    .from("product_pricing")
-    .upsert(
-      {
-        product_id: product.id,
-        user_id: userId,
-        currency: plan.currency,
-        unit_cost: plan.unitCost,
-        avg_shipping_cost: plan.avgShippingCost,
-        purchase_cost_limit: plan.purchaseCostLimit,
-        confirmation_rate: plan.confirmationRate,
-        delivery_rate: plan.deliveryRate,
-        sale_price: plan.salePrice,
-        compare_at_price: plan.compareAtPrice,
-        extra_unit_discount: plan.extraUnitDiscount,
-        minimum_price: plan.minimumPrice,
-        recommended_price: plan.recommendedPrice,
-        profit: plan.profit,
-        max_cpa: plan.maxCpa,
-        beroas: plan.beroas,
-        packs: plan.packs.map((p) => ({
-          units: p.units,
-          price: p.price,
-          profit: p.profit,
-          margin: p.margin,
-          per_unit_price: p.perUnitPrice,
-          savings: p.savings,
-          savings_rate: p.savingsRate,
-          earns_more_than_previous: p.earnsMoreThanPrevious,
-        })),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "product_id" },
-    )
-    .select("*")
-    .single();
-  if (error) throw new Error(`Guardar el precio: ${error.message}`);
-  return toPlan(data as PricingRow);
+  const principal: Principal = { userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES };
+  const repository = createContextRepository();
+  const signal = AbortSignal.timeout(10000);
+  const read = parseContextRead(await repository.load({ p_access: contextAccess(principal), p_product_id: product.id }, signal));
+  const previous = storedPricingPlan(read.snapshot.pricing);
+  const currentStamp = previous && previous.currency === product.currency ? pricingSnapshot(previous).pricing_stamp : null;
+  if (read.snapshot.catalog.currency !== product.currency || expectedPricingStamp !== currentStamp) throw new ProductIntelligenceError("REVISION_CONFLICT", PRICE_CHANGED);
+  try {
+    await createContextExecutor(repository)(principal, { tool: "save_product_context", input: {
+      product_id: product.id, schema_version: "1.0", expected_revision: read.current_revision,
+      idempotency_key: `ui-pricing:${randomUUID()}`, dry_run: false, pricing: pricingFormInput(form, product.currency),
+    } }, signal);
+  } catch (error) {
+    if (error instanceof ProductIntelligenceError && error.code === "REVISION_CONFLICT") throw new ProductIntelligenceError("REVISION_CONFLICT", PRICE_CHANGED);
+    throw error;
+  }
+  return getPricingPlan(userId, product.id);
 }
 
 /** Los productos (de los dados) que ya tienen el precio guardado: la ruta de etapas lo pide. */

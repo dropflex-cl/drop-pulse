@@ -18,6 +18,7 @@ export interface AngleFacts {
 }
 
 export interface CopyFacts {
+  fromChat?: boolean;
   /** La escritura más reciente de la página. */
   run: { status: RunStatus; error?: string | null } | null;
   progress: CopyProgress;
@@ -168,7 +169,7 @@ export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): An
  */
 /** La Página del producto va después de Imágenes: sus componentes usan las imágenes elegidas. */
 export function copyPhase(f: ProductFacts, angles: AnglesPhase, imagesDone = true): CopyPhase {
-  if (angles !== "done" || !imagesDone) return "locked";
+  if (!f.copy?.fromChat && (angles !== "done" || !imagesDone)) return "locked";
   const c = f.copy;
   if (!c) return "new";
   if (active(c.run?.status)) return "writing";

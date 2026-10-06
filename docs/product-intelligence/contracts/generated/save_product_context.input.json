@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "idempotency_key"
+  ],
+  "additionalProperties": false,
+  "anyOf": [
+    {
+      "required": [
+        "context"
+      ]
+    },
+    {
+      "required": [
+        "pricing"
+      ]
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "__schema2": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema3": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "__schema4": {
+      "default": false,
+      "type": "boolean"
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "category": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "supplier_text": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "base_reference_image_id": {
+          "$ref": "#/$defs/__schema10"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "__schema6": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "__schema7": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "__schema8": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192
+    },
+    "__schema9": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "__schema10": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "__schema11": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/$defs/__schema12"
+            },
+            "unit_cost_minor": {
+              "$ref": "#/$defs/__schema13"
+            },
+            "avg_shipping_cost_minor": {
+              "$ref": "#/$defs/__schema14"
+            },
+            "purchase_cost_limit_minor": {
+              "$ref": "#/$defs/__schema15"
+            },
+            "confirmation_rate": {
+              "$ref": "#/$defs/__schema16"
+            },
+            "delivery_rate": {
+              "$ref": "#/$defs/__schema17"
+            },
+            "extra_unit_discount": {
+              "$ref": "#/$defs/__schema18"
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "additionalProperties": false,
+          "minProperties": 2
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "manual"
+            },
+            "unit_cost_minor": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "avg_shipping_cost_minor": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "purchase_cost_limit_minor": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "confirmation_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "delivery_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "extra_unit_discount": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 95
+            },
+            "sale_price_minor": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "compare_at_price_minor": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "mode",
+            "sale_price_minor",
+            "compare_at_price_minor"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema12": {
+      "type": "string",
+      "const": "recommended"
+    },
+    "__schema13": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "__schema14": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema15": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema16": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "__schema17": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "__schema18": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 95
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "expected_revision": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/__schema3"
+    },
+    "dry_run": {
+      "$ref": "#/$defs/__schema4"
+    },
+    "context": {
+      "$ref": "#/$defs/__schema5"
+    },
+    "pricing": {
+      "$ref": "#/$defs/__schema11"
+    }
+  }
+}

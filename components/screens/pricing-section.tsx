@@ -56,7 +56,7 @@ function toForm(t: Texts, currency: string): PricingForm {
 export function PricingSection({
   productId,
   currency,
-  saved,
+  saved: savedFromServer,
   defaults,
   packLabels: packLabelsFromServer,
   onSaved,
@@ -69,6 +69,8 @@ export function PricingSection({
   packLabels?: PackLabelsProposal;
   onSaved: (pricing: SavedPricingDto) => void;
 }) {
+  const saved = savedFromServer?.currency === currency ? savedFromServer : undefined;
+  const [pricingStamp, setPricingStamp] = useState<string | null>(saved?.pricingStamp ?? null);
   const [labels, setLabels] = usePackLabels(packLabelsFromServer);
   const [editingLabels, setEditingLabels] = useState(false);
   const [texts, setTexts] = useState<Texts>(() => toTexts(saved ?? defaults, currency));
@@ -111,7 +113,8 @@ export function PricingSection({
     setSaving(true);
     setServerError(undefined);
     try {
-      const { pricing } = await productsApi.savePricing(productId, effective);
+      const { pricing } = await productsApi.savePricing(productId, effective, pricingStamp);
+      setPricingStamp(pricing.pricingStamp ?? null);
       const t = toTexts(pricing, currency);
       setTexts(t);
       setSavedTexts(t);

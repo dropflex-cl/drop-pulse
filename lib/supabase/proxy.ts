@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
+import { isSelfAuthenticatedMcpRoute } from "../product-intelligence/public-routes";
+import { isMerchantSessionClaims } from "./merchant-claims";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -45,13 +47,14 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: If you remove getClaims() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
   const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  const user = isMerchantSessionClaims(data?.claims) ? data.claims : null;
 
   const path = request.nextUrl.pathname;
   // Rutas que se autentican solas (docs/spec-migracion-conexiones.md, D1): webhooks por HMAC o
-  // signed_request, el cron por bearer y el lanzamiento de la app de Shopify por HMAC.
+  // signed_request, el cron por bearer, Shopify por HMAC y MCP por su verificador OAuth.
+  // La metadata MCP exacta es pública; consentimiento y revocación requieren sesión merchant.
   const selfAuthenticated =
-    path.startsWith("/api/webhooks/") || path.startsWith("/api/cron/") || path === "/api/onboarding/shopify/install";
+    path.startsWith("/api/webhooks/") || path.startsWith("/api/cron/") || path === "/api/onboarding/shopify/install" || isSelfAuthenticatedMcpRoute(path);
 
   if (path !== "/" && !user && !selfAuthenticated && !path.startsWith("/login") && !path.startsWith("/auth")) {
     // La API responde 401 en JSON (el cliente muestra el mensaje); un 307 al login no le sirve a fetch.

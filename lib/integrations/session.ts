@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingError } from "@/lib/onboarding/types";
+import { isMerchantSessionClaims } from "@/lib/supabase/merchant-claims";
 
 export interface SessionUser {
   id: string;
@@ -11,14 +12,14 @@ export interface SessionUser {
 }
 
 /**
- * Usuario de la sesión de Supabase, o `null`. Solo lee los claims: no toca la lógica de auth.
+ * Usuario de una sesión propia de Supabase, o `null`; un bearer delegado no es sesión del SaaS.
  * Una vez por petición (cache): layouts, página y loaders la piden varias veces en el mismo render.
  */
 export const sessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
-  if (!claims?.sub) return null;
+  if (!isMerchantSessionClaims(claims)) return null;
   const appMeta = claims.app_metadata as { role?: unknown } | undefined;
   return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : undefined, admin: appMeta?.role === "admin" };
 });
