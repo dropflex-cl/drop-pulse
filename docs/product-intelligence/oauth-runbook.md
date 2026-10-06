@@ -1,3 +1,5 @@
+> Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
+
 > Estado actual: aplicar las cinco migraciones PI, incluyendo `20261105000000_product_intelligence_landing.sql` y `20261106000000_product_intelligence_pack_labels.sql`, antes del código. Runtime anuncia once tools persistentes. Producción continúa readonly; este runbook no autoriza desplegar/configurar producción.
 
 # Verificación y activación OAuth MCP

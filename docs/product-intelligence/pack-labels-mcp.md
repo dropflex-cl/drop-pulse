@@ -1,3 +1,5 @@
+> Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
+
 # Etiquetas de packs escritas en chat
 
 Implementación local. Se reutilizan `pack_labels`, el editor de Información base, la calculadora y el mapping de packs de Shopify. No hay tablas paralelas ni llamadas de IA, imágenes, publicación o Meta al consultar/guardar/decidir etiquetas.

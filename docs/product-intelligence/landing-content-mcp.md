@@ -1,3 +1,5 @@
+> Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
+
 # Contenido de tienda escrito en el chat
 
 Contrato actual 1.1: objetos anteriores o arrays por componente/listing, selector URL por ángulo y hook, imágenes por variante y revisión del conjunto. [Especificación y despliegue](landing-variants-mcp.md). El comportamiento base documentado abajo se conserva.

@@ -1,3 +1,5 @@
+> Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
+
 # Estado actual: landing por ángulo y hook
 
 Implementación y pruebas locales de arrays por componente, edición/revisión, medios por variante y selección URL en el template Shopify. [Contrato, despliegue y rollback](landing-variants-mcp.md), [ADR 013](adrs/013-component-landing-variants.md). Se mantienen once tools persistentes; get/save_landing_content usan contrato 1.1 con compatibilidad 1.0. Migración 20261107000000 aplicada solo en local. Producción sigue readonly.

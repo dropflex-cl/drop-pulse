@@ -1,3 +1,5 @@
+> Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
+
 # Product Intelligence MCP
 
 Auditoría e implementación por fases, 2026-10-06. Baseline: `a2c272729b0299f4b073bbd3db2b54b661791aa5` (`main`). Dominio, OAuth nativo, contexto/precio, research, análisis y estrategia persistentes comprobados localmente. Generación y host remoto siguen pendientes. Estado: [implementation-status.md](implementation-status.md).

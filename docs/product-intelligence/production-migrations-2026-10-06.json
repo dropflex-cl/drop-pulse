@@ -1,0 +1,237 @@
+{
+  "captured_at": "2026-10-06T19:06:10.912981+00:00",
+  "project_ref": "oukcswnfrzroxgwqmujf",
+  "code_commit": "1322b293be9ad5f0b63e340018d5b29f7fa2e3f7",
+  "authorization": "Usuario solicitó commit en main, push y aplicación posterior de migraciones en producción.",
+  "before": {
+    "migration_count": 36,
+    "latest_migration": "20261101000000",
+    "rows": {
+      "products": 8,
+      "copy_runs": 11,
+      "pack_labels": 9,
+      "page_components": 116,
+      "product_pricing": 5
+    },
+    "oauth_tables": [
+      "oauth_authorizations",
+      "oauth_clients",
+      "oauth_consents"
+    ],
+    "oauth_columns": [
+      "oauth_authorizations.authorization_id",
+      "oauth_authorizations.client_id",
+      "oauth_authorizations.expires_at",
+      "oauth_authorizations.resource",
+      "oauth_authorizations.status",
+      "oauth_authorizations.user_id",
+      "oauth_clients.client_name",
+      "oauth_clients.deleted_at",
+      "oauth_clients.id",
+      "oauth_consents.client_id",
+      "oauth_consents.revoked_at",
+      "oauth_consents.user_id",
+      "sessions.not_after",
+      "sessions.oauth_client_id"
+    ]
+  },
+  "after": {
+    "rows": {
+      "products": 8,
+      "copy_runs": 11,
+      "pack_labels": 9,
+      "page_components": 116,
+      "product_pricing": 5
+    },
+    "columns": [
+      "pack_labels.provenance",
+      "pack_labels.source",
+      "pack_labels.superseded_at",
+      "products.pi_deleting_at"
+    ],
+    "pi_role": {
+      "login": false,
+      "bypassrls": false,
+      "superuser": false,
+      "authenticator_member": false
+    },
+    "functions": [
+      {
+        "name": "pi_commit_context",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_commit_knowledge",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_commit_landing",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_commit_pack_labels",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_load_context",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_load_knowledge",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_load_landing",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_load_pack_labels",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "pi_review_landing",
+        "anon_execute": false,
+        "service_execute": true,
+        "authenticated_execute": false
+      }
+    ],
+    "pi_tables": [
+      {
+        "rls": true,
+        "table": "pi_access_grants"
+      },
+      {
+        "rls": true,
+        "table": "pi_analysis_evidence"
+      },
+      {
+        "rls": true,
+        "table": "pi_angle_desires"
+      },
+      {
+        "rls": true,
+        "table": "pi_angle_facts"
+      },
+      {
+        "rls": true,
+        "table": "pi_angle_jtbd"
+      },
+      {
+        "rls": true,
+        "table": "pi_angle_objections"
+      },
+      {
+        "rls": true,
+        "table": "pi_angle_pains"
+      },
+      {
+        "rls": true,
+        "table": "pi_angle_proof_facts"
+      },
+      {
+        "rls": true,
+        "table": "pi_angles"
+      },
+      {
+        "rls": true,
+        "table": "pi_audit_events"
+      },
+      {
+        "rls": true,
+        "table": "pi_customer_language"
+      },
+      {
+        "rls": true,
+        "table": "pi_desires"
+      },
+      {
+        "rls": true,
+        "table": "pi_fact_evidence"
+      },
+      {
+        "rls": true,
+        "table": "pi_facts"
+      },
+      {
+        "rls": true,
+        "table": "pi_idempotency_records"
+      },
+      {
+        "rls": true,
+        "table": "pi_jtbd"
+      },
+      {
+        "rls": true,
+        "table": "pi_objection_facts"
+      },
+      {
+        "rls": true,
+        "table": "pi_objections"
+      },
+      {
+        "rls": true,
+        "table": "pi_offers"
+      },
+      {
+        "rls": true,
+        "table": "pi_pains"
+      },
+      {
+        "rls": true,
+        "table": "pi_personas"
+      },
+      {
+        "rls": true,
+        "table": "pi_product_inputs"
+      },
+      {
+        "rls": true,
+        "table": "pi_revisions"
+      },
+      {
+        "rls": true,
+        "table": "pi_sources"
+      },
+      {
+        "rls": true,
+        "table": "pi_strategy_events"
+      },
+      {
+        "rls": true,
+        "table": "pi_strategy_versions"
+      },
+      {
+        "rls": true,
+        "table": "product_intelligence"
+      }
+    ],
+    "applied_pi": [
+      "20261102000000",
+      "20261103000000",
+      "20261104000000",
+      "20261105000000",
+      "20261106000000",
+      "20261107000000"
+    ],
+    "migration_count": 42,
+    "latest_migration": "20261107000000"
+  },
+  "migration_history_aligned": true,
+  "existing_row_counts_unchanged": true
+}
