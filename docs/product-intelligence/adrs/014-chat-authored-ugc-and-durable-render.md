@@ -1,6 +1,6 @@
 # ADR 014: guiones UGC desde chat y render durable
 
-Estado: implementado en código y Supabase local; despliegue pendiente. Continúa ADR 006/011/013.
+Estado: implementado en código y Supabase local; commit en main y migración aplicada/verificada en producción el 2026-10-06. Verificación hosted y actualización del tema pendientes. [Registro](../production-ugc-migration-2026-10-06.md). Continúa ADR 006/011/013.
 
 El comerciante quiere redactar guiones y planificar tomas con su suscripción de ChatGPT. El SaaS debe validar y persistir esa propuesta, conservar revisión humana y generar los medios con las integraciones existentes.
 

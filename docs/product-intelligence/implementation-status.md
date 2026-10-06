@@ -4,11 +4,11 @@
 
 Implementados get/save_ugc_content, generación de keyframes/clips, consulta de operaciones y paquete de montaje. UI/MCP comparten cola, revisión y CAS. Guiones del chat conservan versiones por ejecución; el writer de texto pagado se retiró. Shopify publica videos finales aprobados por variante y Meta incorpora sus selectores al destino. [Flujo, contrato y rollout](ugc-chat-mcp.md), [ADR 014](adrs/014-chat-authored-ugc-and-durable-render.md).
 
-Hay 16 tools habilitadas en runtime y 17 pares de schemas derivados. Migración 20261108000000 validada completa en una transacción local terminada en ROLLBACK y funciones/reglas comprobadas con fixtures propios; **no aplicada en producción en esta entrega**. Se preservaron Auth, región, datos locales y archivos preexistentes sin seguimiento.
+Hay 16 tools habilitadas en runtime y 17 pares de schemas derivados. Migración 20261108000000 validada completa en una transacción local terminada en ROLLBACK y funciones/reglas comprobadas con fixtures propios. Posteriormente, por autorización explícita, quedó aplicada y verificada en producción después del push de `bca07b0`: [registro y evidencia](production-ugc-migration-2026-10-06.md). Se preservaron Auth, región, datos locales y archivos preexistentes sin seguimiento.
 
 Verificación: 1.045 tests habituales y 79 transaccionales locales (14 nuevos UGC), incluido OAuth nativo/SDK HTTP. Typecheck, ESLint de cambios, contratos, tokens y diff pasan. Chromium comprueba 19 componentes × 8 URL × móvil/escritorio, selección/orden de videos y fallback sin JS. Theme Check: cero errores y 42 warnings existentes. Build webpack termina correctamente y mantiene los cinco diagnósticos previos HANGING_PROMISE_REJECTION en rutas ads/onboarding.
 
-Pendiente operacional: aplicar migración, desplegar app/cron, actualizar tema y aceptar el flujo con ChatGPT, proveedor y tienda de ensayo. El montaje se conserva local por decisión de arquitectura. No se gastaron créditos ni se publicaron productos/campañas durante las pruebas. Ver pasos y límites en el runbook UGC.
+Pendiente operacional: verificar despliegue app/cron, actualizar tema y aceptar el flujo con ChatGPT, proveedor y tienda de ensayo. El montaje se conserva local por decisión de arquitectura. No se gastaron créditos ni se publicaron productos/campañas durante las pruebas. Ver pasos y límites en el runbook UGC.
 
 ---
 

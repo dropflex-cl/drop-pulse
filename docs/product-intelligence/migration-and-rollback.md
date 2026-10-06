@@ -60,4 +60,4 @@ Expandir piloto por cohortes solo tras regresión de calculadora, revisión/publ
 
 ## Migración UGC 20261108000000
 
-Extiende guiones/tomas/medios, conserva versiones por ejecución y agrega pi_ugc_operations. Instalación completa validada en transacción local con rollback, sin reset; no aplicada en producción en esta entrega. Desplegar esquema antes de app, actualizar tema Shopify y habilitar cron. Rollback funcional conserva tablas, historia y lectores/revisión compatibles, desactiva nuevas generaciones y concilia trabajos externos. [Detalle](ugc-chat-mcp.md#despliegue-y-rollback).
+Extiende guiones/tomas/medios, conserva versiones por ejecución y agrega pi_ugc_operations. Instalación completa validada en transacción local con rollback, sin reset. Posteriormente aplicada y verificada en producción el 2026-10-06, después del push del commit funcional: [registro](production-ugc-migration-2026-10-06.md). Verificar despliegue app/cron y actualizar tema Shopify. Rollback funcional conserva tablas, historia y lectores/revisión compatibles, desactiva nuevas generaciones y concilia trabajos externos. [Detalle](ugc-chat-mcp.md#despliegue-y-rollback).

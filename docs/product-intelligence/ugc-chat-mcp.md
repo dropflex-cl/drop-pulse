@@ -1,6 +1,6 @@
 # UGC desde el chat
 
-Implementación en código y Supabase local. La migración `20261108000000_product_intelligence_ugc.sql` **no se aplicó en producción en esta entrega**. Los renders de prueba son simulados; no hubo consumo de Higgsfield/Anthropic ni publicaciones en Shopify/Meta.
+Implementación en código y Supabase local. Por autorización posterior, el commit `bca07b0` se envió a main y la migración `20261108000000_product_intelligence_ugc.sql` se aplicó y verificó en producción el 2026-10-06: [registro y evidencia](production-ugc-migration-2026-10-06.md). Los renders de prueba son simulados; no hubo consumo de Higgsfield/Anthropic ni publicaciones en Shopify/Meta. Verificación hosted y actualización del tema pendientes.
 
 ## Flujo operativo
 
