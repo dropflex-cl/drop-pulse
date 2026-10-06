@@ -2,7 +2,7 @@
 
 Completadas las tools de conceptos/dirección de arte/conversaciones, planes de galería, eventos, consejos WhatsApp, render de galería y performance/aprendizaje persistentes. Información base y navegación leen el contexto/selección canónicos; los estáticos conservan selectores de landing en Meta. **29 tools anunciadas, 30 contratos derivados**. [Recorrido, migraciones, límites y rollback](chat-content-and-learning.md), [ADR 016](adrs/016-chat-content-learning-and-render.md).
 
-Las nueve migraciones `20261109000000`–`20261117000000` están aplicadas únicamente en Supabase local. Pendiente operacional: desplegar, configurar/verificar discovery OAuth/MCP público, aceptar desde ChatGPT y probar renders/publicación en ensayo. La comprobación pública actual devuelve 404. COD y atribución causal por ángulo/hook requieren una fuente comprobada adicional; no se inventan datos. No hubo gasto externo ni publicación durante esta entrega.
+Las nueve migraciones `20261109000000`–`20261117000000` quedaron aplicadas y verificadas en producción después del push de `8531956`: [registro](production-content-migrations-2026-10-06.md). Pendiente operacional: verificar despliegue app, configurar/verificar discovery OAuth/MCP público, aceptar desde ChatGPT y probar renders/publicación en ensayo. La comprobación pública actual devuelve 404. COD y atribución causal por ángulo/hook requieren una fuente comprobada adicional; no se inventan datos. No hubo gasto externo ni publicación durante esta entrega.
 
 Los apartados siguientes conservan el historial de entregas anteriores; sus conteos y pendientes corresponden a cada entrega.
 

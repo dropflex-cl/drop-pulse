@@ -64,6 +64,6 @@ Extiende guiones/tomas/medios, conserva versiones por ejecución y agrega pi_ugc
 
 ## Entrega de cierre: migraciones 09–17
 
-Nueve migraciones aditivas, aplicadas solo localmente en esta entrega: contenido, aprendizaje, revisión del consejo, guards de render, operaciones de galería, claim/snapshot, procedencia estática, referencias de aprendizaje y preflight de despacho. Aplicarlas en orden antes de los nuevos loaders. No hay backfill ni borrado de datos históricos. [Runbook y rollback seguro](chat-content-and-learning.md#despliegue-y-rollback).
+Nueve migraciones aditivas, verificadas primero en local y posteriormente aplicadas en producción por autorización explícita ([registro](production-content-migrations-2026-10-06.md)): contenido, aprendizaje, revisión del consejo, guards de render, operaciones de galería, claim/snapshot, procedencia estática, referencias de aprendizaje y preflight de despacho. Aplicarlas en orden antes de los nuevos loaders. No hay backfill ni borrado de datos históricos. [Runbook y rollback seguro](chat-content-and-learning.md#despliegue-y-rollback).
 
 El rollback operacional conserva esquema/assets, deshabilita MCP/cron nuevos y concilia lo ya enviado; no reactiva la redacción pagada. Las versiones anteriores de despliegue/migraciones productivas documentadas arriba no incluyen esta entrega.

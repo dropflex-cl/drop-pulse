@@ -1,0 +1,410 @@
+{
+  "functional_commit": "853195607e153689aa2ddd924282079f37dbfe4a",
+  "project_ref": "oukcswnfrzroxgwqmujf",
+  "preflight": {
+    "business_rows": {
+      "ad_media": {
+        "count": 20,
+        "fingerprint": "44f7bc30cbc7ec049efb3da01b676a6a"
+      },
+      "copy_runs": {
+        "count": 11,
+        "fingerprint": "adbfb13bfea8ff182e6287720f78217c"
+      },
+      "creative_assets": {
+        "count": 19,
+        "fingerprint": "5dedd3004319874b1f9e8d96987f0f0c"
+      },
+      "creative_concepts": {
+        "count": 22,
+        "fingerprint": "7db427c35216e5b68fe27b2ed312eda1"
+      },
+      "creative_runs": {
+        "count": 6,
+        "fingerprint": "aefcc36066da769f5f1ca6142c50c979"
+      },
+      "event_copy": {
+        "count": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "pack_labels": {
+        "count": 9,
+        "fingerprint": "99666a015597e360d90768e4a3a9d085"
+      },
+      "page_components": {
+        "count": 116,
+        "fingerprint": "abcd2cc79e73c589fcc795b259e26eaf"
+      },
+      "page_image_runs": {
+        "count": 6,
+        "fingerprint": "ad8b90872ea5c873277c8c220b32efda"
+      },
+      "page_image_shots": {
+        "count": 38,
+        "fingerprint": "d72edf8b9092727fda5b4b6c6df73261"
+      },
+      "page_images": {
+        "count": 36,
+        "fingerprint": "b5752ba743114afdbce4b487f0328d51"
+      },
+      "product_pricing": {
+        "count": 5,
+        "fingerprint": "5458217639316b50a02cbd699ed3a8b4"
+      },
+      "products": {
+        "count": 8,
+        "fingerprint": "1cb13bc1ddaf045f4e14a4591636511c"
+      },
+      "video_scripts": {
+        "count": 9,
+        "fingerprint": "a9c9d607e897813ae4cf8058b2eb34e4"
+      },
+      "video_shots": {
+        "count": 101,
+        "fingerprint": "e20c59b94542f9a027879a23efabae67"
+      }
+    },
+    "captured_at": "2026-10-06T22:33:46.533378+00:00",
+    "latest_migration": "20261108000000",
+    "migration_count": 43
+  },
+  "postflight": {
+    "business_rows": {
+      "ad_media": {
+        "count": 20,
+        "fingerprint": "44f7bc30cbc7ec049efb3da01b676a6a"
+      },
+      "copy_runs": {
+        "count": 11,
+        "fingerprint": "adbfb13bfea8ff182e6287720f78217c"
+      },
+      "creative_assets": {
+        "count": 19,
+        "fingerprint": "5dedd3004319874b1f9e8d96987f0f0c"
+      },
+      "creative_concepts": {
+        "count": 22,
+        "fingerprint": "7db427c35216e5b68fe27b2ed312eda1"
+      },
+      "creative_runs": {
+        "count": 6,
+        "fingerprint": "aefcc36066da769f5f1ca6142c50c979"
+      },
+      "event_copy": {
+        "count": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "pack_labels": {
+        "count": 9,
+        "fingerprint": "99666a015597e360d90768e4a3a9d085"
+      },
+      "page_components": {
+        "count": 116,
+        "fingerprint": "abcd2cc79e73c589fcc795b259e26eaf"
+      },
+      "page_image_runs": {
+        "count": 6,
+        "fingerprint": "ad8b90872ea5c873277c8c220b32efda"
+      },
+      "page_image_shots": {
+        "count": 38,
+        "fingerprint": "d72edf8b9092727fda5b4b6c6df73261"
+      },
+      "page_images": {
+        "count": 36,
+        "fingerprint": "b5752ba743114afdbce4b487f0328d51"
+      },
+      "product_pricing": {
+        "count": 5,
+        "fingerprint": "5458217639316b50a02cbd699ed3a8b4"
+      },
+      "products": {
+        "count": 8,
+        "fingerprint": "1cb13bc1ddaf045f4e14a4591636511c"
+      },
+      "video_scripts": {
+        "count": 9,
+        "fingerprint": "a9c9d607e897813ae4cf8058b2eb34e4"
+      },
+      "video_shots": {
+        "count": 101,
+        "fingerprint": "e20c59b94542f9a027879a23efabae67"
+      }
+    },
+    "captured_at": "2026-10-06T22:34:32.965376+00:00",
+    "columns": [
+      {
+        "column": "pi_operation_id",
+        "table": "page_images",
+        "type": "uuid"
+      },
+      {
+        "column": "content_provenance",
+        "table": "ad_media",
+        "type": "jsonb"
+      },
+      {
+        "column": "provenance",
+        "table": "event_copy",
+        "type": "jsonb"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "cascade": true,
+        "name": "page_images_pi_operation_id_fkey",
+        "table": "page_images",
+        "validated": true
+      },
+      {
+        "cascade": true,
+        "name": "pi_product_learnings_product_id_user_id_fkey",
+        "table": "pi_product_learnings",
+        "validated": true
+      },
+      {
+        "cascade": true,
+        "name": "pi_product_learnings_strategy_id_fkey",
+        "table": "pi_product_learnings",
+        "validated": true
+      },
+      {
+        "cascade": true,
+        "name": "pi_gallery_operations_product_id_user_id_fkey",
+        "table": "pi_gallery_operations",
+        "validated": true
+      }
+    ],
+    "functions": [
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_assert_static_publishable",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_claim_gallery_image",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_content",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_learning",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_content_render_context",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_content_state",
+        "security_definer": true,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_creative_execution_binding",
+        "security_definer": true,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_enqueue_gallery_generation",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_gallery_operation_result",
+        "security_definer": true,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_guard_content_render",
+        "security_definer": true,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_content",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_gallery_generation",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_learning",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_performance",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_tip_review",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_ui_knowledge",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_performance_data",
+        "security_definer": true,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_review_tip",
+        "security_definer": true,
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_stamp_content_run",
+        "security_definer": true,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_tip_proposal",
+        "security_definer": false,
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_tip_usable",
+        "security_definer": true,
+        "service_execute": false
+      }
+    ],
+    "latest_migration": "20261117000000",
+    "migration_count": 52,
+    "new_rows": {
+      "gallery_operations": 0,
+      "learnings": 0
+    },
+    "tables": [
+      {
+        "anon_select": true,
+        "name": "pi_gallery_operations",
+        "rls": true
+      },
+      {
+        "anon_select": true,
+        "name": "pi_product_learnings",
+        "rls": true
+      }
+    ],
+    "triggers": [
+      {
+        "enabled": "O",
+        "name": "pi_tip_proposal"
+      },
+      {
+        "enabled": "O",
+        "name": "pi_stamp_creative_run"
+      },
+      {
+        "enabled": "O",
+        "name": "pi_creative_execution_binding"
+      },
+      {
+        "enabled": "O",
+        "name": "pi_guard_creative_render"
+      },
+      {
+        "enabled": "O",
+        "name": "pi_stamp_gallery_run"
+      },
+      {
+        "enabled": "O",
+        "name": "pi_guard_gallery_render"
+      },
+      {
+        "enabled": "O",
+        "name": "pi_learning_immutable"
+      }
+    ]
+  },
+  "checks": {
+    "all_nine_migrations_applied": true,
+    "local_remote_versions_match": 52,
+    "business_rows_fingerprints_equal": true,
+    "rls_enabled": true,
+    "rpc_service_only": 13,
+    "helpers_without_client_execute": 8,
+    "triggers_enabled": 7,
+    "validated_cascade_fks": 4,
+    "business_rows_comparison_excludes": [
+      "content_provenance",
+      "pi_operation_id",
+      "provenance"
+    ]
+  },
+  "public_mcp_metadata_http_after_push": 404,
+  "production_fixture_writes": false,
+  "external_paid_calls": false,
+  "postflight_access_checks": {
+    "policies": [
+      {
+        "check": null,
+        "command": "SELECT",
+        "name": "owner reads learnings",
+        "roles": [
+          "public"
+        ],
+        "table": "pi_product_learnings",
+        "using": "(user_id = ( SELECT auth.uid() AS uid))"
+      }
+    ],
+    "receipt_tools": "CHECK ((tool = ANY (ARRAY['save_product_context'::text, 'save_research'::text, 'save_product_analysis'::text, 'patch_product_analysis'::text, 'set_product_strategy'::text, 'save_landing_content'::text, 'save_pack_labels'::text, 'save_ugc_content'::text, 'generate_ugc'::text, 'save_creative_content'::text, 'save_gallery_content'::text, 'save_event_content'::text, 'save_usage_tip'::text, 'save_product_learning'::text, 'generate_gallery_images'::text])))",
+    "render_dispatch_freezes_base": true
+  }
+}

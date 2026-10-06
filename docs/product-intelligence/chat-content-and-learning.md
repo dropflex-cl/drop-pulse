@@ -1,6 +1,6 @@
 # Cierre de contenido y aprendizaje desde chat
 
-Estado de esta entrega: código implementado y verificado en Supabase/Next locales. Las migraciones `20261109000000` a `20261117000000` están aplicadas **solo en local**. No se desplegó esta entrega, no se publicaron productos/campañas y no se gastaron créditos externos.
+Estado vigente: código implementado y verificado localmente, comiteado y pusheado a main (`8531956`). Las migraciones `20261109000000` a `20261117000000` se aplicaron y verificaron en producción por autorización explícita posterior: [registro](production-content-migrations-2026-10-06.md). Despliegue de la app y host ChatGPT pendientes de verificación; no se publicaron productos/campañas ni se gastaron créditos externos.
 
 El runtime anuncia 29 tools, con 30 pares de contratos derivados. `generate_landing` conserva su contrato histórico cerrado: la página se escribe con `save_landing_content` y sus imágenes se ejecutan con `generate_gallery_images`. Ninguna tool de guardado redacta con modelos ni inicia renders.
 

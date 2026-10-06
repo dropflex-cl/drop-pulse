@@ -1,6 +1,6 @@
 # ADR 016 — Ingestión completa, aprendizaje medido y render de galería
 
-Estado: implementado y verificado localmente; despliegue pendiente. Complementa ADR 014/015.
+Estado: implementado y verificado localmente; commit/push y SQL productivo comprobados ([registro](../production-content-migrations-2026-10-06.md)). App y host remoto pendientes de verificación. Complementa ADR 014/015.
 
 El retiro de writers dejó huecos para conceptos/arte/conversaciones, planes de galería, eventos y consejos WhatsApp. La UI base seguía escribiendo campos legacy y las métricas no tenían un cierre persistente de aprendizaje.
 
