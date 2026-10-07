@@ -45,7 +45,7 @@ Guion, decisiones de imágenes y montaje tienen CAS. No se cambia contenido mien
 ## Despliegue y rollback
 
 1. Aplicar la migración UGC después de las migraciones PI anteriores (incluida `20261107000000`). Verificar ACLs: RPCs solamente service_role, lectura de dueño en cola, FK compuestas y cascadas. El código de UI también usa columnas/RPCs nuevas: la migración precede a la app aunque MCP esté apagado.
-2. Desplegar la app en `gru1`, con el mismo Supabase, claves de cada comerciante y `CRON_SECRET`. `vercel.json` añade `/api/cron/ugc` cada cinco minutos: comprobar que el plan de hosting admite esa frecuencia. No poner claves de proveedores del servidor como fallback.
+2. Desplegar la app en `gru1`, con el mismo Supabase, claves de cada comerciante y `CRON_SECRET`. La migración `20261119000000_media_recovery_crons.sql` programa `/api/cron/ugc` y `/api/cron/gallery` cada cinco minutos en Supabase, reutilizando `app_base_url` y `cron_secret` de Vault. `vercel.json` conserva solo el cron diario de conexiones, compatible con Hobby. [Activación y comprobación](oauth-runbook.md#recuperación-de-videos-y-galería). No poner claves de proveedores del servidor como fallback.
 3. Actualizar el kit/tema Shopify desde las fuentes generadas y verificar el tema publicado. Probar un producto de tienda de ensayo: default, ángulo, hook, vacío, orden, captions, reproducción y checkout.
 4. Verificar OAuth/MCP hosted con un cliente real. Para un smoke test pagado, el comerciante aprueba un guion y solicita explícitamente una sola imagen; después comprobar cola, revisión, paquete, subida, aprobación y publicación en tienda de ensayo. Este smoke test no se ejecutó aquí.
 

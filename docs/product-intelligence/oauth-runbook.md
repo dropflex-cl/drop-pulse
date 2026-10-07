@@ -32,6 +32,30 @@ La segunda requiere preview en puerto 3000. Ambas se niegan a escribir si Supaba
 
 En la instancia local, el gateway devuelve 404 en el discovery RFC 8414 de raíz, pero expone OIDC discovery en `/auth/v1/.well-known/openid-configuration`. El SDK oficial 1.32.0 encontró correctamente el issuer usando ese fallback. Comprobar también el endpoint de raíz hosted documentado por Supabase; no anunciar que ambos gateways son iguales.
 
+## Recuperación de videos y galería
+
+La migración `20261119000000_media_recovery_crons.sql` crea dos jobs de Supabase Cron (`pg_cron` + `pg_net`): `ugc-recovery-every-5-minutes` y `gallery-recovery-every-5-minutes`, ambos con `*/5 * * * *`. Llaman por GET a `/api/cron/ugc` y `/api/cron/gallery`; los workers y sus límites siguen en Vercel. El cron diario de conexiones permanece en `vercel.json`, compatible con Hobby.
+
+Reutilizan `app_base_url` y `cron_secret` de Vault, como `ads-sync-hourly`. Comprobar que la URL sea el dominio público de producción (por ejemplo, `https://drop-pulse.vercel.app`) y que el secreto coincida con `CRON_SECRET` de Vercel, de al menos 16 caracteres. Guardar o actualizar los valores desde Vault; nunca copiarlos a la migración, al historial SQL ni a los logs. Sin URL o con un secreto ausente/corto, el job no encola solicitudes. Actualizar estos secretos también afecta al job de métricas existente.
+
+Orden de activación: desplegar primero el código de los endpoints de recuperación en un dominio accesible sin Vercel Authentication y aplicar después la migración de programación. Si el despliegue anterior ya tiene los endpoints compatibles, puede aplicarse antes. Revisar las migraciones pendientes: `20261118000000_retire_legacy_analysis.sql` es una contracción independiente que exige su propio orden de despliegue; no aplicarla por activar estos jobs.
+
+Comprobar la programación sin exponer secretos:
+
+```sql
+select jobname, schedule, active
+from cron.job
+where jobname in ('ugc-recovery-every-5-minutes', 'gallery-recovery-every-5-minutes');
+
+select name, length(decrypted_secret) > 0 as configured
+from vault.decrypted_secrets
+where name in ('app_base_url', 'cron_secret');
+```
+
+El historial de Cron confirma que se encoló la solicitud; no confirma que el worker terminó. Revisar también `net._http_response` para el resultado HTTP y los logs de Vercel `[cron/ugc]` / `[cron/gallery]`. Un 202 confirma que se programó el procesamiento con `after()`. Un 401 indica que el bearer no coincide; un 302 al login de Vercel indica un dominio protegido. La prueba de producción debe comprobar que una operación ya autorizada avance, sin iniciar renders nuevos solo para verificar el cron.
+
+Para detener la recuperación, desactivar únicamente estos dos jobs desde Supabase Cron. Conservar cola y assets para diagnóstico; no tocar el job de métricas ni el diario de conexiones. La migración usa nombres estables: aplicarla otra vez actualiza los mismos jobs, sin duplicarlos.
+
 ## Rollback operativo
 
 Apagar MCP_ENABLED primero: herramientas y metadata dejan de exponerse. Revocar grants locales y las sesiones OAuth nativas de los clientes MCP; conservar datos/catálogo/piezas y grants para diagnóstico. No borrar tablas ni revertir migraciones para un rollback operativo.

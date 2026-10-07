@@ -51,7 +51,7 @@ La atribución es `product_campaigns_only`. La selección actual no se aplica re
 
 Aplicar las nueve migraciones nuevas en orden antes de desplegar los loaders/writers nuevos. Registrar versiones y comprobar RLS, permisos RPC, cascadas y funciones; primero hacerlo en un entorno de ensayo. No resetear la base ni ejecutar backfill de análisis retirado.
 
-Configurar `MCP_ENABLED=true`, `MCP_RESOURCE_URL=<APP_URL>/api/mcp`, `MCP_ALLOWED_ORIGINS`, OAuth nativo y redirect/consentimiento de Supabase. Conservar `gru1` y Supabase `sa-east-1`. `CRON_SECRET` autentica `/api/cron/gallery`, añadido cada cinco minutos junto al cron UGC existente.
+Configurar `MCP_ENABLED=true`, `MCP_RESOURCE_URL=<APP_URL>/api/mcp`, `MCP_ALLOWED_ORIGINS`, OAuth nativo y redirect/consentimiento de Supabase. Conservar `gru1` y Supabase `sa-east-1`. `CRON_SECRET` autentica `/api/cron/gallery` y `/api/cron/ugc`; la migración `20261119000000_media_recovery_crons.sql` programa ambos cada cinco minutos en Supabase. Reutilizan los secretos `app_base_url` y `cron_secret` de Vault del job de métricas; `vercel.json` conserva únicamente conexiones diario. [Activación y comprobación](oauth-runbook.md#recuperación-de-videos-y-galería).
 
 La inspección pública de esta entrega recibió HTTP 404 en la metadata MCP de Vercel y en el endpoint OAuth consultado del proyecto vinculado. Esto no confirma que falten todas las capacidades OAuth; confirma que el discovery público probado no está disponible. No se probó una conexión real de ChatGPT.
 
