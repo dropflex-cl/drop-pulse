@@ -15,8 +15,10 @@ import { parseToolOutput, PI_LIMITS } from "./validation";
 import { visualInputSchemas, visualReviewInput, VISUAL_LIMITS, type VisualRecord, type VisualTool, type VisualDependency } from "./visual-schemas";
 import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration,
   prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, visualValidity, vHash, type VisualState } from "./visual-domain";
-import { hydrateVisualState } from "./visual-state";
+import { hydrateVisualState, visualReferenceBytes } from "./visual-state";
 import { visualSignedUrl } from "./visual-media";
+import { attachToolImage } from "./tool-media";
+import { referenceImageContent } from "./visual-reference";
 
 export const visualEnabled = () => process.env.VISUAL_PRODUCTION_ENABLED !== "false";
 const object = z.record(z.string(), z.unknown());
@@ -96,6 +98,22 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         expires: Math.floor(Date.now() / 1000) + VISUAL_LIMITS.snapshotSeconds - 5 }, secret)}` : null };
     };
     if (!writing) {
+      if (tool === "get_visual_reference_image") {
+        const q = visualInputSchemas[tool].parse(input), canonical = state.references.find(r => r.is_base);
+        const info = canonical && state.live[`reference:${canonical.id}`];
+        if (!canonical || !info || info.blocked || !visualReferenceBytes.has(state)) invalidVisual("No pudimos leer la imagen base. Revisa la referencia en Información base; no generes sin ella.", "VALIDATION_ERROR");
+        const metadata = object.parse(info.value), reference = { ...canonical, ...metadata };
+        if (canonical.id !== q.reference_image_id || metadata.content_hash !== q.reference_content_hash) invalidVisual("La imagen base cambió. Recupera el contexto visual antes de generar.");
+        if (q.iteration_id) {
+          const iteration = findVisual(state, q.iteration_id, "iteration"), identity = object.parse(iteration.payload.identity_snapshot);
+          assertCurrent(iteration, state);
+          if (iteration.status !== "prepared" || identity.canonical_reference_image_id !== canonical.id || identity.reference_content_hash !== q.reference_content_hash) invalidVisual("La iteración no usa esta referencia vigente. Prepara una nueva toma.");
+        }
+        const image = await referenceImageContent(visualReferenceBytes.get(state)!);
+        signal.throwIfAborted();
+        return attachToolImage(output({ canonical_reference: reference, image: image.metadata,
+          next_action: "Usa el bloque de imagen como entrada real del generador, conservando el producto. La URL canónica permite descargar el original. Si el cliente no puede adjuntarlo, pide la foto original y no generes esa toma." }), image.content);
+      }
       if (tool === "get_visual_ingestion_status") {
         const q = visualInputSchemas[tool].parse(input);
         return output(safeOperation(operationSchema.parse(await repository.visualOperation({ p_access: access, p_product_id: q.product_id, p_operation_id: q.operation_id }, signal))));
@@ -114,7 +132,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
           selected_strategy: strategy ? { id: strategy.id, state: strategy.state, readiness: strategy.readiness, positioning: object.parse(strategy.snapshot).positioning, rationale: object.parse(strategy.snapshot).rationale } : null,
           canonical_reference: canonical ? { ...canonical, ...object.parse(referenceInfo) } : null, identity: state.records.find(r => r.kind === "identity" && r.status !== "archived") ?? null,
           context_records: contextPage, targets: state.targets.slice(0, 50).map(t => ({ key: t.key, etag: t.etag, value: { target: object.parse(t.value).target } })), capabilities: { generation: "external_only", ingestion: ["remote_url", "upload_ticket"], approval: "merchant_ui", reuse: true, max_upload_bytes: VISUAL_LIMITS.uploadBytes, max_pixels: VISUAL_LIMITS.maxPixels, max_plans: VISUAL_LIMITS.plans, max_shots: VISUAL_LIMITS.shots, max_assets: VISUAL_LIMITS.assets },
-          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Aprueba identidad y plan en DropFlex; prepare_visual_iteration congela la toma y la referencia.", "Si el chat no entrega una URL, transfiere sus bytes al ticket firmado. El file_id de una conversación no es accesible por DropFlex."] });
+          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Lee get_visual_reference_image con el ID y content_hash canónicos. Debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Aprueba identidad y plan en DropFlex; prepare_visual_iteration congela la toma y la referencia.", "Si el chat no entrega una URL, transfiere sus bytes al ticket firmado. El file_id de una conversación no es accesible por DropFlex."] });
       }
       if (tool === "get_visual_identity" || tool === "get_visual_generation_plan") {
         const q = tool === "get_visual_identity" ? visualInputSchemas.get_visual_identity.parse(input) : visualInputSchemas.get_visual_generation_plan.parse(input);

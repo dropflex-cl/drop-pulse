@@ -9,6 +9,9 @@ import { inputSchemas } from "./schemas";
 import type { DomainExecutor } from "./mcp";
 import { PI_SCOPES, type PiScope } from "./policy";
 import { OPTIMIZATION_SKILL_URI } from "./mcp-skills";
+import { attachToolImage } from "./tool-media";
+import { referenceImageContent } from "./visual-reference";
+import sharp from "sharp";
 
 describe("PI · HTTP oficial", () => {
   async function fixture(execute: DomainExecutor = async (principal) => ({ ok: false, request_id: "00000000-0000-4000-8000-000000000009", error: { code: "NOT_FOUND", message: principal.userId, retryable: false, details: {} } }), scopes: readonly PiScope[] = PI_SCOPES) {
@@ -28,6 +31,21 @@ describe("PI · HTTP oficial", () => {
       expect(tools).toHaveLength(Object.keys(inputSchemas).length);
       const result = await session.client.callTool({ name: "get_product_context", arguments: { product_id: "00000000-0000-4000-8000-000000000009" } });
       expect(result.structuredContent).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
+    } finally { await session.client.close(); }
+  });
+  it("conserva el adjunto canónico en el transporte HTTP autenticado", async () => {
+    const bytes = await sharp({ create: { width: 600, height: 600, channels: 3, background: "purple" } }).png().toBuffer();
+    const image = await referenceImageContent(bytes), product = "00000000-0000-4000-8000-000000000009", reference = "00000000-0000-4000-8000-000000000010";
+    const response = { ok: true, request_id: product, product_id: product, revision: 3, data: { etag: "a".repeat(64), dependency_stamp: "a".repeat(64),
+      canonical_reference: { id: reference, storage_path: null, url: "https://example.test/base.png", mime_type: "image/png", is_base: true, content_hash: image.metadata.content_hash },
+      image: image.metadata, next_action: "Adjunta la referencia." } };
+    const session = await fixture(async () => attachToolImage(response, image.content), ["product_intelligence:read"]);
+    try {
+      await session.client.connect(session.transport);
+      const result = await session.client.callTool({ name: "get_visual_reference_image", arguments: { product_id: product, reference_image_id: reference, reference_content_hash: image.metadata.content_hash } });
+      expect(result.isError).toBe(false);
+      expect(result.content).toContainEqual(image.content);
+      expect(result.structuredContent).toEqual(response);
     } finally { await session.client.close(); }
   });
   it("revocar bloquea la siguiente petición incluso durante una conexión SDK", async () => {

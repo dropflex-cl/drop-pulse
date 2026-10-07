@@ -45,6 +45,7 @@ export const visualWriteSchema = z.strictObject({ ...read, schema_version: z.lit
 const write = visualWriteSchema.shape;
 export const visualInputSchemas = {
   get_visual_generation_context: z.strictObject({ ...read, strategy_id: visualUuid.optional(), angle_id: visualUuid.optional(), channel: z.enum(["pdp", "gallery", "ad", "ugc"]).optional(), cursor }),
+  get_visual_reference_image: z.strictObject({ ...read, reference_image_id: visualUuid, reference_content_hash: visualHash, iteration_id: visualUuid.optional() }),
   get_visual_identity: z.strictObject({ ...read, identity_id: visualUuid.optional(), version: z.number().int().positive().optional() }),
   save_visual_identity: z.strictObject({ ...write, identity_id: visualUuid.nullable().default(null), identity: visualIdentitySchema }),
   get_visual_generation_plan: z.strictObject({ ...read, plan_id: visualUuid.optional(), version: z.number().int().positive().optional(), shot_key: key.optional(), cursor }),
@@ -71,6 +72,7 @@ export const visualInputSchemas = {
 export type VisualTool = keyof typeof visualInputSchemas;
 export const visualTools = Object.keys(visualInputSchemas) as VisualTool[];
 export const visualDescriptions: Record<VisualTool, string> = {
+  get_visual_reference_image: "Entrega la imagen base como contenido de imagen MCP, con ID y hash verificados. Llámala antes de generar y adjunta la imagen devuelta al generador; una URL o descripción no basta. Si el cliente no puede usarla como entrada, pide adjuntar la foto original y no generes. No llama a proveedores.",
   get_visual_generation_context: "Lee contexto visual, referencia canónica consumible, contratos, destinos y capacidades para generar desde el chat; DropFlex no genera.",
   get_visual_identity: "Lee identidad visual vigente o histórica y sus restricciones.", save_visual_identity: "Guarda una propuesta de identidad física con referencia y CAS; no cambia la base ni aprueba.",
   get_visual_generation_plan: "Recupera plan, tomas y versiones exactas para continuar la producción visual.", save_visual_generation_plan: "Guarda intención visual estructurada como propuesta versionada; no llama a proveedores.",
@@ -116,6 +118,9 @@ export function visualOutputs<E extends z.ZodType>(error: E) {
   const plans = envelope(z.strictObject({ ...commonVisualOutput, current: visualRecordViewSchema.nullable(), shots: visualPage(z.looseObject({ shot_key: z.string(), validity: visualValiditySchema })), identity: visualRecordSchema.nullable(), canonical_reference: canonicalView,
     assets: z.array(visualRecordViewSchema).max(3), items: z.array(z.strictObject({ id: visualUuid, version: z.number().int().positive(), etag: visualHash, name: z.string(), status: z.string() })).max(VISUAL_LIMITS.plans) }));
   return {
+    get_visual_reference_image: envelope(z.strictObject({ ...commonVisualOutput, canonical_reference: canonicalView.unwrap(),
+      image: z.strictObject({ mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]), width: z.number().int().positive(), height: z.number().int().positive(), content_hash: visualHash, derived: z.boolean(), delivery: z.literal("mcp_image_content") }),
+      next_action: z.string() })),
     get_visual_generation_context: envelope(z.strictObject({ ...commonVisualOutput, product: z.unknown(), context: z.unknown(), pricing: z.unknown(), policies: z.unknown(), selected_strategy: z.unknown(), canonical_reference: canonicalView,
       identity: visualRecordSchema.nullable(), context_records: visualPage(z.strictObject({ kind: z.string(), value: z.unknown() })), targets: z.array(targetView).max(50), capabilities: z.strictObject({ generation: z.literal("external_only"), ingestion: z.array(z.enum(["remote_url", "upload_ticket"])), approval: z.literal("merchant_ui"), reuse: z.boolean(), max_upload_bytes: z.number(), max_pixels: z.number(), max_plans: z.number(), max_shots: z.number(), max_assets: z.number() }), next_steps: z.array(z.string()) })),
     get_visual_identity: plans, get_visual_generation_plan: plans,

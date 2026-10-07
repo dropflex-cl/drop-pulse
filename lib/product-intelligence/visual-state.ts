@@ -17,6 +17,8 @@ const sourceSchema = z.object({ references: z.array(z.object({ id: z.string(), s
   is_base: z.boolean(), is_cover: z.boolean(), excluded: z.boolean() })), gallery: z.array(row), gallery_shots: z.array(row), creative_concepts: z.array(row), scripts: z.array(row), video_shots: z.array(row),
   pdp: z.object({ plans: z.array(persuasionRecordSchema), experiences: z.array(experienceRecordSchema), landing: z.object({ rows: z.array(z.object({ component: z.string(), proposal: z.unknown(), content: z.unknown(), images: z.array(z.unknown()).optional() })), review_count: z.number() }) }) });
 const sourceRead = z.object({ source: sourceSchema, knowledge: z.unknown() });
+// Conserva únicamente en esta lectura los mismos bytes cuyo hash validó la identidad.
+export const visualReferenceBytes = new WeakMap<VisualState, Buffer>();
 function semantic(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(semantic);
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([k]) => !["last_revision", "updated_at", "created_at"].includes(k) && value[k as keyof typeof value] !== undefined).map(([k, v]) => [k, semantic(v)]));
@@ -27,6 +29,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   const live: VisualState["live"] = {}, targets: VisualState["targets"] = [];
   const add = (kind: string, key: string, value: unknown, blocked = false) => { live[`${kind}:${key}`] = { hash: vHash(semantic(value)), value, blocked }; };
   const refs = imagesForGeneration(src.references);
+  let referenceBytes: Buffer | undefined;
   const references = await Promise.all(refs.map(async (r, i) => ({ id: r.id, storage_path: r.storage_path, mime_type: r.mime_type ?? null,
     is_base: i === 0, url: r.storage_path ? await visualSignedUrl("product-references", r.storage_path) : r.url })));
   if (refs[0]) {
@@ -35,6 +38,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
       const bytes = r.storage_path ? await visualStoredBytes("product-references", r.storage_path) : await downloadVisual(r.url!);
       const meta = await sharp(bytes).metadata();
       add("reference", r.id, { id: r.id, content_hash: visualByteHash(bytes), mime_type: meta.format === "jpeg" ? "image/jpeg" : `image/${meta.format}`, width: meta.width, height: meta.height });
+      referenceBytes = bytes;
     } catch { add("reference", r.id, { id: r.id, content_hash: null }, true); }
   }
   const selected = read.strategy;
@@ -54,6 +58,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   add("pricing", "current", read.currentSnapshot.pricing, !read.currentSnapshot.pricing);
   add("policy", "current", read.currentSnapshot.settings, !read.currentSnapshot.settings);
   const state = visualReadSchema.parse({ ...raw as object, live, references, targets });
+  if (referenceBytes) visualReferenceBytes.set(state, referenceBytes);
   for (const r of state.records.filter(r => r.kind === "identity")) add("identity", r.id, { identity_hash: r.payload.identity_hash }, ["archived", "rejected"].includes(r.status));
   for (const p of src.pdp.plans) {
     add("persuasion_plan", p.id, { version: p.revision, etag: p.etag, payload: p.payload }, p.payload.status === "archived");

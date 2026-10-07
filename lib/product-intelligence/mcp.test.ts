@@ -9,6 +9,9 @@ import { examplesFixture, principalFixture, requestFixture } from "./test-fixtur
 import { ProductIntelligenceError } from "./errors";
 import { inputSchemas } from "./schemas";
 import { PI_LIMITS } from "./validation";
+import { attachToolImage } from "./tool-media";
+import { referenceImageContent } from "./visual-reference";
+import sharp from "sharp";
 
 const validators = (): jsonSchemaValidator => {
   const ajv = new Ajv2020({ strict: false }); addFormats(ajv);
@@ -26,6 +29,34 @@ async function connect(execute: DomainExecutor, userId = "merchant-a", requestTi
 }
 
 describe("PI · protocolo MCP oficial", () => {
+  it("envía la referencia como imagen MCP sin duplicar base64 en JSON", async () => {
+    const bytes = await sharp({ create: { width: 600, height: 600, channels: 3, background: "purple" } }).png().toBuffer();
+    const image = await referenceImageContent(bytes), product = "00000000-0000-4000-8000-000000000001", reference = "00000000-0000-4000-8000-000000000002";
+    const response = { ok: true, request_id: product, product_id: product, revision: 3, data: { etag: "a".repeat(64), dependency_stamp: "a".repeat(64),
+      canonical_reference: { id: reference, storage_path: null, url: "https://example.test/base.png", mime_type: "image/png", is_base: true, content_hash: image.metadata.content_hash },
+      image: image.metadata, next_action: "Adjunta la referencia." } };
+    const session = await connect(async () => attachToolImage(response, image.content));
+    try {
+      const result = await session.client.callTool({ name: "get_visual_reference_image", arguments: { product_id: product, reference_image_id: reference, reference_content_hash: image.metadata.content_hash } });
+      expect(result.isError).toBe(false);
+      expect(result.structuredContent).toEqual(response);
+      expect(result.content).toEqual([{ type: "text", text: JSON.stringify(response) }, image.content]);
+      expect(JSON.stringify(result.structuredContent)).not.toContain(image.content.data);
+      expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThanOrEqual(PI_LIMITS.outputBytes);
+      const textOnly = await connect(async () => structuredClone(response));
+      try {
+        const missing = await textOnly.client.callTool({ name: "get_visual_reference_image", arguments: { product_id: product, reference_image_id: reference, reference_content_hash: image.metadata.content_hash } });
+        expect(missing).toMatchObject({ isError: true, structuredContent: { error: { code: "EXECUTION_NOT_READY" } } });
+        expect(missing.content).toHaveLength(1);
+      } finally { await textOnly.close(); }
+      const oversized = await connect(async () => attachToolImage(response, { ...image.content, data: "x".repeat(PI_LIMITS.outputBytes) }));
+      try {
+        const rejected = await oversized.client.callTool({ name: "get_visual_reference_image", arguments: { product_id: product, reference_image_id: reference, reference_content_hash: image.metadata.content_hash } });
+        expect(rejected).toMatchObject({ isError: true, structuredContent: { error: { code: "RESPONSE_TOO_LARGE" } } });
+        expect(rejected.content).toHaveLength(1);
+      } finally { await oversized.close(); }
+    } finally { await session.close(); }
+  });
   it("inicializa y descubre las tools disponibles con outputSchema, incluidas unions raíz", async () => {
     const session = await connect(async () => null);
     try {

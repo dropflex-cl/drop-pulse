@@ -14,6 +14,10 @@ Carga solo contratos necesarios para el alcance actual. Los schemas y `next_acti
 
 `get_visual_generation_context` devuelve referencia canónica, capacidades, dependencias y registros paginados. Los planes pueden ser resúmenes: usa `get_visual_generation_plan` y pagina `shots.items` para tomas completas.
 
+Si no están disponibles `get_visual_generation_context` y `get_visual_reference_image`, el catálogo del plugin puede estar desactualizado. Pide actualizar/reconectar DropFlex y abrir un chat nuevo. `get_product_context` con solo `base_reference_image_id` no entrega la foto al generador. No saltes al generador para completar el pedido con un SKU inventado.
+
+Llama `get_visual_reference_image` con `product_id`, `reference_image_id` y `reference_content_hash` del contexto actual. Devuelve un bloque MCP `image`, además de la URL del original y metadata. Comprueba que puedes ver la foto y que el ID/hash corresponden a la base. El hash canónico identifica los bytes originales; `image.content_hash` identifica el adjunto, que puede ser una preview reducida sin recorte para respetar el límite MCP. Para más detalle descarga el original de su URL temporal.
+
 `get_visual_identity`/`save_visual_identity` usan la imagen base existente. El hash corresponde a bytes, no a la URL firmada. Si no puedes leerlos, utiliza información válida del contexto o pide preparar la identidad en DropFlex; no inventes el hash.
 
 `save_visual_generation_plan` guarda intención estructurada: familia estable, objetivo, escena, composición, mensaje, restricciones y dependencias, con `product_identity: "inherit"`. Hereda geometría, colores, controles y accesorios reales. Identidad y plan deben estar aprobados y vigentes antes de `prepare_visual_iteration`.
@@ -24,11 +28,13 @@ Portada/galería son cuadradas, hay hasta seis posiciones de galería y benefici
 
 1. Consulta `list_visual_assets`/`get_visual_reuse_candidates`; compartir familia no garantiza compatibilidad.
 2. `prepare_visual_iteration` congela toma, plan, identidad, referencias e instrucciones. Al iterar vincula parent y reviews reales. El prompt ejecutado es metadata.
-3. Usa la generación/edición del cliente con referencia canónica. Si no puede consumirla, resuelve su acceso antes de generar esa toma.
-4. Muestra el resultado. `ingest_external_visual_asset` recibe HTTPS temporal o `upload_ticket`: prepara con `prepare_visual_asset_upload`, transfiere bytes por PUT y confirma. Consulta `get_visual_ingestion_status` para verificar el guardado durable.
-5. Un ID interno de conversación no es un file_id soportado ni una URL accesible. Si no puedes transferirlo, indica la subida manual desde la toma en DropFlex y recupera el asset después. Mostrar la imagen no la guarda.
-6. El resultado entra generado. Propón usos con `bind_visual_asset`/`save_visual_binding_suggestions`; el comerciante aprueba el asset y selecciona los bindings en la UI.
-7. Registra intentos fallidos/abandonados con `record_visual_iteration_result` cuando corresponda. Consulta estado ante una ingestión ambigua antes de iniciar otra.
+3. Recupera `get_visual_reference_image` con el ID/hash de `identity_snapshot` y el `iteration_id` preparado. Pasa la imagen como entrada real de edición/referencia al generador: archivo local leído, adjunto de conversación o imagen/archivo soportado por esa herramienta. Inspeccionar una URL en el navegador o escribirla dentro del prompt no la adjunta. Usa los controles de referencias de la herramienta disponible; no inventes un identificador de archivo ni ejecutes generación solo desde texto. El prompt usa las restricciones de la identidad persistida.
+4. Si no puedes pasar esa imagen como entrada real, explica la limitación del cliente y pide adjuntar la foto original en este chat. Detén la generación de esa toma mientras tanto y registra el intento abandonado si ya estaba preparado. No atribuyas uso de referencia a una llamada que no la recibió.
+5. Compara el resultado con la foto canónica: silueta, proporciones, colores, mango, depósito, controles y accesorios según la identidad. Si representa otro SKU, presenta el fallo y prepara una corrección con la original; no lo propongas como portada ni lo uses como referencia canónica para el resto del lote. Una imagen generada anterior puede ser referencia secundaria de escena, conservando siempre la original como referencia principal.
+6. Muestra el resultado. `ingest_external_visual_asset` recibe HTTPS temporal o `upload_ticket`: prepara con `prepare_visual_asset_upload`, transfiere bytes por PUT y confirma. Consulta `get_visual_ingestion_status` para verificar el guardado durable.
+7. Un ID interno de conversación no es un file_id soportado ni una URL accesible. Si no puedes transferirlo, indica la subida manual desde la toma en DropFlex y recupera el asset después. Mostrar la imagen no la guarda.
+8. El resultado entra generado. Propón usos con `bind_visual_asset`/`save_visual_binding_suggestions`; el comerciante aprueba el asset y selecciona los bindings en la UI.
+9. Registra intentos fallidos/abandonados con `record_visual_iteration_result` cuando corresponda. Consulta estado ante una ingestión ambigua antes de iniciar otra.
 
 DropFlex valida, optimiza y conserva bytes. No uses `generate_gallery_images` para este recorrido externo ni configures proveedores en el servidor. Resultados generados son `illustrative_demo`; `real_evidence` exige evidencia auténtica y material manual.
 

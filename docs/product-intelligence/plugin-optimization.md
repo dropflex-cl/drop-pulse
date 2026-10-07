@@ -29,7 +29,7 @@ Instalado y habilitado el 2026-10-07 como `dropflex-optimizer@dropflex-local`, v
 
 ## Importación para el plugin distribuido
 
-El MCP anuncia `capabilities.extensions["io.modelcontextprotocol/skills"]` y sirve `skills/list`, `skills/get` y `resources/read` sobre una allowlist de cuatro archivos, con SHA-256. Sigue el subconjunto estático de la extensión soportado por OpenAI; no cambia las 56 tools ni concede permisos nuevos. Los recursos conservan la autenticación HTTP existente y no contienen datos privados de productos.
+El MCP anuncia `capabilities.extensions["io.modelcontextprotocol/skills"]` y sirve `skills/list`, `skills/get` y `resources/read` sobre una allowlist de cuatro archivos, con SHA-256. Sigue el subconjunto estático de la extensión soportado por OpenAI. Los recursos conservan la autenticación HTTP existente y no contienen datos privados de productos.
 
 El endpoint de producción es `https://drop-pulse.vercel.app/api/mcp`. Para incorporar la skill al plugin remoto:
 
@@ -45,7 +45,19 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.0.0.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+Produce `output/plugins/dropflex-optimizer-1.0.1.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+
+## Referencia visual obligatoria (1.0.1)
+
+La incidencia del 2026-10-07 mostró un SKU blanco generado en ChatGPT mientras la base guardada era negra/violeta. En producción el producto no tenía registros Visual Production, y el catálogo conectado en la sesión de diagnóstico conservaba 37 tools sin las visuales. Esto confirma que el flujo persistido no se había ejecutado; no permite inspeccionar los argumentos privados del generador de otro chat.
+
+`get_visual_reference_image` entrega un bloque de imagen MCP desde los mismos bytes autorizados que se hashean en la lectura. Exige ID y hash canónicos, verifica la iteración cuando se proporciona y rechaza una referencia cambiada. Los bytes no se duplican en structuredContent. Si hace falta, devuelve una preview WebP sin recorte, EXIF aplicado y transparencia conservada; el original sigue disponible en su URL temporal. Diferencia hash original y hash de la preview. La respuesta completa, incluido base64, respeta el límite MCP.
+
+El skill exige ver la foto y adjuntarla como entrada real del generador. Si el cliente no permite ese paso, pide adjuntar la original y detiene la toma. MCP image hace visible la referencia, pero no certifica que un generador externo la recibió ni garantiza fidelidad: debe comprobarse en el cliente real y revisarse el resultado.
+
+Después de desplegar, vuelve a escanear tools y skill en el portal, comprueba que incluye `get_visual_reference_image` y publica/guarda la versión actualizada. Reconecta el cliente y abre un chat nuevo. Desplegar Vercel no actualiza por sí solo el catálogo del plugin ni el snapshot de la skill. No se necesita una migración nueva.
+
+Validación de 1.0.1: 51 pruebas de dominio/media/MCP/HTTP/skill y ocho de Supabase local; typecheck, lint de archivos afectados, contratos, frontmatter y build. El original de la aspiradora se probó con el mismo codificador y cabe completo a 1200 × 1200, sin reducción. Instalado localmente mediante el CLI como versión 1.0.1; esto no actualiza el plugin remoto de ChatGPT.
 
 ## Verificación
 

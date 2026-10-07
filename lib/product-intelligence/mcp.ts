@@ -8,6 +8,8 @@ import { ProductIntelligenceError } from "./errors";
 import { type Principal } from "./policy";
 import { generationContextSchema, inputSchemas, outputSchemas, type ToolInputs, type ToolName } from "./schemas";
 import { parseToolInput, parseToolOutput, PI_LIMITS } from "./validation";
+import { toolImage } from "./tool-media";
+import type { ImageContent } from "@modelcontextprotocol/sdk/types.js";
 
 export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }[ToolName];
 /** El servicio ejecutor autoriza/revalida grants y usa la transacción común. */
@@ -78,7 +80,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const actor: Principal = Object.freeze({ ...principal, scopes: Object.freeze([...principal.scopes]) });
   const server = new Server({ name: "dropflex-product-intelligence", version: "1.0.0" }, {
     capabilities: { tools: { listChanged: false }, resources: {}, extensions: { [SKILLS_EXTENSION]: {} } },
-    instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Guarda propuestas con sus contratos y revisiones actuales. La aprobación de planes/assets y selección de usos se realiza en la UI de DropFlex. Optimizar no autoriza publicación ni lanzamiento de campañas.",
+    instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Para imágenes, recupera get_visual_generation_context y get_visual_reference_image: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, pide actualizar la conexión o adjuntar la foto original y no generes esa toma. Guarda propuestas con sus contratos y revisiones actuales. La aprobación de planes/assets y selección de usos se realiza en la UI de DropFlex. Optimizar no autoriza publicación ni lanzamiento de campañas.",
   });
   registerOptimizationSkill(server);
   const schemas = publishedSchemas();
@@ -107,6 +109,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
     if (!Object.hasOwn(inputSchemas, tool)) throw new McpError(ErrorCode.InvalidParams, "La tool solicitada no existe.");
     const name = tool as ToolName;
     let envelope: unknown;
+    let image: ImageContent | undefined;
     try {
       if (!available.includes(name)) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación todavía está en implementación.");
       const input = parseToolInput(name, request.params.arguments ?? {});
@@ -120,17 +123,22 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
         }, timeoutMs);
       });
       try {
-        envelope = parseToolOutput(name, await Promise.race([execute(actor, { tool: name, input } as ToolCommand, signal), timeout]));
+        const executed = await Promise.race([execute(actor, { tool: name, input } as ToolCommand, signal), timeout]);
+        envelope = parseToolOutput(name, executed);
+        image = toolImage(executed);
+        if (name === "get_visual_reference_image" && (envelope as { ok: boolean }).ok && !image) {
+          throw new ProductIntelligenceError("EXECUTION_NOT_READY", "No pudimos adjuntar la referencia. Descarga la foto original desde DropFlex y adjúntala en el chat antes de generar.");
+        }
       } finally { clearTimeout(timer); }
     } catch (error) {
       const domain = error instanceof ProductIntelligenceError ? error.toDomainError() : new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos completar la solicitud. Reintenta con la misma clave si corresponde.").toDomainError();
       envelope = parseToolOutput(name, { ok: false, request_id: randomUUID(), error: domain });
     }
-    const result = (payload: unknown) => {
+    const result = (payload: unknown, attached?: ImageContent) => {
       const structuredContent = payload as Record<string, unknown>;
-      return { structuredContent, content: [{ type: "text" as const, text: JSON.stringify(payload) }], isError: structuredContent.ok === false };
+      return { structuredContent, content: [{ type: "text" as const, text: JSON.stringify(payload) }, ...(structuredContent.ok === true && attached ? [attached] : [])], isError: structuredContent.ok === false };
     };
-    const response = result(envelope);
+    const response = result(envelope, image);
     // El texto duplica structuredContent: medir también la respuesta MCP completa.
     if (new TextEncoder().encode(JSON.stringify(response)).length > PI_LIMITS.outputBytes) return result(parseToolOutput(name, { ok: false, request_id: randomUUID(), error: new ProductIntelligenceError("RESPONSE_TOO_LARGE", "Reduce el tamaño de la página o la selección para recuperar la respuesta completa.", { max_bytes: PI_LIMITS.outputBytes }).toDomainError() }));
     return response;

@@ -29,7 +29,7 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y requisitos de aprobación.
 
-En producción visual, recupera identidad y referencia consumible. Reutiliza assets compatibles y vigentes antes de generar. El chat genera/edita externamente con la referencia canónica; DropFlex ingiere y conserva archivos. Prepara una toma principal para revisar la dirección antes del resto, salvo que el usuario ya autorizara un lote con esa dirección.
+En producción visual, exige `get_visual_generation_context` y `get_visual_reference_image`. Recupera la foto canónica, inspecciónala y pásala como imagen de entrada al generador siguiendo [la ejecución](references/production.md). Un ID, URL o descripción en texto no demuestra que el generador recibió la foto. Si faltan estas tools, pide actualizar/reconectar el plugin y continúa solo lo independiente. Si el cliente no puede adjuntar la imagen al generador, pide al usuario adjuntar la foto original y detén esa toma; no generes un producto aproximado. Reutiliza assets compatibles y vigentes antes de generar. DropFlex ingiere y conserva archivos. Prepara una toma principal para revisar la dirección antes del resto, salvo que el usuario ya autorizara un lote con esa dirección.
 
 ## Iteración y decisiones humanas
 

@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { createProductIntelligenceServer } from "./mcp";
+import { visualByteHash } from "./visual-media";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createProductIntelligenceExecutor } from "./knowledge-service";
 import { createContextRepository, contextAccess } from "./repository";
@@ -79,6 +84,26 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     await expect(call("save_visual_identity", { ...write, identity: { ...write.identity, identity_description: "Otro" } })).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
     identity = await approve(identity);
   });
+  it("entrega bytes de la base autorizada; rechaza IDs/hashes distintos y otro comerciante", async () => {
+    const context = await call("get_visual_generation_context", { product_id: product });
+    const ref = context.data.canonical_reference!;
+    const args = { product_id: product, reference_image_id: reference, reference_content_hash: ref.content_hash! };
+    const server = createProductIntelligenceServer(owner, execute), client = new Client({ name: "visual-reference", version: "1" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport); await client.connect(clientTransport);
+    try {
+      const result = CallToolResultSchema.parse(await client.callTool({ name: "get_visual_reference_image", arguments: args }));
+      const image = result.content.find(c => c.type === "image");
+      expect(result.isError).toBe(false);
+      if (!image || image.type !== "image") throw new Error("No se entregó el adjunto canónico");
+      expect(visualByteHash(Buffer.from(image.data, "base64"))).toBe(ref.content_hash);
+      expect(result.structuredContent).toMatchObject({ data: { canonical_reference: { id: reference }, image: { derived: false } } });
+      await expect(call("get_visual_reference_image", { ...args, reference_image_id: randomUUID() })).rejects.toThrow("base cambió");
+      await expect(call("get_visual_reference_image", { ...args, reference_content_hash: "0".repeat(64) })).rejects.toThrow("base cambió");
+      const strangerId = randomUUID();
+      await expect(call("get_visual_reference_image", args, { ...owner, userId: strangerId, actorId: strangerId })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    } finally { await client.close(); await server.close(); }
+  });
   it("persiste el plan y congela la toma solo después de la revisión merchant", async () => {
     const value = visualFixture().plan; value.strategy_id = strategyId; value.identity_ref = { id: identity.id, version: identity.version, etag: identity.etag }; value.shots[0].angle_id = angleId;
     const saved = await call("save_visual_generation_plan", { ...await preconditions(), plan: value }); plan = visualRecordSchema.parse((saved.data.records as unknown[])[0]);
@@ -87,13 +112,14 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     plan = await approve(plan);
     const prepared = await call("prepare_visual_iteration", { ...await preconditions(), ...input, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag } });
     iteration = visualRecordSchema.parse((prepared.data.records as unknown[])[0]);
+    const referenceResult = await call("get_visual_reference_image", { product_id: product, reference_image_id: reference, reference_content_hash: identity.payload.reference_content_hash, iteration_id: iteration.id });
+    expect(referenceResult.data.canonical_reference.id).toBe(reference);
     const recovered = await call("get_visual_generation_plan", { product_id: product, plan_id: plan.id, shot_key: "hero" });
     expect(recovered.data.identity).toMatchObject({ id: identity.id });
   });
   it("ticket firmado → optimización → copia propia → asset por revisar; deduplica sin autoaprobar", async () => {
     const bytes = await sharp({ create: { width: 1000, height: 1000, channels: 3, background: { r: 30, g: 35, b: 40 } } }).png().toBuffer();
     const ticket = await call("prepare_visual_asset_upload", { ...await preconditions(), iteration_id: iteration.id, mime_type: "image/png", size_bytes: bytes.length });
-    const upload = ticket.data.upload as { path: string; token: string };
     expect((await fetch((ticket.data.upload as { url: string }).url, { method: "PUT", headers: { "Content-Type": "image/png", "x-upsert": "false" }, body: new Uint8Array(bytes) })).ok).toBe(true);
     const ingestion = await call("ingest_external_visual_asset", { ...await preconditions(), iteration_id: iteration.id, source: { type: "upload_ticket", ticket_id: ticket.data.operation_id } });
     await runVisualIngestion(String(ingestion.data.operation_id));
