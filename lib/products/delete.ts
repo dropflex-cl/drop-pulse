@@ -126,6 +126,14 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
       if (begun.error) throw new Error(`Preparar el borrado de ${id}: ${begun.error.message}`);
       await pauseCampaigns(userId, id);
       await removeFiles(userId, id);
+      // ads.media_id impide borrar ad_media mientras exista el anuncio. La cascada de products
+      // puede alcanzar los medios primero: se borran las campañas (y sus anuncios) antes.
+      const campaigns = await db.from("ad_campaigns").delete().eq("user_id", userId).eq("product_id", id);
+      if (campaigns.error) throw new Error(`Borrar campañas de ${id}: ${campaigns.error.message}`);
+      // ad_media también pone video_scripts.ad_media_id en null. El guard de UGC rechaza esa
+      // escritura cuando el producto ya está en borrado; elimina primero los guiones y sus tomas.
+      const videos = await db.from("video_scripts").delete().eq("user_id", userId).eq("product_id", id);
+      if (videos.error) throw new Error(`Borrar videos de ${id}: ${videos.error.message}`);
       // ai_generations tiene "on delete set null": se borra antes para no dejar filas sueltas.
       const gen = await db.from("ai_generations").delete().eq("user_id", userId).eq("product_id", id);
       if (gen.error) throw new Error(`Borrar generaciones de ${id}: ${gen.error.message}`);

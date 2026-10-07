@@ -200,6 +200,20 @@ local("UGC · persistencia y cola local", () => {
     expect(await count("pi_ugc_operations")).toBe(0);expect(await count("video_scripts")).toBe(0);expect(await count("video_shots")).toBe(0);
   });
 
+  it("borra anuncios y guiones que referencian los medios antes de la cascada del producto",async()=>{
+    const script=(await saved()).data.script_id!;
+    const media=randomUUID(),campaign=randomUUID(),adset=randomUUID();
+    await checked(db.from("ad_media").insert({id:media,user_id:owner.userId,product_id:product,kind:"video",name:"Fixture",storage_path:`${owner.userId}/${product}/fixture.mp4`,mime_type:"video/mp4",size_bytes:1}));
+    await checked(db.from("video_scripts").update({ad_media_id:media}).eq("id",script));
+    await checked(db.from("ad_campaigns").insert({id:campaign,user_id:owner.userId,product_id:product,name:"Fixture",structure:"abo",launch:{},engine:{},currency:"CLP"}));
+    await checked(db.from("ad_sets").insert({id:adset,user_id:owner.userId,campaign_id:campaign,name:"Fixture",position:0,audience:{}}));
+    await checked(db.from("ads").insert({user_id:owner.userId,campaign_id:campaign,adset_id:adset,name:"Fixture",media_id:media,copy:{}}));
+    expect(await deleteProducts(owner.userId,[product])).toBe(1);
+    expect(await count("ad_campaigns")).toBe(0);expect(await count("ad_media")).toBe(0);expect(await count("video_scripts")).toBe(0);
+    expect((await checked(db.from("ads").select("id").eq("campaign_id",campaign))).data).toEqual([]);
+    expect((await checked(db.from("ad_sets").select("id").eq("campaign_id",campaign))).data).toEqual([]);
+  });
+
   it("expirar no libera un submit ambiguo; con request_id exige recuperar sin volver a cobrar",async()=>{
     const r=await saved(),id=r.data.script_id!;await approve(id);
     const op=await call("generate_ugc",await renderInput(id));if(!op.ok||"dry_run" in op.data)throw op;
