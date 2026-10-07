@@ -193,7 +193,7 @@ export async function generateStructured<S extends z.ZodType>({
   } catch (e) {
     if (e instanceof GrammarTooLarge) {
       // Red de seguridad: sin gramática, el modelo devuelve el JSON como texto y se valida aquí
-      // con el mismo esquema. Un esquema que llega a esto se debe achicar (ver lib/angles/schemas.ts).
+      // con el mismo esquema. Un esquema que llega a esto se debe achicar.
       console.warn(`[ai] esquema demasiado grande para la salida estructurada (${e.message}); se reintenta sin gramática`);
       return generateUnconstrained({ anthropic, auth, base, system, schema, effort, started });
     }

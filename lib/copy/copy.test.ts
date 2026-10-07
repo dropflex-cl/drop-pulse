@@ -1,6 +1,5 @@
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { describe, expect, it } from "vitest";
-import { WRITTEN, toWrite } from "./page-schema";
 import { copyProgress, enabledLabel } from "./progress";
 import { allowedAmounts, amountAllowed, amountsIn } from "./schemas";
 const pricing = buildPricingPlan(
@@ -29,33 +28,6 @@ describe("montos de la página", () => {
   it("lee los montos con el símbolo de la moneda", () => {
     expect(amountsIn("2 por $39.990 · antes $ 49.990", "CLP")).toEqual([39990, 49990]);
     expect(amountsIn("Llega en 3 días", "CLP")).toEqual([]);
-  });
-});
-
-describe("qué escribir", () => {
-  const ids = WRITTEN.map((c) => c.id);
-
-  it("todo, menos lo que necesita reseñas que no hay", () => {
-    const none = toWrite([], 0);
-    expect(none[0]).toBe("listing");
-    expect(none).not.toContain("review-slider");
-    expect(none).not.toContain("review-stars");
-    expect(toWrite([], 2)).not.toContain("review-stars");
-    // review-wall pide 4: un muro de 2 por fila con menos se ve vacío.
-    expect(toWrite([], 3)).toEqual(["listing", ...ids.filter((id) => id !== "review-wall")]);
-    expect(toWrite([], 4)).toEqual(["listing", ...ids]);
-  });
-
-  it("al reescribir, sin lo aprobado", () => {
-    const rows = [
-      { component: "listing", status: "approved" },
-      { component: "inventory", status: "approved" },
-      { component: "faq-and-text", status: "generated" },
-    ];
-    const write = toWrite(rows, 5);
-    expect(write).not.toContain("listing");
-    expect(write).not.toContain("inventory");
-    expect(write).toContain("faq-and-text");
   });
 });
 

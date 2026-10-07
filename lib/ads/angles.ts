@@ -1,7 +1,7 @@
 // Los ángulos del borrador de campaña (docs/spec-angulos-testeo.md): el borrador guarda con qué
 // desarrollos se armaron sus textos (`angles_stamp`); si los ángulos cambian, la pantalla ofrece
 // rehacerlo con los de hoy. Puro.
-import { stampChanged, type BriefStampEntry } from "@/lib/angles/approved";
+import { stampChanged, type BriefStampEntry } from "@/lib/angles/stamps";
 
 export interface AngleMedia {
   id: string;

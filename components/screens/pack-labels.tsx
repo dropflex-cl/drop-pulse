@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, Field, notify, notifyUndo, StatusBadge } from "@/components/df";
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import { BADGE_CHARS, LABEL_CHARS, SUPPORT_CHARS, labelsStale } from "@/lib/pricing/labels";
 import { cn } from "@/lib/utils";
 import type { PackPrice } from "@/lib/pricing/plan";

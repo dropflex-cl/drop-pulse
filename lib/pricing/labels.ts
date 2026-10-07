@@ -1,5 +1,5 @@
 // Reglas de las etiquetas de los packs (lo que propone la IA y lo que edita el comerciante). Puro.
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import type { PricingPlan } from "./plan";
 
 /**

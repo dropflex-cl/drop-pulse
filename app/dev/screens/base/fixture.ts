@@ -1,6 +1,5 @@
 // Datos de ejemplo para /dev/screens/base (textos e imágenes de design-system/reference/bundle.js:
 // PP_TEXT, ppRefs). No se usan fuera de desarrollo.
-import type { CustomerAvatar } from "@/lib/ai/schemas";
 import { productImage } from "@/lib/mock/images";
 import { productPosition } from "@/lib/products/stages";
 import { buildPricingPlan } from "@/lib/pricing/plan";
@@ -9,17 +8,6 @@ import type { ProductBase, SavedPricingDto } from "@/lib/types";
 
 export const PP_TEXT =
   "Corrector Postura Espalda Ajustable Unisex. Material: neopreno + velcro. Talla única, ajustable hasta 110 cm de pecho. Ayuda a mantener la espalda recta y reduce la tensión en hombros. Se usa debajo de la ropa. Clientes preguntan si sirve para trabajar sentado 8 horas: sí, recomendado 2 a 3 horas al día al inicio.";
-
-export const AVATAR: CustomerAvatar = {
-  summary: "Oficinistas de 30 a 45 que pasan el día sentados frente al computador y se lo compran para sí mismos.",
-  buyer: "Quien trabaja 8 horas o más sentado, de 30 a 45 años; lo compra para sí, desde el teléfono, después de un anuncio.",
-  user: "",
-  age_range: "30-45",
-  why_buy: "Quiere terminar el día sin dolor de espalda alta sin sumar rutinas ni pagar sesiones de kinesiología.",
-  doubts: ["Cree que estos correctores son incómodos y terminan en un cajón.", "¿Se nota debajo de la camisa?", "Desconfía de las tiendas de Instagram que no conoce."],
-  cash_on_delivery: "Pagar cuando le llega le quita el miedo a que no llegue.",
-  more_than_one: "Uno para la casa y otro para la oficina, o uno para su pareja que también trabaja sentada.",
-};
 
 /** Lo que identifica la IA en Información base (Datos del producto). */
 export const PRODUCT_DATA: ProductData = {

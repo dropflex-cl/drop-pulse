@@ -4,10 +4,9 @@
 
 import * as z from "zod/v4";
 import { claimProblems } from "@/lib/creatives/schemas";
-import { ON_SCREEN_MAX_WORDS, SPOKEN_MAX_WORDS } from "@/lib/hooks/catalog";
+import { ON_SCREEN_MAX_WORDS, SPOKEN_MAX_WORDS, wordCount } from "./catalog";
 import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "@/lib/hooks/policy";
 export { riskyShape };
-import { wordCount } from "@/lib/hooks/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import {
   A_ROLL_SECONDS_MAX,

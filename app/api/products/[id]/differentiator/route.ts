@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { differentiatorSchema } from "@/lib/ai/schemas";
+import { differentiatorSchema } from "@/lib/products/differentiator-schema";
 import { getDifferentiator, saveDifferentiator } from "@/lib/products/differentiator";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 

@@ -2,7 +2,7 @@ import { contextDatabaseError } from "@/lib/product-intelligence/repository";
 import { renderBaseId } from "@/lib/products/render-context";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { type PackLabel } from "@/lib/ai/schemas";
+import { type PackLabel } from "@/lib/pricing/labels-schemas";
 import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { fail } from "@/lib/products/database";
 import { CHAT_FAMILY, IMAGE_COST_USD, conceptRatios, type ConceptFamily, type Ratio } from "@/lib/creatives/catalog";

@@ -1,4 +1,4 @@
-import { packLabelsSchema } from "@/lib/ai/schemas";
+import { packLabelsSchema } from "@/lib/pricing/labels-schemas";
 import { normalizePackLabels } from "@/lib/pricing/labels";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";

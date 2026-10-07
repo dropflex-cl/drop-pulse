@@ -1,5 +1,5 @@
 // Reglas de política que se revisan en código en todo texto de anuncio que se dice o se lee: los
-// ganchos (lib/hooks/schemas.ts) y el guion de video (lib/video/schemas.ts). Puro.
+// aperturas y guiones de video (lib/video/schemas.ts). Puro.
 
 /** Condición del lector en segunda persona (política de atributos personales de Meta). */
 export const SECOND_PERSON_BODY =

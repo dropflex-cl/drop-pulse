@@ -41,4 +41,15 @@ describe("arquitectura · todo texto de marketing se escribe desde el chat", () 
     expect(queries).toEqual([]);
   });
 
+  it("no quedan builders ni esquemas del pipeline de análisis retirado", async () => {
+    const sourceFiles = [...await files("lib"), ...await files("app")];
+    for (const retired of ["lib/ai/schemas.ts", "lib/ai/context.ts", "lib/ai/content.ts", "lib/pricing/prompt.ts", "lib/angles/schemas.ts", "lib/angles/approved.ts", "lib/hooks/catalog.ts", "lib/hooks/schemas.ts", "lib/hooks/select.ts"]) {
+      expect(sourceFiles).not.toContain(retired);
+    }
+    const page = await readFile("lib/copy/page-schema.ts", "utf8");
+    for (const builder of ["toWrite", "loosen", "pageSchema", "failingParts", "partialOutput", "mergeOutput", "productFactText"]) {
+      expect(page).not.toMatch(new RegExp(`export (?:function|const) ${builder}\\b`));
+    }
+  });
+
 });

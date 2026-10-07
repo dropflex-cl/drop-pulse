@@ -1,6 +1,6 @@
 # Limpieza del análisis retirado
 
-Estado: código implementado, contracción aplicada solo en local. [ADR 017](adrs/017-remove-retired-analysis.md), [rollout](migration-and-rollback.md).
+Estado: writers y rutas retirados; limpieza final de builders/adaptadores implementada. La contracción productiva fue autorizada el 2026-10-07 y tiene respaldo y restauración de ensayo comprobados. [ADR 017](adrs/017-remove-retired-analysis.md), [rollout](migration-and-rollback.md).
 
 ## Rutas e invocadores
 
@@ -8,7 +8,7 @@ Eliminadas las rutas `/api/products/[id]/strategy`, `/strategy/confirm`, `/creat
 
 Eliminados los POST de generación en `/product-data`, `/copy`, `/creatives`, `/page-images`, `/whatsapp/tip`, `/pack-labels`, `/videos` y `/api/events/[slug]/copy`. Las rutas mixtas conservan GET/PUT/PATCH/DELETE que sirven lectura, edición, render o decisión humana. Un método eliminado queda sin handler (405 en Next); una ruta exclusiva eliminada ya no existe (404). No se mantiene la compatibilidad 410.
 
-`generate_landing` se elimina por completo; el cliente debe guardar con `save_landing_content` o iniciar imágenes con `generate_gallery_images`. El SDK rechaza el nombre desconocido como error de protocolo. Se mantienen 29 tools.
+`generate_landing` se elimina por completo; el cliente debe guardar con `save_landing_content` o iniciar imágenes con `generate_gallery_images`. El SDK rechaza el nombre desconocido como error de protocolo. PDP añade siete tools al catálogo anterior: 36 con la feature encendida.
 
 ## Esquema eliminado por la migración
 
@@ -27,6 +27,10 @@ Sin `DROP ... CASCADE`: dependencias imprevistas abortan la migración. Trabajos
 ## Consumidores y contenido conservado
 
 Se eliminaron stores/lectores de análisis, informe UI y esquemas de extracción, mantenimiento de strategy_runs, contador de jobs de análisis, métricas de hooks basadas en angle_briefs y comparadores de contenido stale contra fichas/avatares retirados. Se retiraron react-markdown/remark-gfm, usados solo por el informe.
+
+La limpieza final elimina los esquemas de ficha/avatar/router/brief, lectores de avatares, contexto de prompts, generador/selector de hooks, builder holgado de la llamada única de página y reparación automática por partes. No tenían consumidores fuera de sus propios tests o adaptadores también retirados. Las etiquetas conservan exactamente su contrato en `lib/pricing/labels-schemas.ts`; el diferenciador confirmado tiene un schema puro en `lib/products/differentiator-schema.ts`. Las huellas que aún comparan campañas se conservan en `lib/angles/stamps.ts`. Los límites y el contador de palabras de videos viven en su catálogo.
+
+Los validators de página/consejo/video, los objetos y variantes de contenido guardado, los snapshots históricos, el fallback Shopify y los steps históricos de costos siguen vigentes. Las funciones SQL internas `pi_commit_landing_legacy` y `pi_commit_learning_legacy` implementan los writers actuales a través de wrappers; no son código muerto y no se eliminan.
 
 Información base lee el contexto canónico; sin él pide completarlo explícitamente. No importa nombre/descripción del análisis antiguo. El diferenciador confirmado por el comerciante conserva su edición; no toma propuestas de fichas. Navegación depende de contexto/precio y selección PI, no de aprobación de avatares o dos briefs.
 

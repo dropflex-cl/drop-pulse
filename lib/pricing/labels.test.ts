@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import { labelsStale, normalizePackLabels } from "./labels";
 
 const l = (units: number, o: Partial<PackLabel> = {}): PackLabel => ({

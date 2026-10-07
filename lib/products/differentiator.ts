@@ -1,5 +1,5 @@
 import "server-only";
-import { differentiatorSchema, type Differentiator } from "@/lib/ai/schemas";
+import { differentiatorSchema, type Differentiator } from "./differentiator-schema";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DifferentiatorView } from "@/lib/types";
 

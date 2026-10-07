@@ -12,7 +12,7 @@ import { contextAccess, type PackLabelsRepository } from "./repository";
 import { parseToolInput, parseToolOutput } from "./validation";
 import { chatPackLabelsSchema } from "./pack-labels-schemas";
 import { usablePackFacts, validateChatPackLabels } from "./pack-labels-validation";
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 
 const readSchema = z.object({ revision: z.number().int().nonnegative(), stamp: z.string(), pack_labels_etag: z.string(),
   current: z.record(z.string(), z.unknown()).nullable(),

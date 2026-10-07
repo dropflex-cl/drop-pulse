@@ -1,5 +1,5 @@
 // Reglas puras, compartidas por el chat y la revisión de sus propuestas en UI.
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { amountAllowed, amountsIn, FORBIDDEN, INTERNAL } from "@/lib/copy/schemas";
 import { emptyGraph, usageRestrictions } from "./graph";

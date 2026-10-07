@@ -11,7 +11,7 @@ import { decidePackLabels } from "./pack-labels-service";
 import { PI_SCOPES, type Principal } from "./policy";
 import { parseToolInput, parseToolOutput } from "./validation";
 import type { ToolName } from "./schemas";
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 
 const signal = () => AbortSignal.timeout(15000);
 const labels: PackLabel[] = [1, 2, 3].map((units) => ({ units, label: units === 1 ? "Uno para ti" : "Para compartir", support: null, badge: null, basis: "sharing", reason: "Unidades para compartir." }));

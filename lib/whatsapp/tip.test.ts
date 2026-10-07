@@ -1,20 +1,11 @@
-import type { ProductBrief } from "@/lib/ai/schemas";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { describe, expect, it } from "vitest";
-import { tipFactText, tipProblems } from "./tip";
+import { tipProblems } from "./tip";
 const pricing = buildPricingPlan(
   { unitCost: 3000, avgShippingCost: 8000, purchaseCostLimit: 5000, confirmationRate: 70, deliveryRate: 70, salePrice: 24990, compareAtPrice: 32990, extraUnitDiscount: 50 },
   "CLP",
 )!;
-const brief = {
-  product_name: "Corrector de postura",
-  category: "dolor y postura",
-  what_it_does: "Lleva los hombros hacia atrás mientras trabajas sentado.",
-  how_it_works: "Bandas elásticas cruzadas en la espalda.",
-  key_facts: [{ label: "Modo de uso", value: "Úsalo sobre una polera, 20 minutos el primer día." }],
-  forbidden_claims: ["curar la escoliosis"],
-} as unknown as ProductBrief;
-const factText = tipFactText(brief, "Se ajusta con velcro.");
+const factText = "Lleva los hombros hacia atrás. Úsalo sobre una polera, 20 minutos el primer día. Se ajusta con velcro.";
 const problems = (tip: string) => tipProblems(tip, { pricing, factText });
 
 describe("consejo de uso", () => {

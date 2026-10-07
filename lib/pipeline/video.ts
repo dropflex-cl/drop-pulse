@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { failure, recordAiGeneration } from "@/lib/ai/track";
-import { type PackLabel } from "@/lib/ai/schemas";
+import { type PackLabel } from "@/lib/pricing/labels-schemas";
 import { type AngleSlot } from "@/lib/angles/catalog";
 import { fail } from "@/lib/products/database";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, removeAdCopies } from "@/lib/creatives/store";

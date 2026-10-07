@@ -1,5 +1,5 @@
 import "server-only";
-import { type BriefStampEntry } from "@/lib/angles/approved";
+import { type BriefStampEntry } from "@/lib/angles/stamps";
 import { fail } from "@/lib/products/database";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
@@ -14,7 +14,7 @@ const QUEUED_STALE_MS = 3 * 60 * 1000;
 
 /**
  * Qué desarrollos se usaron (en orden de slot, y cuándo se editó cada uno por última vez). Las
- * escrituras de antes guardaban { primary, secondary }: lib/angles/approved.ts › stampEntries lee las dos.
+ * escrituras de antes guardaban { primary, secondary }: lib/angles/stamps.ts › stampEntries lee las dos.
  */
 export type BriefStamp = BriefStampEntry[] | Record<string, BriefStampEntry>;
 

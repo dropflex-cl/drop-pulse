@@ -1,5 +1,5 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image-provider";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { ProductData } from "@/lib/products/product-data";

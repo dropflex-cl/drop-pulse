@@ -7,7 +7,7 @@ import type { MetricProps } from "@/components/df/metric";
 import type { StageState } from "@/components/df/stage-list";
 import type { MeterStage } from "@/components/df/stage-meter";
 import type { ContentStatus } from "@/components/df/status-badge";
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import type { AngleSlot } from "@/lib/angles/catalog";
 import type { ImageProvider, ImageProviderChoice } from "@/lib/image-provider";
 import type { PricingForm, PricingPlan } from "@/lib/pricing/plan";
@@ -909,11 +909,11 @@ export interface EventDetail extends EventsOverview {
 
 /** El diferenciador: lo confirmado por el comerciante o, si no hay, la propuesta de la ficha. */
 export interface DifferentiatorView {
-  value: import("@/lib/ai/schemas").Differentiator | null;
+  value: import("@/lib/products/differentiator-schema").Differentiator | null;
   /** El comerciante lo confirmó (products.differentiator). */
   confirmed: boolean;
   /** Lo que propuso la ficha (product_briefs.payload.differentiator). */
-  proposed: import("@/lib/ai/schemas").Differentiator | null;
+  proposed: import("@/lib/products/differentiator-schema").Differentiator | null;
   /** La ficha es de antes del diferenciador: la IA no llegó a proponerlo. */
   oldBrief?: boolean;
 }

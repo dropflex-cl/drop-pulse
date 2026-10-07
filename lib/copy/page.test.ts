@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import * as z from "zod/v4";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import { FIELD_LABELS, ICON_LABELS, emptyValue, formFields, type FormField } from "./form";
 import { ICON_KEYS } from "@/lib/shopify/components/define";
 import { LISTING, listingSchema, type Listing } from "./listing";
-import { WRITTEN, failingParts, loosen, mergeOutput, pageProblems, pageSchema, partialOutput, schemaProblems, textsOf, type PageFacts, type PageOutput } from "./page-schema";
+import { pageProblems, schemaProblems, textsOf, type PageFacts, type PageOutput } from "./page-schema";
 import { allowedAmounts } from "./schemas";
 
 const pricing = buildPricingPlan(
@@ -22,6 +21,7 @@ const LISTING_EXAMPLE: Listing = {
   seo_description: "Corrector de postura con ajuste de velcro y tela respirable. Paga al recibir en tu casa.",
 };
 
+const WRITTEN = CATALOG.filter(c => c.metafield);
 const ALL = [LISTING, ...WRITTEN.map((c) => c.id)];
 
 /** Una página válida: la ficha y el primer ejemplo de cada componente. */
@@ -31,48 +31,6 @@ function page(): PageOutput {
 
 const reviewIds = WRITTEN.flatMap((c) => textsOf(c.examples[0], [c.id]).filter((t) => t.path.endsWith("review_id")).map((t) => t.text));
 const facts: PageFacts = { currency: "CLP", amounts: allowedAmounts(pricing), reviewIds };
-
-describe("el esquema de la llamada única", () => {
-  it("todos los componentes con texto tienen versión holgada", () => {
-    for (const c of WRITTEN) expect(() => loosen(c.content), c.id).not.toThrow();
-    expect(WRITTEN.length).toBe(CATALOG.filter((c) => c.metafield).length);
-  });
-
-  // La salida estructurada compila el esquema a una gramática: con muchos opcionales o uniones, o un
-  // esquema muy largo, la API lo rechaza. Si esto falla, se compactan los content.ts (describe más
-  // cortos, menos opcionales), no se parte la llamada.
-  it("cabe en la salida estructurada", () => {
-    const js = z.toJSONSchema(pageSchema(ALL)) as Record<string, unknown>;
-    const acc = { optional: 0, unions: 0 };
-    const walk = (n: unknown) => {
-      if (!n || typeof n !== "object") return;
-      const o = n as { type?: string; properties?: object; required?: string[]; anyOf?: unknown[] };
-      if (o.type === "object" && o.properties) acc.optional += Object.keys(o.properties).length - (o.required?.length ?? 0);
-      if (o.anyOf) acc.unions++;
-      Object.values(o).forEach(walk);
-    };
-    walk(js);
-    expect(JSON.stringify(js).length).toBeLessThan(32_000);
-    expect(acc.optional).toBeLessThanOrEqual(24);
-    expect(acc.unions).toBeLessThanOrEqual(16);
-  });
-
-  it("sin límites en la gramática: van escritos en la descripción", () => {
-    const js = JSON.stringify(z.toJSONSchema(pageSchema(ALL)));
-    expect(js).not.toMatch(/"(minLength|maxLength|minItems|maxItems|pattern)"/);
-    expect(js).toContain("(10 a 70 caracteres)");
-  });
-
-  it("pide solo lo que falta: la ficha aprobada va como null", () => {
-    const s = pageSchema(["inventory"]);
-    const parsed = s.safeParse({ listing: null, components: { inventory: WRITTEN.find((c) => c.id === "inventory")!.examples[0] } });
-    expect(parsed.success).toBe(true);
-  });
-
-  it("los ejemplos pasan el esquema holgado (lo que devuelve la API se puede leer)", () => {
-    expect(pageSchema(ALL).safeParse(page()).success).toBe(true);
-  });
-});
 
 describe("pageProblems", () => {
   it("una página válida no tiene problemas", () => {
@@ -137,47 +95,17 @@ describe("pageProblems", () => {
   });
 });
 
-describe("corrección por partes", () => {
-  it("atribuye cada problema a su parte, en el orden de la página", () => {
+describe("rutas de los errores de contenido", () => {
+  it("identifica el campo que incluye un monto no permitido", () => {
     const p = page();
     (p.listing as Listing).offer_line = "2 por $12.345 · Paga al recibir";
-    const box = p.components["benefit-double-box"] as { cards: { body: string }[] };
-    box.cards[0].body = "x".repeat(80);
-    delete p.components["faq-and-text"];
-    expect(failingParts(pageProblems(p, ALL, facts), ALL)).toEqual([LISTING, "benefit-double-box", "faq-and-text"]);
+    expect(pageProblems(p, ALL, facts).find(m => m.includes("12345"))).toMatch(/^listing\.offer_line: /);
   });
-
-  it("los montos van con la ruta del texto que los nombra", () => {
-    const p = page();
-    (p.listing as Listing).offer_line = "2 por $12.345 · Paga al recibir";
-    expect(pageProblems(p, ALL, facts).find((m) => m.includes("12345"))).toMatch(/^listing\.offer_line: /);
-  });
-
-  it("un problema sin parte pide la página entera", () => {
-    expect(failingParts(["Algo salió mal en general."], ALL)).toBeNull();
-    expect(failingParts(["otro-componente.title: Pasa de 20 caracteres."], ALL)).toBeNull();
-  });
-
-  it("la duplicación la corrige quien repite", () => {
+  it("identifica el componente que repite un mensaje", () => {
     const p = page();
     (p.listing as Listing).short_description = "Lleva tus hombros suavemente hacia atrás para que notes cuando te encorvas.";
     (p.components["image-with-benefits"] as { benefits: { body: string }[] }).benefits[0].body = "Lleva tus hombros suavemente hacia atrás para que notes cuando te encorvas.";
-    expect(failingParts(pageProblems(p, ALL, facts), ALL)).toEqual(["image-with-benefits"]);
-  });
-
-  it("toma solo esas partes y las reemplaza sin tocar el resto", () => {
-    const p = page();
-    const ids = [LISTING, "benefit-double-box"];
-    const part = partialOutput(p, ids);
-    expect(Object.keys(part.components)).toEqual(["benefit-double-box"]);
-    expect(partialOutput(p, ["benefit-double-box"]).listing).toBeNull();
-
-    const fix: PageOutput = { listing: { ...LISTING_EXAMPLE, title: "Otro título para la ficha del producto" }, components: { "benefit-double-box": { cards: [] }, "faq-and-text": "no pedido" } };
-    const merged = mergeOutput(p, fix, ids);
-    expect((merged.listing as Listing).title).toBe("Otro título para la ficha del producto");
-    expect(merged.components["benefit-double-box"]).toEqual({ cards: [] });
-    expect(merged.components["faq-and-text"]).toEqual(p.components["faq-and-text"]);
-    expect(mergeOutput(p, { listing: null, components: {} }, ["benefit-double-box"]).listing).toEqual(p.listing);
+    expect(pageProblems(p, ALL, facts).some(message => message.startsWith("image-with-benefits.benefits.0.body repite"))).toBe(true);
   });
 });
 

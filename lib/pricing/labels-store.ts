@@ -2,7 +2,7 @@ import "server-only";
 import { createContextRepository, contextAccess } from "@/lib/product-intelligence/repository";
 import { parsePackLabelsRead } from "@/lib/product-intelligence/pack-labels-service";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
-import type { PackLabel } from "@/lib/ai/schemas";
+import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { PackLabelsProposal } from "@/lib/types";
 import { packLabelsStale } from "./labels";

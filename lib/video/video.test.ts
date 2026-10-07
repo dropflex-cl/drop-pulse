@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, MASCOT_BODIES, fileSlug, montageName } from "./catalog";
+import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, MASCOT_BODIES, fileSlug, montageName, wordCount } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
 import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, watermarkText } from "./package";
 import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
@@ -66,6 +66,14 @@ const script = (): UgcScript => ({
   ],
   end_card: { title: "Deep Collagen", subtitle: "Pagas al recibir", cta: "Comprar", small_print: ["Prueba primero en una zona pequeña."] },
   compliance_notes: [],
+});
+
+describe("palabras de la apertura", () => {
+  it("cuenta texto y números sin contar signos aislados", () => {
+    expect(wordCount("Mira esto — solo mira.")).toBe(4);
+    expect(wordCount("   ")).toBe(0);
+    expect(wordCount("Lleva 2 unidades")).toBe(3);
+  });
 });
 
 describe("scriptProblems", () => {

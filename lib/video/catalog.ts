@@ -148,3 +148,12 @@ export function fileSlug(text: string): string {
  * para los paquetes que no traen `name`.
  */
 export const montageName = (productTitle: string, slot: number, format: VideoFormat, executionKey?: string) => `${fileSlug(productTitle)}-${format === "mascot" ? "mascota" : "ugc"}-angulo-${slot}${executionKey ? `-${fileSlug(executionKey)}` : ""}`;
+
+/** La apertura del video cabe en los primeros tres segundos. */
+export const SPOKEN_MAX_WORDS = 9;
+export const ON_SCREEN_MAX_WORDS = 6;
+
+/** Palabras pronunciables; los signos aislados no cuentan. */
+export function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(word => /[\p{L}\p{N}]/u.test(word)).length;
+}

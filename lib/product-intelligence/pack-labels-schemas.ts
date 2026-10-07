@@ -1,6 +1,6 @@
 // Contrato del chat basado en la forma y límites del editor existente.
 import { z } from "zod";
-import { packLabelSchema } from "@/lib/ai/schemas";
+import { packLabelSchema } from "@/lib/pricing/labels-schemas";
 import { LABEL_CHARS, SUPPORT_CHARS, BADGE_CHARS } from "@/lib/pricing/labels";
 const uuid = z.string().uuid(), etag = z.string().regex(/^[a-f0-9]{64}$/);
 export const chatPackLabelSchema = packLabelSchema.strict().extend({

@@ -1,7 +1,6 @@
 // Tipo histórico y validadores del consejo de uso. Sin redacción automática.
 
-import type { ProductBrief } from "@/lib/ai/schemas";
-import { productFactText, unsupportedNumbers } from "@/lib/copy/page-schema";
+import { unsupportedNumbers } from "@/lib/copy/page-schema";
 import { INTERNAL } from "@/lib/copy/schemas";
 import { claimProblems } from "@/lib/creatives/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -19,9 +18,6 @@ export interface UsageTip {
   prompt_version: number;
   model: string;
 }
-
-/** El texto contra el que se comprueban los números del consejo. */
-export const tipFactText = (brief: ProductBrief | null, baseInfo: string) => productFactText(brief, baseInfo);
 
 /** Qué está mal en el consejo. Vacío si se puede guardar. */
 export function tipProblems(tip: string, facts: { pricing: PricingPlan; factText: string }): string[] {
