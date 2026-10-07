@@ -18,4 +18,3 @@ export const packLabelSchema = z.object({
 export const packLabelsSchema = z.array(packLabelSchema).describe("Una etiqueta por pack de PRECIO Y OFERTA, en el mismo orden.");
 
 export type PackLabel = z.infer<typeof packLabelSchema>;
-

@@ -1,6 +1,6 @@
 # Migración y rollback vigentes
 
-Las 52 migraciones hasta `20261117000000` y las cuatro de PDP `20261120–20261123` están aplicadas en producción: [contenido](production-content-migrations-2026-10-06.md), [PDP](production-pdp-rollout-2026-10-07.md). La contracción `20261118000000_retire_legacy_analysis.sql` elimina datos de análisis retirado; no es una migración aditiva. Su aplicación fue autorizada el 2026-10-07 y el respaldo privado se restauró en una base de ensayo antes de ejecutarla.
+Las 52 migraciones hasta `20261117000000`, la contracción `20261118000000` y las cuatro de PDP `20261120–20261123` están aplicadas en producción: [contenido](production-content-migrations-2026-10-06.md), [PDP](production-pdp-rollout-2026-10-07.md), [limpieza](retired-code-cleanup-2026-10-07.md). La contracción elimina datos de análisis retirado; no es una migración aditiva. Se autorizó y aplicó el 2026-10-07; el respaldo privado se restauró en una base de ensayo antes de ejecutarla.
 
 La migración de crons `20261119000000` es independiente. Para aplicar únicamente la contracción anterior a versiones ya aplicadas, usar un workspace de migraciones que excluya esos crons y verificar `db push --include-all --dry-run` antes de ejecutar. No reparar el historial marcando versiones que no se aplicaron.
 

@@ -1,0 +1,408 @@
+{
+  "project_ref": "oukcswnfrzroxgwqmujf",
+  "date": "2026-10-07",
+  "cleanup_code_commit": "b4955fd",
+  "backup_restore_verified": true,
+  "restored_template_rows": 2,
+  "restored_template_fingerprint": "60ed2cd31108fe9c5b3a53186588f1ef",
+  "retained_table_count": 77,
+  "changed_retained_tables": [],
+  "schema_verification": {
+    "cleanup_migration_recorded": true,
+    "migration_count": 57,
+    "pdp_default": "true",
+    "pdp_tables_rls": 3,
+    "recovery_cron_migration_pending": true,
+    "retired_columns_remaining": 0,
+    "retired_rpc_remaining": 0,
+    "retired_tables_remaining": 0,
+    "shared_enums_remaining": 2
+  },
+  "retained_fingerprints": [
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_campaigns",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_changes",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_decisions",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_insights_daily",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_insights_snapshots",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_media",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_sets",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ad_templates",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ads",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "ai_generations",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "anthropic_connections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "catalog_items",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "copy_runs",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "creative_assets",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "creative_concepts",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "creative_runs",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "data_deletion_requests",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "event_activations",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "event_copy",
+      "rows": 0
+    },
+    {
+      "fingerprint": "344754d5a71f4e4207fe4fb00262aa4f",
+      "name": "events",
+      "rows": 8
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "gemini_connections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "higgsfield_connections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "image_provider_choices",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "merchant_settings",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "meta_connections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "onboarding",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pack_labels",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "page_components",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "page_image_runs",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "page_image_shots",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "page_images",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_access_grants",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_analysis_evidence",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angle_desires",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angle_facts",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angle_jtbd",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angle_objections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angle_pains",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angle_proof_facts",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_angles",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_audit_events",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_customer_language",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_desires",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_fact_evidence",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_facts",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_gallery_operations",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_idempotency_records",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_jtbd",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_landing_experiences",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_objection_facts",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_objections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_offers",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_pains",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_pdp_revisions",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_personas",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_persuasion_plans",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_product_inputs",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_product_learnings",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_revisions",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_sources",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_strategy_events",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_strategy_versions",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "pi_ugc_operations",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "product_intelligence",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "product_pricing",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "product_publications",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "product_reference_images",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "product_reviews",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "products",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "review_imports",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "review_sources",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "shopify_connections",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "shopify_files",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "shopify_theme_installations",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "video_scripts",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "video_shots",
+      "rows": 0
+    },
+    {
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+      "name": "webhook_events",
+      "rows": 0
+    }
+  ]
+}

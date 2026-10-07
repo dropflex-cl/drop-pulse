@@ -24,4 +24,17 @@ Se restauraron el schema público productivo y esos datos en una base aislada lo
 
 Sobre esa restauración, la migración exacta `20261118000000` pasó en una transacción de ensayo con fixtures de página, packs y costos: las huellas de 20 tablas operativas se conservaron y el snapshot operacional siguió disponible. La transacción se revirtió. Antes de producción se registraron además conteos/huellas de sus 77 tablas públicas conservadas, excluyendo exclusivamente las tres columnas que se retiran.
 
-La ejecución y sus resultados se registran por separado después de aplicar la migración. Los backups no se incorporan al repositorio público.
+## Ejecución y resultado productivo
+
+Commit funcional `b4955fd` publicado en `origin/main`. [Vercel](https://vercel.com/dropflex-cl/drop-pulse/8yUL7kjEXHxkrQw8QLvybHGQqgqJ) confirmó `success` / «Deployment has completed». Los lectores compatibles ya estaban desplegados antes de la contracción.
+
+Un workspace temporal excluyó la migración independiente de crons 20261119. `supabase db push --linked --include-all --dry-run` seleccionó únicamente 20261118; `db push --linked --include-all --yes` la aplicó. El historial tiene 57 versiones reales, sin marcar como aplicadas versiones omitidas.
+
+La [evidencia agregada](production-legacy-cleanup-2026-10-07.json) confirma:
+
+- Ocho tablas, tres columnas y la RPC de prompts ausentes.
+- Los conteos/huellas de las 77 tablas públicas conservadas coinciden antes y después.
+- Los dos enums compartidos por contenido siguen presentes.
+- PDP conserva default habilitado y RLS en sus tres tablas nuevas.
+
+No se borró Storage, contenido operativo ni Auth, ni se ejecutaron renders/publicaciones. Las dos plantillas antiguas eliminadas están en el respaldo restaurado de ensayo. El respaldo privado permanece en `/Users/cquezada/.codex/backups/dropflex/legacy-cleanup-20261007-092605/`; no se incorpora al repositorio público. La base aislada de ensayo y el workspace temporal se retiraron al terminar; los archivos de restauración y logs se conservan.

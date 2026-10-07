@@ -1,6 +1,6 @@
 # Limpieza del análisis retirado
 
-Estado: writers y rutas retirados; limpieza final de builders/adaptadores implementada. La contracción productiva fue autorizada el 2026-10-07 y tiene respaldo y restauración de ensayo comprobados. [ADR 017](adrs/017-remove-retired-analysis.md), [rollout](migration-and-rollback.md).
+Estado: writers y rutas retirados; limpieza final de builders/adaptadores implementada y desplegada. La contracción productiva se aplicó el 2026-10-07 con respaldo y restauración de ensayo comprobados. [ADR 017](adrs/017-remove-retired-analysis.md), [ejecución y evidencia](retired-code-cleanup-2026-10-07.md), [rollout](migration-and-rollback.md).
 
 ## Rutas e invocadores
 
@@ -42,4 +42,4 @@ No se borran rows ni archivos de páginas, creativos, videos, packs, reseñas, p
 
 ## Verificación y límites
 
-TypeScript, tests HTTP/SDK, dominio y DB local; prueba de integridad y contracción de 20 tablas con rollback. [Resultados](cleanup-validation.json). No se aplicó el DROP a producción ni se probaron renders pagados/publicaciones reales. Exportación previa y rollout compatible son necesarios antes de ejecutar esa migración productiva.
+TypeScript, tests HTTP/SDK, dominio y DB local; prueba inicial de integridad y contracción de 20 tablas con rollback. [Resultados previos](cleanup-validation.json). La limpieza final añade restauración del respaldo productivo en ensayo, despliegue Vercel exitoso y DROP productivo con huellas de 77 tablas conservadas sin cambios: [resultado vigente](retired-code-cleanup-2026-10-07.md). No se ejecutaron renders pagados ni publicaciones reales.

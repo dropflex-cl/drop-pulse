@@ -1,6 +1,6 @@
 # ADR 017: eliminar endpoints, contrato y esquema de análisis retirados
 
-Estado: aceptado por petición del comerciante; implementado/probado localmente, contracción productiva pendiente. Sustituye la compatibilidad 410 de ADR 015 y el contrato cerrado generate_landing de ADR 016.
+Estado: aceptado por petición del comerciante; implementado, desplegado y con contracción productiva aplicada el 2026-10-07 tras respaldo y restauración de ensayo. [Registro](../retired-code-cleanup-2026-10-07.md). Sustituye la compatibilidad 410 de ADR 015 y el contrato cerrado generate_landing de ADR 016.
 
 Eliminamos handlers/invocadores de writers ya retirados y el contrato generate_landing. Rutas mixtas conservan lectura, revisión y render; rutas exclusivas desaparecen. No añadimos aliases de generación pagada.
 

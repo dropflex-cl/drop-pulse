@@ -10,9 +10,9 @@ Eliminados los handlers POST de redacción retirados, las rutas exclusivas de es
 
 Loaders, navegación, Meta, costos y QA de galería ya no consultan tablas de análisis retiradas. No se asigna origen canónico a medios históricos por slot o fecha. Se conservan páginas, packs, referencias, creativos, videos, campañas, métricas, costos y publicación. Anthropic permanece exclusivamente para QA visual opcional.
 
-La migración `20261118000000` retira ocho tablas, tres columnas y una RPC de prompts. Aplicada únicamente en Supabase local; producción continúa en 52 versiones hasta `20261117000000`. [Inventario](legacy-text-retirement.md), [orden y rollback](migration-and-rollback.md).
+La migración `20261118000000` retira ocho tablas, tres columnas y una RPC de prompts. Aplicada en producción el 2026-10-07 tras respaldo y restauración de ensayo. Producción tiene 57 versiones aplicadas, incluidas las cuatro de PDP; los crons 20261119 siguen siendo una migración independiente pendiente. Se conservan las huellas de las 77 tablas públicas operativas. [Limpieza final y despliegue](retired-code-cleanup-2026-10-07.md), [evidencia productiva](production-legacy-cleanup-2026-10-07.json), [orden y rollback](migration-and-rollback.md).
 
-## Verificación de esta limpieza
+## Verificación previa de esta limpieza (2026-10-06)
 
 - TypeScript y **990 tests generales** pasan; 94 opt-in se ejecutaron aparte. La prueba SDK comprueba 29 tools; el nombre retirado ya no tiene contrato.
 - Migración compilada en transacción local con rollback: ocho tablas y tres columnas ausentes; huellas de 20 tablas operativas conservadas (excluyendo run_id/product_data), con fixtures de página, etiquetas y costos. Snapshot operacional sigue disponible.
@@ -20,12 +20,12 @@ La migración `20261118000000` retira ocho tablas, tres columnas y una RPC de pr
 - **307 tests PI**, incluidos los **94 transaccionales**, pasan contra el esquema limpio, con fixtures propios y limpieza.
 - Chromium sobre Next real: 16 vistas (390/1280, claro/oscuro), WCAG 2.1 AA y sin desborde; OAuth, CAS, consejo aprobado, estrategia sin informe y 404/405 comprobados. Capturas inspeccionadas.
 - ESLint de cambios, tokens, contratos y diff pasan. Build webpack termina con exit 0; conserva cinco diagnósticos anteriores HANGING_PROMISE_REJECTION de Ads/onboarding.
-- No se gastaron créditos, publicaron productos/campañas ni ejecutó la limpieza en producción.
+- En esta comprobación previa no se gastaron créditos, publicaron productos/campañas ni ejecutó la limpieza en producción. La ejecución productiva posterior está registrada arriba.
 
 Los resultados cuantitativos finales se registran en [validación de limpieza](cleanup-validation.json). La prueba local no confirma despliegue Vercel, aceptación ChatGPT ni actualización del tema publicado.
 
 ## Pendientes reales
 
-Ver [backlog vigente](implementation-backlog.md). La última comprobación pública registrada de metadata MCP devuelve 404; no se interpreta el push como confirmación de despliegue.
+Ver [backlog vigente](implementation-backlog.md). La comprobación posterior al despliegue del 2026-10-07 confirma metadata pública MCP 200 y API PDP sin sesión 401 JSON, con ejecución `gru1::gru1` en discovery. No equivale a aceptación OAuth/tools con un comerciante ni a publicación Shopify.
 
 Las entregas anteriores se consolidan en [historial](implementation-history.md).
