@@ -40,7 +40,7 @@ export const toolScopes: Record<ToolName, readonly PiScope[]> = {
   get_landing_content: ["product_intelligence:read"], save_landing_content: ["product_intelligence:write"],
   get_product_context: ["product_intelligence:read"], get_product_strategy: ["product_intelligence:read"], get_generation_status: ["product_intelligence:read"],
   save_product_context: ["product_intelligence:write"], save_product_analysis: ["product_intelligence:write"], patch_product_analysis: ["product_intelligence:write"], save_research: ["product_intelligence:write"], set_product_strategy: ["product_intelligence:write"],
-  generate_landing: ["product_intelligence:read", "landing:generate"], generate_ugc: ["product_intelligence:read", "ugc:generate"],
+  generate_ugc: ["product_intelligence:read", "ugc:generate"],
 };
 
 export function requireScopes(principal: Principal, scopes: readonly PiScope[]): void {

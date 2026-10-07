@@ -1,8 +1,7 @@
 import { selectVariant } from "@/lib/copy/variants";
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { adHookText } from "@/lib/hooks/select";
-import { approvedAngles } from "@/lib/angles/store";
+import { getSelectedProductStrategy } from "@/lib/data/product-intelligence";
 import { getPublications } from "@/lib/pipeline/publish";
 import { adminClient } from "@/lib/integrations/admin";
 import { getMetaConnection, type MetaConnection } from "@/lib/integrations/meta/connection";
@@ -112,8 +111,8 @@ export interface AdsContext {
   texts: Pick<LaunchConfig, "primary_texts" | "headlines" | "description">;
   /** Los desarrollos aprobados con que salen esos textos, en orden de slot (lib/ads/angles.ts). */
   anglesStamp: { id: string; edited_at: string | null }[];
-  /** Cuándo se creó el desarrollo vigente de cada slot. */
-  angleSince: Map<number, string>;
+  /** Identidad de la selección canónica; los assets sin provenance conservan origen desconocido. */
+  strategyId: string | null;
 }
 
 async function merchantSettings(userId: string): Promise<{ ad_daily_spend_cap: number | null; free_shipping: boolean }> {
@@ -125,12 +124,12 @@ async function merchantSettings(userId: string): Promise<{ ad_daily_spend_cap: n
 
 
 export async function adsContext(userId: string, product: ProductRow): Promise<AdsContext> {
-  const [meta, shop, pricing, settings, briefs, items, pubs] = await Promise.all([
+  const [meta, shop, pricing, settings, selection, items, pubs] = await Promise.all([
     getMetaConnection(userId),
     getShopifyConnection(userId),
     getPricingPlan(userId, product.id),
     merchantSettings(userId),
-    approvedAngles(userId, product.id),
+    getSelectedProductStrategy(userId, product.id),
     activeComponents(userId, [product.id]),
     getPublications(userId, [product.id]),
   ]);
@@ -138,8 +137,9 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
   const listingRow = (items.get(product.id) ?? []).find((r) => r.component === LISTING && r.status === "approved");
   const listing = listingRow ? (selectVariant(currentContent(listingRow)).content as Listing) : null;
   // Un texto por ángulo, en orden de slot: el anuncio de un creativo del ángulo N lleva el texto N (lib/ads/plan.ts).
-  // El mejor gancho usable (lib/hooks/select.ts): sin los que piden material real ni los de riesgo alto.
-  const hooks = briefs ? briefs.map((b) => adHookText(b.brief.payload)) : [];
+  // Solo la selección canónica lista aporta textos; las piezas guardadas conservan sus propios textos.
+  const angles = selection?.readiness.ready_for_execution ? selection.snapshot.angles : [];
+  const hooks = angles.map((angle) => angle.hook);
   const cpaLimit = pricing?.maxCpa && pricing.maxCpa > 0 ? pricing.maxCpa : pricing?.purchaseCostLimit && pricing.purchaseCostLimit > 0 ? pricing.purchaseCostLimit : null;
   return {
     meta,
@@ -152,8 +152,8 @@ export async function adsContext(userId: string, product: ProductRow): Promise<A
     freeShipping: settings.free_shipping,
     productUrl: pubs.get(product.id)?.product_url ?? null,
     texts: defaultTexts({ hooks, offerLine: listing?.offer_line ?? null, shortName: listing?.short_name ?? null, title: product.title, freeShipping: settings.free_shipping }),
-    anglesStamp: (briefs ?? []).map((b) => ({ id: b.brief.id, edited_at: b.brief.edited_at ?? null })),
-    angleSince: new Map((briefs ?? []).map((b) => [b.angle.slot, b.brief.created_at])),
+    anglesStamp: angles.map((angle) => ({ id: angle.id, edited_at: null })),
+    strategyId: selection?.readiness.ready_for_execution ? selection.id : null,
   };
 }
 

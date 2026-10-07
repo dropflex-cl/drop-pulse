@@ -55,28 +55,3 @@ console.table(
     group by 1, 2, 3 order by 4 desc limit 25`),
   ["step", "version", "veces", "regla"],
 );
-
-if (!STEP || STEP === "angle_hooks") {
-  console.log("\nGanchos guardados por versión: editados por el comerciante, con cita del comprador y con versión de mascota (hasta la v5)\n");
-  console.table(
-    query(`
-      select coalesce(payload->>'hooks_version', '—') as version, count(*)::int as desarrollos,
-        sum(jsonb_array_length(payload->'hooks'))::int as ganchos,
-        sum((select count(*) from jsonb_array_elements(payload->'hooks') h where (h->>'edited')::boolean))::int as editados,
-        sum((select count(*) from jsonb_array_elements(payload->'hooks') h where coalesce(h->>'source_quote', '') <> ''))::int as con_cita,
-        sum((select count(*) from jsonb_array_elements(payload->'hooks') h where jsonb_typeof(h->'mascot') = 'object'))::int as con_mascota,
-        round(avg((payload->>'recommended_hook')::int), 1) as recomendado_prom
-      from angle_briefs where payload is not null and updated_at > now() - interval '${DAYS} days'
-      group by 1 order by 1`),
-    ["version", "desarrollos", "ganchos", "editados", "con_cita", "con_mascota", "recomendado_prom"],
-  );
-  console.log("\n«Otros ganchos» por desarrollo (llamadas con ganchos válidos por ángulo, menos la primera)\n");
-  console.table(
-    query(`
-      select coalesce(${version}::text, '—') as version, count(*)::int as angulos, round(avg(ok - 1), 2) as otros_ganchos_prom
-      from (select detail, ${version} as prompt_version, count(*) filter (where status = 'succeeded') as ok
-            from ai_generations where step = 'angle_hooks' and created_at > now() - interval '${DAYS} days' group by 1, 2) t
-      where ok > 0 group by 1 order by 1`),
-    ["version", "angulos", "otros_ganchos_prom"],
-  );
-}

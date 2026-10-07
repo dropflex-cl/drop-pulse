@@ -3,7 +3,7 @@ import type { PackLabel } from "@/lib/ai/schemas";
 import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image-provider";
 import type { PricingForm } from "@/lib/pricing/plan";
 import type { ProductData } from "@/lib/products/product-data";
-import type { CopyState, CreativesState, CustomerReview, ImagePick, PackLabelsProposal, PageImagesState, PublishState, ReferenceImage, ReviewImport, SavedPricingDto, StrategyState, VideosState } from "@/lib/types";
+import type { CopyState, CreativesState, CustomerReview, ImagePick, PackLabelsProposal, PageImagesState, PublishState, ReferenceImage, ReviewImport, SavedPricingDto, VideosState } from "@/lib/types";
 
 export class ProductApiClientError extends Error {
   constructor(message: string, public field?: string, public status?: number) {
@@ -142,8 +142,6 @@ export const productsApi = {
   decideReviews: (id: string, ids: string[], action: "approve" | "reject" | "reopen") => send<{ count: number }>("PATCH", `/${id}/reviews`, { ids, action }),
   decideReview: (id: string, reviewId: string, action: "approve" | "reject" | "reopen") => send<{ ok: true }>("PATCH", `/${id}/reviews/${reviewId}`, { action }),
   editReview: (id: string, reviewId: string, text: string) => send<{ review: CustomerReview }>("PUT", `/${id}/reviews/${reviewId}`, { text }),
-  // Etapa Estrategia: cada acción devuelve el estado completo de la etapa.
-  strategy: (id: string) => call<StrategyState>(`/${id}/strategy`),
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
   restoreComponent: (id: string, component: string) => send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, { restore: true }),

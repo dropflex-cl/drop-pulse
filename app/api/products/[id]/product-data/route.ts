@@ -1,14 +1,11 @@
 import { saveProductData } from "@/lib/pipeline/product-data";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 import { productDataEditSchema } from "@/lib/products/product-data";
-import { retiredProductWriter } from "@/lib/products/retired-writer";
 import { z } from "zod";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 300;
 
-/** Writer retirado: conserva autenticación y responde 410 sin crear una corrida. */
-export const POST = retiredProductWriter("Completa los datos del producto aquí o guárdalos desde el chat con save_product_context.");
 
 /** El comerciante edita el nombre o la descripción (autoguardado). */
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {

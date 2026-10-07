@@ -24,7 +24,21 @@ describe("arquitectura · todo texto de marketing se escribe desde el chat", () 
   });
   it("el cliente UI no envía mutaciones a los writers retirados ni los dispara al continuar", async () => {
     const client = await readFile("lib/products/client.ts", "utf8");
-    for (const name of ["writeCopy", "generateStrategy", "confirmStrategy", "proposeCreatives", "createChat", "writeScript", "proposePageImages", "writeUsageTip", "identifyProduct", "regeneratePackLabels"]) expect(client).not.toContain(`${name}:`);
+    for (const name of ["strategy", "writeCopy", "generateStrategy", "confirmStrategy", "proposeCreatives", "createChat", "writeScript", "proposePageImages", "writeUsageTip", "identifyProduct", "regeneratePackLabels"]) expect(client).not.toContain(`${name}:`);
     expect(await readFile("components/screens/page-images.tsx", "utf8")).not.toContain("productsApi.writeCopy");
   });
+  it("ningún consumidor activo consulta el esquema de análisis eliminado", async () => {
+    const retired = new Set(["pipeline_runs", "product_briefs", "customer_avatars", "angle_rankings", "angle_briefs", "strategy_runs", "prompt_templates", "product_competitors"]);
+    const queries: string[] = [];
+    for (const file of [...await files("lib"), ...await files("app"), ...await files("components")].filter(file => /\.(ts|tsx)$/.test(file) && !/\.test\./.test(file))) {
+      const source = ts.createSourceFile(file, await readFile(file, "utf8"), ts.ScriptTarget.Latest, true);
+      const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "from" && node.arguments[0] && ts.isStringLiteral(node.arguments[0]) && retired.has(node.arguments[0].text)) queries.push(`${file}:${node.arguments[0].text}`);
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+    }
+    expect(queries).toEqual([]);
+  });
+
 });

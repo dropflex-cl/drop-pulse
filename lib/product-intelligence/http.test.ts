@@ -7,7 +7,6 @@ import { oauthFixture, oauthTestConfig } from "./oauth-test-fixtures";
 import { PI_LIMITS } from "./validation";
 import type { DomainExecutor } from "./mcp";
 import { PI_SCOPES, type PiScope } from "./policy";
-import { requestFixture } from "./test-fixtures";
 
 describe("PI · HTTP oficial", () => {
   async function fixture(execute: DomainExecutor = async (principal) => ({ ok: false, request_id: "00000000-0000-4000-8000-000000000009", error: { code: "NOT_FOUND", message: principal.userId, retryable: false, details: {} } }), scopes: readonly PiScope[] = PI_SCOPES) {
@@ -24,7 +23,7 @@ describe("PI · HTTP oficial", () => {
       await session.client.connect(session.transport);
       const tools = []; let cursor: string | undefined;
       do { const page = await session.client.listTools(cursor ? { cursor } : undefined); tools.push(...page.tools); cursor = page.nextCursor; } while (cursor);
-      expect(tools).toHaveLength(30);
+      expect(tools).toHaveLength(29);
       const result = await session.client.callTool({ name: "get_product_context", arguments: { product_id: "00000000-0000-4000-8000-000000000009" } });
       expect(result.structuredContent).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
     } finally { await session.client.close(); }
@@ -41,8 +40,7 @@ describe("PI · HTTP oficial", () => {
     const execute = vi.fn<DomainExecutor>(async () => null), session = await fixture(execute, ["product_intelligence:read"]);
     try {
       await session.client.connect(session.transport);
-      const request = requestFixture("landing-content");
-      const generate = await session.client.callTool({ name: request.tool, arguments: request.payload as Record<string, unknown> });
+      const generate = await session.client.callTool({ name: "generate_gallery_images", arguments: { product_id: "00000000-0000-4000-8000-000000000009", schema_version: "1.0", expected_revision: 0, expected_content_etag: "a".repeat(64), provider: "gemini", shot_ids: ["00000000-0000-4000-8000-000000000010"], max_estimated_usd: 1, idempotency_key: "read-only-render", dry_run: true } });
       expect(generate.structuredContent).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
       const metrics = await session.client.callTool({ name: "get_product_context", arguments: { product_id: "00000000-0000-4000-8000-000000000009", include: ["performance"] } });
       expect(metrics.structuredContent).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });

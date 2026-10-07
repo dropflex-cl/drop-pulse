@@ -127,22 +127,6 @@
       }
     },
     {
-      "name": "generate_landing",
-      "input_schema": "schemas.json#/$defs/generate_landingInput",
-      "output_schema": "schemas.json#/$defs/generate_landingOutput",
-      "required_scopes": [
-        "product_intelligence:read",
-        "landing:generate"
-      ],
-      "conditional_scopes": {},
-      "annotations": {
-        "readOnlyHint": false,
-        "idempotentHint": true,
-        "destructiveHint": false,
-        "openWorldHint": true
-      }
-    },
-    {
       "name": "generate_ugc",
       "input_schema": "schemas.json#/$defs/generate_ugcInput",
       "output_schema": "schemas.json#/$defs/generate_ugcOutput",

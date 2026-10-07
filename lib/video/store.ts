@@ -1,6 +1,6 @@
 import "server-only";
 import type { AngleSlot } from "@/lib/angles/catalog";
-import { fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import { CREATIVES_BUCKET, signedUrls } from "@/lib/creatives/store";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";

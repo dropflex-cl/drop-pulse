@@ -8,7 +8,7 @@ import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { failure, recordAiGeneration } from "@/lib/ai/track";
 import { type PackLabel } from "@/lib/ai/schemas";
 import { type AngleSlot } from "@/lib/angles/catalog";
-import { fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, removeAdCopies } from "@/lib/creatives/store";
 import { ratioOf, sniffMedia } from "@/lib/ads/media";
 import { adminClient } from "@/lib/integrations/admin";

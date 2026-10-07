@@ -11,7 +11,6 @@ import { PROMPT_VERSIONS } from "./versions";
 export interface AiGeneration {
   userId: string;
   productId: string;
-  runId?: string | null;
   step: AiStep;
   /** Qué se generó dentro del paso (“Transformación”, “Concepto 2 · 9:16”). */
   detail?: string | null;
@@ -45,7 +44,6 @@ export async function recordAiGeneration(g: AiGeneration): Promise<void> {
   const row = {
     user_id: g.userId,
     product_id: g.productId,
-    run_id: g.runId ?? null,
     step: g.step,
     detail: g.detail ?? null,
     provider: g.provider ?? "anthropic",

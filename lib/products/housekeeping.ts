@@ -10,7 +10,6 @@ import { expireStaleCreatives } from "@/lib/creatives/store";
 import { expireStalePageImages } from "@/lib/page-images/store";
 import { expireStaleLaunches } from "@/lib/pipeline/ads-launch";
 import { expireStalePublications } from "@/lib/pipeline/publish";
-import { expireStaleStrategies } from "@/lib/pipeline/strategy";
 import { expireStaleImports } from "@/lib/reviews/store";
 import { syncSelectedProducts } from "./sync";
 
@@ -21,7 +20,6 @@ async function housekeeping(userId: string): Promise<void> {
   await syncSelectedProducts(userId).catch((e) => console.error("[products/housekeeping] sincronizar", e));
   const results = await Promise.allSettled([
     expireStaleImports(userId),
-    expireStaleStrategies(userId),
     expireStaleCopy(userId),
     expireStaleCreatives(userId),
     expireStalePageImages(userId),

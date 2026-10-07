@@ -5,7 +5,6 @@ import { publishedSchemas } from "./mcp";
 import { PI_SCOPES, type Principal } from "./policy";
 import { parseToolInput, parseToolOutput } from "./validation";
 import { createLandingExecutor } from "./landing-service";
-import { staleReasons } from "@/lib/copy/stale";
 import { copyPhase } from "@/lib/products/stages";
 import { contextFixture } from "./test-fixtures";
 
@@ -66,7 +65,6 @@ describe("PI · contenido de Shopify desde chat", () => {
     expect(repository.commitLanding).not.toHaveBeenCalled();
   });
   it("contenido de chat permite revisión sin depender del pipeline viejo", () => {
-    expect(staleReasons([{ source: "mcp_chat" }], { briefs: [], avatar: null, context: { brief: null, differentiator: null, prompt_version: 99 } })).toEqual([]);
     const facts = { price: 19990, currency: "CLP", copy: { fromChat: true, run: null, progress: { total: 1, enabled: 0, listing: "pending" as const, complete: false } } };
     expect(copyPhase(facts, "locked", false)).toBe("review");
   });

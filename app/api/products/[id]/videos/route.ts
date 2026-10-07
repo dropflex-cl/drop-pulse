@@ -1,7 +1,6 @@
 import { videosState } from "@/lib/data/products";
 import { syncVideos } from "@/lib/pipeline/video";
 import { errorResponse, ownedProduct } from "@/lib/products/http";
-import { retiredProductWriter } from "@/lib/products/retired-writer";
 import { expireStaleVideos } from "@/lib/video/store";
 import { NextResponse, after } from "next/server";
 
@@ -22,4 +21,3 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 /** El contenido se escribe desde el chat y se guarda con save_ugc_content. */
-export const POST = retiredProductWriter("Escribe el guion y las tomas en el chat y guárdalos con save_ugc_content. Después revísalos aquí.");

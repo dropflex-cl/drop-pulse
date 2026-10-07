@@ -1,15 +1,8 @@
-// Acceso a productos desde Supabase (products con sus datos del producto, product_reference_images, el
-// precio, las reseñas importadas, la estrategia: strategy_runs y los ángulos elegidos en angle_rankings
-// y angle_briefs, y la página del producto: copy_runs, page_components). Las imágenes generadas todavía no existen: esa
-// lectura devuelve vacío y la pantalla muestra su espera.
-import { ANGLES, testAngleName } from "@/lib/angles/catalog";
-import { allApproved, chosenAngles, currentBriefs, currentBriefStates, latestRankings, latestRankingStates, type BriefsBySlot, type BriefState, type RankingState } from "@/lib/angles/store";
+// Catálogo, contexto y estrategia PI, contenido revisable y medios persistidos.
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
 import { copyProgress } from "@/lib/copy/progress";
-import { COPY_PROMPT_VERSION } from "@/lib/copy/schemas";
-import { avatarStamp, differentiatorStamp, staleReasons } from "@/lib/copy/stale";
-import { activeComponents, activeComponentStates, copyRunInputs, isStale, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
+import { activeComponents, activeComponentStates, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
 import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
@@ -20,16 +13,14 @@ import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { sessionUser } from "@/lib/integrations/session";
 import { GALLERY_MIN, isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
 import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
-import { approvedBriefStamp, briefStampOf, generationBlocker } from "@/lib/pipeline/page-images";
+import { generationBlocker } from "@/lib/pipeline/page-images";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
-import { latestStrategies, latestStrategyStates, toStrategyView, type StrategyState as StrategyRunState } from "@/lib/pipeline/strategy";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricedProducts, pricingDefaults } from "@/lib/pricing/store";
-import { confirmedDifferentiator, differentiatorState, getDifferentiator } from "@/lib/products/differentiator";
+import { getDifferentiator } from "@/lib/products/differentiator";
 import { scheduleHousekeeping } from "@/lib/products/housekeeping";
-import { hasProductData } from "@/lib/products/product-data";
-import { productPosition, type AdsFacts, type AngleFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
-import { baseImage, getProductRow, latestAvatars, latestBrief, latestBriefId, listImageRows, listProductRows, toReferenceImage, toUiStatus, withDisplayUrls, type ImageRow, type ProductRow, } from "@/lib/products/store";
+import { productPosition, type AdsFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
+import { baseImage, getProductRow, listImageRows, listProductRows, toReferenceImage, toUiStatus, withDisplayUrls, type ImageRow, type ProductRow, } from "@/lib/products/store";
 import { customerReviews, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
 import type { CopyState, CreativesState, PageImagesState, Product, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductPageImages, ProductReviews, ProductStrategy, StrategyState, UpsellProduct, VideosState } from "@/lib/types";
 import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
@@ -60,37 +51,12 @@ function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-type Briefs = BriefsBySlot<BriefState>;
-
-function angleFacts(ranking: RankingState | undefined, briefs: Briefs | undefined): AngleFacts | null {
-  if (!ranking) return null;
-  const chosen = chosenAngles(ranking);
-  const name = (b: BriefState) => {
-    const a = chosen.find((c) => c.slot === b.slot);
-    return a ? testAngleName({ ...a, frame: b.angle }) : ANGLES[b.angle].name;
-  };
-  return {
-    ranking: { status: ranking.status, error: ranking.error_message, confirmed: Boolean(ranking.confirmed_at), chosen: chosen.length },
-    briefs: Object.values(briefs ?? {})
-      .filter((b): b is BriefState => Boolean(b) && (!chosen.length || b!.slot <= chosen.length))
-      .sort((a, b) => a.slot - b.slot)
-      .map((b) => ({ slot: b.slot, name: name(b), status: toUiStatus(b.status), generation: b.generation, error: b.error_message })),
-  };
-}
-
-/** Los desarrollos de la elección confirmada, en orden de slot, como huella (lib/angles/approved.ts). */
-function stampOfBriefs(ranking: Pick<RankingState, "chosen_angles" | "confirmed_at"> | undefined, briefs: BriefsBySlot<Pick<BriefState, "id" | "edited_at">> | undefined) {
-  if (!ranking) return [];
-  return chosenAngles(ranking).flatMap((a) => (briefs?.[a.slot] ? [{ id: briefs[a.slot]!.id, edited_at: briefs[a.slot]!.edited_at ?? null }] : []));
-}
-
-function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined, briefs: Briefs | undefined, ranking?: RankingState): CopyFacts | null {
+function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined): CopyFacts | null {
   if (!run && !rows?.length) return null;
   return {
     fromChat: run?.input.source === "mcp_chat",
     run: run ? { status: run.status, error: run.error_message } : null,
     progress: copyProgress((rows ?? []).map((r) => ({ component: r.component, status: toUiStatus(r.status), enabled: r.enabled }))),
-    stale: isStale(run, stampOfBriefs(ranking, briefs)),
   };
 }
 
@@ -123,9 +89,7 @@ function toProduct(
   row: ProductRow,
   image: string,
   priced: boolean,
-  strategy?: StrategyRunState,
   reviews?: ReviewFacts,
-  angles?: AngleFacts | null,
   copy?: CopyFacts | null,
   ads?: AdsFacts,
   creatives?: CreativeFacts,
@@ -137,11 +101,9 @@ function toProduct(
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
-    base: { described: intelligence?.hasContext ? intelligence.described : hasProductData(row.product_data), priced },
-    intelligence: intelligence?.hasContext ? { selected: intelligence.selected, ready: intelligence.ready } : undefined,
-    strategy: strategy ? { status: strategy.status, error: strategy.error_message, confirmed: Boolean(strategy.confirmed_at) } : null,
+    base: { described: intelligence?.described ?? false, priced },
+    intelligence: { selected: intelligence?.selected ?? false, ready: intelligence?.ready ?? false },
     reviews,
-    angles,
     copy,
     ads,
     creatives,
@@ -179,12 +141,10 @@ function toProduct(
 export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [imageRows, priced, strategies, reviews, rankings, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic, intelligence] = await Promise.all([
+  const [imageRows, priced, reviews, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic, intelligence] = await Promise.all([
     images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
     pricedProducts(uid, ids),
-    latestStrategyStates(uid, ids),
     reviewFacts(uid, ids),
-    latestRankingStates(uid, ids),
     latestCopyRunStates(uid, ids),
     activeComponentStates(uid, ids),
     adsFacts(uid, ids),
@@ -196,17 +156,11 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
   ]);
   const ai = anthropic?.status === "connected";
   const covers = rows.map((r) => cover(imageRows.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
-  const [briefs, urls] = await Promise.all([
-    currentBriefStates(uid, [...rankings.values()].filter((r) => r.confirmed_at).map((r) => r.id)),
-    withDisplayUrls(covers),
-  ]);
+  const urls = await withDisplayUrls(covers);
   return rows.map((r) => {
     const c = covers.find((i) => i.product_id === r.id);
-    const ranking = rankings.get(r.id);
-    const chosen = ranking?.confirmed_at ? briefs.get(ranking.id) : undefined;
-    const angles = angleFacts(ranking, chosen);
-    const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id), chosen, ranking);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), strategies.get(r.id), reviews.get(r.id), angles, copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id));
+    const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id));
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), reviews.get(r.id), copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id));
   });
 }
 
@@ -280,15 +234,14 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
   const uid = await userId();
   // Todo a la vez: la etapa no espera a la ruta del producto; solo los valores por defecto del precio esperan la fila.
   const row$ = productRow(uid, id);
-  const [product, row, images, brief, pricing, pricingDefaultsValue, packLabels, differentiator, canonical] = await Promise.all([
+  const [product, row, images, pricing, pricingDefaultsValue, packLabels, differentiator, canonical] = await Promise.all([
     getProduct(id),
     row$,
     listImageRows(uid, [id]),
-    latestBrief(uid, id),
     getPricingPlan(uid, id),
     row$.then((r) => (r ? pricingDefaults(uid, r) : null)),
     latestPackLabels(uid, id),
-    confirmedDifferentiator(uid, id),
+    getDifferentiator(uid, id),
     getCanonicalProductData(uid, id),
   ]);
   if (!product || !row || !pricingDefaultsValue) return null;
@@ -299,12 +252,12 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     baseInfoUpdatedAt: canonical.hasContext ? undefined : row.base_info_updated_at ?? undefined,
     fromShopify: !canonical.hasContext && Boolean(row.description?.trim()) && row.base_info.includes(row.description!.trim().slice(0, 40)),
     images: images.filter((i) => urls.has(i.id)).map((i) => toReferenceImage(i, urls.get(i.id)!)),
-    productData: canonical.hasContext ? canonical : { ...(row.product_data ?? canonical), expected_revision: canonical.expected_revision, expected_context_revision: canonical.expected_context_revision },
+    productData: canonical,
     pricing: pricing ?? undefined,
     packLabels: packLabels ? toPackLabelsProposal(packLabels, pricing) : undefined,
     pricingDefaults: pricingDefaultsValue,
-    hasBrief: brief !== null,
-    differentiator: differentiatorState(differentiator, brief),
+    hasBrief: canonical.hasContext,
+    differentiator,
     imageQa: row.image_qa === true,
   };
 });
@@ -335,18 +288,8 @@ export const getProductStrategy = cache(async (id: string): Promise<ProductStrat
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/strategy). */
 export async function strategyState(uid: string, productId: string): Promise<StrategyState> {
-  const [strategies, rankings, selection] = await Promise.all([latestStrategies(uid, [productId]), latestRankings(uid, [productId]), getSelectedProductStrategy(uid, productId)]);
-  const run = strategies.get(productId);
-  const ranking = rankings.get(productId);
-  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  return {
-    selection,
-    strategy: run ? toStrategyView(run) : undefined,
-    blocker: null,
-    chosen: ranking
-      ? chosenAngles(ranking).flatMap((a) => (briefs[a.slot]?.status === "approved" ? [{ slot: a.slot, title: testAngleName(a), hook: a.hook ?? "" }] : []))
-      : [],
-  };
+  const selection = await getSelectedProductStrategy(uid, productId);
+  return { selection, blocker: null, chosen: selection?.snapshot.angles.map((angle, index) => ({ slot: index + 1, title: angle.name, hook: angle.hook })) ?? [] };
 }
 
 /** La etapa Página del producto: la ficha y los componentes de conversión. */
@@ -360,33 +303,13 @@ export const getProductCopy = cache(async (id: string): Promise<ProductCopy | nu
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
 export async function copyState(uid: string, productId: string): Promise<CopyState> {
-  const [runs, rows, rankings, images, facts, counts, avatars, briefId, differentiator] = await Promise.all([
-    latestCopyRuns(uid, [productId]),
-    activeComponents(uid, [productId]),
-    latestRankings(uid, [productId]),
-    catalogImages(uid, productId),
-    storeFacts(uid, productId),
-    pageImageCounts(uid, [productId]),
-    latestAvatars(uid, [productId]),
-    latestBriefId(uid, productId),
-    getDifferentiator(uid, productId),
+  const [runs, rows, images, facts, counts] = await Promise.all([
+    latestCopyRuns(uid, [productId]), activeComponents(uid, [productId]), catalogImages(uid, productId), storeFacts(uid, productId), pageImageCounts(uid, [productId]),
   ]);
   const run = runs.get(productId);
-  const ranking = rankings.get(productId);
-  const briefs = ranking?.confirmed_at ? ((await currentBriefs(uid, [ranking.id])).get(ranking.id) ?? {}) : {};
-  const approved = ranking ? allApproved(chosenAngles(ranking), briefs) : false;
   const chosen = counts(productId);
-  // Qué cambió desde las escrituras que dejaron la página (lib/copy/stale.ts).
   const pageRows = (rows.get(productId) ?? []).filter((r) => r.enabled);
-  const avatar = avatars.get(productId);
-  const reasons =
-    approved && pageRows.length
-      ? staleReasons(await copyRunInputs(uid, [...new Set(pageRows.map((r) => r.run_id))]), {
-          briefs: stampOfBriefs(ranking, briefs),
-          avatar: avatar?.status === "approved" ? avatarStamp(avatar) : null,
-          context: { brief: briefId, differentiator: differentiatorStamp(differentiator.value), prompt_version: COPY_PROMPT_VERSION },
-        })
-      : [];
+  const reasons: import("@/lib/copy/stale").CopyStaleReason[] = [];
   if (run?.input.source === "mcp_chat" && await getLandingContextStale(uid, productId)) reasons.push("product_context");
   const videoRows = await activeScripts(uid, productId);
   const videos = videoRows.filter((s) => s.final_status === "approved" && s.approved_at && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
@@ -453,9 +376,8 @@ export const getProductPageImages = cache(async (id: string): Promise<ProductPag
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/page-images). */
 export async function pageImagesState(uid: string, productId: string): Promise<PageImagesState> {
-  const [choice, briefStamp, runs, shots, rows, refs, blocker, anthropic] = await Promise.all([
+  const [choice, runs, shots, rows, refs, blocker, anthropic] = await Promise.all([
     imageProviderChoice(uid, "page_images"),
-    approvedBriefStamp(uid, productId),
     latestPageImageRuns(uid, [productId]),
     activeShots(uid, productId),
     pageImageRows(uid, [productId]),
@@ -464,15 +386,14 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     getAnthropicConnection(uid),
   ]);
   const inUse = refs.filter((r) => !r.excluded);
-  // El director de galería y el QA de cada imagen son de Claude: sin la clave de Anthropic no se genera.
+  // Anthropic solo participa en la revisión visual opcional; el blocker comprueba ese switch.
   const aiConnected = anthropic?.status === "connected";
   const [urls, refUrls] = await Promise.all([signedPageUrls([...new Set(rows.map((r) => r.storage_path).filter((p): p is string => Boolean(p)))]), withDisplayUrls(inUse)]);
   for (const [id, src] of refUrls) urls.set(`ref:${id}`, src);
   const run = runs.get(productId);
   const connected = choice.value !== null;
   const noProvider = noProviderReason(choice, "imágenes");
-  // Los desarrollos de Ángulos con que se propuso la galería, contra los aprobados hoy.
-  const planned = briefStampOf((run?.input as { briefs?: unknown } | undefined)?.briefs);
+  // La galería del chat conserva la identidad de la estrategia seleccionada.
   const canonicalSelection = run?.input.source === "mcp_chat" ? await getSelectedProductStrategy(uid, productId) : null;
   const chatPlan = run?.input.source === "mcp_chat" ? (run.input.content as { plan?: { visual_world?: string; visual_world_why?: string } } | undefined)?.plan : null;
   const world = chatPlan?.visual_world ?? run?.world, worldWhy = chatPlan?.visual_world_why ?? run?.world_why;
@@ -488,7 +409,7 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
-    stale: Boolean(canonicalStale || run?.status === "succeeded" && shots.length && planned && briefStamp && planned !== briefStamp),
+    stale: Boolean(canonicalStale),
   };
 }
 

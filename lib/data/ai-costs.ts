@@ -10,14 +10,13 @@ import { getPricingPlan } from "@/lib/pricing/store";
 import type { ProductAiCost } from "@/lib/types";
 import { getProduct } from "./products";
 
-const RUN_TABLES = ["pipeline_runs", "angle_rankings", "copy_runs", "creative_runs", "page_image_runs", "video_scripts"] as const;
+const RUN_TABLES = ["copy_runs", "creative_runs", "page_image_runs", "video_scripts"] as const;
 
 /** Alguna corrida de IA del producto sigue en cola o generando. */
 async function running(userId: string, productId: string): Promise<boolean> {
   const db = adminClient();
   const counts = await Promise.all([
     ...RUN_TABLES.map((t) => db.from(t).select("id", { count: "exact", head: true }).eq("user_id", userId).eq("product_id", productId).in("status", ["queued", "running"])),
-    db.from("angle_briefs").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("product_id", productId).in("generation", ["queued", "running"]),
   ]);
   return counts.some((c) => (c.count ?? 0) > 0);
 }

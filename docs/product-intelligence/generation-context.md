@@ -1,3 +1,5 @@
+> Documento de diseño y decisiones anteriores. El estado implementado, contrato y pendientes vigentes se consolidan en [estado](implementation-status.md), [contratos](mcp-contracts.md) y [backlog](implementation-backlog.md). No interpretar capacidades propuestas ni conteos de una entrega anterior como runtime actual.
+
 # Contexto congelado de generación
 
 `GenerationContext 1.0`, 2026-10-06; [contratos públicos](mcp-contracts.md), [schema generado](contracts/generated/generation-context.json) y [ejemplo ficticio](contracts/generation-context.example.json). La [fábrica pura](../../lib/product-intelligence/generation.ts) y el cierre de estrategia están implementados y probados; faltan persistencia/jobs/adaptación de generadores. No se ejecutaron llamadas pagadas.

@@ -1168,20 +1168,6 @@ export const patchOperationSchema = z.union([z.strictObject({
   "ordered_ids": z.array(z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" })).min(1).max(100).refine(uniqueItems, "No repitas elementos.").meta({ uniqueItems: true })
 })]);
 
-export const contentTargetSchema = z.union([z.strictObject({
-  "mode": z.enum(["missing", "all"])
-}), z.strictObject({
-  "mode": z.literal("only"),
-  "component_ids": z.array(z.string().min(1).max(80)).min(1).max(100).refine(uniqueItems, "No repitas elementos.").meta({ uniqueItems: true })
-})]);
-
-export const visualPlanSchema = z.strictObject({
-  "slot": z.enum(["cover", "gallery", "benefit-1", "benefit-2", "benefit-3"]),
-  "position": z.number().int().min(1).max(6),
-  "prompt": z.string().min(1).max(8192),
-  "fact_ids": z.array(z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" })).min(0).max(100)
-});
-
 export const diffItemSchema = z.strictObject({
   "entity": z.enum(["context", "pricing", "source", "fact", "evidence_link", "persona", "jtbd", "pain", "desire", "objection", "angle", "customer_language", "offer", "strategy"]),
   "action": z.enum(["create", "update", "archive", "restore", "reprioritize", "select"]),
@@ -1516,40 +1502,6 @@ export const set_product_strategyOutputSchema = z.union([z.strictObject({
   "error": errorSchema
 })]);
 
-export const generate_landingInputSchema = z.union([z.strictObject({
-  "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
-  "dry_run": z.boolean().default(false),
-  "stage": z.literal("content"),
-  "strategy_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "target": contentTargetSchema
-}), z.strictObject({
-  "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
-  "dry_run": z.boolean().default(false),
-  "stage": z.literal("images"),
-  "strategy_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "provider": z.enum(["higgsfield", "gemini"]),
-  "plans": z.array(visualPlanSchema).min(1).max(10)
-})]);
-
-export const generate_landingOutputSchema = z.union([z.strictObject({
-  "ok": z.literal(true),
-  "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "revision": z.number().int().min(0).max(9007199254740991),
-  "request_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "data": generationResultSchema,
-  "warnings": z.array(warningSchema).min(0).max(100)
-}), z.strictObject({
-  "ok": z.literal(false),
-  "request_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
-  "error": errorSchema
-})]);
-
 export const generate_ugcInputSchema = z.strictObject({
   product_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }), schema_version: z.literal("1.0"),
   expected_revision: z.number().int().nonnegative().safe(),
@@ -1618,7 +1570,6 @@ export const inputSchemas = {
   "get_product_strategy": get_product_strategyInputSchema,
   "get_generation_status": get_generation_statusInputSchema,
   "set_product_strategy": set_product_strategyInputSchema,
-  "generate_landing": generate_landingInputSchema,
   "generate_ugc": generate_ugcInputSchema
 } as const;
 
@@ -1639,7 +1590,6 @@ export const outputSchemas = {
   "get_product_strategy": get_product_strategyOutputSchema,
   "get_generation_status": get_generation_statusOutputSchema,
   "set_product_strategy": set_product_strategyOutputSchema,
-  "generate_landing": generate_landingOutputSchema,
   "generate_ugc": generate_ugcOutputSchema
 } as const;
 

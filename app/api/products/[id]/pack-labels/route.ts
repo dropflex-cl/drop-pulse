@@ -6,7 +6,6 @@ import { decidePackLabels } from "@/lib/product-intelligence/pack-labels-service
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { createContextRepository } from "@/lib/product-intelligence/repository";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
-import { retiredProductWriter } from "@/lib/products/retired-writer";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -41,4 +40,3 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return respond(userId, id);
   } catch (e) { return errorResponse(e); }
 }
-export const POST = retiredProductWriter("Escribe las etiquetas en el chat y guárdalas con save_pack_labels.");

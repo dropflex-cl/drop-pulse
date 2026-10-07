@@ -8,6 +8,8 @@ export interface AngleMedia {
   angle_slot?: number | null;
   created_at: string;
   status: string;
+  content_provenance?: Record<string, unknown>;
+  ugc_provenance?: Record<string, unknown>;
 }
 
 export interface DraftAngles {
@@ -21,25 +23,23 @@ export interface DraftAngles {
 
 const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x.trim() === b[i]?.trim());
 
-/**
- * `since`: cuándo se creó el desarrollo vigente de cada slot. Un creativo con ángulo es de un ángulo
- * anterior si su slot ya no existe o si se creó antes que ese desarrollo (al cambiar el ángulo, el
- * desarrollo se escribe de nuevo; editarlo no cambia su fecha).
- */
+/** Compara identidades canónicas; no deduce el origen de piezas históricas por fechas. */
 export function draftAngles(
   draft: { stamp: unknown; primaryTexts: string[]; creatives: string[] } | null,
-  current: { stamp: BriefStampEntry[]; primaryTexts: string[]; since: Map<number, string> },
+  current: { stamp: BriefStampEntry[]; primaryTexts: string[]; strategyId: string | null },
   media: AngleMedia[],
 ): DraftAngles | null {
   if (!draft || !current.stamp.length) return null;
+  const provenance = (m: AngleMedia) => m.content_provenance?.strategy_id ? m.content_provenance : m.ugc_provenance;
   const isOld = (m: AngleMedia) => {
-    if (!m.angle_slot) return false;
-    const since = current.since.get(m.angle_slot);
-    return !since || m.created_at < since;
+    const p = provenance(m);
+    if (!p?.strategy_id) return false; // No atribuir medios históricos por slot o fecha.
+    return p.strategy_id !== current.strategyId || !current.stamp.some((angle) => angle.id === p.angle_id);
   };
+  const isCurrent = (m: AngleMedia) => Boolean(provenance(m)?.strategy_id) && !isOld(m);
   const chosen = new Set(draft.creatives);
   const oldCreatives = media.filter((m) => chosen.has(m.id) && isOld(m)).map((m) => m.id);
-  const newCreatives = media.filter((m) => m.angle_slot && !isOld(m) && m.status === "ready" && !chosen.has(m.id)).map((m) => m.id);
+  const newCreatives = media.filter((m) => isCurrent(m) && m.status === "ready" && !chosen.has(m.id)).map((m) => m.id);
   // Sin huella (borrador de antes): se compara por los textos.
   const changed = draft.stamp == null ? !sameList(draft.primaryTexts, current.primaryTexts) : stampChanged(draft.stamp, current.stamp);
   const differs = !sameList(draft.primaryTexts, current.primaryTexts) || oldCreatives.length > 0;

@@ -1,3 +1,5 @@
+> Documento de diseño y decisiones anteriores. El estado implementado, contrato y pendientes vigentes se consolidan en [estado](implementation-status.md), [contratos](mcp-contracts.md) y [backlog](implementation-backlog.md). No interpretar capacidades propuestas ni conteos de una entrega anterior como runtime actual.
+
 # Approach vigente: contexto del chat, ejecución en el SaaS
 
 Dirección aceptada el 2026-10-06. Este documento y [ADR 006](adrs/006-chat-first-optimization.md) sustituyen la propuesta de migrar el análisis legacy y mantener el mega prompt. La auditoría y los resultados readonly de producción conservan su validez descriptiva. No hubo cambios de aplicación ni escrituras de DB.

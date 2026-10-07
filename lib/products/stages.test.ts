@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anglesPhase, anglesReady, basePhase, copyPhase, productPosition, type AngleFacts, type CopyFacts, type CreativeFacts } from "./stages";
+import { anglesPhase, copyPhase, productPosition, type CopyFacts, type CreativeFacts } from "./stages";
 
 const base = { price: 24990, currency: "CLP" };
 
@@ -48,51 +48,19 @@ describe("productPosition", () => {
   });
 });
 
-describe("etapa Estrategia", () => {
-  const brief = (slot: 1 | 2 | 3, status: "generado" | "aprobado" = "aprobado") => ({ slot, name: ["", "La crema sella", "Tengo 38", "Lleva 3"][slot], status, generation: "succeeded" as const });
-  const chosen = (n: 2 | 3): AngleFacts => ({ ranking: { status: "succeeded", confirmed: true, chosen: n }, briefs: ([1, 2, 3] as const).slice(0, n).map((s) => brief(s)) });
-
-  it("bloqueada hasta tener los datos del producto y el precio", () => {
-    expect(anglesPhase({ ...base, base: { described: true, priced: false } })).toBe("locked");
-    expect(basePhase({ ...base, base: { described: false, priced: true } })).toBe("new");
+describe("etapa Estrategia canónica", () => {
+  it("requiere contexto y precio aunque ya haya una selección", () => {
+    expect(anglesPhase({ ...base, base: { described: false, priced: true }, intelligence: { selected: true, ready: true } })).toBe("locked");
   });
-
-  it("escribiendo, por elegir y con error", () => {
-    expect(anglesPhase({ ...ready, strategy: { status: "running", confirmed: false } })).toBe("evaluating");
-    const choose = productPosition({ ...ready, strategy: { status: "succeeded", confirmed: false } });
-    expect(choose.anglesPhase).toBe("choose");
-    expect(choose).toMatchObject({ filter: "detenidos", reason: "Espera tu elección · estrategia", status: "revision" });
-    expect(choose.stages[2]).toMatchObject({ state: "review", desc: "Estrategia lista · elige 2 o 3 ángulos" });
-    const failed = productPosition({ ...ready, strategy: { status: "failed", error: "La IA no respondió.", confirmed: false } });
-    expect(failed.stages[2]).toMatchObject({ state: "error", desc: "La IA no respondió." });
-    expect(failed.reason).toBe("Estrategia: no se pudo · reintenta");
-  });
-
-  it("con 2 o 3 ángulos elegidos y aprobados, sigue Imágenes", () => {
-    const done = productPosition({ ...ready, strategy: { status: "succeeded", confirmed: true }, angles: chosen(2) });
-    expect(done.anglesPhase).toBe("done");
+  it("una selección desactualizada pide revisión; una lista permite imágenes", () => {
+    expect(productPosition({ ...ready, intelligence: { selected: true, ready: false } }).stages[2]).toMatchObject({ state: "review", desc: "Revisa la estrategia en el chat" });
+    const done = productPosition({ ...ready, intelligence: { selected: true, ready: true } });
     expect(done.nextStage).toBe("imagenes");
-    expect(done.stages[2]).toMatchObject({ state: "done", desc: "La crema sella · Tengo 38" });
-    expect(done.stages[3]).toMatchObject({ key: "imagenes", state: "current" });
-    expect(done.stages[4]).toMatchObject({ key: "textos", state: "locked", desc: "Se habilita con las imágenes listas" });
-    expect(anglesPhase({ ...ready, angles: chosen(3) })).toBe("done");
+    expect(done.stages[2]).toMatchObject({ state: "done", desc: "Estrategia seleccionada" });
+    expect(done.stages[4].state).toBe("locked");
   });
-
-  it("con ángulos listos, generar otra estrategia no bloquea lo que sigue", () => {
-    expect(anglesPhase({ ...ready, strategy: { status: "running", confirmed: false }, angles: chosen(2) })).toBe("done");
-  });
-
-  it("una elección incompleta no cuenta como lista", () => {
-    const partial: AngleFacts = { ranking: { status: "succeeded", confirmed: true, chosen: 3 }, briefs: [brief(1), brief(2)] };
-    expect(anglesReady(partial)).toBe(false);
-    expect(anglesReady({ ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2, "generado")] })).toBe(false);
-    expect(anglesPhase({ ...ready, strategy: { status: "succeeded", confirmed: true }, angles: partial })).toBe("choose");
-  });
-
-  it("un producto trabajado antes de la estrategia (sin datos del producto) con sus ángulos listos sigue adelante", () => {
-    const legacy = { ...base, base: { described: false, priced: true }, angles: chosen(2) };
-    expect(basePhase(legacy)).toBe("done");
-    expect(anglesPhase(legacy)).toBe("done");
+  it("sin selección no habilita ejecución", () => {
+    expect(anglesPhase(ready)).toBe("new");
   });
 });
 
@@ -102,19 +70,13 @@ describe("página del producto (Textos)", () => {
     price: 24990,
     currency: "CLP",
     base: { described: true, priced: true },
-    angles: {
-      ranking: { status: "succeeded" as const, confirmed: true },
-      briefs: [
-        { slot: 1, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
-        { slot: 2, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
-      ],
-    },
+    intelligence: { selected: true, ready: true },
     images,
   };
   const progress = (p: Partial<CopyFacts["progress"]>): CopyFacts["progress"] => ({ total: 13, enabled: 0, listing: "pending", complete: false, ...p });
 
   it("bloqueada hasta aprobar los 2 desarrollos y tener las imágenes; después, por escribir", () => {
-    const noAngles = productPosition({ ...ready, angles: { ...ready.angles, briefs: [ready.angles.briefs[0]] } });
+    const noAngles = productPosition({ ...ready, intelligence: { selected: true, ready: false } });
     expect(noAngles.stages[3]).toMatchObject({ key: "imagenes", title: "Imágenes", state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" });
     expect(noAngles.stages[4]).toMatchObject({ key: "textos", title: "Página del producto", state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" });
     const noImages = productPosition({ ...ready, images: { ...images, cover: false } });
@@ -168,13 +130,7 @@ describe("Creativos (etapa opcional, docs/spec-creativos.md §6.5)", () => {
   const ready = {
     ...base,
     base: { described: true, priced: true },
-    angles: {
-      ranking: { status: "succeeded" as const, confirmed: true },
-      briefs: [
-        { slot: 1, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
-        { slot: 2, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
-      ],
-    },
+    intelligence: { selected: true, ready: true },
   };
   const facts = (c: Partial<CreativeFacts> = {}): CreativeFacts => ({ connected: true, running: false, concepts: 0, rendering: 0, pending: 0, approved: 0, ...c });
   const stage = (f: Parameters<typeof productPosition>[0]) => {
@@ -230,13 +186,7 @@ describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
   const approvedAvatar = { ...base, base: { described: true, priced: true } };
   const anglesDone = {
     ...approvedAvatar,
-    angles: {
-      ranking: { status: "succeeded" as const, confirmed: true },
-      briefs: [
-        { slot: 1, name: "Mecanismo único", status: "aprobado" as const, generation: "succeeded" as const },
-        { slot: 2, name: "Oferta", status: "aprobado" as const, generation: "succeeded" as const },
-      ],
-    },
+    intelligence: { selected: true, ready: true },
   };
   const byKey = (f: Parameters<typeof productPosition>[0], key: string) => productPosition(f).stages.find((s) => s.key === key)!;
 
@@ -251,7 +201,7 @@ describe("sin la clave de Anthropic (como Creativos sin Higgsfield)", () => {
   });
 
   it("lo ya generado se sigue viendo y decidiendo", () => {
-    const strategy = { ...approvedAvatar, strategy: { status: "succeeded" as const, confirmed: false }, ai: false };
+    const strategy = { ...approvedAvatar, intelligence: { selected: true, ready: false }, ai: false };
     expect(byKey(strategy, "angulos")).toMatchObject({ state: "review" });
     const images = { ...anglesDone, images: { running: false, rendering: 0, options: 3, cover: false, gallery: 0 }, ai: false };
     expect(byKey(images, "imagenes")).toMatchObject({ state: "review" });
@@ -271,6 +221,6 @@ describe("navegación canónica MCP", () => {
     expect(result.stages.find(s => s.key === "imagenes")?.state).not.toBe("locked");
   });
   it("no usa aprobaciones legacy para una estrategia canónica desactualizada", () => {
-    expect(anglesPhase({ ...ready, intelligence: { selected: true, ready: false }, angles: { ranking: { status: "succeeded", confirmed: true, chosen: 2 }, briefs: [1,2].map(slot => ({ slot, name: "Antiguo", status: "aprobado", generation: "succeeded" })) } })).toBe("choose");
+    expect(anglesPhase({ ...ready, intelligence: { selected: true, ready: false } })).toBe("choose");
   });
 });

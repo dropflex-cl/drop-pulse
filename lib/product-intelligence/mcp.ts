@@ -39,7 +39,6 @@ const descriptions: Record<ToolName, string> = {
   save_research: "Guarda fuentes, facts y evidencia; revisar estados sensibles requiere verify.",
   set_product_strategy: "Crea una versión de decisión explícita; seleccionar no demuestra un ganador.",
   get_product_strategy: "Recupera la selección y sus restricciones vigentes para ejecutar contenido.",
-  generate_landing: "Pide contenido o imágenes de landing como etapa explícita; puede gastar con proveedores.",
   generate_ugc: "Genera imágenes clave o clips de un guion aprobado; dry_run informa costo. Puede gastar créditos de Higgsfield.",
   get_generation_status: "Lee estado, outputs y costo registrado sin sondear proveedores.",
 };

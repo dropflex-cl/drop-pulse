@@ -1,6 +1,6 @@
 import "server-only";
 import { ANGLES, type AngleSlot, type SalesAngle } from "@/lib/angles/catalog";
-import { fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import { adminClient } from "@/lib/integrations/admin";
 import type { ImageProvider } from "@/lib/image-provider";
 import type { Preset } from "@/lib/integrations/higgsfield/client";

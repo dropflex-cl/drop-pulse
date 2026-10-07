@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-06",
+  "scope": "repository and Supabase local only",
+  "runtime_tools": 29,
+  "generated_schema_pairs": 29,
+  "legacy_tool_removed": "generate_landing",
+  "general_tests": {
+    "passed": 990,
+    "suites_passed": 86,
+    "opt_in_skipped": 94
+  },
+  "product_intelligence_tests": {
+    "passed": 307,
+    "includes_transactional": 94,
+    "suites_passed": 21,
+    "schema": "after 20261118000000"
+  },
+  "schema_probe": {
+    "transaction": "rollback",
+    "retired_tables_removed": 8,
+    "retired_columns_removed": 3,
+    "retired_rpc_removed": 1,
+    "retained_table_fingerprints": 20,
+    "fingerprint_excluded_keys": [
+      "run_id",
+      "product_data"
+    ],
+    "retained_fixtures": [
+      "product",
+      "cost_generation",
+      "pack_labels",
+      "copy_run",
+      "page_component"
+    ],
+    "operational_snapshot": true,
+    "active_job_guards": 4,
+    "guard_limit": "Fourth branch checked with recreated state-column tables in isolated rollback transaction after applying cleanup locally"
+  },
+  "checks": {
+    "typecheck": "passed",
+    "eslint_changed_files": "passed",
+    "ui_tokens": "passed",
+    "contracts": "passed",
+    "diff": "passed",
+    "next_webpack_build": "exit 0",
+    "existing_build_diagnostics": {
+      "name": "HANGING_PROMISE_REJECTION",
+      "count": 5,
+      "routes": [
+        "/api/onboarding/state",
+        "/api/ads/regions",
+        "/api/onboarding/generation",
+        "/api/onboarding/shopify/products",
+        "/api/ads/interests"
+      ]
+    }
+  },
+  "browser": {
+    "environment": "local",
+    "screens": 16,
+    "wcag": true,
+    "consent": true,
+    "default_read_only": true,
+    "revoke_ui": true,
+    "delegated_cookie_blocked": true,
+    "domain_executor": true,
+    "pricing_ui_cas": true,
+    "persisted_context_read": true,
+    "published_tools": 29,
+    "retired_routes": true,
+    "strategy_ui": true,
+    "basic_ui_cas": true,
+    "usage_tip_review": true
+  },
+  "local_postflight": {
+    "latest_local_migration": "20261118000000",
+    "local_migrations": 53,
+    "oauth_clients_total": 52,
+    "oauth_clients_active": 0,
+    "oauth_clients_soft_deleted": 52,
+    "products": 0,
+    "retired_tables": 0,
+    "users": 1
+  },
+  "production": {
+    "cleanup_applied": false,
+    "last_verified_migration": "20261117000000",
+    "last_verified_versions": 52,
+    "export_or_restore_tested": false
+  },
+  "external": {
+    "paid_provider_calls": false,
+    "shopify_or_meta_publication": false,
+    "remote_chatgpt_acceptance": false
+  },
+  "preview_stopped": true
+}

@@ -1,60 +1,41 @@
-# Retiro de redacción pagada del servidor
+# Limpieza del análisis retirado
 
-Fecha: 2026-10-06. Implementación local; sin despliegue ni cambios en producción en esta entrega. [ADR 015](adrs/015-retire-paid-text-writers.md).
+Estado: código implementado, contracción aplicada solo en local. [ADR 017](adrs/017-remove-retired-analysis.md), [rollout](migration-and-rollback.md).
 
-## Frontera vigente
+## Rutas e invocadores
 
-El chat escribe análisis, estrategias, guiones, textos y prompts de medios. El SaaS valida, guarda y permite revisar/publicar. Los proveedores del comerciante siguen renderizando imágenes y video. Anthropic queda exclusivamente para la revisión visual opcional de imágenes; no se necesita su clave cuando esa revisión está apagada.
+Eliminadas las rutas `/api/products/[id]/strategy`, `/strategy/confirm`, `/creatives/chat` y `/api/settings/prompts/[key]`/`activate`. Se elimina su cliente de sondeo y el helper `retiredProductWriter`.
 
-## Código retirado físicamente
+Eliminados los POST de generación en `/product-data`, `/copy`, `/creatives`, `/page-images`, `/whatsapp/tip`, `/pack-labels`, `/videos` y `/api/events/[slug]/copy`. Las rutas mixtas conservan GET/PUT/PATCH/DELETE que sirven lectura, edición, render o decisión humana. Un método eliminado queda sin handler (405 en Next); una ruta exclusiva eliminada ya no existe (404). No se mantiene la compatibilidad 410.
 
-- Writers y arranque de corridas de estrategia/extracción, identificación de producto, landing, conceptos/dirección de arte de anuncios, conversaciones creativas de WhatsApp, director de galería, etiquetas de packs, textos de eventos y consejo de uso.
-- Prompts de esos writers, streaming de texto del adaptador Claude, proyección automática de estrategias en fichas/avatares/ángulos/ganchos y funciones de inserción legacy huérfanas.
-- Editor y activación de prompts en Ajustes, cliente UI de las acciones anteriores y scripts `eval-models.ts` / `spike-strategy.ts` que ejecutaban los writers.
-- Botones de redacción/reintento en pantallas y escritura oculta de landing al continuar desde Imágenes.
+`generate_landing` se elimina por completo; el cliente debe guardar con `save_landing_content` o iniciar imágenes con `generate_gallery_images`. El SDK rechaza el nombre desconocido como error de protocolo. Se mantienen 29 tools.
 
-Los guiones UGC ya habían pasado a chat. Esta entrega conserva sus rutas de render, revisión, conciliación y montaje.
+## Esquema eliminado por la migración
 
-## Compatibilidad HTTP
-
-Los POST antiguos autentican y verifican propiedad antes de devolver `410 Gone`: `/api/products/[id]/strategy`, `/strategy/confirm`, `/product-data`, `/copy`, `/creatives`, `/creatives/chat`, `/page-images`, `/whatsapp/tip`, `/pack-labels` y `/videos`. Conservan 401 sin sesión y 404 para un producto ajeno; no crean trabajos ni llaman a proveedores.
-
-`POST /api/events/[slug]/copy` valida sesión, evento y producto y responde 410. PUT y activación de prompts requieren administrador y responden 410; GET de prompts conserva únicamente el historial para administradores. Los GET de producto, edición manual, decisiones y renders continúan funcionando.
-
-## Capacidades conservadas
-
-Catálogo/sincronización, Auth/OAuth, Storage y optimización de archivos, cálculo de precios/packs, edición y aprobación de contenido guardado, importación de reseñas, publicación Shopify, campañas/medios/operación Meta. No se eliminan filas, buckets, tablas ni migraciones históricas. Los tipos/esquemas usados para leer contenidos antiguos y sus costos se mantienen.
-
-`lib/ai/claude.ts` conserva `generateStructured` porque las tres revisiones visuales aún lo usan: `runQa` en `lib/pipeline/creatives.ts`, `runQa` en `lib/pipeline/page-images.ts` y QA de keyframes en `lib/pipeline/video.ts`. Se conserva `@anthropic-ai/sdk` por esos tres callers y por la validación de la clave del comerciante. El mapa de versiones activas solo contiene estos pasos QA.
-
-La pantalla de estrategia consulta `get_product_strategy` mediante el servicio compartido. El informe anterior queda para consulta; no puede disparar una nueva extracción ni confirmación legacy. Seleccionar una estrategia no prueba que sea ganadora.
-
-## Cobertura MCP y límites
-
-El runtime mantiene sus 16 tools anunciadas. Esta entrega no agrega tools ni nuevas tablas.
-
-| Contenido | Estado |
+| Objeto | Motivo |
 |---|---|
-| Contexto/precio, research, análisis y estrategia | Lectura/escritura MCP existentes |
-| Landing y variantes URL | get/save_landing_content existentes; UI revisa y publica |
-| Etiquetas de packs | get/save_pack_labels existentes; UI decide |
-| Guiones/planificación UGC | get/save_ugc_content y ejecución de medios existentes |
-| Conceptos estáticos, dirección de arte y conversaciones creativas | Writer pagado retirado. Falta ingestión/lectura MCP; se editan/renderizan conceptos ya guardados |
-| Plan de imágenes de galería | Director retirado. Falta ingestión MCP; se renderizan tomas guardadas o se suben/eligen imágenes |
-| Textos de eventos y consejos de uso WhatsApp | Writer retirado. Faltan tools de ingestión; se conservan textos ya guardados y mensajes deterministas/defaults |
+| pipeline_runs, product_briefs, customer_avatars | Pipeline de ficha/cliente ideal retirado |
+| angle_rankings, angle_briefs | Orquestador, desarrollos y hooks retirados |
+| strategy_runs, prompt_templates | Informe/extracción y prompts pagados retirados |
+| product_competitors | Análisis de competencia retirado; investigación explícita va a fuentes PI |
+| products.product_data | Datos del identificador antiguo; contexto actual en pi_product_inputs |
+| ai_generations.run_id, pack_labels.run_id | Relaciones exclusivas al pipeline retirado |
+| activate_prompt_template(uuid) | Activación de prompts sin consumidor vigente |
 
-Preparar esos últimos materiales en el chat todavía no los persiste en el SaaS. No hay fallback a redacción pagada. Los mensajes operativos de WhatsApp se forman con plantillas y datos reales, sin llamadas a un modelo.
+Sin `DROP ... CASCADE`: dependencias imprevistas abortan la migración. Trabajos de análisis activos también la impiden. Los enums `sales_angle` y `pipeline_run_status` siguen usados por contenido operativo y no se eliminan. Migraciones históricas se conservan para construir bases nuevas.
 
-El navegador de etapas conserva parte del vocabulario y estados históricos; adaptar toda la navegación al ciclo MCP y retirar físicamente tablas legacy son trabajos separados. No se convierte una selección PI en ángulos legacy para desbloquear generadores antiguos.
+## Consumidores y contenido conservado
 
-## Rollout y rollback
+Se eliminaron stores/lectores de análisis, informe UI y esquemas de extracción, mantenimiento de strategy_runs, contador de jobs de análisis, métricas de hooks basadas en angle_briefs y comparadores de contenido stale contra fichas/avatares retirados. Se retiraron react-markdown/remark-gfm, usados solo por el informe.
 
-No requiere migración. Desplegar el código contra la base PI ya migrada. Verificar 410 de APIs antiguas con un producto de ensayo, revisión de una landing conservada y render con QA apagado/encendido; no disparar proveedores pagados como comprobación de despliegue sin un ensayo autorizado.
+Información base lee el contexto canónico; sin él pide completarlo explícitamente. No importa nombre/descripción del análisis antiguo. El diferenciador confirmado por el comerciante conserva su edición; no toma propuestas de fichas. Navegación depende de contexto/precio y selección PI, no de aprobación de avatares o dos briefs.
 
-Una invocación del despliegue anterior que ya haya empezado puede terminar con su código anterior. Evitar nuevos inicios durante el cambio y esperar a que termine su ventana de función (hasta 300 s). El nuevo código no reanuda writers antiguos; la conciliación y expiración de renders conservan su operación. No se afirma cancelación remota de invocaciones previas.
+Meta toma defaults de la selección lista y compara provenance por strategy_id/angle_id. Medios sin provenance mantienen origen desconocido; no se reatribuyen por fecha o slot. Los guards de publicación existentes siguen vigentes.
 
-Rollback: volver al despliegue anterior recupera las acciones pagadas; no ejecutar jobs de texto como parte del rollback. Los datos/artefactos no se borraron. Las protecciones SQL existentes contra sobrescribir contenidos MCP siguen vigentes. Cualquier DROP o purga futura requiere otra auditoría de lectores, publicación, Meta y borrado de productos.
+QA de galería lee hechos verificados del snapshot del plan chat. Para tomas históricas sin contexto verifica imagen base y textos pedidos sin inferir funciones/accesorios; no consulta product_briefs. Los proveedores y la revisión humana se conservan.
 
-## Verificación
+No se borran rows ni archivos de páginas, creativos, videos, packs, reseñas, pricing, catálogo, campañas/publicaciones ni ai_generations. Los inputs JSON históricos de esos artefactos pueden conservar UUIDs/texto de su contexto original; son snapshots históricos, no relaciones activas ni conocimiento importado. Limpiarlos destruiría provenance sin mejorar aislamiento.
 
-Pruebas HTTP de rechazo sin creación de trabajos/proveedores, sesión/propiedad y acceso admin; política estática de callers que permite únicamente los tres QA visuales; tests de renders que exigen Anthropic solo con QA activo; suite habitual, TypeScript, lint de cambios, tokens UI y contratos MCP. Sin invocaciones pagadas ni escrituras productivas. Resultados: 1.023 tests aprobados; TypeScript, ESLint de 57 archivos, contratos, tokens y diff pasan. Build webpack exitoso con los cinco diagnósticos de prerender previos. Chromium verificó 36 combinaciones móvil/escritorio claro/oscuro sin botones de redacción pagada ni desborde. Se conserva un diagnóstico previo de hidratación en la vista previa shipping-timeline (espacios de Intl.formatRange entre Node y Chromium). Ver implementation-status.md.
+## Verificación y límites
+
+TypeScript, tests HTTP/SDK, dominio y DB local; prueba de integridad y contracción de 20 tablas con rollback. [Resultados](cleanup-validation.json). No se aplicó el DROP a producción ni se probaron renders pagados/publicaciones reales. Exportación previa y rollout compatible son necesarios antes de ejecutar esa migración productiva.

@@ -48,13 +48,12 @@ export function fixture(state: string): { product: Product; data: PublishState }
     publication,
   };
   const publish: PublishFacts | null = publication ? { status: publication.status, error: publication.error } : null;
-  const brief = (slot: number) => ({ slot, name: slot === 1 ? "Mecanismo único" : "Edad e identidad", status: "aprobado" as const, generation: "succeeded" as const });
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
     base: { described: true, priced: true },
     reviews: { pending: 0, approved: 12, total: 12 },
-    angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2)] },
+    intelligence: { selected: true, ready: true },
     copy: { run: { status: "succeeded" }, progress: { total: 13, enabled: 6, listing: "approved", complete: true } },
     images: state === "locked" ? { running: false, rendering: 0, options: 6, cover: false, gallery: 2 } : { running: false, rendering: 0, options: 8, cover: true, gallery: 5 },
     publish,

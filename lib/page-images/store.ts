@@ -1,5 +1,5 @@
 import "server-only";
-import { fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import type { ImageProvider } from "@/lib/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";

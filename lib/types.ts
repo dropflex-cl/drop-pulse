@@ -90,34 +90,10 @@ export interface ReferenceImage {
 /** Plan de precios guardado (lib/pricing/store.ts), tal como lo recibe la pantalla. */
 export type SavedPricingDto = PricingPlan & { updatedAt: string; pricingStamp?: string };
 
-/** Una corrida de la estrategia (strategy_runs), como la ve la pantalla. */
-export interface StrategyView {
-  id: string;
-  status: RunStatus;
-  /** Qué está haciendo: escribir el informe o pasarlo a datos. */
-  step: "report" | "extract" | null;
-  /** El informe del mega prompt (se va llenando mientras se escribe). */
-  report: string;
-  /** Qué pasó y qué hacer, en español. */
-  error: string | null;
-  /** La versión del prompt con que se escribió (Ajustes › Prompts). */
-  templateVersion: number | null;
-  /** Los TOP 5 ángulos del informe, en su orden. */
-  angles: { index: number; title: string; hook: string; promise: string; why: string; segment: string; frameName: string }[];
-  /** «Si tuviera que gastar mi primer dólar…»: los 3 conceptos, en orden. */
-  firstDollar: string[];
-  /** Los índices elegidos al confirmar; null sin confirmar. */
-  chosen: number[] | null;
-  confirmedAt: string | null;
-  createdAt: string;
-  startedAt: string | null;
-}
-
 /** Lo que necesita la etapa Estrategia. */
 export interface StrategyState {
   /** Selección canónica del chat; no se interpreta como resultado validado. */
   selection?: import("@/lib/product-intelligence/schemas").Strategy | null;
-  strategy?: StrategyView;
   /** Compatibilidad UI: los requisitos de la selección se validan en MCP, sin gates legacy. */
   blocker: string | null;
   /** Los ángulos que leen los pasos siguientes (de esta estrategia o de una anterior). */

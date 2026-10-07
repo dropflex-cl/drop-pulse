@@ -103,6 +103,24 @@ async function main() {
       assert.deepEqual(axe.violations.map(v=>v.id),[],`Información base: ${width}/${colorScheme}`);
       await page.screenshot({path:`/private/tmp/pi-base-${width}-${colorScheme}.png`,fullPage:true});screens++;
     }
+    for (const suffix of ["strategy", "strategy/confirm", "creatives/chat"]) {
+      const response = await context.request.post(`http://localhost:3000/api/products/${productId}/${suffix}`, { data: {} });
+      assert.equal(response.status(), 404, `Ruta retirada todavía existe: ${suffix}`);
+    }
+    for (const suffix of ["copy", "creatives", "page-images", "product-data", "whatsapp/tip", "pack-labels", "videos"]) {
+      const response = await context.request.post(`http://localhost:3000/api/products/${productId}/${suffix}`, { data: {} });
+      assert.equal(response.status(), 405, `Writer POST todavía existe: ${suffix}`);
+    }
+    for (const width of [390, 1280]) for (const colorScheme of ["light", "dark"] as const) {
+      await page.setViewportSize({ width, height: 844 }); await page.emulateMedia({ colorScheme });
+      await page.goto(`http://localhost:3000/products/${productId}/angles`);
+      await page.locator("b").filter({ hasText: "Define la estrategia desde el chat" }).waitFor();
+      assert.equal(await page.getByText("Consultar informe anterior", { exact: true }).count(), 0);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Estrategia desborda.");
+      const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+      assert.deepEqual(axe.violations.map(v => v.id), [], `Estrategia: ${width}/${colorScheme}`);
+      await page.screenshot({ path: `/private/tmp/pi-cleanup-strategy-${width}-${colorScheme}.png`, fullPage: true }); screens++;
+    }
     const mcp = new Client({ name: "pi-ui-runtime", version: "1" });
     try {
       await mcp.connect(new StreamableHTTPClientTransport(new URL(resourceUrl), { requestInit: { headers: { Authorization: `Bearer ${tokens.access_token}` } } }));
@@ -160,7 +178,7 @@ async function main() {
     await page.getByRole("button", { name: "Revoca la conexión" }).click();
     await page.getByText("Acceso inactivo", { exact: true }).waitFor();
     await assert.rejects(authenticate(request()), { status: 401 });
-    console.log(JSON.stringify({ environment: "local", screens, wcag: true, consent: true, default_read_only: true, revoke_ui: true, delegated_cookie_blocked: true, domain_executor: true, pricing_ui_cas: true, persisted_context_read: true, published_tools: PERSISTED_INTELLIGENCE_TOOLS.length, basic_ui_cas: true, usage_tip_review: true }));
+    console.log(JSON.stringify({ environment: "local", screens, wcag: true, consent: true, default_read_only: true, revoke_ui: true, delegated_cookie_blocked: true, domain_executor: true, pricing_ui_cas: true, persisted_context_read: true, published_tools: PERSISTED_INTELLIGENCE_TOOLS.length, retired_routes: true, strategy_ui: true, basic_ui_cas: true, usage_tip_review: true }));
     await context.close();
   } finally {
     await browser?.close();

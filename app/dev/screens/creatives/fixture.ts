@@ -163,12 +163,11 @@ export function fixture(state: string, video = "none"): ProductCreatives {
         : withConcepts
           ? { id: "r1", status: "succeeded", createdAt: NOW }
           : undefined;
-  const brief = (slot: number) => ({ slot, name: slot === 1 ? "Mecanismo único" : "Enemigo común", status: "aprobado" as const, generation: "succeeded" as const });
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
     base: { described: true, priced: true },
-    angles: state === "locked" ? { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1)] } : { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1), brief(2)] },
+    intelligence: { selected: state !== "locked", ready: state !== "locked" },
     creatives: {
       connected: state !== "key",
       running: state === "proposing",

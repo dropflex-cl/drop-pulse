@@ -17,8 +17,8 @@ for (const name of Object.keys(schema.$defs)) {
 }
 const catalog = read("tools.json");
 const generated = new Map();
-assert.equal(catalog.tools.length, 10);
-assert.equal(new Set(catalog.tools.map((tool) => tool.name)).size, 10);
+assert.equal(catalog.tools.length, 9);
+assert.equal(new Set(catalog.tools.map((tool) => tool.name)).size, 9);
 for (const tool of catalog.tools) {
   assert.equal(tool.input_schema, `schemas.json#/$defs/${tool.name}Input`);
   assert.equal(tool.output_schema, `schemas.json#/$defs/${tool.name}Output`);

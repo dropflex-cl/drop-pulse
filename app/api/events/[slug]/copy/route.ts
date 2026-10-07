@@ -5,7 +5,7 @@ import { errorResponse, json, ProductApiError } from "@/lib/products/http";
 import { getProductRow } from "@/lib/products/store";
 import { NextResponse } from "next/server";
 
-// Lectura, revisión y descarte de textos conservados. POST verifica permisos y devuelve 410.
+// Lectura, revisión y descarte de textos guardados desde el chat.
 
 async function owned(userId: string, productId: unknown): Promise<string> {
   if (typeof productId !== "string" || !(await getProductRow(userId, productId))) throw new ProductApiError("No encontramos ese producto.", 404);
@@ -25,17 +25,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     return NextResponse.json({ copy: await view(userId, productId, event.id) });
   } catch (e) {
     return errorResponse(e, "No pudimos leer los textos del evento.");
-  }
-}
-
-export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
-  try {
-    const { slug } = await params;
-    const { userId } = await eventRequest(slug);
-    await owned(userId, (await json<{ productId: string }>(req)).productId);
-    throw new ProductApiError("Prepara los textos del evento en el chat. La redacción automática se retiró; puedes revisar los textos guardados.", 410);
-  } catch (e) {
-    return errorResponse(e, "No pudimos comprobar el acceso a los textos del evento.");
   }
 }
 

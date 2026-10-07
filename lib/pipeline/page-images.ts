@@ -3,8 +3,7 @@ import { renderBaseId } from "@/lib/products/render-context";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
 import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { failure, recordAiGeneration } from "@/lib/ai/track";
-import { stampKey, type BriefStampEntry } from "@/lib/angles/approved";
-import { approvedAngles, fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
 import type { ImageProvider } from "@/lib/image-provider";
@@ -16,13 +15,13 @@ import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import type { Market } from "@/lib/market";
 import { optimizeImage } from "@/lib/media/optimize";
 import { COVER, DAILY_IMAGES, GALLERY, GALLERY_MAX, GIFS, GIF_MAX, GIF_MAX_UPLOAD_BYTES, GIF_MAX_WIDTH, GIF_MIN_SIDE, MAX_OPTIONS_PER_SLOT, ORDERED, autoShotIds, slotKind } from "@/lib/page-images/catalog";
-import { PAGE_QA_SYSTEM, pageQaFacts, pageQaTexts } from "@/lib/page-images/prompts";
+import { PAGE_QA_SYSTEM, pageQaTexts } from "@/lib/page-images/prompts";
 import { pageRenderRequest } from "@/lib/page-images/render";
 import { pageQaSchema, pageQaVerdict, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
 import { PAGE_MEDIA_BUCKET, activeShots, getPageImageRow, getShotRow, isRecoverable, purgeDiscardedPageImages, type PageImageRow, type ShotRow } from "@/lib/page-images/store";
 import { ProductApiError } from "@/lib/products/http";
 import { download as downloadFromLink } from "@/lib/products/images";
-import { imageQaEnabled, latestBrief, listImageRows } from "@/lib/products/store";
+import { imageQaEnabled, listImageRows } from "@/lib/products/store";
 import { randomUUID } from "node:crypto";
 import "server-only";
 import sharp from "sharp";
@@ -64,9 +63,6 @@ async function inBatches<T>(items: T[], n: number, fn: (item: T) => Promise<void
 
 type RunInput = {
   market: Market;
-  avatar_id: string;
-  /** Los desarrollos aprobados con que se hizo (en orden de slot); las corridas de antes guardaban { primary, secondary }. */
-  briefs: BriefStampEntry[] | Record<string, string>;
   /** Con qué se generan las tomas de la corrida (las de antes no lo guardan: Higgsfield). */
   provider?: ImageProvider;
 };
@@ -78,15 +74,6 @@ export async function generationBlocker(userId: string, productId: string): Prom
   }
   return null;
 }
-
-/** Los desarrollos aprobados hoy («id1,id2,id3»): si cambian, la galería quedó desactualizada. */
-export async function approvedBriefStamp(userId: string, productId: string): Promise<string | null> {
-  const briefs = await approvedAngles(userId, productId);
-  return briefs ? briefs.map((b) => b.brief.id).join(",") : null;
-}
-
-/** La huella guardada en una corrida, en el mismo formato que approvedBriefStamp. */
-export const briefStampOf = (v: unknown): string | null => stampKey(v);
 
 // ---------------------------------------------------------------- 2. Render
 
@@ -408,15 +395,15 @@ async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise
 // ---------------------------------------------------------------- 3. QA
 
 async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> {
-  const [[base], brief, shot] = await Promise.all([productImageUrls(a.user_id, a.product_id, 1, a.pi_base_reference_id), latestBrief(a.user_id, a.product_id),
+  const [[base], shot] = await Promise.all([productImageUrls(a.user_id, a.product_id, 1, a.pi_base_reference_id),
     a.shot_id ? adminClient().from("page_image_shots").select("run_id").eq("id", a.shot_id).eq("user_id", a.user_id).maybeSingle() : Promise.resolve({ data: null, error: null })]);
   fail("Leer la toma para QA", shot.error);
   const run = shot.data ? await adminClient().from("page_image_runs").select("input").eq("id", shot.data.run_id).eq("user_id", a.user_id).single() : null;
   if (run) fail("Leer los hechos para QA", run.error);
   const input = run?.data?.input as { source?: string; verified_facts?: { statement: string; value: unknown }[] } | undefined;
   const canonical = input?.source === "mcp_chat";
-  if (!base || (!canonical && !brief)) throw new Error("sin imagen base o sin contexto del producto");
-  const factText = canonical ? ["HECHOS VERIFICADOS", ...(input?.verified_facts ?? []).map(f => `${f.statement}: ${JSON.stringify(f.value)}`)].join("\n") : pageQaFacts(brief!);
+  if (!base) throw new Error("sin imagen base");
+  const factText = canonical ? ["HECHOS VERIFICADOS", ...(input?.verified_facts ?? []).map(f => `${f.statement}: ${JSON.stringify(f.value)}`)].join("\n") : "Sin hechos verificados para esta toma histórica. Compara únicamente el producto con la foto base y los textos pedidos; no infieras funciones ni accesorios.";
   const detail = await imageDetail(a);
   let result;
   try {

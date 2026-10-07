@@ -129,7 +129,7 @@ export async function deleteProducts(userId: string, productIds: string[]): Prom
       // ai_generations tiene "on delete set null": se borra antes para no dejar filas sueltas.
       const gen = await db.from("ai_generations").delete().eq("user_id", userId).eq("product_id", id);
       if (gen.error) throw new Error(`Borrar generaciones de ${id}: ${gen.error.message}`);
-      // La cascada se lleva product_reference_images, pipeline_runs, product_briefs, customer_avatars,
+      // La cascada se lleva product_reference_images, product_intelligence y sus entidades/operaciones,
       // product_pricing, pack_labels, review_sources, review_imports, product_reviews y todo lo de
       // anuncios (ad_media, ad_campaigns → ad_sets, ads, métricas, decisiones y cambios) y los de
       // Creativos (creative_runs → creative_concepts → creative_assets) y los videos UGC

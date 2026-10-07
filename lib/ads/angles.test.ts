@@ -2,12 +2,8 @@ import { describe, expect, it } from "vitest";
 import { draftAngles } from "./angles";
 
 const stamp = [{ id: "b1", edited_at: null }, { id: "b2", edited_at: null }];
-const since = new Map([
-  [1, "2026-09-25T10:00:00Z"],
-  [2, "2026-09-25T10:00:00Z"],
-]);
 const texts = ["uno", "dos"];
-const current = { stamp, primaryTexts: texts, since };
+const current = { stamp, primaryTexts: texts, strategyId: "s1" };
 const m = (id: string, angle_slot: number | null, created_at: string) => ({ id, angle_slot, created_at, status: "ready" });
 
 describe("draftAngles", () => {
@@ -30,9 +26,13 @@ describe("draftAngles", () => {
   });
 
   it("creativos de un ángulo anterior y los nuevos que faltan; los subidos a mano no cuentan", () => {
-    const media = [m("viejo", 1, "2026-09-20T00:00:00Z"), m("nuevo", 2, "2026-09-25T11:00:00Z"), m("mano", null, "2026-09-01T00:00:00Z"), m("sin-slot", 3, "2026-09-26T00:00:00Z")];
+    const media = [{ ...m("viejo", 1, "2026-09-20T00:00:00Z"), content_provenance: { strategy_id: "s0", angle_id: "b1" } }, { ...m("nuevo", 2, "2026-09-25T11:00:00Z"), ugc_provenance: { strategy_id: "s1", angle_id: "b2" } }, m("mano", null, "2026-09-01T00:00:00Z"), { ...m("sin-slot", 3, "2026-09-26T00:00:00Z"), content_provenance: { strategy_id: "s1", angle_id: "b3" } }];
     const d = draftAngles({ stamp, primaryTexts: texts, creatives: ["viejo", "mano", "sin-slot"] }, current, media);
     expect(d).toEqual({ stale: true, oldCreatives: ["viejo", "sin-slot"], newCreatives: ["nuevo"] });
+  });
+
+  it("no atribuye piezas históricas sin provenance aunque tengan slot y fecha", () => {
+    expect(draftAngles({ stamp, primaryTexts: texts, creatives: ["histórico"] }, current, [m("histórico", 1, "2020-01-01T00:00:00Z")])).toEqual({ stale: false, oldCreatives: [], newCreatives: [] });
   });
 
   it("borrador de antes de la huella: se compara por los textos", () => {

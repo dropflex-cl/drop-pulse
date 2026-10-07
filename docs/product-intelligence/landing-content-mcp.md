@@ -83,7 +83,7 @@ Los nombres de futuros contratos son propuestas de alcance, no tools anunciadas.
 
 ## Puesta en marcha y rollback
 
-Solo local. Aplicar OAuth → contexto → conocimiento → landing **antes** de este código, incluso si el MCP está apagado: el loader UI del contenido de chat usa la RPC nueva. No hubo deploy ni cambios de producción. El runtime anuncia nueve tools disponibles y conserva tres contratos de ejecución/status aún cerrados. El antiguo `generate_landing` con etapa de escritura ya no es la dirección objetivo; debe ajustarse a acciones de imágenes cuando se implemente.
+Las migraciones de landing están aplicadas en producción; aceptación hosted pendiente. Runtime y contratos derivados actuales tienen 29 tools. Para rollout/rollback consultar [runbook vigente](migration-and-rollback.md); el contrato anterior de generación se eliminó.
 
 Rollback de código: volver al handler/loader de siete tools y UI compatible anterior; conservar filas, receipts, funciones e historial. No hacer DROP ni reset de datos. Restituir una versión anterior de un componente sigue el mecanismo actual de supersession. Los restores legacy se hacen en varios pasos; migrarlos a un comando atómico con CAS sigue pendiente. El guard de edición evita aprobar/editar una fila ya reemplazada.
 

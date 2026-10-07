@@ -1,3 +1,5 @@
+> Documento de diseño y decisiones anteriores. El estado implementado, contrato y pendientes vigentes se consolidan en [estado](implementation-status.md), [contratos](mcp-contracts.md) y [backlog](implementation-backlog.md). No interpretar capacidades propuestas ni conteos de una entrega anterior como runtime actual.
+
 # Cambio de autenticación MCP
 
 Estado: autorizado, implementado y probado localmente. Fecha: 2026-10-06. Decisión técnica: [ADR 008](adrs/008-supabase-oauth-isolation.md).

@@ -1,4 +1,3 @@
-import { retiredProductWriter } from "@/lib/products/retired-writer";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 import { createContextRepository } from "@/lib/product-intelligence/repository";
 import { reviewUsageTip } from "@/lib/product-intelligence/content-service";
@@ -7,7 +6,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 
-export const POST = retiredProductWriter("Prepara el consejo de uso en el chat. La redacción automática se retiró.");
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

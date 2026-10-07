@@ -60,14 +60,13 @@ export function fixture(requested: string): ProductCopy {
         : withPage
           ? { id: "r1", status: "succeeded", createdAt: NOW }
           : undefined;
-  const brief = (slot: number, status: ContentStatus) => ({ slot, name: ["", "La crema sella", "Tengo 38", "Lleva 3"][slot], status, generation: "succeeded" as const });
   const locked = state === "locked";
   const pos = productPosition({
     price: 24990,
     currency: "CLP",
     base: { described: true, priced: true },
     reviews: { pending: 0, approved: 6, total: 6 },
-    angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [brief(1, "aprobado"), brief(2, locked ? "revision" : "aprobado")] },
+    intelligence: { selected: !locked, ready: !locked },
     copy: run ? { run: { status: run.status, error: run.error }, progress: copyProgress(list) } : null,
     // Imágenes va antes de la página: con los ángulos listos, la galería ya está elegida.
     images: locked ? null : { running: false, rendering: 0, options: 8, cover: true, gallery: 5 },
@@ -105,6 +104,6 @@ export function fixture(requested: string): ProductCopy {
       reviews: FIXTURE_FACTS.reviews.map((r, i) => ({ ...r, photos: Array.from({ length: [1, 3, 2, 1, 0, 1][i] ?? 1 }, (_, k) => productImage(i + k, (i + k) % 4)) })),
     },
     stale: state === "stale" || requested === "context",
-    staleReasons: state === "stale" ? ["angles"] : requested === "context" ? ["angles", "differentiator", "prompt"] : [],
+    staleReasons: state === "stale" ? ["product_context"] : requested === "context" ? ["product_context"] : [],
   };
 }

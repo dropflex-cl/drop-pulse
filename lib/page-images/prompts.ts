@@ -1,6 +1,5 @@
 // Prompts de la revisión opcional de imágenes; el director de galería está retirado.
 
-import type { ProductBrief } from "@/lib/ai/schemas";
 import type { ShotText } from "./schemas";
 
 export const PAGE_QA_SYSTEM = [
@@ -14,11 +13,6 @@ export const PAGE_QA_SYSTEM = [
   "- anatomy_ok false si hay manos, dedos o pies deformes.",
   "- Sé estricto y breve, en español: una frase por problema, para el comerciante.",
 ].join("\n");
-
-/** Lo fijo de un producto (va antes de la imagen generada, en la caché: se repite en cada QA). */
-export function pageQaFacts(brief: ProductBrief): string {
-  return ["FICHA", JSON.stringify(brief)].join("\n");
-}
 
 /** Lo propio de cada imagen: los textos que se pidieron. */
 export function pageQaTexts(texts: ShotText[]): string {

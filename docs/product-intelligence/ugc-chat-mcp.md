@@ -28,7 +28,7 @@ Implementación en código y Supabase local. Por autorización posterior, el com
 
 Un [ejemplo completo de guion y plan](contracts/ugc.example.json) contiene datos ficticios y requiere sustituir IDs/revisión/etags por los leídos de las tools.
 
-Los schemas publicados salen de `lib/product-intelligence/ugc-schemas.ts` y `schemas.ts`. Hay 16 tools habilitadas en runtime; el catálogo de contratos tiene 17 porque conserva `generate_landing` fuera del runtime. El catálogo histórico `contracts/tools.json` continúa siendo un diseño de diez tools, no discovery del host.
+Los schemas publicados salen de `lib/product-intelligence/ugc-schemas.ts` y `schemas.ts`. El runtime y catálogo derivado actuales tienen 29 tools; el contrato retirado ya no existe. `contracts/tools.json` conserva el subconjunto histórico de nueve tools aún vigentes, no discovery del host.
 
 Un guion/plan del chat admite hasta 20 KiB. La lectura resumida pagina 12 ejecuciones por defecto, hasta 24; `script_id` recupera detalle. Se permiten 24 guiones activos del chat por producto. El cupo de render conserva 60 imágenes y 40 clips por comerciante en 24 horas, reservado bajo bloqueo compartido entre productos. Los costos de Higgsfield son estimaciones, no facturas del proveedor.
 

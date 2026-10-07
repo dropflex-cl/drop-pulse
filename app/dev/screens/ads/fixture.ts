@@ -38,7 +38,7 @@ export function fixture(state: string): ProductAds {
     price: 24990,
     currency: "CLP",
     base: { described: true, priced: true },
-    angles: { ranking: { status: "succeeded", confirmed: true }, briefs: [] },
+    intelligence: { selected: true, ready: true },
     copy: { run: { status: "succeeded" }, progress: pageDone ? { ...copyProgress([]), complete: true } : copyProgress([]) },
     ads: { metaReady: state !== "meta", campaigns: 0, launching: state === "launching" },
   });

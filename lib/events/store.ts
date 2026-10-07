@@ -1,7 +1,7 @@
 // Eventos en Supabase (docs/spec-eventos.md): el calendario, lo que activa cada comerciante, los
 // textos del evento por producto (IA) y su publicación en el metafield dropflex.event.
 // Escrituras con service_role, siempre filtradas por el usuario.
-import { fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import { adminClient } from "@/lib/integrations/admin";
 import { type ShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { ProductApiError } from "@/lib/products/http";

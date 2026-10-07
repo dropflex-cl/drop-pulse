@@ -1,22 +1,18 @@
-> Actualización 2026-10-06: las seis migraciones PI ya están aplicadas en producción por autorización explícita posterior. [Registro y verificación](production-migrations-2026-10-06.md). Las afirmaciones de “solo local/readonly” debajo describen las entregas anteriores; no el estado actual de la base. Configuración hosted de OAuth/MCP y actualización del tema conservan sus verificaciones pendientes.
-
-> Estado actual: aplicar las cinco migraciones PI, incluyendo `20261105000000_product_intelligence_landing.sql` y `20261106000000_product_intelligence_pack_labels.sql`, antes del código. Runtime anuncia once tools persistentes. Producción continúa readonly; este runbook no autoriza desplegar/configurar producción.
-
 # Verificación y activación OAuth MCP
 
-Estado: local comprobado; piloto no activado. Producción sigue en solo lectura.
+Estado: OAuth local comprobado; aceptación ChatGPT hosted pendiente. Las 52 migraciones PI hasta 20261117000000 están en producción; limpieza posterior solo local. [Estado vigente](implementation-status.md), [orden de limpieza](migration-and-rollback.md).
 
 ## Desarrollo local
 
 Aplicar las migraciones locales sin reset: `supabase migration up --local`. `supabase/config.toml` habilita el servidor OAuth y `pi_custom_access_token_hook` solo en el runtime local. La migración usa las tablas nativas Auth de la versión probada. No ejecutar `db push`, `config push` ni comandos remotos para estas pruebas.
 
-Preview: `MCP_ENABLED=true MCP_RESOURCE_URL=http://localhost:3000/api/mcp npm run dev -- --webpack`. `.env.local` debe apuntar a `http://127.0.0.1:55321` y APP_URL a `http://localhost:3000`. El estado habitual sin MCP_ENABLED=true oculta el enlace y devuelve 404 en MCP/metadata. Configurado, publica las siete tools persistentes de contexto/conocimiento/estrategia. Aplicar antes las migraciones OAuth, contexto y conocimiento; la calculadora UI también depende de la RPC de contexto. Las tools pendientes no se anuncian ni ejecutan generación.
+Preview: `MCP_ENABLED=true MCP_RESOURCE_URL=http://localhost:3000/api/mcp npm run dev -- --webpack`. `.env.local` debe apuntar a `http://127.0.0.1:55321` y APP_URL a `http://localhost:3000`. El estado habitual sin MCP_ENABLED=true oculta el enlace y devuelve 404 en MCP/metadata. Configurado, publica las 29 tools vigentes, incluidas ingestión, UGC y galería. Aplicar las migraciones aditivas antes de esos servicios; la contracción 20261118000000 exige desplegar primero lectores compatibles. La calculadora UI comparte la RPC de contexto.
 
 Pruebas repetibles, con runtime local ya iniciado:
 
 ```sh
 node --env-file=.env.local --import tsx scripts/pi-oauth-local.ts
-node --env-file=.env.local --import tsx scripts/pi-oauth-ui-local.ts
+node --conditions=react-server --env-file=.env.local --import tsx scripts/pi-oauth-ui-local.ts
 ```
 
 La segunda requiere preview en puerto 3000. Ambas se niegan a escribir si Supabase URL no es exactamente la local; crean usuarios/clientes ficticios y solo borran los que crearon. No imprimen claves, JWT ni refresh tokens. La segunda deja capturas en `/private/tmp/pi-oauth-consent-<ancho>-<tema>.png`. El servidor Next puede registrar URLs de callback local; los códigos de prueba se consumen y se revocan, y esos logs no se deben publicar.

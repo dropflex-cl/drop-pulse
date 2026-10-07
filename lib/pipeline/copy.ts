@@ -1,4 +1,4 @@
-import { fail } from "@/lib/angles/store";
+import { fail } from "@/lib/products/database";
 import { catalogImages } from "@/lib/copy/images";
 import { LISTING } from "@/lib/copy/listing";
 import { schemaProblems } from "@/lib/copy/page-schema";

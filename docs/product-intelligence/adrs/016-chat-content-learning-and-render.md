@@ -1,3 +1,5 @@
+> La compatibilidad de endpoints 410 y del contrato cerrado de landing se sustituye por [ADR 017](017-remove-retired-analysis.md). Consultar [estado vigente](../implementation-status.md).
+
 # ADR 016 — Ingestión completa, aprendizaje medido y render de galería
 
 Estado: implementado y verificado localmente; commit/push y SQL productivo comprobados ([registro](../production-content-migrations-2026-10-06.md)). App y host remoto pendientes de verificación. Complementa ADR 014/015.

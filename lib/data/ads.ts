@@ -80,7 +80,7 @@ export async function adsState(uid: string, row: ProductRow, copyDone: boolean |
       ? null
       : draftAngles(
           draft ? { stamp: draft.angles_stamp ?? null, primaryTexts: draft.launch.primary_texts ?? [], creatives: draft.launch.creatives ?? [] } : null,
-          { stamp: ctx.anglesStamp, primaryTexts: ctx.texts.primary_texts, since: ctx.angleSince },
+          { stamp: ctx.anglesStamp, primaryTexts: ctx.texts.primary_texts, strategyId: ctx.strategyId },
           media,
         ),
     source: sourceCampaignId ? (campaigns.find((c) => c.id === sourceCampaignId)?.name ?? null) : null,

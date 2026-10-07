@@ -8,12 +8,11 @@ import { STRATEGY_STAGE_TITLE } from "@/lib/products/stages";
 import { productHref } from "@/lib/routes";
 import type { ProductStrategy } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { StrategyReport } from "./strategy-report";
 
 /** Estrategia escrita y seleccionada desde el chat; el informe anterior queda solo para consulta. */
 export function StrategyScreen({ data }: { data: ProductStrategy }) {
   const router = useRouter();
-  const { product, strategy, selection, chosen } = data;
+  const { product, selection, chosen } = data;
   const angles = selection?.snapshot.angles;
   return (
     <div className="flex flex-col lg:min-h-svh">
@@ -30,9 +29,8 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
             {selection.readiness.stale || selection.readiness.needs_review ? <Notice title="Revisa la estrategia en el chat" body="Cambió el contexto o la evidencia. Recupera la selección y resuelve lo pendiente antes de generar contenido." /> : null}
             {angles?.map((angle) => <article key={angle.id} className="flex flex-col gap-1 rounded-md bg-muted p-3"><h3 className="text-label">{angle.name}</h3><p className="text-body">{angle.hook}</p><p className="text-caption text-muted-foreground">{angle.promise}</p></article>)}
           </section>
-        ) : <EmptyState icon="text" title="Prepara tu estrategia en el chat" body="Cuando guardes la selección, podrás consultarla aquí. El informe anterior conserva su contenido para revisión." />}
+        ) : <EmptyState icon="text" title="Prepara tu estrategia en el chat" body="Cuando guardes la selección, podrás consultarla aquí. Consulta aquí los ángulos y el motivo de la selección." />}
         {chosen.length && !selection ? <section className="flex flex-col gap-3 rounded-lg border bg-card p-4" aria-label="Ángulos conservados">{chosen.map((angle) => <article key={angle.slot}><h3 className="text-label">{angle.title}</h3><p className="text-body">{angle.hook}</p></article>)}</section> : null}
-        {strategy?.report ? <details className="rounded-lg border bg-card p-4"><summary className="min-h-touch cursor-pointer text-label">Consultar informe anterior</summary><StrategyReport text={strategy.report} /></details> : null}
       </div>
       <StickyActions variant="bar" summary="El análisis y la selección se guardan desde el chat.">
         <Button icon="refresh" onClick={() => router.refresh()}>Actualizar</Button>

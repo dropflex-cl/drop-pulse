@@ -1,11 +1,9 @@
 import "server-only";
-import { differentiatorSchema, type Differentiator, type ProductBrief } from "@/lib/ai/schemas";
+import { differentiatorSchema, type Differentiator } from "@/lib/ai/schemas";
 import { adminClient } from "@/lib/integrations/admin";
-import { latestBrief } from "@/lib/products/store";
 import type { DifferentiatorView } from "@/lib/types";
 
-// El diferenciador del producto: lo propone la estrategia (product_briefs.payload.differentiator) y el
-// comerciante lo confirma o edita en Información base (products.differentiator). Lo confirmado manda.
+// Diferenciador confirmado por el comerciante, sin fallback a análisis retirados.
 
 function fail(what: string, error: { message: string } | null) {
   if (error) throw new Error(`${what}: ${error.message}`);
@@ -24,17 +22,9 @@ export async function confirmedDifferentiator(userId: string, productId: string)
   return parseDifferentiator(data?.differentiator);
 }
 
-/** Lo confirmado manda; si no hay, vale la propuesta de la ficha. */
-export function differentiatorState(confirmed: Differentiator | null, brief: Pick<ProductBrief, "differentiator"> | null): DifferentiatorView {
-  const proposed = parseDifferentiator(brief?.differentiator);
-  // Una ficha escrita antes del diferenciador no trae la clave: la IA nunca lo buscó (≠ null, «no se sostiene»).
-  const oldBrief = brief !== null && brief.differentiator === undefined;
-  return { value: confirmed ?? proposed, confirmed: confirmed !== null, proposed, oldBrief };
-}
-
 export async function getDifferentiator(userId: string, productId: string): Promise<DifferentiatorView> {
-  const [confirmed, brief] = await Promise.all([confirmedDifferentiator(userId, productId), latestBrief(userId, productId)]);
-  return differentiatorState(confirmed, brief);
+  const value = await confirmedDifferentiator(userId, productId);
+  return { value, confirmed: value !== null, proposed: null, oldBrief: false };
 }
 
 export async function saveDifferentiator(userId: string, productId: string, d: Differentiator): Promise<void> {

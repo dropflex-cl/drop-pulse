@@ -949,44 +949,6 @@
       }
     },
     {
-      "name": "landing-images",
-      "tool": "generate_landing",
-      "payload": {
-        "product_id": "00000000-0000-0000-0000-000000000001",
-        "schema_version": "1.0",
-        "expected_revision": 5,
-        "idempotency_key": "landing-images-0001",
-        "stage": "images",
-        "strategy_id": "00000000-0000-0000-0000-000000000032",
-        "provider": "gemini",
-        "plans": [
-          {
-            "slot": "cover",
-            "position": 1,
-            "prompt": "Mostrar el organizador de la imagen base en una mesa. Conservar la forma real del producto.",
-            "fact_ids": [
-              "00000000-0000-0000-0000-00000000000b"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "landing-content",
-      "tool": "generate_landing",
-      "payload": {
-        "product_id": "00000000-0000-0000-0000-000000000001",
-        "schema_version": "1.0",
-        "expected_revision": 5,
-        "idempotency_key": "landing-content-0001",
-        "stage": "content",
-        "strategy_id": "00000000-0000-0000-0000-000000000032",
-        "target": {
-          "mode": "missing"
-        }
-      }
-    },
-    {
       "name": "status-pure",
       "tool": "get_generation_status",
       "payload": {
@@ -1876,44 +1838,6 @@
       }
     },
     {
-      "name": "landing-queued",
-      "tool": "generate_landing",
-      "payload": {
-        "ok": true,
-        "product_id": "00000000-0000-0000-0000-000000000001",
-        "revision": 5,
-        "request_id": "00000000-0000-0000-0000-00000000006d",
-        "data": {
-          "operation_id": "00000000-0000-0000-0000-000000000046",
-          "kind": "landing",
-          "stage": "content",
-          "status": "queued",
-          "status_revision": 1,
-          "strategy_id": "00000000-0000-0000-0000-000000000032",
-          "analysis_revision": 4,
-          "request_revision": 5,
-          "input_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "created_at": "2026-10-06T15:00:00Z",
-          "updated_at": "2026-10-06T15:00:00Z",
-          "outputs": [],
-          "cost": {
-            "recorded_usd": null,
-            "estimated_usd": null,
-            "is_estimate": true,
-            "as_of": "2026-10-06T15:00:00Z"
-          },
-          "requires_review": true,
-          "context_stale": false,
-          "needs_review": false,
-          "next_actions": [],
-          "failure": null,
-          "next_cursor": null,
-          "truncated": false
-        },
-        "warnings": []
-      }
-    },
-    {
       "name": "script-complete-awaits-review",
       "tool": "get_generation_status",
       "payload": {
@@ -2400,23 +2324,6 @@
             "missing_fields": [
               "keyframes.approved"
             ]
-          }
-        }
-      }
-    },
-    {
-      "name": "error-provider_reconciliation_required",
-      "tool": "generate_landing",
-      "payload": {
-        "ok": false,
-        "request_id": "00000000-0000-0000-0000-000000000203",
-        "error": {
-          "code": "PROVIDER_RECONCILIATION_REQUIRED",
-          "message": "No se pudo completar la operación.",
-          "retryable": false,
-          "details": {
-            "operation_id": "00000000-0000-0000-0000-000000000046",
-            "next_action": "Consulta el estado mientras el worker concilia el request."
           }
         }
       }
@@ -6067,30 +5974,6 @@
       }
     },
     {
-      "name": "provider-url-injection",
-      "tool": "generate_landing",
-      "payload": {
-        "product_id": "00000000-0000-0000-0000-000000000001",
-        "schema_version": "1.0",
-        "expected_revision": 5,
-        "idempotency_key": "landing-images-0001",
-        "stage": "images",
-        "strategy_id": "00000000-0000-0000-0000-000000000032",
-        "provider": "gemini",
-        "plans": [
-          {
-            "slot": "cover",
-            "position": 1,
-            "prompt": "Mostrar el organizador de la imagen base en una mesa. Conservar la forma real del producto.",
-            "fact_ids": [
-              "00000000-0000-0000-0000-00000000000b"
-            ]
-          }
-        ],
-        "provider_url": "https://evil.example"
-      }
-    },
-    {
       "name": "context-empty",
       "tool": "save_product_context",
       "payload": {
@@ -6109,20 +5992,6 @@
           "sale_price_minor": 29990,
           "compare_at_price_minor": 44990,
           "extra_unit_discount": 50
-        }
-      }
-    },
-    {
-      "name": "generation-no-strategy",
-      "tool": "generate_landing",
-      "payload": {
-        "product_id": "00000000-0000-0000-0000-000000000001",
-        "schema_version": "1.0",
-        "expected_revision": 5,
-        "idempotency_key": "landing-content-0001",
-        "stage": "content",
-        "target": {
-          "mode": "missing"
         }
       }
     },

@@ -1,3 +1,5 @@
+> La compatibilidad de endpoints 410 y del contrato cerrado de landing se sustituye por [ADR 017](017-remove-retired-analysis.md). Consultar [estado vigente](../implementation-status.md).
+
 # ADR 015: retirar la redacción pagada del servidor
 
 Estado: aceptado e implementado localmente, 2026-10-06.

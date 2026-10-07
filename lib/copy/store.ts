@@ -1,6 +1,6 @@
 import "server-only";
-import { stampChanged, type BriefStampEntry } from "@/lib/angles/approved";
-import { fail } from "@/lib/angles/store";
+import { type BriefStampEntry } from "@/lib/angles/approved";
+import { fail } from "@/lib/products/database";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { ImagePick, PageComponentView, RunStatus } from "@/lib/types";
@@ -81,14 +81,6 @@ export async function latestCopyRuns(userId: string, productIds: string[]): Prom
 export type CopyRunState = Pick<CopyRunRow, "product_id" | "status" | "error_message" | "input">;
 export type ComponentState = Pick<PageComponentRow, "product_id" | "component" | "status" | "enabled">;
 
-/** El `input` de las escrituras que dejaron la página actual (una por run_id de sus componentes). */
-export async function copyRunInputs(userId: string, runIds: string[]): Promise<CopyRunRow["input"][]> {
-  if (!runIds.length) return [];
-  const { data, error } = await adminClient().from("copy_runs").select("input").eq("user_id", userId).in("id", runIds);
-  fail("Leer las escrituras", error);
-  return ((data ?? []) as Pick<CopyRunRow, "input">[]).map((r) => r.input);
-}
-
 /** Como latestCopyRuns, con solo los desarrollos usados de `input`: para la posición en la ruta. */
 export async function latestCopyRunStates(userId: string, productIds: string[]): Promise<Map<string, CopyRunState>> {
   if (!productIds.length) return new Map();
@@ -153,12 +145,6 @@ export async function getComponentRow(userId: string, productId: string, compone
 
 /** La versión vigente de un componente: la del comerciante si la editó, si no la propuesta. */
 export const currentContent = (r: Pick<PageComponentRow, "content" | "proposal">): unknown => r.content ?? r.proposal;
-
-/** Los desarrollos cambiaron (otro, editado o un ángulo más) después de escribir la página. `current`: los aprobados hoy, en orden de slot. */
-export function isStale(run: Pick<CopyRunRow, "input"> | undefined, current: BriefStampEntry[]): boolean {
-  if (run?.input.source === "mcp_chat") return false;
-  return stampChanged(run?.input.briefs, current);
-}
 
 export function toComponentViews(rows: PageComponentRow[]): PageComponentView[] {
   return rows.map((r) => ({

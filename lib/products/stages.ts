@@ -1,6 +1,5 @@
 // Dónde está un producto en su ruta, derivado de lo que hay en la base: los datos del producto y el
-// precio (Información base), las reseñas (opcional), la estrategia (la corrida del mega prompt y los
-// ángulos elegidos) y la página del producto (Textos). Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
+// precio (Información base), las reseñas (opcional), la selección canónica y la página del producto. Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
 // Textos de design-system/reference/bundle.js (PP_STAGES, RV_STAGES y ANG_STAGES).
 
 import type { MeterStage } from "@/components/df/stage-meter";
@@ -8,14 +7,6 @@ import { enabledLabel, type CopyProgress } from "@/lib/copy/progress";
 import { money } from "@/lib/format";
 import { GALLERY_MIN } from "@/lib/page-images/catalog";
 import type { ContentStatus, ProductFilter, RunStatus, Stage, StageKey } from "@/lib/types";
-
-export interface AngleFacts {
-  /** La evaluación más reciente del orquestador. */
-  /** `chosen`: cuántos ángulos se eligieron para testear (2 o 3; 0 sin confirmar). */
-  ranking: { status: RunStatus; error?: string | null; confirmed: boolean; chosen?: number } | null;
-  /** Los desarrollos vigentes de la elección confirmada, en orden de slot. */
-  briefs: { slot: number; name: string; status: ContentStatus; generation: RunStatus; error?: string | null }[];
-}
 
 export interface CopyFacts {
   fromChat?: boolean;
@@ -31,22 +22,12 @@ export interface PublishFacts {
   error?: string | null;
 }
 
-/** La corrida más reciente de la estrategia (strategy_runs). */
-export interface StrategyFacts {
-  status: RunStatus;
-  error?: string | null;
-  confirmed: boolean;
-}
-
 export interface ProductFacts {
   price: number;
   currency: string;
   /** Información base: los datos del producto identificados y el precio guardado. */
   base?: { described: boolean; priced: boolean } | null;
-  strategy?: StrategyFacts | null;
   intelligence?: { selected: boolean; ready: boolean };
-  /** Los ángulos elegidos y sus desarrollos (los escribe la estrategia al confirmar, o el flujo de antes). */
-  angles?: AngleFacts | null;
   copy?: CopyFacts | null;
   /** Reseñas importadas (etapa opcional): nunca bloquean ni se bloquean. */
   reviews?: ReviewFacts | null;
@@ -110,7 +91,7 @@ export interface ReviewFacts {
 }
 
 export type BasePhase = "new" | "done";
-export type AnglesPhase = "locked" | "new" | "evaluating" | "failed" | "choose" | "done";
+export type AnglesPhase = "locked" | "new" | "choose" | "done";
 export type CopyPhase = "locked" | "new" | "writing" | "failed" | "review" | "done";
 
 /** Nombre de la etapa Textos para el comerciante: escribe la página del producto, no el anuncio. */
@@ -133,35 +114,15 @@ export interface ProductPosition {
 
 const active = (s?: RunStatus) => s === "queued" || s === "running";
 
-/** Los ángulos elegidos (2 o 3) con sus desarrollos aprobados: lo que habilita Imágenes, Página y Creativos. */
-export function anglesReady(a: AngleFacts | null | undefined): boolean {
-  const r = a?.ranking;
-  if (!r?.confirmed || r.status !== "succeeded") return false;
-  const briefs = a?.briefs ?? [];
-  return briefs.length >= Math.max(2, r.chosen ?? 2) && briefs.every((b) => b.generation === "succeeded" && b.status === "aprobado");
-}
-
-/**
- * Información base está lista con los datos del producto y el precio. Un producto trabajado con el flujo
- * de antes (sin datos del producto) que ya tiene sus ángulos listos también cuenta como listo.
- */
+/** Contexto y precio explícitos: los análisis retirados no desbloquean etapas. */
 export function basePhase(f: ProductFacts): BasePhase {
-  if (f.base?.priced && (f.base.described || anglesReady(f.angles))) return "done";
-  return "new";
+  return f.base?.priced && f.base.described ? "done" : "new";
 }
 
-/** La etapa Estrategia se habilita con la información base lista y termina con los ángulos elegidos. */
+/** La selección canónica lista habilita ejecución; seleccionar no demuestra rendimiento. */
 export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): AnglesPhase {
   if (base !== "done") return "locked";
-  if (f.intelligence) return f.intelligence.ready ? "done" : f.intelligence.selected ? "choose" : "new";
-  // Con ángulos listos, la etapa está hecha aunque se esté generando otra estrategia: lo de después sigue.
-  if (anglesReady(f.angles)) return "done";
-  const s = f.strategy;
-  if (!s) return "new";
-  if (active(s.status)) return "evaluating";
-  if (s.status === "failed") return "failed";
-  // Lista: el comerciante elige. Confirmada pero sin ángulos (falló al guardar): se vuelve a elegir.
-  return "choose";
+  return f.intelligence?.ready ? "done" : f.intelligence?.selected ? "choose" : "new";
 }
 
 /**
@@ -214,7 +175,7 @@ function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined, anglesDone:
   }
 }
 
-/** Nombre de la etapa Ángulos (StageKey `angulos`): la estrategia completa del mega prompt. */
+/** Nombre de la etapa Ángulos (StageKey `angulos`): estrategia seleccionada desde el chat. */
 export const STRATEGY_STAGE_TITLE = "Estrategia";
 
 function baseDesc(f: ProductFacts, phase: BasePhase): string {
@@ -227,26 +188,20 @@ function baseDesc(f: ProductFacts, phase: BasePhase): string {
 const ANGLES_STATE: Record<AnglesPhase, Stage["state"]> = {
   locked: "locked",
   new: "current",
-  evaluating: "current",
-  failed: "error",
   choose: "review",
   done: "done",
 };
 
-function anglesDesc(phase: AnglesPhase, f: ProductFacts): string {
+function anglesDesc(phase: AnglesPhase): string {
   switch (phase) {
     case "locked":
       return "Se habilita con los datos del producto y el precio";
     case "new":
       return "Define la estrategia desde el chat";
-    case "evaluating":
-      return "La IA está escribiendo la estrategia";
-    case "failed":
-      return f.strategy?.error ?? "No se pudo generar la estrategia";
     case "choose":
-      return f.intelligence ? "Revisa la estrategia en el chat" : "Estrategia lista · elige 2 o 3 ángulos";
+      return "Revisa la estrategia en el chat";
     case "done":
-      return f.intelligence ? "Estrategia seleccionada" : (f.angles?.briefs ?? []).map((b) => b.name).join(" · ");
+      return "Estrategia seleccionada";
   }
 }
 
@@ -344,7 +299,7 @@ export function productPosition(f: ProductFacts): ProductPosition {
     },
     // Reseñas es opcional: nunca bloquea ni se bloquea (arquitectura.md › 9).
     reviews.stage,
-    { key: "angulos", title: STRATEGY_STAGE_TITLE, state: ANGLES_STATE[angles], desc: anglesDesc(angles, f) },
+    { key: "angulos", title: STRATEGY_STAGE_TITLE, state: ANGLES_STATE[angles], desc: anglesDesc(angles) },
     // Imágenes va antes de la Página del producto: sus componentes usan las imágenes elegidas. El
     // precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
     images.stage,
@@ -366,10 +321,6 @@ export function productPosition(f: ProductFacts): ProductPosition {
   }
 
   switch (angles) {
-    case "evaluating":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Escribiendo la estrategia con IA", nextStage: "angulos", summary: `Escribiendo la estrategia${price}` };
-    case "failed":
-      return { ...common, filter: "detenidos", tone: "danger", reason: "Estrategia: no se pudo · reintenta", nextStage: "angulos", summary: `Estrategia con error${price}`, status: "error" };
     case "choose":
       return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · estrategia", nextStage: "angulos", summary: `Ángulos por elegir${price}`, status: "revision" };
     case "done":

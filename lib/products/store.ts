@@ -1,7 +1,6 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { baseFirst, pickBase } from "./base";
-import { readAvatar, type CustomerAvatar, type ProductBrief } from "@/lib/ai/schemas";
 import type { ContentStatus, ReferenceImage } from "@/lib/types";
 
 // Lecturas y escrituras de productos, imágenes de referencia, corridas y propuestas. Siempre con
@@ -36,8 +35,6 @@ export interface ProductRow {
   image_qa: boolean;
   /** El consejo de uso del mensaje «Entregado» (etapa WhatsApp); null si no se escribió. */
   usage_tip?: import("@/lib/whatsapp/tip").UsageTip | null;
-  /** Datos del producto: el nombre y la descripción que recibe la estrategia; null sin identificar. */
-  product_data?: import("./product-data").ProductData | null;
   created_at: string;
 }
 
@@ -53,15 +50,6 @@ export interface ImageRow {
   /** Elegida por el comerciante como imagen base (una por producto). */
   is_base: boolean;
   excluded: boolean;
-}
-
-export interface AvatarRow {
-  id: string;
-  product_id: string;
-  status: DbContentStatus;
-  payload: CustomerAvatar;
-  edited_at: string | null;
-  created_at: string;
 }
 
 function fail(what: string, error: { message: string } | null) {
@@ -202,55 +190,9 @@ export function toReferenceImage(r: ImageRow, src: string): ReferenceImage {
   return { id: r.id, src, alt: r.alt ?? "", source: r.source, excluded: r.excluded, cover: r.is_cover, base: r.is_base };
 }
 
-// ---------------------------------------------------------------- Ficha y cliente ideal (los escribe la estrategia al confirmar)
-
-/** La propuesta de cliente ideal vigente de cada producto (la más reciente que no se descartó). */
-export async function latestAvatars(userId: string, productIds: string[]): Promise<Map<string, AvatarRow>> {
-  if (!productIds.length) return new Map();
-  const { data, error } = await adminClient()
-    .from("customer_avatars")
-    .select("id, product_id, status, payload, edited_at, created_at")
-    .eq("user_id", userId)
-    .in("product_id", productIds)
-    .neq("status", "rejected")
-    .order("created_at", { ascending: false });
-  fail("Leer los clientes ideales", error);
-  const map = new Map<string, AvatarRow>();
-  for (const r of (data ?? []) as AvatarRow[]) if (!map.has(r.product_id)) map.set(r.product_id, { ...r, payload: readAvatar(r.payload) });
-  return map;
-}
-
-
 /** La fila más reciente de cada producto (las filas vienen ordenadas de la más nueva a la más vieja). */
 export function newestByProduct<T extends { product_id: string }>(rows: T[]): Map<string, T> {
   const map = new Map<string, T>();
   for (const r of rows) if (!map.has(r.product_id)) map.set(r.product_id, r);
   return map;
-}
-
-/** El id de la ficha vigente: la huella con que la Página recuerda de qué ficha se escribió. */
-export async function latestBriefId(userId: string, productId: string): Promise<string | null> {
-  const { data, error } = await adminClient()
-    .from("product_briefs")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("product_id", productId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  fail("Leer la ficha", error);
-  return (data?.id as string | undefined) ?? null;
-}
-
-export async function latestBrief(userId: string, productId: string): Promise<ProductBrief | null> {
-  const { data, error } = await adminClient()
-    .from("product_briefs")
-    .select("payload")
-    .eq("user_id", userId)
-    .eq("product_id", productId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  fail("Leer la ficha", error);
-  return (data?.payload as ProductBrief | undefined) ?? null;
 }
