@@ -28,6 +28,7 @@ export interface DelegatedGrant {
 }
 
 export const toolScopes: Record<ToolName, readonly PiScope[]> = {
+  list_products: ["product_intelligence:read"],
   get_pdp_planning_context: ["product_intelligence:read"], get_component_catalog: ["product_intelligence:read"],
   get_angle_persuasion_plan: ["product_intelligence:read"], validate_angle_persuasion_plan: ["product_intelligence:read"],
   save_angle_persuasion_plan: ["product_intelligence:read", "product_intelligence:write"],
@@ -51,7 +52,7 @@ export function requireScopes(principal: Principal, scopes: readonly PiScope[]):
   if (!scopes.every((scope) => principal.scopes.includes(scope))) throw new ProductIntelligenceError("FORBIDDEN", "Tu autorización no permite esta operación.");
 }
 
-export function authorizeTool<K extends ToolName>(principal: Principal, product: ProductAccess | null, tool: K, input: ToolInputs[K], grant: DelegatedGrant | null, now: Date): Principal {
+export function authorizeTool<K extends Exclude<ToolName, "list_products">>(principal: Principal, product: ProductAccess | null, tool: K, input: ToolInputs[K], grant: DelegatedGrant | null, now: Date): Principal {
   if (!product || product.userId !== principal.userId || product.id !== input.product_id) throw new ProductIntelligenceError("NOT_FOUND", "No encontramos ese producto.");
   const required = [...toolScopes[tool]];
   if (tool === "get_product_context" && (input as ToolInputs["get_product_context"]).include?.includes("performance")) required.push("performance:read");

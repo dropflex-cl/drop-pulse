@@ -35,7 +35,7 @@ export interface IdempotencyReceipt<K extends ToolName> {
 }
 
 /** Se llama bajo lock después de autorizar y antes del CAS; no guarda recibos. */
-export function replayReceipt<K extends ToolName>(receipt: IdempotencyReceipt<K> | null, principal: Principal, tool: K, input: ToolInputs[K] & { idempotency_key: string }, now: Date): ToolOutputs[K] | null {
+export function replayReceipt<K extends Exclude<ToolName, "list_products">>(receipt: IdempotencyReceipt<K> | null, principal: Principal, tool: K, input: ToolInputs[K] & { idempotency_key: string }, now: Date): ToolOutputs[K] | null {
   if ("dry_run" in input && input.dry_run) return null;
   if (!receipt || !Number.isFinite(new Date(receipt.expiresAt).getTime()) || new Date(receipt.expiresAt).getTime() <= now.getTime()) return null;
   if (receipt.userId !== principal.userId || receipt.productId !== input.product_id || receipt.tool !== tool || receipt.key !== input.idempotency_key) throw new ProductIntelligenceError("NOT_FOUND", "No encontramos la solicitud.");

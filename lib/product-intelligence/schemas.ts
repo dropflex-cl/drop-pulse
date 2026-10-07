@@ -6,6 +6,7 @@ import { contentInputSchemas, contentOutputs } from "./content-schemas";
 // El JSON Schema se exporta desde estos tipos; las reglas del grafo se validan
 // sobre el estado final en graph.ts, no con lecturas externas en el parser.
 import { z } from "zod";
+import { listProductsInput, listProductsOutput } from "./product-list-schemas";
 import { getPackLabelsInput, savePackLabelsInput, packLabelsOutputs } from "./pack-labels-schemas";
 import { getUgcInput, saveUgcInput, getUgcMontageInput, ugcOutputs } from "./ugc-schemas";
 import { getLandingInput, saveLandingInput, landingOutputs } from "./landing-schemas";
@@ -1558,6 +1559,7 @@ export const generationContextSchema = z.strictObject({
 });
 
 export const inputSchemas = {
+  list_products: listProductsInput,
   ...persuasionInputSchemas, ...contentInputSchemas, ...learningInputSchemas, ...galleryGenerationInputs,
   get_ugc_content: getUgcInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
   get_pack_labels: getPackLabelsInput, save_pack_labels: savePackLabelsInput,
@@ -1578,6 +1580,7 @@ const landingOutputSchemas = landingOutputs(errorSchema);
 const packOutputs = packLabelsOutputs(errorSchema);
 const ugcOutputSchemas = ugcOutputs(errorSchema);
 export const outputSchemas = {
+  list_products: listProductsOutput(errorSchema),
   ...persuasionOutputs(errorSchema), ...contentOutputs(errorSchema), ...learningOutputs(errorSchema), ...galleryGenerationOutputs(errorSchema),
   get_ugc_content: ugcOutputSchemas.get, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
   get_pack_labels: packOutputs.get, save_pack_labels: packOutputs.save,

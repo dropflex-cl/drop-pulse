@@ -204,6 +204,8 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
       const listed: string[] = []; let cursor: string | undefined;
       do { const page = await client.listTools(cursor ? { cursor } : undefined); listed.push(...page.tools.map((tool) => tool.name)); cursor = page.nextCursor; } while (cursor);
       expect(listed).toEqual(PERSISTED_INTELLIGENCE_TOOLS);
+      const products = parseToolOutput("list_products", (await client.callTool({ name: "list_products", arguments: {} })).structuredContent);
+      expect(products.ok && products.data.products.map(product => product.product_id)).toEqual([productId]);
       const found = parseToolOutput("get_product_context", (await client.callTool({ name: "get_product_context", arguments: { product_id: productId } })).structuredContent);
       expect(found).toMatchObject({ ok: true, revision: 9 });
       const expired = createContextExecutor(repository, { ...auth.identity, tokenExpiresAt: Math.floor(Date.now() / 1000) - 1 });
@@ -225,6 +227,7 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
       expect(research.structuredContent).toMatchObject({ ok: true, revision: 11 });
       expect((await client.callTool({ name: "save_research", arguments: nativeResearch })).structuredContent).toEqual(research.structuredContent);
       const expiredKnowledge = createProductIntelligenceExecutor(repository, { ...auth.identity, tokenExpiresAt: Math.floor(Date.now() / 1000) - 1 });
+      await expect(expiredKnowledge(auth.principal, { tool: "list_products", input: parseToolInput("list_products", {}) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(expiredKnowledge(auth.principal, { tool: "save_research", input: nativeResearch }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
       const landing = parseToolOutput("get_landing_content", (await client.callTool({ name: "get_landing_content", arguments: { product_id: productId } })).structuredContent);
       if (!landing.ok) throw new Error("landing read");
@@ -261,6 +264,7 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
       p_stamp: parseContextRead(loaded).stamp, p_key: request.idempotency_key, p_hash: commandHash("save_product_context", request), p_context: candidate.context,
       p_pricing: candidate.pricing, p_base_image: null, p_result: candidate.result, p_dry_run: false }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     const knowledge = createProductIntelligenceExecutor(repository, auth.identity);
+    await expect(knowledge(auth.principal, { tool: "list_products", input: parseToolInput("list_products", {}) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(knowledge(auth.principal, { tool: "get_pack_labels", input: { product_id: productId } }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(knowledge(auth.principal, { tool: "save_pack_labels", input: nativePackLabels }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(knowledge(auth.principal, { tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });

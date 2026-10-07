@@ -49,6 +49,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     const tool = command.tool;
     if (!["get_pdp_planning_context", "get_component_catalog", "get_angle_persuasion_plan", "validate_angle_persuasion_plan", "save_angle_persuasion_plan", "get_landing_experience", "save_landing_experience"].includes(tool)) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación no es de planificación de páginas.");
     const input = parseToolInput(tool, command.input), access = contextAccess(principal, identity);
+    if (!("product_id" in input)) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación requiere un producto.");
     const writing = tool === "save_angle_persuasion_plan" || tool === "save_landing_experience";
     const hash = tool === "save_angle_persuasion_plan" ? commandHash(tool, parseToolInput(tool, command.input)) : tool === "save_landing_experience" ? commandHash(tool, parseToolInput(tool, command.input)) : null;
     const strategyId = "plan" in input ? input.plan.strategy_id : "experience" in input ? input.experience.strategy_id : "strategy_id" in input ? input.strategy_id : null;

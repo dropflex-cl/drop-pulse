@@ -25,7 +25,7 @@ async function connect(execute: DomainExecutor, userId = "merchant-a", requestTi
 }
 
 describe("PI · protocolo MCP oficial", () => {
-  it("inicializa y descubre treinta y seis tools con outputSchema, incluidas unions raíz", async () => {
+  it("inicializa y descubre treinta y siete tools con outputSchema, incluidas unions raíz", async () => {
     const session = await connect(async () => null);
     try {
       const tools = [];
@@ -36,7 +36,8 @@ describe("PI · protocolo MCP oficial", () => {
         expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThanOrEqual(PI_LIMITS.outputBytes);
         tools.push(...page.tools); cursor = page.nextCursor; pages++;
       } while (cursor);
-      expect(tools).toHaveLength(36);
+      expect(tools).toHaveLength(37);
+      expect(tools.find(tool => tool.name === "list_products")).toMatchObject({ annotations: { readOnlyHint: true, destructiveHint: false } });
       expect(tools.map(tool => tool.name)).not.toContain("generate_landing");
       await expect(session.client.callTool({ name: "generate_landing", arguments: {} })).rejects.toThrow("no existe");
       expect(pages).toBeGreaterThan(1);
@@ -49,7 +50,23 @@ describe("PI · protocolo MCP oficial", () => {
     const session = await connect(async () => null);
     try {
       await expect(session.client.listTools({ cursor: "foreign" })).rejects.toThrow("cursor");
-      await expect(session.client.listTools({ cursor: "pi-tools-v1:36" })).rejects.toThrow("cursor");
+      await expect(session.client.listTools({ cursor: "pi-tools-v1:37" })).rejects.toThrow("cursor");
+    } finally { await session.close(); }
+  });
+  it("lista productos sin conocer un ID y rechaza identidad inyectada", async () => {
+    const response = { ok: true, request_id: "00000000-0000-4000-8000-000000000001", data: {
+      products: [{ product_id: "00000000-0000-4000-8000-000000000002", name: "Organizador", description: "Ordena tus útiles." }], next_cursor: null,
+    } };
+    const execute = vi.fn<DomainExecutor>(async () => response);
+    const session = await connect(execute);
+    try {
+      const result = await session.client.callTool({ name: "list_products", arguments: {} });
+      expect(result.structuredContent).toEqual(response);
+      expect(result.isError).toBe(false);
+      expect(execute.mock.calls[0][1]).toEqual({ tool: "list_products", input: { page_size: 20, include_upsell: false } });
+      const injected = await session.client.callTool({ name: "list_products", arguments: { user_id: "another-merchant" } });
+      expect(injected).toMatchObject({ isError: true, structuredContent: { error: { code: "VALIDATION_ERROR" } } });
+      expect(execute).toHaveBeenCalledTimes(1);
     } finally { await session.close(); }
   });
   it("respuesta estructurada y texto JSON son idénticos; status es solo lectura", async () => {

@@ -29,6 +29,9 @@ export interface ContextRepository {
   load(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
   commit(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
 }
+export interface ProductListRepository {
+  listProducts(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
+}
 export interface KnowledgeRepository extends ContextRepository {
   loadKnowledge(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
   commitKnowledge(args: Record<string, unknown>, signal: AbortSignal): Promise<unknown>;
@@ -65,13 +68,13 @@ export function contextDatabaseError(error: { code?: string; message?: string })
   if (["23514", "22003", "22001", "22P02", "23502"].includes(error.code ?? "")) return new ProductIntelligenceError("VALIDATION_ERROR", "Revisa los campos y los números antes de guardar.");
   return new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos completar la transacción. Reintenta con la misma clave.", {}, true);
 }
-export function createContextRepository(db: SupabaseClient = adminClient()): KnowledgeRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository {
+export function createContextRepository(db: SupabaseClient = adminClient()): KnowledgeRepository & ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository {
   async function rpc(name: string, args: Record<string, unknown>, signal: AbortSignal) {
     const { data, error } = await db.rpc(name, args).abortSignal(AbortSignal.any([signal, AbortSignal.timeout(5000)]));
     if (error) throw contextDatabaseError(error);
     return data as unknown;
   }
-  return { loadPersuasion: (args, signal) => rpc("pi_load_persuasion", args, signal), commitPersuasion: (args, signal) => rpc("pi_commit_persuasion", args, signal), loadGalleryGeneration: (args, signal) => rpc("pi_load_gallery_generation", args, signal), enqueueGalleryGeneration: (args, signal) => rpc("pi_enqueue_gallery_generation", args, signal), reviewTip: (args, signal) => rpc("pi_review_tip", args, signal), loadTipReview: (args, signal) => rpc("pi_load_tip_review", args, signal), loadPerformance: (args, signal) => rpc("pi_load_performance", args, signal), loadLearning: (args, signal) => rpc("pi_load_learning", args, signal), commitLearning: (args, signal) => rpc("pi_commit_learning", args, signal), loadContent: (args, signal) => rpc("pi_load_content", args, signal), commitContent: (args, signal) => rpc("pi_commit_content", args, signal), loadUgc: (args, signal) => rpc("pi_load_ugc", args, signal), commitUgc: (args, signal) => rpc("pi_commit_ugc", args, signal), load: (args, signal) => rpc("pi_load_context", args, signal), commit: (args, signal) => rpc("pi_commit_context", args, signal),
+  return { listProducts: (args, signal) => rpc("pi_list_products", args, signal), loadPersuasion: (args, signal) => rpc("pi_load_persuasion", args, signal), commitPersuasion: (args, signal) => rpc("pi_commit_persuasion", args, signal), loadGalleryGeneration: (args, signal) => rpc("pi_load_gallery_generation", args, signal), enqueueGalleryGeneration: (args, signal) => rpc("pi_enqueue_gallery_generation", args, signal), reviewTip: (args, signal) => rpc("pi_review_tip", args, signal), loadTipReview: (args, signal) => rpc("pi_load_tip_review", args, signal), loadPerformance: (args, signal) => rpc("pi_load_performance", args, signal), loadLearning: (args, signal) => rpc("pi_load_learning", args, signal), commitLearning: (args, signal) => rpc("pi_commit_learning", args, signal), loadContent: (args, signal) => rpc("pi_load_content", args, signal), commitContent: (args, signal) => rpc("pi_commit_content", args, signal), loadUgc: (args, signal) => rpc("pi_load_ugc", args, signal), commitUgc: (args, signal) => rpc("pi_commit_ugc", args, signal), load: (args, signal) => rpc("pi_load_context", args, signal), commit: (args, signal) => rpc("pi_commit_context", args, signal),
     loadKnowledge: (args, signal) => rpc("pi_load_knowledge", args, signal), commitKnowledge: (args, signal) => rpc("pi_commit_knowledge", args, signal),
     loadPackLabels: (args, signal) => rpc("pi_load_pack_labels", args, signal), commitPackLabels: (args, signal) => rpc("pi_commit_pack_labels", args, signal),
     loadLanding: (args, signal) => rpc("pi_load_landing", args, signal), commitLanding: (args, signal) => rpc("pi_commit_landing", args, signal) };

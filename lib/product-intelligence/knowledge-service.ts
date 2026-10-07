@@ -21,7 +21,7 @@ import type { DomainExecutor } from "./mcp";
 import { prepareAnalysisMutation, preparePatchMutation, prepareResearchMutation } from "./mutations";
 import type { DelegatedIdentity } from "./oauth";
 import { requireScopes, toolScopes } from "./policy";
-import { contextAccess, type KnowledgeRepository } from "./repository";
+import { contextAccess, type KnowledgeRepository, type ProductListRepository } from "./repository";
 import { createContextExecutor } from "./service";
 import { parseToolInput, parseToolOutput } from "./validation";
 import { createLandingExecutor } from "./landing-service";
@@ -31,12 +31,19 @@ import { createUgcExecutor } from "./ugc-service";
 import type { UgcRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = [...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = ["list_products", ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
 /** Adaptador común para UI/MCP. Los textos se guardan sin IA; generate_ugc encola renders con permiso explícito. */
-export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void): DomainExecutor {
+export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     requireScopes(principal, toolScopes[command.tool]);
+    if (command.tool === "list_products") {
+      if (!repository.listProducts) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración del listado de productos.");
+      const input = parseToolInput(command.tool, command.input);
+      const data = await repository.listProducts({ p_access: contextAccess(principal, identity), p_page_size: input.page_size,
+        p_cursor: input.cursor ?? null, p_include_upsell: input.include_upsell }, signal);
+      return parseToolOutput(command.tool, { ok: true, request_id: randomUUID(), data });
+    }
     if (persuasionTools.includes(command.tool as typeof persuasionTools[number])) {
       if (!persuasionEnabled() || !repository.loadPersuasion || !repository.commitPersuasion) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La planificación de páginas aún no está habilitada.");
       return createPersuasionExecutor(repository as PersuasionRepository, identity)(principal, command, signal);
