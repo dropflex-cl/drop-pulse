@@ -20,6 +20,34 @@ describe("PI · consentimiento del dueño", () => {
     mocks.revoke.mockReset().mockImplementation(async () => { mocks.events.push("revoke"); return { error: null }; });
   });
   afterEach(() => vi.unstubAllEnvs());
+  it("carga el consentimiento con los alcances OIDC que solicita ChatGPT", async () => {
+    mocks.details.mockResolvedValue({ data: { ...details, scope: "openid email offline_access" }, error: null });
+    const consent = await loadConsent(authorizationId);
+    expect(consent).toMatchObject({ clientName: "Cliente", identityScopes: "openid email offline_access" });
+    expect(consent.ticket).toEqual(expect.any(String));
+    expect(mocks.events).toEqual(["pi_oauth_authorization_context"]);
+    expect(mocks.approve).not.toHaveBeenCalled();
+  });
+  it("aprobar con openid concede solo los permisos de dominio elegidos", async () => {
+    mocks.details.mockResolvedValue({ data: { ...details, scope: "openid email offline_access" }, error: null });
+    expect(await decideConsent(input())).toBe(`${redirectUri}?code=fictitious`);
+    expect(mocks.events).toEqual(["pi_oauth_authorization_context", "pi_prepare_oauth_grant", "approve", "pi_activate_oauth_grant"]);
+    expect(mocks.rpc.mock.calls[1][1].p_scopes).toEqual(["product_intelligence:read"]);
+  });
+  it("rechazar con openid no concede permisos de dominio", async () => {
+    mocks.details.mockResolvedValue({ data: { ...details, scope: "openid email offline_access" }, error: null });
+    expect(await decideConsent({ ...input(), decision: "deny" })).toContain("access_denied");
+    expect(mocks.events).toEqual(["pi_oauth_authorization_context"]);
+    expect(mocks.approve).not.toHaveBeenCalled();
+  });
+  it.each(["profile", "phone", "admin"])("rechaza el alcance adicional %s al cargar y decidir", async (scope) => {
+    mocks.details.mockResolvedValue({ data: { ...details, scope: `openid email offline_access ${scope}` }, error: null });
+    await expect(loadConsent(authorizationId)).rejects.toThrow("no admite");
+    await expect(decideConsent(input())).rejects.toThrow("no admite");
+    expect(mocks.events).toEqual(["pi_oauth_authorization_context"]);
+    expect(mocks.approve).not.toHaveBeenCalled();
+    expect(mocks.deny).not.toHaveBeenCalled();
+  });
   it("prepara y activa el grant solo alrededor del consentimiento nativo exitoso", async () => {
     expect(await decideConsent(input())).toBe(`${redirectUri}?code=fictitious`);
     expect(mocks.events).toEqual(["pi_oauth_authorization_context", "pi_prepare_oauth_grant", "approve", "pi_activate_oauth_grant"]);
@@ -45,12 +73,10 @@ describe("PI · consentimiento del dueño", () => {
     await expect(decideConsent(input())).rejects.toThrow("cambió");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
-  it("no redirige a un origen distinto ni concede perfil/teléfono/OpenID", async () => {
+  it("no redirige a un origen distinto", async () => {
     mocks.approve.mockResolvedValue({ data: { redirect_url: "https://evil.test/callback?code=fictitious" }, error: null });
     await expect(decideConsent(input())).rejects.toThrow("destino");
     expect(mocks.events).not.toContain("pi_activate_oauth_grant");
-    mocks.details.mockResolvedValue({ data: { ...details, scope: "email profile phone openid" }, error: null });
-    await expect(loadConsent(authorizationId)).rejects.toThrow("no admite");
   });
   it("un consentimiento OAuth anterior no reactiva un grant de dominio revocado", async () => {
     mocks.details.mockResolvedValue({ data: { redirect_url: `${redirectUri}?code=fictitious` }, error: null });

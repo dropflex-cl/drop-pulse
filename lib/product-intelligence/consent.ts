@@ -8,6 +8,8 @@ import { oauthRpc } from "./oauth-store";
 import { PI_SCOPES } from "./policy";
 import { isMerchantSessionClaims } from "@/lib/supabase/merchant-claims";
 
+// OpenID identifica al usuario; los permisos de dominio se eligen aparte en el consentimiento.
+const IDENTITY_SCOPES = ["openid", "email", "offline_access"];
 export const authorizationIdSchema = z.string().min(1).max(256).regex(/^[A-Za-z0-9_-]+$/);
 const contextSchema = z.object({ client_id: z.uuid(), redirect_uri: z.url(), status: z.enum(["pending", "approved", "denied", "expired"]), has_active_grant: z.boolean() }).strict();
 export const consentDecisionSchema = z.object({ ticket: z.string().min(1).max(4096), decision: z.enum(["approve", "deny"]), scopes: z.array(z.enum(PI_SCOPES)).min(1).max(6).refine((scopes) => new Set(scopes).size === scopes.length && scopes.includes("product_intelligence:read")) }).strict();
@@ -47,7 +49,7 @@ export async function loadConsent(authorizationId: string) {
     return { redirectUrl: safeRedirect(data.redirect_url, context.redirect_uri) };
   }
   if (data.user.id !== userId || data.client.id !== context.client_id || data.authorization_id !== authorizationId || context.status !== "pending") throw new Error("La solicitud de conexión no es válida. Conecta de nuevo el cliente MCP.");
-  if (data.scope.split(/\s+/).some((scope) => !["email", "offline_access"].includes(scope))) throw new Error("El cliente solicita permisos de identidad que MCP no admite. Conéctalo usando email y offline_access.");
+  if (data.scope.split(/\s+/).some((scope) => !IDENTITY_SCOPES.includes(scope))) throw new Error("El cliente solicita permisos de identidad que MCP no admite. Conéctalo usando openid, email y offline_access.");
   return { clientName: data.client.name?.slice(0, 160) || "Cliente MCP", identityScopes: data.scope, ticket: createConsentTicket({ userId, clientId: context.client_id, authorizationId, resourceUrl: config.resourceUrl }, stateSecret()) };
 }
 
@@ -58,7 +60,7 @@ export async function decideConsent(input: z.infer<typeof consentDecisionSchema>
   if (ticket.userId !== userId || ticket.resourceUrl !== config.resourceUrl) throw new McpAuthError(403);
   const { data, error } = await client.auth.oauth.getAuthorizationDetails(ticket.authorizationId);
   if (error || !data || "redirect_url" in data || data.user.id !== userId || data.client.id !== ticket.clientId || data.authorization_id !== ticket.authorizationId) throw new Error("La solicitud de conexión cambió. Conecta de nuevo el cliente MCP.");
-  if (data.scope.split(/\s+/).some((scope) => !["email", "offline_access"].includes(scope))) throw new Error("El cliente solicita permisos de identidad que MCP no admite.");
+  if (data.scope.split(/\s+/).some((scope) => !IDENTITY_SCOPES.includes(scope))) throw new Error("El cliente solicita permisos de identidad que MCP no admite.");
   const context = contextSchema.parse(await oauthRpc("pi_oauth_authorization_context", { p_user_id: userId, p_authorization_id: ticket.authorizationId, p_resource_url: config.resourceUrl }));
   if (context.client_id !== ticket.clientId || context.status !== "pending") throw new Error("La solicitud de conexión cambió. Conecta de nuevo el cliente MCP.");
   if (input.decision === "deny") {
