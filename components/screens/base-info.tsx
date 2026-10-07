@@ -1,5 +1,8 @@
 "use client";
 
+import { VisualProduction } from "./visual-production";
+import type { VisualWorkbench } from "@/lib/types";
+
 import { ACCEPTED_TYPES, Button, Icon, ImageUploader, ProductInfoInput, ReferenceAddTile, ReferenceImage, StageMeter, Switch, TopBar, notify, type UploadItem, type UploaderMode, } from "@/components/df";
 import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
@@ -140,7 +143,7 @@ function ImageQaSection({ productId, initial }: { productId: string; initial: bo
   );
 }
 
-export function BaseInfoScreen({ base }: { base: ProductBase }) {
+export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: VisualWorkbench | null }) {
   const desktop = useDesktop();
   const { product } = base;
   const [productData, setProductData] = useState<ProductData | undefined>(base.productData);
@@ -405,6 +408,7 @@ export function BaseInfoScreen({ base }: { base: ProductBase }) {
       <div className="flex flex-col gap-5 px-4 pt-2 pb-4 lg:grid lg:flex-1 lg:grid-cols-[minmax(0,1fr)_--spacing(90)] lg:items-start lg:gap-8 lg:px-8 lg:pt-6">
         <div className="flex min-w-0 flex-col gap-5">
           {status}
+          {visual ? <VisualProduction initial={visual} identityOnly /> : null}
           {/* Móvil: las imágenes van arriba, en una fila de 4 con “Agregar”. */}
           <section aria-label="Imágenes de referencia" className="lg:hidden">
             {refsHeader}

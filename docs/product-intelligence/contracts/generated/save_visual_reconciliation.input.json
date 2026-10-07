@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_etag",
+    "expected_dependency_stamp",
+    "idempotency_key",
+    "plan_id",
+    "plan",
+    "resolutions"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "etag": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "etag"
+      ],
+      "additionalProperties": false
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "shot_key": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "shot_family": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "name": {
+          "maxLength": 120,
+          "$ref": "#/$defs/__schema2"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "must_have",
+            "recommended",
+            "optional"
+          ]
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "pdp",
+            "gallery",
+            "ad",
+            "ugc",
+            "email",
+            "general"
+          ]
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema0"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "landing_angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema5"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "landing_hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema5"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "persuasion_plan_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema3"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "section_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema5"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "persuasion_job": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "recognition",
+                "desire_activation",
+                "problem_visualization",
+                "agitation",
+                "reframe",
+                "solution_logic",
+                "product_fit",
+                "differentiation",
+                "mechanism",
+                "demonstration",
+                "ease",
+                "social_proof",
+                "similarity_proof",
+                "authority_proof",
+                "objection_resolution",
+                "value",
+                "risk_reversal",
+                "urgency",
+                "close"
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "proof",
+                "trust"
+              ]
+            }
+          ]
+        },
+        "belief_keys": {
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "claim_keys": {
+          "maxItems": 40,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "objective": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "product_identity": {
+          "type": "string",
+          "const": "inherit"
+        },
+        "product_role": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "supporting",
+            "absent"
+          ]
+        },
+        "representation": {
+          "type": "string",
+          "enum": [
+            "product_depiction",
+            "illustrative_demo",
+            "real_evidence"
+          ]
+        },
+        "scene": {
+          "type": "object",
+          "properties": {
+            "environment": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "location": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "surface": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema2"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "action": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "props": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "lighting": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "result": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema2"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "people": {
+              "type": "object",
+              "properties": {
+                "allowed": {
+                  "type": "boolean"
+                },
+                "face_visible": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/__schema2"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "allowed",
+                "face_visible",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "environment",
+            "location",
+            "surface",
+            "action",
+            "props",
+            "lighting",
+            "result",
+            "people"
+          ],
+          "additionalProperties": false
+        },
+        "composition": {
+          "type": "object",
+          "properties": {
+            "aspect_ratio": {
+              "type": "string",
+              "enum": [
+                "1:1",
+                "3:4",
+                "4:5",
+                "9:16",
+                "16:9"
+              ]
+            },
+            "camera": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "framing": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "product_prominence": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "hero"
+              ]
+            },
+            "negative_space": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema2"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "focus": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema2"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "aspect_ratio",
+            "camera",
+            "framing",
+            "product_prominence",
+            "negative_space",
+            "focus"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "takeaway": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "overlay_text": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "$ref": "#/$defs/__schema2"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "takeaway",
+            "overlay_text"
+          ],
+          "additionalProperties": false
+        },
+        "avoid": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "generation_required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "shot_key",
+        "shot_family",
+        "name",
+        "priority",
+        "channel",
+        "angle_id",
+        "landing_angle_id",
+        "landing_hook_id",
+        "persuasion_plan_ref",
+        "section_key",
+        "persuasion_job",
+        "belief_keys",
+        "fact_ids",
+        "evidence_ids",
+        "claim_keys",
+        "objective",
+        "product_identity",
+        "product_role",
+        "representation",
+        "scene",
+        "composition",
+        "message",
+        "avoid",
+        "generation_required"
+      ],
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "__schema6": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "__schema7": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema2"
+      }
+    },
+    "__schema8": {
+      "type": "object",
+      "properties": {
+        "shot_key": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "retain",
+            "replace",
+            "remove"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "shot_key",
+        "action",
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_etag": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "expected_dependency_stamp": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "plan_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "plan": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "$ref": "#/$defs/__schema2"
+        },
+        "strategy_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "identity_ref": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "visual_system": {
+          "type": "object",
+          "properties": {
+            "world": {
+              "type": "string",
+              "enum": [
+                "real_home",
+                "studio_color",
+                "studio",
+                "native_phone",
+                "clean_explainer"
+              ]
+            },
+            "palette": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "lighting": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "photography_style": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "typography": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema2"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mood": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "consistency_notes": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "world",
+            "palette",
+            "lighting",
+            "photography_style",
+            "typography",
+            "mood",
+            "consistency_notes"
+          ],
+          "additionalProperties": false
+        },
+        "shots": {
+          "minItems": 1,
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "strategy_id",
+        "identity_ref",
+        "visual_system",
+        "shots"
+      ],
+      "additionalProperties": false
+    },
+    "resolutions": {
+      "minItems": 1,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema8"
+      }
+    }
+  }
+}

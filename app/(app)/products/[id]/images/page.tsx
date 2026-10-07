@@ -1,3 +1,4 @@
+import { getProductVisualWorkbench } from "@/lib/data/visual-production";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageImagesScreen } from "@/components/screens/page-images";
@@ -14,5 +15,6 @@ export default async function ImagenesPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const data = await getProductPageImages(id);
   if (!data) notFound();
-  return <PageImagesScreen data={data} />;
+  const visual = await getProductVisualWorkbench(id);
+  return <PageImagesScreen data={data} visual={visual} />;
 }

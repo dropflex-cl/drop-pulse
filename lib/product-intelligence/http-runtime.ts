@@ -1,3 +1,6 @@
+import { runVisualIngestion } from "./visual-operations";
+import { visualEnabled } from "./visual-service";
+import { visualTools } from "./visual-schemas";
 import { persuasionEnabled } from "./persuasion-flags";
 import { persuasionTools } from "./persuasion-schemas";
 import { runGalleryOperation } from "@/lib/page-images/operations";
@@ -28,9 +31,10 @@ export async function serveMcpRequest(request: Request): Promise<Response> {
     const repository = createContextRepository();
     const wake = (id: string) => after(() => runUgcOperation(id));
     const wakeGallery = (id: string) => after(() => runGalleryOperation(id));
-    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery), {
-      availableTools: PERSISTED_INTELLIGENCE_TOOLS.filter(tool => persuasionEnabled() || !persuasionTools.includes(tool as typeof persuasionTools[number])),
-      executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery),
+    const wakeVisual = (id: string) => after(() => runVisualIngestion(id));
+    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery, wakeVisual), {
+      availableTools: PERSISTED_INTELLIGENCE_TOOLS.filter(tool => (persuasionEnabled() || !persuasionTools.includes(tool as typeof persuasionTools[number])) && (visualEnabled() || !visualTools.includes(tool as typeof visualTools[number]))),
+      executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery, wakeVisual),
     })(request);
   } catch (error) {
     const response = mcpHttpError(error, config ?? undefined);

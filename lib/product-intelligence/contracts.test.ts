@@ -4,7 +4,7 @@ import addFormats from "ajv-formats";
 import { generationContextJsonSchema, publishedSchemas } from "./mcp";
 import { parseToolInput, parseToolOutput, jsonBytes, PI_LIMITS } from "./validation";
 import { contextFixture, examplesFixture } from "./test-fixtures";
-import type { ToolName } from "./schemas";
+import { inputSchemas, type ToolName } from "./schemas";
 
 describe("PI · contratos Zod y JSON Schema 2020-12", () => {
   const generated = publishedSchemas();
@@ -13,8 +13,8 @@ describe("PI · contratos Zod y JSON Schema 2020-12", () => {
   const inputValidators = Object.fromEntries(Object.entries(generated).map(([name, schemas]) => [name, ajv.compile(schemas.input)]));
   const outputValidators = Object.fromEntries(Object.entries(generated).map(([name, schemas]) => [name, ajv.compile(schemas.output)]));
 
-  it("publica exactamente treinta y siete schemas raíz objeto con ramas completas", () => {
-    expect(Object.keys(generated)).toHaveLength(37);
+  it("publica todos los schemas raíz objeto con ramas completas", () => {
+    expect(Object.keys(generated)).toHaveLength(Object.keys(inputSchemas).length);
     for (const schemas of Object.values(generated)) {
       expect(schemas.input.type).toBe("object");
       expect(schemas.output.type).toBe("object");

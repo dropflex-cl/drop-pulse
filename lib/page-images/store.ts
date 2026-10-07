@@ -49,6 +49,7 @@ export interface ShotRow {
 }
 
 export interface PageImageRow {
+  visual_binding_id?: string | null;
   id: string;
   product_id: string;
   user_id: string;
@@ -114,7 +115,7 @@ export async function expireStalePageImages(userId: string): Promise<void> {
 export async function purgeDiscardedPageImages(userId: string): Promise<void> {
   const db = adminClient();
   const [rejected, superseded] = await Promise.all([
-    db.from("page_images").select("id, storage_path").eq("user_id", userId).eq("status", "rejected").lt("decided_at", new Date(Date.now() - DISCARD_PURGE_MS).toISOString()),
+    db.from("page_images").select("id, storage_path").eq("user_id", userId).eq("status", "rejected").is("visual_binding_id", null).lt("decided_at", new Date(Date.now() - DISCARD_PURGE_MS).toISOString()),
     db.from("page_image_shots").select("id").eq("user_id", userId).not("superseded_at", "is", null),
   ]);
   fail("Leer lo descartado", rejected.error);
@@ -122,7 +123,7 @@ export async function purgeDiscardedPageImages(userId: string): Promise<void> {
   const oldShots = (superseded.data ?? []).map((s) => s.id as string);
   let orphans: { id: string; storage_path: string | null }[] = [];
   if (oldShots.length) {
-    const r = await db.from("page_images").select("id, storage_path").eq("user_id", userId).in("shot_id", oldShots).eq("status", "rejected").in("render_status", ["succeeded", "failed"]);
+    const r = await db.from("page_images").select("id, storage_path").eq("user_id", userId).in("shot_id", oldShots).eq("status", "rejected").is("visual_binding_id", null).in("render_status", ["succeeded", "failed"]);
     fail("Leer las imágenes reemplazadas", r.error);
     orphans = (r.data ?? []) as typeof orphans;
   }

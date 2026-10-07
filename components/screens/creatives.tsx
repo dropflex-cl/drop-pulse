@@ -1,5 +1,8 @@
 "use client";
 
+import { VisualProduction } from "./visual-production";
+import type { VisualWorkbench } from "@/lib/types";
+
 import { AngleGroup, Button, ChatModule, ChatPreview, CreativeConcept, CreativePiece, CreativeSummary, EmptyState, Field, Notice, ImageProviderPicker as ProviderPicker, SegmentedControl, TopBar, linkClasses, notify, notifyUndo, type ChatModuleState, type ConceptText, type PieceAction, type PieceState, type ProviderOption } from "@/components/df";
 import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
@@ -81,7 +84,7 @@ type View = { kind: "list" } | { kind: "concept" | "edit" | "chat-edit"; id: str
 type Selection = { kind: "concept" | "piece"; id: string };
 type Sheet = { kind: "provider" } | null;
 
-export function CreativesScreen({ data, initialTab = "images" }: { data: ProductCreatives; initialTab?: "images" | "videos" }) {
+export function CreativesScreen({ data, visual, initialTab = "images" }: { data: ProductCreatives; visual?: VisualWorkbench | null; initialTab?: "images" | "videos" }) {
   const router = useRouter();
   const desktop = useDesktop();
   // Lista y panel derecho solo si caben (con el asistente abierto, la etapa se angosta): si no, subvistas.
@@ -709,6 +712,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
         <div className={cn("flex flex-1 flex-col", aside && "lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(100)]")}>
           <div className="@container flex min-w-0 flex-1 flex-col">
             <div className={cn("flex flex-1 flex-col px-4 pt-2 pb-4 lg:px-7 lg:pt-4", !concepts.length && "justify-center lg:mx-auto lg:w-full lg:max-w-content lg:justify-start lg:pt-8")}>
+              {visual ? <VisualProduction initial={visual} initialTab="assets" /> : null}
               {body}
               {!concepts.length ? errorLine : null}
             </div>

@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_etag",
+    "expected_dependency_stamp",
+    "idempotency_key",
+    "asset_id",
+    "bindings"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "gallery_shot"
+                },
+                "shot_key": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "slot": {
+                  "type": "string",
+                  "pattern": "^(cover|gallery|benefit-[a-z0-9_-]{1,64})$"
+                },
+                "position": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 6
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "shot_key",
+                "slot",
+                "position"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "landing_section"
+                },
+                "experience_id": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "content_variant_key": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "section_key": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "component": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "slot": {
+                  "$ref": "#/$defs/__schema3"
+                }
+              },
+              "required": [
+                "type",
+                "experience_id",
+                "content_variant_key",
+                "section_key",
+                "component",
+                "slot"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "creative_concept"
+                },
+                "concept_id": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "ratio": {
+                  "type": "string",
+                  "enum": [
+                    "1:1",
+                    "9:16"
+                  ]
+                },
+                "slot": {
+                  "type": "string",
+                  "const": "image"
+                }
+              },
+              "required": [
+                "type",
+                "concept_id",
+                "ratio",
+                "slot"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "ugc_shot"
+                },
+                "script_id": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "video_shot_id": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "slot": {
+                  "type": "string",
+                  "enum": [
+                    "keyframe",
+                    "b_roll"
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "script_id",
+                "video_shot_id",
+                "slot"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "target_etag": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "target",
+        "target_etag",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_etag": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "expected_dependency_stamp": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "asset_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "bindings": {
+      "minItems": 1,
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema2"
+      }
+    }
+  }
+}

@@ -78,6 +78,7 @@ export interface ConceptRow {
 }
 
 export interface AssetRow {
+  visual_binding_id?: string | null;
   id: string;
   product_id: string;
   user_id: string;
@@ -181,7 +182,7 @@ export async function purgeDiscardedCreatives(userId: string): Promise<void> {
       .from("creative_assets")
       .select("id, storage_path")
       .eq("user_id", userId)
-      .eq("status", "rejected")
+      .eq("status", "rejected").is("visual_binding_id", null)
       .lt("decided_at", new Date(Date.now() - REJECTED_PURGE_MS).toISOString()),
     db.from("creative_concepts").select("id").eq("user_id", userId).not("superseded_at", "is", null),
   ]);
@@ -195,7 +196,7 @@ export async function purgeDiscardedCreatives(userId: string): Promise<void> {
       .select("id, storage_path, ad_media_id")
       .eq("user_id", userId)
       .in("concept_id", oldConcepts)
-      .eq("status", "rejected")
+      .eq("status", "rejected").is("visual_binding_id", null)
       .in("render_status", ["succeeded", "failed"]);
     fail("Leer las piezas reemplazadas", r.error);
     const found = (r.data ?? []) as (typeof orphans[number] & { ad_media_id: string | null })[];
@@ -263,7 +264,7 @@ export async function getConceptRow(userId: string, productId: string, conceptId
 
 export async function assetsFor(userId: string, conceptIds: string[]): Promise<AssetRow[]> {
   if (!conceptIds.length) return [];
-  const { data, error } = await adminClient().from("creative_assets").select("*").eq("user_id", userId).in("concept_id", conceptIds).order("created_at", { ascending: true });
+  const { data, error } = await adminClient().from("creative_assets").select("*").eq("user_id", userId).in("concept_id", conceptIds).is("visual_binding_id", null).order("created_at", { ascending: true });
   fail("Leer las piezas", error);
   return (data ?? []) as AssetRow[];
 }

@@ -1,3 +1,4 @@
+import { assertVisualBindingsPublishable } from "@/lib/product-intelligence/visual-publication";
 import { prepareExperienceManifest } from "@/lib/product-intelligence/persuasion-publication";
 // Etapa Publicar (docs/spec-publicar.md): lleva a Shopify lo APROBADO de un producto.
 //   1. definiciones de metafields (una vez, PUBLIC_READ);
@@ -135,6 +136,7 @@ export async function preparePublish(userId: string, productId: string): Promise
     return p.storage_path ? { key: `${PAGE_MEDIA_BUCKET}/${p.storage_path}`, bucket: PAGE_MEDIA_BUCKET, path: p.storage_path, alt } : null;
   };
   const chosen = pageRows.filter((p) => p.status === "approved");
+  await assertVisualBindingsPublishable(userId, productId, chosen.map(p => p.visual_binding_id).filter((id): id is string => Boolean(id)));
   const name = listing?.short_name ?? row.title;
   const cover = chosen.find((p) => p.slot === COVER);
   const gallery = chosen.filter((p) => p.slot === GALLERY).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -154,6 +156,7 @@ export async function preparePublish(userId: string, productId: string): Promise
       return ref && !ref.excluded ? refSource(ref, name) : null;
     }
     const p = pageRows.find((x) => x.id === pick.id);
+    if (p?.visual_binding_id && p.status !== "approved") throw new PublishError("Revisa y selecciona la pieza visual antes de publicar.");
     return p && p.render_status === "succeeded" && p.status !== "rejected" ? pageSource(p, name) : null;
   };
   // Los GIF de Imágenes, en su orden: el GIF N lleva el texto N de gif-strip.

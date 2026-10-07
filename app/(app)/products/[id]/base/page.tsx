@@ -1,3 +1,4 @@
+import { getProductVisualWorkbench } from "@/lib/data/visual-production";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BaseInfoScreen } from "@/components/screens/base-info";
@@ -13,5 +14,6 @@ export default async function BaseInfoPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const base = await getProductBase(id);
   if (!base) notFound();
-  return <BaseInfoScreen base={base} />;
+  const visual = await getProductVisualWorkbench(id);
+  return <BaseInfoScreen base={base} visual={visual} />;
 }

@@ -457,6 +457,7 @@ export type AssetDecision = "approve" | "reject" | "reopen";
 export async function decideAsset(userId: string, productId: string, assetId: string, action: AssetDecision): Promise<void> {
   const a = await getAssetRow(userId, assetId);
   if (!a || a.product_id !== productId) throw new OptimizeError("Esa imagen ya no existe. Actualiza la página.", 404);
+  if (a.visual_binding_id) throw new OptimizeError("Revisa o quita este uso en Producción visual.", 409);
   if (a.render_status !== "succeeded" || !a.storage_path) throw new OptimizeError("Esa imagen todavía no está lista.", 409);
   const db = adminClient();
   const now = new Date().toISOString();

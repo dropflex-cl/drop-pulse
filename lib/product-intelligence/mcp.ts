@@ -1,3 +1,4 @@
+import { visualDescriptions } from "./visual-schemas";
 import { randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError, type Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -12,6 +13,7 @@ export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }
 export type DomainExecutor = (principal: Principal, command: ToolCommand, signal: AbortSignal) => Promise<unknown>;
 
 const descriptions: Record<ToolName, string> = {
+  ...visualDescriptions,
   list_products: "Lista tus productos con product_id, nombre y descripción breve para elegir cuál optimizar. No requiere conocer un ID; usa el product_id elegido en get_product_context. Paginado con next_cursor; excluye Upsell salvo include_upsell=true.",
   get_pdp_planning_context: "Lee una revisión consistente de estrategia, ángulo, evidencia, contenido y assets para planificar una PDP corta en el chat.",
   get_component_catalog: "Consulta capacidades persuasivas y restricciones de los componentes reales de Shopify.",
@@ -78,7 +80,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const available = options.availableTools ?? Object.keys(inputSchemas) as ToolName[];
   const tools: Tool[] = available.map((name) => ({
     name, description: descriptions[name], inputSchema: schemas[name].input, outputSchema: schemas[name].output,
-    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy"].includes(name), openWorldHint: name.startsWith("generate_") },
+    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy"].includes(name), openWorldHint: name.startsWith("generate_") || name === "ingest_external_visual_asset" },
   }));
   server.setRequestHandler(ListToolsRequestSchema, async (request) => {
     const cursor = request.params?.cursor;

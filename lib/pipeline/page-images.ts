@@ -448,7 +448,13 @@ async function assertSlot(userId: string, productId: string, slot: string) {
 }
 
 /** Las elegidas de la galería (o de los GIF) quedan numeradas 1…n, sin huecos, en el orden que tenían. */
+async function assertVisualSlotEditable(userId: string, productId: string, slot: string) {
+  const { data, error } = await adminClient().from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved").not("visual_binding_id", "is", null).limit(1);
+  fail("Comprobar los usos visuales", error);
+  if (data?.length) throw new OptimizeError("Cambia los usos y posiciones en Producción visual antes de editar este espacio.", 409);
+}
 async function compactSlot(userId: string, productId: string, slot: string) {
+  await assertVisualSlotEditable(userId, productId, slot);
   const db = adminClient();
   const { data, error } = await db.from("page_images").select("id, position, created_at").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
   fail("Leer las elegidas", error);
@@ -460,6 +466,7 @@ async function compactSlot(userId: string, productId: string, slot: string) {
 const ordered = (slot: string) => ORDERED.has(slotKind(slot)!);
 
 async function choose(a: PageImageRow) {
+  await assertVisualSlotEditable(a.user_id, a.product_id, a.slot);
   if (a.render_status !== "succeeded") throw new OptimizeError("Esa imagen todavía no está lista.", 409);
   const db = adminClient();
   const now = stamp();
@@ -482,6 +489,7 @@ async function choose(a: PageImageRow) {
 export async function decideOption(userId: string, productId: string, imageId: string, action: OptionAction): Promise<void> {
   const a = await getPageImageRow(userId, imageId);
   if (!a || a.product_id !== productId) throw new OptimizeError("Esa imagen ya no existe. Actualiza la página.", 404);
+  if (a.visual_binding_id) throw new OptimizeError("Revisa o quita este uso en Producción visual.", 409);
   const db = adminClient();
   const now = stamp();
   switch (action) {
@@ -589,6 +597,7 @@ export async function chooseReference(userId: string, productId: string, slot: s
 
 /** El orden de la galería o de los GIF: `ids` son las elegidas, de la primera a la última. */
 export async function reorderSlot(userId: string, productId: string, ids: string[], slot: string = GALLERY): Promise<void> {
+  await assertVisualSlotEditable(userId, productId, slot);
   if (!ordered(slot)) throw new ProductApiError("Ese espacio no se ordena.", 400, "slot");
   const db = adminClient();
   const { data, error } = await db.from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved");

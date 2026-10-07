@@ -1,5 +1,8 @@
 "use client";
 
+import { VisualProduction } from "./visual-production";
+import type { VisualWorkbench } from "@/lib/types";
+
 import { Button, EmptyState, Icon, IconButton, ImageUploader, Notice, RoleChip, StateChip, StatusBadge, TopBar, notify, notifyUndo, type UploadItem, type UploaderMode } from "@/components/df";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
@@ -33,7 +36,7 @@ const visible = (s: PageImageSlotView) => s.options.filter((o) => !o.discarded);
 const pendingShots = (s: PageImageSlotView) => s.shots.filter((sh) => !visible(s).some((o) => o.shotId === sh.id && o.render !== "failed"));
 const chosenOf = (s: PageImageSlotView) => visible(s).filter((o) => o.chosen).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-export function PageImagesScreen({ data }: { data: ProductPageImages }) {
+export function PageImagesScreen({ data, visual }: { data: ProductPageImages; visual?: VisualWorkbench | null }) {
   const router = useRouter();
   const desktop = useDesktop();
   const { product } = data;
@@ -245,6 +248,7 @@ export function PageImagesScreen({ data }: { data: ProductPageImages }) {
       <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
         <p className="hidden text-body text-muted-foreground lg:block">Imágenes · {subtitle}</p>
         {!state.locked && !(current && !desktop) ? <ImageProviderPicker stage="page_images" choice={state.imageProvider} onChange={setProvider} /> : null}
+        {visual ? <VisualProduction initial={visual} /> : null}
         <div>{body}</div>
         {error ? (
           <p role="alert" className="text-label font-normal text-destructive">

@@ -928,3 +928,20 @@ export interface PdpWorkbench {
   plans: { id: string; revision: number; etag: string; payload: AnglePersuasionPlan; issues: import("@/lib/product-intelligence/persuasion-schemas").PersuasionIssue[] }[];
   experiences: { id: string; revision: number; etag: string; payload: LandingExperience }[];
 }
+export interface VisualWorkbench {
+  product_id: string;
+  revision: number;
+  etag: string;
+  dependency_stamp: string;
+  canonical_reference: { id: string; url: string | null; content_hash: string | null } | null;
+  records: (import("./product-intelligence/visual-schemas").VisualRecord & {
+    validity: import("./product-intelligence/visual-schemas").VisualValidity;
+    shot_validity?: Record<string, import("./product-intelligence/visual-schemas").VisualValidity>;
+    file?: { url: string; width: number; height: number; mime_type: string; size_bytes: number };
+    reviews: import("./product-intelligence/visual-schemas").VisualRecord[];
+  })[];
+  targets: { key: string; etag: string; target: import("./product-intelligence/visual-schemas").VisualTarget }[];
+  asset_total: number;
+  asset_offset: number;
+  pending_ingestions?: { id: string; iteration_id: string; state: string }[];
+}

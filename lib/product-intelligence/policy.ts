@@ -1,3 +1,4 @@
+import { visualTools } from "./visual-schemas";
 import { ProductIntelligenceError } from "./errors";
 import type { ToolInputs, ToolName } from "./schemas";
 
@@ -28,6 +29,7 @@ export interface DelegatedGrant {
 }
 
 export const toolScopes: Record<ToolName, readonly PiScope[]> = {
+  ...Object.fromEntries(visualTools.map(t => [t, t.startsWith("get_") || t.startsWith("list_") ? ["product_intelligence:read"] : ["product_intelligence:read", "product_intelligence:write"]])) as unknown as Record<typeof visualTools[number], readonly PiScope[]>,
   list_products: ["product_intelligence:read"],
   get_pdp_planning_context: ["product_intelligence:read"], get_component_catalog: ["product_intelligence:read"],
   get_angle_persuasion_plan: ["product_intelligence:read"], validate_angle_persuasion_plan: ["product_intelligence:read"],

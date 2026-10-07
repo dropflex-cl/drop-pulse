@@ -1,3 +1,4 @@
+import { assertVisualMediaPublishable } from "@/lib/product-intelligence/visual-publication";
 import { contextAccess, contextDatabaseError } from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { assertUgcPublishable } from "@/lib/video/publication";
@@ -162,6 +163,7 @@ export async function runLaunch(campaignId: string): Promise<void> {
       const checkedStatic = await adminClient().rpc("pi_assert_static_publishable", { p_access: contextAccess({ userId: c.user_id, actorId: c.user_id, actorKind: "merchant", scopes: PI_SCOPES }), p_product_id: c.product_id, p_media_ids: staticIds });
       if (checkedStatic.error) throw contextDatabaseError(checkedStatic.error);
     }
+    await assertVisualMediaPublishable(c.user_id, c.product_id, media.map(m => m.id));
     await assertUgcPublishable(c.user_id, c.product_id, ugcScripts, media);
     total = planSteps(plan, media.length);
     const startTime = c.launch.start === "tomorrow" ? nextMorning(new Date(), c.launch.start_hour, account.timezone) : null;
