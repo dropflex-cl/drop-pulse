@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
   // El tema de DropFlex se lee del disco al instalarlo o actualizarlo (lib/shopify/publish/kit.ts):
   // sin esto no entra al bundle de la función en Vercel (spec del tema §4.5).
   outputFileTracingIncludes: {
+    "/api/mcp": ["./plugins/dropflex-optimizer/skills/optimize-product/**/*"],
     "/api/shopify/theme": ["./lib/shopify/themes/DropPulse/**/*"],
     "/api/products/[id]/publish": ["./lib/shopify/themes/DropPulse/**/*"],
     "/products/[id]/publish": ["./lib/shopify/themes/DropPulse/**/*"],

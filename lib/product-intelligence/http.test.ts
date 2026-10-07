@@ -8,6 +8,7 @@ import { PI_LIMITS } from "./validation";
 import { inputSchemas } from "./schemas";
 import type { DomainExecutor } from "./mcp";
 import { PI_SCOPES, type PiScope } from "./policy";
+import { OPTIMIZATION_SKILL_URI } from "./mcp-skills";
 
 describe("PI · HTTP oficial", () => {
   async function fixture(execute: DomainExecutor = async (principal) => ({ ok: false, request_id: "00000000-0000-4000-8000-000000000009", error: { code: "NOT_FOUND", message: principal.userId, retryable: false, details: {} } }), scopes: readonly PiScope[] = PI_SCOPES) {
@@ -34,6 +35,19 @@ describe("PI · HTTP oficial", () => {
     try {
       await session.client.connect(session.transport); session.revoke();
       await expect(session.client.listTools()).rejects.toThrow();
+      expect(execute).not.toHaveBeenCalled();
+    } finally { await session.client.close(); }
+  });
+  it("los recursos de skills mantienen autenticación y revocación sin ejecutar el dominio", async () => {
+    const execute = vi.fn<DomainExecutor>(); const session = await fixture(execute);
+    try {
+      await session.client.connect(session.transport);
+      const resource = await session.client.readResource({ uri: OPTIMIZATION_SKILL_URI });
+      expect(resource.contents[0].uri).toBe(OPTIMIZATION_SKILL_URI);
+      const anonymous = await session.handler(new Request(oauthTestConfig.resourceUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "resources/read", params: { uri: OPTIMIZATION_SKILL_URI } }) }));
+      expect(anonymous.status).toBe(401);
+      session.revoke();
+      await expect(session.client.readResource({ uri: OPTIMIZATION_SKILL_URI })).rejects.toThrow();
       expect(execute).not.toHaveBeenCalled();
     } finally { await session.client.close(); }
   });

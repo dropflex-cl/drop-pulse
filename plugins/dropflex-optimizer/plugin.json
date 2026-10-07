@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dropflex-optimizer",
+  "version": "1.0.0",
+  "description": "Optimiza productos con DropFlex: elige el hook primario e itera la página y sus imágenes desde el chat.",
+  "author": { "name": "DropFlex" },
+  "extensions": {
+    "com.openai": {
+      "apps": "./.app.json",
+      "interface": {
+        "displayName": "DropFlex · Optimización",
+        "shortDescription": "Elige el hook e itera la página y sus imágenes",
+        "longDescription": "Recupera tu producto, elige el hook primario y prepara estrategia, página e imágenes. Conserva decisiones y feedback en DropFlex para continuar en otro chat.",
+        "developerName": "DropFlex",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "defaultPrompt": ["Optimiza un producto y ayúdame a elegir el hook primario.", "Retoma la optimización de mi producto."]
+      }
+    }
+  }
+}

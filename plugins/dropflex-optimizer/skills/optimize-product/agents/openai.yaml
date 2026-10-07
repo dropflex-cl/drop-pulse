@@ -1,0 +1,11 @@
+interface:
+  display_name: "Optimizar producto"
+  short_description: "Elige el hook e itera la página y sus imágenes"
+  default_prompt: "Usa $optimize-product para optimizar un producto en DropFlex y ayudarme a elegir el hook primario."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "dropflex"
+      description: "Contexto, estrategia, contenido y producción visual de DropFlex"
+      transport: "streamable_http"
+      url: "https://drop-pulse.vercel.app/api/mcp"

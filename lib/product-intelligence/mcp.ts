@@ -1,4 +1,5 @@
 import { visualDescriptions } from "./visual-schemas";
+import { registerOptimizationSkill, SKILLS_EXTENSION } from "./mcp-skills";
 import { randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError, type Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -75,7 +76,11 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const timeoutMs = options.requestTimeoutMs ?? 15_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 15_000) throw new Error("El timeout MCP debe estar entre 1 y 15000 ms.");
   const actor: Principal = Object.freeze({ ...principal, scopes: Object.freeze([...principal.scopes]) });
-  const server = new Server({ name: "dropflex-product-intelligence", version: "1.0.0" }, { capabilities: { tools: { listChanged: false } } });
+  const server = new Server({ name: "dropflex-product-intelligence", version: "1.0.0" }, {
+    capabilities: { tools: { listChanged: false }, resources: {}, extensions: { [SKILLS_EXTENSION]: {} } },
+    instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Guarda propuestas con sus contratos y revisiones actuales. La aprobación de planes/assets y selección de usos se realiza en la UI de DropFlex. Optimizar no autoriza publicación ni lanzamiento de campañas.",
+  });
+  registerOptimizationSkill(server);
   const schemas = publishedSchemas();
   const available = options.availableTools ?? Object.keys(inputSchemas) as ToolName[];
   const tools: Tool[] = available.map((name) => ({
