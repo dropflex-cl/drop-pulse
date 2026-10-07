@@ -1,6 +1,6 @@
 # Estado vigente
 
-Extensión 2026-10-07: [PDP por ángulo](pdp-persuasion-audit.md) implementada y verificada localmente. Añade siete tools con flag, planes y experiencias; el catálogo derivado suma 36 contratos. La activación autorizada se versiona en la configuración Vercel y en la migración 20261123. [Validación y operación](pdp-persuasion-runbook.md).
+Extensión 2026-10-07: [PDP por ángulo](pdp-persuasion-audit.md) implementada y verificada localmente. Añade siete tools con flag, planes y experiencias; el catálogo derivado suma 36 contratos. Feature habilitada y migraciones aplicadas en producción: [registro de activación y límites](production-pdp-rollout-2026-10-07.md). [Validación y operación](pdp-persuasion-runbook.md).
 
 Fecha: 2026-10-06. Contexto/precios, research, análisis, estrategia, landing/variantes, etiquetas, conceptos estáticos/chats creativos, galería, UGC, eventos, consejo WhatsApp, métricas Meta y aprendizajes están implementados. **29 tools anunciadas y 29 pares de contratos derivados**. Guardar propuestas no llama modelos ni publica.
 

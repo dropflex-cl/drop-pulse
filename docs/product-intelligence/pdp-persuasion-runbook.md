@@ -2,6 +2,8 @@
 
 El despliegue inicial se desarrolló con ambos switches apagados. La activación autorizada posterior se versiona en `vercel.json` (`PDP_PERSUASION_ENABLED=true`) y en la migración `20261123000000` (productos actuales y nuevos habilitados). El switch de entorno y el de cada producto siguen permitiendo retirar la feature. Habilitarla no aprueba planes ni publica productos.
 
+[Activación de producción comprobada el 2026-10-07](production-pdp-rollout-2026-10-07.md).
+
 ## Evidencia de esta iteración
 
 - Suite general: 1.010 tests pasan; 106 casos opt-in se omiten en esa corrida.

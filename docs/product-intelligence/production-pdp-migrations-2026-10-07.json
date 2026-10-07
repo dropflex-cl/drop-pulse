@@ -1,0 +1,84 @@
+{
+  "project_ref": "oukcswnfrzroxgwqmujf",
+  "date": "2026-10-07",
+  "feature_commit": "cb0583ba78bbc67e1774b0eb860cad5423537a95",
+  "verification": {
+    "experiences": 0,
+    "functions": [
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_landing",
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_landing_legacy",
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_learning",
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_learning_legacy",
+        "service_execute": false
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_commit_persuasion",
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_load_persuasion",
+        "service_execute": true
+      },
+      {
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "name": "pi_pdp_state",
+        "service_execute": false
+      }
+    ],
+    "legacy_cleanup_unapplied": true,
+    "migrations": [
+      "20261120000000",
+      "20261121000000",
+      "20261122000000",
+      "20261123000000"
+    ],
+    "plans": 0,
+    "product_default": "true",
+    "products": 0,
+    "products_enabled": 0,
+    "revisions": 0,
+    "tables": [
+      {
+        "anon_select": false,
+        "authenticated_select": false,
+        "name": "pi_landing_experiences",
+        "rls": true
+      },
+      {
+        "anon_select": false,
+        "authenticated_select": false,
+        "name": "pi_pdp_revisions",
+        "rls": true
+      },
+      {
+        "anon_select": false,
+        "authenticated_select": false,
+        "name": "pi_persuasion_plans",
+        "rls": true
+      }
+    ]
+  }
+}
