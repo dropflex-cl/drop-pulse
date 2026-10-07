@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/df";
 import { FormError } from "./auth-card";
 import type { McpConnection } from "@/lib/data/oauth";
-import { consentPermissions } from "@/lib/product-intelligence/consent-copy";
+import { consentPermissions, incompleteConnectionMessage } from "@/lib/product-intelligence/consent-copy";
 
 export function McpConnections({ connections }: { connections: McpConnection[] }) {
   const router = useRouter();
@@ -23,7 +23,8 @@ export function McpConnections({ connections }: { connections: McpConnection[] }
     <FormError>{error}</FormError>
     {connections.length === 0 ? <p className="text-body text-muted-foreground">Todavía no tienes conexiones MCP.</p> : connections.map((connection) => <section key={connection.client_id} className="flex flex-col gap-2 rounded-lg border border-border p-4">
       <h2 className="text-heading">{connection.client_name}</h2>
-      <p className="text-caption text-muted-foreground">{connection.available ? `Vence el ${new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(connection.expires_at))}` : "Acceso inactivo"}</p>
+      <p className="text-caption text-muted-foreground">{connection.available && connection.expires_at ? `Vence el ${new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(connection.expires_at))}` : "Acceso inactivo"}</p>
+      {connection.incomplete ? <p className="text-body text-muted-foreground">{incompleteConnectionMessage}</p> : null}
       <ul className="list-inside list-disc text-small text-muted-foreground">{consentPermissions.filter(({ scope }) => connection.scopes.includes(scope)).map(({ scope, label }) => <li key={scope}>{label}</li>)}</ul>
       <Button loading={busy === connection.client_id} disabled={busy !== null} onClick={() => void revoke(connection.client_id)}>Revoca la conexión</Button>
     </section>)}

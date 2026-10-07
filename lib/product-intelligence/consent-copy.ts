@@ -1,6 +1,8 @@
 import type { PiScope } from "./policy";
 
 /** Textos de design-system/oauth.md. */
+export const incompleteConnectionMessage = "La conexión quedó incompleta. Revisa tus conexiones, revócala y vuelve a conectar el cliente MCP.";
+
 export const consentPermissions: readonly { scope: PiScope; label: string; hint: string }[] = [
   { scope: "product_intelligence:read", label: "Consultar contexto y estrategia", hint: "Lee los productos, análisis y decisiones guardadas." },
   { scope: "product_intelligence:write", label: "Guardar análisis y estrategia", hint: "Guarda el contenido del chat y cambia la estrategia seleccionada." },

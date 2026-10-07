@@ -17,6 +17,12 @@ node --conditions=react-server --env-file=.env.local --import tsx scripts/pi-oau
 
 La segunda requiere preview en puerto 3000. Ambas se niegan a escribir si Supabase URL no es exactamente la local; crean usuarios/clientes ficticios y solo borran los que crearon. No imprimen claves, JWT ni refresh tokens. La segunda deja capturas en `/private/tmp/pi-oauth-consent-<ancho>-<tema>.png`. El servidor Next puede registrar URLs de callback local; los códigos de prueba se consumen y se revocan, y esos logs no se deben publicar.
 
+## Recuperación de conexiones incompletas
+
+Si Supabase conserva el consentimiento nativo pero no existe un grant activo de DropFlex, una nueva solicitud puede quedar aprobada sin que aparezca el formulario de permisos. El cambio de Site URL no elimina ese consentimiento. `/oauth/connections` combina los grants de DropFlex con `auth.oauth.listGrants()` de la sesión del comerciante y muestra los consentimientos sin grant como «Acceso inactivo», sin inventar permisos ni vencimiento. «Revoca la conexión» usa el endpoint existente: revoca primero el grant local, si existe, y después el consentimiento y las sesiones nativas. A continuación, iniciar una conexión nueva desde el cliente MCP para elegir los permisos. Leer la lista o el error de consentimiento no concede acceso ni revoca conexiones automáticamente.
+
+Regresión local: `node --env-file=.env.local --import tsx scripts/pi-oauth-recovery-local.ts`, con la preview MCP anterior activa. Reproduce aprobación nativa sin grant local, error recuperable, listado, revocación y consentimiento nuevo con solo lectura seleccionada. Comprueba que el grant se activa después de la decisión. Usa fixtures locales y los limpia al finalizar; deja ocho capturas en `/private/tmp/pi-oauth-recovery-<vista>-<ancho>-<tema>.png` y verifica WCAG AA en móvil/escritorio y claro/oscuro. La prueba pasó el 2026-10-07; también pasaron 51 tests de consentimiento, conexiones y autenticación, ESLint y el build con webpack. Turbopack local falló por `binding to a port: Operation not permitted` al procesar CSS ajeno a OAuth; el build con webpack terminó con código 0 y avisos de prerender de otras APIs.
+
 ## Configuración necesaria antes del piloto
 
 1. Primero completar el DomainExecutor y sus pruebas transaccionales, receipts/audit, replay y outbox. El transporte recibe un ejecutor real; no sustituir el gate con fixtures.

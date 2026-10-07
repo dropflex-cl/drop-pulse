@@ -7,6 +7,11 @@ import { McpAuthError, mcpConfiguration } from "./oauth";
 import { oauthRpc } from "./oauth-store";
 import { PI_SCOPES } from "./policy";
 import { isMerchantSessionClaims } from "@/lib/supabase/merchant-claims";
+import { incompleteConnectionMessage } from "./consent-copy";
+
+export class McpConsentRecoveryError extends Error {
+  constructor() { super(incompleteConnectionMessage); }
+}
 
 // OpenID identifica al usuario; los permisos de dominio se eligen aparte en el consentimiento.
 const IDENTITY_SCOPES = ["openid", "email", "offline_access"];
@@ -42,15 +47,18 @@ export async function loadConsent(authorizationId: string) {
   const config = requireConsentConfiguration();
   const { client, userId } = await directMerchantSession();
   const { data, error } = await client.auth.oauth.getAuthorizationDetails(authorizationId);
+  const context = contextSchema.safeParse(await oauthRpc("pi_oauth_authorization_context", { p_user_id: userId, p_authorization_id: authorizationId, p_resource_url: config.resourceUrl }));
+  if (context.success && context.data.status === "approved" && !context.data.has_active_grant) throw new McpConsentRecoveryError();
   if (error || !data) throw new Error("La solicitud de conexión venció. Conecta de nuevo el cliente MCP.");
-  const context = contextSchema.parse(await oauthRpc("pi_oauth_authorization_context", { p_user_id: userId, p_authorization_id: authorizationId, p_resource_url: config.resourceUrl }));
+  if (!context.success) throw new Error("La solicitud de conexión venció. Conecta de nuevo el cliente MCP.");
+  const authorization = context.data;
   if ("redirect_url" in data) {
-    if (!context.has_active_grant || context.status !== "approved") throw new Error("El permiso de este cliente venció. Revoca su conexión y vuelve a conectarlo.");
-    return { redirectUrl: safeRedirect(data.redirect_url, context.redirect_uri) };
+    if (!authorization.has_active_grant || authorization.status !== "approved") throw new Error("El permiso de este cliente venció. Revoca su conexión y vuelve a conectarlo.");
+    return { redirectUrl: safeRedirect(data.redirect_url, authorization.redirect_uri) };
   }
-  if (data.user.id !== userId || data.client.id !== context.client_id || data.authorization_id !== authorizationId || context.status !== "pending") throw new Error("La solicitud de conexión no es válida. Conecta de nuevo el cliente MCP.");
+  if (data.user.id !== userId || data.client.id !== authorization.client_id || data.authorization_id !== authorizationId || authorization.status !== "pending") throw new Error("La solicitud de conexión no es válida. Conecta de nuevo el cliente MCP.");
   if (data.scope.split(/\s+/).some((scope) => !IDENTITY_SCOPES.includes(scope))) throw new Error("El cliente solicita permisos de identidad que MCP no admite. Conéctalo usando openid, email y offline_access.");
-  return { clientName: data.client.name?.slice(0, 160) || "Cliente MCP", identityScopes: data.scope, ticket: createConsentTicket({ userId, clientId: context.client_id, authorizationId, resourceUrl: config.resourceUrl }, stateSecret()) };
+  return { clientName: data.client.name?.slice(0, 160) || "Cliente MCP", identityScopes: data.scope, ticket: createConsentTicket({ userId, clientId: authorization.client_id, authorizationId, resourceUrl: config.resourceUrl }, stateSecret()) };
 }
 
 export async function decideConsent(input: z.infer<typeof consentDecisionSchema>): Promise<string> {

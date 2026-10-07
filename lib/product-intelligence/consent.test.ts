@@ -3,7 +3,7 @@ import { createConsentTicket } from "./consent-ticket";
 const mocks = vi.hoisted(() => ({ claims: null as unknown, details: vi.fn(), approve: vi.fn(), deny: vi.fn(), revoke: vi.fn(), rpc: vi.fn(), events: [] as string[] }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getClaims: async () => ({ data: { claims: mocks.claims } }), oauth: { getAuthorizationDetails: mocks.details, approveAuthorization: mocks.approve, denyAuthorization: mocks.deny, revokeGrant: mocks.revoke } } }) }));
 vi.mock("./oauth-store", () => ({ oauthRpc: mocks.rpc }));
-import { assertConsentOrigin, consentDecisionSchema, decideConsent, directMerchantSession, loadConsent, revokeMcpConnection } from "./consent";
+import { assertConsentOrigin, consentDecisionSchema, decideConsent, directMerchantSession, loadConsent, McpConsentRecoveryError, revokeMcpConnection } from "./consent";
 const userId = "00000000-0000-4000-8000-000000000001", clientId = "00000000-0000-4000-8000-000000000002", authorizationId = "opaque-authorization";
 const resourceUrl = "https://app.dropflex.test/api/mcp", redirectUri = "https://host.dropflex.test/callback";
 const details = { authorization_id: authorizationId, client: { id: clientId, name: "Cliente" }, user: { id: userId, email: "fixture@example.test" }, redirect_uri: redirectUri, scope: "email offline_access" };
@@ -81,9 +81,25 @@ describe("PI · consentimiento del dueño", () => {
   it("un consentimiento OAuth anterior no reactiva un grant de dominio revocado", async () => {
     mocks.details.mockResolvedValue({ data: { redirect_url: `${redirectUri}?code=fictitious` }, error: null });
     mocks.rpc.mockResolvedValue({ ...context, status: "approved" });
-    await expect(loadConsent(authorizationId)).rejects.toThrow("Revoca");
+    await expect(loadConsent(authorizationId)).rejects.toThrow(McpConsentRecoveryError);
+    expect(mocks.approve).not.toHaveBeenCalled();
+    expect(mocks.revoke).not.toHaveBeenCalled();
+    expect(mocks.events).toEqual([]);
     mocks.rpc.mockResolvedValue({ ...context, status: "approved", has_active_grant: true });
     expect(await loadConsent(authorizationId)).toEqual({ redirectUrl: `${redirectUri}?code=fictitious` });
+  });
+  it("ofrece recuperación si el proveedor ya aprobó pero no devuelve otro código", async () => {
+    mocks.details.mockResolvedValue({ data: null, error: { message: "authorization already approved" } });
+    mocks.rpc.mockResolvedValue({ ...context, status: "approved" });
+    await expect(loadConsent(authorizationId)).rejects.toThrow(McpConsentRecoveryError);
+    expect(mocks.approve).not.toHaveBeenCalled();
+    expect(mocks.revoke).not.toHaveBeenCalled();
+  });
+  it("una solicitud ajena o vencida no revela recuperación ni concede permisos", async () => {
+    mocks.rpc.mockResolvedValue(null);
+    await expect(loadConsent(authorizationId)).rejects.toThrow("venció");
+    expect(mocks.approve).not.toHaveBeenCalled();
+    expect(mocks.revoke).not.toHaveBeenCalled();
   });
   it("revoca primero el acceso local aunque falle la limpieza de sesiones nativas", async () => {
     mocks.revoke.mockImplementation(async () => { mocks.events.push("revoke"); return { error: {} }; });
