@@ -12,6 +12,13 @@ export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }
 export type DomainExecutor = (principal: Principal, command: ToolCommand, signal: AbortSignal) => Promise<unknown>;
 
 const descriptions: Record<ToolName, string> = {
+  get_pdp_planning_context: "Lee una revisión consistente de estrategia, ángulo, evidencia, contenido y assets para planificar una PDP corta en el chat.",
+  get_component_catalog: "Consulta capacidades persuasivas y restricciones de los componentes reales de Shopify.",
+  get_angle_persuasion_plan: "Recupera el plan persuasivo de un ángulo, su revisión y etag. No genera estrategia.",
+  save_angle_persuasion_plan: "Valida y guarda el argumento, recorrido mínimo de creencias y arquitectura con CAS, dry_run e idempotencia. Solo el comerciante aprueba.",
+  validate_angle_persuasion_plan: "Comprueba cobertura, atención, compresión, componentes y evidencia sin guardar ni generar contenido.",
+  get_landing_experience: "Lee experiencias y sus bindings a variantes existentes, con revisión y etag.",
+  save_landing_experience: "Guarda la ejecución del plan sin reescribir copy ni assets. CAS e idempotencia; solo el comerciante activa, publicar es aparte.",
   generate_gallery_images: "Renderiza tomas de galería guardadas desde chat, con consentimiento landing:generate y estimación explícita. Puede gastar créditos de tus proveedores; no escribe textos ni publica.",
   get_gallery_generation_status: "Consulta la operación y las imágenes guardadas, sin llamar al proveedor. La UI permite elegirlas antes de publicar.",
   get_product_performance: "Lee métricas Meta guardadas por periodo, separadas por moneda y zona horaria. No son pedidos entregados ni cobrados.",
@@ -70,7 +77,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const available = options.availableTools ?? Object.keys(inputSchemas) as ToolName[];
   const tools: Tool[] = available.map((name) => ({
     name, description: descriptions[name], inputSchema: schemas[name].input, outputSchema: schemas[name].output,
-    annotations: { readOnlyHint: name.startsWith("get_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy"].includes(name), openWorldHint: name.startsWith("generate_") },
+    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy"].includes(name), openWorldHint: name.startsWith("generate_") },
   }));
   server.setRequestHandler(ListToolsRequestSchema, async (request) => {
     const cursor = request.params?.cursor;

@@ -1,3 +1,4 @@
+<div data-df-pdp-component="review-stars">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
 {%- assign df_variants = df_product.metafields.dropflex.review_stars.value -%}
@@ -17,6 +18,8 @@
 {%- else -%}
   {% render 'df-review-stars-content', product: df_product, section: section, block: block, content: df_variants %}
 {%- endif -%}
+
+</div>
 
 {% stylesheet %}
   .df-review-stars {

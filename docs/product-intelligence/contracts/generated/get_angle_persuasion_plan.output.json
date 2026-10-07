@@ -1,0 +1,935 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "request_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "VALIDATION_ERROR",
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "INVALID_REFERENCE",
+                "DEPENDENCY_IN_USE",
+                "REVISION_CONFLICT",
+                "ARTIFACT_CONFLICT",
+                "IDEMPOTENCY_KEY_REUSED",
+                "PAYLOAD_TOO_LARGE",
+                "RESPONSE_TOO_LARGE",
+                "SCHEMA_VERSION_UNSUPPORTED",
+                "RATE_LIMITED",
+                "CURSOR_EXPIRED",
+                "CURSOR_INVALID",
+                "EXECUTION_NOT_READY",
+                "INTEGRATION_NOT_CONNECTED",
+                "GENERATION_IN_PROGRESS",
+                "PROVIDER_RECONCILIATION_REQUIRED",
+                "INTERNAL_ERROR"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "object",
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "current_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "expected_artifact_etag": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "current_artifact_etag": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "missing_fields": {
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "fields": {
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema2"
+                  }
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "operation_index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 49
+                },
+                "retry_after_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "operation_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                  "format": "uuid"
+                },
+                "max_bytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "next_action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8192
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "details"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ok",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "product_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "request_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "current": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "etag": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "properties": {
+                        "schema_version": {
+                          "type": "string",
+                          "const": "1.0"
+                        },
+                        "strategy_id": {
+                          "$ref": "#/$defs/__schema0"
+                        },
+                        "angle_id": {
+                          "$ref": "#/$defs/__schema0"
+                        },
+                        "landing_angle_id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "review",
+                            "approved",
+                            "archived"
+                          ]
+                        },
+                        "audience_state": {
+                          "type": "object",
+                          "properties": {
+                            "persona_id": {
+                              "$ref": "#/$defs/__schema0"
+                            },
+                            "awareness_level": {
+                              "type": "string",
+                              "enum": [
+                                "unaware",
+                                "problem_aware",
+                                "solution_aware",
+                                "product_aware",
+                                "most_aware"
+                              ]
+                            },
+                            "sophistication": {
+                              "type": "string",
+                              "enum": [
+                                "low",
+                                "medium",
+                                "high",
+                                "very_high"
+                              ]
+                            },
+                            "primary_jtbd_ids": {
+                              "maxItems": 3,
+                              "$ref": "#/$defs/__schema3"
+                            },
+                            "primary_pain_ids": {
+                              "maxItems": 3,
+                              "$ref": "#/$defs/__schema3"
+                            },
+                            "primary_desire_ids": {
+                              "maxItems": 3,
+                              "$ref": "#/$defs/__schema3"
+                            },
+                            "primary_objection_ids": {
+                              "maxItems": 5,
+                              "$ref": "#/$defs/__schema3"
+                            },
+                            "entering_context": {
+                              "$ref": "#/$defs/__schema4"
+                            }
+                          },
+                          "required": [
+                            "persona_id",
+                            "awareness_level",
+                            "sophistication",
+                            "primary_jtbd_ids",
+                            "primary_pain_ids",
+                            "primary_desire_ids",
+                            "primary_objection_ids",
+                            "entering_context"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "thesis": {
+                          "type": "object",
+                          "properties": {
+                            "recognition": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "problem": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "reframe": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "solution_logic": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "product_role": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "desired_transformation": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "memorable_idea": {
+                              "$ref": "#/$defs/__schema4"
+                            },
+                            "promise_fact_ids": {
+                              "default": [],
+                              "$ref": "#/$defs/__schema3"
+                            },
+                            "mechanism_fact_ids": {
+                              "default": [],
+                              "$ref": "#/$defs/__schema3"
+                            }
+                          },
+                          "required": [
+                            "recognition",
+                            "problem",
+                            "solution_logic",
+                            "product_role",
+                            "desired_transformation",
+                            "promise_fact_ids",
+                            "mechanism_fact_ids"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "beliefs": {
+                          "minItems": 4,
+                          "maxItems": 7,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/$defs/__schema5"
+                          }
+                        },
+                        "attention_budget": {
+                          "type": "object",
+                          "properties": {
+                            "max_primary_sections": {
+                              "default": 6,
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 7
+                            },
+                            "max_support_sections": {
+                              "default": 2,
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2
+                            },
+                            "copy_density": {
+                              "default": "low",
+                              "type": "string",
+                              "enum": [
+                                "very_low",
+                                "low",
+                                "medium"
+                              ]
+                            },
+                            "max_headline_chars": {
+                              "default": 70,
+                              "type": "integer",
+                              "minimum": 10,
+                              "maximum": 70
+                            },
+                            "max_subheadline_chars": {
+                              "default": 150,
+                              "type": "integer",
+                              "minimum": 10,
+                              "maximum": 160
+                            },
+                            "max_body_chars_per_section": {
+                              "default": 400,
+                              "type": "integer",
+                              "minimum": 20,
+                              "maximum": 400
+                            },
+                            "max_bullets_per_section": {
+                              "default": 3,
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3
+                            },
+                            "max_primary_messages_per_section": {
+                              "default": 1,
+                              "type": "number",
+                              "const": 1
+                            },
+                            "preferred_visual_ratio": {
+                              "default": 0.65,
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "mobile_first": {
+                              "default": true,
+                              "type": "boolean",
+                              "const": true
+                            }
+                          },
+                          "required": [
+                            "max_primary_sections",
+                            "max_support_sections",
+                            "copy_density",
+                            "max_headline_chars",
+                            "max_subheadline_chars",
+                            "max_body_chars_per_section",
+                            "max_bullets_per_section",
+                            "max_primary_messages_per_section",
+                            "preferred_visual_ratio",
+                            "mobile_first"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "sections": {
+                          "minItems": 1,
+                          "maxItems": 9,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/$defs/__schema9"
+                          }
+                        },
+                        "claims": {
+                          "default": [],
+                          "maxItems": 40,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/$defs/__schema14"
+                          }
+                        }
+                      },
+                      "required": [
+                        "schema_version",
+                        "strategy_id",
+                        "angle_id",
+                        "landing_angle_id",
+                        "status",
+                        "audience_state",
+                        "thesis",
+                        "beliefs",
+                        "attention_budget",
+                        "sections",
+                        "claims"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "etag",
+                    "payload"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "etag": {
+              "type": "string"
+            },
+            "planning_stamp": {
+              "type": "string"
+            },
+            "issues": {
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema15"
+              }
+            }
+          },
+          "required": [
+            "current",
+            "etag",
+            "planning_stamp",
+            "issues"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ok",
+        "product_id",
+        "revision",
+        "request_id",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "__schema3": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "__schema4": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "recognition",
+            "problem_importance",
+            "desire",
+            "reframe",
+            "solution_logic",
+            "product_fit",
+            "differentiation",
+            "ease",
+            "proof",
+            "similarity",
+            "trust",
+            "value",
+            "risk",
+            "urgency"
+          ]
+        },
+        "current_belief": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "target_belief": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "mandatory": {
+          "default": true,
+          "type": "boolean"
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "objection_ids": {
+          "default": [],
+          "$ref": "#/$defs/__schema3"
+        },
+        "resolution_mode": {
+          "type": "string",
+          "enum": [
+            "section",
+            "microcopy",
+            "proof",
+            "offer",
+            "faq",
+            "cta_context"
+          ]
+        },
+        "resolution_section_key": {
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "current_belief",
+        "target_belief",
+        "mandatory",
+        "fact_ids",
+        "evidence_ids",
+        "objection_ids",
+        "resolution_mode",
+        "resolution_section_key"
+      ],
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "__schema7": {
+      "default": [],
+      "$ref": "#/$defs/__schema3"
+    },
+    "__schema8": {
+      "default": [],
+      "$ref": "#/$defs/__schema3"
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "section_key": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "support"
+          ]
+        },
+        "primary_job": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "secondary_jobs": {
+          "default": [],
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema10"
+          }
+        },
+        "belief_keys": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "preferred_medium": {
+          "type": "string",
+          "enum": [
+            "visual_led",
+            "proof_led",
+            "copy_led",
+            "commerce_led",
+            "mixed"
+          ]
+        },
+        "candidate_components": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema12"
+          }
+        },
+        "selected_component": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "headline_intent": {
+              "maxLength": 200,
+              "$ref": "#/$defs/__schema4"
+            },
+            "body_intent": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "takeaway": {
+              "maxLength": 300,
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "headline_intent",
+            "takeaway"
+          ],
+          "additionalProperties": false
+        },
+        "necessity": {
+          "maxLength": 500,
+          "$ref": "#/$defs/__schema4"
+        },
+        "redundancy_justification": {
+          "maxLength": 500,
+          "$ref": "#/$defs/__schema4"
+        },
+        "creative_direction": {
+          "type": "object",
+          "properties": {
+            "objective": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "visual_role": {
+              "type": "string",
+              "enum": [
+                "recognize",
+                "explain",
+                "demonstrate",
+                "prove",
+                "compare",
+                "aspire",
+                "reduce_risk"
+              ]
+            },
+            "format": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "scene": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "composition": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "product_role": {
+              "type": "string",
+              "enum": [
+                "hero",
+                "supporting",
+                "absent"
+              ]
+            },
+            "generation_required": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "objective",
+            "visual_role",
+            "format",
+            "scene",
+            "composition",
+            "product_role",
+            "generation_required"
+          ],
+          "additionalProperties": false
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "claim_keys": {
+          "default": [],
+          "$ref": "#/$defs/__schema11"
+        },
+        "source_asset_refs": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        },
+        "cta": {
+          "type": "string",
+          "enum": [
+            "none",
+            "soft",
+            "primary"
+          ]
+        }
+      },
+      "required": [
+        "section_key",
+        "kind",
+        "primary_job",
+        "secondary_jobs",
+        "belief_keys",
+        "preferred_medium",
+        "candidate_components",
+        "selected_component",
+        "message",
+        "necessity",
+        "fact_ids",
+        "evidence_ids",
+        "claim_keys",
+        "source_asset_refs",
+        "cta"
+      ],
+      "additionalProperties": false
+    },
+    "__schema10": {
+      "type": "string",
+      "enum": [
+        "recognition",
+        "desire_activation",
+        "problem_visualization",
+        "agitation",
+        "reframe",
+        "solution_logic",
+        "product_fit",
+        "differentiation",
+        "mechanism",
+        "demonstration",
+        "ease",
+        "social_proof",
+        "similarity_proof",
+        "authority_proof",
+        "objection_resolution",
+        "value",
+        "risk_reversal",
+        "urgency",
+        "close"
+      ]
+    },
+    "__schema11": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema6"
+      }
+    },
+    "__schema12": {
+      "type": "string",
+      "enum": [
+        "listing",
+        "review-stars",
+        "benefit-usps",
+        "inventory",
+        "shipping-timeline",
+        "benefit-double-box",
+        "gif-strip",
+        "review-slider",
+        "ugc-slider",
+        "pain-block",
+        "stats-with-image",
+        "scrolling-benefits",
+        "image-with-benefits",
+        "insta-story",
+        "review-wall",
+        "comparison-table",
+        "faq-and-text"
+      ]
+    },
+    "__schema13": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "page_image",
+            "ugc"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "proof",
+            "demo",
+            "explanation",
+            "comparison"
+          ]
+        },
+        "slot": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "selected": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "id",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "__schema14": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "text_intent": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "product_fact",
+            "ingredient",
+            "performance",
+            "comparative",
+            "timeline",
+            "clinical",
+            "testimonial",
+            "offer",
+            "shipping",
+            "guarantee",
+            "scarcity"
+          ]
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "review_ids": {
+          "default": [],
+          "$ref": "#/$defs/__schema3"
+        },
+        "restrictions": {
+          "default": [],
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        }
+      },
+      "required": [
+        "key",
+        "text_intent",
+        "type",
+        "fact_ids",
+        "evidence_ids",
+        "review_ids",
+        "restrictions"
+      ],
+      "additionalProperties": false
+    },
+    "__schema15": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "field": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warning"
+          ]
+        },
+        "section_key": {
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": [
+        "code",
+        "field",
+        "message",
+        "severity"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "type": "object"
+}

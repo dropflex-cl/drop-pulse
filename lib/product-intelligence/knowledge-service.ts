@@ -1,3 +1,7 @@
+import { createPersuasionExecutor } from "./persuasion-service";
+import { persuasionTools } from "./persuasion-schemas";
+import { persuasionEnabled } from "./persuasion-flags";
+import type { PersuasionRepository } from "./repository";
 import { createGalleryGenerationExecutor } from "./gallery-generation-service";
 import type { GalleryGenerationRepository } from "./repository";
 import { learningTools } from "./learning-schemas";
@@ -27,12 +31,16 @@ import { createUgcExecutor } from "./ugc-service";
 import type { UgcRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = [...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = [...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
 /** Adaptador común para UI/MCP. Los textos se guardan sin IA; generate_ugc encola renders con permiso explícito. */
-export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void): DomainExecutor {
+export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     requireScopes(principal, toolScopes[command.tool]);
+    if (persuasionTools.includes(command.tool as typeof persuasionTools[number])) {
+      if (!persuasionEnabled() || !repository.loadPersuasion || !repository.commitPersuasion) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La planificación de páginas aún no está habilitada.");
+      return createPersuasionExecutor(repository as PersuasionRepository, identity)(principal, command, signal);
+    }
     if (command.tool === "generate_gallery_images" || command.tool === "get_gallery_generation_status") {
       if (!repository.loadGalleryGeneration || !repository.enqueueGalleryGeneration || !repository.loadContent) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de render de galería.");
       return createGalleryGenerationExecutor(repository as GalleryGenerationRepository & ContentRepository & KnowledgeRepository, identity, wakeGallery)(principal, command, signal);

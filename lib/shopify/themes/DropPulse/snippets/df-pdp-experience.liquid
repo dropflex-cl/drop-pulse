@@ -1,0 +1,111 @@
+{%- if product.metafields.dropflex.landing_experiences.value.enabled == true -%}
+<script type="application/json" id="df-pdp-manifest">{{ product.metafields.dropflex.landing_experiences.value | json | replace: '<', '\u003c' }}</script>
+<script>
+// Manifiesto prepublicado. Solo mueve nodos propios; jamás crea HTML desde parámetros o JSON.
+(() => {
+  if (window.DropFlexPdp) return;
+  const placements = {
+    'listing': 'hero', 'review-stars': 'hero', 'benefit-usps': 'hero', 'inventory': 'hero', 'shipping-timeline': 'hero',
+    'benefit-double-box': 'body', 'gif-strip': 'body', 'review-slider': 'body', 'ugc-slider': 'body',
+    'pain-block': 'body', 'stats-with-image': 'body', 'scrolling-benefits': 'body', 'image-with-benefits': 'body',
+    'insta-story': 'body', 'review-wall': 'body', 'comparison-table': 'body', 'faq-and-text': 'body',
+  };
+  const valid = (v) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v);
+  const uuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
+  const validExperience = (e) => {
+    if (!e || !valid(e.landing_angle_id) || (e.landing_hook_id !== null && !valid(e.landing_hook_id))
+      || !['id','product_id','strategy_id','angle_id','persuasion_plan_id'].every(k => uuid(e[k]))
+      || !Number.isSafeInteger(e.revision) || e.revision < 1 || !Number.isSafeInteger(e.plan_revision) || e.plan_revision < 1
+      || typeof e.is_default !== 'boolean' || !valid(e.experience_key) || !valid(e.architecture_variant) || !Array.isArray(e.sections) || !e.sections.length || e.sections.length > 9) return false;
+    if (e.sections[0].component !== 'listing' || new Set(e.sections.map(s => s.component)).size !== e.sections.length
+      || new Set(e.sections.map(s => s.section_key)).size !== e.sections.length) return false;
+    let body = false;
+    return e.sections.every(s => {
+      if (!valid(s.section_key) || !valid(s.content_variant_key) || !Object.hasOwn(placements, s.component) || placements[s.component] !== s.placement) return false;
+      if (s.placement === 'body') body = true;
+      else if (body) return false;
+      return true;
+    });
+  };
+  let manifest;
+  try {
+    manifest = JSON.parse(document.getElementById('df-pdp-manifest').textContent);
+    if (manifest.schema_version !== '1.0' || manifest.enabled !== true || !Array.isArray(manifest.experiences)
+      || manifest.experiences.length > 20 || !manifest.experiences.every(validExperience)
+      || manifest.experiences.filter(e => e.is_default).length > 1
+      || new Set(manifest.experiences.map(e => `${e.landing_angle_id}:${e.landing_hook_id || ''}`)).size !== manifest.experiences.length) return;
+  } catch { return; }
+  let originals = [], stream = null;
+  const restore = () => {
+    for (const { node, marker, hidden, sectionKey, job, container } of originals) {
+      if (marker?.isConnected) marker.replaceWith(node);
+      node.hidden = hidden;
+      if (sectionKey === undefined) delete node.dataset.dfSectionKey; else node.dataset.dfSectionKey = sectionKey;
+      if (job === undefined) delete node.dataset.dfPersuasionJob; else node.dataset.dfPersuasionJob = job;
+      if (container === undefined) delete node.dataset.dfPdpContainer; else node.dataset.dfPdpContainer = container;
+    }
+    originals = []; stream?.remove(); stream = null;
+    window.DropFlexPdp.current = null;
+  };
+  const apply = () => {
+    restore();
+    const { angle, hook } = window.DropFlexLanding.selection();
+    const items = manifest.experiences;
+    const selected = (angle && hook ? items.find(e => e.landing_angle_id === angle && e.landing_hook_id === hook) : null)
+      || (angle ? items.find(e => e.landing_angle_id === angle && e.landing_hook_id === null) : null)
+      || items.find(e => e.is_default);
+    if (!selected) { window.DropFlexLanding.scan(); return; }
+    const fallback = () => { window.DropFlexLanding.scan(); };
+    const roots = [...document.querySelectorAll('[data-df-pdp-component]')];
+    const nodes = new Map();
+    // Theme editor puede haber quitado/duplicado componentes. Fallar antes de mover nada.
+    for (const root of roots) {
+      const id = root.dataset.dfPdpComponent;
+      if (nodes.has(id)) { fallback(); return; }
+      const bodySection = placements[id] === 'body' && root.closest('.shopify-section')?.querySelector('[data-df-pdp-component]') === root
+        && root.closest('.shopify-section')?.querySelectorAll('[data-df-pdp-component]').length === 1;
+      nodes.set(id, bodySection ? root.closest('.shopify-section') : root);
+    }
+    const firstRoot = roots.find(r => placements[r.dataset.dfPdpComponent] === 'hero');
+    const main = document.querySelector('[data-df-component="df-title"]')?.closest('.shopify-section')
+      || document.querySelector('.df-title')?.closest('.shopify-section') || firstRoot?.closest('.shopify-section');
+    if (!main) { fallback(); return; }
+    for (const section of selected.sections) {
+      if (section.component !== 'listing' && !nodes.has(section.component)) { fallback(); return; }
+      const hosts = section.component === 'listing' ? [...main.querySelectorAll('df-landing-content')].filter(h => ['df-title','df-subtitle','df-pack-offers'].includes(h.dataset.dfComponent))
+        : [...nodes.get(section.component).querySelectorAll('df-landing-content')];
+      if (section.component === 'listing' && section.content_variant_key !== 'default' && hosts.length !== 3) { fallback(); return; }
+      if (hosts.some(h => ![...h.querySelectorAll(':scope > template[data-df-variant]')].some(t => t.dataset.dfVariant === section.content_variant_key))) { fallback(); return; }
+      if (!hosts.length && section.content_variant_key !== 'default') { fallback(); return; }
+    }
+    try {
+      stream = document.createElement('div'); stream.className = 'df-pdp-stream';
+      main.after(stream);
+      for (const [component, node] of nodes) {
+        const marker = document.createComment('DropFlex original position'); node.before(marker);
+        originals.push({ node, marker, hidden: node.hidden, sectionKey: node.dataset.dfSectionKey, job: node.dataset.dfPersuasionJob, container: node.dataset.dfPdpContainer });
+        node.dataset.dfPdpContainer = '';
+        node.hidden = !selected.sections.some(s => s.component === component);
+      }
+      for (const section of selected.sections) {
+        const node = nodes.get(section.component);
+        if (!node) continue;
+        node.dataset.dfSectionKey = section.section_key; node.dataset.dfPersuasionJob = section.persuasion_job;
+        if (section.placement === 'body') stream.append(node);
+      }
+      window.DropFlexPdp.current = selected;
+      window.DropFlexLanding.scan();
+      document.dispatchEvent(new CustomEvent('df:experience-selected', { detail: selected }));
+    } catch { restore(); window.DropFlexLanding.scan(); }
+  };
+  window.DropFlexPdp = { current: null, apply, restore };
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('popstate', apply);
+  document.addEventListener('shopify:section:load', apply);
+})();
+</script>
+<style>
+  .df-pdp-stream > [data-df-pdp-component] { display: block; max-width: var(--df-container); margin-inline: auto; padding: var(--df-gutter); }
+  [data-df-pdp-component][hidden], [data-df-pdp-container][hidden] { display: none !important; }
+</style>
+{%- endif -%}

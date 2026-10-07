@@ -1,3 +1,4 @@
+import type { ExperienceManifest } from "@/lib/product-intelligence/experience-resolver";
 // Publicar, lo puro (docs/spec-publicar.md): de lo APROBADO en DropFlex a lo que recibe Shopify.
 // - productSet: título, descripción, SEO, la variante de 1 unidad y la galería (los packs NO son
 //   variantes: son esa variante × N, ver productSetInput).
@@ -71,6 +72,7 @@ export interface PublishComponent {
 }
 
 export interface PublishInput {
+  experienceManifest?: ExperienceManifest;
   listing: Listing;
   listingVariants?: LandingVariant[];
   /** Componentes aprobados y en uso («Usar en la página»). */
@@ -194,6 +196,7 @@ export function landingAtomicKeys(input: PublishInput): string[] {
     if (def?.metafield) keys.push(def.metafield.key);
     for (const meta of Object.values(SLOT_METAFIELD[c.id] ?? {})) keys.push(`${meta.key}_variants`);
   }
+  if (input.experienceManifest) keys.push(SHARED_METAFIELDS.landingExperiences.key);
   return keys;
 }
 
@@ -201,6 +204,7 @@ export function landingAtomicKeys(input: PublishInput): string[] {
 export function productMetafields(input: PublishInput, gids: Map<string, string>): { set: MetafieldValue[]; remove: string[] } {
   const set: MetafieldValue[] = [];
   const gid = (key: string) => gids.get(key);
+  if (input.experienceManifest) set.push(mf(SHARED_METAFIELDS.landingExperiences.key, "json", input.experienceManifest));
 
   set.push(mf(SHARED_METAFIELDS.subtitle.key, SHARED_METAFIELDS.subtitle.type, input.listing.short_description));
   const packs = input.packs.length > 1 ? input.packs : [];

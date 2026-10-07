@@ -1,3 +1,4 @@
+<div data-df-pdp-component="scrolling-benefits">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
 {%- assign df_variants = df_product.metafields.dropflex.scrolling_benefits.value -%}
@@ -16,6 +17,8 @@
 {%- else -%}
   {% render 'df-scrolling-benefits-content', product: df_product, section: section, content: df_variants %}
 {%- endif -%}
+
+</div>
 
 {% stylesheet %}
   .df-scrolling-benefits {

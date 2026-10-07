@@ -1,3 +1,4 @@
+<div data-df-pdp-component="shipping-timeline">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
 {%- assign df_variants = df_product.metafields.dropflex.shipping_timeline.value -%}
@@ -16,6 +17,8 @@
 {%- else -%}
   {% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_variants %}
 {%- endif -%}
+
+</div>
 
 {% stylesheet %}
   .df-shipping-timeline {

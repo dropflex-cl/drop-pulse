@@ -1,4 +1,5 @@
 "use client";
+import { PersuasionWorkbench } from "./page/persuasion-workbench";
 
 import { Button, EmptyState, Icon, Notice, OfferPreview, StageMeter, StatusBadge, TopBar, notify, type MeterStage } from "@/components/df";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
@@ -318,6 +319,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
               </span>
             ) : null}
           </div>
+          {data.pdp ? <div className="lg:max-w-content"><PersuasionWorkbench initial={data.pdp} data={{ ...data, ...state }} /></div> : null}
           <div className="lg:max-w-content">{variants.length > 1 ? <div className="mb-4 rounded-lg border bg-card p-4"><LandingVariantPicker variants={variants} selection={selection} onChange={setSelection} /><p className="mt-2 text-caption text-muted-foreground">Revisa el recorrido de cada anuncio. Guardar un componente aprueba todas sus variantes.</p></div> : null}{body}</div>
           {view === "start" || view === "failed" || view === "writing" ? <PageAccent productId={product.id} initial={data.accent} onSaved={setAccent} className="lg:max-w-content" /> : null}
           {error ? (

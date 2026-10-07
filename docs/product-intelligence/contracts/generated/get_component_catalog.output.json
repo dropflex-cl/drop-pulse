@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "request_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "VALIDATION_ERROR",
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "INVALID_REFERENCE",
+                "DEPENDENCY_IN_USE",
+                "REVISION_CONFLICT",
+                "ARTIFACT_CONFLICT",
+                "IDEMPOTENCY_KEY_REUSED",
+                "PAYLOAD_TOO_LARGE",
+                "RESPONSE_TOO_LARGE",
+                "SCHEMA_VERSION_UNSUPPORTED",
+                "RATE_LIMITED",
+                "CURSOR_EXPIRED",
+                "CURSOR_INVALID",
+                "EXECUTION_NOT_READY",
+                "INTEGRATION_NOT_CONNECTED",
+                "GENERATION_IN_PROGRESS",
+                "PROVIDER_RECONCILIATION_REQUIRED",
+                "INTERNAL_ERROR"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "object",
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "current_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "expected_artifact_etag": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "current_artifact_etag": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "missing_fields": {
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "fields": {
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema2"
+                  }
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "operation_index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 49
+                },
+                "retry_after_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "operation_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                  "format": "uuid"
+                },
+                "max_bytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "next_action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8192
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "details"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ok",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "product_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "request_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "catalog": {
+              "maxItems": 17,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema3"
+              }
+            }
+          },
+          "required": [
+            "catalog"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ok",
+        "product_id",
+        "revision",
+        "request_id",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string",
+          "enum": [
+            "listing",
+            "review-stars",
+            "benefit-usps",
+            "inventory",
+            "shipping-timeline",
+            "benefit-double-box",
+            "gif-strip",
+            "review-slider",
+            "ugc-slider",
+            "pain-block",
+            "stats-with-image",
+            "scrolling-benefits",
+            "image-with-benefits",
+            "insta-story",
+            "review-wall",
+            "comparison-table",
+            "faq-and-text"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "supported_jobs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "recognition",
+              "desire_activation",
+              "problem_visualization",
+              "agitation",
+              "reframe",
+              "solution_logic",
+              "product_fit",
+              "differentiation",
+              "mechanism",
+              "demonstration",
+              "ease",
+              "social_proof",
+              "similarity_proof",
+              "authority_proof",
+              "objection_resolution",
+              "value",
+              "risk_reversal",
+              "urgency",
+              "close"
+            ]
+          }
+        },
+        "placement": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "body"
+          ]
+        },
+        "attention_cost": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "visual_strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "proof_strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "copy_density": {
+          "type": "string",
+          "enum": [
+            "very_low",
+            "low",
+            "medium"
+          ]
+        },
+        "supports_cta": {
+          "type": "boolean"
+        },
+        "asset_requirements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "min_reviews": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "image_slots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "min": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ratio": {
+                "type": "string",
+                "enum": [
+                  "1:1",
+                  "3:4",
+                  "9:16"
+                ]
+              },
+              "hint": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "label",
+              "min",
+              "max",
+              "ratio",
+              "hint"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbidden": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "component",
+        "name",
+        "supported_jobs",
+        "placement",
+        "attention_cost",
+        "visual_strength",
+        "proof_strength",
+        "copy_density",
+        "supports_cta",
+        "asset_requirements",
+        "constraints",
+        "min_reviews",
+        "available",
+        "image_slots",
+        "rules",
+        "forbidden"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "type": "object"
+}

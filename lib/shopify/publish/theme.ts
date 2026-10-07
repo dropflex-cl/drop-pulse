@@ -96,7 +96,7 @@ export async function assertLandingVariantTheme(conn: ShopifyConnection): Promis
   const live = (await listThemes(conn)).find((theme) => theme.role === "MAIN");
   if (live?.id !== installed.theme_gid) throw new PublishError("Publica el tema de DropFlex para mostrar las variantes de la página.");
   const files = new Map((await remoteFiles(conn, installed.theme_gid)).map((f) => [f.path, f.md5]));
-  const required = kit.files.filter((f) => /^(blocks|sections)\/df-/.test(f.path) || /^snippets\/df-.*(?:content|selector|design-system)\.liquid$/.test(f.path));
+  const required = kit.files.filter((f) => /^(blocks|sections)\/df-/.test(f.path) || /^snippets\/df-.*(?:content|selector|design-system|pdp-experience)\.liquid$/.test(f.path));
   if (required.some((f) => files.get(f.path) !== f.md5)) throw new PublishError("Actualiza el código del tema antes de publicar las variantes de la página.");
 }
 

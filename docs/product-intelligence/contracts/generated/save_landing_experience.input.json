@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_planning_stamp",
+    "expected_etag",
+    "idempotency_key",
+    "experience"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "section_key": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "component": {
+          "type": "string",
+          "enum": [
+            "listing",
+            "review-stars",
+            "benefit-usps",
+            "inventory",
+            "shipping-timeline",
+            "benefit-double-box",
+            "gif-strip",
+            "review-slider",
+            "ugc-slider",
+            "pain-block",
+            "stats-with-image",
+            "scrolling-benefits",
+            "image-with-benefits",
+            "insta-story",
+            "review-wall",
+            "comparison-table",
+            "faq-and-text"
+          ]
+        },
+        "content_variant_key": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "persuasion_job": {
+          "type": "string",
+          "enum": [
+            "recognition",
+            "desire_activation",
+            "problem_visualization",
+            "agitation",
+            "reframe",
+            "solution_logic",
+            "product_fit",
+            "differentiation",
+            "mechanism",
+            "demonstration",
+            "ease",
+            "social_proof",
+            "similarity_proof",
+            "authority_proof",
+            "objection_resolution",
+            "value",
+            "risk_reversal",
+            "urgency",
+            "close"
+          ]
+        },
+        "belief_keys": {
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "images": {
+          "default": [],
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "asset_refs": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "manual_overrides": {
+          "default": [],
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        }
+      },
+      "required": [
+        "section_key",
+        "component",
+        "content_variant_key",
+        "persuasion_job",
+        "belief_keys",
+        "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "slot": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "page_image"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        }
+      },
+      "required": [
+        "slot",
+        "source",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "page_image",
+            "ugc"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "proof",
+            "demo",
+            "explanation",
+            "comparison"
+          ]
+        },
+        "slot": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "selected": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "id",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "type": "string",
+      "enum": [
+        "order",
+        "enabled",
+        "component",
+        "content",
+        "assets"
+      ]
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_planning_stamp": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "expected_etag": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "experience_id": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema0"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "experience": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "strategy_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "angle_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "persuasion_plan_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "plan_revision": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "landing_angle_id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "landing_hook_id": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema1"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "experience_key": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "architecture_variant": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "is_default": {
+          "default": false,
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "review",
+            "active",
+            "archived"
+          ]
+        },
+        "sections": {
+          "minItems": 1,
+          "maxItems": 9,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "strategy_id",
+        "angle_id",
+        "persuasion_plan_id",
+        "plan_revision",
+        "landing_angle_id",
+        "experience_key",
+        "architecture_variant",
+        "status",
+        "sections"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,3 +1,4 @@
+<div data-df-pdp-component="review-wall">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
 {%- assign df_variants = df_product.metafields.dropflex.review_wall.value -%}
@@ -17,6 +18,8 @@
 {%- else -%}
   {% render 'df-review-wall-content', product: df_product, section: section, content: df_variants %}
 {%- endif -%}
+
+</div>
 
 {% stylesheet %}
   /* La paleta es la de Facebook, NO la del tema: una publicación teñida como el resto de la

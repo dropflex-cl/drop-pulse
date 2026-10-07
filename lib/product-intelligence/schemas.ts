@@ -1,3 +1,4 @@
+import { persuasionInputSchemas, persuasionOutputs } from "./persuasion-schemas";
 import { galleryGenerationInputs, galleryGenerationOutputs } from "./gallery-generation-schemas";
 import { learningInputSchemas, learningOutputs } from "./learning-schemas";
 import { contentInputSchemas, contentOutputs } from "./content-schemas";
@@ -1557,7 +1558,7 @@ export const generationContextSchema = z.strictObject({
 });
 
 export const inputSchemas = {
-  ...contentInputSchemas, ...learningInputSchemas, ...galleryGenerationInputs,
+  ...persuasionInputSchemas, ...contentInputSchemas, ...learningInputSchemas, ...galleryGenerationInputs,
   get_ugc_content: getUgcInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
   get_pack_labels: getPackLabelsInput, save_pack_labels: savePackLabelsInput,
   "get_landing_content": getLandingInput,
@@ -1577,7 +1578,7 @@ const landingOutputSchemas = landingOutputs(errorSchema);
 const packOutputs = packLabelsOutputs(errorSchema);
 const ugcOutputSchemas = ugcOutputs(errorSchema);
 export const outputSchemas = {
-  ...contentOutputs(errorSchema), ...learningOutputs(errorSchema), ...galleryGenerationOutputs(errorSchema),
+  ...persuasionOutputs(errorSchema), ...contentOutputs(errorSchema), ...learningOutputs(errorSchema), ...galleryGenerationOutputs(errorSchema),
   get_ugc_content: ugcOutputSchemas.get, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
   get_pack_labels: packOutputs.get, save_pack_labels: packOutputs.save,
   "get_landing_content": landingOutputSchemas.get,

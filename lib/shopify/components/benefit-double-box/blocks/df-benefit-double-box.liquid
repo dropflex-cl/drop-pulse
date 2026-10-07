@@ -1,3 +1,4 @@
+<div data-df-pdp-component="benefit-double-box">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
 {%- assign df_variants = df_product.metafields.dropflex.benefit_double_box.value -%}
@@ -16,6 +17,8 @@
 {%- else -%}
   {% render 'df-benefit-double-box-content', product: df_product, section: section, block: block, content: df_variants %}
 {%- endif -%}
+
+</div>
 
 {% stylesheet %}
   .df-benefit-double-box {

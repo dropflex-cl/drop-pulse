@@ -33,6 +33,7 @@ export interface ProductRow {
   is_upsell: boolean;
   /** Cada imagen generada pasa por el QA con Claude (y su reintento). Apagado por defecto. */
   image_qa: boolean;
+  pdp_persuasion_enabled?: boolean;
   /** El consejo de uso del mensaje «Entregado» (etapa WhatsApp); null si no se escribió. */
   usage_tip?: import("@/lib/whatsapp/tip").UsageTip | null;
   created_at: string;

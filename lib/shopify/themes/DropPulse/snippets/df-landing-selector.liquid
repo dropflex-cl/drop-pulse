@@ -5,9 +5,13 @@
   const valid = (value) => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value || '');
   const selection = () => {
     const params = new URLSearchParams(location.search);
-    const angle = params.getAll('df_angle'), hook = params.getAll('df_hook');
-    return { angle: angle.length === 1 && valid(angle[0]) ? angle[0] : '',
-      hook: hook.length === 1 && valid(hook[0]) ? hook[0] : '' };
+    const read = (name, legacy) => {
+      const a = params.getAll(name), b = params.getAll(legacy);
+      if (a.length > 1 || b.length > 1 || (a.length && b.length && a[0] !== b[0])) return '';
+      const value = a[0] || b[0]; return valid(value) ? value : '';
+    };
+    const angle = read('angle', 'df_angle');
+    return { angle, hook: angle ? read('hook', 'df_hook') : '' };
   };
   const mount = (host) => {
     if (!host?.matches('df-landing-content')) return;
@@ -15,7 +19,11 @@
     const templates = [...host.querySelectorAll(':scope > template[data-df-variant]')];
     if (!active || !templates.length) return;
     const { angle, hook } = selection();
-    const chosen = (angle && hook ? templates.find((t) => t.dataset.angle === angle && t.dataset.hook === hook) : null)
+    const component = ['df-title', 'df-subtitle', 'df-pack-offers'].includes(host.dataset.dfComponent)
+      ? 'listing' : host.dataset.dfComponent?.replace(/^df-/, '');
+    const binding = window.DropFlexPdp?.current?.sections.find((s) => s.component === component);
+    const chosen = (binding ? templates.find((t) => t.dataset.dfVariant === binding.content_variant_key) : null)
+      || (angle && hook ? templates.find((t) => t.dataset.angle === angle && t.dataset.hook === hook) : null)
       || (angle ? templates.find((t) => t.dataset.angle === angle && !t.dataset.hook) : null)
       || templates.find((t) => t.dataset.dfVariant === 'default');
     if (!chosen || host.dataset.dfSelected === chosen.dataset.dfVariant) return;

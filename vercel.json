@@ -1,4 +1,7 @@
 {
+  "env": {
+    "PDP_PERSUASION_ENABLED": "true"
+  },
   "regions": [
     "gru1"
   ],

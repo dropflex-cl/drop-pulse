@@ -1,3 +1,5 @@
+import { persuasionEnabled } from "./persuasion-flags";
+import { persuasionTools } from "./persuasion-schemas";
 import { runGalleryOperation } from "@/lib/page-images/operations";
 import "server-only";
 import { after } from "next/server";
@@ -27,7 +29,7 @@ export async function serveMcpRequest(request: Request): Promise<Response> {
     const wake = (id: string) => after(() => runUgcOperation(id));
     const wakeGallery = (id: string) => after(() => runGalleryOperation(id));
     return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery), {
-      availableTools: PERSISTED_INTELLIGENCE_TOOLS,
+      availableTools: PERSISTED_INTELLIGENCE_TOOLS.filter(tool => persuasionEnabled() || !persuasionTools.includes(tool as typeof persuasionTools[number])),
       executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery),
     })(request);
   } catch (error) {

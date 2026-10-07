@@ -1,3 +1,4 @@
+import { pdpBindingSchema } from "./pdp-bindings";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -25,7 +26,7 @@ const readSchema = z.object({ revision: z.number().int().nonnegative(), stamp: z
     settings: z.record(z.string(), z.unknown()).nullable(), knowledge: z.object({ graph: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))) }) }),
   image_catalog: z.array(z.object({ source: z.enum(["reference", "page_image"]), id: z.string().uuid() })).default([]),
   rows: z.array(z.object({ id: z.string().uuid(), component: z.string(), proposal: z.unknown(), content: z.unknown().nullable(),
-    enabled: z.boolean(), status: z.string(), images: z.array(z.unknown()) })),
+    pdp_metadata: pdpBindingSchema.nullable().optional(), enabled: z.boolean(), status: z.string(), images: z.array(z.unknown()) })),
   reviews: z.array(z.object({ id: z.string().uuid(), body: z.string(), rating: z.number() })), review_count: z.number().int().nonnegative(),
 });
 
@@ -44,10 +45,11 @@ export function createLandingExecutor(repository: LandingRepository, identity?: 
     if (!parsed.success) throw new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos leer el contenido de la página.");
     const read = parsed.data;
     if (!write) {
-      const id = parseToolInput("get_landing_content", command.input).component;
+      const query = parseToolInput("get_landing_content", command.input), id = query.component;
+      const metadata = query.schema_version === "1.2";
       const c = componentById(id), row = read.rows.find((r) => r.component === id);
       return parseToolOutput("get_landing_content", { ok: true, product_id: input.product_id, revision: read.revision, request_id: randomUUID(), data: {
-        landing_etag: read.landing_etag, contract_version: "1.1",
+        landing_etag: read.landing_etag, contract_version: metadata ? "1.2" : "1.1",
         context_stale: read.context_stale,
         catalog: [{ component: "listing", name: LISTING_INFO.name, kind: "listing", min_reviews: 0, available: true },
           ...CATALOG.map((c) => ({ component: c.id, name: c.name, kind: c.kind, min_reviews: c.minReviews ?? 0, available: read.review_count >= (c.minReviews ?? 0) }))],
@@ -56,7 +58,7 @@ export function createLandingExecutor(repository: LandingRepository, identity?: 
           rules: c ? [...c.rules, "Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente."] : ["Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir."],
           forbidden: c?.forbidden ?? ["HTML, cifras inventadas, promesas no respaldadas."], real_data: c?.realData ?? ["Precio y packs calculados en el servidor."],
           image_slots: c?.imageSlots ?? [], examples: c?.examples.slice(0, 1) ?? [] },
-        current: row ? { id: row.id, content: row.content ?? row.proposal, enabled: row.enabled, status: row.status, images: row.images } : null,
+        current: row ? { ...(metadata ? { metadata: row.pdp_metadata ?? null } : {}), id: row.id, content: row.content ?? row.proposal, enabled: row.enabled, status: row.status, images: row.images } : null,
         image_catalog: read.image_catalog,
         approved_reviews: read.reviews, review_count: read.review_count, pricing: read.snapshot.pricing, policies: read.snapshot.settings ? fromRow(read.snapshot.settings) : null,
         next_action: "Escribe en el chat usando este contrato y get_product_context/get_product_strategy. Guarda con save_landing_content y revisa en la UI antes de publicar.",

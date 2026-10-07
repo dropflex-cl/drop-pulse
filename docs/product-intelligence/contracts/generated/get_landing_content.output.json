@@ -160,7 +160,10 @@
             },
             "contract_version": {
               "type": "string",
-              "const": "1.1"
+              "enum": [
+                "1.1",
+                "1.2"
+              ]
             },
             "context_stale": {
               "type": "boolean"
@@ -246,6 +249,90 @@
                 {
                   "type": "object",
                   "properties": {
+                    "metadata": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "persuasion_plan_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "experience_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "angle_id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "landing_angle_id": {
+                              "type": "string",
+                              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+                            },
+                            "landing_hook_id": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "section_key": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "belief_keys": {
+                              "minItems": 1,
+                              "maxItems": 7,
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/$defs/__schema5"
+                              }
+                            },
+                            "persuasion_job": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "fact_ids": {
+                              "maxItems": 50,
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/$defs/__schema6"
+                              }
+                            },
+                            "claim_keys": {
+                              "maxItems": 40,
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/$defs/__schema7"
+                              }
+                            }
+                          },
+                          "required": [
+                            "persuasion_plan_id",
+                            "angle_id",
+                            "landing_angle_id",
+                            "section_key",
+                            "belief_keys",
+                            "persuasion_job",
+                            "fact_ids",
+                            "claim_keys"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "id": {
                       "$ref": "#/$defs/__schema0"
                     },
@@ -276,14 +363,14 @@
               "maxItems": 500,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema5"
+                "$ref": "#/$defs/__schema8"
               }
             },
             "approved_reviews": {
               "maxItems": 30,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema6"
+                "$ref": "#/$defs/__schema9"
               }
             },
             "review_count": {
@@ -372,6 +459,19 @@
     },
     "__schema4": {},
     "__schema5": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "__schema6": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "__schema7": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "__schema8": {
       "type": "object",
       "properties": {
         "source": {
@@ -391,7 +491,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema6": {
+    "__schema9": {
       "type": "object",
       "properties": {
         "id": {

@@ -51,9 +51,17 @@ export function validateFactValues(value: unknown): void {
 export function parseToolInput<K extends ToolName>(tool: K, value: unknown): ToolInputs[K] {
   jsonBytes(value, PI_LIMITS.inputBytes);
   validateFactValues(value);
-  if (value && typeof value === "object" && "schema_version" in value && value.schema_version !== "1.0" && !(tool === "save_landing_content" && value.schema_version === "1.1")) throw new ProductIntelligenceError("SCHEMA_VERSION_UNSUPPORTED", "Esta versión de contrato no está disponible.");
+  if (value && typeof value === "object" && "schema_version" in value && value.schema_version !== "1.0" && !(tool === "save_product_learning" && value.schema_version === "1.1") && !(["get_landing_content", "save_landing_content"].includes(tool) && ["1.1", "1.2"].includes(String(value.schema_version)))) throw new ProductIntelligenceError("SCHEMA_VERSION_UNSUPPORTED", "Esta versión de contrato no está disponible.");
   const result = inputSchemas[tool].safeParse(value);
   if (!result.success) throw new ProductIntelligenceError("VALIDATION_ERROR", "Revisa los campos de la solicitud.", { fields: [...new Set(result.error.issues.map((issue) => issue.path.join(".") || "input"))].slice(0, 100) });
+  if (tool === "save_landing_content" && result.success) {
+    const landing = result.data as ToolInputs["save_landing_content"];
+    if (landing.schema_version !== "1.2" && landing.entries.some(e => e.metadata)) throw new ProductIntelligenceError("SCHEMA_VERSION_UNSUPPORTED", "La procedencia del plan requiere el contrato 1.2.");
+  }
+  if (tool === "save_product_learning") {
+    const learning = result.data as ToolInputs["save_product_learning"];
+    if (learning.learning.execution && learning.schema_version !== "1.1") throw new ProductIntelligenceError("SCHEMA_VERSION_UNSUPPORTED", "La referencia a experiencias requiere el contrato 1.1.");
+  }
   // Los esquemas existentes de Shopify quitan claves desconocidas. MCP debe rechazarlas:
   // ni URLs/HTML/estado de aprobación ni hechos adicionales se descartan en silencio.
   if (tool === "save_landing_content" || tool === "save_ugc_content" || ["save_creative_content", "save_gallery_content", "save_event_content", "save_usage_tip"].includes(tool)) {

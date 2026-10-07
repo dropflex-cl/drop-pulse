@@ -1,3 +1,4 @@
+<div data-df-pdp-component="faq-and-text">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
 {%- assign df_variants = df_product.metafields.dropflex.faq_and_text.value -%}
@@ -17,6 +18,8 @@
 {%- else -%}
   {% render 'df-faq-and-text-content', product: df_product, section: section, content: df_variants %}
 {%- endif -%}
+
+</div>
 
 {% stylesheet %}
   df-faq-and-text {

@@ -8,7 +8,8 @@ Flujo: **Research → Strategy → Execution → Performance → Learning → St
 
 - [Estado y verificación](implementation-status.md): implementación actual y límites comprobados.
 - [Backlog](implementation-backlog.md): pendientes actuales, sin paquetes ya completados.
-- [Contratos MCP](mcp-contracts.md): 29 tools y fronteras; [schemas derivados](contracts/README.md).
+- [Contratos MCP](mcp-contracts.md): 29 tools base y siete adicionales con flag para PDP; [schemas derivados](contracts/README.md).
+- [PDP por ángulo: auditoría](pdp-persuasion-audit.md), [ADR 018](adrs/018-angle-driven-pdp.md) y [runbook](pdp-persuasion-runbook.md): planes, experiencias, compatibilidad y rollout piloto.
 - [Limpieza de análisis retirado](legacy-text-retirement.md) y [ADR 017](adrs/017-remove-retired-analysis.md): rutas, invocadores, tablas y compatibilidad operativa.
 - [Migración y rollback](migration-and-rollback.md): orden de despliegue para la contracción del esquema.
 - [OAuth](oauth-runbook.md), [contenido/aprendizaje](chat-content-and-learning.md), [UGC](ugc-chat-mcp.md) y [variantes Shopify](landing-variants-mcp.md): contratos y operación específicos.

@@ -1,6 +1,6 @@
 # Contratos exportados
 
-Fuente vigente: Zod en `lib/product-intelligence/`. **29 pares input/output** más GenerationContext en [generated/](generated/). El catálogo anunciado por SDK y estos schemas coinciden; la tool generate_landing fue eliminada.
+Fuente vigente: Zod en `lib/product-intelligence/`. **36 pares input/output** más GenerationContext en [generated/](generated/); siete tools PDP se anuncian solo con flag. El servidor usa esos mismos schemas; la tool generate_landing fue eliminada.
 
 [schemas.json](schemas.json) y [tools.json](tools.json) conservan el subconjunto de diseño inicial de nueve tools aún válidas. [examples.json](examples.json) tiene 15 entradas, 14 salidas y 20 rechazos de ese subconjunto. No son el catálogo completo ni se usan en runtime. Las nuevas verticales tienen fixtures y pruebas de dominio/DB junto al código.
 

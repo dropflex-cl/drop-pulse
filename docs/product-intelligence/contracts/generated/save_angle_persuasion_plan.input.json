@@ -1,0 +1,697 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "schema_version",
+    "expected_revision",
+    "expected_planning_stamp",
+    "expected_etag",
+    "idempotency_key",
+    "plan"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "recognition",
+            "problem_importance",
+            "desire",
+            "reframe",
+            "solution_logic",
+            "product_fit",
+            "differentiation",
+            "ease",
+            "proof",
+            "similarity",
+            "trust",
+            "value",
+            "risk",
+            "urgency"
+          ]
+        },
+        "current_belief": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "target_belief": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "mandatory": {
+          "default": true,
+          "type": "boolean"
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "objection_ids": {
+          "default": [],
+          "$ref": "#/$defs/__schema1"
+        },
+        "resolution_mode": {
+          "type": "string",
+          "enum": [
+            "section",
+            "microcopy",
+            "proof",
+            "offer",
+            "faq",
+            "cta_context"
+          ]
+        },
+        "resolution_section_key": {
+          "$ref": "#/$defs/__schema4"
+        }
+      },
+      "required": [
+        "key",
+        "type",
+        "current_belief",
+        "target_belief",
+        "resolution_mode",
+        "resolution_section_key"
+      ],
+      "additionalProperties": false
+    },
+    "__schema4": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "__schema5": {
+      "default": [],
+      "$ref": "#/$defs/__schema1"
+    },
+    "__schema6": {
+      "default": [],
+      "$ref": "#/$defs/__schema1"
+    },
+    "__schema7": {
+      "type": "object",
+      "properties": {
+        "section_key": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "support"
+          ]
+        },
+        "primary_job": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "secondary_jobs": {
+          "default": [],
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema8"
+          }
+        },
+        "belief_keys": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "preferred_medium": {
+          "type": "string",
+          "enum": [
+            "visual_led",
+            "proof_led",
+            "copy_led",
+            "commerce_led",
+            "mixed"
+          ]
+        },
+        "candidate_components": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema10"
+          }
+        },
+        "selected_component": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "headline_intent": {
+              "maxLength": 200,
+              "$ref": "#/$defs/__schema2"
+            },
+            "body_intent": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "takeaway": {
+              "maxLength": 300,
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "headline_intent",
+            "takeaway"
+          ],
+          "additionalProperties": false
+        },
+        "necessity": {
+          "maxLength": 500,
+          "$ref": "#/$defs/__schema2"
+        },
+        "redundancy_justification": {
+          "maxLength": 500,
+          "$ref": "#/$defs/__schema2"
+        },
+        "creative_direction": {
+          "type": "object",
+          "properties": {
+            "objective": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "visual_role": {
+              "type": "string",
+              "enum": [
+                "recognize",
+                "explain",
+                "demonstrate",
+                "prove",
+                "compare",
+                "aspire",
+                "reduce_risk"
+              ]
+            },
+            "format": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "scene": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "composition": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "product_role": {
+              "type": "string",
+              "enum": [
+                "hero",
+                "supporting",
+                "absent"
+              ]
+            },
+            "generation_required": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "objective",
+            "visual_role",
+            "format",
+            "scene",
+            "composition",
+            "product_role",
+            "generation_required"
+          ],
+          "additionalProperties": false
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "claim_keys": {
+          "default": [],
+          "$ref": "#/$defs/__schema9"
+        },
+        "source_asset_refs": {
+          "default": [],
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema11"
+          }
+        },
+        "cta": {
+          "type": "string",
+          "enum": [
+            "none",
+            "soft",
+            "primary"
+          ]
+        }
+      },
+      "required": [
+        "section_key",
+        "kind",
+        "primary_job",
+        "belief_keys",
+        "preferred_medium",
+        "candidate_components",
+        "selected_component",
+        "message",
+        "necessity",
+        "cta"
+      ],
+      "additionalProperties": false
+    },
+    "__schema8": {
+      "type": "string",
+      "enum": [
+        "recognition",
+        "desire_activation",
+        "problem_visualization",
+        "agitation",
+        "reframe",
+        "solution_logic",
+        "product_fit",
+        "differentiation",
+        "mechanism",
+        "demonstration",
+        "ease",
+        "social_proof",
+        "similarity_proof",
+        "authority_proof",
+        "objection_resolution",
+        "value",
+        "risk_reversal",
+        "urgency",
+        "close"
+      ]
+    },
+    "__schema9": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema4"
+      }
+    },
+    "__schema10": {
+      "type": "string",
+      "enum": [
+        "listing",
+        "review-stars",
+        "benefit-usps",
+        "inventory",
+        "shipping-timeline",
+        "benefit-double-box",
+        "gif-strip",
+        "review-slider",
+        "ugc-slider",
+        "pain-block",
+        "stats-with-image",
+        "scrolling-benefits",
+        "image-with-benefits",
+        "insta-story",
+        "review-wall",
+        "comparison-table",
+        "faq-and-text"
+      ]
+    },
+    "__schema11": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "page_image",
+            "ugc"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "proof",
+            "demo",
+            "explanation",
+            "comparison"
+          ]
+        },
+        "slot": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "selected": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "id",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "__schema12": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "text_intent": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "product_fact",
+            "ingredient",
+            "performance",
+            "comparative",
+            "timeline",
+            "clinical",
+            "testimonial",
+            "offer",
+            "shipping",
+            "guarantee",
+            "scarcity"
+          ]
+        },
+        "fact_ids": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "review_ids": {
+          "default": [],
+          "$ref": "#/$defs/__schema1"
+        },
+        "restrictions": {
+          "default": [],
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        }
+      },
+      "required": [
+        "key",
+        "text_intent",
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "product_id": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "expected_planning_stamp": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "expected_etag": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "dry_run": {
+      "default": false,
+      "type": "boolean"
+    },
+    "plan_id": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema0"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "strategy_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "angle_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "landing_angle_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "review",
+            "approved",
+            "archived"
+          ]
+        },
+        "audience_state": {
+          "type": "object",
+          "properties": {
+            "persona_id": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "awareness_level": {
+              "type": "string",
+              "enum": [
+                "unaware",
+                "problem_aware",
+                "solution_aware",
+                "product_aware",
+                "most_aware"
+              ]
+            },
+            "sophistication": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "very_high"
+              ]
+            },
+            "primary_jtbd_ids": {
+              "maxItems": 3,
+              "$ref": "#/$defs/__schema1"
+            },
+            "primary_pain_ids": {
+              "maxItems": 3,
+              "$ref": "#/$defs/__schema1"
+            },
+            "primary_desire_ids": {
+              "maxItems": 3,
+              "$ref": "#/$defs/__schema1"
+            },
+            "primary_objection_ids": {
+              "maxItems": 5,
+              "$ref": "#/$defs/__schema1"
+            },
+            "entering_context": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "persona_id",
+            "awareness_level",
+            "sophistication",
+            "primary_jtbd_ids",
+            "primary_pain_ids",
+            "primary_desire_ids",
+            "primary_objection_ids",
+            "entering_context"
+          ],
+          "additionalProperties": false
+        },
+        "thesis": {
+          "type": "object",
+          "properties": {
+            "recognition": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "problem": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "reframe": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "solution_logic": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "product_role": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "desired_transformation": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "memorable_idea": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "promise_fact_ids": {
+              "default": [],
+              "$ref": "#/$defs/__schema1"
+            },
+            "mechanism_fact_ids": {
+              "default": [],
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "required": [
+            "recognition",
+            "problem",
+            "solution_logic",
+            "product_role",
+            "desired_transformation"
+          ],
+          "additionalProperties": false
+        },
+        "beliefs": {
+          "minItems": 4,
+          "maxItems": 7,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "attention_budget": {
+          "type": "object",
+          "properties": {
+            "max_primary_sections": {
+              "default": 6,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 7
+            },
+            "max_support_sections": {
+              "default": 2,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "copy_density": {
+              "default": "low",
+              "type": "string",
+              "enum": [
+                "very_low",
+                "low",
+                "medium"
+              ]
+            },
+            "max_headline_chars": {
+              "default": 70,
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 70
+            },
+            "max_subheadline_chars": {
+              "default": 150,
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 160
+            },
+            "max_body_chars_per_section": {
+              "default": 400,
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 400
+            },
+            "max_bullets_per_section": {
+              "default": 3,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "max_primary_messages_per_section": {
+              "default": 1,
+              "type": "number",
+              "const": 1
+            },
+            "preferred_visual_ratio": {
+              "default": 0.65,
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mobile_first": {
+              "default": true,
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "sections": {
+          "minItems": 1,
+          "maxItems": 9,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema7"
+          }
+        },
+        "claims": {
+          "default": [],
+          "maxItems": 40,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema12"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "strategy_id",
+        "angle_id",
+        "landing_angle_id",
+        "status",
+        "audience_state",
+        "thesis",
+        "beliefs",
+        "attention_budget",
+        "sections"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

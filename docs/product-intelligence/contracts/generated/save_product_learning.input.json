@@ -20,7 +20,10 @@
     },
     "__schema1": {
       "type": "string",
-      "const": "1.0"
+      "enum": [
+        "1.0",
+        "1.1"
+      ]
     },
     "__schema2": {
       "type": "string",
@@ -85,6 +88,52 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 2000
+        },
+        "execution": {
+          "type": "object",
+          "properties": {
+            "angle_id": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "persuasion_plan_id": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "plan_revision": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "experience_id": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "experience_revision": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "architecture_variant": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+            },
+            "section_key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "measurement_attribution": {
+              "type": "string",
+              "const": "product_campaigns_only"
+            }
+          },
+          "required": [
+            "angle_id",
+            "persuasion_plan_id",
+            "plan_revision",
+            "experience_id",
+            "experience_revision",
+            "architecture_variant",
+            "measurement_attribution"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

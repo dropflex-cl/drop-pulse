@@ -1,6 +1,6 @@
 # Contratos MCP vigentes
 
-Runtime y catálogo derivado: **29 tools**. La fuente es `lib/product-intelligence/schemas.ts`, ampliada por schemas de contenido, landing, packs, UGC, aprendizaje y galería. `generated/` se exporta con `npm run pi:contracts`; el servidor no ejecuta JSON de documentación. `generate_landing` fue eliminado.
+Runtime base: **29 tools**; catálogo derivado: **36**, incluidos siete tools de persuasión PDP detrás de flag. La fuente es `lib/product-intelligence/schemas.ts`, ampliada por schemas de contenido, landing, packs, UGC, aprendizaje, galería y persuasión. `generated/` se exporta con `npm run pi:contracts`; el servidor no ejecuta JSON de documentación. `generate_landing` fue eliminado.
 
 ## Catálogo
 
@@ -10,6 +10,7 @@ Runtime y catálogo derivado: **29 tools**. La fuente es `lib/product-intelligen
 | Conocimiento | save_product_analysis, patch_product_analysis, save_research |
 | Decisiones | set_product_strategy, get_product_strategy |
 | Landing | get_landing_content, save_landing_content |
+| Persuasión PDP (flag) | get_pdp_planning_context, get_component_catalog, get_angle_persuasion_plan, validate_angle_persuasion_plan, save_angle_persuasion_plan, get_landing_experience, save_landing_experience |
 | Packs | get_pack_labels, save_pack_labels |
 | Conceptos y chats creativos | get_creative_content, save_creative_content |
 | Plan de galería | get_gallery_content, save_gallery_content |
@@ -21,11 +22,13 @@ Runtime y catálogo derivado: **29 tools**. La fuente es `lib/product-intelligen
 
 ## Fronteras y garantías
 
+La capa PDP añade get de contexto/catálogo/plan/experiencia, validate de plan y save de plan/experiencia. No genera contenido con IA. Save exige revisión, etag, `expected_planning_stamp`, idempotencia y soporta dry run; solo merchant aprueba/activa. [Contraste arquitectónico](pdp-persuasion-audit.md) y [operación](pdp-persuasion-runbook.md).
+
 El chat entrega contenido final y planes. Guardar no llama modelos, descarga fuentes, aprueba, publica ni lanza campañas. Precio/packs se recalculan en servidor; hechos/evidencia, hipótesis y estrategia permanecen separados. Seleccionar no valida rendimiento.
 
 Tools reciben objetos estrictos; `product_id` identifica products en DropFlex. Actor/dueño/scopes se derivan del bearer verificado; no se aceptan claves, SQL ni identidad del modelo. Propiedad de producto, referencias, grants, verify y replay se comprueban nuevamente en servicio/RPC. Un recurso ajeno se oculta sin filtrar contenido.
 
-Escrituras usan revisión, recibo idempotente y audit transaccionales; contenido además usa etag/stamp para impedir reemplazos concurrentes. Dry-run informa propuesta/estimación sin dispatch. Omitir arrays conserva; los patches son tipados y atómicos. Consultar el schema concreto para campos requeridos y versión: landing admite compatibilidad 1.0 y arrays 1.1.
+Escrituras usan revisión, recibo idempotente y audit transaccionales; contenido además usa etag/stamp para impedir reemplazos concurrentes. Dry-run informa propuesta/estimación sin dispatch. Omitir arrays conserva; los patches son tipados y atómicos. Consultar el schema concreto para campos requeridos y versión: landing admite compatibilidad 1.0, arrays 1.1 y metadata opcional 1.2; learning admite execution opcional en 1.1.
 
 Generación UGC inicia keyframes o clips de guion aprobado; no redacta guiones. Galería inicia tomas guardadas usando Gemini/Higgsfield. Ambos pueden gastar créditos del comerciante; QA visual opcional usa Anthropic. Status lee estado persistido, no sondea proveedores. Publicación y decisiones humanas permanecen en la UI.
 

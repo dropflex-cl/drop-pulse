@@ -33,6 +33,15 @@
         "comparison-table",
         "faq-and-text"
       ]
+    },
+    "schema_version": {
+      "default": "1.1",
+      "type": "string",
+      "enum": [
+        "1.0",
+        "1.1",
+        "1.2"
+      ]
     }
   }
 }

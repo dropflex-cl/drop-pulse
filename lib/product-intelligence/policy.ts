@@ -28,6 +28,10 @@ export interface DelegatedGrant {
 }
 
 export const toolScopes: Record<ToolName, readonly PiScope[]> = {
+  get_pdp_planning_context: ["product_intelligence:read"], get_component_catalog: ["product_intelligence:read"],
+  get_angle_persuasion_plan: ["product_intelligence:read"], validate_angle_persuasion_plan: ["product_intelligence:read"],
+  save_angle_persuasion_plan: ["product_intelligence:read", "product_intelligence:write"],
+  get_landing_experience: ["product_intelligence:read"], save_landing_experience: ["product_intelligence:read", "product_intelligence:write"],
   generate_gallery_images: ["product_intelligence:read", "landing:generate"], get_gallery_generation_status: ["product_intelligence:read"],
   get_product_performance: ["product_intelligence:read", "performance:read"], get_product_learning: ["product_intelligence:read", "performance:read"],
   save_product_learning: ["product_intelligence:write", "performance:read"],

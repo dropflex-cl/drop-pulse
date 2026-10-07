@@ -219,6 +219,7 @@ export interface CopyState {
 }
 
 export interface ProductCopy extends CopyState {
+  pdp?: PdpWorkbench | null;
   product: Product;
   /** Color de acento de la página (#rrggbb, lib/copy/accent.ts); null si todavía no se eligió. */
   accent: string | null;
@@ -915,4 +916,15 @@ export interface DifferentiatorView {
   proposed: import("@/lib/ai/schemas").Differentiator | null;
   /** La ficha es de antes del diferenciador: la IA no llegó a proponerlo. */
   oldBrief?: boolean;
+}
+
+/** Plan y experiencia se editan aparte del copy; revisión de artefacto distinta del contexto. */
+export type AnglePersuasionPlan = import("@/lib/product-intelligence/persuasion-schemas").AnglePersuasionPlan;
+export type LandingExperience = import("@/lib/product-intelligence/persuasion-schemas").LandingExperience;
+export interface PdpWorkbench {
+  planning_stamp: string;
+  revision: number;
+  empty_etag: string;
+  plans: { id: string; revision: number; etag: string; payload: AnglePersuasionPlan; issues: import("@/lib/product-intelligence/persuasion-schemas").PersuasionIssue[] }[];
+  experiences: { id: string; revision: number; etag: string; payload: LandingExperience }[];
 }

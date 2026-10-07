@@ -25,7 +25,7 @@ async function connect(execute: DomainExecutor, userId = "merchant-a", requestTi
 }
 
 describe("PI · protocolo MCP oficial", () => {
-  it("inicializa y descubre veintinueve tools con outputSchema, incluidas unions raíz", async () => {
+  it("inicializa y descubre treinta y seis tools con outputSchema, incluidas unions raíz", async () => {
     const session = await connect(async () => null);
     try {
       const tools = [];
@@ -36,7 +36,7 @@ describe("PI · protocolo MCP oficial", () => {
         expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThanOrEqual(PI_LIMITS.outputBytes);
         tools.push(...page.tools); cursor = page.nextCursor; pages++;
       } while (cursor);
-      expect(tools).toHaveLength(29);
+      expect(tools).toHaveLength(36);
       expect(tools.map(tool => tool.name)).not.toContain("generate_landing");
       await expect(session.client.callTool({ name: "generate_landing", arguments: {} })).rejects.toThrow("no existe");
       expect(pages).toBeGreaterThan(1);
@@ -49,7 +49,7 @@ describe("PI · protocolo MCP oficial", () => {
     const session = await connect(async () => null);
     try {
       await expect(session.client.listTools({ cursor: "foreign" })).rejects.toThrow("cursor");
-      await expect(session.client.listTools({ cursor: "pi-tools-v1:29" })).rejects.toThrow("cursor");
+      await expect(session.client.listTools({ cursor: "pi-tools-v1:36" })).rejects.toThrow("cursor");
     } finally { await session.close(); }
   });
   it("respuesta estructurada y texto JSON son idénticos; status es solo lectura", async () => {

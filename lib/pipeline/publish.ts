@@ -1,3 +1,4 @@
+import { prepareExperienceManifest } from "@/lib/product-intelligence/persuasion-publication";
 // Etapa Publicar (docs/spec-publicar.md): lleva a Shopify lo APROBADO de un producto.
 //   1. definiciones de metafields (una vez, PUBLIC_READ);
 //   2. imágenes a Shopify Files (caché por archivo de origen);
@@ -268,6 +269,8 @@ export async function preparePublish(userId: string, productId: string): Promise
     accent: row.page_accent_color,
     gallery: galleryImages.map((g) => ({ key: g.key, alt: g.alt })),
   };
+  try { input.experienceManifest = await prepareExperienceManifest(userId, productId, input); }
+  catch (error) { missing.push(error instanceof Error ? error.message : "Revisa las experiencias antes de publicar."); }
   return { input, images, videos, missing };
 }
 
@@ -394,7 +397,7 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     const { input, images, videos, missing } = await preparePublish(userId, productId);
     if (missing.length) throw new PublishError(missing[0]);
 
-    if (input.listingVariants || input.components.some((c) => isVariants(c.content))) await assertLandingVariantTheme(conn);
+    if (input.experienceManifest || input.listingVariants || input.components.some((c) => isVariants(c.content))) await assertLandingVariantTheme(conn);
     const gid = productGid(row.shopify_product_id);
     const found = gid ? await shopifyQuery<ProductQuery>(conn, PRODUCT, { id: gid }) : { product: null };
     if (!found.product) throw new PublishError("Este producto ya no existe en tu tienda Shopify. Sincroniza tus productos.");

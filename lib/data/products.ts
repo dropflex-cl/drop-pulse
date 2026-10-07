@@ -1,3 +1,4 @@
+import { getPdpWorkbench } from "./pdp-persuasion";
 // Catálogo, contexto y estrategia PI, contenido revisable y medios persistidos.
 import { storeFacts } from "@/lib/copy/facts";
 import { catalogImages } from "@/lib/copy/images";
@@ -298,7 +299,7 @@ export const getProductCopy = cache(async (id: string): Promise<ProductCopy | nu
   if (!found) return null;
   const [row, state] = found.state;
   if (!row) return null;
-  return { product: found.product, accent: row.page_accent_color ?? null, ...state };
+  return { product: found.product, accent: row.page_accent_color ?? null, ...state, pdp: await getPdpWorkbench(row.user_id, id) };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
