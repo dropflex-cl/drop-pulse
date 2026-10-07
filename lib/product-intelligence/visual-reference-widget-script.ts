@@ -4,9 +4,11 @@ function referenceWidget() {
     const host = () => window.openai;
     const image = document.querySelector("#reference");
     const button = document.querySelector("#attach");
+    const review = document.querySelector("#review");
     const status = document.querySelector("#status");
     const download = document.querySelector("#download");
     let current, busy = false;
+    let attachedState;
     const pending = new Map();
     let sequence = 0;
     function request(method, params) {
@@ -20,12 +22,14 @@ function referenceWidget() {
         if (!value?.ok) {
             current = undefined;
             button.disabled = true;
+            review.hidden = true;
             return;
         }
         const ref = value.data?.canonical_reference;
         if (!ref || typeof ref.url !== "string" || !/^https:\/\//.test(ref.url) || !/^[a-f0-9]{64}$/.test(ref.content_hash)) {
             status.textContent = "No pudimos mostrar la referencia. Recupera el contexto visual y vuelve a intentarlo.";
             button.disabled = true;
+            review.hidden = true;
             return;
         }
         current = value;
@@ -34,8 +38,22 @@ function referenceWidget() {
         download.href = ref.url;
         download.hidden = false;
         document.documentElement.dataset.theme = host()?.theme === "dark" ? "dark" : "light";
+        const stored = attachedState ?? host()?.widgetState;
+        const content = stored?.modelContent;
+        const sameReference = content?.product_id === value.product_id
+            && content?.canonical_reference_image_id === ref.id && content?.reference_content_hash === ref.content_hash;
+        const fileId = stored?.imageIds?.length === 1 && typeof stored.imageIds[0] === "string" ? stored.imageIds[0] : undefined;
+        attachedState = sameReference && content?.reference_attached === true && fileId
+            && (!content.reference_file_id || content.reference_file_id === fileId)
+            ? { ...stored, modelContent: { ...content, reference_file_id: fileId } } : undefined;
+        button.textContent = attachedState ? "Volver a adjuntar referencia" : "Adjuntar referencia al chat";
+        review.hidden = !attachedState || !host()?.sendFollowUpMessage;
+        review.disabled = busy;
         button.disabled = busy || !host()?.uploadFile || !host()?.setWidgetState;
-        status.textContent = button.disabled && !busy
+        if (busy) return;
+        status.textContent = attachedState
+            ? "Archivo adjunto a ChatGPT. Revisa la referencia en un nuevo turno antes de generar."
+            : button.disabled
             ? "Este cliente no permite adjuntar la referencia desde la tarjeta. Abre la original y adjúntala al chat."
             : "Revisa la foto original y adjúntala antes de generar.";
     }
@@ -80,17 +98,39 @@ function referenceWidget() {
             const { fileId } = await api.uploadFile(new File([bytes], "dropflex-" + ref.id + "." + extension, { type: ref.mime_type }));
             if (!fileId || typeof fileId !== "string")
                 throw new Error("ChatGPT no confirmó el adjunto. Adjunta la original manualmente.");
-            api.setWidgetState({ modelContent: { product_id: output.product_id, canonical_reference_image_id: ref.id, reference_content_hash: hash, reference_attached: true,
+            attachedState = { modelContent: { product_id: output.product_id, canonical_reference_image_id: ref.id, reference_content_hash: hash, reference_file_id: fileId, reference_attached: true,
                     instruction: "Referencia original adjunta. Puedes inspeccionarla; no generes hasta que el usuario lo pida. Para generar debes pasar este archivo como entrada real y verificar la identidad del producto." },
-                privateContent: {}, imageIds: [fileId] });
-            status.textContent = "Referencia adjunta al chat. Puedes pedir que la revise antes de generar.";
-            button.textContent = "Volver a adjuntar referencia";
+                privateContent: {}, imageIds: [fileId] };
+            api.setWidgetState(attachedState);
+            status.textContent = "Archivo adjunto a ChatGPT. Revisa la referencia en un nuevo turno antes de generar.";
+            review.hidden = !api.sendFollowUpMessage;
         }
         catch (error) {
             status.textContent = error instanceof Error ? error.message : "No pudimos adjuntar la referencia. Abre la original y adjúntala al chat.";
         }
         finally {
             busy = false;
+            button.disabled = false;
+            review.disabled = false;
+            button.textContent = attachedState ? "Volver a adjuntar referencia" : "Adjuntar referencia al chat";
+        }
+    };
+    review.onclick = async () => {
+        const api = host(), state = attachedState;
+        if (busy || !current || !state || !api?.setWidgetState || !api.sendFollowUpMessage) return;
+        busy = true;
+        review.disabled = true;
+        button.disabled = true;
+        try {
+            api.setWidgetState(state);
+            const fileId = state.modelContent.reference_file_id;
+            await api.sendFollowUpMessage({ prompt: "Revisa la referencia original adjunta desde la tarjeta de DropFlex (archivo de ChatGPT: " + fileId + "). Describe sus colores, mango, depósito y forma para comprobar que puedes ver sus píxeles. Distingue esa inspección de poder usarla como entrada del generador. No generes imágenes todavía." });
+            status.textContent = "Revisión solicitada en el chat. Espera la respuesta antes de generar.";
+        } catch {
+            status.textContent = "No pudimos solicitar la revisión. Envía en el chat: Revisa la referencia adjunta, sin generar todavía.";
+        } finally {
+            busy = false;
+            review.disabled = false;
             button.disabled = false;
         }
     };

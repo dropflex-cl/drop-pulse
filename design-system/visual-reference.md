@@ -5,9 +5,10 @@ Tarjeta MCP inline, mobile first, con los colores claro/oscuro, tipografía, esp
 - Título: «Referencia original del producto».
 - Acción principal: «Adjuntar referencia al chat»; después de adjuntar, «Volver a adjuntar referencia».
 - Acción secundaria: «Abrir fotografía original».
+- Tras adjuntar: «Revisar referencia en el chat», visible si el host admite mensajes desde la tarjeta; solo ese toque solicita una nueva inspección sin generación.
 - Ayuda inicial: «Revisa la foto original y adjúntala antes de generar».
 - Durante la subida: «Adjuntando la referencia original…», acción deshabilitada.
-- Resultado: «Referencia adjunta al chat. Puedes pedir que la revise antes de generar».
+- Resultado: «Archivo adjunto a ChatGPT. Revisa la referencia en un nuevo turno antes de generar»; se conserva al actualizar la tarjeta y al restaurar su estado.
 - Sin APIs de archivo: «Este cliente no permite adjuntar la referencia desde la tarjeta. Abre la original y adjúntala al chat».
 - Si cambian los bytes: «La referencia cambió. Recupera el contexto visual antes de adjuntarla».
 

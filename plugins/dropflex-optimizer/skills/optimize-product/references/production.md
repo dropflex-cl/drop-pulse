@@ -20,6 +20,8 @@ Llama `get_visual_reference_image` con `product_id`, `reference_image_id` y `ref
 
 En ChatGPT, la tool también muestra una tarjeta con la fotografía original y «Adjuntar referencia al chat». Ese botón descarga el original, verifica su hash, lo sube mediante `window.openai.uploadFile` y comparte el ID real del host en `imageIds`. Espera a que el archivo esté disponible en la conversación; que aparezca una tarjeta o enlace no demuestra que el generador lo recibió. El botón no inicia generación. Si el cliente no ofrece estas APIs o la tarjeta no aparece, conserva el fallback de adjuntar la foto original manualmente.
 
+Después de adjuntar, «Revisar referencia en el chat» abre un nuevo turno de inspección con el identificador real. La respuesta escrita antes del toque no confirma ni descarta el adjunto posterior. Distingue tres comprobaciones: archivo subido al host, píxeles visibles para el modelo y archivo utilizable como entrada del generador; no declares la última solo porque la foto aparece en la tarjeta.
+
 `get_visual_identity`/`save_visual_identity` usan la imagen base existente. El hash corresponde a bytes, no a la URL firmada. Si no puedes leerlos, utiliza información válida del contexto o pide preparar la identidad en DropFlex; no inventes el hash.
 
 `save_visual_generation_plan` guarda intención estructurada: familia estable, objetivo, escena, composición, mensaje, restricciones y dependencias, con `product_identity: "inherit"`. Hereda geometría, colores, controles y accesorios reales. Identidad y plan deben estar aprobados y vigentes antes de `prepare_visual_iteration`.

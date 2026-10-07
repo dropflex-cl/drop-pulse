@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.0.2.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+Produce `output/plugins/dropflex-optimizer-1.0.3.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -70,6 +70,12 @@ La tool ahora declara el recurso `ui://dropflex/visual-reference/v1.html`, servi
 Este paso sigue las [APIs oficiales de archivos](https://developers.openai.com/plugins/reference#file-apis) y el [estado con imágenes](https://developers.openai.com/plugins/build/chatgpt-ui#make-images-visible-to-the-model). Las pruebas verifican transporte MCP, archivo exacto, rechazo de hash distinto y ausencia de subida automática. La compatibilidad móvil y la entrega efectiva al generador requieren la prueba del cliente real; no se presentan como comprobadas.
 
 Después del deploy, refresca la conexión MCP para cargar la metadata UI actualizada y abre un chat nuevo. Para una skill importada, actualiza además su snapshot por el mecanismo de publicación del plugin. No requiere migraciones.
+
+### Estado y revisión del adjunto (1.0.3)
+
+La tarjeta anterior reemplazaba el mensaje de adjunto exitoso al recibir `openai:set_globals` y no restauraba `widgetState` al montar. Ahora conserva el archivo asociado al mismo producto, referencia y hash; recupera también el estado de 1.0.2. Incluye el fileId real en `modelContent`, además de `imageIds`.
+
+«Revisar referencia en el chat» se ofrece cuando el host admite `sendFollowUpMessage`. Solo al tocarlo se vuelve a publicar el estado con imágenes y se envía una petición de inspección sin generación. No se envían mensajes durante la subida ni en actualizaciones de estado. Subida al host, visión del modelo y entrada del generador siguen siendo etapas distintas; la última necesita prueba real. La respuesta previa al toque no se actualiza retroactivamente. Véase [bridge oficial y persistencia](https://developers.openai.com/plugins/reference#windowopenai-component-bridge).
 
 ```sh
 python3 /ruta/a/skill-creator/scripts/quick_validate.py plugins/dropflex-optimizer/skills/optimize-product
