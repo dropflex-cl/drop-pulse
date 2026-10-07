@@ -112,7 +112,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         const image = await referenceImageContent(visualReferenceBytes.get(state)!);
         signal.throwIfAborted();
         return attachToolImage(output({ canonical_reference: reference, image: image.metadata,
-          next_action: "Usa el bloque de imagen como entrada real del generador, conservando el producto. La URL canónica permite descargar el original. Si el cliente no puede adjuntarlo, pide la foto original y no generes esa toma." }), image.content);
+          next_action: "Muestra la tarjeta de referencia original. En ChatGPT el comerciante puede tocar Adjuntar referencia al chat para subir el archivo original, verificar su hash y compartir el fileId mediante imageIds. No generes hasta recibir el archivo como entrada real. Otros clientes pueden usar el bloque de imagen o descargar la URL canónica. Si no puedes adjuntarlo al generador, pide la foto original y detente." }), image.content);
       }
       if (tool === "get_visual_ingestion_status") {
         const q = visualInputSchemas[tool].parse(input);

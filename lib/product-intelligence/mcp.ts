@@ -10,6 +10,7 @@ import { generationContextSchema, inputSchemas, outputSchemas, type ToolInputs, 
 import { parseToolInput, parseToolOutput, PI_LIMITS } from "./validation";
 import { toolImage } from "./tool-media";
 import type { ImageContent } from "@modelcontextprotocol/sdk/types.js";
+import { visualReferenceResource, VISUAL_REFERENCE_UI } from "./visual-reference-widget";
 
 export type ToolCommand = { [K in ToolName]: { tool: K; input: ToolInputs[K] } }[ToolName];
 /** El servicio ejecutor autoriza/revalida grants y usa la transacción común. */
@@ -82,11 +83,12 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
     capabilities: { tools: { listChanged: false }, resources: {}, extensions: { [SKILLS_EXTENSION]: {} } },
     instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Para imágenes, recupera get_visual_generation_context y get_visual_reference_image: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, pide actualizar la conexión o adjuntar la foto original y no generes esa toma. Guarda propuestas con sus contratos y revisiones actuales. La aprobación de planes/assets y selección de usos se realiza en la UI de DropFlex. Optimizar no autoriza publicación ni lanzamiento de campañas.",
   });
-  registerOptimizationSkill(server);
+  registerOptimizationSkill(server, [visualReferenceResource()]);
   const schemas = publishedSchemas();
   const available = options.availableTools ?? Object.keys(inputSchemas) as ToolName[];
   const tools: Tool[] = available.map((name) => ({
     name, description: descriptions[name], inputSchema: schemas[name].input, outputSchema: schemas[name].output,
+    ...(name === "get_visual_reference_image" ? { _meta: { ui: { resourceUri: VISUAL_REFERENCE_UI }, "openai/outputTemplate": VISUAL_REFERENCE_UI } } : {}),
     annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy"].includes(name), openWorldHint: name.startsWith("generate_") || name === "ingest_external_visual_asset" },
   }));
   server.setRequestHandler(ListToolsRequestSchema, async (request) => {

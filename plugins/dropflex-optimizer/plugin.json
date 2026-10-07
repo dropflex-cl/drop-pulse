@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dropflex-optimizer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Optimiza productos con DropFlex: elige el hook primario e itera la página y sus imágenes desde el chat.",
   "author": { "name": "DropFlex" },
   "extensions": {

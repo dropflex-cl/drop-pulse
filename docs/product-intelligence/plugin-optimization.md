@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.0.1.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+Produce `output/plugins/dropflex-optimizer-1.0.2.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -60,6 +60,16 @@ Después de desplegar, vuelve a escanear tools y skill en el portal, comprueba q
 Validación de 1.0.1: 51 pruebas de dominio/media/MCP/HTTP/skill y ocho de Supabase local; typecheck, lint de archivos afectados, contratos, frontmatter y build. El original de la aspiradora se probó con el mismo codificador y cabe completo a 1200 × 1200, sin reducción. Instalado localmente mediante el CLI como versión 1.0.1; esto no actualiza el plugin remoto de ChatGPT.
 
 ## Verificación
+
+### Archivo de referencia en ChatGPT (1.0.2)
+
+La prueba móvil posterior encontró la tool, pero siguió mostrando solo un enlace. Un bloque MCP `image` no garantiza un adjunto nativo ni su entrega al generador.
+
+La tool ahora declara el recurso `ui://dropflex/visual-reference/v1.html`, servido mediante `resources/read` autenticado. La tarjeta muestra la foto original. Al tocar «Adjuntar referencia al chat», descarga los bytes originales sin credenciales del navegador, verifica SHA-256 y crea un `File`; `window.openai.uploadFile` devuelve el identificador real de ChatGPT y `setWidgetState` lo comparte en `imageIds` para turnos posteriores. No se inventan IDs ni se invoca generación. Si el host no expone las APIs, muestra el fallback de adjuntar manualmente. CSP limita imágenes y descargas al storage configurado y al CDN de Shopify.
+
+Este paso sigue las [APIs oficiales de archivos](https://developers.openai.com/plugins/reference#file-apis) y el [estado con imágenes](https://developers.openai.com/plugins/build/chatgpt-ui#make-images-visible-to-the-model). Las pruebas verifican transporte MCP, archivo exacto, rechazo de hash distinto y ausencia de subida automática. La compatibilidad móvil y la entrega efectiva al generador requieren la prueba del cliente real; no se presentan como comprobadas.
+
+Después del deploy, refresca la conexión MCP para cargar la metadata UI actualizada y abre un chat nuevo. Para una skill importada, actualiza además su snapshot por el mecanismo de publicación del plugin. No requiere migraciones.
 
 ```sh
 python3 /ruta/a/skill-creator/scripts/quick_validate.py plugins/dropflex-optimizer/skills/optimize-product

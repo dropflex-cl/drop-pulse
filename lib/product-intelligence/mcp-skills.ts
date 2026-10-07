@@ -40,7 +40,7 @@ function rejectCursor(cursor?: string) {
   if (cursor !== undefined) throw new McpError(ErrorCode.InvalidParams, "El catálogo de skills no tiene una página posterior.");
 }
 
-export function registerOptimizationSkill(server: Server) {
+export function registerOptimizationSkill(server: Server, uiResources: { uri: string; name: string; mimeType: string; text: string; _meta: Record<string, unknown> }[] = []) {
   server.setRequestHandler(listSchema, async request => {
     rejectCursor(request.params?.cursor);
     return { skills: [(await getBundle()).skill] };
@@ -51,9 +51,11 @@ export function registerOptimizationSkill(server: Server) {
   });
   server.setRequestHandler(ListResourcesRequestSchema, async request => {
     rejectCursor(request.params?.cursor);
-    return { resources: (await getBundle()).entries.map(({ uri }) => ({ uri, name: uri.slice(uri.lastIndexOf("/") + 1), mimeType: uri.endsWith(".yaml") ? "application/yaml" : "text/markdown" })) };
+    return { resources: [...(await getBundle()).entries.map(({ uri }) => ({ uri, name: uri.slice(uri.lastIndexOf("/") + 1), mimeType: uri.endsWith(".yaml") ? "application/yaml" : "text/markdown" })), ...uiResources.map(({ uri, name, mimeType }) => ({ uri, name, mimeType }))] };
   });
   server.setRequestHandler(ReadResourceRequestSchema, async request => {
+    const ui = uiResources.find(resource => resource.uri === request.params.uri);
+    if (ui) return { contents: [ui] };
     // Comprueba la allowlist antes de acceder al disco, incluso si el paquete no está instalado.
     if (!files.some(path => request.params.uri === `skill://dropflex/optimize-product/${path}`)) throw new McpError(ErrorCode.InvalidParams, "El recurso solicitado no existe.");
     const entry = (await getBundle()).entries.find(item => item.uri === request.params.uri)!;

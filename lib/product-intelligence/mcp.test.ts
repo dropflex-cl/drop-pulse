@@ -12,6 +12,7 @@ import { PI_LIMITS } from "./validation";
 import { attachToolImage } from "./tool-media";
 import { referenceImageContent } from "./visual-reference";
 import sharp from "sharp";
+import { VISUAL_REFERENCE_UI } from "./visual-reference-widget";
 
 const validators = (): jsonSchemaValidator => {
   const ajv = new Ajv2020({ strict: false }); addFormats(ajv);
@@ -37,6 +38,10 @@ describe("PI · protocolo MCP oficial", () => {
       image: image.metadata, next_action: "Adjunta la referencia." } };
     const session = await connect(async () => attachToolImage(response, image.content));
     try {
+      const tools = await session.client.listTools();
+      expect(tools.tools.find(tool => tool.name === "get_visual_reference_image")?._meta).toMatchObject({ ui: { resourceUri: VISUAL_REFERENCE_UI } });
+      const ui = await session.client.readResource({ uri: VISUAL_REFERENCE_UI });
+      expect(ui.contents[0]).toMatchObject({ mimeType: "text/html;profile=mcp-app" });
       const result = await session.client.callTool({ name: "get_visual_reference_image", arguments: { product_id: product, reference_image_id: reference, reference_content_hash: image.metadata.content_hash } });
       expect(result.isError).toBe(false);
       expect(result.structuredContent).toEqual(response);

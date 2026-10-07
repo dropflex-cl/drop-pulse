@@ -34,7 +34,7 @@ describe("DropFlex · importación de skill MCP", () => {
       const allFiles = (await readdir(root, { recursive: true, withFileTypes: true })).filter(file => file.isFile()).map(file => join(file.parentPath, file.name).slice(root.length + 1).replaceAll("\\", "/"));
       expect(skill.resources.map(item => item.uri.replace("skill://dropflex/optimize-product/", "")).sort()).toEqual(allFiles.sort());
       const listed = await session.client.listResources();
-      expect(listed.resources.map(item => item.uri).sort()).toEqual(skill.resources.map(item => item.uri).sort());
+      expect(listed.resources.filter(item => item.uri.startsWith("skill://")).map(item => item.uri).sort()).toEqual(skill.resources.map(item => item.uri).sort());
       for (const resource of skill.resources) {
         const response = await session.client.readResource({ uri: resource.uri });
         expect(response.contents).toHaveLength(1);
