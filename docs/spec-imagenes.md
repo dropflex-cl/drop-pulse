@@ -6,7 +6,7 @@ La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel 
 
 | Espacio | Formato | Obligatorio | De dónde sale |
 |---|---|---|---|
-| Portada | 1:1 | Sí | Una toma `hero_clean` o `hero_mood`, sin textos |
+| Portada | 1:1 | Sí | Una toma `hero_clean` o `hero_mood`, con o sin textos según la dirección comercial |
 | Galería | 1:1, se eligen 4 a 6 y se ordenan | Sí (mínimo 4) | 5 tomas distintas: ambiente, infografía, comparativa, qué incluye (o detalle) y una de uso, escala o detalle |
 | Beneficio N | **3:4** | No | 3 tomas, una por beneficio (`benefit-1…3`, `BENEFIT_SHOTS`): **uno por cada ángulo aprobado**, en orden, con el formato de su forma (§4.1); el que sobra con 2 ángulos va al diferenciador |
 | GIFs | animado, hasta 5 ordenados | No | Solo **subidos** por el comerciante (`gifs`, `GIF_MAX`); nunca generados (§1bis) |
@@ -90,17 +90,18 @@ Con la receta de campaña editorial como única dirección, las 4 galerías de p
   - `clean_explainer`: fondo claro, diagramas, cortes y macros. Productos cuyo argumento es cómo funcionan.
   - `native_phone`: foto de teléfono de un comprador, textos de publicación social. Gadgets de impulso, ángulos de historia o identidad.
 - El producto siempre contrasta con el fondo: uno beige, color piel, blanco o transparente nunca va sobre su mismo color. El color del producto solo inspira la paleta en `studio_color`.
-- La galería sigue siendo **común a los ángulos** (la página es una sola), pero **cada ángulo tiene su beneficio**: `benefitAngles` da el orden y `planProblems` lo exige. La imagen usa el formato de su forma (`BENEFIT_BY_FRAME`: Enemigo común = lo de antes contra lo nuevo; Mecanismo único = corte o diagrama; Edad e identidad = la persona del segmento en su momento, sin cara; Oferta = varias unidades, sin precio) y parte de las escenas de `static_ad_concepts` y `visual_concepts` del desarrollo. La pantalla marca cada beneficio con su «Ángulo N».
+- La galería sigue siendo **común a los ángulos** (la página es una sola), pero **cada ángulo tiene su beneficio**: `benefitAngles` da el orden y `planProblems` lo exige. La imagen usa el formato de su forma (Enemigo común = lo de antes contra lo nuevo; Mecanismo único = corte o diagrama; Edad e identidad = la persona del segmento en su momento, sin cara; Oferta = unidades, packs y oferta vigente) y parte de las escenas de `static_ad_concepts` y `visual_concepts` del desarrollo. La pantalla marca cada beneficio con su «Ángulo N».
 - La comparativa enfrenta al producto con el enemigo de un ángulo Enemigo común si lo hay; si no, con `alternatives_already_tried` de la ficha.
 - El render abre el pedido con el tipo de imagen del mundo (`WORLD_BRIEF` en `render.ts`); las tomas guardadas antes, sin `world`, siguen con la de estudio.
 
 **Reglas de props:** se permite todo lo que dé ambiente sin prometer nada. Se prohíbe lo que sugiera un ingrediente, sabor, función o accesorio que la ficha no dice, por ejemplo frutas junto a un suplemento sin fruta. Cada prop se describe con precisión visual.
 
 **Reglas de texto:**
-- Sin precios, descuentos, packs ni regalos: la página ya los muestra y cambian.
-- Solo datos de la ficha o de los ángulos (los beneficios los propone el director, con un dato de la ficha que los sostiene; `planProblems` revisa cantidad, largo y que no haya precios).
-- Titular de 2 a 6 palabras con mayúscula inicial.
-- Límites por rol iguales a Creativos.
+- **Decisión del comerciante, 2026-10-07 (COD):** precios, descuentos, packs, regalos y condiciones reales de pago contra entrega, envío y garantía pueden aparecer en las imágenes: ayudan a comunicar la oferta e impulsar la confirmación. También se permite texto en portada y ambiente (`hero_mood`). Reemplaza la prohibición anterior.
+- La galería no impone topes editoriales por rol, cantidad de textos, palabras, caracteres, líneas ni mayúscula inicial, y no exige un titular. La composición elige el texto y su jerarquía. Las reglas de anuncios estáticos siguen siendo propias de Creativos.
+- Usa la oferta y las condiciones del contexto vigente; no inventes precios ni políticas. Los beneficios pueden explicar la oferta. `planProblems` conserva la estructura de espacios, beneficios por ángulo, textos no vacíos, partes del kit y destinos de callouts.
+- El render conserva todas las líneas pedidas. El QA opcional sigue revisando fidelidad del producto, textos exactos y añadidos no solicitados.
+- Los planes visuales que consumen precio/oferta o políticas mantienen esas dependencias para revisar las tomas cuando cambien.
 
 ### 4.2 Contexto corto (versión 5 del prompt, 2026-10-04)
 

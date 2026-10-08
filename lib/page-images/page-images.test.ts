@@ -88,14 +88,12 @@ describe("planProblems", () => {
     expect(planProblems(plan(3))).toEqual([]);
   });
 
-  it("el director propone sus beneficios: la cantidad justa, sin precios ni frases largas", () => {
+  it("los beneficios admiten ofertas y texto comercial sin topes editoriales", () => {
     expect(planProblems(plan(2))).toContain("Debe haber 3 benefits; hay 2.");
     const p = plan(3);
     p.benefits[1] = { text: "Lleva 2 y ahorra $9.990", angle: null };
     p.benefits[2] = { text: "x".repeat(200), angle: null };
-    const problems = planProblems(p);
-    expect(problems).toContain("El beneficio 2 menciona un precio u oferta.");
-    expect(problems.some((m) => m.startsWith("El beneficio 3 pasa de"))).toBe(true);
+    expect(planProblems(p)).toEqual([]);
   });
 
   it("exige una toma por beneficio aprobado y el tamaño de la galería", () => {
@@ -126,31 +124,21 @@ describe("planProblems", () => {
     expect(planProblems(plan(3, { visual_world_why: " " }))).toContain("Falta visual_world_why: por qué ese mundo visual.");
   });
 
-  it("la portada y el ambiente van sin textos", () => {
+  it("la portada y el ambiente admiten textos", () => {
     const p = plan();
     p.shots[0] = shot({ slot: "cover", type: "hero_clean", name: "Portada" });
     p.shots[1] = shot({ type: "hero_mood", name: "Ambiente" });
-    const problems = planProblems(p, 2);
-    expect(problems.some((x) => x.includes("la portada va sin textos"))).toBe(true);
-    expect(problems.some((x) => x.includes("hero_mood va sin textos"))).toBe(true);
+    expect(planProblems(p, 2)).toEqual([]);
   });
 
-  it("rechaza ofertas, precios y titulares en minúscula", () => {
+  it("admite precios, packs, descuentos y condiciones COD en todos los espacios", () => {
     const p = plan();
-    p.shots[2] = shot({
-      texts: [
-        { role: "headline", text: "cada una con la suya", placement: "top", points_to: null },
-        { role: "badge", text: "Uno de regalo", placement: "bottom", points_to: null },
-        { role: "badge", text: "Pack a $47.990", placement: "bottom", points_to: null },
-      ],
-    });
-    const problems = planProblems(p, 2).join(" ");
-    expect(problems).toContain("empieza con minúscula");
-    expect(problems).toContain("«Uno de regalo» trae un precio, un descuento o una oferta");
-    expect(problems).toContain("«Pack a $47.990» trae un precio");
+    const commercial = ["cada una con la suya", "Uno de regalo", "Pack a $47.990", "50% de descuento", "2x1", "Lleva 3, paga 2", "Envío gratis", "Paga al recibir"];
+    p.shots = p.shots.map(s => ({ ...s, texts: commercial.map(text => ({ role: "badge", text, placement: "bottom", points_to: null })) }));
+    expect(planProblems(p, 2)).toEqual([]);
   });
 
-  it("revisa largos, kit y points_to", () => {
+  it("permite titulares largos y sigue revisando kit y points_to", () => {
     const p = plan();
     p.shots[2] = shot({
       kit_parts: ["pink power bank"],
@@ -160,22 +148,29 @@ describe("planProblems", () => {
       ],
     });
     const problems = planProblems(p, 2).join(" ");
-    expect(problems).toContain("pasa de 6 palabras");
+    expect(problems).not.toContain("pasa de");
     expect(problems).toContain("kit_parts «pink power bank» no está en kit");
     expect(problems).toContain("points_to solo va en callouts");
   });
+
+  it("sigue rechazando textos y beneficios vacíos", () => {
+    const p = plan();
+    p.benefits[0].text = " ";
+    p.shots[0].texts = [{ role: "badge", text: "\n ", placement: "bottom", points_to: null }];
+    const problems = planProblems(p, 2).join(" ");
+    expect(problems).toContain("El beneficio 1 está vacío");
+    expect(problems).toContain("trae un texto vacío");
+  });
 });
 
-describe("badges de 2 líneas", () => {
-  it("cada línea cuenta por separado y el render las separa", () => {
+describe("textos con saltos de línea", () => {
+  it("admite varias líneas en cualquier rol y el render conserva las dos de un badge", () => {
     const p = plan();
     const ok = { role: "badge" as const, text: "CABLE INCLUIDO\nNotebook o power bank", placement: "left middle pill", points_to: null };
     p.shots[2] = shot({ texts: [shot().texts[0], ok] });
     expect(planProblems(p, 2)).toEqual([]);
     p.shots[2] = shot({ texts: [shot().texts[0], { ...ok, text: "UNO\nDOS\nTRES" }, { ...ok, role: "note", text: "Una nota\nen dos" }] });
-    const problems = planProblems(p, 2).join(" ");
-    expect(problems).toContain("tiene 3 líneas; máximo 2");
-    expect(problems).toContain("tiene 2 líneas; va en una");
+    expect(planProblems(p, 2)).toEqual([]);
     const prompt = String(pageRenderRequest("gallery", stored(shot({ texts: [ok] })), "Spanish").input.prompt);
     expect(prompt).toContain('- badge in two lines, "CABLE INCLUIDO" (bold) above "Notebook o power bank" (regular): left middle pill.');
   });
@@ -184,7 +179,6 @@ describe("badges de 2 líneas", () => {
     const p = plan();
     const literal = { role: "callout" as const, text: "PERILLA DE VOLUMEN\\nSube o baja el entorno", placement: "left", points_to: "the volume dial" };
     p.shots[2] = shot({ texts: [shot().texts[0], literal] });
-    expect(planProblems(p, 2).join(" ")).toMatch(/pasa de 32 caracteres/);
     const fixed = normalizePlan(p);
     expect(fixed.shots[2].texts[1].text).toBe("PERILLA DE VOLUMEN\nSube o baja el entorno");
     expect(planProblems(fixed, 2)).toEqual([]);
@@ -226,6 +220,14 @@ describe("pageRenderRequest", () => {
     expect(prompt).toContain("NO TEXT");
     expect(prompt).not.toContain("TEXT RULES");
     expect(prompt).toContain("never a face");
+  });
+
+  it("la portada conserva la oferta COD y todas las líneas pedidas al renderizar", () => {
+    const texts: PlanShot["texts"] = [{ role: "badge", text: "Pack de 3 a $47.990\nEnvío gratis\nPaga al recibir", placement: "bottom", points_to: null }];
+    const prompt = String(pageRenderRequest("cover", stored(shot({ slot: "cover", type: "hero_clean", texts })), "Spanish").input.prompt);
+    expect(prompt).toContain('in 3 lines, in order: "Pack de 3 a $47.990" / "Envío gratis" / "Paga al recibir"');
+    expect(prompt).not.toContain("NO TEXT");
+    expect(prompt).toContain("TEXT RULES");
   });
 
   it("varias unidades salen idénticas y el kit se nombra", () => {

@@ -65,6 +65,7 @@ export function createContentExecutor(repository: ContentRepository & KnowledgeR
         "Lee el contexto y la estrategia antes de escribir. Usa el etag y la revisión leídos; dry_run valida sin guardar.",
         "landing_angle_id y landing_hook_id son los selectores df_angle/df_hook. Usa los mismos al guardar las variantes de landing; no son UUID del análisis.",
         "Los chats publicitarios son dramatizaciones, nunca reseñas reales ni evidencia de compradores.",
+        ...(kind === "gallery" ? ["Todas las tomas, incluida la portada y el ambiente, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. La galería no impone topes editoriales de caracteres, palabras, líneas o cantidad de textos ni exige un titular."] : []),
       ], next_action: "Escribe y valida el contenido en el chat; guárdalo con la tool save correspondiente y revísalo en DropFlex.",
     } });
     const knowledge = parseKnowledgeRead(await repository.loadKnowledge({ p_access: access, p_product_id: input.product_id }, signal), principal, input.product_id);

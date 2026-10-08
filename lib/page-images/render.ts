@@ -27,7 +27,9 @@ function placedTexts(s: StoredShot): string[] {
     const part = t.points_to?.trim();
     const line = t.role === "callout" && part ? `, connected by a thin line that ends in a small dot exactly on ${/^the\s/i.test(part) ? part : `the ${part}`}` : "";
     const lines = t.text.split("\n").map((l) => l.trim()).filter(Boolean);
-    const words = lines.length > 1 ? `in two lines, "${lines[0]}" (bold) above "${lines[1]}" (regular)` : `"${lines[0] ?? ""}"`;
+    const words = lines.length > 2
+      ? `in ${lines.length} lines, in order: ${lines.map(l => `"${l}"`).join(" / ")}`
+      : lines.length === 2 ? `in two lines, "${lines[0]}" (bold) above "${lines[1]}" (regular)` : `"${lines[0] ?? ""}"`;
     return `- ${t.role} ${words}${where ? `: ${where}` : ""}${line}.`;
   });
 }

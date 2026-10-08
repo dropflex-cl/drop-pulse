@@ -117,7 +117,7 @@
         },
         "text": {
           "type": "string",
-          "description": "Exactamente como va en la imagen, en el idioma del mercado. headline ≤ 40 caracteres; badge y callout, 1 o 2 líneas (con un salto de línea) de ≤ 28 cada una."
+          "description": "Exactamente como va en la imagen, en el idioma del mercado. Puede incluir precios, packs, descuentos y condiciones reales de pago contra entrega, envío y garantía del contexto vigente. Usa los saltos de línea que necesite la composición."
         },
         "placement": {
           "type": "string",
@@ -320,7 +320,7 @@
                     "items": {
                       "$ref": "#/$defs/__schema13"
                     },
-                    "description": "[] en las tomas sin texto."
+                    "description": "Textos elegidos para la toma, también en portada y ambiente. [] solo cuando se elija una toma sin texto."
                   }
                 },
                 "required": [

@@ -94,9 +94,13 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     expect((await checked(db.from("creative_assets").select("render_status").eq("id",asset.id).single())).data).toMatchObject({render_status:"failed"});
   });
   it("galería queda lista para el render existente y conserva slots y hechos para QA",async()=>{
-    const r=await call("save_gallery_content",{...await input("get_gallery_content"),content:gallery()}); expect(r).toMatchObject({data:{applied:true,artifact_ids:expect.any(Array)}});
+    const content=gallery();
+    const texts=[{role:"badge",text:"Pack a $47.990\nEnvío gratis\nPaga al recibir",placement:"Bottom",points_to:null}];
+    const commercial={...content,plan:{...content.plan,shots:content.plan.shots.map(s=>({...s,texts}))}};
+    const r=await call("save_gallery_content",{...await input("get_gallery_content"),content:commercial}); expect(r).toMatchObject({data:{applied:true,artifact_ids:expect.any(Array)}});
     const shots=(await checked(db.from("page_image_shots").select("slot,payload").eq("product_id",product))).data!;
     expect(shots).toHaveLength(9);expect(shots.filter(s=>s.slot.startsWith("benefit-"))).toHaveLength(3);
+    expect(shots.every(s=>JSON.stringify(s.payload.texts)===JSON.stringify(texts))).toBe(true);
     const run=(await checked(db.from("page_image_runs").select("input").eq("product_id",product).single())).data!;
     expect(run.input.verified_facts[0].id).toBe(fact);expect(await count("page_images")).toBe(0);
   });

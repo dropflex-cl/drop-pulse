@@ -22,6 +22,28 @@ describe("Contrato visual e invariantes", () => {
     const plan = prepareVisualPlan(f.state, ad); f.state.live["pricing:current"].hash = vHash("otro precio"); expect(recordValidity(plan, f.state).state).toBe("needs_review");
     f.state.live[`reference:${f.reference}`].hash = vHash("nueva referencia"); expect(recordValidity(f.plan, f.state).state).toBe("needs_review");
   });
+  it.each(["gallery", "pdp"] as const)("permite una oferta COD en %s y detecta cambios de precio y políticas", (channel) => {
+    const f = ready(), raw = visualFixture().plan;
+    raw.strategy_id = f.strategy; raw.identity_ref = recordRef(f.state.records[0]);
+    raw.shots[0].channel = channel; raw.shots[0].angle_id = f.angle;
+    raw.shots[0].message.overlay_text = "Pack de 3 a $47.990 · 50% de descuento · Envío gratis · Paga al recibir";
+    const plan = prepareVisualPlan(f.state, raw);
+    expect(recordValidity(plan, f.state).state).toBe("current");
+    const priceHash = f.state.live["pricing:current"].hash;
+    f.state.live["pricing:current"].hash = vHash("nuevo pack");
+    expect(recordValidity(plan, f.state).state).toBe("needs_review");
+    f.state.live["pricing:current"].hash = priceHash;
+    f.state.live["policy:current"].hash = vHash("nuevo envío");
+    expect(recordValidity(plan, f.state).state).toBe("needs_review");
+  });
+  it.each(["Pack para dos", "Uno de regalo", "Envío gratis", "2x1", "Lleva 3, paga 2"])("conserva la dependencia comercial sin monto: %s", (overlay_text) => {
+    const f = ready(), raw = visualFixture().plan;
+    raw.strategy_id = f.strategy; raw.identity_ref = recordRef(f.state.records[0]); raw.shots[0].angle_id = f.angle;
+    raw.shots[0].message.overlay_text = overlay_text;
+    const plan = prepareVisualPlan(f.state, raw);
+    f.state.live["pricing:current"].hash = vHash("otra oferta");
+    expect(recordValidity(plan, f.state).state).toBe("needs_review");
+  });
   it("congela identidad y restricciones aprobadas; el resultado sintético nunca se declara evidencia real", () => {
     const f = ready(), input = { plan_ref: recordRef(f.plan), shot_key: "hero", parent_asset_id: null, reference_asset_ids: [], based_on_review_ids: [], resolved_instruction: "Usa la base", source_system: "chatgpt", model: null };
     const it = prepareIteration(f.state, input); expect(it.payload.reference_image_ids).toEqual([f.reference]); expect(it.payload.identity_snapshot).toMatchObject({ forbidden_variations: ["Accesorios inventados"] });

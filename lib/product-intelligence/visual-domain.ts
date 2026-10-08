@@ -89,9 +89,9 @@ export function shotDependencies(state: VisualState, plan: VisualPlan, shot: Vis
   if (shot.representation === "real_evidence" && !shot.evidence_ids.length) invalidVisual("Una prueba real necesita evidencia verificable.", "VALIDATION_ERROR");
   if (shot.landing_hook_id && !shot.landing_angle_id || shot.landing_angle_id && !shot.angle_id) invalidVisual("El gancho y selector público requieren un ángulo.");
   const overlay = shot.message.overlay_text ?? "";
-  if (/\$|\d+\s*%|precio|oferta|descuento/i.test(overlay)) ds.push(dep(state, "pricing", "current", "overlay"));
+  // La oferta y las condiciones COD pueden ir en cualquier imagen; sus cambios requieren revisión.
+  if (/\$|\d+\s*%|precio|oferta|descuento|gratis|regalo|\bpack\b|\b\d\s*x\s*\d\b|\blleva\s+\d|\bpaga\s+\d/i.test(overlay)) ds.push(dep(state, "pricing", "current", "overlay"));
   if (/env[ií]o|garant[ií]a|entrega|paga|pago|devoluci[oó]n/i.test(overlay)) ds.push(dep(state, "policy", "current", "overlay"));
-  if (["gallery", "pdp"].includes(shot.channel) && /\$|\d+\s*%|gratis|descuento|regalo|oferta/i.test(overlay)) invalidVisual("Las imágenes de la tienda no llevan precios ni ofertas. Usa el contenido comercial de la página.", "VALIDATION_ERROR");
   return [...new Map(ds.map(d => [`${d.kind}:${d.key}:${d.usage}`, d])).values()];
 }
 export function prepareVisualPlan(state: VisualState, raw: unknown, id?: string | null): VisualRecord {

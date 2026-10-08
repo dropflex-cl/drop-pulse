@@ -2,7 +2,7 @@
 // Puro y testeado: la validación en código es lo que el modelo no puede saltarse.
 
 import * as z from "zod/v4";
-import { HEADLINE_MAX_WORDS, ROLE_LIMITS, ROLE_PROMPT_LIMITS, TEXT_ROLES, type TextRole } from "@/lib/creatives/catalog";
+import { TEXT_ROLES } from "@/lib/creatives/catalog";
 import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES, VISUAL_WORLDS, type VisualWorld } from "./catalog";
 
 /**
@@ -11,9 +11,10 @@ import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES, VISUAL_WORLDS, type VisualWor
  * el mundo visual (`visual_world`) en vez de una receta fija, y cada ángulo tiene su beneficio, con el
  * formato de su forma. 5: el contexto corto de lib/ai/context.ts (sin la ficha ni el cliente ideal en JSON),
  * los largos por rol en la descripción de cada texto y el «\\n» literal que el código convierte en salto
- * de línea (normalizePlan).
+ * de línea (normalizePlan). 6: imágenes para COD con texto comercial también en portada y ambiente,
+ * sin prohibiciones de precio/oferta ni límites editoriales de texto heredados de anuncios.
  */
-export const PAGE_IMAGES_PROMPT_VERSION = 5;
+export const PAGE_IMAGES_PROMPT_VERSION = 6;
 
 const art = z.object({
   palette: z.string().describe("En inglés: 2 a 4 colores con nombre, los del mundo visual elegido; el producto contrasta con el fondo y los textos van en un acento que se lee."),
@@ -23,7 +24,7 @@ const art = z.object({
 
 const text = z.object({
   role: z.enum(TEXT_ROLES),
-  text: z.string().describe(`Exactamente como va en la imagen, en el idioma del mercado. headline ≤ ${ROLE_PROMPT_LIMITS.headline} caracteres; badge y callout, 1 o 2 líneas (con un salto de línea) de ≤ ${ROLE_PROMPT_LIMITS.callout} cada una.`),
+  text: z.string().describe("Exactamente como va en la imagen, en el idioma del mercado. Puede incluir precios, packs, descuentos y condiciones reales de pago contra entrega, envío y garantía del contexto vigente. Usa los saltos de línea que necesite la composición."),
   placement: z.string().describe("En inglés: posición, líneas, peso, color y contenedor (solid pill with a line icon, round stamp, card, table cell)."),
   points_to: z.string().nullable().describe("Solo callouts: la parte concreta y VISIBLE del producto a la que llega su línea (en inglés); null en los demás."),
 });
@@ -40,7 +41,7 @@ const shot = z.object({
   product_units: z.number().int().min(1).max(3),
   kit_parts: z.array(z.string()).describe("Partes del kit que aparecen, escritas igual que en kit. [] si ninguna."),
   hands: z.boolean().describe("true si se ven manos o la parte del cuerpo donde se usa (nunca una cara)."),
-  texts: z.array(text).describe("[] en las tomas sin texto."),
+  texts: z.array(text).describe("Textos elegidos para la toma, también en portada y ambiente. [] solo cuando se elija una toma sin texto."),
 });
 
 export const pagePlanSchema = z.object({
@@ -79,15 +80,6 @@ export type StoredShot = PlanShot & {
   angle?: number | null;
 };
 
-/** Largo máximo de un beneficio propuesto (una frase que se lee de un vistazo). */
-export const BENEFIT_MAX = 110;
-
-/** Roles que pueden ir en 2 líneas (separadas por «\n»): el titular, y el badge o callout con su línea fina. */
-export const TWO_LINES = new Set<string>(["headline", "badge", "callout"]);
-
-/** Precios, montos y ofertas: cambian y la página ya los muestra. Una imagen con eso queda mintiendo. */
-const OFFER = /\$|US\$|\d+\s?%|\bgratis\b|\bregalo\b|\bdescuento\b|\boferta\b|\b\d\s?x\s?\d\b|\blleva\s+\d|\bpaga\s+\d/i;
-
 /**
  * El ángulo de cada beneficio, en orden: uno por ángulo aprobado (del 1 al 3) y null en los que sobran
  * (van al diferenciador). Con más ángulos que beneficios, los últimos se quedan sin el suyo.
@@ -99,8 +91,8 @@ export function benefitAngles(angles: number[], benefits: number = BENEFIT_SHOTS
 
 /**
  * Lo que es regla lo arregla el código: el modelo escribe a veces el salto de línea de un badge o un
- * callout como «\\n» literal (dos caracteres) y el texto entero pasaba del tope de una línea (la única
- * falla de la versión 4 en producción, 2026-10-03). Se convierte en un salto de línea de verdad.
+ * callout como «\\n» literal (dos caracteres; caso de producción del 2026-10-03).
+ * Se convierte en un salto de línea de verdad para el render y el QA.
  */
 export function normalizePlan(p: PagePlan): PagePlan {
   return { ...p, shots: p.shots.map((s) => ({ ...s, texts: s.texts.map((t) => ({ ...t, text: t.text.replace(/\\n/g, "\n") })) })) };
@@ -120,8 +112,6 @@ export function planProblems(p: PagePlan, benefits: number = BENEFIT_SHOTS, angl
   });
   p.benefits.forEach((b, i) => {
     if (!b.text.trim()) out.push(`El beneficio ${i + 1} está vacío.`);
-    else if (b.text.length > BENEFIT_MAX) out.push(`El beneficio ${i + 1} pasa de ${BENEFIT_MAX} caracteres.`);
-    if (OFFER.test(b.text)) out.push(`El beneficio ${i + 1} menciona un precio u oferta.`);
   });
   const by = (s: PlanShot["slot"]) => p.shots.filter((x) => x.slot === s);
   if (by("cover").length !== 1) out.push(`Debe haber 1 cover; hay ${by("cover").length}.`);
@@ -135,22 +125,8 @@ export function planProblems(p: PagePlan, benefits: number = BENEFIT_SHOTS, angl
   const kit = new Set(p.kit);
   p.shots.forEach((s, i) => {
     const tag = `La toma ${i + 1} («${s.name}», ${s.slot}/${s.type})`;
-    if (s.slot === "cover" && s.texts.length) out.push(`${tag}: la portada va sin textos.`);
-    if (s.type === "hero_mood" && s.texts.length) out.push(`${tag}: hero_mood va sin textos.`);
-    const max = s.type === "comparison" ? 7 : 5;
-    if (s.texts.length > max) out.push(`${tag} trae ${s.texts.length} textos; máximo ${max}.`);
-    if (s.texts.length && s.texts.filter((t) => t.role === "headline").length !== 1) out.push(`${tag} necesita exactamente un headline.`);
     for (const t of s.texts) {
-      const lim = ROLE_LIMITS[t.role as TextRole];
-      const lines = t.text.split("\n").map((l) => l.trim());
-      const words = t.text.trim().split(/\s+/).length;
-      if (!t.text.trim() || lines.some((l) => !l)) out.push(`${tag} trae un texto vacío.`);
-      if (lines.length > (TWO_LINES.has(t.role) ? 2 : 1)) out.push(`${tag}: «${lines.join(" / ")}» tiene ${lines.length} líneas; ${TWO_LINES.has(t.role) ? "máximo 2" : "va en una"}.`);
-      const long = t.role === "headline" ? (lines.join(" ").length > lim ? lines.join(" ") : null) : lines.find((l) => l.length > lim);
-      if (long) out.push(`${tag}: «${long}» pasa de ${lim} caracteres (${t.role}).`);
-      if (t.role === "headline" && words > HEADLINE_MAX_WORDS) out.push(`${tag}: el headline «${t.text}» pasa de ${HEADLINE_MAX_WORDS} palabras.`);
-      if (t.role === "headline" && /^[¿¡«"]?\p{Ll}/u.test(t.text.trim())) out.push(`${tag}: el headline «${t.text}» empieza con minúscula; va con mayúscula inicial.`);
-      if (OFFER.test(t.text)) out.push(`${tag}: «${t.text}» trae un precio, un descuento o una oferta.`);
+      if (!t.text.trim()) out.push(`${tag} trae un texto vacío.`);
       if (t.points_to && t.role !== "callout") out.push(`${tag}: points_to solo va en callouts.`);
     }
     for (const k of s.kit_parts) if (!kit.has(k)) out.push(`${tag}: kit_parts «${k}» no está en kit.`);

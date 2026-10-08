@@ -19,7 +19,7 @@ export function pageQaTexts(texts: ShotText[]): string {
   return [
     "TEXTOS PEDIDOS (en orden)",
     ...(texts.length ? texts.map((t, i) => `${i + 1}. [${t.role}] «${t.text.split("\n").join(" / ")}»`) : ["(ninguno: la imagen va sin texto)"]),
-    ...(texts.some((t) => t.text.includes("\n")) ? ["(« / » separa las 2 líneas de un mismo texto: cuenta como exact si están las dos, cada una en su línea)"] : []),
+    ...(texts.some((t) => t.text.includes("\n")) ? ["(« / » separa las líneas de un mismo texto: cuenta como exact si están todas, cada una en su línea)"] : []),
     "",
     "Revisa la imagen.",
   ].join("\n");

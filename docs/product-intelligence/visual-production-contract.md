@@ -103,7 +103,7 @@ Una dependencia contiene `kind`, `key`, `content_hash`, `usage`. Los hashes sem�
 | Destino/variante eliminado | Binding bloqueado; archivo permanece |
 | Edición de otra sección | No invalida la toma ajena |
 
-Hechos y evidencia ligados al plan persuasivo se heredan como dependencias; no basta con que el chat vuelva a enumerarlos. Las piezas de tienda no incorporan precios/ofertas en el bitmap.
+Hechos y evidencia ligados al plan persuasivo se heredan como dependencias; no basta con que el chat vuelva a enumerarlos. Las piezas de tienda pueden incorporar textos, precios, packs, descuentos y condiciones COD del contexto vigente, incluida la portada. La oferta y las políticas consumidas quedan como dependencias: si cambian, las tomas correspondientes requieren revisión. Esta decisión del comerciante (2026-10-07) reemplaza la prohibición anterior de precios/ofertas en el bitmap.
 
 `get_visual_reconciliation_context` explica qué cambió por toma y uso. `save_visual_reconciliation` requiere resolución `retain`, `replace` o `remove` de las tomas afectadas y motivo. Crea una nueva versión en revisión; no conserva la aprobación del plan ni altera la procedencia de assets históricos.
 
