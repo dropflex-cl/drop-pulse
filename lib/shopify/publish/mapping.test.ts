@@ -142,9 +142,20 @@ describe("metafields", () => {
     expect(JSON.parse(by.get("reviews")!.value).items[29]).toMatchObject({ id: "r29", image_from: 87, image_count: 3 });
   });
 
+  it("activa los apoyos por defecto y conserva las desactivaciones explícitas al publicar", () => {
+    const state = (disabledConversionComponents?: string[]) => {
+      const { set } = productMetafields(input({ disabledConversionComponents }), gids);
+      return JSON.parse(set.find(m => m.key === "conversion_supports")!.value);
+    };
+    expect(state()).toEqual({ schema_version: "1.0", disabled_components: [] });
+    expect(state(["review-wall", "inventory", "review-wall", "unknown"])).toEqual({
+      schema_version: "1.0", disabled_components: ["inventory", "review-wall"],
+    });
+  });
+
   it("borra lo que ya no va: componentes retirados, reseñas y acento vacíos", () => {
     const { set, remove } = productMetafields(input({ components: [], reviews: [], accent: null }), gids);
-    expect(set.map((m) => m.key).sort()).toEqual(["offer", "subtitle"]);
+    expect(set.map((m) => m.key).sort()).toEqual(["conversion_supports", "offer", "subtitle"]);
     expect(remove).toContain("benefit_usps");
     expect(remove).toContain("insta_story_media");
     expect(remove).toContain("reviews");

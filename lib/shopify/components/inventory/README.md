@@ -53,3 +53,5 @@ La referencia escribía el número a mano («solo quedan 5» fijo) y ofrecía un
 - Agotado: «Agotado, [siguiente paso]», sin prometer fecha.
 - Una línea a 375 px (≤ 48 caracteres), tuteo, sin emojis ni mayúsculas sostenidas.
 - **Prohibido:** escribir números, «se agotan en minutos», «X personas mirando», contadores aleatorios (Ley 19.496, publicidad engañosa sobre disponibilidad).
+
+Por defecto muestra disponibilidad e inventario real. Sin logística configurada omite el plazo. No muestra vendidos, visitas ni cifras de actividad simuladas.

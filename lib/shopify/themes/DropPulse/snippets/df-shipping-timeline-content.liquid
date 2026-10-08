@@ -118,7 +118,7 @@
   endif
 -%}
 
-{%- if has_content -%}
+{%- if has_content and logistics.handling_days != nil and logistics.transit_days_min != nil and logistics.transit_days_max != nil and logistics.cutoff_hour != nil -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
 
 

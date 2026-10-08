@@ -1,3 +1,4 @@
+import { DEFAULT_CONVERSION_SUPPORTS } from "@/lib/shopify/conversion-supports";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import type { PersuasionJob } from "./persuasion-schemas";
 
@@ -42,7 +43,7 @@ export function componentCapability(id: string) { return COMPONENT_CAPABILITIES.
 export function componentCapabilityCatalog(reviewCount: number) {
   return COMPONENT_CAPABILITIES.map(capability => {
     const native = CATALOG.find(c => c.id === capability.component);
-    return { ...capability, name: native?.name ?? "Ficha del producto", min_reviews: native?.minReviews ?? 0,
+    return { ...capability, constraints: [...capability.constraints, ...((DEFAULT_CONVERSION_SUPPORTS as readonly string[]).includes(capability.component) ? ["enabled_by_default_when_data_available"] : [])], name: native?.name ?? "Ficha del producto", min_reviews: native?.minReviews ?? 0,
       available: reviewCount >= (native?.minReviews ?? 0), image_slots: native?.imageSlots ?? [],
       rules: native?.rules ?? [], forbidden: native?.forbidden ?? [] };
   });

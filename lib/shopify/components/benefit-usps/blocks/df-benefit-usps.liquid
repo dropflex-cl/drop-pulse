@@ -1,3 +1,5 @@
+{%- assign df_conversion_product = closest.product | default: product | default: section.settings.product -%}
+{%- unless df_conversion_product.metafields.dropflex.conversion_supports.value.disabled_components contains 'benefit-usps' -%}
 <div data-df-pdp-component="benefit-usps">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
@@ -19,6 +21,8 @@
 {%- endif -%}
 
 </div>
+
+{%- endunless -%}
 
 {% stylesheet %}
   .df-benefit-usps {

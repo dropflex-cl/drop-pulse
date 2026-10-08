@@ -50,9 +50,10 @@ describe("vistas previas de los componentes", () => {
               <Preview content={example} facts={MANY_REVIEWS} images={IMAGES} />
             </StoreFrame>,
           );
-          // inventory: con stock muestra la línea fija de producto viral, no los textos de la IA.
+          // Sin logística, mostrar disponibilidad sin fabricar ventas o plazos.
           if (c.id === "inventory") {
-            expect(html).toMatch(/Producto viral · \d{3} vendidos esta semana/);
+            expect(html).toContain("Disponible");
+            expect(html).not.toContain("vendidos esta semana");
             continue;
           }
           const texts = visibleTexts(example).map((t) => fill(t, MANY_REVIEWS).replaceAll("**", ""));

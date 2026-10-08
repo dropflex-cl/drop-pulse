@@ -20,7 +20,7 @@ describe("Publicación atómica de variantes", () => {
   it("el catálogo completo cabe en una petición con sus pools", () => {
     const variant = { key: "default", angle_id: null, hook_id: null, content: {} };
     const input = { listingVariants: [variant], components: CATALOG.map((c) => ({ id: c.id, content: [variant], images: {} })) } as PublishInput;
-    expect(landingAtomicKeys(input)).toHaveLength(22);
-    expect(new Set(landingAtomicKeys(input)).size).toBe(22);
+    expect(landingAtomicKeys(input)).toHaveLength(23);
+    expect(new Set(landingAtomicKeys(input)).size).toBe(23);
   });
 });

@@ -10,6 +10,8 @@
     'pain-block': 'body', 'stats-with-image': 'body', 'scrolling-benefits': 'body', 'image-with-benefits': 'body',
     'insta-story': 'body', 'review-wall': 'body', 'comparison-table': 'body', 'faq-and-text': 'body',
   };
+  const supports = ["review-stars", "benefit-usps", "inventory", "shipping-timeline", "benefit-double-box", "review-slider", "review-wall", "gif-strip", "ugc-slider", "scrolling-benefits"];
+  const disabled = {{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || [];
   const valid = (v) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v);
   const uuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
   const validExperience = (e) => {
@@ -85,7 +87,7 @@
         const marker = document.createComment('DropFlex original position'); node.before(marker);
         originals.push({ node, marker, hidden: node.hidden, sectionKey: node.dataset.dfSectionKey, job: node.dataset.dfPersuasionJob, container: node.dataset.dfPdpContainer });
         node.dataset.dfPdpContainer = '';
-        node.hidden = !selected.sections.some(s => s.component === component);
+        node.hidden = disabled.includes(component) || (!supports.includes(component) && !selected.sections.some(s => s.component === component));
       }
       for (const section of selected.sections) {
         const node = nodes.get(section.component);

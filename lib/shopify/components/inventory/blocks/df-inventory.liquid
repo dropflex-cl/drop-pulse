@@ -1,3 +1,5 @@
+{%- assign df_conversion_product = closest.product | default: product | default: section.settings.product -%}
+{%- unless df_conversion_product.metafields.dropflex.conversion_supports.value.disabled_components contains 'inventory' -%}
 <div data-df-pdp-component="inventory">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
@@ -19,6 +21,8 @@
 {%- endif -%}
 
 </div>
+
+{%- endunless -%}
 
 {% stylesheet %}
   .df-inventory {
@@ -96,13 +100,6 @@
       "label": "Disponible",
       "info": "Puedes usar {min} y {max} (días hábiles de entrega).",
       "default": "En stock, recíbelo en {min} a {max} días hábiles"
-    },
-    {
-      "type": "text",
-      "id": "viral_text",
-      "label": "Disponible (producto viral)",
-      "info": "Reemplaza al texto de disponible. {sold} = vendidos de la semana (150–350, fijo por producto). Vacío = usa el de arriba.",
-      "default": "🔥 Producto viral · {sold} vendidos esta semana"
     },
     {
       "type": "text",

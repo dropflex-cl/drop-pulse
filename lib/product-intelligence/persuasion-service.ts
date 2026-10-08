@@ -85,7 +85,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
         catalog: componentCapabilityCatalog(state.landing.review_count), plans: plans.map(planSummary),
         experiences: state.experiences.filter(e => e.payload.strategy_id === query.strategy_id && e.payload.angle_id === query.angle_id).map(experienceSummary),
         planning_stamp: state.planning_stamp, limitations: ["Las métricas actuales se agregan por campaña; no atribuyen resultados a una arquitectura.",
-          "El hero conserva los controles de compra. Los apoyos comerciales preceden al cuerpo narrativo.",
+          "Estrellas, badges de políticas, packs, stock, entrega, reseñas y medios de demostración se activan por defecto al tener datos reales. No requieren un slot narrativo; las desactivaciones explícitas se conservan.",
           "UGC generado no es una reseña ni prueba de experiencia real.", "Consulta get_landing_content por componente para escribir su contrato real."] } });
       const id = parseToolInput("get_angle_persuasion_plan", command.input).plan_id;
       const current = id ? plans.find(p => p.id === id) : plans[0];

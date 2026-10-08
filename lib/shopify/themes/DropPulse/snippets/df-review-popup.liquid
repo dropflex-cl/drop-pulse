@@ -9,10 +9,7 @@
   hace 3 minutos»: la tienda no tiene esos datos y una compra inventada es prueba social falsa.
   Tampoco dice «compra verificada» ni las presenta como clientes de la tienda.
 
-  - El nombre es el mismo que muestra el muro de testimonios (df-review-wall) para esa reseña: un
-    nombre de pila y una inicial con la semilla del producto y la posición de la reseña. Las
-    importadas traen «Cliente», «Anónimo» o «M***a». Las listas y la fórmula son las del muro (lo
-    revisa lib/store-preview/review-wall.test.ts).
+  - El nombre es el autor anonimizado de la reseña aprobada; sin inventar identidades.
   - Ritmo (ajustes del tema): la primera a los `df_review_popup_delay` s, cada una a la vista
     `df_review_popup_duration` s y una pausa de `df_review_popup_gap` s entre ellas. Hasta
     `df_review_popup_max` por visita y nunca la misma dos veces en la visita.
@@ -58,17 +55,8 @@
   endif
 
   if df_rp_show
-    # Semilla, listas y fórmula del muro de testimonios (sections/df-review-wall.liquid): la misma
-    # reseña lleva el mismo nombre en el muro y aquí.
-    assign seed = product.id | modulo: 9973
-    assign women = 'María|Camila|Valentina|Daniela|Fernanda|Javiera|Catalina|Constanza|Francisca|Sofía|Isidora|Antonia|Paula|Carolina|Andrea|Natalia|Gabriela|Paola|Claudia|Lorena|Patricia|Verónica|Macarena|Bárbara|Karina|Pamela|Alejandra|Marcela|Carla|Tamara|Nicole|Josefa|Florencia|Martina|Agustina|Trinidad|Emilia|Ignacia|Rocío|Lucía|Elena|Sandra|Mónica|Cecilia|Soledad|Ximena|Viviana|Romina|Belén|Ana' | split: '|'
-    assign men = 'Juan|José|Carlos|Luis|Jorge|Diego|Felipe|Sebastián|Matías|Nicolás|Tomás|Benjamín|Cristóbal|Ignacio|Francisco|Rodrigo|Gonzalo|Andrés|Pablo|Javier|Álvaro|Eduardo|Ricardo|Fernando|Manuel|Alejandro|Daniel|Marcelo|Mauricio|Claudio|Patricio|Cristián|Héctor|Raúl|Sergio|Víctor|Hernán|Óscar|Gustavo|Martín|Joaquín|Vicente|Agustín|Maximiliano|Esteban|Rafael|Samuel|Gabriel|Emilio|Pedro' | split: '|'
-    assign initials = 'A|B|C|D|E|F|G|H|I|J|L|M|N|O|P|R|S|T|V|Z' | split: '|'
-    assign fem_marks = ' encantada | contenta | satisfecha | enamorada | sorprendida | agradecida | cansada | embarazada | mi esposo | mi marido | mi novio ' | split: '|'
-    assign masc_marks = ' encantado | contento | satisfecho | enamorado | sorprendido | agradecido | cansado | mi esposa | mi señora | mi mujer | mi novia ' | split: '|'
-
     assign has_wall = false
-    if product.metafields.dropflex.review_wall.value != blank
+    if product.metafields.dropflex.review_wall.value != blank or product.metafields.dropflex.review_summary.value.count >= 4
       assign has_wall = true
     endif
   endif
@@ -101,39 +89,7 @@
         assign ri = pick | plus: 0
         assign review = reviews[ri]
 
-        assign t = review.body | downcase | replace: '.', ' ' | replace: ',', ' ' | replace: '!', ' ' | replace: '¡', ' ' | replace: '?', ' ' | replace: '¿', ' ' | replace: ';', ' ' | replace: ':', ' ' | replace: '(', ' ' | replace: ')', ' ' | replace: '"', ' ' | newline_to_br | replace: '<br />', ' ' | strip_newlines
-        assign t = ' ' | append: t | append: ' '
-        assign gender = ''
-        for mark in fem_marks
-          if t contains mark
-            assign gender = 'f'
-            break
-          endif
-        endfor
-        if gender == ''
-          for mark in masc_marks
-            if t contains mark
-              assign gender = 'm'
-              break
-            endif
-          endfor
-        endif
-        if gender == ''
-          assign parity = seed | plus: ri | modulo: 2
-          if parity == 0
-            assign gender = 'f'
-          else
-            assign gender = 'm'
-          endif
-        endif
-        assign ni = ri | times: 37 | plus: seed | modulo: 50
-        assign ii = ri | times: 7 | plus: seed | modulo: initials.size
-        if gender == 'f'
-          assign author = women[ni]
-        else
-          assign author = men[ni]
-        endif
-        assign author = author | append: ' ' | append: initials[ii] | append: '.'
+        assign author = review.author | default: 'Comprador'
 
         assign photo = nil
         assign r_count = review.image_count | plus: 0

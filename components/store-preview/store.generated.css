@@ -1201,10 +1201,6 @@ df-landing-content > [data-df-active] { display: contents; }
   background: var(--df-surface);
 }
 
-/* Hasta que df-social-proof.js pone los nombres: ocupa su lugar sin mostrar el hueco. */
-df-social-proof:not(:defined) {
-  visibility: hidden;
-}
 
 .df-social-proof__avatars {
   display: flex;

@@ -1,3 +1,5 @@
+{%- assign df_conversion_product = closest.product | default: product | default: section.settings.product -%}
+{%- unless df_conversion_product.metafields.dropflex.conversion_supports.value.disabled_components contains 'review-wall' -%}
 <div data-df-pdp-component="review-wall">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
@@ -20,6 +22,8 @@
 {%- endif -%}
 
 </div>
+
+{%- endunless -%}
 
 {% stylesheet %}
   /* La paleta es la de Facebook, NO la del tema: una publicación teñida como el resto de la
@@ -547,12 +551,15 @@
   "name": "DropFlex · Testimonios",
   "tag": "section",
   "disabled_on": {
-    "groups": ["header", "footer"]
+    "groups": [
+      "header",
+      "footer"
+    ]
   },
   "settings": [
     {
       "type": "paragraph",
-      "content": "Reseñas aprobadas en DropFlex dibujadas como publicaciones de Facebook. La selección y el título vienen del metafield dropflex.review_wall; sin él, la sección no se muestra."
+      "content": "Reseñas aprobadas en DropFlex dibujadas como publicaciones de Facebook. La selección y el título pueden venir de DropFlex. Sin una selección propia muestra reseñas aprobadas automáticamente al alcanzar el mínimo."
     },
     {
       "type": "product",
@@ -601,17 +608,6 @@
       "default": 6
     },
     {
-      "type": "select",
-      "id": "author_names",
-      "label": "Nombres",
-      "info": "Las reseñas importadas traen autores como «Cliente» o «M***a», que en una publicación se leen como un error. Al azar: un nombre y una inicial, siempre los mismos para cada reseña.",
-      "options": [
-        { "value": "random", "label": "Nombre al azar" },
-        { "value": "original", "label": "El autor de la reseña" }
-      ],
-      "default": "random"
-    },
-    {
       "type": "checkbox",
       "id": "show_rating",
       "label": "Mostrar la calificación promedio",
@@ -628,19 +624,6 @@
       "content": "Apariencia de publicación"
     },
     {
-      "type": "checkbox",
-      "id": "show_engagement",
-      "label": "Reacciones y comentarios",
-      "info": "Los números son decorativos: acompañan el formato de publicación, no vienen de las reseñas.",
-      "default": true
-    },
-    {
-      "type": "checkbox",
-      "id": "show_actions",
-      "label": "Barra Me gusta · Comentar",
-      "default": true
-    },
-    {
       "type": "header",
       "content": "Diseño"
     },
@@ -650,8 +633,14 @@
       "label": "Columnas en teléfono",
       "info": "Un select y no un rango: Shopify rechaza un rango con menos de 3 valores.",
       "options": [
-        { "value": "2", "label": "2" },
-        { "value": "1", "label": "1" }
+        {
+          "value": "2",
+          "label": "2"
+        },
+        {
+          "value": "1",
+          "label": "1"
+        }
       ],
       "default": "2"
     },
@@ -679,8 +668,14 @@
       "id": "photo_ratio",
       "label": "Fotos",
       "options": [
-        { "value": "square", "label": "Cuadradas" },
-        { "value": "portrait", "label": "Verticales (4:5)" }
+        {
+          "value": "square",
+          "label": "Cuadradas"
+        },
+        {
+          "value": "portrait",
+          "label": "Verticales (4:5)"
+        }
       ],
       "default": "square"
     },
@@ -689,8 +684,14 @@
       "id": "background",
       "label": "Fondo",
       "options": [
-        { "value": "feed", "label": "Gris de Facebook" },
-        { "value": "page", "label": "El de la página" }
+        {
+          "value": "feed",
+          "label": "Gris de Facebook"
+        },
+        {
+          "value": "page",
+          "label": "El de la página"
+        }
       ],
       "default": "feed"
     },

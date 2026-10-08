@@ -267,6 +267,7 @@ export async function preparePublish(userId: string, productId: string): Promise
     listing: listing ?? { title: row.title, short_name: row.title, short_description: "", offer_line: "", seo_title: "", seo_description: "" },
     ...(isVariants(listingContent) ? { listingVariants: listingContent } : {}),
     components,
+    disabledConversionComponents: rows.filter(r => !r.enabled || r.status === "rejected").map(r => r.component),
     reviews: publishReviews,
     packs,
     accent: row.page_accent_color,

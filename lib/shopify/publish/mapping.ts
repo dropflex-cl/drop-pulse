@@ -1,3 +1,4 @@
+import { conversionSupportState } from "@/lib/shopify/conversion-supports";
 import type { ExperienceManifest } from "@/lib/product-intelligence/experience-resolver";
 // Publicar, lo puro (docs/spec-publicar.md): de lo APROBADO en DropFlex a lo que recibe Shopify.
 // - productSet: título, descripción, SEO, la variante de 1 unidad y la galería (los packs NO son
@@ -73,6 +74,7 @@ export interface PublishComponent {
 
 export interface PublishInput {
   experienceManifest?: ExperienceManifest;
+  disabledConversionComponents?: string[];
   listing: Listing;
   listingVariants?: LandingVariant[];
   /** Componentes aprobados y en uso («Usar en la página»). */
@@ -188,9 +190,9 @@ export function productKeys(): string[] {
   return [...keys].sort();
 }
 
-/** Hasta 22 claves del catálogo actual: 16 componentes, listing y cinco pools de archivos. */
+/** Hasta 24 claves: catálogo, listing, pools, apoyos comerciales y manifiesto de experiencias. */
 export function landingAtomicKeys(input: PublishInput): string[] {
-  const keys: string[] = input.listingVariants ? [SHARED_METAFIELDS.landingListing.key] : [];
+  const keys: string[] = [SHARED_METAFIELDS.conversionSupports.key, ...(input.listingVariants ? [SHARED_METAFIELDS.landingListing.key] : [])];
   for (const c of input.components) if (isVariants(c.content)) {
     const def = componentById(c.id);
     if (def?.metafield) keys.push(def.metafield.key);
@@ -202,7 +204,7 @@ export function landingAtomicKeys(input: PublishInput): string[] {
 
 /** Los metafields del producto y los que hay que borrar (componentes retirados, datos vacíos). */
 export function productMetafields(input: PublishInput, gids: Map<string, string>): { set: MetafieldValue[]; remove: string[] } {
-  const set: MetafieldValue[] = [];
+  const set: MetafieldValue[] = [mf(SHARED_METAFIELDS.conversionSupports.key, "json", conversionSupportState(input.disabledConversionComponents))];
   const gid = (key: string) => gids.get(key);
   if (input.experienceManifest) set.push(mf(SHARED_METAFIELDS.landingExperiences.key, "json", input.experienceManifest));
 

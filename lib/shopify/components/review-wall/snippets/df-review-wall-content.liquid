@@ -22,18 +22,10 @@
   REGLA: la IA no escribe reseñas. Elige reseñas APROBADAS por id y el orden; el texto, la fecha y
   las fotos salen de `dropflex.reviews` / `dropflex.reviews_images`. Un id que ya no existe se omite.
 
-  Contenido: metafield `dropflex.review_wall` (json) { heading, items: [{ review_id }] }. Sin él no
-  se dibuja (en el editor, un aviso): el muro ocupa media página y usarlo lo decide el comerciante
-  en DropFlex («Usar en la página»), no el hecho de tener reseñas publicadas.
+  Contenido: metafield `dropflex.review_wall` (json) { heading, items: [{ review_id }] }. Sin él selecciona hasta 12 reseñas aprobadas, con fotos primero. Se activa por defecto
+  al alcanzar el mínimo; conversion_supports conserva las desactivaciones explícitas.
 
-  Lo que NO es dato real: el nombre al azar (ajuste author_names; las reseñas importadas traen
-  «Cliente» o «M***a»), los contadores de reacciones y comentarios y la barra de acciones. Los dos
-  últimos van aria-hidden y son spans, no botones: nada ahí es clicable. Nombres y contadores salen
-  del id del producto y de la posición de la reseña: son los mismos para todos y en cada recarga,
-  como los de una publicación de verdad (v1 sorteaba los contadores por visitante en localStorage).
-  El nombre elige lista de mujer u hombre por el texto («encantada», «mi esposo»…) para que no
-  firme «Juan» una reseña que dice «quedé encantada».
-  Espejo en React: components/store-preview/review-wall.tsx + lib/store-preview/review-wall.ts.
+  Autores anonimizados originales; sin nombres, reacciones ni comentarios inventados.
 
   Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): las publicaciones entran por fila al
   desplazar, fila por fila y escalonadas por columna (las que entran juntas); «Ver más
@@ -72,6 +64,26 @@
       endif
     endfor
   endfor
+  if content == blank
+    for with_photos in (0..1)
+      for review in reviews
+        if total >= 12
+          break
+        endif
+        assign r_photos = review.image_count | plus: 0
+        assign include = false
+        if with_photos == 0 and r_photos > 0
+          assign include = true
+        elsif with_photos == 1 and r_photos == 0 and review.body != blank
+          assign include = true
+        endif
+        if include
+          assign picked = picked | append: forloop.index0 | append: ','
+          assign total = total | plus: 1
+        endif
+      endfor
+    endfor
+  endif
   assign picks = picked | split: ','
 
   assign show = true
@@ -117,13 +129,6 @@
     assign px_d2 = px_d | times: 2 | divided_by: 3
     assign sizes_multi = '(min-width: 990px) ' | append: px_d2 | append: 'px, (min-width: 750px) ' | append: vw_t2 | append: 'vw, ' | append: vw_m2 | append: 'vw'
 
-    # Semilla fija por producto: nombres y contadores iguales para todos y en cada recarga.
-    assign seed = product.id | modulo: 9973
-    assign women = 'María|Camila|Valentina|Daniela|Fernanda|Javiera|Catalina|Constanza|Francisca|Sofía|Isidora|Antonia|Paula|Carolina|Andrea|Natalia|Gabriela|Paola|Claudia|Lorena|Patricia|Verónica|Macarena|Bárbara|Karina|Pamela|Alejandra|Marcela|Carla|Tamara|Nicole|Josefa|Florencia|Martina|Agustina|Trinidad|Emilia|Ignacia|Rocío|Lucía|Elena|Sandra|Mónica|Cecilia|Soledad|Ximena|Viviana|Romina|Belén|Ana' | split: '|'
-    assign men = 'Juan|José|Carlos|Luis|Jorge|Diego|Felipe|Sebastián|Matías|Nicolás|Tomás|Benjamín|Cristóbal|Ignacio|Francisco|Rodrigo|Gonzalo|Andrés|Pablo|Javier|Álvaro|Eduardo|Ricardo|Fernando|Manuel|Alejandro|Daniel|Marcelo|Mauricio|Claudio|Patricio|Cristián|Héctor|Raúl|Sergio|Víctor|Hernán|Óscar|Gustavo|Martín|Joaquín|Vicente|Agustín|Maximiliano|Esteban|Rafael|Samuel|Gabriel|Emilio|Pedro' | split: '|'
-    assign initials = 'A|B|C|D|E|F|G|H|I|J|L|M|N|O|P|R|S|T|V|Z' | split: '|'
-    assign fem_marks = ' encantada | contenta | satisfecha | enamorada | sorprendida | agradecida | cansada | embarazada | mi esposo | mi marido | mi novio ' | split: '|'
-    assign masc_marks = ' encantado | contento | satisfecho | enamorado | sorprendido | agradecido | cansado | mi esposa | mi señora | mi mujer | mi novia ' | split: '|'
     assign months = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre' | split: '|'
     assign short_months = 'ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic' | split: '|'
     assign this_year = 'now' | date: '%Y'
@@ -146,20 +151,6 @@
     endcapture
     capture globe_svg
       echo '<svg class="df-review-wall__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.9 1.7 2.9 3.8 2.9 6.25s-1 4.55-2.9 6.25C6.1 12.55 5.1 10.45 5.1 8S6.1 3.45 8 1.75z"/></svg>'
-    endcapture
-    # Las reacciones, dibujadas: un emoji saldría con la cara que trae el sistema del visitante.
-    capture reactions_svg
-      echo '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="df-review-wall__react-bg df-review-wall__react-bg--like" cx="12" cy="12" r="12"/><path class="df-review-wall__react-fg" d="M10.6 5.6c1.1-.3 2 .5 2 1.6v3h3.6c1 0 1.7.9 1.5 1.9l-.9 4.3c-.2.8-.9 1.4-1.7 1.4h-5.2c-.6 0-1.1-.2-1.5-.6V10c.9-.6 1.6-1.5 1.9-2.6l.3-1.8z"/><rect class="df-review-wall__react-fg" x="5.2" y="10.2" width="2.9" height="8" rx="0.9"/></svg>'
-      echo '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="df-review-wall__react-bg df-review-wall__react-bg--love" cx="12" cy="12" r="12"/><path class="df-review-wall__react-fg" d="M12 18.4s-5.6-3.4-5.6-7A3.2 3.2 0 0 1 12 9.2a3.2 3.2 0 0 1 5.6 2.2c0 3.6-5.6 7-5.6 7z"/></svg>'
-    endcapture
-    capture like_svg
-      echo '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10v10H4.5A1.5 1.5 0 0 1 3 18.5v-7A1.5 1.5 0 0 1 4.5 10H7z"/><path d="M7 10.5 11 3a2.2 2.2 0 0 1 2.2 2.2V9.5h5.1a1.9 1.9 0 0 1 1.85 2.35l-1.3 5.6A2.2 2.2 0 0 1 16.7 19H7"/></svg>'
-    endcapture
-    capture comment_svg
-      echo '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.6c0 4.3-4 7.8-9 7.8-1 0-2-.15-2.9-.42L4 20.5l1.35-3.6C3.9 15.5 3 13.65 3 11.6 3 7.3 7 3.8 12 3.8s9 3.5 9 7.8z"/></svg>'
-    endcapture
-    capture share_svg
-      echo '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5v6.2A1.3 1.3 0 0 0 5.3 20h13.4a1.3 1.3 0 0 0 1.3-1.3v-6.2"/><path d="M12 15.2V4.2M7.7 8.3 12 4l4.3 4.3"/></svg>'
     endcapture
   -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
@@ -201,43 +192,7 @@
             assign review = reviews[ri]
             assign post_id = 'df-rw-' | append: section.id | append: '-' | append: forloop.index
 
-            if s.author_names == 'original'
-              assign author = review.author | default: 'Cliente'
-            else
-              assign t = review.body | downcase | replace: '.', ' ' | replace: ',', ' ' | replace: '!', ' ' | replace: '¡', ' ' | replace: '?', ' ' | replace: '¿', ' ' | replace: ';', ' ' | replace: ':', ' ' | replace: '(', ' ' | replace: ')', ' ' | replace: '"', ' ' | newline_to_br | replace: '<br />', ' ' | strip_newlines
-              assign t = ' ' | append: t | append: ' '
-              assign gender = ''
-              for mark in fem_marks
-                if t contains mark
-                  assign gender = 'f'
-                  break
-                endif
-              endfor
-              if gender == ''
-                for mark in masc_marks
-                  if t contains mark
-                    assign gender = 'm'
-                    break
-                  endif
-                endfor
-              endif
-              if gender == ''
-                assign parity = seed | plus: ri | modulo: 2
-                if parity == 0
-                  assign gender = 'f'
-                else
-                  assign gender = 'm'
-                endif
-              endif
-              assign ni = ri | times: 37 | plus: seed | modulo: 50
-              assign ii = ri | times: 7 | plus: seed | modulo: initials.size
-              if gender == 'f'
-                assign author = women[ni]
-              else
-                assign author = men[ni]
-              endif
-              assign author = author | append: ' ' | append: initials[ii] | append: '.'
-            endif
+            assign author = review.author | default: 'Comprador'
 
             assign date_text = ''
             assign date_short = ''
@@ -263,21 +218,6 @@
               assign photo_sizes = sizes_multi
             endif
 
-            # Contadores decorativos, fijos por producto y reseña (320 a 1.600 reacciones, 8 a 46
-            # comentarios: más conversación que «me gusta» se lee como discusión, no como prueba).
-            assign reactions = ri | times: 389 | plus: seed | modulo: 1281 | plus: 320
-            assign comments = ri | times: 17 | plus: seed | modulo: 39 | plus: 8
-            assign reactions_text = reactions | append: ''
-            if reactions >= 1000
-              assign tenths = reactions | divided_by: 100
-              assign k_int = tenths | divided_by: 10
-              assign k_dec = tenths | modulo: 10
-              if k_dec == 0
-                assign reactions_text = k_int | append: ' mil'
-              else
-                assign reactions_text = k_int | append: ',' | append: k_dec | append: ' mil'
-              endif
-            endif
           -%}
           <li class="df-review-wall__cell" data-df-rw-post data-df-reveal {% if forloop.index > initial %}hidden{% endif %}>
             <article class="df-review-wall__post" id="{{ post_id }}" aria-labelledby="{{ post_id }}-name" tabindex="-1">
@@ -326,30 +266,6 @@
                 </div>
               {%- endif -%}
 
-              {%- if s.show_engagement or s.show_actions -%}
-                <div class="df-review-wall__foot" aria-hidden="true">
-                  {%- if s.show_engagement -%}
-                    <div class="df-review-wall__stats">
-                      <span class="df-review-wall__reactions">
-                        <span class="df-review-wall__emojis">{{ reactions_svg }}</span>
-                        <span>{{ reactions_text }}</span>
-                      </span>
-                      <span class="df-review-wall__comments">
-                        {{- comments -}}
-                        <span class="df-review-wall__comments-label"> comentarios</span>
-                        <span class="df-review-wall__comments-icon">{{ comment_svg }}</span>
-                      </span>
-                    </div>
-                  {%- endif -%}
-                  {%- if s.show_actions -%}
-                    <div class="df-review-wall__actions">
-                      <span class="df-review-wall__action">{{ like_svg }}<span class="df-review-wall__action-label">Me gusta</span></span>
-                      <span class="df-review-wall__action">{{ comment_svg }}<span class="df-review-wall__action-label">Comentar</span></span>
-                      <span class="df-review-wall__action">{{ share_svg }}<span class="df-review-wall__action-label">Compartir</span></span>
-                    </div>
-                  {%- endif -%}
-                </div>
-              {%- endif -%}
             </article>
           </li>
         {%- endfor -%}

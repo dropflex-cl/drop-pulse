@@ -22,3 +22,19 @@ Extensión de Página del producto, visible solo para productos habilitados. Usa
 - «Recuperar carga la última versión guardada.»: explica la sustitución del borrador local.
 - «El recorrido ya no está habilitado. Actualiza la página.»: un producto deshabilitado durante la edición.
 - «No pudimos recuperar el recorrido. Intenta de nuevo.»: recuperación fallida.
+
+## Apoyos de compra por defecto
+
+La ficha conserva estrellas, beneficios de servicio, inventario, entrega, tarjetas de confianza,
+reseñas y demostraciones disponibles aunque el recorrido no los incluya como secciones narrativas.
+El muro selecciona hasta 12 reseñas aprobadas, con fotos primero, si no tiene una selección propia.
+Los mínimos de reseñas, la aprobación del material y las políticas reales siguen siendo obligatorios.
+Packs y barra fija de compra están habilitados en el tema y conservan el pack elegido.
+La urgencia proviene del inventario de Shopify o de un evento activado con fecha de término real.
+La entrega se muestra solo con logística configurada, sin plazos de ejemplo.
+
+Publicar guarda `dropflex.conversion_supports.disabled_components` con los componentes que el
+comerciante apagó o rechazó. Estos no reaparecen por usar otra arquitectura. Los autores permanecen
+anonimizados; no se generan nombres, recomendaciones personales ni reacciones sociales.
+
+Sin logística, disponibilidad usa «Disponible», «Quedan {qty} unidades» o «Disponible para reservar» según el inventario real. No se generan vendidos ni visitas.

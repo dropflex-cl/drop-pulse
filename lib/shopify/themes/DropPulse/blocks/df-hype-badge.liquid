@@ -1,6 +1,6 @@
 {%- doc -%}
   DropFlex · Badge de novedad (hype-badge). Una etiqueta chica al lado de las estrellas de reseñas
-  (en la ficha van juntas en un group en fila): «PRODUCTO VIRAL» y, solo cuando es verdad,
+  (en la ficha van juntas en un group en fila): «Pagas al recibir» y, solo cuando es verdad,
   «STOCK BAJO». Por defecto con el fondo del acento del producto y su texto encima.
 
   REGLA: la escasez sale del inventario REAL (Ley 19.496: nada de escasez inventada). «Stock bajo»
@@ -15,6 +15,11 @@
   assign product = closest.product | default: product
   assign s = block.settings
   assign text = s.text | strip
+  if text == 'Pagas al recibir'
+    unless shop.metafields.dropflex.policies.value.cod == true
+      assign text = ''
+    endunless
+  endif
 
   assign low = false
   if product != blank and s.show_low_stock
@@ -98,7 +103,7 @@
       "type": "text",
       "id": "text",
       "label": "Texto",
-      "default": "Producto viral"
+      "default": "Pagas al recibir"
     },
     {
       "type": "checkbox",

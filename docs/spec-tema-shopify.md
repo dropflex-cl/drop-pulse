@@ -384,3 +384,15 @@ Correcciones que v2 debe traer desde el inicio:
 - **F6 — Colocación en tiendas instaladas:** patch idempotente (§5.4) y panel de orden (§5.5).
 - **F7 — Embudo:** modo landing y redirección con las correcciones de §9.2, activables desde la app.
 - **F8 — QA en tienda real:** render con `PUBLIC_READ`, claro/oscuro, 375 px, acentos extremos (amarillo pálido, negro), app embeds tras reinstalar, reparación de `product.json` borrado a mano.
+
+## Apoyos comerciales automáticos
+
+Estrellas, beneficios de servicio, inventario, entrega, doble tarjeta, reseñas y medios aprobados
+se habilitan por defecto al tener datos reales, aunque una experiencia no los enumere. El muro
+selecciona reseñas aprobadas con fotos primero si no existe selección específica. No se fabrica
+actividad, nombres ni engagement; inventario y eventos reales son las fuentes de urgencia.
+
+Publicar incluye `dropflex.conversion_supports` (PUBLIC_READ) y conserva las desactivaciones
+expresas del comerciante en `disabled_components`. Ese JSON se publica atómicamente con las
+variantes. Este cambio llega al actualizar los archivos del kit; no modifica templates ni
+ajustes guardados del comerciante. Packs, barra fija y eventos conservan sus controles actuales.

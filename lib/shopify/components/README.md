@@ -79,3 +79,7 @@ Las carpetas `sections/`, `blocks/`, `snippets/` y `assets/` replican las de un 
 ## Contenido condicionado por URL
 
 Los componentes leen objetos históricos o arrays de variantes. El archivo principal mantiene stylesheet/schema y scripts; `df-<id>-content.liquid` renderiza contenido/medios efectivos. `_shared/snippets/df-landing-selector.liquid` selecciona HTML inerte por `df_angle`/`df_hook`; default se renderiza desde servidor. [Contrato y límites](../../../docs/product-intelligence/landing-variants-mcp.md). Editar estas fuentes y regenerar copias y preview; nunca editar df-* directamente en el tema.
+
+### Activación por defecto
+
+Los apoyos comerciales (estrellas, beneficios, inventario, entrega, doble tarjeta, reseñas, GIF y UGC aprobados, cinta de servicios) no dependen de los slots narrativos del recorrido. Cada uno conserva sus requisitos reales. El muro puede seleccionar automáticamente reseñas aprobadas cuando no existe contenido específico. `conversion_supports.disabled_components` conserva exclusiones expresas. No hay aprobación automática de reseñas o assets.

@@ -26,6 +26,7 @@ export const UI_ICON_KEYS = [
  * Son compartidos: ningún componente los declara como propios.
  */
 export const SHARED_METAFIELDS = {
+  conversionSupports: { owner: "product", namespace: "dropflex", key: "conversion_supports", type: "json" },
   /** Producto · color (#rrggbb). products.page_accent_color. */
   accent: { owner: "product", namespace: "dropflex", key: "accent", type: "color" },
   /**
