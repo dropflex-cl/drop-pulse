@@ -11,7 +11,7 @@ Invoca la skill como `$optimize-product` en Codex o selecciónala en el plugin d
 - «Retoma la optimización de este producto».
 - «La foto cambia el mango: corrige esa toma».
 
-El recorrido lee contexto, da opciones de hook y espera elección antes de desarrollar contenido dependiente. Guarda el hook en el ángulo y versiona la selección cuando su snapshot cambie. Retoma propuestas vigentes y conserva trabajo válido. Las aprobaciones y selección de usos siguen en DropFlex. Los generadores del cliente y su transferencia de archivos deben validarse en el cliente real; una skill no agrega capacidades de imagen por sí misma.
+El recorrido lee contexto, da opciones de hook y espera elección antes de desarrollar contenido dependiente. Guarda el hook en el ángulo y versiona la selección cuando su snapshot cambie. Retoma propuestas vigentes y conserva trabajo válido. Con autorización explícita de automatización Shopify, la elección de hooks habilita aprobar contenido y usos desde el chat y publicar sin otra confirmación en DropFlex. Sin esa autorización se conserva la revisión manual. Los generadores del cliente y su transferencia de archivos deben validarse en el cliente real; una skill no agrega capacidades de imagen por sí misma.
 
 ## Instalación local
 
@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.0.3.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+Produce `output/plugins/dropflex-optimizer-1.1.0.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -89,3 +89,26 @@ El validador Python necesita PyYAML. Los tests comprueban descubrimiento, integr
 Prueba conversacional en un producto piloto: iniciar sin selección → elegir/editar hook → proponer PDP → retomar en otro chat → pedir otros hooks → corregir una toma → resolver un conflicto. Verifica que las elecciones se recuperan y que ninguna propuesta se presenta como aprobada o publicada. No reemplaza esta prueba una validación del frontmatter.
 
 Fuentes: [skills y snapshot de importación](https://developers.openai.com/plugins/build/skills), [protocolo de importación MCP](https://developers.openai.com/plugins/build/mcp-server#import-skills-from-the-mcp-server), [empaquetado e instalación local](https://developers.openai.com/plugins/build/plugins).
+
+## Automatización Shopify (1.1.0)
+
+Pedido previsto: «Yo elijo los hooks; después aprueba la página y las imágenes y publica automáticamente en Shopify». El comerciante sigue decidiendo esos hooks en el chat. Esto no autoriza campañas en Meta ni convierte hipótesis en hechos verificados.
+
+`authorize_shopify_automation` exige los textos exactos de los hooks de la estrategia activa, revisión vigente, permiso read/write y autorización explícita. Guarda consentimiento por producto y actor real; activa la planificación PDP del producto. La estrategia se comprueba contra sus dependencias actuales. `get_shopify_automation` recupera consentimiento, faltantes, huella y estado de publicación; `disable_shopify_automation` detiene decisiones futuras sin despublicar.
+
+Los saves de identidad y planes exclusivos de PDP/galería se aprueban bajo esa autorización. `review_visual_record` permite al chat aprobar/rechazar assets y seleccionar usos de Shopify después de inspeccionarlos. Los saves de etiquetas y copy nativo quedan aprobados y habilitados. El plan persuasivo admite `approved` y la experiencia `active`; siguen los validadores de cobertura, evidencia, variantes y campos protegidos. Aprobar nombres de packs no invalida por sí solo el hook: para este modo, la estrategia contrasta las demás dependencias contra su revisión original. La revisión manual conserva sus reglas anteriores.
+
+`publish_product` usa la huella MD5 del writer Shopify existente (identificador del contenido, no credencial), la revisión y una clave idempotente. Valida conexión, imágenes, packs, componentes, experiencias y tema antes de encolar. Solo hay un trabajo vivo por producto. El worker revalida grant/sesión reales, autorización, tienda y contenido antes de las escrituras; una conexión revocada no se sustituye por una identidad merchant. Repetir exactamente una llamada recupera el mismo trabajo y permite retomar un lease vencido. Un trabajo con error confirmado necesita una clave nueva y una lectura actual; no una nueva confirmación humana si el permiso sigue activo. Un proceso interrumpido no se declara publicado. Las mutaciones Shopify no son una transacción única: un fallo intermedio puede dejar parte actualizada y exige reintentar la misma versión vigente.
+
+Cambiar estrategia, hook, catálogo, precio, mercado, referencias o evidencia invalida el consentimiento. No se autoaprueban reseñas ni hechos. Las tablas nuevas tienen borrado en cascada hacia el producto y no crean archivos fuera de los buckets existentes; la optimización de bytes conserva el flujo de Storage actual. Los helpers/RPCs son service_role, con RLS y sin cambios en auth/OAuth.
+
+### Despliegue y móvil
+
+1. Aplicar `supabase/migrations/20261203000000_shopify_chat_automation.sql` en la base del entorno elegido. Desplegar el backend junto con los cuatro archivos de la skill.
+2. Mantener `PDP_PERSUASION_ENABLED=true` y producción visual habilitada. El consentimiento activa el flag por producto; no hace falta ir al SaaS a activarlo.
+3. Actualizar el plugin remoto con **Scan Tools**, importar la skill 1.1.0 y publicar/guardar esa versión. Confirmar descubrimiento de `get_shopify_automation`, `authorize_shopify_automation`, `disable_shopify_automation`, `review_visual_record` y `publish_product`.
+4. Refrescar la conexión del cliente y abrir un chat nuevo. Probar en un producto piloto: elegir hook → identidad/plan → imagen/selección → copy/packs → experiencia activa → Shopify publicado con URL real. Probar también hook cambiado, revocación, llamada ambigua y permiso desactivado.
+
+La actualización local no modifica el plugin remoto de ChatGPT. El host debe permitir las tools, la entrega de la referencia al generador y la transferencia del resultado. Este cambio quita las aprobaciones adicionales de DropFlex; no habilita una tool desactivada por ChatGPT ni elimina diálogos del host. La imagen externa no puede sustituirse por un SKU aproximado para fingir automatización.
+
+Validación local: tests unitarios y con OAuth real/Supabase local, sin generar con proveedores ni publicar en una tienda real; contratos exportados, typecheck, lint de archivos afectados, validación de skill y build webpack. El lint global conserva errores preexistentes del tema Shopify incluido. El build termina con avisos preexistentes de prerender/cookies en onboarding y ads. La prueba móvil con publicación real sigue pendiente del rollout remoto.

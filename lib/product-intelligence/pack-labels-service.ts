@@ -27,7 +27,7 @@ export const PACK_LABEL_RULES = ["Una etiqueta por pack calculado, en su orden; 
   "Máximo 80 caracteres de etiqueta, 100 de apoyo y 30 de distintivo; solo un pack puede tener distintivo.",
   "Duración solo con cantidad y unidad de facts aprobados/verificados y sin contradicción, referidos en duration_fact_ids. Se admiten múltiplos por unidades del pack.",
   "Sin HTML, tratamiento ni promesas de salud o resultados. Usa montos y porcentajes reales del pack.",
-  "Si duration_facts_has_more es true, recupera los demás facts con get_product_context paginado. Guardar crea una propuesta. El comerciante la revisa y acepta en Información base; no publica ni llama IA."];
+  "Si duration_facts_has_more es true, recupera los demás facts con get_product_context paginado. Con automatización Shopify activa, guardar aprueba las etiquetas; sin ella, se revisan en Información base. Este save no publica ni llama IA."];
 export function createPackLabelsExecutor(repository: PackLabelsRepository, identity?: DelegatedIdentity): DomainExecutor {
   return async (principal, command, signal) => {
     if (command.tool !== "get_pack_labels" && command.tool !== "save_pack_labels") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación no es de etiquetas de packs.");
@@ -52,7 +52,7 @@ export function createPackLabelsExecutor(repository: PackLabelsRepository, ident
       evidence_stale: read.current?.evidence_stale ?? false,
       duration_facts: factPage, duration_facts_has_more: factPage.length < facts.length,
       contract: JSON.parse(JSON.stringify(z.toJSONSchema(chatPackLabelsSchema))), rules: PACK_LABEL_RULES,
-      next_action: "Escribe etiquetas en el chat, valida con dry_run y guarda con save_pack_labels. Revisa y acepta en Información base.",
+      next_action: "Escribe etiquetas, valida con dry_run y guarda con save_pack_labels. Con automatización Shopify activa quedan aprobadas; sin ella, revisa en Información base.",
     } });
     if (!plan || read.snapshot.catalog && read.snapshot.catalog.currency !== plan.currency) throw new ProductIntelligenceError("VALIDATION_ERROR", "Guarda Precio y packs antes de escribir sus etiquetas.", { missing_fields: ["pricing"] });
     const labels = validateChatPackLabels(write.labels, plan, write.duration_fact_ids, read.snapshot.knowledge.graph, principal.userId, input.product_id);

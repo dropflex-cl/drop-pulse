@@ -154,13 +154,13 @@
         "data": {
           "type": "object",
           "properties": {
-            "applied": {
+            "enabled": {
               "type": "boolean"
             },
-            "dry_run": {
+            "active": {
               "type": "boolean"
             },
-            "run_id": {
+            "authorization_id": {
               "anyOf": [
                 {
                   "$ref": "#/$defs/__schema0"
@@ -170,28 +170,59 @@
                 }
               ]
             },
-            "landing_etag": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
+            "strategy_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema0"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
-            "components": {
-              "minItems": 1,
-              "maxItems": 17,
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/__schema3"
-              }
+            "confirmed_hooks": {
+              "anyOf": [
+                {
+                  "minItems": 1,
+                  "maxItems": 3,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema3"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dependency_hash": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "next_action": {
               "type": "string"
             }
           },
           "required": [
-            "applied",
-            "dry_run",
-            "run_id",
-            "landing_etag",
-            "components",
+            "enabled",
+            "active",
+            "authorization_id",
+            "strategy_id",
+            "confirmed_hooks",
+            "dependency_hash",
+            "revision",
             "next_action"
           ],
           "additionalProperties": false
@@ -226,31 +257,18 @@
     "__schema3": {
       "type": "object",
       "properties": {
-        "component": {
-          "type": "string"
+        "angle_id": {
+          "$ref": "#/$defs/__schema0"
         },
-        "id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema0"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "status": {
+        "hook": {
           "type": "string",
-          "enum": [
-            "generated",
-            "approved"
-          ]
+          "minLength": 1,
+          "maxLength": 8192
         }
       },
       "required": [
-        "component",
-        "id",
-        "status"
+        "angle_id",
+        "hook"
       ],
       "additionalProperties": false
     }

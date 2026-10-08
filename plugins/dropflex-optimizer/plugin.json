@@ -1,20 +1,28 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dropflex-optimizer",
-  "version": "1.0.3",
-  "description": "Optimiza productos con DropFlex: elige el hook primario e itera la página y sus imágenes desde el chat.",
-  "author": { "name": "DropFlex" },
+  "version": "1.1.0",
+  "description": "Elige hooks y, con tu autorización, aprueba automáticamente página e imágenes y publica en Shopify desde el chat.",
+  "author": {
+    "name": "DropFlex"
+  },
   "extensions": {
     "com.openai": {
       "apps": "./.app.json",
       "interface": {
         "displayName": "DropFlex · Optimización",
-        "shortDescription": "Elige el hook e itera la página y sus imágenes",
-        "longDescription": "Recupera tu producto, elige el hook primario y prepara estrategia, página e imágenes. Conserva decisiones y feedback en DropFlex para continuar en otro chat.",
+        "shortDescription": "Elige hooks y publica automáticamente en Shopify",
+        "longDescription": "Elige hooks y, con tu autorización, aprueba automáticamente página e imágenes y publica en Shopify desde el chat.",
         "developerName": "DropFlex",
         "category": "Productivity",
-        "capabilities": ["Read", "Write"],
-        "defaultPrompt": ["Optimiza un producto y ayúdame a elegir el hook primario.", "Retoma la optimización de mi producto."]
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Optimiza mi producto: yo elijo los hooks y después aprueba automáticamente la página e imágenes y publica en Shopify sin más confirmaciones en DropFlex.",
+          "Retoma la publicación automática de mi producto en Shopify."
+        ]
       }
     }
   }

@@ -1,3 +1,4 @@
+import { automationActive, shopifyStrategyRead } from "./automation-active";
 import { imagePickSchema } from "@/lib/copy/variants";
 import { contentVariants } from "@/lib/copy/variants";
 import "server-only";
@@ -6,7 +7,7 @@ import { z } from "zod";
 import { componentCapabilityCatalog } from "./component-capabilities";
 import { commandHash } from "./concurrency";
 import { ProductIntelligenceError } from "./errors";
-import { parseKnowledgeRead, strategyResponse } from "./knowledge";
+import { parseKnowledgeRead, strategyResponse, type KnowledgeRead } from "./knowledge";
 import type { DomainExecutor } from "./mcp";
 import type { DelegatedIdentity } from "./oauth";
 import { checkRevision, requireScopes, toolScopes } from "./policy";
@@ -31,8 +32,8 @@ function experienceSummary(e: z.infer<typeof experienceRecordSchema>) {
     persuasion_plan_id: p.persuasion_plan_id, plan_revision: p.plan_revision, landing_hook_id: p.landing_hook_id, experience_key: p.experience_key,
     architecture_variant: p.architecture_variant, is_default: p.is_default, status: p.status };
 }
-export function persuasionValidationContext(raw: z.infer<typeof persuasionReadSchema>, principal: Parameters<DomainExecutor>[0], productId: string, strategyId: string): PersuasionValidationContext {
-  const read = parseKnowledgeRead(raw.knowledge, principal, productId);
+export function persuasionValidationContext(raw: z.infer<typeof persuasionReadSchema>, principal: Parameters<DomainExecutor>[0], productId: string, strategyId: string, currentRead?: KnowledgeRead): PersuasionValidationContext {
+  const read = currentRead ?? parseKnowledgeRead(raw.knowledge, principal, productId);
   const version = read.requestedStrategy?.id === strategyId ? read.requestedStrategy : read.strategy?.id === strategyId ? read.strategy : null;
   if (!version) throw new ProductIntelligenceError("INVALID_REFERENCE", "No encontramos esta estrategia en el producto.");
   return { strategy: strategyResponse(version, read, productId, "execution"), graph: read.currentGraph, assets: raw.assets,
@@ -59,7 +60,9 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     if (writing && raw && typeof raw === "object" && "replay" in raw) return parseToolOutput(tool, raw.replay);
     const state = persuasionReadSchema.parse(raw);
     if (!state.enabled) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
-    const read = parseKnowledgeRead(state.knowledge, principal, input.product_id);
+    const automatic = await automationActive(repository, principal, input.product_id, identity, signal);
+    const currentRead = parseKnowledgeRead(state.knowledge, principal, input.product_id);
+    const read = automatic ? await shopifyStrategyRead(repository, currentRead, principal, input.product_id, identity, signal) : currentRead;
     const base = { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID() };
     if (tool === "get_component_catalog") return parseToolOutput(tool, { ...base, data: { catalog: componentCapabilityCatalog(state.landing.review_count) } });
     if (tool === "get_landing_experience") {
@@ -70,7 +73,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     }
     if (tool === "get_pdp_planning_context" || tool === "get_angle_persuasion_plan") {
       const query = parseToolInput(tool, command.input);
-      const context = persuasionValidationContext(state, principal, input.product_id, query.strategy_id);
+      const context = persuasionValidationContext(state, principal, input.product_id, query.strategy_id, read);
       const angle = context.strategy.snapshot.angles.find(a => a.id === query.angle_id);
       if (!angle) throw new ProductIntelligenceError("INVALID_REFERENCE", "El ángulo no pertenece a esta estrategia.");
       const plans = state.plans.filter(p => p.payload.strategy_id === query.strategy_id && p.payload.angle_id === query.angle_id);
@@ -92,7 +95,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     }
     if (tool === "validate_angle_persuasion_plan") {
       const query = parseToolInput(tool, command.input); checkRevision(query.expected_revision, read.current_revision);
-      const issues = validatePersuasionPlan(query.plan, persuasionValidationContext(state, principal, input.product_id, query.plan.strategy_id));
+      const issues = validatePersuasionPlan(query.plan, persuasionValidationContext(state, principal, input.product_id, query.plan.strategy_id, read));
       return parseToolOutput(tool, { ...base, data: { valid: !issues.some(i => i.severity === "error"), issues } });
     }
     if (tool !== "save_angle_persuasion_plan" && tool !== "save_landing_experience") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación no está disponible.");
@@ -101,8 +104,8 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     let issues: ReturnType<typeof validatePersuasionPlan>, id: string | null, payload: AnglePersuasionPlan | typeof state.experiences[number]["payload"];
     if (tool === "save_angle_persuasion_plan") {
       const request = parseToolInput(tool, command.input); id = request.plan_id; payload = request.plan;
-      issues = validatePersuasionPlan(request.plan, persuasionValidationContext(state, principal, input.product_id, request.plan.strategy_id));
-      if (request.plan.status === "approved" && principal.actorKind !== "merchant") throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede aprobar el plan.");
+      issues = validatePersuasionPlan(request.plan, persuasionValidationContext(state, principal, input.product_id, request.plan.strategy_id, read));
+      if (request.plan.status === "approved" && principal.actorKind !== "merchant" && (!automatic || request.plan.strategy_id !== read.currentActiveStrategyId)) throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede aprobar el plan.");
       blockIssues(issues, ["review", "approved"].includes(request.plan.status));
       // Un plan consumido es inmutable: se crea otra variante sin cambiar experiencias activas.
       if (id && state.experiences.some(e => e.payload.persuasion_plan_id === id && e.payload.status === "active")) throw new ProductIntelligenceError("DEPENDENCY_IN_USE", "Crea otro plan o archiva las experiencias activas antes de cambiarlo.");
@@ -110,9 +113,9 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
       const request = parseToolInput(tool, command.input); id = request.experience_id; payload = request.experience;
       const plan = state.plans.find(p => p.id === request.experience.persuasion_plan_id);
       if (!plan) throw new ProductIntelligenceError("INVALID_REFERENCE", "El plan no pertenece a este producto.");
-      if (request.experience.status === "active" && principal.actorKind !== "merchant") throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede activar una experiencia.");
+      if (request.experience.status === "active" && principal.actorKind !== "merchant" && (!automatic || request.experience.strategy_id !== read.currentActiveStrategyId)) throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede activar una experiencia.");
       issues = validateLandingExperience(request.experience, plan.payload, plan.revision,
-        persuasionValidationContext(state, principal, input.product_id, plan.payload.strategy_id));
+        persuasionValidationContext(state, principal, input.product_id, plan.payload.strategy_id, read));
       blockIssues(issues, ["review", "active"].includes(request.experience.status));
       const old = state.experiences.find(e => e.id === id);
       if (principal.actorKind !== "merchant") {

@@ -61,7 +61,7 @@ export function createLandingExecutor(repository: LandingRepository, identity?: 
         current: row ? { ...(metadata ? { metadata: row.pdp_metadata ?? null } : {}), id: row.id, content: row.content ?? row.proposal, enabled: row.enabled, status: row.status, images: row.images } : null,
         image_catalog: read.image_catalog,
         approved_reviews: read.reviews, review_count: read.review_count, pricing: read.snapshot.pricing, policies: read.snapshot.settings ? fromRow(read.snapshot.settings) : null,
-        next_action: "Escribe en el chat usando este contrato y get_product_context/get_product_strategy. Guarda con save_landing_content y revisa en la UI antes de publicar.",
+        next_action: "Escribe usando este contrato y get_product_context/get_product_strategy. Con automatización Shopify activa, save_landing_content aprueba el contenido; completa imágenes y publica con publish_product. Sin ella, revisa en DropFlex.",
       } });
     }
     validateLandingProposal(principal.userId, read, write.entries, input.product_id);

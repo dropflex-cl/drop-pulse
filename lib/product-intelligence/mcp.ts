@@ -18,14 +18,19 @@ export type DomainExecutor = (principal: Principal, command: ToolCommand, signal
 
 const descriptions: Record<ToolName, string> = {
   ...visualDescriptions,
+  get_shopify_automation: "Lee autorización automática, hooks confirmados, requisitos, huella de la página y estado de publicación en Shopify.",
+  authorize_shopify_automation: "Tras la elección y autorización explícita del comerciante en el chat, confirma los hooks exactos de la estrategia y habilita aprobación y publicación automática en Shopify. No lanza Meta Ads. dry_run no autoriza.",
+  disable_shopify_automation: "Desactiva la aprobación y publicación automática del producto. Conserva contenido y la página ya publicada.",
+  publish_product: "Publica automáticamente en Shopify la página e imágenes aprobadas del producto autorizado, con huella exacta, CAS, dry_run y cola idempotente. Solo tras confirmar hooks y autorizar el flujo automático en el chat.",
+  review_visual_record: "Aprueba o selecciona una pieza visual de Shopify sin revisión en el SaaS, solo con automatización autorizada para los hooks vigentes. Valida identidad, dependencias y destino; no cubre Meta ni UGC.",
   list_products: "Lista tus productos con product_id, nombre y descripción breve para elegir cuál optimizar. No requiere conocer un ID; usa el product_id elegido en get_product_context. Paginado con next_cursor; excluye Upsell salvo include_upsell=true.",
   get_pdp_planning_context: "Lee una revisión consistente de estrategia, ángulo, evidencia, contenido y assets para planificar una PDP corta en el chat.",
   get_component_catalog: "Consulta capacidades persuasivas y restricciones de los componentes reales de Shopify.",
   get_angle_persuasion_plan: "Recupera el plan persuasivo de un ángulo, su revisión y etag. No genera estrategia.",
-  save_angle_persuasion_plan: "Valida y guarda el argumento, recorrido mínimo de creencias y arquitectura con CAS, dry_run e idempotencia. Solo el comerciante aprueba.",
+  save_angle_persuasion_plan: "Valida y guarda el argumento, recorrido mínimo de creencias y arquitectura con CAS, dry_run e idempotencia. En modo automático autorizado puede aprobar desde el chat.",
   validate_angle_persuasion_plan: "Comprueba cobertura, atención, compresión, componentes y evidencia sin guardar ni generar contenido.",
   get_landing_experience: "Lee experiencias y sus bindings a variantes existentes, con revisión y etag.",
-  save_landing_experience: "Guarda la ejecución del plan sin reescribir copy ni assets. CAS e idempotencia; solo el comerciante activa, publicar es aparte.",
+  save_landing_experience: "Guarda la ejecución del plan sin reescribir copy ni assets. CAS e idempotencia; en modo automático autorizado puede activar desde el chat; publish_product publica en Shopify.",
   generate_gallery_images: "Renderiza tomas de galería guardadas desde chat, con consentimiento landing:generate y estimación explícita. Puede gastar créditos de tus proveedores; no escribe textos ni publica.",
   get_gallery_generation_status: "Consulta la operación y las imágenes guardadas, sin llamar al proveedor. La UI permite elegirlas antes de publicar.",
   get_product_performance: "Lee métricas Meta guardadas por periodo, separadas por moneda y zona horaria. No son pedidos entregados ni cobrados.",
@@ -33,7 +38,7 @@ const descriptions: Record<ToolName, string> = {
   save_product_learning: "Guarda una evaluación de una hipótesis con criterios, limitaciones y una copia de métricas comprobadas. No declara ganadores ni cambia estrategia.",
   get_creative_content: "Lee conceptos estáticos y chats publicitarios, contrato y etag. No genera imágenes.",
   save_creative_content: "Guarda textos y dirección de arte desde chat para renderizar y revisar en DropFlex. Reemplaza la propuesta vigente, conserva assets.",
-  get_gallery_content: "Lee tomas de galería y el contrato del director de imágenes.",
+  get_gallery_content: "Lee tomas de galería, esquema y restricciones para planificar imágenes en el chat.",
   save_gallery_content: "Guarda el plan de galería desde chat, sin iniciar render. Conserva las imágenes elegidas.",
   get_event_content: "Lee textos del calendario comercial del producto y su contrato.",
   save_event_content: "Guarda una propuesta de evento desde chat. El comerciante decide su aprobación y publicación.",
@@ -43,9 +48,9 @@ const descriptions: Record<ToolName, string> = {
   save_ugc_content: "Guarda guion y plan del chat como propuesta, con estrategia, ángulo y hook. Sin redacción de pago ni aprobación.",
   get_ugc_montage: "Recupera el paquete de clips aprobado para el montaje local existente, con URLs que vencen en 24 horas.",
   get_pack_labels: "Consulta precio, propuesta y contrato de las etiquetas de packs para escribirlas en chat.",
-  save_pack_labels: "Guarda etiquetas de packs como propuesta vinculada al precio, sin IA, aprobación ni publicación.",
+  save_pack_labels: "Guarda etiquetas de packs como propuesta vinculada al precio, sin IA; se aprueban automáticamente si el flujo Shopify está autorizado.",
   get_landing_content: "Lee el contrato real de un componente de Shopify, contenido actual, reseñas aprobadas y pricing. Consulta cada componente antes de escribirlo.",
-  save_landing_content: "Guarda textos creados en el chat en los componentes de la landing como propuestas por revisar. Merge atómico con CAS e idempotencia; sin IA, imágenes ni publicación.",
+  save_landing_content: "Guarda textos creados en el chat en los componentes de la landing con CAS e idempotencia. Con automatización autorizada quedan aprobados y en uso; publish_product publica la página.",
   get_product_context: "Recupera producto, pricing, conocimiento y selección en una revisión consistente.",
   save_product_context: "Guarda contexto y recalcula Precio y packs sin IA ni publicación.",
   save_product_analysis: "Guarda hipótesis y relaciones del chat por merge, sin seleccionar ni generar.",
@@ -81,7 +86,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const actor: Principal = Object.freeze({ ...principal, scopes: Object.freeze([...principal.scopes]) });
   const server = new Server({ name: "dropflex-product-intelligence", version: "1.0.0" }, {
     capabilities: { tools: { listChanged: false }, resources: {}, extensions: { [SKILLS_EXTENSION]: {} } },
-    instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Para imágenes, recupera get_visual_generation_context y get_visual_reference_image: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, pide actualizar la conexión o adjuntar la foto original y no generes esa toma. Guarda propuestas con sus contratos y revisiones actuales. La aprobación de planes/assets y selección de usos se realiza en la UI de DropFlex. Optimizar no autoriza publicación ni lanzamiento de campañas.",
+    instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Para imágenes, recupera get_visual_generation_context y get_visual_reference_image: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, pide actualizar la conexión o adjuntar la foto original y no generes esa toma. Guarda propuestas con sus contratos y revisiones actuales. Tras elegir los hooks, si el comerciante autorizó automatizar Shopify, usa authorize_shopify_automation y continúa sin pedir aprobaciones en el SaaS: guarda planes, contenido, imágenes, revisa las piezas mediante review_visual_record y publica con publish_product. Si no hay esa autorización, conserva revisión manual. Nunca lanza campañas en Meta.",
   });
   registerOptimizationSkill(server, [visualReferenceResource()]);
   const schemas = publishedSchemas();
@@ -89,7 +94,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const tools: Tool[] = available.map((name) => ({
     name, description: descriptions[name], inputSchema: schemas[name].input, outputSchema: schemas[name].output,
     ...(name === "get_visual_reference_image" ? { _meta: { ui: { resourceUri: VISUAL_REFERENCE_UI }, "openai/outputTemplate": VISUAL_REFERENCE_UI } } : {}),
-    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy"].includes(name), openWorldHint: name.startsWith("generate_") || name === "ingest_external_visual_asset" },
+    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy", "authorize_shopify_automation", "publish_product"].includes(name), openWorldHint: name.startsWith("generate_") || name === "ingest_external_visual_asset" || name === "publish_product" },
   }));
   server.setRequestHandler(ListToolsRequestSchema, async (request) => {
     const cursor = request.params?.cursor;

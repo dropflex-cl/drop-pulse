@@ -160,7 +160,7 @@
             "dry_run": {
               "type": "boolean"
             },
-            "run_id": {
+            "operation_id": {
               "anyOf": [
                 {
                   "$ref": "#/$defs/__schema0"
@@ -170,29 +170,15 @@
                 }
               ]
             },
-            "landing_etag": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            },
-            "components": {
-              "minItems": 1,
-              "maxItems": 17,
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/__schema3"
-              }
-            },
-            "next_action": {
+            "status": {
               "type": "string"
             }
           },
           "required": [
             "applied",
             "dry_run",
-            "run_id",
-            "landing_etag",
-            "components",
-            "next_action"
+            "operation_id",
+            "status"
           ],
           "additionalProperties": false
         }
@@ -222,37 +208,6 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 256
-    },
-    "__schema3": {
-      "type": "object",
-      "properties": {
-        "component": {
-          "type": "string"
-        },
-        "id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema0"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "generated",
-            "approved"
-          ]
-        }
-      },
-      "required": [
-        "component",
-        "id",
-        "status"
-      ],
-      "additionalProperties": false
     }
   },
   "type": "object"

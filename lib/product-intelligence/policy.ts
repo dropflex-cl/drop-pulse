@@ -29,6 +29,11 @@ export interface DelegatedGrant {
 }
 
 export const toolScopes: Record<ToolName, readonly PiScope[]> = {
+  get_shopify_automation: ["product_intelligence:read"],
+  authorize_shopify_automation: ["product_intelligence:read", "product_intelligence:write"],
+  disable_shopify_automation: ["product_intelligence:read", "product_intelligence:write"],
+  publish_product: ["product_intelligence:read", "product_intelligence:write"],
+  review_visual_record: ["product_intelligence:read", "product_intelligence:write"],
   ...Object.fromEntries(visualTools.map(t => [t, t.startsWith("get_") || t.startsWith("list_") ? ["product_intelligence:read"] : ["product_intelligence:read", "product_intelligence:write"]])) as unknown as Record<typeof visualTools[number], readonly PiScope[]>,
   list_products: ["product_intelligence:read"],
   get_pdp_planning_context: ["product_intelligence:read"], get_component_catalog: ["product_intelligence:read"],

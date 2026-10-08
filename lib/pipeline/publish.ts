@@ -389,7 +389,7 @@ function publishMessage(e: unknown): string {
   return "No pudimos publicar en Shopify. Intenta de nuevo en unos minutos.";
 }
 
-export async function runPublish(userId: string, productId: string): Promise<void> {
+export async function runPublish(userId: string, productId: string, options: { expectedFingerprint?: string; beforeWrite?: () => Promise<void> } = {}): Promise<void> {
   const conn = await getShopifyConnection(userId);
   const shop = conn?.shop_domain ?? "";
   try {
@@ -399,6 +399,8 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     if (!row) throw new PublishError("No encontramos ese producto.");
     const { input, images, videos, missing } = await preparePublish(userId, productId);
     if (missing.length) throw new PublishError(missing[0]);
+    if (options.expectedFingerprint && fingerprint(input) !== options.expectedFingerprint) throw new PublishError("La página cambió después de autorizar su publicación. Recupera el estado y vuelve a publicar.");
+    await options.beforeWrite?.();
 
     if (input.experienceManifest || input.listingVariants || input.components.some((c) => isVariants(c.content))) await assertLandingVariantTheme(conn);
     const gid = productGid(row.shopify_product_id);
@@ -415,6 +417,7 @@ export async function runPublish(userId: string, productId: string): Promise<voi
       })),
     };
 
+    await options.beforeWrite?.();
     await ensureDefinitions(conn);
     const gids = await ensureImages(conn, productId, images);
     for (const [key, id] of await ensureVideos(conn, productId, videos ?? [])) gids.set(key, id);
@@ -422,15 +425,19 @@ export async function runPublish(userId: string, productId: string): Promise<voi
     const scriptIds = contentVariants(ugcContent).flatMap((v) => (v.content as { script_ids?: string[] })?.script_ids ?? []);
     await assertUgcPublishable(userId, productId, scriptIds);
     const meta = productMetafields(input, gids);
+    await options.beforeWrite?.();
     const set = await shopifyMutation<{ productSet: { product: { handle: string; onlineStoreUrl: string | null } | null; userErrors: { message: string }[] } }>(conn, PRODUCT_SET, {
       input: productSetInput(input, existing, gids),
     });
     assertNoUserErrors("Actualizar el producto", set.productSet.userErrors);
 
+    await options.beforeWrite?.();
     await setMetafields(conn, existing.id, meta.set, landingAtomicKeys(input));
     const present = new Set(found.product.metafields.nodes.map((n) => n.key));
     // El evento va aparte (publishProductEvent): lo escribe o lo borra después de guardar la publicación.
+    await options.beforeWrite?.();
     await deleteMetafields(conn, existing.id, meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY));
+    await options.beforeWrite?.();
     const shopFacts = await publishShopFacts(conn);
 
     await savePublication(userId, productId, shop, {
@@ -449,6 +456,7 @@ export async function runPublish(userId: string, productId: string): Promise<voi
       },
     });
     // Eventos: el metafield dropflex.event (Cyber, Black Friday…) con lo que tenga activado hoy.
+    await options.beforeWrite?.();
     await publishProductEvent(conn, userId, productId, existing.id, present.has(EVENT_KEY));
   } catch (e) {
     console.error("[publish]", productId, e);

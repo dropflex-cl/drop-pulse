@@ -1,3 +1,4 @@
+import { runAutomaticShopifyPublication } from "./shopify-automation";
 import { runVisualIngestion } from "./visual-operations";
 import { visualEnabled } from "./visual-service";
 import { visualTools } from "./visual-schemas";
@@ -31,10 +32,11 @@ export async function serveMcpRequest(request: Request): Promise<Response> {
     const repository = createContextRepository();
     const wake = (id: string) => after(() => runUgcOperation(id));
     const wakeGallery = (id: string) => after(() => runGalleryOperation(id));
+    const wakePublish = (id: string) => after(() => runAutomaticShopifyPublication(id));
     const wakeVisual = (id: string) => after(() => runVisualIngestion(id));
-    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery, wakeVisual), {
-      availableTools: PERSISTED_INTELLIGENCE_TOOLS.filter(tool => (persuasionEnabled() || !persuasionTools.includes(tool as typeof persuasionTools[number])) && (visualEnabled() || !visualTools.includes(tool as typeof visualTools[number]))),
-      executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery, wakeVisual),
+    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery, wakeVisual, wakePublish), {
+      availableTools: PERSISTED_INTELLIGENCE_TOOLS.filter(tool => (persuasionEnabled() || !persuasionTools.includes(tool as typeof persuasionTools[number])) && (visualEnabled() || (tool !== "review_visual_record" && !visualTools.includes(tool as typeof visualTools[number])))),
+      executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery, wakeVisual, wakePublish),
     })(request);
   } catch (error) {
     const response = mcpHttpError(error, config ?? undefined);

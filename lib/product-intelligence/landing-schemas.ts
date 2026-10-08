@@ -37,7 +37,7 @@ export function landingOutputs<E extends z.ZodType>(error: E) {
     }) })]),
     save: z.union([failure, z.strictObject({ ...base, data: z.strictObject({
       applied: z.boolean(), dry_run: z.boolean(), run_id: uuid.nullable(), landing_etag: etag,
-      components: z.array(z.strictObject({ component: z.string(), id: uuid.nullable(), status: z.literal("generated") })).min(1).max(17),
+      components: z.array(z.strictObject({ component: z.string(), id: uuid.nullable(), status: z.enum(["generated", "approved"]) })).min(1).max(17),
       next_action: z.string(),
     }) })]),
   };

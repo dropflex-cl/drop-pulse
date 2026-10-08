@@ -1,6 +1,6 @@
 ---
 name: optimize-product
-description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP, iterando con el feedback del comerciante. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
+description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
 ---
 
 # Optimizar un producto con DropFlex
@@ -27,9 +27,9 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 
 ## Página e imágenes
 
-Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y requisitos de aprobación.
+Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
 
-En producción visual, exige `get_visual_generation_context` y `get_visual_reference_image`. Recupera la foto canónica, inspecciónala y pásala como imagen de entrada al generador siguiendo [la ejecución](references/production.md). Un ID, URL o descripción en texto no demuestra que el generador recibió la foto. Si faltan estas tools, pide actualizar/reconectar el plugin y continúa solo lo independiente. Si el cliente no puede adjuntar la imagen al generador, pide al usuario adjuntar la foto original y detén esa toma; no generes un producto aproximado. Reutiliza assets compatibles y vigentes antes de generar. DropFlex ingiere y conserva archivos. Prepara una toma principal para revisar la dirección antes del resto, salvo que el usuario ya autorizara un lote con esa dirección.
+En producción visual, exige `get_visual_generation_context` y `get_visual_reference_image`. Recupera la foto canónica, inspecciónala y pásala como imagen de entrada al generador siguiendo [la ejecución](references/production.md). Un ID, URL o descripción en texto no demuestra que el generador recibió la foto. Si faltan estas tools, pide actualizar/reconectar el plugin y continúa solo lo independiente. Si el cliente no puede adjuntar la imagen al generador, pide al usuario adjuntar la foto original y detén esa toma; no generes un producto aproximado. Reutiliza assets compatibles y vigentes antes de generar. DropFlex ingiere y conserva archivos. En modo automático, revisa tú la toma principal contra la foto base y continúa el lote sin otra confirmación del comerciante. En modo de propuestas, muestra esa toma para revisar la dirección antes del resto, salvo que ya se autorizara el lote.
 
 ## Iteración y decisiones humanas
 
@@ -37,7 +37,11 @@ Interpreta feedback como cambios al trabajo actual. «Más directo» cambia leng
 
 Recupera revisiones e historial antes de regenerar. Ante drift visual usa `get_visual_reconciliation_context` y `save_visual_reconciliation`. Cambiar el hook dentro del mismo ángulo no implica una arquitectura nueva: revisa la entrada y dependencias que realmente cambian.
 
-Guardar propuestas está autorizado por el pedido de optimización. Elegir hook/estrategia en el chat no aprueba planes, imágenes ni usos. Identidad, planes que lo exijan, assets, selección de bindings y activación de experiencias se deciden en la UI autenticada de DropFlex. Señala qué requiere revisión y usa enlaces devueltos por las tools; no inventes enlaces de aprobación. Optimizar no autoriza publicar ni lanzar campañas. Una petición explícita de publicación sigue su flujo y permisos propios.
+Guardar propuestas está autorizado por el pedido de optimización. Si el usuario pidió automatizar y publicar en Shopify, su elección explícita de hooks es la decisión humana final: persiste la estrategia y llama `authorize_shopify_automation` con el ID activo, los hooks exactos del snapshot y `auto_approve_and_publish: true`. No pidas confirmar otra vez en DropFlex ni al terminar. Esa autorización no incluye Meta Ads. Un pedido de hooks o de propuestas sin publicación no activa este modo.
+
+Recupera `get_shopify_automation` al retomar. Con autorización activa, aprueba planes, revisa y selecciona imágenes, guarda contenido aprobado y activa la experiencia siguiendo [la ejecución](references/production.md). Completa los requisitos y llama `publish_product`; no te detengas en «listo para revisar». Si cambian el hook, la estrategia, el precio, la referencia base o la evidencia, recupera el estado y concilia. Una nueva elección explícita de hooks dentro del pedido automático permite renovar la autorización; no renueves una autorización desactivada por tu cuenta. `disable_shopify_automation` detiene futuras decisiones automáticas, sin despublicar lo ya publicado.
+
+En modo de propuestas, conserva las decisiones del comerciante en la UI de DropFlex y usa enlaces devueltos por las tools. Si el host deshabilita una tool, no lo atribuyas a la skill sin evidencia: explica la tool afectada y conserva el trabajo. Nunca declares publicado algo que la herramienta no confirmó.
 
 Cada mutación usa revisión, etag/stamps y clave idempotente del contrato actual. `dry_run` no significa guardado. Ante respuesta ambigua, reintenta la misma carga y clave; ante conflicto, relee y concilia. Si falta permiso o se repite un error de validación, explica el bloqueo y continúa solo lo independiente.
 
@@ -45,6 +49,6 @@ No inventes resultados, testimonios, cifras, urgencia ni claims médicos. Una de
 
 ## Entrega conversacional
 
-Usa el idioma del mercado; en español, tuteo neutro. Presenta una decisión principal por turno y una recomendación. Resume qué quedó guardado, qué falta decidir y qué sigue. Evita JSON e IDs salvo que ayuden a resolver un problema. Distingue «propuestas listas para revisar» de «listo para publicar»; no declares terminado si faltan assets obligatorios o revisiones.
+Usa el idioma del mercado; en español, tuteo neutro. Presenta una decisión principal por turno y una recomendación. Resume qué quedó guardado, qué falta decidir y qué sigue. Evita JSON e IDs salvo que ayuden a resolver un problema. Distingue «propuestas listas para revisar», «publicación en curso» y «publicado en Shopify»; no declares terminado si faltan assets obligatorios o revisiones.
 
 Invocaciones: «Optimiza la aspiradora y ayúdame a elegir el hook primario», «Dame otros hooks del ángulo elegido», «Retoma la PDP», «La foto cambia el mango: corrige esa toma».

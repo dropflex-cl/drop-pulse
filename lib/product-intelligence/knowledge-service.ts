@@ -1,3 +1,7 @@
+import { shopifyAutomationTools } from "./shopify-automation-schemas";
+import { createShopifyAutomationExecutor } from "./shopify-automation";
+import { reviewVisualRecord } from "./visual-service";
+import type { ShopifyAutomationRepository } from "./repository";
 import { visualTools } from "./visual-schemas";
 import { createVisualExecutor } from "./visual-service";
 import type { VisualRepository } from "./repository";
@@ -34,12 +38,20 @@ import { createUgcExecutor } from "./ugc-service";
 import type { UgcRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = ["list_products", ...visualTools, ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = [...shopifyAutomationTools, "list_products", ...visualTools, ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
 /** Adaptador común para UI/MCP. Los textos se guardan sin IA; generate_ugc encola renders con permiso explícito. */
-export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository & VisualRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void, wakeVisual?: (id: string) => void): DomainExecutor {
+export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository & VisualRepository & ShopifyAutomationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void, wakeVisual?: (id: string) => void, wakePublish?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     requireScopes(principal, toolScopes[command.tool]);
+    if (command.tool === "review_visual_record") {
+      if (!repository.loadVisual || !repository.commitVisual || !repository.visualOperation) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración visual.");
+      return reviewVisualRecord(repository as VisualRepository, principal, command.input, signal, identity, true);
+    }
+    if (shopifyAutomationTools.includes(command.tool as typeof shopifyAutomationTools[number])) {
+      if (!repository.shopifyAutomation) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de publicación automática.");
+      return createShopifyAutomationExecutor(repository as ShopifyAutomationRepository, identity, wakePublish)(principal, command, signal);
+    }
     if (visualTools.includes(command.tool as typeof visualTools[number])) {
       if (!repository.loadVisual || !repository.commitVisual || !repository.visualOperation) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de producción visual.");
       return createVisualExecutor(repository as VisualRepository, identity, wakeVisual, cursorSecret)(principal, command, signal);

@@ -1,3 +1,4 @@
+import { shopifyAutomationInputs, shopifyAutomationOutputs } from "./shopify-automation-schemas";
 import { visualInputSchemas, visualOutputs } from "./visual-schemas";
 import { persuasionInputSchemas, persuasionOutputs } from "./persuasion-schemas";
 import { galleryGenerationInputs, galleryGenerationOutputs } from "./gallery-generation-schemas";
@@ -1560,6 +1561,7 @@ export const generationContextSchema = z.strictObject({
 });
 
 export const inputSchemas = {
+  ...shopifyAutomationInputs,
   list_products: listProductsInput,
   ...visualInputSchemas, ...persuasionInputSchemas, ...contentInputSchemas, ...learningInputSchemas, ...galleryGenerationInputs,
   get_ugc_content: getUgcInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
@@ -1581,6 +1583,7 @@ const landingOutputSchemas = landingOutputs(errorSchema);
 const packOutputs = packLabelsOutputs(errorSchema);
 const ugcOutputSchemas = ugcOutputs(errorSchema);
 export const outputSchemas = {
+  ...shopifyAutomationOutputs(errorSchema),
   list_products: listProductsOutput(errorSchema),
   ...visualOutputs(errorSchema), ...persuasionOutputs(errorSchema), ...contentOutputs(errorSchema), ...learningOutputs(errorSchema), ...galleryGenerationOutputs(errorSchema),
   get_ugc_content: ugcOutputSchemas.get, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
