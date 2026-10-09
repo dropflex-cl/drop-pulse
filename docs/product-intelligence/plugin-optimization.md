@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.1.0.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+Produce `output/plugins/dropflex-optimizer-1.2.0.zip` sin archivos ajenos. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -112,3 +112,17 @@ Cambiar estrategia, hook, catálogo, precio, mercado, referencias o evidencia in
 La actualización local no modifica el plugin remoto de ChatGPT. El host debe permitir las tools, la entrega de la referencia al generador y la transferencia del resultado. Este cambio quita las aprobaciones adicionales de DropFlex; no habilita una tool desactivada por ChatGPT ni elimina diálogos del host. La imagen externa no puede sustituirse por un SKU aproximado para fingir automatización.
 
 Validación local: tests unitarios y con OAuth real/Supabase local, sin generar con proveedores ni publicar en una tienda real; contratos exportados, typecheck, lint de archivos afectados, validación de skill y build webpack. El lint global conserva errores preexistentes del tema Shopify incluido. El build termina con avisos preexistentes de prerender/cookies en onboarding y ads. La prueba móvil con publicación real sigue pendiente del rollout remoto.
+
+## Transporte y reanudación (1.2.0)
+
+Esta versión reemplaza la interacción de las tarjetas 1.0.2/1.0.3. El recurso `ui://dropflex/visual-reference/v2.html` presenta «Usar referencia y continuar». Un toque renueva el enlace temporal de la misma referencia, verifica ID/hash/bytes, sube el archivo real al host y solicita continuar el último pedido en otro turno. Conserva el límite «no generar» y las aprobaciones del usuario. Reintentar un mensaje fallido reutiliza el archivo; recibir otro producto o referencia mientras sube detiene la continuación. Los resultados de telemetría no reemplazan el contexto de la tarjeta.
+
+`ingest_chatgpt_visual_asset` anuncia el parámetro nativo `file` mediante `_meta["openai/fileParams"]: ["file"]`. ChatGPT debe entregar `download_url` y `file_id` reales. El servidor descarga, valida, optimiza y conserva el resultado mediante la ingestión durable existente. URL HTTPS y ticket firmado siguen disponibles. Un ID interno aislado o `sandbox:/…` no es un archivo transferible. La confirmación sigue siendo `get_visual_ingestion_status` con `succeeded` y asset real.
+
+El plan incluye `readiness` y razones concretas. La aprobación de identidad reencadena los planes de su propuesta sin adoptar cambios físicos. Una propuesta previa puede pasar a aprobación automática con una nueva versión. El chat reconcilia identidades/estrategias distintas antes de preparar una toma. `get_visual_transfer_history` consulta fallos por etapa; los eventos del widget son declaraciones del cliente y no prueban que el generador haya recibido la foto.
+
+Despliegue: aplicar `20261204000000_visual_approval_version_chain.sql` y `20261205000000_visual_transfer_events.sql`, desplegar código/skill, actualizar el catálogo y snapshot del plugin remoto, refrescar conexión y abrir un chat nuevo. Comprobar descubrimiento de `ingest_chatgpt_visual_asset` y `get_visual_transfer_history`; `record_visual_transfer_event` está disponible solo para la tarjeta. La instalación local y un zip no actualizan el registro remoto por sí solos.
+
+Validación: suite general, Supabase local con storage/worker reales y descarga de archivo externo simulada, aprobación automática con OAuth local, contratos, skill, typecheck, lint de archivos modificados y build webpack. La tarjeta se verificó a 390 px en claro/oscuro, sin desbordamiento y con botón de 44 px. Las migraciones se aplicaron únicamente en local. Falta la aceptación con el host de ChatGPT móvil real después de desplegar: referencia adjunta → entrada real al generador → resultado transferido → asset visible en DropFlex.
+
+Contrato de archivos: [referencia oficial de plugins](https://developers.openai.com/plugins/reference); adjuntos en turnos posteriores: [estado e imágenes en ChatGPT](https://developers.openai.com/plugins/build/chatgpt-ui).

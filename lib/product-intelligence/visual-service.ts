@@ -14,12 +14,13 @@ import { requireScopes, toolScopes, type Principal } from "./policy";
 import { contextAccess, type VisualRepository } from "./repository";
 import { parseToolOutput, PI_LIMITS } from "./validation";
 import { visualInputSchemas, visualReviewInput, VISUAL_LIMITS, type VisualRecord, type VisualTool, type VisualDependency } from "./visual-schemas";
-import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration,
+import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration, visualPlanReadiness,
   prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, visualValidity, vHash, type VisualState } from "./visual-domain";
 import { hydrateVisualState, visualReferenceBytes } from "./visual-state";
 import { visualSignedUrl } from "./visual-media";
 import { attachToolImage } from "./tool-media";
 import { referenceImageContent } from "./visual-reference";
+import { recordServerVisualEvent } from "./visual-transfer";
 
 export const visualEnabled = () => process.env.VISUAL_PRODUCTION_ENABLED !== "false";
 const object = z.record(z.string(), z.unknown());
@@ -37,15 +38,23 @@ async function signedUpload(op: Operation) {
 }
 export async function visualRecordView(r: VisualRecord, state: VisualState) {
   const file = r.kind === "asset" ? state.files.find(f => f.id === r.payload.file_id) : undefined;
-  return { ...r, validity: recordValidity(r, state), ...(r.kind === "plan" ? { shot_validity: Object.fromEntries((r.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).map(s => [s.shot_key, visualValidity(s.dependencies, state)])) } : {}), ...(file ? { file: { ...file, url: await visualSignedUrl(file.bucket, file.storage_path) } } : {}),
+  return { ...r, validity: recordValidity(r, state), ...(r.kind === "plan" ? { readiness: visualPlanReadiness(r, state), shot_validity: Object.fromEntries((r.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).map(s => [s.shot_key, visualValidity(s.dependencies, state)])) } : {}), ...(file ? { file: { ...file, url: await visualSignedUrl(file.bucket, file.storage_path) } } : {}),
     reviews: state.records.filter(f => f.kind === "review" && f.payload.subject_id === r.id).slice(-10) };
 }
 export function createVisualExecutor(repository: VisualRepository, identity?: DelegatedIdentity, wake?: (id: string) => void, secret = process.env.OAUTH_STATE_SECRET ?? ""): DomainExecutor {
-  return async (principal, command, signal) => {
+  const run: DomainExecutor = async (principal, command, signal) => {
     const tool = command.tool as VisualTool, schema = visualInputSchemas[tool];
     if (!schema || !visualEnabled()) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La producción visual no está habilitada.");
     requireScopes(principal, toolScopes[tool]);
-    const input = schema.parse(command.input), writing = "expected_revision" in input, access = contextAccess(principal, identity);
+    const input = schema.parse(command.input);
+    if (tool === "record_visual_transfer_event" || tool === "get_visual_transfer_history") {
+      if (!repository.visualTransfer) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Actualiza el servidor para consultar el diagnóstico de imágenes.");
+      const q = tool === "record_visual_transfer_event" ? visualInputSchemas.record_visual_transfer_event.parse(input) : visualInputSchemas.get_visual_transfer_history.parse(input);
+      return parseToolOutput(tool, await repository.visualTransfer({ p_access: contextAccess(principal, identity), p_product_id: input.product_id,
+        ...("event" in q ? { p_event: { ...q.event, reported_by: "widget" } } : { p_attempt_id: q.attempt_id ?? null }) }, signal));
+    }
+    const persistedTool = tool === "ingest_chatgpt_visual_asset" ? "ingest_external_visual_asset" : tool;
+    const writing = "expected_revision" in input, access = contextAccess(principal, identity);
     const queryHash = vHash({ tool, user: principal.userId, actor: principal.actorId, input: Object.fromEntries(Object.entries(input).filter(([k]) => k !== "cursor")) });
     let snapshotId: string | null = null, offset = 0;
     if ("cursor" in input && input.cursor) {
@@ -54,8 +63,9 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       const cursor = verifyContextCursor(input.cursor.slice(cut + 1), vHash({ queryHash, sid }), secret);
       snapshotId = sid; offset = cursor.offset;
     }
-    const hash = writing ? commandHash(tool, input) : null;
-    const raw = await repository.loadVisual({ p_access: access, p_product_id: input.product_id, p_tool: writing ? tool : null,
+    const hashInput = tool === "ingest_chatgpt_visual_asset" ? { ...input, file: { ...visualInputSchemas.ingest_chatgpt_visual_asset.parse(input).file, download_url: undefined } } : input;
+    const hash = writing ? commandHash(tool, hashInput) : null;
+    const raw = await repository.loadVisual({ p_access: access, p_product_id: input.product_id, p_tool: writing ? persistedTool : null,
       p_key: writing ? input.idempotency_key : null, p_hash: hash, p_dry_run: writing && input.dry_run, p_snapshot_id: snapshotId }, signal);
     const replay = object.safeParse(raw);
     if (replay.success && replay.data.replay) {
@@ -114,7 +124,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         const image = await referenceImageContent(visualReferenceBytes.get(state)!);
         signal.throwIfAborted();
         return attachToolImage(output({ canonical_reference: reference, image: image.metadata,
-          next_action: "Muestra la tarjeta de referencia original. En ChatGPT el comerciante puede tocar Adjuntar referencia al chat para subir el archivo original, verificar su hash y compartir el fileId mediante imageIds. No generes hasta recibir el archivo como entrada real. Otros clientes pueden usar el bloque de imagen o descargar la URL canónica. Si no puedes adjuntarlo al generador, pide la foto original y detente." }), image.content);
+          next_action: "Muestra la tarjeta de referencia original. En ChatGPT el comerciante puede tocar Usar referencia y continuar: renueva el enlace, verifica el hash, sube el archivo original y comparte el fileId mediante imageIds en un nuevo turno. Continúa solo el último pedido autorizado; si pidió no generar, conserva ese límite. No generes hasta recibir el archivo como entrada real. Otros clientes pueden usar el bloque de imagen o descargar la URL canónica. Si no puedes adjuntarlo al generador, pide la foto original y detente." }), image.content);
       }
       if (tool === "get_visual_ingestion_status") {
         const q = visualInputSchemas[tool].parse(input);
@@ -133,8 +143,8 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         return output({ product: k.product, context: k.context, pricing: k.pricing, policies: k.policies,
           selected_strategy: strategy ? { id: strategy.id, state: strategy.state, readiness: strategy.readiness, positioning: object.parse(strategy.snapshot).positioning, rationale: object.parse(strategy.snapshot).rationale } : null,
           canonical_reference: canonical ? { ...canonical, ...object.parse(referenceInfo) } : null, identity: state.records.find(r => r.kind === "identity" && r.status !== "archived") ?? null,
-          context_records: contextPage, targets: state.targets.slice(0, 50).map(t => ({ key: t.key, etag: t.etag, value: { target: object.parse(t.value).target } })), capabilities: { generation: "external_only", ingestion: ["remote_url", "upload_ticket"], approval: "merchant_ui", reuse: true, max_upload_bytes: VISUAL_LIMITS.uploadBytes, max_pixels: VISUAL_LIMITS.maxPixels, max_plans: VISUAL_LIMITS.plans, max_shots: VISUAL_LIMITS.shots, max_assets: VISUAL_LIMITS.assets },
-          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Las imágenes de la tienda, incluida la portada, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. Si cambian la oferta o las políticas consumidas, revisa las tomas dependientes.", "Lee get_visual_reference_image con el ID y content_hash canónicos. Debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Con automatización autorizada, identidad y plan se aprueban al guardar. prepare_visual_iteration congela la toma y la referencia.", "Si el chat no entrega una URL, transfiere sus bytes al ticket firmado. El file_id de una conversación no es accesible por DropFlex."] });
+          context_records: contextPage, targets: state.targets.slice(0, 50).map(t => ({ key: t.key, etag: t.etag, value: { target: object.parse(t.value).target } })), capabilities: { generation: "external_only", ingestion: ["chatgpt_file", "remote_url", "upload_ticket"], approval: "merchant_ui", reuse: true, max_upload_bytes: VISUAL_LIMITS.uploadBytes, max_pixels: VISUAL_LIMITS.maxPixels, max_plans: VISUAL_LIMITS.plans, max_shots: VISUAL_LIMITS.shots, max_assets: VISUAL_LIMITS.assets },
+          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Las imágenes de la tienda, incluida la portada, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. Si cambian la oferta o las políticas consumidas, revisa las tomas dependientes.", "Lee get_visual_reference_image con el ID y content_hash canónicos. Debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Con automatización autorizada, identidad y plan se aprueban al guardar. prepare_visual_iteration congela la toma y la referencia.", "Usa ingest_chatgpt_visual_asset con el archivo real del host. Si ese cliente no permite file params, usa una URL HTTPS descargable o el ticket firmado. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado."] });
       }
       if (tool === "get_visual_identity" || tool === "get_visual_generation_plan") {
         const q = tool === "get_visual_identity" ? visualInputSchemas.get_visual_identity.parse(input) : visualInputSchemas.get_visual_generation_plan.parse(input);
@@ -151,7 +161,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       }
       if (tool === "get_visual_reconciliation_context") {
         const q = visualInputSchemas[tool].parse(input), plan = findVisual(state, q.plan_id, "plan");
-        return output({ plan, shots: (plan.payload.shots as Record<string, unknown>[]).map(s => ({ shot_key: s.shot_key, validity: visualValidity(s.dependencies as VisualDependency[], state) })),
+        return output({ plan, readiness: visualPlanReadiness(plan, state), shots: (plan.payload.shots as Record<string, unknown>[]).map(s => ({ shot_key: s.shot_key, validity: visualValidity(s.dependencies as VisualDependency[], state) })),
           bindings: page(state.records.filter(r => r.kind === "binding").map(r => ({ ...r, validity: recordValidity(r, state) }))), identity: state.records.filter(r => r.kind === "identity") });
       }
       if (tool === "get_visual_comparison") {
@@ -211,7 +221,10 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         records = q.binding_ids.map(id => { const b = findVisual(state, id, "binding"); if (b.status === "selected") invalidVisual("Quita la selección en DropFlex antes de archivar el uso.", "VALIDATION_ERROR"); return makeVisualRecord(state, "binding", { ...b.payload, archived_at: new Date().toISOString() }, "archived", id); }); break; }
       case "prepare_visual_asset_upload": { const q = visualInputSchemas[tool].parse(input), it = findVisual(state, q.iteration_id, "iteration"); assertCurrent(it, state);
         operation = { id: randomUUID(), kind: "upload", iteration_id: it.id, source: { path: `${principal.userId}/${q.product_id}/visual-upload-${randomUUID()}.${q.mime_type.split("/")[1]}`, mime_type: q.mime_type, size_bytes: q.size_bytes, cleanup_after: new Date(Date.now() + 3 * 60 * 60000).toISOString() } }; break; }
-      case "ingest_external_visual_asset": { const q = visualInputSchemas[tool].parse(input), it = findVisual(state, q.iteration_id, "iteration");
+      case "ingest_chatgpt_visual_asset": case "ingest_external_visual_asset": {
+        const native = tool === "ingest_chatgpt_visual_asset" ? visualInputSchemas.ingest_chatgpt_visual_asset.parse(input) : null;
+        const q = native ? { ...native, source: { type: "remote_url" as const, url: native.file.download_url, origin: "chatgpt_file", file_id: native.file.file_id, mime_type: native.file.mime_type ?? null } } : visualInputSchemas.ingest_external_visual_asset.parse(input);
+        const it = findVisual(state, q.iteration_id, "iteration");
         if (!["prepared", "result_recorded"].includes(it.status)) invalidVisual("Este intento terminó. Prepara una iteración nueva.", "VALIDATION_ERROR");
         let source: Record<string, unknown> = { ...q.source, generated_at: q.generated_at };
         if (q.source.type === "upload_ticket") {
@@ -226,10 +239,18 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     if (automatic) records = records.map(record => {
       const strategy = state.live[`strategy:${record.payload.strategy_id}`];
       if (record.kind !== "identity" && !(record.kind === "plan" && strategy && !strategy.blocked && (record.payload.shots as { channel: string }[]).every(s => ["pdp", "gallery"].includes(s.channel)))) return record;
+      if (record.kind === "plan") {
+        const readiness = visualPlanReadiness(record, state);
+        const blockers = readiness.reasons.filter(reason => reason.code !== "plan_not_approved");
+        if (blockers.length) throw new ProductIntelligenceError("VALIDATION_ERROR", blockers[0].message,
+          { missing_fields: blockers.map(reason => reason.code), next_action: readiness.next_action });
+      }
       const status = "approved";
-      return { ...record, status, etag: vHash({ kind: record.kind, status, payload: record.payload, version: record.version }) };
+      return state.records.some(head => head.id === record.id)
+        ? makeVisualRecord(state, record.kind, record.payload, status, record.id)
+        : { ...record, status, etag: vHash({ kind: record.kind, status, payload: record.payload, version: record.version }) };
     });
-    const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: tool, p_expected_revision: input.expected_revision,
+    const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: persistedTool, p_expected_revision: input.expected_revision,
       p_etag: input.expected_etag, p_stamp: input.expected_dependency_stamp, p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run, p_operation: operation }, signal));
     if (result.ok && !input.dry_run && "operation_id" in result.data && typeof result.data.operation_id === "string") {
       if (tool === "prepare_visual_asset_upload") return parseToolOutput(tool, { ...result, data: { ...result.data, ...await signedUpload(operationSchema.parse(await repository.visualOperation({ p_access: access, p_product_id: input.product_id, p_operation_id: result.data.operation_id }, signal))) } });
@@ -237,6 +258,29 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     }
     if (result.ok && tool === "prepare_visual_iteration") return parseToolOutput(tool, { ...result, data: { ...result.data, canonical_reference: state.references.find(r => r.is_base) ?? null } });
     return result;
+  };
+  return async (principal, command, signal) => {
+    if (["record_visual_transfer_event", "get_visual_transfer_history"].includes(command.tool)) return run(principal, command, signal);
+    const productId = "product_id" in command.input ? command.input.product_id : undefined;
+    if (!productId) return run(principal, command, signal);
+    const started = Date.now(), attempt = randomUUID();
+    const input = command.input as Record<string, unknown>;
+    const correlation = { ...(typeof input.iteration_id === "string" ? { iteration_id: input.iteration_id } : {}),
+      ...(typeof input.operation_id === "string" ? { operation_id: input.operation_id } : {}) };
+    try {
+      const result = await run(principal, command, signal);
+      const failure = z.object({ ok: z.literal(false), error: z.object({ code: z.string().regex(/^[A-Z_]{1,80}$/) }) }).safeParse(result);
+      await recordServerVisualEvent(repository, contextAccess(principal, identity), productId, { attempt_id: attempt,
+        ...correlation, stage: "tool_execution", state: failure.success ? "failed" : "succeeded",
+        ...(failure.success ? { error_code: failure.data.error.code } : {}), duration_ms: Math.min(Date.now() - started, 300000), tool: command.tool });
+      return result;
+    } catch (error) {
+      // Autorizar de nuevo en la RPC impide registrar eventos para productos ajenos.
+      try { await recordServerVisualEvent(repository, contextAccess(principal, identity), productId, { attempt_id: attempt,
+        stage: "tool_execution", state: "failed", duration_ms: Math.min(Date.now() - started, 300000), tool: command.tool,
+        error_code: error instanceof ProductIntelligenceError ? error.code : "INTERNAL_ERROR" }); } catch { /* Principal inválido. */ }
+      throw error;
+    }
   };
 }
 

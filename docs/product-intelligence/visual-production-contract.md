@@ -8,7 +8,7 @@ Los schemas ejecutables son [`visual-schemas.ts`](../../lib/product-intelligence
 
 - DropFlex conserva estrategia, identidad, briefs, archivos, versiones, feedback y usos. Este recorrido no llama a proveedores generativos ni administra claves de generación.
 - El chat decide dirección, genera/edita externamente y transfiere el resultado. El servidor no puede certificar que el generador respetó la referencia: conserva el snapshot y el comerciante verifica la fidelidad.
-- Identidad, plan, aprobación del asset y selección de cada uso se deciden en la UI autenticada. El principal delegado del MCP solo puede guardar propuestas. Ningún booleano del agente equivale a una decisión humana.
+- Sin autorización automática, identidad, plan, assets y usos se deciden en la UI autenticada. El permiso persistido de publicación automática en Shopify habilita las decisiones del chat únicamente para PDP/galería de la estrategia autorizada. Los assets nuevos siempre entran `generated`; el chat debe inspeccionarlos antes de aprobar y seleccionar. Ningún booleano del agente equivale a una autorización del comerciante.
 - Un cambio conserva las publicaciones históricas. Bloquea nuevos usos afectados hasta revisar. No pausa ni retira automáticamente publicaciones externas.
 - El recorrido externo se agrega al producto existente. Los renderizadores heredados siguen disponibles; retirarlos exige una migración aparte. La prohibición de llamadas generativas aplica a todos los módulos y operaciones de este nuevo recorrido.
 - La sección se integra en Imágenes, con Identidad también en Información base y acceso a Piezas en Creativos. No agrega etapas a la ruta ni modifica autenticación.
@@ -80,7 +80,7 @@ Destinos tipados:
 - Creativo: concepto y ratio `1:1`/`9:16`.
 - UGC: guion aprobado, toma y slot `keyframe` o `b_roll`.
 
-`bind_visual_asset` y `save_visual_binding_suggestions` crean propuestas, con huella del destino. Solo la UI puede seleccionarlas. Seleccionar desplaza atómicamente el uso anterior del mismo destino. Un asset puede reutilizarse en varios destinos.
+`bind_visual_asset` y `save_visual_binding_suggestions` crean propuestas, con huella del destino. La UI o el chat con autorización automática vigente para Shopify pueden seleccionarlas. Seleccionar desplaza atómicamente el uso anterior del mismo destino. Un asset puede reutilizarse en varios destinos.
 
 La proyección transaccional integra `page_images`, experiencias/variantes nativas, `creative_assets`, `ad_media` y keyframes de `video_shots`. Un still usado en B-roll es una referencia de storyboard: no se marca como clip generado ni video aprobado.
 
@@ -111,18 +111,19 @@ El comerciante puede reconocer un cambio ordinario de un asset aprobado con moti
 
 ## Contratos MCP
 
-Hay 19 herramientas nuevas, con input/output JSON Schema derivados de Zod:
+Hay 23 herramientas visuales, con input/output JSON Schema derivados de Zod:
 
 | Grupo | Tools |
 |---|---|
-| Contexto/identidad | `get_visual_generation_context`, `get_visual_identity`, `save_visual_identity` |
+| Contexto/identidad | `get_visual_generation_context`, `get_visual_reference_image`, `get_visual_identity`, `save_visual_identity` |
 | Plan | `get_visual_generation_plan`, `save_visual_generation_plan` |
 | Iteración | `prepare_visual_iteration`, `record_visual_iteration_result`, `get_visual_iteration_history` |
-| Transporte | `prepare_visual_asset_upload`, `ingest_external_visual_asset`, `get_visual_ingestion_status` |
+| Transporte | `prepare_visual_asset_upload`, `ingest_external_visual_asset`, `ingest_chatgpt_visual_asset`, `get_visual_ingestion_status` |
 | Assets/usos | `list_visual_assets`, `bind_visual_asset`, `unbind_visual_asset` |
+| Diagnóstico | `record_visual_transfer_event`, `get_visual_transfer_history` |
 | Fase 2 | `get_visual_reconciliation_context`, `save_visual_reconciliation`, `get_visual_reuse_candidates`, `save_visual_binding_suggestions`, `get_visual_comparison` |
 
-Las lecturas necesitan `product_intelligence:read`; las escrituras además necesitan `product_intelligence:write`. La aprobación no se expone como tool MCP. La UI usa `review_visual_record` en `/api/products/[id]/visual`, con sesión merchant y comprobación de Origin.
+Las lecturas necesitan `product_intelligence:read`; las escrituras además necesitan `product_intelligence:write`. `record_visual_transfer_event` necesita solo lectura: registra telemetría sin cambiar CAS ni decisiones. `review_visual_record` desde el MCP exige autorización automática vigente para Shopify y no incluye anuncios ni UGC. La UI usa la misma operación en `/api/products/[id]/visual`, con sesión merchant y comprobación de Origin.
 
 Cada escritura requiere `schema_version`, `expected_revision`, `expected_etag`, `expected_dependency_stamp`, `idempotency_key`, `dry_run`. CAS se comprueba bajo lock. El replay se resuelve antes del CAS. Misma clave con distinto payload falla. `dry_run` valida sin reservar una ingestión ni emitir una URL de subida.
 
@@ -134,10 +135,11 @@ Las respuestas tienen envelope `{ ok, request_id, product_id, revision, data }` 
 
 Transportes soportados:
 
-1. `remote_url`: URL HTTPS pública temporal, descargada inmediatamente por el worker durable.
-2. `upload_ticket`: prepara URL firmada; el cliente sube bytes con PUT, `Content-Type` y `x-upsert: false`; confirma con `ingest_external_visual_asset` y consulta el resultado.
+1. `ingest_chatgpt_visual_asset`: parámetro raíz `file` anunciado mediante `_meta["openai/fileParams"]: ["file"]`. Objeto `{ download_url, file_id, mime_type?, file_name? }` entregado por el host. Reutiliza la ingestión durable existente; no intenta resolver un ID privado de conversación. Solo esta entrada nativa acepta `application/octet-stream`, sujeto a decodificación real y los mismos límites de imagen.
+2. `remote_url`: URL HTTPS pública temporal, descargada inmediatamente por el worker durable.
+3. `upload_ticket`: prepara URL firmada; el cliente sube bytes con PUT, `Content-Type` y `x-upsert: false`; confirma con `ingest_external_visual_asset` y consulta el resultado.
 
-`conversation_file`/`file_id` y `data_uri` no se anuncian como capacidades. DropFlex no puede leer IDs internos de archivos de una conversación. El cliente debe poder transferir bytes o una URL; si no puede, el comerciante sube el archivo desde la toma aprobada.
+Un `file_id` aislado, `sandbox:/…` o `data_uri` no son transportes soportados. El cliente debe entregar bytes o una URL HTTPS descargable. El SHA del ID externo puede quedar como metadata de procedencia; el ID y URL temporales se eliminan de la operación al terminar. Renovar la URL del mismo archivo nativo con la misma clave conserva el replay de la operación original. Una operación confirmada como fallida requiere URL actual y clave nueva; nunca se regenera la imagen por un fallo de transporte.
 
 Límites implementados: JPG/PNG/WebP estáticos, 15 MiB recibidos, 600 px mínimos por lado, 40 millones de píxeles decodificados, timeout de descarga 20 s, 3 redirects, solo HTTPS/443, sin credenciales. DNS validado y fijado en cada request; todos los resultados DNS deben ser públicos. Bloquea localhost, redes privadas, link-local/metadata, CGNAT y direcciones reservadas, incluidos IPv4 mapeados en IPv6.
 
@@ -151,7 +153,7 @@ La recuperación por cron retoma pendientes o leases expirados. Revalida el perm
 
 ## Despliegue y verificación
 
-Migraciones nuevas: `20261125` a `20261202` en `supabase/migrations`. Orden:
+Migraciones visuales: `20261125` a `20261205` en `supabase/migrations`. Orden:
 
 1. Aplicar las migraciones en la base destino antes de habilitar el código.
 2. Verificar buckets privados existentes `product-references`, `page-media`, `creative-media`, `ad-media` y las políticas de tickets.
@@ -177,3 +179,13 @@ Las pruebas locales usan usuarios/productos temporales y los eliminan. Cubren by
 Las ocho migraciones visuales se aplicaron al proyecto de producción `oukcswnfrzroxgwqmujf` el 2026-10-07, junto con las dos migraciones previas pendientes (`20261119` y `20261124`). Se verificaron siete tablas visuales con RLS, once funciones visuales y el cron activo `visual-ingestion-recovery`. Los cuatro buckets son privados y los secretos existentes del cron están configurados. No se publicó contenido en Shopify/Meta durante este trabajo.
 
 La prueba local de transporte no verifica las capacidades concretas de adjuntos del cliente ChatGPT en producción. Esa transferencia sigue siendo la comprobación de despliegue, usando las capacidades anunciadas del tool, no una integración nueva con un proveedor.
+
+## Cierre del transporte del cliente (plugin 1.2.0)
+
+La tarjeta `ui://dropflex/visual-reference/v2.html` renueva la referencia antes de descargarla y verifica ID/hash/bytes. «Usar referencia y continuar» sube mediante la API nativa del host, comparte el ID real en `imageIds` y solicita continuar el último pedido. Conserva «no generar» y no inicia acciones al renderizar. Reintentar solo el mensaje reutiliza el archivo; un cambio de producto/referencia durante la subida bloquea la continuación.
+
+Los planes devuelven `readiness` con motivos, siguiente acción, estrategia activa y referencia de identidad vigente. Aprobar primero la identidad reencadena sus planes en la misma transacción, conservando su estado solo si siguen vigentes. Guardar/aprobar un plan puede corregir una referencia histórica cuando únicamente cambió el estado de aprobación; adoptar otra identidad física requiere reconciliación explícita. La validación SQL acepta referencias dentro del mismo batch validado y conserva versiones inmutables. Una estrategia distinta o dependencias afectadas impiden preparar la toma.
+
+La auditoría existente conserva eventos `visual_transfer.*`: etapa, duración, intento, referencia/hash opcionales, iteración/operación y código de error. No conserva URLs, tokens ni mensajes arbitrarios del host. `reported_by` separa declaraciones del widget de ejecuciones del servidor; ninguno certifica la entrada del generador ni aprobación. Los eventos no cambian CAS y se eliminan con el producto. El historial entrega los 50 eventos más recientes y puede filtrarse por intento.
+
+Las migraciones `20261204` y `20261205` se verificaron únicamente en Supabase local. Antes de desplegar esta mejora, aplicarlas en la base destino, desplegar y actualizar/reconectar el plugin. La aceptación pendiente en ChatGPT móvil requiere: adjuntar la referencia desde la tarjeta, verificar píxeles en el nuevo turno, entregar la original al generador y transferir su resultado nativo hasta `succeeded` con un asset visible en DropFlex. Los tests de host simulado no sustituyen esa comprobación real.

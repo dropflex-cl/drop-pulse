@@ -10,7 +10,7 @@ import type { Principal } from "./policy";
 import { persuasionRecordSchema, experienceRecordSchema } from "./persuasion-schemas";
 import { visualReadSchema, vHash, targetKey, type VisualState } from "./visual-domain";
 import { downloadVisual, visualStoredBytes, visualByteHash, visualSignedUrl } from "./visual-media";
-import type { VisualTarget } from "./visual-schemas";
+import { VISUAL_LIMITS, type VisualTarget } from "./visual-schemas";
 
 const row = z.record(z.string(), z.unknown());
 const sourceSchema = z.object({ references: z.array(z.object({ id: z.string(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable().optional(),
@@ -31,7 +31,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   const refs = imagesForGeneration(src.references);
   let referenceBytes: Buffer | undefined;
   const references = await Promise.all(refs.map(async (r, i) => ({ id: r.id, storage_path: r.storage_path, mime_type: r.mime_type ?? null,
-    is_base: i === 0, url: r.storage_path ? await visualSignedUrl("product-references", r.storage_path) : r.url })));
+    is_base: i === 0, expires_at: new Date(Date.now() + VISUAL_LIMITS.snapshotSeconds * 1000).toISOString(), url: r.storage_path ? await visualSignedUrl("product-references", r.storage_path) : r.url })));
   if (refs[0]) {
     const r = refs[0];
     try {

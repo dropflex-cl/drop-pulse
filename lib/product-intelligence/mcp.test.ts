@@ -74,6 +74,12 @@ describe("PI · protocolo MCP oficial", () => {
         tools.push(...page.tools); cursor = page.nextCursor; pages++;
       } while (cursor);
       expect(tools).toHaveLength(Object.keys(inputSchemas).length);
+      const native = tools.find(tool => tool.name === "ingest_chatgpt_visual_asset")!;
+      expect(native._meta).toMatchObject({ "openai/fileParams": ["file"] });
+      const file = native.inputSchema.properties?.file as { properties: Record<string, unknown>; required: string[] };
+      expect(Object.keys(file.properties).sort()).toEqual(["download_url", "file_id", "file_name", "mime_type"]);
+      expect(file.required.sort()).toEqual(["download_url", "file_id"]);
+      expect(tools.find(tool => tool.name === "get_visual_reference_image")?._meta).toMatchObject({ "openai/widgetAccessible": true, ui: { visibility: ["model", "app"] } });
       expect(tools.find(tool => tool.name === "list_products")).toMatchObject({ annotations: { readOnlyHint: true, destructiveHint: false } });
       expect(tools.map(tool => tool.name)).not.toContain("generate_landing");
       await expect(session.client.callTool({ name: "generate_landing", arguments: {} })).rejects.toThrow("no existe");

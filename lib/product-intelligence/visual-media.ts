@@ -16,7 +16,7 @@ export function publicVisualAddress(address: string): boolean {
   try { return ipaddr.process(address).range() === "unicast"; } catch { return false; }
 }
 /** DNS is pinned to the validated address for each request, including redirects. */
-export async function downloadVisual(raw: string, signal = AbortSignal.timeout(20000)): Promise<Buffer> {
+export async function downloadVisual(raw: string, signal = AbortSignal.timeout(20000), allowOctetStream = false): Promise<Buffer> {
   let url = new URL(raw);
   for (let hop = 0; hop <= 3; hop++) {
     if (url.protocol !== "https:" || url.username || url.password || url.port && url.port !== "443") throw new ProductIntelligenceError("VALIDATION_ERROR", "Usa una URL HTTPS pública de la imagen.");
@@ -28,7 +28,9 @@ export async function downloadVisual(raw: string, signal = AbortSignal.timeout(2
       const options: RequestOptions & { autoSelectFamily: boolean } = { family: pinned.family, autoSelectFamily: false };
       const req = request(url, { ...options, signal, headers: { Accept: "image/jpeg,image/png,image/webp" }, lookup: (_host, _options, callback) => callback(null, pinned.address, pinned.family) }, res => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) { res.resume(); resolve({ redirect: res.headers.location }); return; }
-        if (res.statusCode !== 200 || !/^image\/(jpeg|png|webp)(;|$)/i.test(res.headers["content-type"] ?? "")) { res.destroy(); reject(new ProductIntelligenceError("VALIDATION_ERROR", "El enlace no devolvió una imagen JPG, PNG o WebP. Sube el archivo con un ticket.")); return; }
+        const contentType = res.headers["content-type"] ?? "";
+        const supported = /^image\/(jpeg|png|webp)(;|$)/i.test(contentType) || allowOctetStream && /^application\/octet-stream(;|$)/i.test(contentType);
+        if (res.statusCode !== 200 || !supported) { res.destroy(); reject(new ProductIntelligenceError("VALIDATION_ERROR", "El enlace no devolvió una imagen JPG, PNG o WebP. Renueva el archivo o súbelo con un ticket.")); return; }
         if (Number(res.headers["content-length"]) > VISUAL_LIMITS.uploadBytes) { res.destroy(); reject(new Error("La imagen supera los 15 MB.")); return; }
         const chunks: Buffer[] = []; let size = 0;
         res.on("data", (chunk: Buffer) => { size += chunk.length; if (size > VISUAL_LIMITS.uploadBytes) res.destroy(new Error("La imagen supera los 15 MB.")); else chunks.push(chunk); });

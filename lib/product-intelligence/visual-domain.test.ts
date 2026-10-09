@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { visualFixture } from "./visual-fixtures";
-import { prepareIdentity, prepareVisualPlan, prepareIteration, prepareVisualReview, recordRef, recordValidity, vHash, assetCompatibility, makeVisualRecord, targetKey, prepareBindings } from "./visual-domain";
+import { prepareIdentity, prepareVisualPlan, prepareIteration, prepareVisualReview, recordRef, recordValidity, vHash, assetCompatibility, makeVisualRecord, targetKey, prepareBindings, visualPlanReadiness } from "./visual-domain";
 import { visualInputSchemas } from "./visual-schemas";
 function ready() {
   const f = visualFixture(), i = prepareIdentity(f.state, f.identityInput);
@@ -12,6 +12,44 @@ function ready() {
   return { ...f, plan };
 }
 describe("Contrato visual e invariantes", () => {
+  it("exige aprobar la identidad primero y reencadena los borradores en el mismo batch", () => {
+    const f = visualFixture(), identity = prepareIdentity(f.state, f.identityInput);
+    f.state.records.push(identity); f.state.live[`identity:${identity.id}`] = { hash: vHash({ identity_hash: identity.payload.identity_hash }), value: {}, blocked: false };
+    f.plan.identity_ref = recordRef(identity);
+    const plan = prepareVisualPlan(f.state, f.plan); f.state.records.push(plan);
+    expect(() => prepareVisualReview(f.state, { record_id: plan.id, decision: "approve", reason: "", tags: [] })).toThrow("identidad vigente");
+    const changes = prepareVisualReview(f.state, { record_id: identity.id, decision: "approve", reason: "", tags: [] });
+    const approved = changes[0], chained = changes.find(r => r.kind === "plan")!;
+    expect(chained.status).toBe("review"); expect(chained.payload.identity_ref).toEqual(recordRef(approved));
+    expect(chained.version).toBe(plan.version + 1);
+    f.state.history.push(identity, plan); f.state.records = [approved, chained];
+    const p = prepareVisualReview(f.state, { record_id: plan.id, decision: "approve", reason: "", tags: [] })[0];
+    f.state.records[1] = p; expect(visualPlanReadiness(p, f.state).ready).toBe(true);
+  });
+  it("repara una referencia histórica de aprobación sin adoptar otra identidad física", () => {
+    const f = ready(), head = f.state.records[0], previous = { ...head, version: head.version - 1, status: "review", etag: vHash("prior") };
+    f.state.history.push(previous); f.plan.payload.identity_ref = recordRef(previous);
+    expect(visualPlanReadiness(f.plan, f.state).next_action).toBe("reconcile_plan");
+    const repaired = prepareVisualReview(f.state, { record_id: f.plan.id, decision: "approve", reason: "", tags: [] })[0];
+    expect(repaired.payload.identity_ref).toEqual(recordRef(head));
+    previous.payload = { ...head.payload, preserve: ["Otra forma"] };
+    expect(() => prepareVisualReview(f.state, { record_id: f.plan.id, decision: "approve", reason: "", tags: [] })).toThrow("identidad física cambió");
+  });
+  it("indica reconciliación por estrategia nueva y conserva la validez granular por toma", () => {
+    const f = ready(); f.state.live[`strategy:${f.strategy}`].blocked = true;
+    expect(visualPlanReadiness(f.plan, f.state)).toMatchObject({ ready: false, next_action: "reconcile_plan", reasons: expect.arrayContaining([expect.objectContaining({ code: "strategy_changed" })]) });
+    f.state.live[`strategy:${f.strategy}`].blocked = false;
+    const shots = f.plan.payload.shots as { shot_key: string; dependencies: unknown[] }[];
+    shots.push({ ...shots[0], shot_key: "offer", dependencies: [{ kind: "pricing", key: "current", content_hash: "a".repeat(64), usage: "overlay" }] });
+    expect(visualPlanReadiness(f.plan, f.state, "offer").ready).toBe(false);
+    expect(visualPlanReadiness(f.plan, f.state, "hero").ready).toBe(true);
+  });
+  it("el archivo nativo exige una URL descargable; nunca basta un ID o un path local", () => {
+    const write = { product_id: visualFixture().product, schema_version: "1.0", expected_revision: 3, expected_etag: "a".repeat(64), expected_dependency_stamp: "a".repeat(64), idempotency_key: "native-file-test", iteration_id: visualFixture().identity };
+    expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { file_id: "file-test" } }).success).toBe(false);
+    expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { file_id: "file-test", download_url: "sandbox:/file.png" } }).success).toBe(false);
+    expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { file_id: "file-test", download_url: "https://files.example.test/image" } }).success).toBe(true);
+  });
   it("exige bytes de la base canónica, no acepta una huella inventada", () => {
     const f = visualFixture(); expect(() => prepareIdentity(f.state, { ...f.identityInput, reference_content_hash: vHash("inventado") })).toThrow("imagen base cambió");
     f.state.references = []; expect(() => prepareIdentity(f.state, f.identityInput)).toThrow("imagen base");

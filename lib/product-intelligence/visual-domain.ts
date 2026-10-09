@@ -10,7 +10,7 @@ import type { JsonValue } from "./schemas";
 export const visualReadSchema = z.object({ product_id: z.string().uuid(), revision: z.number().int().nonnegative(), etag: z.string(), dependency_stamp: z.string(),
   records: z.array(visualRecordSchema).max(VISUAL_LIMITS.records), history: z.array(visualRecordSchema),
   live: z.record(z.string(), z.object({ hash: z.string(), value: z.unknown(), blocked: z.boolean().default(false) })),
-  references: z.array(z.object({ id: z.string().uuid(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable(), is_base: z.boolean() })),
+  references: z.array(z.object({ id: z.string().uuid(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable(), is_base: z.boolean(), expires_at: z.string().optional() })),
   targets: z.array(z.object({ key: z.string(), etag: z.string(), value: z.unknown() })),
   files: z.array(z.object({ id: z.string().uuid(), bucket: z.string(), storage_path: z.string(), mime_type: z.string(), width: z.number(), height: z.number(), size_bytes: z.number(), sha256: z.string() })),
   knowledge: z.unknown().optional(), snapshot_id: z.string().uuid().optional() });
@@ -55,6 +55,29 @@ export function recordValidity(r: VisualRecord, state: VisualState): VisualValid
 export function assertCurrent(r: VisualRecord, state: VisualState) {
   if (recordValidity(r, state).state !== "current") invalidVisual("El contenido cambió o necesita revisión antes de usarlo.", "VALIDATION_ERROR");
 }
+/** Las versiones de aprobación cambian el etag, pero no la identidad física. */
+function currentPlanIdentity(ref: VisualRef, state: VisualState, requireApproved = false): VisualRef {
+  const pinned = findVisual(state, ref.id, "identity", ref), head = findVisual(state, ref.id, "identity");
+  if (requireApproved && head.status !== "approved") invalidVisual("Aprueba la identidad vigente antes de aprobar el plan.", "VALIDATION_ERROR");
+  const physical = (r: VisualRecord) => visualIdentitySchema.parse(Object.fromEntries(Object.keys(visualIdentitySchema.shape).map(k => [k, r.payload[k]])));
+  const same = vHash(physical(pinned)) === vHash(physical(head));
+  if (head.status === "approved" && same) return recordRef(head);
+  if (requireApproved && head.etag !== pinned.etag) invalidVisual("La identidad física cambió. Reconcilia el plan con la versión vigente.", "VALIDATION_ERROR");
+  return ref;
+}
+export function visualPlanReadiness(record: VisualRecord, state: VisualState, shotKey?: string) {
+  const ref = record.payload.identity_ref as VisualRef, head = state.records.find(r => r.id === ref.id && r.kind === "identity");
+  const currentStrategy = Object.entries(state.live).find(([key, value]) => key.startsWith("strategy:") && !value.blocked)?.[0].slice("strategy:".length) ?? null;
+  const reasons: { code: string; message: string }[] = [];
+  if (!head || head.status !== "approved") reasons.push({ code: "identity_not_approved", message: "Aprueba la identidad vigente antes de generar." });
+  if (!head || head.etag !== ref.etag || head.version !== ref.version) reasons.push({ code: "identity_version_changed", message: "Reconcilia el plan con la versión aprobada vigente de la identidad." });
+  if (record.payload.strategy_id !== currentStrategy) reasons.push({ code: "strategy_changed", message: "Reconcilia el plan con la estrategia activa." });
+  const shot = shotKey ? (record.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).find(s => s.shot_key === shotKey) : null;
+  if ((shot ? visualValidity(shot.dependencies, state) : recordValidity(record, state)).state !== "current") reasons.push({ code: "dependencies_changed", message: "Revisa las dependencias de las tomas antes de generar." });
+  if (record.status !== "approved") reasons.push({ code: "plan_not_approved", message: "Aprueba el plan vigente antes de generar." });
+  return { ready: !reasons.length, current_strategy_id: currentStrategy, current_identity_ref: head ? recordRef(head) : null,
+    next_action: !head || head.status !== "approved" ? "approve_identity" as const : reasons.some(r => r.code !== "plan_not_approved") ? "reconcile_plan" as const : record.status !== "approved" ? "approve_plan" as const : "generate" as const, reasons };
+}
 export function prepareIdentity(state: VisualState, raw: unknown, id?: string | null): VisualRecord {
   id ??= state.records.find(r => r.kind === "identity")?.id;
   const identity = visualIdentitySchema.parse(raw), base = state.references.find(r => r.is_base);
@@ -95,7 +118,9 @@ export function shotDependencies(state: VisualState, plan: VisualPlan, shot: Vis
   return [...new Map(ds.map(d => [`${d.kind}:${d.key}:${d.usage}`, d])).values()];
 }
 export function prepareVisualPlan(state: VisualState, raw: unknown, id?: string | null): VisualRecord {
-  const plan = visualPlanSchema.parse(raw), identity = findVisual(state, plan.identity_ref.id, "identity", plan.identity_ref);
+  const plan = visualPlanSchema.parse(raw);
+  plan.identity_ref = currentPlanIdentity(plan.identity_ref, state);
+  const identity = findVisual(state, plan.identity_ref.id, "identity", plan.identity_ref);
   assertCurrent(identity, state);
   dep(state, "strategy", plan.strategy_id, "message");
   if (!id && state.records.filter(r => r.kind === "plan" && r.status !== "archived").length >= VISUAL_LIMITS.plans) invalidVisual("Archiva un plan antes de crear otro.", "VALIDATION_ERROR");
@@ -117,6 +142,8 @@ export function planShot(state: VisualState, ref: VisualRef, key: string) {
 }
 export function prepareIteration(state: VisualState, input: { plan_ref: VisualRef; shot_key: string; parent_asset_id: string | null; reference_asset_ids: string[]; based_on_review_ids: string[]; resolved_instruction: string | null; source_system: string; model: string | null }): VisualRecord {
   const { record, plan, shot } = planShot(state, input.plan_ref, input.shot_key), identity = findVisual(state, plan.identity_ref.id, "identity", plan.identity_ref);
+  const readiness = visualPlanReadiness(record, state, input.shot_key);
+  if (!readiness.ready) throw new ProductIntelligenceError("VALIDATION_ERROR", readiness.reasons[0].message, { missing_fields: readiness.reasons.map(r => r.code), next_action: readiness.next_action });
   if (record.status !== "approved" || identity.status !== "approved") invalidVisual("Aprueba la identidad y el plan en DropFlex antes de generar.", "VALIDATION_ERROR");
   if (state.records.find(r => r.id === record.id)?.etag !== record.etag || state.records.find(r => r.id === identity.id)?.etag !== identity.etag) invalidVisual("Usa la versión aprobada vigente del plan y la identidad.");
   if (visualValidity(shot.dependencies, state).state !== "current") invalidVisual("Revisa las dependencias de la toma antes de generar.", "VALIDATION_ERROR");
@@ -166,6 +193,7 @@ export function prepareVisualReview(state: VisualState, input: { record_id: stri
   if (input.decision === "approve") {
     if (record.payload.archived_at) invalidVisual("Vuelve a revisar la pieza archivada antes de aprobarla.", "VALIDATION_ERROR");
     if (record.kind === "binding") invalidVisual("Selecciona el uso después de aprobar la imagen.", "VALIDATION_ERROR");
+    if (record.kind === "plan") payload.identity_ref = currentPlanIdentity(record.payload.identity_ref as VisualRef, state, true);
     const validity = recordValidity(record, state);
     if (record.kind === "asset" && validity.state === "needs_review" && input.reason.trim()) {
       payload.validity_dependencies = (record.payload.dependencies as VisualDependency[]).map(d => ({ ...d, content_hash: state.live[`${d.kind}:${d.key}`].hash }));
@@ -199,7 +227,11 @@ export function prepareVisualReview(state: VisualState, input: { record_id: stri
   const review = makeVisualRecord(state, "review", { subject_id: record.id, subject_version: record.version, result_version: updated.version,
     decision: input.decision, reason: input.reason, tags: input.tags }, "recorded");
   const displaced = status === "selected" ? state.records.filter(r => r.kind === "binding" && r.id !== record.id && r.status === "selected" && r.payload.target_key === record.payload.target_key).map(r => makeVisualRecord(state, "binding", r.payload, "proposed", r.id)) : [];
-  return [...displaced, updated, review];
+  // Solo reencadenar una aprobación de la misma identidad: nunca adoptar una foto nueva.
+  const plans = record.kind === "identity" && input.decision === "approve" ? state.records.filter(p => p.kind === "plan" && p.status !== "archived"
+    && (p.payload.identity_ref as VisualRef).etag === record.etag && (p.payload.identity_ref as VisualRef).id === record.id)
+    .map(p => makeVisualRecord(state, "plan", { ...p.payload, identity_ref: recordRef(updated) }, recordValidity(p, state).state === "current" ? p.status : "review", p.id)) : [];
+  return [...displaced, updated, review, ...plans];
 }
 export function checkVisualPreconditions(state: VisualState, input: { expected_revision: number; expected_etag: string; expected_dependency_stamp: string }, current?: VisualRecord) {
   if (input.expected_revision !== state.revision || input.expected_dependency_stamp !== state.dependency_stamp) throw new ProductIntelligenceError("REVISION_CONFLICT", "El contexto cambió. Recupera la propuesta antes de guardar.");

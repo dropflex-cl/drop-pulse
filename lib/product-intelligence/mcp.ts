@@ -93,8 +93,10 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const available = options.availableTools ?? Object.keys(inputSchemas) as ToolName[];
   const tools: Tool[] = available.map((name) => ({
     name, description: descriptions[name], inputSchema: schemas[name].input, outputSchema: schemas[name].output,
-    ...(name === "get_visual_reference_image" ? { _meta: { ui: { resourceUri: VISUAL_REFERENCE_UI }, "openai/outputTemplate": VISUAL_REFERENCE_UI } } : {}),
-    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy", "authorize_shopify_automation", "publish_product"].includes(name), openWorldHint: name.startsWith("generate_") || name === "ingest_external_visual_asset" || name === "publish_product" },
+    ...(name === "get_visual_reference_image" ? { _meta: { ui: { resourceUri: VISUAL_REFERENCE_UI, visibility: ["model", "app"] }, "openai/outputTemplate": VISUAL_REFERENCE_UI, "openai/widgetAccessible": true } } : {}),
+    ...(name === "ingest_chatgpt_visual_asset" ? { _meta: { "openai/fileParams": ["file"] } } : {}),
+    ...(name === "record_visual_transfer_event" ? { _meta: { ui: { visibility: ["app"] }, "openai/widgetAccessible": true, "openai/visibility": "private" } } : {}),
+    annotations: { readOnlyHint: name.startsWith("get_") || name.startsWith("list_") || name.startsWith("validate_"), idempotentHint: true, destructiveHint: ["patch_product_analysis", "save_research", "set_product_strategy", "authorize_shopify_automation", "publish_product"].includes(name), openWorldHint: name.startsWith("generate_") || ["ingest_external_visual_asset", "ingest_chatgpt_visual_asset"].includes(name) || name === "publish_product" },
   }));
   server.setRequestHandler(ListToolsRequestSchema, async (request) => {
     const cursor = request.params?.cursor;

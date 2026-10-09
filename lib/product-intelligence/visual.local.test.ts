@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { createProductIntelligenceServer } from "./mcp";
+import * as visualMedia from "./visual-media";
 import { visualByteHash } from "./visual-media";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createProductIntelligenceExecutor } from "./knowledge-service";
@@ -82,7 +83,13 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect(await call("save_visual_identity", write)).toEqual(saved);
     await expect(call("save_visual_identity", { ...write, idempotency_key: randomUUID() })).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
     await expect(call("save_visual_identity", { ...write, identity: { ...write.identity, identity_description: "Otro" } })).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
+    const draft = visualFixture().plan; draft.strategy_id = strategyId; draft.identity_ref = { id: identity.id, version: identity.version, etag: identity.etag }; draft.shots[0].angle_id = angleId;
+    const savedPlan = await call("save_visual_generation_plan", { ...await preconditions(), plan: draft });
+    plan = visualRecordSchema.parse((savedPlan.data.records as unknown[])[0]);
+    await expect(approve(plan)).rejects.toThrow("Aprueba");
     identity = await approve(identity);
+    plan = visualRecordSchema.parse((await state()).records.find((r: VisualRecord) => r.id === plan.id));
+    expect(plan.status).toBe("review"); expect(plan.payload.identity_ref).toEqual({ id: identity.id, version: identity.version, etag: identity.etag });
   });
   it("entrega bytes de la base autorizada; rechaza IDs/hashes distintos y otro comerciante", async () => {
     const context = await call("get_visual_generation_context", { product_id: product });
@@ -106,7 +113,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
   });
   it("persiste el plan y congela la toma solo después de la revisión merchant", async () => {
     const value = visualFixture().plan; value.strategy_id = strategyId; value.identity_ref = { id: identity.id, version: identity.version, etag: identity.etag }; value.shots[0].angle_id = angleId;
-    const saved = await call("save_visual_generation_plan", { ...await preconditions(), plan: value }); plan = visualRecordSchema.parse((saved.data.records as unknown[])[0]);
+    const saved = await call("save_visual_generation_plan", { ...await preconditions(), plan_id: plan.id, plan: value }); plan = visualRecordSchema.parse((saved.data.records as unknown[])[0] ?? (await state()).records.find((r: VisualRecord) => r.id === plan.id));
     const input = { plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero", source_system: "chatgpt", resolved_instruction: "Conserva la forma del organizador canónico" };
     await expect(call("prepare_visual_iteration", { ...await preconditions(), ...input })).rejects.toThrow("Aprueba");
     plan = await approve(plan);
@@ -134,6 +141,38 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await call("get_visual_ingestion_status", { product_id: product, operation_id: repeated.data.operation_id })).data.result).toMatchObject({ asset_id: asset.id });
     expect((await state()).files).toHaveLength(1);
   }, 30000);
+  it("archivo nativo de ChatGPT → storage propio; renovar URL no duplica la operación", async () => {
+    const bytes = await sharp({ create: { width: 1000, height: 1000, channels: 3, background: { r: 30, g: 35, b: 40 } } }).png().toBuffer();
+    const download = vi.spyOn(visualMedia, "downloadVisual").mockResolvedValue(bytes);
+    try {
+      const args = { ...await preconditions(), iteration_id: iteration.id,
+        file: { download_url: "https://files.example.test/temporary.png", file_id: "file-native-image", mime_type: "image/png", file_name: "hero.png" } };
+      const ingested = await call("ingest_chatgpt_visual_asset", args);
+      expect((await call("get_visual_ingestion_status", { product_id: product, operation_id: ingested.data.operation_id })).data.state).toBe("pending");
+      await runVisualIngestion(String(ingested.data.operation_id));
+      expect(download).toHaveBeenCalledWith(args.file.download_url, expect.any(AbortSignal), true);
+      expect((await call("get_visual_ingestion_status", { product_id: product, operation_id: ingested.data.operation_id })).data).toMatchObject({ state: "succeeded", result: { asset_id: asset.id } });
+      const replay = await call("ingest_chatgpt_visual_asset", { ...args, file: { ...args.file, download_url: "https://files.example.test/renewed.png" } });
+      expect(replay.data.operation_id).toBe(ingested.data.operation_id);
+      await expect(call("ingest_chatgpt_visual_asset", { ...args, file: { ...args.file, file_id: "file-other" } })).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
+      expect((await state()).files).toHaveLength(1);
+    } finally { download.mockRestore(); }
+  }, 30000);
+  it("diagnósticos idempotentes no cambian CAS ni almacenan URLs o archivos del host", async () => {
+    const before = await preconditions(), attempt = randomUUID();
+    const event = { event_id: randomUUID(), attempt_id: attempt, stage: "host_upload", state: "succeeded", duration_ms: 42,
+      reference_image_id: reference, reference_content_hash: identity.payload.reference_content_hash };
+    const input = { product_id: product, event };
+    await call("record_visual_transfer_event", input); await call("record_visual_transfer_event", input);
+    const history = await call("get_visual_transfer_history", { product_id: product, attempt_id: attempt });
+    expect(history.data.events).toHaveLength(1); expect(history.data.events[0]).toMatchObject({ ...event, reported_by: "widget" });
+    expect((await preconditions()).expected_revision).toBe(before.expected_revision);
+    await expect(call("record_visual_transfer_event", { ...input, event: { ...event, url: "https://secret.test" } })).rejects.toThrow();
+    await expect(call("record_visual_transfer_event", { ...input, event: { ...event, event_id: randomUUID(), reference_image_id: randomUUID() } })).rejects.toThrow();
+    const invalid = await db.rpc("pi_visual_transfer", { p_access: contextAccess(owner), p_product_id: product,
+      p_event: { ...event, event_id: randomUUID(), reported_by: "widget", url: "https://secret.test" } });
+    expect(invalid.error).toBeTruthy();
+  });
   it("selección merchant proyecta portada; conserva feedback, historial y candidatos reutilizables", async () => {
     const context = await call("get_visual_generation_context", { product_id: product });
     const target = (context.data.targets as { key: string; etag: string; value: { target: unknown } }[]).find(t => t.key === "gallery:cover")!;
@@ -210,6 +249,20 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await state()).history.length).toBeGreaterThan(context.history.length);
     expect((await call("get_visual_reuse_candidates", { product_id: product, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero" })).data.items).toMatchObject([{ reuse: { compatible: false } }]);
   });
+  it("un batch con referencia inválida revierte todas las versiones", async () => {
+    const current = await state(), write = await preconditions();
+    const head = current.records.find((r: VisualRecord) => r.id === identity.id) as VisualRecord;
+    const currentPlan = current.records.find((r: VisualRecord) => r.id === plan.id) as VisualRecord;
+    const candidate = { ...head, version: head.version + 1, etag: vHash(randomUUID()) };
+    const broken = { ...currentPlan, version: currentPlan.version + 1, etag: vHash(randomUUID()),
+      payload: { ...currentPlan.payload, identity_ref: { id: candidate.id, version: candidate.version, etag: "0".repeat(64) } } };
+    const result = await db.rpc("pi_commit_visual", { p_access: contextAccess(owner), p_product_id: product,
+      p_tool: "save_visual_generation_plan", p_expected_revision: write.expected_revision, p_etag: write.expected_etag,
+      p_stamp: write.expected_dependency_stamp, p_key: write.idempotency_key, p_hash: vHash(randomUUID()), p_records: [candidate, broken] });
+    expect(result.error?.message).toContain("PI_INVALID_REFERENCE");
+    const after = await state(); expect(after.revision).toBe(current.revision); expect(after.history).toEqual(current.history);
+    expect(after.records).toEqual(current.records);
+  });
   it("lecturas y escrituras fallan sin scopes; versionado inmutable y borrado en cascada", async () => {
     await expect(reviewVisualRecord(repository(), { ...owner, actorKind: "delegated" }, {}, AbortSignal.timeout(1000))).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(call("list_visual_assets", { product_id: product }, { ...owner, scopes: [] })).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -219,7 +272,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     await expect(call("list_visual_assets", { product_id: product })).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await deleteProducts(owner.userId, [product])).toBe(1);
     for (const bucket of ["page-media", "creative-media", "ad-media", "product-references"]) expect((await checked(db.storage.from(bucket).list(`${owner.userId}/${product}`))).data).toEqual([]);
-    for (const table of ["pi_visual_records", "pi_visual_files", "pi_visual_versions", "pi_visual_receipts", "pi_visual_operations", "pi_visual_read_snapshots", "page_images"])
+    for (const table of ["pi_visual_records", "pi_visual_files", "pi_visual_versions", "pi_visual_receipts", "pi_visual_operations", "pi_visual_read_snapshots", "pi_audit_events", "page_images"])
       expect((await checked(db.from(table).select("*", { head: true, count: "exact" }).eq("product_id", product))).count).toBe(0);
   });
 });

@@ -35,6 +35,7 @@ export const toolScopes: Record<ToolName, readonly PiScope[]> = {
   publish_product: ["product_intelligence:read", "product_intelligence:write"],
   review_visual_record: ["product_intelligence:read", "product_intelligence:write"],
   ...Object.fromEntries(visualTools.map(t => [t, t.startsWith("get_") || t.startsWith("list_") ? ["product_intelligence:read"] : ["product_intelligence:read", "product_intelligence:write"]])) as unknown as Record<typeof visualTools[number], readonly PiScope[]>,
+  record_visual_transfer_event: ["product_intelligence:read"],
   list_products: ["product_intelligence:read"],
   get_pdp_planning_context: ["product_intelligence:read"], get_component_catalog: ["product_intelligence:read"],
   get_angle_persuasion_plan: ["product_intelligence:read"], validate_angle_persuasion_plan: ["product_intelligence:read"],

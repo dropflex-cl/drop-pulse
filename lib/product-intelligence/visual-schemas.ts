@@ -43,7 +43,18 @@ const cursor = z.string().min(1).max(1000).optional();
 export const visualWriteSchema = z.strictObject({ ...read, schema_version: z.literal("1.0"), expected_revision: z.number().int().nonnegative().safe(),
   expected_etag: visualHash, expected_dependency_stamp: visualHash, idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false) });
 const write = visualWriteSchema.shape;
+// Contrato de archivos del host: las cuatro propiedades deben estar declaradas.
+export const chatgptVisualFileSchema = z.strictObject({ download_url: z.string().url().max(8000).refine(v => new URL(v).protocol === "https:"),
+  file_id: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/), mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(), file_name: z.string().max(200).optional() });
+export const visualTransferEventSchema = z.strictObject({ event_id: visualUuid, attempt_id: visualUuid,
+  stage: z.enum(["reference_download", "host_upload", "followup", "tool_execution", "ingestion"]), state: z.enum(["started", "succeeded", "failed"]),
+  duration_ms: z.number().int().min(0).max(300000), reference_image_id: visualUuid.optional(), reference_content_hash: visualHash.optional(),
+  iteration_id: visualUuid.optional(), operation_id: visualUuid.optional(), error_code: z.string().regex(/^[A-Z_]{1,80}$/).optional(), tool: z.string().regex(/^[a-z_]{1,80}$/).optional() });
+export const visualReadinessSchema = z.strictObject({ ready: z.boolean(), current_strategy_id: visualUuid.nullable(), current_identity_ref: visualRefSchema.nullable(),
+  next_action: z.enum(["generate", "approve_identity", "reconcile_plan", "approve_plan"]), reasons: z.array(z.strictObject({ code: key, message: text })).max(10) });
 export const visualInputSchemas = {
+  record_visual_transfer_event: z.strictObject({ ...read, event: visualTransferEventSchema }),
+  get_visual_transfer_history: z.strictObject({ ...read, attempt_id: visualUuid.optional() }),
   get_visual_generation_context: z.strictObject({ ...read, strategy_id: visualUuid.optional(), angle_id: visualUuid.optional(), channel: z.enum(["pdp", "gallery", "ad", "ugc"]).optional(), cursor }),
   get_visual_reference_image: z.strictObject({ ...read, reference_image_id: visualUuid, reference_content_hash: visualHash, iteration_id: visualUuid.optional() }),
   get_visual_identity: z.strictObject({ ...read, identity_id: visualUuid.optional(), version: z.number().int().positive().optional() }),
@@ -58,6 +69,7 @@ export const visualInputSchemas = {
     z.strictObject({ type: z.literal("remote_url"), url: z.string().url().max(4000).refine(v => new URL(v).protocol === "https:") }),
     z.strictObject({ type: z.literal("upload_ticket"), ticket_id: visualUuid }),
   ]), generated_at: z.string().datetime().nullable().default(null) }),
+  ingest_chatgpt_visual_asset: z.strictObject({ ...write, iteration_id: visualUuid, file: chatgptVisualFileSchema, generated_at: z.string().datetime().nullable().default(null) }),
   get_visual_ingestion_status: z.strictObject({ ...read, operation_id: visualUuid }),
   bind_visual_asset: z.strictObject({ ...write, asset_id: visualUuid, bindings: z.array(z.strictObject({ target: visualTargetSchema, target_etag: visualHash })).min(1).max(10) }),
   unbind_visual_asset: z.strictObject({ ...write, binding_ids: ids.min(1) }),
@@ -72,6 +84,9 @@ export const visualInputSchemas = {
 export type VisualTool = keyof typeof visualInputSchemas;
 export const visualTools = Object.keys(visualInputSchemas) as VisualTool[];
 export const visualDescriptions: Record<VisualTool, string> = {
+  record_visual_transfer_event: "Registra un evento técnico del cliente sin cambiar revisiones, aprobación ni demostrar que el generador recibió la referencia. No envíes URLs ni tokens.",
+  get_visual_transfer_history: "Lee los últimos 50 eventos de transferencia, separando reportes del cliente de resultados del servidor. No confirma uso de referencia por el generador.",
+  ingest_chatgpt_visual_asset: "Recibe un archivo real de ChatGPT mediante file params y lo copia a DropFlex con la iteración preparada. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado. No genera ni aprueba.",
   get_visual_reference_image: "Entrega la imagen base como contenido de imagen MCP, con ID y hash verificados. Llámala antes de generar y adjunta la imagen devuelta al generador; una URL o descripción no basta. Si el cliente no puede usarla como entrada, pide adjuntar la foto original y no generes. No llama a proveedores.",
   get_visual_generation_context: "Lee contexto visual, referencia canónica consumible, contratos, destinos y capacidades para generar desde el chat; DropFlex no genera.",
   get_visual_identity: "Lee identidad visual vigente o histórica y sus restricciones.", save_visual_identity: "Guarda identidad física con referencia y CAS. Con automatización Shopify autorizada queda aprobada; no cambia la foto base.",
@@ -101,9 +116,9 @@ export const visualReviewInput = z.strictObject({ ...write, record_id: visualUui
   reason: z.string().trim().max(2000).default(""), tags: z.array(z.enum(["wrong_product_shape", "wrong_color", "too_fake", "too_dirty", "bad_composition", "bad_text", "bad_reference_fidelity", "good_product_fidelity", "good_demo", "good_composition"])).max(10).default([]) });
 
 const visualFileView = z.object({ id: visualUuid, bucket: z.string(), storage_path: z.string(), mime_type: z.string(), width: z.number().positive(), height: z.number().positive(), size_bytes: z.number().positive(), sha256: visualHash, url: z.string().url() });
-const visualRecordViewSchema = visualRecordSchema.extend({ validity: visualValiditySchema, reviews: z.array(visualRecordSchema).max(10), file: visualFileView.optional(), shot_validity: z.record(z.string(), visualValiditySchema).optional() });
+const visualRecordViewSchema = visualRecordSchema.extend({ validity: visualValiditySchema, readiness: visualReadinessSchema.optional(), reviews: z.array(visualRecordSchema).max(10), file: visualFileView.optional(), shot_validity: z.record(z.string(), visualValiditySchema).optional() });
 const canonicalView = z.object({ id: visualUuid, storage_path: z.string().nullable(), url: z.string().url().nullable(), mime_type: z.string().nullable(), is_base: z.boolean(),
-  content_hash: visualHash.nullable().optional(), width: z.number().positive().optional(), height: z.number().positive().optional() }).nullable();
+  content_hash: visualHash.nullable().optional(), width: z.number().positive().optional(), height: z.number().positive().optional(), expires_at: z.string().datetime({ offset: true }).optional() }).nullable();
 const targetView = z.strictObject({ key: z.string(), etag: visualHash, value: z.strictObject({ target: visualTargetSchema }) });
 const uploadView = z.strictObject({ url: z.string().url(), token: z.string(), path: z.string(), mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]), size_bytes: z.number().positive().max(VISUAL_LIMITS.uploadBytes), protocol: z.literal("supabase_signed_upload"), expires_at: z.string().datetime({ offset: true }) });
 const operationView = { operation_id: visualUuid, kind: z.enum(["upload", "ingest"]), iteration_id: visualUuid, state: z.enum(["pending", "processing", "succeeded", "failed"]), expires_at: z.string().datetime({ offset: true }),
@@ -118,17 +133,19 @@ export function visualOutputs<E extends z.ZodType>(error: E) {
   const plans = envelope(z.strictObject({ ...commonVisualOutput, current: visualRecordViewSchema.nullable(), shots: visualPage(z.looseObject({ shot_key: z.string(), validity: visualValiditySchema })), identity: visualRecordSchema.nullable(), canonical_reference: canonicalView,
     assets: z.array(visualRecordViewSchema).max(3), items: z.array(z.strictObject({ id: visualUuid, version: z.number().int().positive(), etag: visualHash, name: z.string(), status: z.string() })).max(VISUAL_LIMITS.plans) }));
   return {
+    record_visual_transfer_event: envelope(z.strictObject({ event_id: visualUuid, recorded: z.boolean() })),
+    get_visual_transfer_history: envelope(z.strictObject({ events: z.array(visualTransferEventSchema.extend({ reported_by: z.enum(["widget", "server"]), created_at: z.string() })).max(50) })),
     get_visual_reference_image: envelope(z.strictObject({ ...commonVisualOutput, canonical_reference: canonicalView.unwrap(),
       image: z.strictObject({ mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]), width: z.number().int().positive(), height: z.number().int().positive(), content_hash: visualHash, derived: z.boolean(), delivery: z.literal("mcp_image_content") }),
       next_action: z.string() })),
     get_visual_generation_context: envelope(z.strictObject({ ...commonVisualOutput, product: z.unknown(), context: z.unknown(), pricing: z.unknown(), policies: z.unknown(), selected_strategy: z.unknown(), canonical_reference: canonicalView,
-      identity: visualRecordSchema.nullable(), context_records: visualPage(z.strictObject({ kind: z.string(), value: z.unknown() })), targets: z.array(targetView).max(50), capabilities: z.strictObject({ generation: z.literal("external_only"), ingestion: z.array(z.enum(["remote_url", "upload_ticket"])), approval: z.literal("merchant_ui"), reuse: z.boolean(), max_upload_bytes: z.number(), max_pixels: z.number(), max_plans: z.number(), max_shots: z.number(), max_assets: z.number() }), next_steps: z.array(z.string()) })),
+      identity: visualRecordSchema.nullable(), context_records: visualPage(z.strictObject({ kind: z.string(), value: z.unknown() })), targets: z.array(targetView).max(50), capabilities: z.strictObject({ generation: z.literal("external_only"), ingestion: z.array(z.enum(["remote_url", "upload_ticket", "chatgpt_file"])), approval: z.literal("merchant_ui"), reuse: z.boolean(), max_upload_bytes: z.number(), max_pixels: z.number(), max_plans: z.number(), max_shots: z.number(), max_assets: z.number() }), next_steps: z.array(z.string()) })),
     get_visual_identity: plans, get_visual_generation_plan: plans,
-    save_visual_identity: write, save_visual_generation_plan: write, prepare_visual_iteration: write, record_visual_iteration_result: write, prepare_visual_asset_upload: write, ingest_external_visual_asset: write,
+    save_visual_identity: write, save_visual_generation_plan: write, prepare_visual_iteration: write, record_visual_iteration_result: write, prepare_visual_asset_upload: write, ingest_external_visual_asset: write, ingest_chatgpt_visual_asset: write,
     bind_visual_asset: write, unbind_visual_asset: write, save_visual_reconciliation: write, save_visual_binding_suggestions: write,
     get_visual_ingestion_status: envelope(z.strictObject({ ...commonVisualOutput, ...operationView })),
     list_visual_assets: envelope(z.strictObject({ ...commonVisualOutput, items: z.array(visualRecordViewSchema).max(VISUAL_LIMITS.pageSize), ...pageFields })),
-    get_visual_reconciliation_context: envelope(z.strictObject({ ...commonVisualOutput, plan: visualRecordSchema, shots: z.array(z.strictObject({ shot_key: z.string(), validity: visualValiditySchema })).max(VISUAL_LIMITS.shots), bindings: visualPage(visualRecordSchema.extend({ validity: visualValiditySchema })), identity: z.array(visualRecordSchema) })),
+    get_visual_reconciliation_context: envelope(z.strictObject({ ...commonVisualOutput, plan: visualRecordSchema, readiness: visualReadinessSchema, shots: z.array(z.strictObject({ shot_key: z.string(), validity: visualValiditySchema })).max(VISUAL_LIMITS.shots), bindings: visualPage(visualRecordSchema.extend({ validity: visualValiditySchema })), identity: z.array(visualRecordSchema) })),
     get_visual_reuse_candidates: envelope(z.strictObject({ ...commonVisualOutput, ...pageFields, items: z.array(visualRecordViewSchema.extend({ reuse: z.strictObject({ compatible: z.boolean(), reasons: z.array(z.string()), transformation: z.literal("crop").nullable() }) })).max(VISUAL_LIMITS.pageSize) })),
     get_visual_iteration_history: envelope(z.strictObject({ ...commonVisualOutput, ...pageFields, items: z.array(visualRecordSchema.extend({ reviews: z.array(visualRecordSchema) })).max(VISUAL_LIMITS.pageSize) })),
     get_visual_comparison: envelope(z.strictObject({ ...commonVisualOutput, items: z.array(visualRecordViewSchema).min(2).max(4) })),

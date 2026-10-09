@@ -53,4 +53,10 @@ describe("Ingestión visual · seguridad y bytes", () => {
     const optimized = await optimizeVisual(png); expect(optimized.mime).toBe("image/webp"); expect(optimized.width).toBe(601); expect((await sharp(optimized.data).metadata()).hasAlpha).toBe(true);
     expect(visualByteHash(optimized.data)).toMatch(/^[a-f0-9]{64}$/); expect(visualByteHash(optimized.data)).not.toBe(visualByteHash(png));
   });
+  it("acepta octet-stream solo para archivos del host y sigue exigiendo bytes de imagen válidos", async () => {
+    const bytes = Buffer.from("not an image"), response = { status: 200, headers: { "content-type": "application/octet-stream" }, bytes };
+    network.responses = [response]; await expect(downloadVisual("https://files.example.test/image")).rejects.toThrow("imagen");
+    network.responses = [response]; const downloaded = await downloadVisual("https://files.example.test/image", AbortSignal.timeout(1000), true);
+    expect(downloaded).toEqual(bytes); await expect(optimizeVisual(downloaded)).rejects.toThrow();
+  });
 });

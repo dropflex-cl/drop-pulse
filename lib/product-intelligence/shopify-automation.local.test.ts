@@ -133,8 +133,12 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Shopify automático · consen
  });
  it("identidad y plan PDP se aprueban sin UI; genera y selecciona una portada desde el chat",async()=>{
   const ref=(await chatCall("get_visual_generation_context",{product_id:product})).data.canonical_reference!;
-  const saved=await chatCall("save_visual_identity",{...await visualWrite(),identity:{...visualFixture().identityInput,canonical_reference_image_id:image,reference_content_hash:ref.content_hash}});
-  identity=visualRecordSchema.parse((saved.data.records as unknown[])[0]);expect(identity.status).toBe("approved");
+  const proposal = { ...visualFixture().identityInput, canonical_reference_image_id: image, reference_content_hash: ref.content_hash };
+  // Una propuesta previa existe antes de continuar en el modo automático autorizado.
+  const previous = await call("save_visual_identity", { ...await visualWrite(), identity: proposal });
+  const previousIdentity = visualRecordSchema.parse(previous.data.records[0]); expect(previousIdentity.status).toBe("review");
+  const saved=await chatCall("save_visual_identity",{...await visualWrite(),identity:proposal});
+  identity=visualRecordSchema.parse((saved.data.records as unknown[])[0]);expect(identity.status).toBe("approved"); expect(identity.version).toBe(previousIdentity.version + 1);
   const value=visualFixture().plan;value.strategy_id=plan.strategy_id;value.identity_ref={id:identity.id,version:identity.version,etag:identity.etag};value.shots[0].angle_id=plan.angle_id;
   visualPlan=visualRecordSchema.parse((await chatCall("save_visual_generation_plan",{...await visualWrite(),plan:value})).data.records[0]);expect(visualPlan.status).toBe("approved");
   const it=visualRecordSchema.parse((await chatCall("prepare_visual_iteration",{...await visualWrite(),plan_ref:{id:visualPlan.id,version:visualPlan.version,etag:visualPlan.etag},shot_key:"hero",source_system:"chatgpt",resolved_instruction:"Conserva el organizador de referencia"})).data.records[0]);
