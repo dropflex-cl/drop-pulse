@@ -6,6 +6,7 @@ import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
 import { GalleryPreview } from "./gallery";
 import { ProductBenefitsPreview } from "./product-benefits";
+import { PurchaseSupportsPreview } from "./purchase-supports";
 
 // La ficha en la tienda, en el orden de la PDP del tema (templates/product.json): foto, título, la
 // bajada (df-subtitle), el precio con el ahorro (df-price), la oferta sobre los packs
@@ -84,7 +85,8 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
         ) : content.offer_line ? (
           <p className="text-small font-semibold text-(--df-accent-ink)">{content.offer_line}</p>
         ) : null}
-        <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Agregar al carrito</div>
+        <PurchaseSupportsPreview facts={facts} />
+        <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Pedir y pagar en casa</div>
         <ProductBenefitsPreview benefits={content.gallery_benefits} />
         {slots?.afterButton}
       </div>

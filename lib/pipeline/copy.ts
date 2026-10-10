@@ -14,6 +14,7 @@ import {
 } from "@/lib/product-intelligence/repository";
 import { approvedReviewRows } from "@/lib/reviews/rows";
 import { componentById } from "@/lib/shopify/components/catalog";
+import { ALWAYS_ON_SUPPORTS } from "@/lib/shopify/conversion-supports";
 import type { ImagePick } from "@/lib/types";
 import "server-only";
 import { OptimizeError } from "./errors";
@@ -63,6 +64,8 @@ export async function updateComponent(
   component: string,
   patch: ComponentPatch,
 ) {
+  if (patch.enabled === false && ALWAYS_ON_SUPPORTS.includes(component))
+    throw new OptimizeError("Este componente siempre está visible en la tienda. Puedes editarlo.", 409);
   const row = await getComponentRow(userId, productId, component);
   if (!row)
     throw new OptimizeError(

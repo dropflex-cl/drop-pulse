@@ -10,7 +10,7 @@ export const reviewSlider = defineComponent({
   file: "blocks/df-review-slider.liquid",
   metafield: { namespace: "dropflex", key: "review_slider", type: "json" },
   media: [],
-  minReviews: 3,
+  minReviews: 1,
   placement: "Columna del producto, justo bajo el botón de compra: la voz de otro comprador aparece en el instante de la duda final, en muy poco alto (una reseña a la vez).",
   objection: "¿Y si no es como en las fotos, llega mal o es de mala calidad? En pago contra entrega: ¿vale la pena comprometerme a recibirlo y pagarlo?",
   levers: [

@@ -10,7 +10,7 @@ export const reviewStars = defineComponent({
   file: "blocks/df-review-stars.liquid",
   metafield: { namespace: "dropflex", key: "review_stars", type: "json" },
   media: [],
-  minReviews: 3,
+  minReviews: 1,
   placement: "Columna del producto, sobre el título: es lo primero que se lee de la ficha y colorea la lectura del nombre y del precio que vienen debajo.",
   objection: "¿Es confiable? ¿Alguien más lo compró y le fue bien? Clave en pago contra entrega, donde el comprador llega desde un anuncio y no conoce la tienda.",
   levers: [

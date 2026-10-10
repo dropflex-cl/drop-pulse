@@ -16,7 +16,7 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-stars");
   const rating = Math.min(5, Math.max(0, facts.rating ?? 0));
   const count = facts.count;
-  if (rating <= 0 || count < (Number(s.min_reviews) || 0))
+  if (rating <= 0 || count < 1)
     return <PdpEmptyPreview component="review-stars" />;
 
   // Igual que el Liquid: 4.6 → «4,6», 5 → «5,0»; 1234 → «1.234».
@@ -32,7 +32,7 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   // tienda la descarta.
   const proof = reviewProof(facts.reviews);
   const label = proof
-    ? `${ratingText} · ${proof}`
+    ? `${ratingText} · ${countText} reseñas · ${proof}`
     : template.includes("{count}")
       ? fill(
           template

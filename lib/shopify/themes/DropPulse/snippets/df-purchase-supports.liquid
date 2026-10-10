@@ -1,0 +1,79 @@
+{%- doc -%}
+  Apoyos permanentes antes y después del botón, sin depender de bloques editables.
+  El enlace al PDF nunca se imprime en la ficha pública.
+  @param {object} product
+  @param {string} position
+  @param {object} section
+{%- enddoc -%}
+{%- if product != blank -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-review-state.js' | asset_url }}" defer></script>
+  <div class="df df-purchase-supports" data-df-purchase-supports="{{ position }}" style="{% render 'df-accent-vars', product: product %}">
+    {%- if position == 'before' -%}
+      {% render 'df-google-rating', product: product %}
+      {%- liquid
+        assign policies = shop.metafields.dropflex.policies.value
+        assign guide = product.metafields.dropflex.gift_pdf.value
+        assign guide_title = product.metafields.dropflex.gift_title.value
+        if guide_title == blank
+          assign guide_title = 'Guía de ' | append: product.title
+        endif
+        assign guide_cover = product.metafields.dropflex.gift_cover.value
+      -%}
+      <div data-df-pdp-component="benefit-double-box" data-df-fixed>
+      <p class="df-purchase-supports__heading">Con tu compra</p>
+      <ul class="df-purchase-supports__gifts" role="list">
+        <li class="df-purchase-supports__gift">
+          {% render 'df-icon', name: 'truck' %}
+          <strong>Envío a domicilio</strong>
+          {%- if policies.free_shipping == true -%}
+            {%- if policies.free_shipping_threshold > 0 -%}
+              {%- assign threshold = policies.free_shipping_threshold | times: 100 -%}
+              <span>Gratis desde {{ threshold | money_without_trailing_zeros }}</span>
+            {%- else -%}<span class="df-purchase-supports__badge">Gratis</span>{%- endif -%}
+          {%- else -%}<span>Consulta el costo al pedir</span>{%- endif -%}
+        </li>
+        <li class="df-purchase-supports__gift">
+          {%- if guide_cover != blank -%}
+            {{ guide_cover | image_url: width: 160 | image_tag: width: 64, height: 64, loading: 'lazy', alt: guide_title }}
+          {%- else -%}{% render 'df-icon', name: 'gift' %}{%- endif -%}
+          <strong>{{ guide_title | escape }}</strong>
+          {%- if guide != blank -%}
+            <span class="df-purchase-supports__badge">Regalo con tu compra</span>
+            <span>Descarga en la confirmación del pedido</span>
+          {%- else -%}<span>Guía digital en preparación</span>{%- endif -%}
+        </li>
+      </ul>
+      </div>
+      <p class="df-purchase-supports__proof"><span class="df-purchase-supports__dot" aria-hidden="true"></span><strong data-df-review-count>{{ product.metafields.dropflex.review_summary.value.count | default: 0 }}</strong> reseñas de compradores</p>
+      <script type="application/json" data-df-review-state>{"product_id":{{ product.id | append: '' | json }},"summary":{{ product.metafields.dropflex.review_summary.value | json | replace: '<', '\u003c' }}}</script>
+    {%- else -%}
+      <script src="{{ 'df-inventory.js' | asset_url }}" defer></script>
+      <div data-df-purchase-inventory>{% render 'df-inventory-content', product: product, section: section %}</div>
+      <div data-df-purchase-reviews>
+        <script src="{{ 'df-slider.js' | asset_url }}" defer></script>
+        <script src="{{ 'df-review-slider.js' | asset_url }}" defer></script>
+        {% render 'df-review-slider-content', product: product, section: section %}
+      </div>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-purchase-supports { display: grid; gap: var(--df-gap); width: 100%; margin-block: var(--df-gap); }
+  .df-google-rating { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: calc(var(--df-gap) / 2); border: 1px dashed var(--df-hairline); border-radius: var(--df-radius-sm); padding: calc(var(--df-gap) / 2); font-size: 0.875rem; }
+  .df-google-rating > svg { flex: none; }
+  .df-google-rating a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: calc(var(--df-gap) / 4); min-height: 44px; color: inherit; text-decoration: none; }
+  .df-google-rating__count { color: var(--df-muted); font-size: 0.75rem; }
+  .df-purchase-supports__heading { margin: 0; text-align: center; font-weight: 700; }
+  .df-purchase-supports__gifts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--df-gap) / 2); margin: 0; padding: 0; list-style: none; }
+  .df-purchase-supports__gift { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--df-gap) / 2); padding: var(--df-gap); text-align: center; border-radius: var(--df-radius); background: var(--df-surface); font-size: 0.75rem; }
+  .df-purchase-supports__gift > .df-icon { width: calc(var(--df-gap) * 2); height: calc(var(--df-gap) * 2); }
+  .df-purchase-supports__gift img { object-fit: contain; border-radius: var(--df-radius-sm); }
+  .df-purchase-supports__gift strong { font-size: 0.8125rem; overflow-wrap: anywhere; }
+  .df-purchase-supports__gift > span { color: var(--df-muted); }
+  .df-purchase-supports__gift .df-purchase-supports__badge { color: var(--df-positive); font-weight: 600; }
+  .df-purchase-supports__proof { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: calc(var(--df-gap) / 2); margin: 0; font-size: 0.875rem; color: var(--df-muted); font-variant-numeric: tabular-nums; }
+  .df-purchase-supports__dot { width: calc(var(--df-gap) / 2); height: calc(var(--df-gap) / 2); border-radius: var(--df-radius-pill); background: var(--df-positive); }
+  [data-df-purchase-inventory] { text-align: center; }
+{% endstylesheet %}

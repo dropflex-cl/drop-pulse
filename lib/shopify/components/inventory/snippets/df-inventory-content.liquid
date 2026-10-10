@@ -25,6 +25,7 @@
   assign product = closest.product | default: product
   assign s = block.settings
   # content llega de la variante seleccionada (o del objeto legacy).
+  assign threshold = s.low_stock_threshold | default: 10
   assign logistics = shop.metafields.dropflex.logistics.value
 
   assign handling = logistics.handling_days | default: s.handling_days | plus: 0
@@ -36,10 +37,10 @@
   assign days_min = handling | plus: tmin
   assign days_max = handling | plus: tmax
 
-  assign t_available = content.available_text | default: s.available_text
-  assign t_limited = content.limited_text | default: s.limited_text
-  assign t_sold_out = content.sold_out_text | default: s.sold_out_text
-  assign t_preorder = content.preorder_text | default: s.preorder_text | default: t_available
+  assign t_available = content.available_text | default: s.available_text | default: 'Disponible'
+  assign t_limited = content.limited_text | default: s.limited_text | default: 'Quedan {qty} unidades'
+  assign t_sold_out = content.sold_out_text | default: s.sold_out_text | default: 'Agotado'
+  assign t_preorder = content.preorder_text | default: s.preorder_text | default: 'Disponible para reservar' | default: t_available
   # Sin logística real, informar disponibilidad sin inventar plazos.
   if logistics.transit_days_min == nil or logistics.transit_days_max == nil
     if t_available contains '{min}' or t_available contains '{max}'
@@ -78,7 +79,7 @@
       assign status = 'sold_out'
     elsif tracked and qty <= 0 and variant.inventory_policy == 'continue'
       assign status = 'preorder'
-    elsif tracked and qty > 0 and qty <= s.low_stock_threshold
+    elsif tracked and qty > 0 and qty <= threshold
       assign status = 'limited'
     else
       assign status = 'available'
@@ -105,10 +106,10 @@
 
   <df-inventory
     class="df df-inventory df-inventory--{{ status }}{% if s.pulse %} df-inventory--pulse{% endif %}"
-    style="{% render 'df-accent-vars', product: product %} --df-inventory-size: {{ s.text_size }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
-    data-threshold="{{ s.low_stock_threshold }}"
-    data-show-quantity="{{ s.show_quantity }}"
-    data-show-untracked="{{ s.show_when_untracked }}"
+    style="{% render 'df-accent-vars', product: product %} --df-inventory-size: {{ s.text_size | default: 14 }}px; margin-block: {{ s.margin_top | default: 0 }}px {{ s.margin_bottom | default: 0 }}px;"
+    data-threshold="{{ threshold }}"
+    data-show-quantity="true"
+    data-show-untracked="true"
     data-min="{{ days_min }}"
     data-max="{{ days_max }}"
     data-product-id="{{ product.id }}"

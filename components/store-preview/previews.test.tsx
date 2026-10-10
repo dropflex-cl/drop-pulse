@@ -87,6 +87,16 @@ describe("vistas previas de los componentes", () => {
             expect(html).not.toContain("vendidos esta semana");
             continue;
           }
+          if (c.id === "benefit-double-box") {
+            expect(html).toContain("Con tu compra");
+            expect(html).toContain("Envío a domicilio");
+            expect(html).toContain(`Guía de ${MANY_REVIEWS.productName}`);
+            continue;
+          }
+          if (c.id === "review-slider") {
+            for (const review of MANY_REVIEWS.reviews) expect(html).toContain(escape(review.body));
+            continue;
+          }
           const texts = visibleTexts(example).map((t) =>
             fill(t, MANY_REVIEWS).replaceAll("**", ""),
           );

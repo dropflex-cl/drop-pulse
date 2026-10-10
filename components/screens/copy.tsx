@@ -20,6 +20,7 @@ import {
 } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
+import { ALWAYS_ON_SUPPORTS } from "@/lib/shopify/conversion-supports";
 import { ListingPreview } from "@/components/store-preview/listing";
 import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
@@ -316,7 +317,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   });
 
   /** La página armada como la tienda: los bloques en su lugar de la ficha y después las secciones (escritorio). */
-  const inPage = CATALOG.filter((c) => byId.get(c.id)?.enabled !== false);
+  const inPage = CATALOG.filter((c) => ALWAYS_ON_SUPPORTS.includes(c.id) || byId.get(c.id)?.enabled !== false);
   const draw = (c: (typeof CATALOG)[number]) => {
     const v = byId.get(c.id);
     const Preview = PREVIEWS[c.id];
@@ -334,7 +335,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   for (const slot of ["top", "afterPrice", "afterButton"] as const) {
     const here = inPage.filter(
       (c) =>
-        c.kind === "block" && (LISTING_SLOTS[c.id] ?? "afterButton") === slot,
+        c.kind === "block" && c.id !== "benefit-double-box" && (LISTING_SLOTS[c.id] ?? "afterButton") === slot,
     );
     if (here.length) slots[slot] = here.map(draw);
   }

@@ -87,3 +87,12 @@ Los apoyos comerciales (estrellas, beneficios, inventario, entrega, doble tarjet
 ## PDP completa
 
 Los componentes están visibles por defecto. Sin datos reales muestran un estado vacío para clientes; ya no se ocultan. El estado `{state: "empty"}` permite mantener una sección sin inventar contenido. Las decisiones explícitas de apagar se conservan. Contrato y recorrido: `docs/spec-pdp-completa.md`.
+
+## Apoyos permanentes alrededor de la compra
+
+Google, envío y guía se renderizan desde `buy-buttons`, independientemente del template guardado.
+Estrellas, disponibilidad, carrusel y muro no pueden apagarse. Los apoyos del botón se anclan
+antes o después de él; el carrusel muestra todas las reseñas aprobadas con orden aleatorio
+persistido por producto. Total y nota permanecen reales y se actualizan al publicar.
+La guía solo entrega su enlace en la confirmación del pedido, tras asociar un PDF real.
+Configuración y límites: [`shopify-purchase-supports`](../../../docs/shopify-purchase-supports.md).

@@ -72,7 +72,7 @@ export const PREVIEWS: typeof NATIVE_PREVIEWS = Object.fromEntries(
     function PreviewWithEmpty(props: PreviewProps) {
       const content = props.content as Record<string, unknown> | null;
       if (
-        id !== "listing" &&
+        !["listing", "review-slider", "review-stars"].includes(id) &&
         (!content ||
           (!Object.keys(content).length &&
             !["guarantee", "offer-summary"].includes(id)) ||

@@ -1,4 +1,3 @@
-import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
@@ -26,41 +25,9 @@ interface Pick {
 
 export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-slider");
-  const maxItems = Number(s.max_items) || 0;
-  const minRating = Number(s.min_rating) || 0;
-
-  // Como la tienda: las reseñas que eligió la IA (un id que no existe se omite)…
-  const picks: Pick[] = [];
-  for (const item of content.items ?? []) {
-    if (picks.length >= maxItems) break;
-    const review = item?.review_id
-      ? facts.reviews.find((r) => r.id === item.review_id)
-      : undefined;
-    if (review)
-      picks.push({
-        review,
-        excerpt: item.excerpt || review.body,
-        mode: item.excerpt_mode || "condensed",
-      });
-  }
-  // …o, sin ninguna, las primeras aprobadas con la calificación mínima y el texto completo.
-  if (!picks.length) {
-    for (const review of facts.reviews) {
-      if (picks.length >= maxItems) break;
-      if (
-        review.rating >= minRating &&
-        review.body &&
-        !(s.only_with_photo && !review.photos.length)
-      ) {
-        picks.push({ review, excerpt: review.body, mode: "verbatim" });
-      }
-    }
-  }
-
+  const picks: Pick[] = facts.reviews.map((review) => ({ review, excerpt: review.body, mode: "verbatim" }));
   const total = picks.length;
-  if (!total || facts.count < Number(s.min_reviews)) {
-    return <PdpEmptyPreview component="review-slider" />;
-  }
+  if (!total) return <p className="df df-placeholder" data-df-empty="review-slider">Aún no hay reseñas de este producto.</p>;
 
   let heading = content.heading || String(s.heading ?? "");
   if (heading.includes("{rating}") && !facts.rating)
@@ -86,13 +53,16 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
       <df-slider
         data-autoplay={autoplay ? Number(s.autoplay_delay) * 1000 : undefined}
         data-loop=""
+        role="region"
+        aria-roledescription="carrusel"
+        aria-label="Reseñas de compradores"
       >
         <div className="df-slider__track" data-df-track="">
           {picks.map(({ review, excerpt, mode }, i) => {
             const author = review.author || "Comprador";
             const photo = review.photos[0];
             return (
-              <div key={`${review.id}-${i}`} className="df-review-slider__card">
+              <div key={`${review.id}-${i}`} className="df-review-slider__card" role="group" aria-roledescription="reseña" aria-label={`${i + 1} de ${total}`}>
                 {photoStyle && (
                   <div className="df-review-slider__avatar">
                     {photo ? (
@@ -138,6 +108,12 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
             );
           })}
         </div>
+        {total > 1 && <div className="df-slider__controls">
+          <button type="button" className="df-slider__arrow" data-df-prev="" aria-label="Ver reseña anterior">‹</button>
+          <span data-df-review-page="">1 / {total}</span>
+          <button type="button" className="df-slider__arrow" data-df-pause="" aria-label="Pausar reseñas" aria-pressed="false">Ⅱ</button>
+          <button type="button" className="df-slider__arrow" data-df-next="" aria-label="Ver reseña siguiente">›</button>
+        </div>}
       </df-slider>
     </df-review-slider>
   );

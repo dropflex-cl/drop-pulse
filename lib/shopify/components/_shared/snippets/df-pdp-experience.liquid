@@ -20,7 +20,7 @@
     'offer-summary': 'body',
     'insta-story': 'body', 'review-wall': 'body', 'comparison-table': 'body', 'faq-and-text': 'body',
   };
-    const disabled = {{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || [];
+    const disabled = ({{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || []).filter(id => !['review-stars','review-slider','review-wall','inventory','benefit-double-box'].includes(id));
   const valid = (v) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v);
   const uuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
   const validExperience = (e) => {
@@ -83,6 +83,7 @@
     if (!main) { fallback(); return; }
     for (const section of selected.sections) {
       if (section.component !== 'listing' && !nodes.has(section.component)) { fallback(); return; }
+      if (nodes.get(section.component)?.dataset.dfFixed !== undefined) continue;
       const hosts = section.component === 'listing' ? [...main.querySelectorAll('df-landing-content')].filter(h => ['df-title','df-subtitle','df-pack-offers'].includes(h.dataset.dfComponent))
         : [...nodes.get(section.component).querySelectorAll('df-landing-content')];
       if (section.component === 'listing' && section.content_variant_key !== 'default' && hosts.length !== 3) { fallback(); return; }
@@ -93,6 +94,7 @@
       stream = document.createElement('div'); stream.className = 'df-pdp-stream';
       main.after(stream);
       for (const [component, node] of nodes) {
+        if (node.dataset.dfFixed !== undefined) continue;
         const marker = document.createComment('DropFlex original position'); node.before(marker);
         originals.push({ node, marker, hidden: node.hidden, sectionKey: node.dataset.dfSectionKey, job: node.dataset.dfPersuasionJob, container: node.dataset.dfPdpContainer });
         node.dataset.dfPdpContainer = '';
@@ -101,11 +103,12 @@
       for (const section of selected.sections) {
         const node = nodes.get(section.component);
         if (!node) continue;
+        if (node.dataset.dfFixed !== undefined) continue;
         node.dataset.dfSectionKey = section.section_key; node.dataset.dfPersuasionJob = section.persuasion_job;
         if (section.placement === 'body') stream.append(node);
       }
       // Los componentes no incluidos en el plan conservan visibilidad y orden relativo.
-      for (const [component, node] of nodes) if (placements[component] === 'body' && !selected.sections.some(s => s.component === component)) stream.append(node);
+      for (const [component, node] of nodes) if (node.dataset.dfFixed === undefined && placements[component] === 'body' && !selected.sections.some(s => s.component === component)) stream.append(node);
       window.DropFlexPdp.current = selected;
       window.DropFlexLanding.scan();
       document.dispatchEvent(new CustomEvent('df:experience-selected', { detail: selected }));
@@ -125,7 +128,7 @@
 
 <script>
 (() => {
- const disabled = {{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || [];
+ const disabled = ({{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || []).filter(id => !['review-stars','review-slider','review-wall','inventory','benefit-double-box'].includes(id));
  const apply = () => document.querySelectorAll('[data-df-pdp-component]').forEach(node => {
    if (disabled.includes(node.dataset.dfPdpComponent)) { node.hidden = true; const parent = node.closest('.shopify-section'); if (parent?.querySelectorAll('[data-df-pdp-component]').length === 1) parent.hidden = true; }
  });

@@ -13,6 +13,7 @@ import {
   missingImages,
 } from "@/lib/copy/page-ui";
 import { componentById } from "@/lib/shopify/components/catalog";
+import { ALWAYS_ON_SUPPORTS } from "@/lib/shopify/conversion-supports";
 import { exampleTokens, type StoreFacts } from "@/lib/store-preview/facts";
 import type { CatalogImage, PageComponentView } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function ComponentCard({
 }: ComponentCardProps) {
   const def = componentById(id)!;
   const name = componentName(id);
+  const permanent = ALWAYS_ON_SUPPORTS.includes(id);
   const Preview = PREVIEWS[id];
   const examples = view
     ? exampleTokens(
@@ -186,7 +188,7 @@ export function ComponentCard({
             ) : (
               <span />
             )}
-            <Button
+            {id !== "benefit-double-box" && <Button
               variant="ghost"
               size="sm"
               icon="edit"
@@ -194,18 +196,18 @@ export function ComponentCard({
               aria-label={`Editar ${name}`}
             >
               Editar
-            </Button>
+            </Button>}
           </div>
           <Switch
             label="Usar en la página"
             hint={
-              view.enabled
+              permanent ? "Siempre visible en tu tienda." : view.enabled
                 ? "Va en tu tienda al publicar."
                 : "No va en tu tienda."
             }
             ariaLabel={`Usar ${name} en la página`}
-            checked={view.enabled}
-            disabled={busy}
+            checked={permanent || view.enabled}
+            disabled={busy || permanent}
             onChange={onToggle}
             className="border-t pt-2"
           />

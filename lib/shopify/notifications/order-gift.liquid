@@ -1,0 +1,23 @@
+{% assign delivered_gifts = '|' %}
+{% unless cancelled %}
+  {% for line in line_items %}
+    {% assign gift = line.product.metafields.dropflex.gift_pdf.value %}
+    {% assign gift_id = line.product.id | prepend: '|' | append: '|' %}
+    {% unless delivered_gifts contains gift_id %}
+      {% if gift.url != blank %}
+        {% assign title = line.product.metafields.dropflex.gift_title.value %}
+        {% if title == blank %}
+          {% assign title = 'Guía de ' | append: line.product.title %}
+        {% endif %}
+        <table class="row section">
+          <tr><td class="section__cell">
+            <h3>Tu regalo con la compra de {{ line.title | escape }}</h3>
+            <p>{{ title | escape }}</p>
+            <p><a href="{{ gift.url | escape }}">Descargar mi guía PDF</a></p>
+          </td></tr>
+        </table>
+        {% assign delivered_gifts = delivered_gifts | append: gift_id %}
+      {% endif %}
+    {% endunless %}
+  {% endfor %}
+{% endunless %}

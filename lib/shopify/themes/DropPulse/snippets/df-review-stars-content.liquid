@@ -34,7 +34,7 @@
   assign count = summary.count | default: 0 | plus: 0
 
   assign show = true
-  if product == blank or rating <= 0 or count < s.min_reviews
+  if product == blank or rating <= 0 or count < 1
     assign show = false
   endif
 
@@ -59,7 +59,7 @@
     endcapture
     assign label = content.label | default: s.label
     if proof != blank
-      assign label = rating_text | append: ' · ' | append: proof
+      assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas · ' | append: proof
     elsif label contains '{count}'
       assign label = label | replace: '{count}', count_text | replace: '{rating}', rating_text
     else

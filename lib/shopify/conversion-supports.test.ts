@@ -99,10 +99,11 @@ describe("apoyos comerciales de la PDP", () => {
     ).toBe(false);
   });
   it("respeta exclusiones y restaura el DOM al cambiar de experiencia", () => {
-    const { roots, window } = applyExperience(["review-wall"]);
+    const { roots, window } = applyExperience(["review-wall", "pain-block"]);
     expect(
       roots.find((n) => n.dataset.dfPdpComponent === "review-wall")?.hidden,
-    ).toBe(true);
+    ).toBe(false);
+    expect(roots.find((n) => n.dataset.dfPdpComponent === "pain-block")?.hidden).toBe(true);
     window.DropFlexPdp.restore();
     expect(roots.every((n) => !n.hidden)).toBe(true);
   });

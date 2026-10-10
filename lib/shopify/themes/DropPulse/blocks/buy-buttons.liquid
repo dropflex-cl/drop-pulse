@@ -36,6 +36,8 @@
   endif
 %}
 
+{% render 'df-purchase-supports', product: product, section: section, position: 'before' %}
+
 <span
   class="buy-buttons-block buy-buttons-block--{{ block.id }}"
   {% if block_settings.text_color != blank %}
@@ -256,6 +258,7 @@
     </div>
   {%- endif -%}
 </span>
+{% render 'df-purchase-supports', product: product, section: section, position: 'after' %}
 
 {%- if product != blank -%}
   {% render 'df-gallery-benefits', product: product %}

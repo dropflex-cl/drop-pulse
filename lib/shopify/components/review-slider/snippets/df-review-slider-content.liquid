@@ -32,45 +32,11 @@
 
   assign count = summary.count | default: reviews.size | default: 0 | plus: 0
 
-  # Pares «índice de reseña:índice del ítem de la IA» ('x' = sin ítem: texto completo).
-  assign picked = ''
-  assign n_picked = 0
-  if content.items.size > 0
-    for item in content.items
-      if n_picked >= s.max_items
-        break
-      endif
-      assign item_id = item.review_id | append: ''
-      for review in reviews
-        assign review_id = review.id | append: ''
-        if review_id == item_id and item_id != blank
-          assign picked = picked | append: forloop.index0 | append: ':' | append: forloop.parentloop.index0 | append: ','
-          assign n_picked = n_picked | plus: 1
-          break
-        endif
-      endfor
-    endfor
-  endif
-  if n_picked == 0
-    for review in reviews
-      if n_picked >= s.max_items
-        break
-      endif
-      assign r_rating = review.rating | plus: 0
-      assign r_photos = review.image_count | plus: 0
-      if r_rating >= s.min_rating and review.body != blank
-        unless s.only_with_photo and r_photos == 0
-          assign picked = picked | append: forloop.index0 | append: ':x,'
-          assign n_picked = n_picked | plus: 1
-        endunless
-      endif
-    endfor
-  endif
-  assign pairs = picked | split: ','
-  assign total = pairs.size
+  assign total = reviews.size | default: 0
+  assign last_group = total | minus: 1 | divided_by: 50
 
   assign show = true
-  if product == blank or total == 0 or count < s.min_reviews
+  if product == blank or total == 0
     assign show = false
   endif
 
@@ -97,9 +63,9 @@
     # pantalla y con prefers-reduced-motion (df-slider.js). También se pueden deslizar.
     assign autoplay = 0
     if total > 1
-      assign autoplay = s.autoplay_delay | times: 1000
+      assign autoplay = s.autoplay_delay | default: 5 | times: 1000
     endif
-    assign anchor = s.anchor_id | remove: '#' | strip | handleize
+    assign anchor = s.anchor_id | default: 'resenas' | remove: '#' | strip | handleize
   endif
 -%}
 
@@ -109,9 +75,9 @@
 
 
   <df-review-slider
-    class="df df-review-slider df-review-slider--{{ s.style }}"
+    class="df df-review-slider df-review-slider--{{ s.style | default: 'photo' }}"
     {% if anchor != blank %}id="{{ anchor }}"{% endif %}
-    style="{% render 'df-accent-vars', product: product %} --df-review-lines: {{ s.text_lines }}; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
+    style="{% render 'df-accent-vars', product: product %} --df-review-lines: {{ s.text_lines | default: 2 }}; margin-block: {{ s.margin_top | default: 0 }}px {{ s.margin_bottom | default: 0 }}px;"
     {{ block.shopify_attributes }}
   >
     {%- if heading != blank -%}
@@ -126,22 +92,15 @@
       aria-roledescription="carrusel"
       aria-label="Reseñas de compradores"
     >
-      <div class="df-slider__track" data-df-track>
-        {%- for pair in pairs -%}
+      <div class="df-slider__track" data-df-track data-df-review-order>
+        {%- for group in (0..last_group) -%}
+        {%- assign group_offset = group | times: 50 -%}
+        {%- for review in reviews limit: 50 offset: group_offset -%}
           {%- liquid
-            assign ij = pair | split: ':'
-            assign ri = ij[0] | plus: 0
-            assign review = reviews[ri]
             assign author = review.author | default: 'Comprador'
             assign body = review.body
             assign excerpt = body
             assign mode = 'verbatim'
-            if ij[1] != 'x'
-              assign ci = ij[1] | plus: 0
-              assign ai_item = content.items[ci]
-              assign excerpt = ai_item.excerpt | default: body
-              assign mode = ai_item.excerpt_mode | default: 'condensed'
-            endif
             assign r_rating = review.rating | default: 5 | plus: 0
             assign r_from = review.image_from | plus: 0
             assign r_photos = review.image_count | plus: 0
@@ -152,12 +111,12 @@
             assign stars_label = r_rating | append: ' de 5 estrellas' | replace: '.', ','
           -%}
           <div
-            class="df-review-slider__card"
+            class="df-review-slider__card" data-review-id="{{ review.id | escape }}"
             role="group"
             aria-roledescription="reseña"
-            aria-label="{{ forloop.index }} de {{ total }}"
+            aria-label="{{ forloop.index | plus: group_offset }} de {{ total }}"
           >
-            {%- if s.style == 'photo' -%}
+            {%- if s.style != 'compact' -%}
               <div class="df-review-slider__avatar">
                 {%- if photo != blank -%}
                   {%- assign photo_alt = 'Foto de la reseña de ' | append: author -%}
@@ -198,13 +157,22 @@
             </div>
           </div>
         {%- endfor -%}
+        {%- endfor -%}
       </div>
+      {%- if total > 1 -%}
+        <div class="df-slider__controls">
+          <button type="button" class="df-slider__arrow" data-df-prev aria-label="Ver reseña anterior">{% render 'df-icon', name: 'chevron-left' %}</button>
+          <span data-df-review-page>1 / {{ total }}</span>
+          <button type="button" class="df-slider__arrow" data-df-pause aria-label="Pausar reseñas" aria-pressed="false">{% render 'df-icon', name: 'pause' %}</button>
+          <button type="button" class="df-slider__arrow" data-df-next aria-label="Ver reseña siguiente">{% render 'df-icon', name: 'chevron-right' %}</button>
+        </div>
+      {%- endif -%}
     </df-slider>
   </df-review-slider>
 
-{%- elsif request.design_mode -%}
+{%- elsif product != blank -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
-  <div class="df df-placeholder" {{ block.shopify_attributes }}>
-    Carrusel de reseñas: se muestra cuando el producto tiene al menos {{ s.min_reviews }} reseñas aprobadas en DropFlex.
+  <div class="df df-placeholder" data-df-empty="review-slider" {{ block.shopify_attributes }}>
+    Aún no hay reseñas de este producto.
   </div>
 {%- endif -%}

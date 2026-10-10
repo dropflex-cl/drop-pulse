@@ -394,6 +394,22 @@ selecciona reseñas aprobadas con fotos primero si no existe selección específ
 actividad, nombres ni engagement; inventario y eventos reales son las fuentes de urgencia.
 
 Publicar incluye `dropflex.conversion_supports` (PUBLIC_READ) y conserva las desactivaciones
-expresas del comerciante en `disabled_components`. Ese JSON se publica atómicamente con las
+expresas de componentes opcionales en `disabled_components`. Estrellas, disponibilidad, carrusel,
+muro y tarjetas de envío/regalo son permanentes; sus exclusiones históricas se ignoran. Ese JSON se publica atómicamente con las
 variantes. Este cambio llega al actualizar los archivos del kit; no modifica templates ni
 ajustes guardados del comerciante. Packs, barra fija y eventos conservan sus controles actuales.
+
+## Compra, Google y regalo por producto
+
+Los apoyos del botón se renderizan desde el bloque `buy-buttons`: Google, tarjetas de envío y
+regalo y cantidad de reseñas arriba; stock y carrusel minimalista debajo. Las experiencias
+no mueven las tarjetas. Los templates ya instalados conservan su estructura y el script
+recoloca los bloques históricos sin duplicarlos. Todas las reseñas aprobadas se publican,
+con nota calculada sobre ese mismo conjunto; el orden aleatorio y las cifras reales se guardan
+por producto en localStorage.
+
+El regalo usa archivos y título administrados por el comerciante (`gift_pdf`, `gift_cover`,
+`gift_title`), conservados entre publicaciones. Google lee su propio JSON de tienda
+`google_rating`; nunca se atribuyen a Google las reseñas importadas. La entrega del PDF usa
+la confirmación del pedido, con configuración pendiente en cada tienda. Contrato, pasos y
+limitaciones: [`shopify-purchase-supports.md`](shopify-purchase-supports.md).

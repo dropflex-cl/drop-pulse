@@ -42,6 +42,10 @@ export interface StorePack {
 }
 
 export interface StoreFacts {
+  /** Datos propios de Google; nunca se completan con reseñas importadas. */
+  googleRating?: { rating: number; count: number; url: string };
+  /** Archivo asociado por el comerciante en Shopify. El enlace no llega al preview público. */
+  gift?: { title: string; cover?: string; ready: boolean };
   /** Hechos aprobados/verificados del producto, sin contradicciones activas. */
   verifiedFacts?: { id: string; statement: string }[];
   productName: string;

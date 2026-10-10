@@ -14,6 +14,7 @@ export interface Definition {
   key: string;
   type: string;
   name: string;
+  storefront?: boolean;
 }
 
 /** Todas las que usa el tema, con su tipo (puro). */
@@ -32,6 +33,11 @@ export function definitions(): Definition[] {
     }
   }
   for (const m of Object.values(SHARED_METAFIELDS)) add({ ownerType: m.owner === "shop" ? "SHOP" : "PRODUCT", key: m.key, type: m.type, name: `DropFlex · ${m.key}` });
+  // Los archivos y datos del regalo los administra el comerciante: Publicar no los borra.
+  add({ ownerType: "PRODUCT", key: "gift_pdf", type: "file_reference", name: "DropFlex · PDF de regalo", storefront: false });
+  add({ ownerType: "PRODUCT", key: "gift_title", type: "single_line_text_field", name: "DropFlex · Nombre del regalo" });
+  add({ ownerType: "PRODUCT", key: "gift_cover", type: "file_reference", name: "DropFlex · Portada del regalo" });
+  add({ ownerType: "SHOP", key: "google_rating", type: "json", name: "DropFlex · Reseñas de Google" });
   return [...out.values()];
 }
 
@@ -58,7 +64,7 @@ export async function ensureDefinitions(conn: ShopifyConnection): Promise<number
     const have = new Set(res.metafieldDefinitions.nodes.map((n) => n.key));
     for (const d of all.filter((x) => x.ownerType === owner && !have.has(x.key))) {
       const r = await shopifyMutation<{ metafieldDefinitionCreate: { userErrors: { code: string; message: string }[] } }>(conn, CREATE, {
-        definition: { name: d.name, namespace: "dropflex", key: d.key, type: d.type, ownerType: owner, access: { storefront: "PUBLIC_READ" } },
+        definition: { name: d.name, namespace: "dropflex", key: d.key, type: d.type, ownerType: owner, ...(d.storefront === false ? {} : { access: { storefront: "PUBLIC_READ" } }) },
       });
       const errors = r.metafieldDefinitionCreate.userErrors.filter((e) => e.code !== "TAKEN");
       if (errors.length) throw new PublishError(`Definir el metafield ${d.key}: ${errors.map((e) => e.message).join("; ")}`);

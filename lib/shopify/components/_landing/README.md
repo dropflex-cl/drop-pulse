@@ -140,3 +140,13 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 - `df-price` muestra el pack elegido (`df:pack`) y la barra fija del tema su precio y su nombre. `df-inventory` sigue a la variante de 1 unidad, que no cambia.
 
 Los apoyos comerciales se activan por defecto con datos reales, incluso cuando un recorrido no los enumera. Las desactivaciones explícitas viajan en `dropflex.conversion_supports`. El muro y las reseñas flotantes conservan autores anonimizados; sin engagement decorativo.
+
+## Apoyos permanentes de compra
+
+`df-purchase-supports` se renderiza antes y después de `buy-buttons`. Antes: valoración de
+Google de la tienda (fuente propia, nunca reseñas importadas), tarjetas de envío y guía y
+cantidad real de reseñas. Después: disponibilidad y carrusel de todas las reseñas aprobadas.
+`df-review-state.js` evita duplicados en templates anteriores y conserva el orden del carrusel
+ y la cantidad por producto en localStorage. El enlace del PDF no se incluye en la ficha.
+La plantilla de confirmación está en `lib/shopify/notifications/order-gift.liquid` y requiere
+instalarse una vez en las notificaciones de la tienda. Detalle en `docs/shopify-purchase-supports.md`.

@@ -21,8 +21,6 @@ import { SHARED_METAFIELDS } from "@/lib/shopify/components/define";
  * volver a publicar: se conserva su variante de 1 unidad y se borran las demás.
  */
 export const PACK_OPTION = "Pack";
-/** Tope de reseñas publicadas (las mismas que ve la IA, lib/copy/prompts.ts › REVIEWS_MAX). */
-export const REVIEWS_MAX = 30;
 /**
  * Tope de fotos de reseñas publicadas: las de las 30 reseñas (3 por reseña al importar,
  * lib/reviews/aliexpress.ts › REVIEW_MAX_PHOTOS). Con 40, las reseñas del final quedaban sin fotos y
@@ -372,7 +370,7 @@ export function productMetafields(
         })),
       ),
     );
-  const reviews = input.reviews.slice(0, REVIEWS_MAX);
+  const reviews = input.reviews;
   if (reviews.length) {
     const photos: string[] = [];
     const items = reviews.map((r) => {

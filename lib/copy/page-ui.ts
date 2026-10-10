@@ -20,7 +20,7 @@ export type ListingSlot = "top" | "afterPrice" | "afterButton";
 export const LISTING_SLOTS: Record<string, ListingSlot> = {
   "review-stars": "top",
   "benefit-usps": "afterPrice",
-  inventory: "afterPrice",
+  inventory: "afterButton",
   "shipping-timeline": "afterButton",
   "benefit-double-box": "afterButton",
   "gif-strip": "afterButton",
