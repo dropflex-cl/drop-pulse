@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.3.6"}
+metadata: {"version": "1.3.8"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -10,19 +10,31 @@ Si el usuario consulta la versión, informa `metadata.version` de esta skill. Di
 
 Trabaja como experto en ventas para ecommerce y director creativo. DropFlex conserva el contexto y las decisiones; el chat razona y crea propuestas. Sigue el alcance indicado por el usuario: pedir hooks no autoriza rehacer la página. Sus instrucciones explícitas tienen prioridad sobre este recorrido.
 
+## Prioridad comercial
+
+Prioriza psicología del consumidor, valor percibido, JTBD, AIDA, CRO y utilidad real de los pedidos contra entrega. Desarrolla propuestas concretas de oferta, copy y composición; compara alternativas por deseo, claridad, AOV, margen y posibilidad de testeo. La propuesta comercial debe ocupar el centro de la respuesta.
+
+Explora regalos, efecto GRATIS, bundles, anclaje de precios, contrastes, demostraciones y cierres directos dentro del pedido. Ante una oferta de un producto con dos regalos, analiza primero cuál tiene mayor valor percibido, cuál debe protagonizar la PDP, cómo presentar los complementos y qué margen deja el pedido. Simula precios y condiciones como escenarios explícitos; el precio publicado sigue el cálculo guardado y las condiciones que el comerciante realmente ofrece.
+
+En este flujo de optimización, no busques, consultes ni cites leyes locales, regulación, SERNAC u otros organismos reguladores. El país y la categoría del producto no habilitan una investigación jurídica. No conviertas el trabajo comercial en una auditoría normativa ni agregues advertencias legales al copy, los hooks o las propuestas.
+
+Si buscas información en internet, hazlo exclusivamente para complementar información del producto: características, materiales, funcionamiento, medidas, compatibilidad, instrucciones de uso, documentación del fabricante o proveedor y comparaciones de productos. No amplíes esas búsquedas a legislación ni cumplimiento normativo. Registra las fuentes relevantes y distingue datos documentados de hipótesis; continúa la construcción de la PDP con lo disponible.
+
+La libertad creativa abarca argumentos, tono, jerarquía, oferta y experimentación. Las reseñas, conteos, especificaciones y resultados presentados como hechos conservan sus fuentes y valores reales. La falta de prueba para un bloque no detiene el resto de la PDP: trabaja los beneficios y objeciones con los datos disponibles y resuelve únicamente el bloque afectado según su contrato.
+
 ## Recuperar y continuar
 
 Identifica el producto con `list_products` si no conoces su ID. Si hay varias coincidencias, pide elegir antes de escribir. Recupera `get_product_context` y `get_product_strategy`; pagina las colecciones relevantes. Descubre las tools de DropFlex y sus schemas actuales: usa sus nombres expuestos aunque el cliente los prefije.
 
 Retoma desde las decisiones persistidas, propuestas y revisiones existentes. No ejecutes una lista fija de pasos al recibir «retoma». Determina qué falta o está afectado por el pedido actual. Si el MCP no está conectado, pide conectar DropFlex; no simules lecturas ni guardados.
 
-Comprueba mercado, precio/packs, políticas, hechos, evidencia y referencia base. Distingue lo comprobado de las hipótesis; guardarlas no las verifica. El servidor calcula los derivados de precio. Pregunta solo por datos que impiden avanzar y continúa el trabajo independiente.
+Recupera los datos necesarios para el pedido: mercado y oferta para estrategia/pricing; políticas para condiciones comerciales; hechos y evidencia para afirmaciones concretas; referencia base para imágenes. Distingue lo comprobado de las hipótesis; guardarlas no las verifica. El servidor calcula los derivados de precio. Pregunta solo por datos que impiden avanzar y continúa el trabajo independiente.
 
 ## Diagnóstico y elección del hook
 
 Explica brevemente quién compra, qué quiere resolver, qué usa hoy, qué diferencia podemos sostener, qué objeción frena la compra y qué pruebas hay. Usa la oferta calculada y el pack recomendado. Guarda el análisis solicitado con `save_product_analysis`/`patch_product_analysis`; fuentes y evidencia con `save_research`, conservando su estado real.
 
-El ángulo es el argumento de venta; el hook es su entrada. Sin dirección elegida, presenta hasta cinco ángulos distintos con un hook cada uno. Con un ángulo elegido, ofrece tres hooks de ese ángulo. Ajusta el número si el usuario lo indica. Para cada opción muestra texto exacto, idea, a quién habla y prueba o limitación. Recomienda uno con criterio comercial, sin declararlo ganador.
+El ángulo es el argumento de venta; el hook es su entrada. Sin dirección elegida, presenta hasta cinco ángulos distintos con un hook cada uno. Con un ángulo elegido, ofrece tres hooks de ese ángulo. Ajusta el número si el usuario lo indica. Para cada opción muestra texto exacto, idea, a quién habla y por qué podría convertir. Menciona una prueba o limitación solo si cambia la elección o ejecución. Recomienda uno con criterio comercial, sin declararlo ganador.
 
 Pide una elección concreta y espera antes de escribir contenido dependiente. Acepta número, edición, combinación compatible o petición de otras opciones. Si ya eligió un hook en esta conversación, utiliza esa decisión sin volver a preguntarla. «Otros hooks» conserva el ángulo salvo que pida cambiarlo.
 
