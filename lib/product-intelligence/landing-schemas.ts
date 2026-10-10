@@ -80,6 +80,10 @@ export function landingOutputs<E extends z.ZodType>(error: E) {
           landing_etag: etag,
           contract_version: z.enum(["1.1", "1.2"]),
           context_stale: z.boolean(),
+          appearance: z.strictObject({
+            accent_color: z.string().regex(/^#[0-9a-f]{6}$/),
+            accent_source: z.enum(["product", "default"]),
+          }).optional(),
           catalog: z
             .array(
               z.strictObject({

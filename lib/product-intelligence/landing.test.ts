@@ -7,6 +7,7 @@ import { parseToolInput, parseToolOutput } from "./validation";
 import { createLandingExecutor } from "./landing-service";
 import { copyPhase } from "@/lib/products/stages";
 import { contextFixture } from "./test-fixtures";
+import { DEFAULT_ACCENT } from "@/lib/copy/accent";
 
 const id = randomUUID();
 const owner: Principal = {
@@ -67,6 +68,23 @@ function raw() {
   };
 }
 describe("PI · contenido de Shopify desde chat", () => {
+  it.each(["#0f766e", null])("lee el acento vigente después de autorizar el producto (%s)", async accent => {
+    const repository = { loadLanding: vi.fn(async () => raw()), commitLanding: vi.fn(), loadPageAccent: vi.fn(async () => accent) };
+    const signal = AbortSignal.timeout(1000);
+    const result = await createLandingExecutor(repository)(owner, {
+      tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: id, component: "listing" }),
+    }, signal);
+    expect(result).toMatchObject({ ok: true, data: { appearance: { accent_color: accent ?? DEFAULT_ACCENT, accent_source: accent === null ? "default" : "product" } } });
+    expect(repository.loadPageAccent).toHaveBeenCalledWith(owner.userId, id, signal);
+    expect(repository.loadLanding.mock.invocationCallOrder[0]).toBeLessThan(repository.loadPageAccent.mock.invocationCallOrder[0]);
+  });
+  it("una lectura no autorizada no recupera el acento", async () => {
+    const repository = { loadLanding: vi.fn(async () => { throw new Error("FORBIDDEN"); }), commitLanding: vi.fn(), loadPageAccent: vi.fn() };
+    await expect(createLandingExecutor(repository)(owner, {
+      tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: id }),
+    }, AbortSignal.timeout(1000))).rejects.toThrow("FORBIDDEN");
+    expect(repository.loadPageAccent).not.toHaveBeenCalled();
+  });
   it("deriva todos los componentes del catálogo real, con campos y límites", () => {
     const schema = publishedSchemas().save_landing_content.input;
     expect(JSON.stringify(schema)).toContain("seo_description");

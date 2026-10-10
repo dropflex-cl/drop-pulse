@@ -1,4 +1,5 @@
 import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
+import { DEFAULT_ACCENT } from "@/lib/copy/accent";
 import { pdpProofProblems } from "@/lib/copy/pdp-proof";
 import { isEmptyContent } from "@/lib/copy/page-schema";
 import { pdpBindingSchema } from "./pdp-bindings";
@@ -109,6 +110,10 @@ export function createLandingExecutor(
       const metadata = query.schema_version === "1.2";
       const c = componentById(id),
         row = read.rows.find((r) => r.component === id);
+      // La RPC anterior ya comprobó propiedad y autorización delegada. No lee una revisión histórica.
+      const accent = repository.loadPageAccent && id === "listing"
+        ? await repository.loadPageAccent(principal.userId, input.product_id, signal)
+        : undefined;
       return parseToolOutput("get_landing_content", {
         ok: true,
         product_id: input.product_id,
@@ -118,6 +123,10 @@ export function createLandingExecutor(
           landing_etag: read.landing_etag,
           contract_version: metadata ? "1.2" : "1.1",
           context_stale: read.context_stale,
+          ...(accent !== undefined ? { appearance: {
+            accent_color: accent ?? DEFAULT_ACCENT,
+            accent_source: accent === null ? "default" : "product",
+          } } : {}),
           catalog: [
             {
               component: "listing",

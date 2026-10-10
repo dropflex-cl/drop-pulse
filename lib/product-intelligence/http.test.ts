@@ -8,7 +8,7 @@ import { PI_LIMITS } from "./validation";
 import { inputSchemas } from "./schemas";
 import type { DomainExecutor } from "./mcp";
 import { PI_SCOPES, type PiScope } from "./policy";
-import { OPTIMIZATION_SKILL_URI } from "./mcp-skills";
+import { EBOOK_SKILL_URI, OPTIMIZATION_SKILL_URI } from "./mcp-skills";
 import { attachToolImage } from "./tool-media";
 import { referenceImageContent } from "./visual-reference";
 import sharp from "sharp";
@@ -62,10 +62,13 @@ describe("PI · HTTP oficial", () => {
       await session.client.connect(session.transport);
       const resource = await session.client.readResource({ uri: OPTIMIZATION_SKILL_URI });
       expect(resource.contents[0].uri).toBe(OPTIMIZATION_SKILL_URI);
+      const ebook = await session.client.readResource({ uri: EBOOK_SKILL_URI });
+      expect(ebook.contents[0].uri).toBe(EBOOK_SKILL_URI);
       const anonymous = await session.handler(new Request(oauthTestConfig.resourceUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "resources/read", params: { uri: OPTIMIZATION_SKILL_URI } }) }));
       expect(anonymous.status).toBe(401);
       session.revoke();
       await expect(session.client.readResource({ uri: OPTIMIZATION_SKILL_URI })).rejects.toThrow();
+      await expect(session.client.readResource({ uri: EBOOK_SKILL_URI })).rejects.toThrow();
       expect(execute).not.toHaveBeenCalled();
     } finally { await session.client.close(); }
   });

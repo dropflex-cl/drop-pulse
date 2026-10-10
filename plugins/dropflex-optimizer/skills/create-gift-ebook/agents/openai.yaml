@@ -1,0 +1,11 @@
+interface:
+  display_name: "Crear ebook de regalo"
+  short_description: "Crea un PDF ilustrado para regalar con cada compra"
+  default_prompt: "Usa $create-gift-ebook para crear un ebook de regalo para mi producto, basado en su cliente ideal y ángulo de venta, ilustrado con el acento de su PDP e incluido gratis con cada compra."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "dropflex"
+      description: "Contexto, estrategia y acento de la PDP del producto"
+      transport: "streamable_http"
+      url: "https://drop-pulse.vercel.app/api/mcp"

@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.3.8"}
+metadata: {"version": "1.4.0"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -43,6 +43,8 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 ## Página e imágenes
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
+
+Si el pedido incluye un ebook de regalo, usa la skill `create-gift-ebook`: recupera el contexto y la dirección ya elegidos, crea el PDF con el acento de la PDP y prepara su presentación como regalo permanente con cada compra. Crear el PDF y conectar su entrega a pedidos son resultados distintos; no anuncies entrega automática sin un mecanismo real.
 
 «Completa la PDP» o «actualiza lo faltante» recupera la estructura completa, conserva contenido válido y desarrolla los bloques ausentes o débiles. Reutiliza los hooks elegidos y persistidos; no vuelve a abrir su elección salvo que el usuario pida cambiarlos. Todos los componentes aparecen por defecto: completa cada uno con su contrato y evidencia o su estado vacío, respetando desactivaciones explícitas. Sigue [la PDP completa](references/production.md#pdp-completa-y-contenido-faltante).
 

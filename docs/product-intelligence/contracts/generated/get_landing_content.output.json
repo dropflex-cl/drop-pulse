@@ -156,6 +156,27 @@
             "context_stale": {
               "type": "boolean"
             },
+            "appearance": {
+              "type": "object",
+              "properties": {
+                "accent_color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-f]{6}$"
+                },
+                "accent_source": {
+                  "type": "string",
+                  "enum": [
+                    "product",
+                    "default"
+                  ]
+                }
+              },
+              "required": [
+                "accent_color",
+                "accent_source"
+              ],
+              "additionalProperties": false
+            },
             "catalog": {
               "maxItems": 27,
               "type": "array",
