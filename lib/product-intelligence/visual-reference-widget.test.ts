@@ -37,6 +37,8 @@ describe("Referencia original · transferencia y continuación", () => {
     expect(app.uploadFile).toHaveBeenCalledTimes(1);
     expect(Buffer.from(await app.uploadFile.mock.calls[0][0].arrayBuffer())).toEqual(bytes);
     expect(app.setWidgetState).toHaveBeenCalledWith(expect.objectContaining({ imageIds: ["real-host-file-id"], modelContent: expect.objectContaining({ reference_stage: "host_uploaded", reference_attached: true }) }));
+    expect(app.uploadFile.mock.invocationCallOrder[0]).toBeLessThan(app.setWidgetState.mock.invocationCallOrder[0]);
+    expect(app.setWidgetState.mock.invocationCallOrder[1]).toBeLessThan(app.sendFollowUpMessage.mock.invocationCallOrder[0]);
     expect(app.sendFollowUpMessage.mock.calls[0][0].prompt).toContain("real-host-file-id");
     expect(app.sendFollowUpMessage.mock.calls[0][0].prompt).toContain("Si pidió no generar");
     expect(app.sendFollowUpMessage.mock.calls[0][0].prompt).toContain("entrada real del generador");

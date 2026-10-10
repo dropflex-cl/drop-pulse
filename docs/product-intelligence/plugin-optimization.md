@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.3.2.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.2, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
+Produce `output/plugins/dropflex-optimizer-1.3.3.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.3, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -132,3 +132,11 @@ Contrato de archivos: [referencia oficial de plugins](https://developers.openai.
 Caso observado en ChatGPT móvil: después de «Continuar con la referencia», el chat recuperaba otra tarjeta y volvía a pedir el mismo clic. La tarjeta reutiliza ahora el archivo verificado para el mismo producto/ID/hash sin renovar ni descargar otra vez, y persiste `followup_pending`/`followup_sent` para impedir envíos duplicados al remontar. Un timeout queda `followup_unknown`: no demuestra rechazo del host y requiere continuar manualmente en el chat, sin reenviar desde la tarjeta. Un rechazo confirmado permite reintentar solo el mensaje. La UI se sirve desde `ui://dropflex/visual-reference/v3.html`.
 
 La skill, las instrucciones del servidor y las acciones del contexto reutilizan el adjunto vigente; preparar otra iteración no obliga a adjuntar otra vez. Si el modelo no puede inspeccionar los píxeles o el generador no puede recibir el archivo, se pide la subida manual una sola vez y se detiene esa toma, sin repetir la tarjeta. Subir al host sigue sin demostrar recepción por el modelo o por el generador; esta capacidad requiere verificación en el cliente móvil.
+
+## Referencia pendiente · plugin y skill 1.3.3
+
+Caso observado: el chat seguía verificando la referencia mientras el botón aún esperaba el clic; en un mensaje posterior sí podía ver el archivo. Al mostrar la tarjeta en ChatGPT sin adjunto, la skill y las instrucciones MCP cierran el turno con «Pulsa Usar referencia y continuar para seguir». No se ejecutan más herramientas ni se declara un fallo de acceso antes del clic. La continuación del botón comparte el archivo en otro turno y retoma el pedido original con sus límites y permisos, sin exigir que se repita. Un archivo recibido que realmente siga inaccesible conserva el diagnóstico y el fallback existentes. Los clientes que ya reciben una imagen utilizable directamente no necesitan esa pausa.
+
+La separación de turnos es una instrucción al agente, no un bloqueo impuesto por DropFlex al runtime de ChatGPT. Las pruebas locales comprueban transporte y orden de subida/continuación; falta verificar en ChatGPT móvil la inspección posterior y la entrada real al generador.
+
+La continuación actual se sirve desde `ui://dropflex/visual-reference/v4.html` para evitar conservar el mensaje de una tarjeta anterior. Actualiza las herramientas de la conexión después del despliegue del MCP y prueba en un chat nuevo con la skill 1.3.3.

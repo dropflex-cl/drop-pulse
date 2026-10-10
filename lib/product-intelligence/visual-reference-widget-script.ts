@@ -140,7 +140,7 @@ function referenceWidget() {
             attachedState = { ...attachedState, modelContent: { ...attachedState.modelContent, reference_stage: "followup_pending",
                 instruction: "La referencia original ya está adjunta en imageIds. Reutiliza este archivo para el mismo ID/hash; no vuelvas a pedir get_visual_reference_image ni otro clic. Si no puedes inspeccionarlo o pasarlo al generador, explica el bloqueo y pide adjuntar la original manualmente una sola vez. No generes solo desde texto." } };
             api.setWidgetState(attachedState);
-            await bounded(api.sendFollowUpMessage({ prompt: "Inspecciona la referencia original adjunta de DropFlex (archivo de ChatGPT: " + attachedState.modelContent.reference_file_id
+            await bounded(api.sendFollowUpMessage({ prompt: "El usuario ya pulsó Usar referencia y continuar. Este es el nuevo turno para retomar el pedido pendiente, no para volver a solicitar el clic. Inspecciona la referencia original adjunta de DropFlex (archivo de ChatGPT: " + attachedState.modelContent.reference_file_id
                 + ", referencia canónica: " + attachedState.modelContent.canonical_reference_image_id + ", hash: " + attachedState.modelContent.reference_content_hash
                 + "). El archivo ya está subido y compartido en imageIds: reutilízalo, no vuelvas a llamar get_visual_reference_image para esta referencia ni a solicitar Continuar con la referencia. Comprueba colores, forma, mango y depósito; después continúa con el último pedido del usuario, respetando sus límites y aprobaciones. Si pidió no generar, conserva ese límite. Si autorizó generar, recupera un plan e identidad aprobados y vigentes, y pasa este archivo como entrada real del generador. Si no puedes inspeccionar sus píxeles o pasarlo al generador, detente, explica la limitación y pide adjuntar la original manualmente una sola vez; no repitas la tarjeta. Para guardar el resultado usa ingest_chatgpt_visual_asset y confirma succeeded con get_visual_ingestion_status antes de decir que está guardado." }));
             if (!unchanged()) throw new Error("REFERENCE_CHANGED");
@@ -170,7 +170,7 @@ function referenceWidget() {
         }
     };
     render(host()?.toolOutput);
-    void request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "DropFlex Visual Reference", version: "3.0.0" }, appCapabilities: {} })
+    void request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "DropFlex Visual Reference", version: "4.0.0" }, appCapabilities: {} })
         .then(() => { initialized = true; window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*"); })
         .catch(() => {});
 }
