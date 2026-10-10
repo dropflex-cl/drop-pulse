@@ -1421,9 +1421,9 @@ df-landing-content > [data-df-active] { display: contents; }
 }
 
 @container store (max-width: 749px) {
-  /* El gap del grupo separa ambos lados; ni el formulario ni un bloque vacío lo duplican. */
-  .buy-buttons-block:has(+ .df-gallery-benefits-host .df-gallery-benefits) .product-form-buttons {
-    padding-block-end: 0;
+  /* El gap del grupo separa ambos lados; ni EasySell ni un bloque vacío lo duplican. */
+  .buy-buttons-block:has(+ .df-gallery-benefits-host .df-gallery-benefits) #es-popup-button {
+    margin-block-end: 0;
   }
 
   .df-gallery-benefits-host:has(.df-gallery-benefits) + .payment-icons:not(:has(.payment-icons__item)) {
