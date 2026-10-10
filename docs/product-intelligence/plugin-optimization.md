@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.3.4.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.4, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
+Produce `output/plugins/dropflex-optimizer-1.3.5.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.5, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -150,3 +150,13 @@ La skill exige concretar el copy en `message.overlay_text`, la jerarquía y ubic
 El paquete 1.3.4 y la fuente del MCP requieren actualizar el snapshot del plugin remoto y desplegar el servidor, respectivamente. Una caché instalada o una conversación abierta no cambian al editar estos archivos. La validación local de importación y empaquetado no demuestra la calidad de una generación real; falta verificar el primer lote en el cliente que cargue esta versión.
 
 Actualización remota confirmada: [DropFlex · Optimización](https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa), ID `Plugin_e3bca2a0f2208191a04ed05f2b5904fa`, ámbito personal privado, versión 1.3.4, release `pluginrel_6ac9b52049cc8191b03f09d24a4b3a18`. Se actualizaron la skill, su referencia de producción y las versiones de ambos manifiestos, preservando presentación, conexión y demás archivos. La lectura posterior confirmó el contenido guardado. El ZIP de actualización es `output/plugins/dropflex-optimizer-1.3.4-update.zip`; este guardado no despliega el servidor MCP ni demuestra que una conversación existente haya recargado la skill.
+
+## Transferencia nativa de archivos · plugin y skill 1.3.5
+
+Caso observado: la galería de seis PNG quedó generada, pero el chat reportó rechazo del identificador nativo y falta de permiso para enviar bytes por PUT. El historial del servidor registra tickets preparados que vencieron sin ingestión; no conserva los argumentos rechazados antes de ejecutar la tool, por lo que no permite reconstruir el ID exacto enviado.
+
+El contrato de `file_id` admite ahora un identificador opaco sin imponer un alfabeto de nombres, y `mime_type` es metadata informativa. Se mantienen la URL HTTPS, la validación de destino público, los límites de bytes y la decodificación de la imagen real antes de optimizarla. La skill, el contexto y las instrucciones MCP prefieren adjuntar el archivo nativo: ChatGPT entrega su objeto de transporte y el servidor descarga los bytes. Un ticket `pending` espera un PUT; no demuestra ni inicia ingestión. Sin capacidad de enviar bytes no se preparan tickets adicionales ni se regenera una pieza válida.
+
+Validación: 51 tests de protocolo/skill/contrato/media y 11 de integración con Supabase local, Storage y worker reales, con la descarga externa simulada. La regresión usa un ID opaco sintético con separadores y MIME `application/octet-stream`, confirma asset optimizado, replay con URL renovada e idempotencia. Contratos exportados/validados, TypeScript y lint de archivos afectados pasan. No se transfirieron los seis PNG de la conversación original: esta prueba no certifica que ese cliente móvil entregue un adjunto nativo.
+
+Actualización remota confirmada: [DropFlex · Optimización](https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa), ámbito personal privado, versión 1.3.5, release `pluginrel_6ac9b77701cc8191b8543c8cfa068a3c`. La lectura posterior verificó los cuatro archivos actualizados y que conexión, presentación y demás referencias permanecen intactas. Overlay: `output/plugins/dropflex-optimizer-1.3.5-update.zip`. El servidor y el catálogo de herramientas del cliente también deben cargar el contrato actualizado; guardar el plugin no demuestra esa recarga.

@@ -79,6 +79,8 @@ describe("PI · protocolo MCP oficial", () => {
       const file = native.inputSchema.properties?.file as { properties: Record<string, unknown>; required: string[] };
       expect(Object.keys(file.properties).sort()).toEqual(["download_url", "file_id", "file_name", "mime_type"]);
       expect(file.required.sort()).toEqual(["download_url", "file_id"]);
+      expect(file.properties.file_id).not.toHaveProperty("pattern");
+      expect(file.properties.mime_type).not.toHaveProperty("enum");
       expect(tools.find(tool => tool.name === "get_visual_reference_image")?._meta).toMatchObject({ "openai/widgetAccessible": true, ui: { visibility: ["model", "app"] } });
       expect(tools.find(tool => tool.name === "list_products")).toMatchObject({ annotations: { readOnlyHint: true, destructiveHint: false } });
       expect(tools.map(tool => tool.name)).not.toContain("generate_landing");

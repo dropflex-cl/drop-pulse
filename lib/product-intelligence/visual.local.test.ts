@@ -146,7 +146,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const download = vi.spyOn(visualMedia, "downloadVisual").mockResolvedValue(bytes);
     try {
       const args = { ...await preconditions(), iteration_id: iteration.id,
-        file: { download_url: "https://files.example.test/temporary.png", file_id: "file-native-image", mime_type: "image/png", file_name: "hero.png" } };
+        file: { download_url: "https://files.example.test/temporary.png", file_id: "file-service://generated/gallery/hero.png?version=1", mime_type: "application/octet-stream", file_name: "hero.png" } };
       const ingested = await call("ingest_chatgpt_visual_asset", args);
       expect((await call("get_visual_ingestion_status", { product_id: product, operation_id: ingested.data.operation_id })).data.state).toBe("pending");
       await runVisualIngestion(String(ingested.data.operation_id));

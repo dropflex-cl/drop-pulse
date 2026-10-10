@@ -43,9 +43,10 @@ const cursor = z.string().min(1).max(1000).optional();
 export const visualWriteSchema = z.strictObject({ ...read, schema_version: z.literal("1.0"), expected_revision: z.number().int().nonnegative().safe(),
   expected_etag: visualHash, expected_dependency_stamp: visualHash, idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false) });
 const write = visualWriteSchema.shape;
-// Contrato de archivos del host: las cuatro propiedades deben estar declaradas.
+// Contrato del host: ID opaco y MIME informativo; la URL y los bytes se validan al ingerir.
+// https://developers.openai.com/plugins/reference#define-file-inputs
 export const chatgptVisualFileSchema = z.strictObject({ download_url: z.string().url().max(8000).refine(v => new URL(v).protocol === "https:"),
-  file_id: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/), mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]).optional(), file_name: z.string().max(200).optional() });
+  file_id: z.string().min(1).max(2000), mime_type: z.string().max(200).optional(), file_name: z.string().max(200).optional() });
 export const visualTransferEventSchema = z.strictObject({ event_id: visualUuid, attempt_id: visualUuid,
   stage: z.enum(["reference_download", "host_upload", "followup", "tool_execution", "ingestion"]), state: z.enum(["started", "succeeded", "failed"]),
   duration_ms: z.number().int().min(0).max(300000), reference_image_id: visualUuid.optional(), reference_content_hash: visualHash.optional(),
@@ -86,7 +87,7 @@ export const visualTools = Object.keys(visualInputSchemas) as VisualTool[];
 export const visualDescriptions: Record<VisualTool, string> = {
   record_visual_transfer_event: "Registra un evento técnico del cliente sin cambiar revisiones, aprobación ni demostrar que el generador recibió la referencia. No envíes URLs ni tokens.",
   get_visual_transfer_history: "Lee los últimos 50 eventos de transferencia, separando reportes del cliente de resultados del servidor. No confirma uso de referencia por el generador.",
-  ingest_chatgpt_visual_asset: "Recibe un archivo real de ChatGPT mediante file params y lo copia a DropFlex con la iteración preparada. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado. No genera ni aprueba.",
+  ingest_chatgpt_visual_asset: "Adjunta el archivo generado al parámetro nativo file; ChatGPT entrega download_url y file_id. Conserva el ID opaco del host sin reconstruirlo ni cambiarlo. DropFlex descarga los bytes y los copia a Storage con la iteración preparada. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado. No genera ni aprueba.",
   get_visual_reference_image: "Entrega la imagen base como contenido de imagen MCP, con ID y hash verificados. Úsala si falta el adjunto canónico o cambió el producto, ID o hash; reutiliza un archivo ya adjunto que coincida, sin repetir la tarjeta ni otro clic. En ChatGPT, si muestra la tarjeta y falta el adjunto, termina el turno indicando Pulsa Usar referencia y continuar para seguir. No llames más herramientas ni declares el archivo inaccesible antes del clic; inspecciona y retoma el pedido en el nuevo turno con el archivo. Pasa la imagen como entrada real del generador; una URL o descripción no basta. Si el cliente no puede inspeccionarla o usarla como entrada, pide adjuntar la original manualmente una sola vez y detén esa toma. No llama a proveedores.",
   get_visual_generation_context: "Lee contexto visual, referencia canónica consumible, contratos, destinos y capacidades para generar desde el chat; DropFlex no genera.",
   get_visual_identity: "Lee identidad visual vigente o histórica y sus restricciones.", save_visual_identity: "Guarda identidad física con referencia y CAS. Con automatización Shopify autorizada queda aprobada; no cambia la foto base.",

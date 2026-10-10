@@ -135,7 +135,7 @@ Las respuestas tienen envelope `{ ok, request_id, product_id, revision, data }` 
 
 Transportes soportados:
 
-1. `ingest_chatgpt_visual_asset`: parámetro raíz `file` anunciado mediante `_meta["openai/fileParams"]: ["file"]`. Objeto `{ download_url, file_id, mime_type?, file_name? }` entregado por el host. Reutiliza la ingestión durable existente; no intenta resolver un ID privado de conversación. Solo esta entrada nativa acepta `application/octet-stream`, sujeto a decodificación real y los mismos límites de imagen.
+1. `ingest_chatgpt_visual_asset`: parámetro raíz `file` anunciado mediante `_meta["openai/fileParams"]: ["file"]`. Objeto `{ download_url, file_id, mime_type?, file_name? }` entregado por el host. `file_id` es opaco y se conserva íntegro; `mime_type` es metadata informativa, no sustituye la decodificación de los bytes. Reutiliza la ingestión durable existente; no intenta resolver un ID privado de conversación. Solo esta entrada nativa acepta `application/octet-stream`, sujeto a decodificación real y los mismos límites de imagen.
 2. `remote_url`: URL HTTPS pública temporal, descargada inmediatamente por el worker durable.
 3. `upload_ticket`: prepara URL firmada; el cliente sube bytes con PUT, `Content-Type` y `x-upsert: false`; confirma con `ingest_external_visual_asset` y consulta el resultado.
 

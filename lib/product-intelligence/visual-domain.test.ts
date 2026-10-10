@@ -50,6 +50,13 @@ describe("Contrato visual e invariantes", () => {
     expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { file_id: "file-test", download_url: "sandbox:/file.png" } }).success).toBe(false);
     expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { file_id: "file-test", download_url: "https://files.example.test/image" } }).success).toBe(true);
   });
+  it("conserva IDs opacos y MIME informativo del host sin usarlos como rutas", () => {
+    const write = { product_id: visualFixture().product, schema_version: "1.0", expected_revision: 3, expected_etag: "a".repeat(64), expected_dependency_stamp: "a".repeat(64), idempotency_key: "opaque-file-test", iteration_id: visualFixture().identity };
+    const file = { file_id: "file-service://generated/gallery/hero.png?version=1", download_url: "https://files.example.test/image", mime_type: "application/octet-stream", file_name: "hero.png" };
+    expect(visualInputSchemas.ingest_chatgpt_visual_asset.parse({ ...write, file }).file).toEqual(file);
+    for (const file_id of ["", "x".repeat(2001)]) expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { ...file, file_id } }).success).toBe(false);
+    expect(visualInputSchemas.ingest_chatgpt_visual_asset.safeParse({ ...write, file: { ...file, download_url: undefined } }).success).toBe(false);
+  });
   it("exige bytes de la base canónica, no acepta una huella inventada", () => {
     const f = visualFixture(); expect(() => prepareIdentity(f.state, { ...f.identityInput, reference_content_hash: vHash("inventado") })).toThrow("imagen base cambió");
     f.state.references = []; expect(() => prepareIdentity(f.state, f.identityInput)).toThrow("imagen base");
