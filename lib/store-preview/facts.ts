@@ -44,6 +44,8 @@ export interface StorePack {
 export interface StoreFacts {
   productName: string;
   productImage?: string;
+  /** Portada y galería aprobadas, en el mismo orden que Shopify. */
+  productImages?: string[];
   price: number;
   compareAt?: number;
   currency: string;

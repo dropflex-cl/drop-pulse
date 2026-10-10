@@ -63,6 +63,25 @@ const SIMPLE: ExistingProduct = {
 };
 
 describe("productSet", () => {
+  it("publica beneficios aprobados de la ficha y elimina el metafield al retirarlos", () => {
+    const benefits: NonNullable<PublishInput["listing"]["gallery_benefits"]> = [
+      { icon: "hand", text: "Ajuste fácil" },
+      { icon: "feather", text: "Ligero para usarlo a diario" },
+      { icon: "eye", text: "Discreto bajo la ropa" },
+    ];
+    const result = productMetafields(
+      input({ listing: { ...LISTING, gallery_benefits: benefits } }),
+      gids,
+    );
+    expect(
+      JSON.parse(result.set.find((m) => m.key === "gallery_benefits")!.value),
+    ).toEqual({ items: benefits });
+    expect(result.remove).not.toContain("gallery_benefits");
+    expect(productMetafields(input(), gids).remove).toContain(
+      "gallery_benefits",
+    );
+    expect(productKeys()).toContain("gallery_benefits");
+  });
   it("publica una sola variante, la de 1 unidad: los packs no son variantes (Dropi recibe la cantidad)", () => {
     const p = productSetInput(input(), SIMPLE, gids);
     expect(p.productOptions).toEqual([{ name: "Title", values: [{ name: "Default Title" }] }]);

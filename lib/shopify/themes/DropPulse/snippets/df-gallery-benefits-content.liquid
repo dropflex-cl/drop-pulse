@@ -1,0 +1,22 @@
+{%- doc -%}
+  Tres beneficios de la ficha aprobada, junto a la galería. Sin datos, no ocupa espacio.
+  @param {object} product
+  @param {object} [content] - Variante de listing; no hereda beneficios de otra variante.
+{%- enddoc -%}
+{%- liquid
+  if content != blank
+    assign items = content.gallery_benefits
+  else
+    assign items = product.metafields.dropflex.gallery_benefits.value.items
+  endif
+-%}
+{%- if items.size == 3 -%}
+  <ul class="df-gallery-benefits" aria-label="Beneficios principales" role="list">
+    {%- for item in items -%}
+      <li class="df-gallery-benefits__item">
+        {% render 'df-icon', name: item.icon %}
+        <span>{{ item.text | escape }}</span>
+      </li>
+    {%- endfor -%}
+  </ul>
+{%- endif -%}

@@ -209,6 +209,7 @@ export function productMetafields(input: PublishInput, gids: Map<string, string>
   if (input.experienceManifest) set.push(mf(SHARED_METAFIELDS.landingExperiences.key, "json", input.experienceManifest));
 
   set.push(mf(SHARED_METAFIELDS.subtitle.key, SHARED_METAFIELDS.subtitle.type, input.listing.short_description));
+  if (input.listing.gallery_benefits) set.push(mf(SHARED_METAFIELDS.galleryBenefits.key, "json", { items: input.listing.gallery_benefits }));
   const packs = input.packs.length > 1 ? input.packs : [];
   set.push(
     mf(SHARED_METAFIELDS.offer.key, "json", {

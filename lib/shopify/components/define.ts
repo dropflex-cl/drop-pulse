@@ -72,6 +72,8 @@ export const SHARED_METAFIELDS = {
   landingExperiences: { owner: "product", namespace: "dropflex", key: "landing_experiences", type: "json" },
   landingListing: { owner: "product", namespace: "dropflex", key: "landing_listing", type: "json" },
   subtitle: { owner: "product", namespace: "dropflex", key: "subtitle", type: "single_line_text_field" },
+  /** Producto · json. Tres beneficios { icon, text } de la ficha aprobada, junto a la galería. */
+  galleryBenefits: { owner: "product", namespace: "dropflex", key: "gallery_benefits", type: "json" },
   /**
    * Producto · json. La oferta de la ficha: `offer_line` de la ficha aprobada y los packs del plan de
    * precios con sus etiquetas aprobadas (pack_labels):

@@ -347,6 +347,7 @@
 {% else %}
   <media-gallery
     class="
+      df
       spacing-style
       sticky-content
       {% if media_presentation == 'grid' %}
@@ -361,7 +362,7 @@
         media-gallery--extend
       {% endif %}
     "
-    style="{% render 'spacing-style', settings: block_settings %} --thumbnail-width: {{ block_settings.thumbnail_width }}px; --media-radius: {{ block_settings.media_radius }}px;{% if block_settings.icons_style contains 'large' %} --slideshow-icon-padding: 0px;{% endif %}--image-gap: {{ block_settings.image_gap }}px;{% unless block_settings.aspect_ratio == 'adapt' %} --gallery-aspect-ratio: {{ block_settings.aspect_ratio }};{% endunless %}"
+    style="{% render 'df-accent-vars', product: selected_product %}{% render 'spacing-style', settings: block_settings %} --thumbnail-width: {{ block_settings.thumbnail_width }}px; --media-radius: {{ block_settings.media_radius }}px;{% if block_settings.icons_style contains 'large' %} --slideshow-icon-padding: 0px;{% endif %}--image-gap: {{ block_settings.image_gap }}px;{% unless block_settings.aspect_ratio == 'adapt' %} --gallery-aspect-ratio: {{ block_settings.aspect_ratio }};{% endunless %}"
     data-presentation="{{ media_presentation }}"
     {{ block_shopify_attributes }}
   >
@@ -445,6 +446,10 @@
       {% endcapture %}
     {% endif %}
 
+    {% capture gallery_benefits %}
+      {% render 'df-gallery-benefits', product: selected_product %}
+    {% endcapture %}
+
     {% render 'slideshow',
       ref: 'slideshow',
       class: slideshow_class,
@@ -453,7 +458,8 @@
       slideshow_arrows: slideshow_arrows,
       arrows_position: icons_position,
       animate_arrows: animate_arrows,
-      controls: controls
+      controls: controls,
+      gallery_benefits: gallery_benefits
     %}
 
     {% if media_presentation == 'grid' %}

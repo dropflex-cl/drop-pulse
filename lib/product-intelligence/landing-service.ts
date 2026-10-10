@@ -55,7 +55,11 @@ export function createLandingExecutor(repository: LandingRepository, identity?: 
           ...CATALOG.map((c) => ({ component: c.id, name: c.name, kind: c.kind, min_reviews: c.minReviews ?? 0, available: read.review_count >= (c.minReviews ?? 0) }))],
         contract: { component: id, name: c?.name ?? LISTING_INFO.name, placement: c?.placement ?? LISTING_INFO.placement,
           objection: c?.objection ?? LISTING_INFO.objection, schema: JSON.parse(JSON.stringify(z.toJSONSchema(strictSchema(id) ?? listingSchema, { unrepresentable: "any" }))),
-          rules: c ? [...c.rules, "Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente."] : ["Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir."],
+          rules: c ? [...c.rules, "Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente."] : [
+            "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",
+            "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy y hechos aprobados y verificados.",
+            "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. No inventes certificaciones, resultados ni cifras. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
+          ],
           forbidden: c?.forbidden ?? ["HTML, cifras inventadas, promesas no respaldadas."], real_data: c?.realData ?? ["Precio y packs calculados en el servidor."],
           image_slots: c?.imageSlots ?? [], examples: c?.examples.slice(0, 1) ?? [] },
         current: row ? { ...(metadata ? { metadata: row.pdp_metadata ?? null } : {}), id: row.id, content: row.content ?? row.proposal, enabled: row.enabled, status: row.status, images: row.images } : null,

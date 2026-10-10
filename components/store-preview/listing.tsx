@@ -4,6 +4,7 @@ import type { ListingSlot } from "@/lib/copy/page-ui";
 import { formatMoney, type StorePack } from "@/lib/store-preview/facts";
 import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
+import { GalleryPreview } from "./gallery";
 
 // La ficha en la tienda, en el orden de la PDP del tema (templates/product.json): foto, título, la
 // bajada (df-subtitle), el precio con el ahorro (df-price), la oferta sobre los packs
@@ -59,10 +60,7 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
   const packs = facts.packs ?? [];
   return (
     <div className="df flex flex-col gap-3 pb-4">
-      <div className="aspect-square w-full bg-(--df-surface)">
-        {/* eslint-disable-next-line @next/next/no-img-element -- vista de la tienda: la foto tal cual, como en el tema. */}
-        {facts.productImage ? <img src={facts.productImage} alt="" className="size-full object-cover" /> : null}
-      </div>
+      <GalleryPreview benefits={content.gallery_benefits} facts={facts} />
       <div className="flex flex-col gap-3 px-4">
         {slots?.top}
         <p className="df df-heading df-title">{content.title || facts.productName}</p>

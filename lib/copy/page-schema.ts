@@ -149,6 +149,11 @@ export function pageProblems(out: PageOutput, ids: string[], facts: PageFacts): 
 
   // La pregunta de duración puede llevar números, pero solo los que dio el comerciante.
   if (facts.factText !== undefined) {
+    const listing = parts.find(([id]) => id === LISTING)?.[1] as { gallery_benefits?: { text: string }[] } | undefined;
+    (listing?.gallery_benefits ?? []).forEach((item, i) => {
+      const bad = unsupportedNumbers(item.text, facts.factText!);
+      if (bad.length) problems.push(`listing.gallery_benefits.${i}.text: ${bad.join(", ")} no sale de los datos del producto. Usa solo cifras comprobadas.`);
+    });
     const faq = parts.find(([id]) => id === "faq-and-text")?.[1] as { items?: { topic?: string; answer?: string }[] } | undefined;
     (faq?.items ?? []).forEach((item, i) => {
       if (item.topic !== "duracion" || !item.answer) return;

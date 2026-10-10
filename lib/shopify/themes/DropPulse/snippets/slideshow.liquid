@@ -24,6 +24,7 @@
   @param {string} [arrows_position] - The position of the arrows, defaults to 'bottom'
   @param {string} [attributes] - Additional attributes to add to the slideshow component
   @param {boolean} [header] - The title of the slideshow
+  @param {string} [gallery_benefits] - Approved product benefits beside the media
 
   @example
   {% render 'slideshow', slides: slides, slide_count: collection.products.size, ref: 'mobileSlideshow' %}
@@ -123,6 +124,7 @@
     >
       {{ slides }}
     </slideshow-slides>
+    {{ gallery_benefits }}
   </slideshow-container>
   {{ controls }}
 </slideshow-component>

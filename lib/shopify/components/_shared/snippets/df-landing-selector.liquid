@@ -19,7 +19,7 @@
     const templates = [...host.querySelectorAll(':scope > template[data-df-variant]')];
     if (!active || !templates.length) return;
     const { angle, hook } = selection();
-    const component = ['df-title', 'df-subtitle', 'df-pack-offers'].includes(host.dataset.dfComponent)
+    const component = ['df-title', 'df-subtitle', 'df-pack-offers', 'df-gallery-benefits'].includes(host.dataset.dfComponent)
       ? 'listing' : host.dataset.dfComponent?.replace(/^df-/, '');
     const binding = window.DropFlexPdp?.current?.sections.find((s) => s.component === component);
     const chosen = (binding ? templates.find((t) => t.dataset.dfVariant === binding.content_variant_key) : null)

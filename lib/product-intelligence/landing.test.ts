@@ -30,6 +30,38 @@ describe("PI · contenido de Shopify desde chat", () => {
     const c = CATALOG.find((c) => c.id === "inventory")!;
     expect(() => parseToolInput("save_landing_content", { ...r, entries: [{ component: c.id, content: { ...c.examples[0] as object, actual_stock: 500 } }] })).toThrow();
   });
+  it("listing admite tres beneficios de galería y conserva las fichas anteriores", () => {
+    const benefits = [
+      { icon: "package", text: "Todo en su lugar" },
+      { icon: "eye", text: "Encuentra tus útiles" },
+      { icon: "home", text: "Aprovecha tu escritorio" },
+    ];
+    const save = (gallery_benefits: unknown) =>
+      parseToolInput("save_landing_content", {
+        ...request(),
+        entries: [
+          { component: "listing", content: { ...listing, gallery_benefits } },
+        ],
+      });
+    expect(save(benefits)).toMatchObject({
+      entries: [{ content: { gallery_benefits: benefits } }],
+    });
+    expect(() =>
+      parseToolInput("save_landing_content", request()),
+    ).not.toThrow();
+    for (const invalid of [
+      benefits.slice(1),
+      [...benefits, benefits[0]],
+      [benefits[0], benefits[0], benefits[2]],
+      [{ ...benefits[0], icon: "invented" }, ...benefits.slice(1)],
+      [{ ...benefits[0], text: "<b>Beneficio</b>" }, ...benefits.slice(1)],
+    ]) {
+      expect(() => save(invalid)).toThrow();
+    }
+    expect(
+      JSON.stringify(publishedSchemas().save_landing_content.input),
+    ).toContain("gallery_benefits");
+  });
   it("lee un contrato por llamada con catálogo y datos reales", async () => {
     const repository = { loadLanding: vi.fn(async () => raw()), commitLanding: vi.fn() };
     const run = createLandingExecutor(repository);
@@ -41,6 +73,9 @@ describe("PI · contenido de Shopify desde chat", () => {
     const repository = { loadLanding: vi.fn(async () => raw()), commitLanding: vi.fn() }, run = createLandingExecutor(repository);
     const call = (input: unknown) => run(owner, { tool: "save_landing_content", input: parseToolInput("save_landing_content", input) }, AbortSignal.timeout(1000));
     await expect(call({ ...request(), entries: [{ component: "listing", content: { ...listing, offer_line: "Llévalo por $99.999 · Paga al recibir" } }] })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(call({ ...request(), entries: [{ component: "listing", content: { ...listing, gallery_benefits: [
+      { icon: "ruler", text: "Capacidad de 500 útiles" }, { icon: "eye", text: "Encuentra tus útiles" }, { icon: "home", text: "Aprovecha tu escritorio" },
+    ] } }] })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
     const c = CATALOG.find((c) => c.id === "review-wall")!;
     await expect(call({ ...request(), entries: [{ component: c.id, content: c.examples[0] }] })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
     expect(repository.commitLanding).not.toHaveBeenCalled();
