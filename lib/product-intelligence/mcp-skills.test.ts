@@ -8,8 +8,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createProductIntelligenceServer, type DomainExecutor } from "./mcp";
 import { OPTIMIZATION_SKILL_URI, SKILLS_EXTENSION } from "./mcp-skills";
 import { principalFixture } from "./test-fixtures";
+import pluginManifest from "../../plugins/dropflex-optimizer/plugin.json";
 
-const skillSchema = z.object({ uri: z.string(), frontmatter: z.object({ name: z.string(), description: z.string() }), resources: z.array(z.object({ uri: z.string(), digest: z.string() })) });
+const skillSchema = z.object({ uri: z.string(), frontmatter: z.object({ name: z.string(), description: z.string(), metadata: z.object({ version: z.string() }) }), resources: z.array(z.object({ uri: z.string(), digest: z.string() })) });
 const root = join(process.cwd(), "plugins/dropflex-optimizer/skills/optimize-product");
 async function connect() {
   const execute = vi.fn<DomainExecutor>();
@@ -25,10 +26,12 @@ describe("DropFlex · importación de skill MCP", () => {
     const session = await connect();
     try {
       expect(session.client.getServerCapabilities()?.extensions).toHaveProperty(SKILLS_EXTENSION);
+      expect(session.client.getServerVersion()?.version).toBe(pluginManifest.version);
       const catalog = await session.client.request({ method: "skills/list", params: {} }, z.object({ skills: z.array(skillSchema) }));
       expect(catalog.skills).toHaveLength(1);
       const skill = catalog.skills[0];
       expect(skill.uri).toBe(OPTIMIZATION_SKILL_URI);
+      expect(skill.frontmatter.metadata.version).toBe("1.3.1");
       const direct = await session.client.request({ method: "skills/get", params: { uri: skill.uri } }, z.object({ skill: skillSchema }));
       expect(direct.skill).toEqual(skill);
       const allFiles = (await readdir(root, { recursive: true, withFileTypes: true })).filter(file => file.isFile()).map(file => join(file.parentPath, file.name).slice(root.length + 1).replaceAll("\\", "/"));
@@ -46,7 +49,10 @@ describe("DropFlex · importación de skill MCP", () => {
         expect(resource.digest).toBe(`sha256:${createHash("sha256").update(content.text).digest("hex")}`);
         if (resource.uri === skill.uri) {
           const header = /^---\n([\s\S]*?)\n---/.exec(content.text)![1];
-          expect(Object.fromEntries(header.split("\n").map(line => { const at = line.indexOf(":"); return [line.slice(0, at), line.slice(at + 1).trim()]; }))).toEqual(skill.frontmatter);
+          expect(Object.fromEntries(header.split("\n").map(line => {
+            const at = line.indexOf(":"), value = line.slice(at + 1).trim();
+            return [line.slice(0, at), value.startsWith("{") ? JSON.parse(value) : value];
+          }))).toEqual(skill.frontmatter);
         }
       }
       expect(session.execute).not.toHaveBeenCalled();

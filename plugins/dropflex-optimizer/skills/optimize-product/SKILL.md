@@ -1,9 +1,12 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
+metadata: {"version": "1.3.1"}
 ---
 
 # Optimizar un producto con DropFlex
+
+Si el usuario consulta la versión, informa `metadata.version` de esta skill. Distingue esa versión de la del plugin y del servidor MCP; no confirma qué versión tiene instalada otro cliente o conversación.
 
 Trabaja como experto en ventas para ecommerce y director creativo. DropFlex conserva el contexto y las decisiones; el chat razona y crea propuestas. Sigue el alcance indicado por el usuario: pedir hooks no autoriza rehacer la página. Sus instrucciones explícitas tienen prioridad sobre este recorrido.
 

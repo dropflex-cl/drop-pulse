@@ -1,4 +1,5 @@
 import { visualDescriptions } from "./visual-schemas";
+import pluginManifest from "../../plugins/dropflex-optimizer/plugin.json";
 import { registerOptimizationSkill, SKILLS_EXTENSION } from "./mcp-skills";
 import { randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -84,7 +85,7 @@ export function createProductIntelligenceServer(principal: Principal, execute: D
   const timeoutMs = options.requestTimeoutMs ?? 15_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 15_000) throw new Error("El timeout MCP debe estar entre 1 y 15000 ms.");
   const actor: Principal = Object.freeze({ ...principal, scopes: Object.freeze([...principal.scopes]) });
-  const server = new Server({ name: "dropflex-product-intelligence", version: "1.0.0" }, {
+  const server = new Server({ name: "dropflex-product-intelligence", version: pluginManifest.version }, {
     capabilities: { tools: { listChanged: false }, resources: {}, extensions: { [SKILLS_EXTENSION]: {} } },
     instructions: "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Para imágenes, recupera get_visual_generation_context y get_visual_reference_image: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, pide actualizar la conexión o adjuntar la foto original y no generes esa toma. Guarda propuestas con sus contratos y revisiones actuales. Tras elegir los hooks, si el comerciante autorizó automatizar Shopify, usa authorize_shopify_automation y continúa sin pedir aprobaciones en el SaaS: guarda planes, contenido, imágenes, revisa las piezas mediante review_visual_record y publica con publish_product. Si no hay esa autorización, conserva revisión manual. Nunca lanza campañas en Meta.",
   });

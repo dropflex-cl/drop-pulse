@@ -11,7 +11,7 @@ const files = ["SKILL.md", "agents/openai.yaml", "references/strategy-and-hooks.
 const skillRoot = join(process.cwd(), "plugins/dropflex-optimizer/skills/optimize-product");
 const listSchema = z.object({ method: z.literal("skills/list"), params: z.object({ cursor: z.string().optional() }).optional() });
 const getSchema = z.object({ method: z.literal("skills/get"), params: z.object({ uri: z.string() }) });
-const frontmatterSchema = z.strictObject({ name: z.literal("optimize-product"), description: z.string().min(1) });
+const frontmatterSchema = z.strictObject({ name: z.literal("optimize-product"), description: z.string().min(1), metadata: z.strictObject({ version: z.string().regex(/^\d+\.\d+\.\d+$/) }) });
 
 /** Catálogo estático del paquete; nunca lee un path o URL suministrado por el cliente. */
 async function loadBundle() {
@@ -20,14 +20,14 @@ async function loadBundle() {
     if (Buffer.byteLength(text) > 64 * 1024) throw new Error("El recurso de la skill supera el límite del servidor.");
     return { uri: `skill://dropflex/optimize-product/${path}`, text, digest: `sha256:${createHash("sha256").update(text, "utf8").digest("hex")}` };
   }));
-  // El paquete usa únicamente dos campos escalares en YAML; rechaza ampliaciones sin adaptar el parser.
+  // Subconjunto YAML del paquete: escalares y metadata en JSON inline (también YAML válido).
   const header = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(entries[0].text)?.[1];
   if (!header) throw new Error("La skill no tiene frontmatter.");
   const frontmatter = frontmatterSchema.parse(Object.fromEntries(header.split(/\r?\n/).map(line => {
     const separator = line.indexOf(":");
     const key = line.slice(0, separator).trim(), value = line.slice(separator + 1).trim();
     if (separator < 1 || !value) throw new Error("Frontmatter de skill no válido.");
-    return [key, value.startsWith('"') ? JSON.parse(value) as unknown : value];
+    return [key, value.startsWith('"') || value.startsWith("{") ? JSON.parse(value) as unknown : value];
   })));
   return { entries, skill: { uri: OPTIMIZATION_SKILL_URI, frontmatter, resources: entries.map(({ uri, digest }) => ({ uri, digest })) } };
 }
