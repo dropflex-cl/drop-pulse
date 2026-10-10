@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.3.5"}
+metadata: {"version": "1.3.6"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -31,6 +31,8 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 ## Página e imágenes
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
+
+«Completa la PDP» o «actualiza lo faltante» recupera la estructura completa, conserva contenido válido y desarrolla los bloques ausentes o débiles. Reutiliza los hooks elegidos y persistidos; no vuelve a abrir su elección salvo que el usuario pida cambiarlos. Todos los componentes aparecen por defecto: completa cada uno con su contrato y evidencia o su estado vacío, respetando desactivaciones explícitas. Sigue [la PDP completa](references/production.md#pdp-completa-y-contenido-faltante).
 
 Por defecto, pedir «genera la galería» significa crear piezas comerciales con fotografía del producto y texto integrado en la imagen: titulares dominantes, mensajes breves y recursos gráficos que ayuden a vender. Cada pieza desarrolla un argumento distinto del hook y la estrategia elegidos, con composiciones variadas y lectura clara en móvil. Define y guarda el texto exacto y su ubicación antes de generar, y pásalos al generador; no esperes a que el comerciante pida «más informativas» para hacerlo. Si pide fotos sin texto, respeta esa dirección. Revisa la riqueza informativa y visual junto con la fidelidad al producto siguiendo [la dirección visual](references/production.md#dirección-visual-para-pago-contra-entrega).
 
