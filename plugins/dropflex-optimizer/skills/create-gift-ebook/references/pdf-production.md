@@ -1,88 +1,131 @@
-# Producción del ebook
+# Producción editorial del ebook
 
-El chat escribe y diseña; DropFlex aporta el contexto y el acento. No hay una tool de PDF ni de entrega de regalos en el MCP actual. El script empaquetado genera un archivo local con ReportLab; no llama proveedores, no publica y no consume una clave de IA.
+El chat dirige, escribe y crea los assets. DropFlex aporta hechos, estrategia y la referencia real. El helper compone archivos locales, infiere la paleta desde esa referencia y respeta el orden editorial; no genera imágenes por su cuenta, publica ni configura la entrega con los pedidos.
 
-## Manuscrito editable
+## Dirección visual y assets
 
-Prepara JSON UTF-8 con los campos siguientes. Los nombres del contrato van en inglés; el contenido usa el idioma del mercado. Las rutas de imágenes son locales, relativas al manuscrito o absolutas; el script no descarga URLs.
+Inspecciona primero la referencia real. Selecciona una región que cubra el producto o su envase, evitando fondos que puedan sesgar la paleta. Ejecuta:
+
+```sh
+python scripts/build_ebook.py --inspect-reference assets/product-base.webp --subject-region 0.12 0.10 0.88 0.90
+```
+
+El helper devuelve un acento inferido y su región. Prefiere colores del sujeto suficientemente representados; filtra blancos y negros de fondo y trabaja tonos neutros cuando el producto es neutro. La región usa coordenadas normalizadas [izquierda, arriba, derecha, abajo]. Comprueba visualmente que el tono corresponde al producto; ajusta la región si incluyó un fondo, una mano u otro objeto. No copies el acento informado por DropFlex ni fuerces un color de categoría.
+
+Define una dirección común: paleta inferida, fondos, iluminación, sombras, textura y tratamiento minimalista. Usa esa dirección tanto en todos los prompts como en el PDF. Conserva una imagen protagonista propia de portada y escenas/detalles diferentes para el interior. Cada una debe enseñar algo o apoyar una acción de la guía.
+
+Diseña infografías originales con la información del producto, el objetivo del lector y la acción que quieres explicar. Una rutina de skincare, por ejemplo, se ilustra con pasos y uso confirmado; una guía de organización puede mostrar zonas, agrupaciones o un cierre del día. La forma visual se elige para esa explicación, no de un catálogo fijo de cajas. Puedes crear diagramas sencillos como vectores propios y rasterizarlos para el helper.
+
+Para imágenes e infografías ilustradas usa el generador disponible. Cada llamada que represente el producto lleva su referencia real adjunta; una segunda imagen aprobada puede servir como referencia de estilo, sin sustituir la base. Conserva la identidad: silueta, proporciones, piezas, materiales y detalles confirmados. No inventes funciones, componentes incluidos ni resultados. Inspecciona cada asset antes de maquetar.
+
+Un prompt útil contiene: papel de las imágenes de entrada, propósito de la pieza, contenido exacto, composición, dirección compartida, paleta inferida y elementos que deben conservarse. Guarda el prompt completo con el asset. Si tiene rótulos, pásalos literalmente al generador y revisa su escritura. Los textos educativos importantes también deben estar en bloques seleccionables del PDF.
+
+## Manuscrito 2.0
+
+El contrato anterior de posiciones fijas se reemplaza por bloques ordenados. Para actualizar un ebook anterior, recupera su contenido útil, referencia y assets; crea las piezas faltantes y transforma cada sección en `blocks` según su propósito. No mantengas automáticamente la secuencia de la versión anterior.
+
+Ejemplo abreviado de estructura, no plantilla editorial para todos los productos:
 
 ```json
 {
+  "schema_version": "2.0",
   "title": "Tu espacio, listo para empezar",
   "subtitle": "Una guía práctica para organizar lo que usas a diario",
   "product_name": "Nombre confirmado del producto",
-  "brand": "Nombre confirmado de la tienda",
-  "accent_color": "#1f4bd8",
-  "background": "waves",
-  "product_images": [
+  "product_reference": {
+    "id": "ID de la referencia canónica",
+    "path": "assets/product-base.webp",
+    "subject_region": [0.12, 0.10, 0.88, 0.90]
+  },
+  "visual_direction": {
+    "style": "Minimalismo editorial, luz suave, materiales fieles y sombras discretas",
+    "palette_basis": "Colores del producto y su envase, aislados del fondo"
+  },
+  "background": "plain",
+  "show_contents": false,
+  "cover": {"asset": "cover-scene", "layout": "image_first"},
+  "visual_assets": [
     {
-      "path": "assets/product-base.webp",
-      "caption": "Cómo usar el producto en una acción de esta guía.",
-      "source": "base_reference",
-      "reference_id": "ID de la referencia recuperada"
+      "id": "cover-scene",
+      "kind": "product_image",
+      "path": "assets/cover.png",
+      "contains_product": true,
+      "source": "generated_from_reference",
+      "reference_id": "ID de la referencia canónica",
+      "purpose": "Protagonizar la promesa editorial",
+      "prompt": "Prompt completo utilizado con la referencia adjunta"
+    },
+    {
+      "id": "usage-map",
+      "kind": "infographic",
+      "path": "assets/usage-map.png",
+      "contains_product": true,
+      "source": "generated_from_reference",
+      "reference_id": "ID de la referencia canónica",
+      "purpose": "Explicar una acción aplicable con una composición distinta",
+      "prompt": "Prompt completo de la infografía propia"
     }
   ],
-  "context": {
-    "product_id": "ID real del producto",
-    "strategy_id": "ID real o null si no hay estrategia",
-    "angle": "Argumento elegido",
-    "hook": "Texto elegido",
-    "reader": "Quién compra",
-    "editorial_promise": "Qué podrá aplicar al terminar",
-    "accent_source": "product"
-  },
   "chapters": [
     {
       "title": "Empieza por lo que sí usas",
-      "intro": "Explica el objetivo de este capítulo.",
-      "product_image": 0,
-      "paragraphs": ["Desarrolla una idea útil con un ejemplo concreto."],
-      "steps": ["Una acción aplicable", "La siguiente acción"],
-      "checklist": ["Una comprobación que el lector puede hacer"],
-      "callout": {"title": "Pruébalo hoy", "body": "Una tarea pequeña y concreta."},
-      "illustration": {
-        "kind": "comparison",
-        "title": "Compara tus opciones",
-        "items": ["Opción y explicación", "Otra opción y explicación"],
-        "caption": "Qué enseña este esquema."
-      }
+      "blocks": [
+        {"kind": "paragraph", "text": "Una acción concreta y por qué ayuda."},
+        {
+          "kind": "infographic", "asset": "usage-map", "layout": "wide", "size": "large",
+          "caption": "Qué explica esta pieza y cómo aplicarlo."
+        },
+        {"kind": "callout", "title": "Pruébalo hoy", "body": "Una tarea pequeña."}
+      ]
     }
   ],
-  "sources": [{"label": "Fuente consultada y qué aporta", "url": "https://example.com/documento"}],
+  "context": {
+    "product_id": "ID del producto",
+    "angle": "Argumento elegido",
+    "reader": "Quién compra",
+    "editorial_promise": "Qué podrá aplicar al terminar"
+  },
   "landing_gift": {
     "headline": "Una guía práctica de regalo",
-    "body": "Utilidad concreta del ebook. Incluido gratis con cada compra.",
-    "delivery_note": "Mecanismo real de entrega o pendiente de configurar"
+    "body": "Su utilidad concreta. Incluida gratis con cada compra.",
+    "delivery_note": "Mecanismo real o pendiente de conectar"
   }
 }
+
 ```
 
-El hex de arriba es un ejemplo de contrato: reemplázalo por `data.appearance.accent_color`, nunca lo uses como respaldo si falta el dato. `brand` es opcional si no conoces el nombre; no atribuyas el ebook a DropFlex en lugar de a la tienda. `context` conserva trazabilidad y no se imprime. El texto de `landing_gift` se conserva para la PDP, no se publica automáticamente.
 
-`product_images` es obligatorio y contiene al menos una imagen local legible del producto. Cada entrada lleva `path`, un `caption` útil y `source: "base_reference" | "approved_gallery" | "merchant_upload"`, además del ID/hash disponible para conservar su procedencia. El script valida el archivo y su formato; la skill comprueba que representa el producto correcto. La primera imagen protagoniza la portada. `product_image` en un capítulo selecciona su índice (desde 0); si ningún capítulo lo indica, el primero muestra la imagen base. Puedes reutilizar una misma foto confirmada en portada e interior, sin inventar ángulos fotográficos. Reparte otras fotos aprobadas cuando aporten una explicación concreta.
+`brand`, `context`, `landing_gift` y `sources` son opcionales. Las claves van en inglés; el contenido usa el idioma del mercado. Las rutas son locales, relativas al manuscrito o absolutas. El helper no descarga URLs ni recibe `accent_color`: lo calcula desde `product_reference`.
 
-`background` acepta `waves` (predeterminado) o `plain`. Las ondas son vectoriales, se limitan a los márgenes y usan mezclas muy claras del acento sobre blanco. No se aplican sobre fotografías ni reducen el contraste del contenido.
+Cada asset tiene ID único, PNG/JPEG/WebP legible, propósito, tipo y procedencia. `kind` es `product_image`, `infographic` o `illustration`. `source` es `generated_from_reference`, `generated`, `authored_vector` o `approved_gallery`. Las piezas creadas guardan su prompt; todas las que contengan el producto guardan el ID de la referencia utilizada. El helper comprueba esa trazabilidad declarada; la inspección contra la foto base comprueba la fidelidad real.
 
-`chapters` necesita al menos un capítulo con contenido útil; los campos de contenido son opcionales individualmente. Una infografía interior de tipo `sequence`, `checklist` o `comparison` es obligatoria. Usa las necesarias para explicar las acciones centrales, combinadas con fotos y escenas; una imagen de catálogo por sí sola no sustituye una infografía. Las ilustraciones aceptan:
+La portada requiere un asset propio creado desde la referencia del producto. El interior utiliza una escena/detalle diferente, comprobado también por hash del archivo, y al menos una infografía propia. Una infografía puede contener el producto y cumplir ambos fines. No copies la misma imagen bajo dos nombres. Assets de galería aprobados pueden complementar la guía si son coherentes con su dirección.
 
-- `kind: "sequence" | "checklist" | "comparison"`, `title` opcional, `items` de 2 a 6 textos y `caption` opcional. Son diagramas vectoriales rotulados; cada tipo tiene una presentación diferente.
-- `kind: "image"`, `path` al archivo, `caption` opcional. Usa PNG, JPEG o WebP legible; conserva proporciones y no recorta. Un dibujo preparado específicamente para el capítulo aporta más que una imagen de catálogo repetida.
+## Composición variable
 
-El script escapa el texto: escribe texto plano, no HTML o Markdown de maquetación. Escribe fuentes como enlaces HTTPS reales consultados; no dejes el enlace del ejemplo. Usa acento para la identidad y tinta oscura para el cuerpo. Si el acento es claro, el generador ajusta únicamente el color de texto contrastado, preservando el acento original en los elementos gráficos.
+`cover.layout` acepta `image_first` o `title_first`. Siempre hay portada dedicada, medida para no dividirse ni reducir la tipografía a un tamaño ilegible.
 
-## Generar y revisar
+`show_contents` es opcional y por defecto false: decide si la guía se beneficia de un índice. Los bookmarks existen con o sin índice. `chapters[].start_on_new_page` es opcional y por defecto false: las secciones pueden continuar en la misma página. No impongas un número de capítulos o páginas.
 
-En Codex usa primero `load_workspace_dependencies` para localizar Python y bibliotecas. En otros hosts usa el entorno de ejecución disponible. Necesita `reportlab` y Pillow; para comprobar el PDF usa `pypdf` o `pdfplumber`, y para renderizar Poppler o el renderizador del host. Instala solo dependencias faltantes si el entorno lo permite. Si no puede ejecutar código ni producir un archivo, conserva el manuscrito y comunica esa limitación; no declares que creaste un PDF.
+El orden de `blocks` es el orden exacto de lectura. El helper no inserta una foto debajo del título ni añade una introducción, pasos o checklist por su cuenta:
+
+- `paragraph` / `intro`: texto plano en `text`.
+- `image` / `infographic`: el ID de `asset`, `caption` opcional y tamaño `small`, `medium` o `large`. `layout: wide` aprovecha el ancho, `inset` crea una pieza más pequeña, `image_left` / `image_right` coloca la imagen junto al texto de `aside`. Usa párrafos breves en composiciones laterales para conservar legibilidad.
+- `steps` / `checklist`: lista de `items`, solo donde esa herramienta aporte valor.
+- `callout`: `title` y `body`.
+- `page_break`: salto editorial explícito entre bloques; no al comienzo o cierre de una sección.
+
+Las imágenes mantienen proporciones y transparencia; no se recortan ni estiran. Los fondos y las cajas ya forman parte del asset diseñado: el PDF no los encierra todos en la misma tarjeta. `background: waves` agrega ondas muy tenues en los márgenes; `plain` (predeterminado) mantiene fondo limpio. Todo usa el tono inferido. Las fuentes TTF propias se pasan con `--font-regular` / `--font-bold`; sin ellas usa Helvetica.
+
+## Generar y verificar
+
+Localiza Python/ReportLab/Pillow con las dependencias del host. Para QA usa pypdf/pdfplumber y Poppler o un renderizador disponible.
 
 ```sh
 python scripts/build_ebook.py manuscript.json --output ebook.pdf
 pdftoppm -scale-to 1200 -png ebook.pdf preview/page
 ```
 
-El script acepta `--font-regular` y `--font-bold` para fuentes TTF de la marca cuando están disponibles. Sin ellas usa Helvetica/Helvetica-Bold, compatibles con el español. La paleta neutra y la escala de texto/espaciado proceden de `design-system/tokens.json` de DropFlex (claro); el acento procede del producto. El formato A5 es una decisión editorial del ebook, no una medida nueva de la UI de la app.
+La salida informa páginas y paleta inferida. Conserva ese resultado junto al manuscrito, referencia, región, prompts y assets. Fuentes consultadas se guardan como `sources: [{label, url}]` con HTTPS; el helper las imprime solo si existen.
 
-La portada siempre ocupa la primera página y contiene la promesa editorial, el nombre del producto y su fotografía protagonista. El generador mide título, subtítulo e imagen; si no caben con legibilidad, pide acortar el texto en lugar de partir la portada entre páginas. `cover_illustration` sigue siendo opcional como apoyo adicional, sin sustituir la fotografía del producto.
-
-La presentación es editorial: espacio en blanco, tipografía consistente, una regla de acento discreta, fotos contenidas sin recortar, y ondas suaves en los márgenes. Las secuencias conectan pasos, los checklists usan marcas vectoriales y las comparaciones identifican alternativas. El índice es navegable por capítulos; los saltos de página y las continuaciones se calculan sin reducir el texto a un tamaño ilegible. Cada capítulo debe aportar una acción, ejemplo o recurso que justifique su espacio. El generador imprime fuentes al final solo si hay fuentes reales.
-
-Inspecciona todas las páginas renderizadas a tamaño móvil. Comprueba portada dedicada, fotografía fiel del producto en portada e interior, infografías explicativas y fondo apenas perceptible. Confirma que no hay texto cortado, marcas faltantes, desbordamientos, imágenes deformadas ni páginas con solo un título. Extrae texto y comprueba principio/final de cada capítulo y enlaces. Corrige el manuscrito o la maquetación, regenera y vuelve a revisar el resultado final. Entrega un archivo PDF accesible desde el chat; un enlace mostrado no garantiza entrega con los pedidos.
+Renderiza e inspecciona todas las páginas. Revisa identidad del producto, información y rótulos de las infografías, consistencia con la dirección visual, variedad de composición, contraste, saltos y espacio en blanco. Corrige piezas que no coincidan con la referencia o la estética antes de entregar. Extrae texto y prueba enlaces. Un PDF creado no confirma una experiencia editorial terminada ni entrega automática con las compras.
