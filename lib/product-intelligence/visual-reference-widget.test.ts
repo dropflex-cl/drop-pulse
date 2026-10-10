@@ -53,9 +53,60 @@ describe("Referencia original · transferencia y continuación", () => {
     expect(app.elements["#status"].textContent).toContain("El archivo está subido");
     await app.elements["#attach"].onclick!();
     expect(app.uploadFile).toHaveBeenCalledTimes(1); expect(app.sendFollowUpMessage).toHaveBeenCalledTimes(2);
+    expect(app.callTool.mock.calls.filter(([name]) => name === "get_visual_reference_image")).toHaveLength(1);
     const restored = mount(Buffer.from("original"), { state: app.setWidgetState.mock.calls[0][0] });
     await restored.elements["#attach"].onclick!();
     expect(restored.uploadFile).not.toHaveBeenCalled(); expect(restored.sendFollowUpMessage).toHaveBeenCalledTimes(1);
+    expect(restored.callTool.mock.calls.filter(([name]) => name === "get_visual_reference_image")).toHaveLength(0);
+  });
+  it("no repite el mensaje, consulta ni subida tras continuar, recibir globals o remontar", async () => {
+    const bytes = Buffer.from("original"), app = mount(bytes);
+    app.setWidgetState.mockImplementation(state => { app.window.openai.widgetState = state; app.listeners["openai:set_globals"]({}); });
+    await app.elements["#attach"].onclick!();
+    app.listeners["openai:set_globals"]({});
+    expect(app.elements["#attach"].disabled).toBe(true);
+    expect(app.elements["#status"].textContent).toContain("ya se compartió");
+    await app.elements["#attach"].onclick!();
+    expect(app.sendFollowUpMessage).toHaveBeenCalledTimes(1);
+    expect(app.callTool.mock.calls.filter(([name]) => name === "get_visual_reference_image")).toHaveLength(1);
+    const state = app.window.openai.widgetState;
+    const restored = mount(bytes, { state, expired: true });
+    expect(restored.elements["#attach"].disabled).toBe(true);
+    await restored.elements["#attach"].onclick!();
+    expect(restored.sendFollowUpMessage).not.toHaveBeenCalled(); expect(restored.uploadFile).not.toHaveBeenCalled();
+    const changed = mount(Buffer.from("new reference"), { state });
+    expect(changed.elements["#attach"].disabled).toBe(false);
+    await changed.elements["#attach"].onclick!();
+    expect(changed.sendFollowUpMessage).toHaveBeenCalledTimes(1); expect(changed.uploadFile).toHaveBeenCalledTimes(1);
+  });
+  it("continúa con el archivo ya subido aunque venza la URL y fallen las consultas de referencia", async () => {
+    const bytes = Buffer.from("original"), app = mount(bytes);
+    app.sendFollowUpMessage.mockRejectedValueOnce(new Error("rejected"));
+    await app.elements["#attach"].onclick!();
+    const restored = mount(bytes, { state: app.setWidgetState.mock.calls[0][0], expired: true });
+    restored.callTool.mockRejectedValue(new Error("reference unavailable"));
+    await restored.elements["#attach"].onclick!();
+    expect(restored.fetcher).not.toHaveBeenCalled(); expect(restored.uploadFile).not.toHaveBeenCalled();
+    expect(restored.callTool.mock.calls.filter(([name]) => name === "get_visual_reference_image")).toHaveLength(0);
+    expect(restored.sendFollowUpMessage).toHaveBeenCalledTimes(1);
+    expect(restored.sendFollowUpMessage.mock.calls[0][0].prompt).toContain("no vuelvas a llamar get_visual_reference_image");
+    expect(restored.sendFollowUpMessage.mock.calls[0][0].prompt).toContain("una sola vez; no repitas la tarjeta");
+  });
+  it("persiste el envío pendiente e impide duplicarlo si el host no confirma a tiempo", async () => {
+    vi.useFakeTimers();
+    try {
+      const bytes = Buffer.from("original"), app = mount(bytes);
+      app.sendFollowUpMessage.mockImplementation(() => new Promise(() => {}));
+      const click = app.elements["#attach"].onclick!();
+      await vi.waitFor(() => expect(app.sendFollowUpMessage).toHaveBeenCalledTimes(1));
+      const state = app.setWidgetState.mock.calls.at(-1)![0];
+      const restored = mount(bytes, { state });
+      await restored.elements["#attach"].onclick!(); expect(restored.sendFollowUpMessage).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(30000); await click;
+      expect(app.setWidgetState.mock.calls.at(-1)![0].modelContent.reference_stage).toBe("followup_unknown");
+      expect(app.elements["#attach"].disabled).toBe(true);
+      await app.elements["#attach"].onclick!(); expect(app.sendFollowUpMessage).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
   });
   it("no reutiliza un adjunto de otra referencia y conserva el formato anterior del estado", async () => {
     const app = mount(Buffer.from("original")); await app.elements["#attach"].onclick!();

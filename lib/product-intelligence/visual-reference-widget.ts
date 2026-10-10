@@ -2,7 +2,7 @@ import { referenceWidgetScript } from "./visual-reference-widget-script";
 import tokens from "@/design-system/tokens.json";
 import { colorToken, colorTokens } from "@/lib/tokens";
 
-export const VISUAL_REFERENCE_UI = "ui://dropflex/visual-reference/v2.html";
+export const VISUAL_REFERENCE_UI = "ui://dropflex/visual-reference/v3.html";
 
 export function visualReferenceResource() {
   const variables = (theme: "light" | "dark") => colorTokens.map(token => `--${token.name}:${colorToken(token.name, theme)};`).join("");

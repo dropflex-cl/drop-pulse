@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.3.1"}
+metadata: {"version": "1.3.2"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -32,7 +32,7 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
 
-En producción visual, exige `get_visual_generation_context` y `get_visual_reference_image`. Recupera la foto canónica, inspecciónala y pásala como imagen de entrada al generador siguiendo [la ejecución](references/production.md). Un ID, URL o descripción en texto no demuestra que el generador recibió la foto. Si faltan estas tools, pide actualizar/reconectar el plugin y continúa solo lo independiente. Si el cliente no puede adjuntar la imagen al generador, pide al usuario adjuntar la foto original y detén esa toma; no generes un producto aproximado. Reutiliza assets compatibles y vigentes antes de generar. DropFlex ingiere y conserva archivos. En modo automático, revisa tú la toma principal contra la foto base y continúa el lote sin otra confirmación del comerciante. En modo de propuestas, muestra esa toma para revisar la dirección antes del resto, salvo que ya se autorizara el lote.
+En producción visual, exige `get_visual_generation_context` y `get_visual_reference_image`. Si la foto canónica ya está adjunta y coincide con el producto, ID y hash vigentes, reutiliza ese archivo: no repitas `get_visual_reference_image` ni el botón de continuación. Solo recupera la foto si falta o cambió la referencia. Inspecciónala y pásala como imagen de entrada al generador siguiendo [la ejecución](references/production.md). Un ID, URL o descripción en texto no demuestra que el generador recibió la foto. Si faltan estas tools, pide actualizar/reconectar el plugin y continúa solo lo independiente. Si el cliente no puede adjuntar la imagen al generador, explica la limitación y pide al usuario adjuntar la foto original manualmente una sola vez; detén esa toma sin repetir la tarjeta; no generes un producto aproximado. Reutiliza assets compatibles y vigentes antes de generar. DropFlex ingiere y conserva archivos. En modo automático, revisa tú la toma principal contra la foto base y continúa el lote sin otra confirmación del comerciante. En modo de propuestas, muestra esa toma para revisar la dirección antes del resto, salvo que ya se autorizara el lote.
 
 ## Iteración y decisiones humanas
 

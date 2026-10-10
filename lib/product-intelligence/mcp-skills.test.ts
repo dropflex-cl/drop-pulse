@@ -31,7 +31,7 @@ describe("DropFlex · importación de skill MCP", () => {
       expect(catalog.skills).toHaveLength(1);
       const skill = catalog.skills[0];
       expect(skill.uri).toBe(OPTIMIZATION_SKILL_URI);
-      expect(skill.frontmatter.metadata.version).toBe("1.3.1");
+      expect(skill.frontmatter.metadata.version).toBe("1.3.2");
       const direct = await session.client.request({ method: "skills/get", params: { uri: skill.uri } }, z.object({ skill: skillSchema }));
       expect(direct.skill).toEqual(skill);
       const allFiles = (await readdir(root, { recursive: true, withFileTypes: true })).filter(file => file.isFile()).map(file => join(file.parentPath, file.name).slice(root.length + 1).replaceAll("\\", "/"));

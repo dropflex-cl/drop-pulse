@@ -1,6 +1,6 @@
 # Skill de optimización + plugin DropFlex
 
-La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac663c8e5788191934c95ef134cb863`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
+La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
 ## Uso
 
@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.3.0.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.1, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin (1.3.0); `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. Un registro público con MCP usa el recorrido **With MCP**, no un upload «Skills only» de un paquete con `.app.json`.
+Produce `output/plugins/dropflex-optimizer-1.3.2.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.2, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -126,3 +126,9 @@ Despliegue: aplicar `20261204000000_visual_approval_version_chain.sql` y `202612
 Validación: suite general, Supabase local con storage/worker reales y descarga de archivo externo simulada, aprobación automática con OAuth local, contratos, skill, typecheck, lint de archivos modificados y build webpack. La tarjeta se verificó a 390 px en claro/oscuro, sin desbordamiento y con botón de 44 px. Las migraciones se aplicaron únicamente en local. Falta la aceptación con el host de ChatGPT móvil real después de desplegar: referencia adjunta → entrada real al generador → resultado transferido → asset visible en DropFlex.
 
 Contrato de archivos: [referencia oficial de plugins](https://developers.openai.com/plugins/reference); adjuntos en turnos posteriores: [estado e imágenes en ChatGPT](https://developers.openai.com/plugins/build/chatgpt-ui).
+
+## Continuación de referencia · plugin y skill 1.3.2
+
+Caso observado en ChatGPT móvil: después de «Continuar con la referencia», el chat recuperaba otra tarjeta y volvía a pedir el mismo clic. La tarjeta reutiliza ahora el archivo verificado para el mismo producto/ID/hash sin renovar ni descargar otra vez, y persiste `followup_pending`/`followup_sent` para impedir envíos duplicados al remontar. Un timeout queda `followup_unknown`: no demuestra rechazo del host y requiere continuar manualmente en el chat, sin reenviar desde la tarjeta. Un rechazo confirmado permite reintentar solo el mensaje. La UI se sirve desde `ui://dropflex/visual-reference/v3.html`.
+
+La skill, las instrucciones del servidor y las acciones del contexto reutilizan el adjunto vigente; preparar otra iteración no obliga a adjuntar otra vez. Si el modelo no puede inspeccionar los píxeles o el generador no puede recibir el archivo, se pide la subida manual una sola vez y se detiene esa toma, sin repetir la tarjeta. Subir al host sigue sin demostrar recepción por el modelo o por el generador; esta capacidad requiere verificación en el cliente móvil.
