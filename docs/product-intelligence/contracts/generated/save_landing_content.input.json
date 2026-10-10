@@ -575,7 +575,7 @@
           "$ref": "#/$defs/__schema4"
         },
         "gallery_benefits": {
-          "description": "Tres beneficios principales, distintos y respaldados por los hechos del producto, en orden de importancia. Se muestran junto a la galería con el acento del producto. Inclúyelos al crear la ficha; opcional para conservar fichas anteriores.",
+          "description": "Tres beneficios principales, distintos y respaldados por los hechos del producto, en orden de importancia. Se muestran bajo el botón de compra con el acento del producto. Inclúyelos al crear la ficha; opcional para conservar fichas anteriores.",
           "$ref": "#/$defs/__schema5"
         },
         "offer_line": {
@@ -664,7 +664,7 @@
           "description": "Ícono que representa este beneficio del producto."
         },
         "text": {
-          "description": "Beneficio principal del producto en una frase corta, legible junto a la foto. Ej.: «Se ajusta a tu cuerpo». Sin precios ni políticas de la tienda.",
+          "description": "Beneficio principal del producto en una frase corta, legible bajo el botón de compra. Ej.: «Se ajusta a tu cuerpo». Sin precios ni políticas de la tienda.",
           "$ref": "#/$defs/__schema7"
         }
       },

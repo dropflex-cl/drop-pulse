@@ -446,10 +446,6 @@
       {% endcapture %}
     {% endif %}
 
-    {% capture gallery_benefits %}
-      {% render 'df-gallery-benefits', product: selected_product %}
-    {% endcapture %}
-
     {% render 'slideshow',
       ref: 'slideshow',
       class: slideshow_class,
@@ -458,8 +454,7 @@
       slideshow_arrows: slideshow_arrows,
       arrows_position: icons_position,
       animate_arrows: animate_arrows,
-      controls: controls,
-      gallery_benefits: gallery_benefits
+      controls: controls
     %}
 
     {% if media_presentation == 'grid' %}

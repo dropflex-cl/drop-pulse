@@ -46,15 +46,16 @@ function html(long = false) {
     .join("");
   return `<!doctype html><html><head><script type="importmap">${JSON.stringify({ imports })}</script><script>${selector}</script>
   <style>${file("assets/df-components.css")}${css("slideshow-styles")}${css("product-media-container-styles")}${css("df-gallery-benefits")}${css("slideshow-controls")}
-  body{margin:0;background:white;font-family:Arial,sans-serif}*{box-sizing:border-box}img{display:block;max-width:100%}media-gallery{display:block}slideshow-container{padding-inline:16px}.product-information{max-width:600px;margin:auto}.product-media{width:100%;height:100%}.product-media__image{width:100%;height:100%}slideshow-controls{display:block}.slideshow-control{padding:0;border:0}.slideshow-controls__thumbnails{padding-inline:16px;gap:8px}.slideshow-controls__thumbnails button{width:64px;aspect-ratio:1;flex:none}.slideshow-control img{width:100%;height:100%;object-fit:contain}</style>
+  body{margin:0;background:white;font-family:Arial,sans-serif}*{box-sizing:border-box}img{display:block;max-width:100%}media-gallery{display:block}slideshow-container{padding-inline:16px}.product-information{max-width:600px;margin:auto}.product-media{width:100%;height:100%}.product-media__image{width:100%;height:100%}slideshow-controls{display:block}.slideshow-control{padding:0;border:0}.slideshow-controls__thumbnails{padding-inline:16px;gap:8px}.slideshow-controls__thumbnails button{width:64px;aspect-ratio:1;flex:none}.slideshow-control img{width:100%;height:100%;object-fit:contain}.product-details{display:grid;gap:16px;padding:16px}#es-popup-button{min-height:44px;background:#873652;color:white;border:0;border-radius:12px}</style>
   <script type="module" src="/assets/slideshow.js"></script></head><body><section class="product-information"><media-gallery class="df" style="${vars};--thumbnail-width:64px;--aspect-ratio:1;--minimum-touch-target:44px">
   <slideshow-component ref="slideshow" initial-slide="0" infinite><slideshow-container ref="slideshowContainer"><slideshow-slides ref="scroller" tabindex="-1">${slides}</slideshow-slides>
-  <df-landing-content class="df-gallery-benefits-host" data-df-component="df-gallery-benefits"><div data-df-active>${benefits(long)}</div><template data-df-variant="default">${benefits(long)}</template><template data-df-variant="empty" data-angle="empty"></template><script>window.DropFlexLanding.mount(document.currentScript.parentElement);</script></df-landing-content>
   </slideshow-container><slideshow-controls thumbnails pagination-position="center"><div class="slideshow-controls__thumbnails-container" ref="thumbnailsContainer"><div class="slideshow-controls__thumbnails">${thumbnails}</div></div></slideshow-controls></slideshow-component>
-  </media-gallery></section><script src="/assets/df-gallery.js" data-autoplay="false" defer></script></body></html>`;
+  </media-gallery><div class="product-details"><button id="es-popup-button" type="button">Pídelo ahora y paga al recibir</button>
+  <df-landing-content class="df df-gallery-benefits-host" style="${vars}" data-df-component="df-gallery-benefits"><div data-df-active>${benefits(long)}</div><template data-df-variant="default">${benefits(long)}</template><template data-df-variant="empty" data-angle="empty"></template><script>window.DropFlexLanding.mount(document.currentScript.parentElement);</script></df-landing-content>
+  </div></section><script src="/assets/df-gallery.js" data-autoplay="false" defer></script></body></html>`;
 }
 describe.runIf(process.env.GALLERY_BROWSER_TEST === "1")(
-  "Galería Serena · navegador",
+  "Galería y beneficios bajo el botón · navegador",
   () => {
     let browser: Browser;
     beforeAll(async () => {
@@ -95,15 +96,22 @@ describe.runIf(process.env.GALLERY_BROWSER_TEST === "1")(
       return { context, p };
     }
     it.each([320, 390, 1280])(
-      "foto, tres tarjetas y miniaturas sin desbordar a %i px",
+      "foto completa, miniaturas y tarjetas bajo el botón sin desbordar a %i px",
       async (width) => {
         const { context, p } = await page(width, true);
         try {
           const photo = (await p.locator("slideshow-slides").boundingBox())!;
           const list = (await p.locator(".df-gallery-benefits").boundingBox())!;
           const thumbs = (await p.locator("slideshow-controls").boundingBox())!;
-          expect(list.x).toBeGreaterThan(photo.x + photo.width);
-          expect(thumbs.y).toBeGreaterThanOrEqual(list.y + list.height - 1);
+          const button = (await p.locator("#es-popup-button").boundingBox())!;
+          expect(photo.width).toBeGreaterThan(Math.min(width, 600) - 40);
+          expect(thumbs.y).toBeGreaterThanOrEqual(photo.y + photo.height - 1);
+          expect(list.y).toBeGreaterThanOrEqual(button.y + button.height);
+          const cards = await p.locator(".df-gallery-benefits__item").evaluateAll(items => items.map(item => ({ x: item.getBoundingClientRect().x, y: item.getBoundingClientRect().y })));
+          expect(cards[0].y).toBe(cards[1].y);
+          expect(cards[1].y).toBe(cards[2].y);
+          expect(cards[1].x).toBeGreaterThan(cards[0].x);
+          expect(cards[2].x).toBeGreaterThan(cards[1].x);
           expect(
             await p.evaluate(
               () => document.documentElement.scrollWidth <= innerWidth,

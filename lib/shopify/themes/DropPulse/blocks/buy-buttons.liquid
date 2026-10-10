@@ -257,6 +257,10 @@
   {%- endif -%}
 </span>
 
+{%- if product != blank -%}
+  {% render 'df-gallery-benefits', product: product %}
+{%- endif -%}
+
 {% if block_settings.show_pickup_availability %}
   <script
     src="{{ 'local-pickup.js' | asset_url }}"

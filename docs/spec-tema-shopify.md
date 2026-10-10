@@ -225,7 +225,7 @@ Namespace `dropflex` (de comerciante, no `$app:`; ver §12). Un `json` por bloqu
 |---|---|---|---|
 | `offer_line` + packs del plan de precios con sus etiquetas aprobadas | `dropflex.offer` | `json` `{ offer_line, packs: [{ units, label, price, compare_at, support, badge }] }` (montos en centavos) | `df-pack-offers`: una tarjeta por pack. El pack es la variante de 1 unidad × N (así llega a Dropi) y lo cobra la oferta por cantidad de EasySell |
 | `short_description` de la ficha | `dropflex.subtitle` | `single_line_text_field` | `df-subtitle`, bajo el título |
-| `listing.gallery_benefits` de la ficha aprobada | `dropflex.gallery_benefits` | `json` `{ items: [{ icon, text }] }`, exactamente 3 | `df-gallery-benefits`: tres tarjetas verticales junto a la foto, acento del producto; miniaturas debajo. Las variantes leen `dropflex.landing_listing` con el mismo selector que título y bajada |
+| `listing.gallery_benefits` de la ficha aprobada | `dropflex.gallery_benefits` | `json` `{ items: [{ icon, text }] }`, exactamente 3 | `df-gallery-benefits`: tres tarjetas en una fila bajo el botón de compra, acento del producto; galería a todo el ancho con miniaturas debajo. Las variantes leen `dropflex.landing_listing` con el mismo selector que título y bajada |
 | `benefit` (3–5, con `kind`) | `dropflex.benefits` | `json` | Sección beneficios |
 | Imágenes slot `benefit` (3:4, una por beneficio) | `dropflex.benefits_images` | `list.file_reference` | Alineadas por índice |
 | `how_it_works` | `dropflex.how_it_works` | `json` | Sección |

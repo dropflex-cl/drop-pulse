@@ -5,7 +5,7 @@
 {%- enddoc -%}
 {%- assign df_variants = product.metafields.dropflex.landing_listing.value -%}
 {%- if df_variants.first.key != blank -%}
-  <df-landing-content class="df-gallery-benefits-host" data-df-component="df-gallery-benefits">
+  <df-landing-content class="df df-gallery-benefits-host" style="{% render 'df-accent-vars', product: product %}" data-df-component="df-gallery-benefits">
     {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
     <div data-df-active>{% render 'df-gallery-benefits-content', product: product, content: df_default.content %}</div>
     {%- for df_variant in df_variants -%}
@@ -16,26 +16,25 @@
     <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
   </df-landing-content>
 {%- else -%}
-  <div class="df-gallery-benefits-host">{% render 'df-gallery-benefits-content', product: product %}</div>
+  <div class="df df-gallery-benefits-host" style="{% render 'df-accent-vars', product: product %}">{% render 'df-gallery-benefits-content', product: product %}</div>
 {%- endif -%}
 
 {% stylesheet %}
-  /* Serena: imagen y tres tarjetas laterales; miniaturas debajo.
-     Medidas: space-1/2/3, type-caption/label/metric-lg de design-system/tokens.json.
-     Proporción 3:1 derivada de las capturas de Serena. */
+  /* Tres tarjetas debajo del botón de compra.
+     Medidas: space-1/2/3, type-caption/label/metric-lg de design-system/tokens.json. */
   .df-gallery-benefits-host:not(:has(.df-gallery-benefits)) { display: none; }
+  .df-gallery-benefits-host { display: block; width: 100%; }
 
   .df-gallery-benefits-host,
   .df-gallery-benefits-host > [data-df-active] {
     min-width: 0;
-    height: 100%;
   }
 
   .df-gallery-benefits {
     display: grid;
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
     gap: 8px;
-    height: 100%;
     padding: 0;
     margin: 0;
     list-style: none;
@@ -46,8 +45,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 8px 4px;
+    gap: 8px;
+    padding: 12px 8px;
     border-radius: var(--df-radius-media);
     background: var(--df-accent-soft);
     color: var(--df-fg);
@@ -65,38 +64,6 @@
     color: var(--df-accent-ink);
   }
 
-  .product-information media-gallery slideshow-container:has(.df-gallery-benefits),
-  .df-gallery-preview__hero:has(.df-gallery-benefits) {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .product-information media-gallery slideshow-container:has(.df-gallery-benefits) > slideshow-slides {
-    min-width: 0;
-    border-radius: var(--df-radius-media);
-    background: var(--df-surface);
-  }
-
-  .product-information media-gallery slideshow-container:has(.df-gallery-benefits) slideshow-slide {
-    --gallery-aspect-ratio: 3 / 4;
-    max-height: none;
-  }
-
-  .product-information media-gallery slideshow-container:has(.df-gallery-benefits) .product-media-constraint-wrapper {
-    max-width: 100%;
-    width: 100%;
-  }
-
-  .product-information media-gallery slideshow-container:has(.df-gallery-benefits) .product-media__image {
-    object-fit: contain;
-  }
-
-  .product-information media-gallery slideshow-container:has(.df-gallery-benefits) > slideshow-arrows {
-    width: calc((100% - 12px) * 3 / 4);
-  }
-
   .product-information media-gallery .slideshow-control[aria-selected="true"] {
     outline-color: var(--df-accent-ink);
   }
@@ -108,7 +75,6 @@
     background: var(--df-surface);
   }
 
-  .df-gallery-preview__hero:has(.df-gallery-benefits) .df-gallery-preview__image { aspect-ratio: 3 / 4; }
   .df-gallery-preview__image img { width: 100%; height: 100%; object-fit: contain; }
 
   .df-gallery-preview { padding-inline: var(--df-gutter); }
@@ -138,13 +104,6 @@
   .df-gallery-preview__thumbnail[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--df-accent-ink); }
   .df-gallery-preview__thumbnail:focus-visible { outline: 2px solid var(--df-accent-ink); outline-offset: 2px; }
   .df-gallery-preview__thumbnail img { width: 100%; height: 100%; object-fit: contain; border-radius: var(--df-radius-sm); }
-
-  @media (max-width: 749px) {
-    .product-information media-gallery slideshow-container:has(.df-gallery-benefits) > slideshow-arrows {
-      inset-inline-start: var(--df-gutter);
-      width: calc((100% - var(--df-gutter) * 2 - 12px) * 3 / 4);
-    }
-  }
 
   @media (min-width: 750px) {
     .df-gallery-benefits__item { font-size: 13px; line-height: 18px; }

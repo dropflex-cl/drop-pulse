@@ -5,6 +5,7 @@ import { formatMoney, type StorePack } from "@/lib/store-preview/facts";
 import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
 import { GalleryPreview } from "./gallery";
+import { ProductBenefitsPreview } from "./product-benefits";
 
 // La ficha en la tienda, en el orden de la PDP del tema (templates/product.json): foto, título, la
 // bajada (df-subtitle), el precio con el ahorro (df-price), la oferta sobre los packs
@@ -60,7 +61,7 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
   const packs = facts.packs ?? [];
   return (
     <div className="df flex flex-col gap-3 pb-4">
-      <GalleryPreview benefits={content.gallery_benefits} facts={facts} />
+      <GalleryPreview facts={facts} />
       <div className="flex flex-col gap-3 px-4">
         {slots?.top}
         <p className="df df-heading df-title">{content.title || facts.productName}</p>
@@ -84,6 +85,7 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
           <p className="text-small font-semibold text-(--df-accent-ink)">{content.offer_line}</p>
         ) : null}
         <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Agregar al carrito</div>
+        <ProductBenefitsPreview benefits={content.gallery_benefits} />
         {slots?.afterButton}
       </div>
     </div>
