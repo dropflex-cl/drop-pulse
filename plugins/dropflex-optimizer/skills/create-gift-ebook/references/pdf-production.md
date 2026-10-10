@@ -13,6 +13,15 @@ Prepara JSON UTF-8 con los campos siguientes. Los nombres del contrato van en in
   "product_name": "Nombre confirmado del producto",
   "brand": "Nombre confirmado de la tienda",
   "accent_color": "#1f4bd8",
+  "background": "waves",
+  "product_images": [
+    {
+      "path": "assets/product-base.webp",
+      "caption": "Cómo usar el producto en una acción de esta guía.",
+      "source": "base_reference",
+      "reference_id": "ID de la referencia recuperada"
+    }
+  ],
   "context": {
     "product_id": "ID real del producto",
     "strategy_id": "ID real o null si no hay estrategia",
@@ -22,15 +31,11 @@ Prepara JSON UTF-8 con los campos siguientes. Los nombres del contrato van en in
     "editorial_promise": "Qué podrá aplicar al terminar",
     "accent_source": "product"
   },
-  "cover_illustration": {
-    "kind": "sequence",
-    "title": "Tu recorrido",
-    "items": ["Elegir", "Organizar", "Mantener"]
-  },
   "chapters": [
     {
       "title": "Empieza por lo que sí usas",
       "intro": "Explica el objetivo de este capítulo.",
+      "product_image": 0,
       "paragraphs": ["Desarrolla una idea útil con un ejemplo concreto."],
       "steps": ["Una acción aplicable", "La siguiente acción"],
       "checklist": ["Una comprobación que el lector puede hacer"],
@@ -54,7 +59,11 @@ Prepara JSON UTF-8 con los campos siguientes. Los nombres del contrato van en in
 
 El hex de arriba es un ejemplo de contrato: reemplázalo por `data.appearance.accent_color`, nunca lo uses como respaldo si falta el dato. `brand` es opcional si no conoces el nombre; no atribuyas el ebook a DropFlex en lugar de a la tienda. `context` conserva trazabilidad y no se imprime. El texto de `landing_gift` se conserva para la PDP, no se publica automáticamente.
 
-`chapters` necesita al menos un capítulo con contenido útil; los campos de contenido son opcionales individualmente. Las ilustraciones aceptan:
+`product_images` es obligatorio y contiene al menos una imagen local legible del producto. Cada entrada lleva `path`, un `caption` útil y `source: "base_reference" | "approved_gallery" | "merchant_upload"`, además del ID/hash disponible para conservar su procedencia. El script valida el archivo y su formato; la skill comprueba que representa el producto correcto. La primera imagen protagoniza la portada. `product_image` en un capítulo selecciona su índice (desde 0); si ningún capítulo lo indica, el primero muestra la imagen base. Puedes reutilizar una misma foto confirmada en portada e interior, sin inventar ángulos fotográficos. Reparte otras fotos aprobadas cuando aporten una explicación concreta.
+
+`background` acepta `waves` (predeterminado) o `plain`. Las ondas son vectoriales, se limitan a los márgenes y usan mezclas muy claras del acento sobre blanco. No se aplican sobre fotografías ni reducen el contraste del contenido.
+
+`chapters` necesita al menos un capítulo con contenido útil; los campos de contenido son opcionales individualmente. Una infografía interior de tipo `sequence`, `checklist` o `comparison` es obligatoria. Usa las necesarias para explicar las acciones centrales, combinadas con fotos y escenas; una imagen de catálogo por sí sola no sustituye una infografía. Las ilustraciones aceptan:
 
 - `kind: "sequence" | "checklist" | "comparison"`, `title` opcional, `items` de 2 a 6 textos y `caption` opcional. Son diagramas vectoriales rotulados; cada tipo tiene una presentación diferente.
 - `kind: "image"`, `path` al archivo, `caption` opcional. Usa PNG, JPEG o WebP legible; conserva proporciones y no recorta. Un dibujo preparado específicamente para el capítulo aporta más que una imagen de catálogo repetida.
@@ -72,6 +81,8 @@ pdftoppm -scale-to 1200 -png ebook.pdf preview/page
 
 El script acepta `--font-regular` y `--font-bold` para fuentes TTF de la marca cuando están disponibles. Sin ellas usa Helvetica/Helvetica-Bold, compatibles con el español. La paleta neutra y la escala de texto/espaciado proceden de `design-system/tokens.json` de DropFlex (claro); el acento procede del producto. El formato A5 es una decisión editorial del ebook, no una medida nueva de la UI de la app.
 
-La portada contiene la promesa editorial, el nombre del producto y la ilustración. El índice es navegable por capítulos; los saltos de página y las continuaciones se calculan sin reducir el texto a un tamaño ilegible. Cada capítulo debe aportar una acción, ejemplo o recurso que justifique su espacio. El generador imprime fuentes al final solo si hay fuentes reales.
+La portada siempre ocupa la primera página y contiene la promesa editorial, el nombre del producto y su fotografía protagonista. El generador mide título, subtítulo e imagen; si no caben con legibilidad, pide acortar el texto en lugar de partir la portada entre páginas. `cover_illustration` sigue siendo opcional como apoyo adicional, sin sustituir la fotografía del producto.
 
-Inspecciona todas las páginas renderizadas a tamaño móvil. Confirma que no hay texto cortado, marcas faltantes, desbordamientos, imágenes deformadas ni páginas con solo un título. Extrae texto y comprueba principio/final de cada capítulo y enlaces. Corrige el manuscrito o la maquetación, regenera y vuelve a revisar el resultado final. Entrega un archivo PDF accesible desde el chat; un enlace mostrado no garantiza entrega con los pedidos.
+La presentación es editorial: espacio en blanco, tipografía consistente, una regla de acento discreta, fotos contenidas sin recortar, y ondas suaves en los márgenes. Las secuencias conectan pasos, los checklists usan marcas vectoriales y las comparaciones identifican alternativas. El índice es navegable por capítulos; los saltos de página y las continuaciones se calculan sin reducir el texto a un tamaño ilegible. Cada capítulo debe aportar una acción, ejemplo o recurso que justifique su espacio. El generador imprime fuentes al final solo si hay fuentes reales.
+
+Inspecciona todas las páginas renderizadas a tamaño móvil. Comprueba portada dedicada, fotografía fiel del producto en portada e interior, infografías explicativas y fondo apenas perceptible. Confirma que no hay texto cortado, marcas faltantes, desbordamientos, imágenes deformadas ni páginas con solo un título. Extrae texto y comprueba principio/final de cada capítulo y enlaces. Corrige el manuscrito o la maquetación, regenera y vuelve a revisar el resultado final. Entrega un archivo PDF accesible desde el chat; un enlace mostrado no garantiza entrega con los pedidos.

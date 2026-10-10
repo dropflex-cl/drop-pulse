@@ -1,7 +1,7 @@
 ---
 name: create-gift-ebook
 description: Crea un ebook ilustrado en PDF como regalo permanente con cada compra de un producto de DropFlex. Usa su contexto, cliente ideal, JTBD, ángulo de venta y el color de acento de la PDP. Úsala para crear o actualizar la guía y el texto que presenta el regalo; no configura por sí sola su entrega automática.
-metadata: {"version": "1.0.0"}
+metadata: {"version": "1.1.0"}
 ---
 
 # Crear un ebook de regalo
@@ -30,11 +30,17 @@ En este flujo no busques, consultes ni cites leyes locales, regulación, SERNAC 
 
 Lee [producción y contrato del PDF](references/pdf-production.md) antes de maquetar. Usa el generador incluido cuando sea compatible con el entorno; se ejecuta en el entorno del chat, no en el servidor MCP. Si el host solo entrega recursos MCP, recupera `scripts/build_ebook.py` mediante `resources/read` y guárdalo localmente antes de ejecutarlo.
 
-Diseña para lectura móvil: páginas verticales, una columna, texto seleccionable, jerarquía editorial, aire y numeración. Adapta la longitud al valor del tema; una guía breve completa es mejor que páginas vacías. Integra ilustraciones explicativas: secuencias, esquemas de rutina, comparaciones y escenas que aclaren acciones. La portada y los capítulos centrales deben tener apoyo visual útil. El generador admite diagramas vectoriales y fotos/ilustraciones locales; no se limita a adornos o fondos coloreados.
+Todo ebook tiene una portada dedicada, siempre: título con promesa concreta, subtítulo, identidad de la tienda si se conoce y una imagen protagonista del producto. Incluye infografías explicativas dentro de la guía y fotografías del producto tanto en portada como en el interior, vinculadas a una acción o ejemplo útil. Una guía de solo texto, una portada sin producto o imágenes decorativas sin explicación no cumplen el entregable.
+
+Busca una apariencia premium y limpia: jerarquía editorial, márgenes generosos, tipografía consistente, texto seleccionable, páginas verticales y lectura cómoda en móvil. Usa el acento exacto de la PDP y ondas muy tenues de fondo en los márgenes, sin competir con el texto o la fotografía; el generador las incluye por defecto y permite un fondo liso si el comerciante lo prefiere. Evita saturación, cajas repetidas sin función, clipart y fotografías estiradas o recortadas que oculten partes del producto. Adapta la longitud al valor del tema; una guía breve completa es mejor que páginas vacías.
+
+Diseña infografías con una idea por pieza: pasos conectados, una rutina, una comparación o un checklist visual. Sus rótulos explican qué hacer y por qué; no son una lista de párrafos dentro de cajas. El generador admite diagramas vectoriales, fotografías del producto y escenas ilustradas locales.
+
+Recupera `get_visual_generation_context` y la referencia base con `get_visual_reference_image` siguiendo el flujo de adjuntos de DropFlex; reutiliza la referencia canónica ya adjunta y vigente. Reutiliza también imágenes aprobadas compatibles cuando sus archivos estén disponibles. Conserva la procedencia de cada imagen en `product_images`; el primer archivo es la foto protagonista de portada. Si falta el archivo real, continúa el manuscrito y las infografías y recupera la referencia antes de terminar: no sustituyas el producto por un dibujo aproximado ni declares listo un PDF incompleto. El generador exige una imagen local del producto y una infografía interior.
 
 Para ilustraciones originales de escenas usa el generador de imágenes disponible. Si aparece el producto, recupera y adjunta su referencia canónica con el flujo visual de DropFlex. Un diagrama educativo sin producto no requiere la foto base. Las ilustraciones no representan pruebas ni testimonios reales. Con diagramas claros puedes completar el ebook aunque no haya generador de imágenes.
 
-Renderiza el PDF a imágenes e inspecciona todas las páginas: portada, texto, ilustraciones, contraste del acento, tablas, saltos y cierre. Corrige recortes, solapamientos y páginas casi vacías antes de entregarlo. Extrae el texto para comprobar que no faltan capítulos y prueba los enlaces. La existencia del archivo no confirma su calidad.
+Renderiza el PDF a imágenes e inspecciona todas las páginas: portada dedicada, infografías, producto reconocible en portada e interior, fondo tenue, texto, contraste del acento, tablas, saltos y cierre. Corrige recortes, solapamientos y páginas casi vacías antes de entregarlo. Extrae el texto para comprobar que no faltan capítulos y prueba los enlaces. La existencia del archivo no confirma su calidad.
 
 ## Entregar y presentar el regalo
 

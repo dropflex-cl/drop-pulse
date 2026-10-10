@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from PIL import Image as PillowImage
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A5
 from reportlab.lib.styles import ParagraphStyle
@@ -26,6 +27,26 @@ SPACE = 16
 MARGIN = 32
 VERTICAL_MARGIN = 48
 PAGE_WIDTH, PAGE_HEIGHT = A5
+DIAGRAM_KINDS = ("sequence", "checklist", "comparison")
+
+
+def tint(accent, strength):
+    return colors.Color(*(1 - strength * (1 - channel)
+                          for channel in (accent.red, accent.green, accent.blue)))
+
+
+def image_path(spec, root):
+    path = root / text(spec.get("path"), "image.path")
+    if not path.is_file():
+        raise ValueError(f"No existe la imagen local: {path}")
+    try:
+        with PillowImage.open(path) as picture:
+            if picture.format not in ("PNG", "JPEG", "WEBP"):
+                raise ValueError("Usa una imagen PNG, JPEG o WebP.")
+            picture.verify()
+    except (OSError, SyntaxError) as error:
+        raise ValueError(f"La imagen no es legible: {path}") from error
+    return path
 
 
 def plain(value):
@@ -71,6 +92,18 @@ def validate(data, root):
         text(data.get(key), key)
     if not isinstance(data.get("accent_color"), str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", data["accent_color"]):
         raise ValueError("accent_color: usa el hex exacto de la PDP (#rrggbb).")
+    if data.get("background", "waves") not in ("waves", "plain"):
+        raise ValueError("background: usa waves o plain.")
+    product_images = data.get("product_images")
+    if not isinstance(product_images, list) or not product_images:
+        raise ValueError("product_images: incluye una imagen real del producto para portada e interior.")
+    for picture in product_images:
+        if not isinstance(picture, dict):
+            raise ValueError("Cada imagen del producto debe ser un objeto.")
+        image_path(picture, root)
+        text(picture.get("caption"), "product_image.caption")
+        if picture.get("source") not in ("base_reference", "approved_gallery", "merchant_upload"):
+            raise ValueError("product_image.source: conserva la procedencia real de la imagen.")
     chapters = data.get("chapters")
     if not isinstance(chapters, list) or not chapters:
         raise ValueError("chapters: incluye al menos un capítulo.")
@@ -78,6 +111,10 @@ def validate(data, root):
         if not isinstance(chapter, dict):
             raise ValueError("Cada capítulo debe ser un objeto.")
         text(chapter.get("title"), "chapter.title")
+        if "product_image" in chapter:
+            index = chapter["product_image"]
+            if type(index) is not int or not 0 <= index < len(product_images):
+                raise ValueError("chapter.product_image: usa un índice válido de product_images.")
         if not any(chapter.get(k) for k in ("intro", "paragraphs", "steps", "checklist", "callout")):
             raise ValueError("Cada capítulo necesita contenido útil, además de su título.")
         if "intro" in chapter:
@@ -91,17 +128,16 @@ def validate(data, root):
             for key in ("title", "body"):
                 text(chapter["callout"].get(key), f"callout.{key}")
     illustrations = [data.get("cover_illustration"), *[c.get("illustration") for c in chapters]]
-    if not any(illustrations):
-        raise ValueError("Incluye al menos una ilustración explicativa.")
+    if not any(isinstance(c.get("illustration"), dict)
+               and c["illustration"].get("kind") in DIAGRAM_KINDS for c in chapters):
+        raise ValueError("Incluye una infografía explicativa dentro de la guía.")
     for illustration in filter(None, illustrations):
         if not isinstance(illustration, dict):
             raise ValueError("illustration: se esperaba un objeto.")
         kind = illustration.get("kind")
         if kind == "image":
-            path = root / text(illustration.get("path"), "illustration.path")
-            if not path.is_file():
-                raise ValueError(f"No existe la imagen local: {path}")
-        elif kind in ("sequence", "checklist", "comparison"):
+            image_path(illustration, root)
+        elif kind in DIAGRAM_KINDS:
             strings(illustration.get("items"), "illustration.items")
             if not 2 <= len(illustration["items"]) <= 6:
                 raise ValueError("El diagrama necesita entre 2 y 6 elementos.")
@@ -134,7 +170,8 @@ class Diagram(Flowable):
         self.rows = []
         for start in range(0, len(self.items), columns):
             row = [Paragraph(plain(item), self.style) for item in self.items[start:start + columns]]
-            height = max(p.wrap(self.cell_width - SPACE * 4, math.inf)[1] for p in row) + SPACE * 2
+            inset = SPACE * 2 if columns == 2 else SPACE * 4
+            height = max(p.wrap(self.cell_width - inset, math.inf)[1] for p in row) + SPACE * (4 if columns == 2 else 2)
             self.rows.append((row, height))
         self.height = sum(h for _, h in self.rows) + SPACE * (len(self.rows) - 1)
         return self.width, self.height
@@ -157,22 +194,106 @@ class Diagram(Flowable):
 
     def draw(self):
         canvas, y, index = self.canv, self.height, self.start_index
+        columns = 2 if self.kind == "comparison" or self.compact else 1
         for row, height in self.rows:
             y -= height
             for col, paragraph in enumerate(row):
                 x = col * (self.cell_width + SPACE)
-                canvas.setFillColor(SURFACE)
+                canvas.setFillColor(tint(self.accent, .04))
                 canvas.roundRect(x, y, self.cell_width, height, 10, stroke=0, fill=1)
                 canvas.setFillColor(self.accent)
                 canvas.circle(x + SPACE * 1.5, y + height - SPACE * 1.5, 10, stroke=0, fill=1)
                 foreground = WHITE if ratio(self.accent, WHITE) >= ratio(self.accent, INK) else INK
                 canvas.setFillColor(foreground)
                 canvas.setFont(self.style.fontName, 12)
-                label = str(index + 1) if self.kind == "sequence" else ("+" if self.kind == "checklist" else chr(65 + index))
-                canvas.drawCentredString(x + SPACE * 1.5, y + height - SPACE * 1.5 - 4, label)
-                _, paragraph_height = paragraph.wrap(self.cell_width - SPACE * 4, height)
-                paragraph.drawOn(canvas, x + SPACE * 3, y + height - SPACE - paragraph_height)
+                if self.kind == "checklist":
+                    canvas.setStrokeColor(foreground)
+                    canvas.setLineWidth(1.5)
+                    mark = canvas.beginPath()
+                    mark.moveTo(x + 19, y + height - 24)
+                    mark.lineTo(x + 23, y + height - 28)
+                    mark.lineTo(x + 29, y + height - 20)
+                    canvas.drawPath(mark)
+                else:
+                    label = str(index + 1) if self.kind == "sequence" else chr(65 + index)
+                    canvas.drawCentredString(x + SPACE * 1.5, y + height - SPACE * 1.5 - 4, label)
+                inset = SPACE * 2 if columns == 2 else SPACE * 4
+                _, paragraph_height = paragraph.wrap(self.cell_width - inset, height)
+                text_x = x + (SPACE if columns == 2 else SPACE * 3)
+                text_y = y + height - (SPACE * 3 if columns == 2 else SPACE) - paragraph_height
+                paragraph.drawOn(canvas, text_x, text_y)
                 index += 1
+            if self.kind == "sequence" and columns == 1 and index < self.start_index + len(self.items):
+                canvas.setStrokeColor(contrast_ink(self.accent))
+                canvas.setLineWidth(1)
+                canvas.line(SPACE * 1.5, y - 2, SPACE * 1.5, y - SPACE + 2)
+                canvas.line(SPACE * 1.5 - 3, y - SPACE + 5, SPACE * 1.5, y - SPACE + 2)
+                canvas.line(SPACE * 1.5 + 3, y - SPACE + 5, SPACE * 1.5, y - SPACE + 2)
+            y -= SPACE
+
+
+class ProductPhoto(Flowable):
+    """Foto completa dentro de un marco editorial, sin estirar ni recortar."""
+    def __init__(self, path, accent, height):
+        super().__init__()
+        self.picture = Image(str(path))
+        self.accent, self.height = accent, height
+
+    def wrap(self, available_width, available_height):
+        self.width = available_width
+        scale = min((self.width - SPACE * 2) / self.picture.imageWidth,
+                    (self.height - SPACE * 2) / self.picture.imageHeight)
+        self.picture.drawWidth = self.picture.imageWidth * scale
+        self.picture.drawHeight = self.picture.imageHeight * scale
+        return self.width, self.height
+
+    def draw(self):
+        self.canv.setFillColor(tint(self.accent, .03))
+        self.canv.roundRect(0, 0, self.width, self.height, 16, fill=1, stroke=0)
+        self.picture.drawOn(self.canv, (self.width - self.picture.drawWidth) / 2,
+                            (self.height - self.picture.drawHeight) / 2)
+
+
+class Cover(Flowable):
+    """Una portada medida que nunca se divide entre páginas."""
+    def __init__(self, data, root, accent, styles):
+        super().__init__()
+        self.data, self.root, self.accent, self.styles = data, root, accent, styles
+        self.height = PAGE_HEIGHT - VERTICAL_MARGIN * 2
+
+    def wrap(self, available_width, available_height):
+        self.width = available_width
+        self.top = []
+        if self.data.get("brand"):
+            self.top.append(Paragraph(plain(self.data["brand"]), self.styles["label"]))
+        self.top += [Paragraph(plain(self.data[key]), self.styles[style])
+                     for key, style in (("title", "title"), ("subtitle", "intro"))]
+        self.bottom = [Paragraph(plain(self.data["product_name"]), self.styles["label"]),
+                       Paragraph("Incluido gratis con cada compra", self.styles["caption"])]
+        spec = self.data.get("cover_illustration")
+        if spec:
+            if spec.get("title"):
+                self.bottom.append(Paragraph(plain(spec["title"]), self.styles["label"]))
+            if spec["kind"] == "image":
+                self.bottom.append(ProductPhoto(self.root / spec["path"], self.accent, SPACE * 6))
+            else:
+                self.bottom.append(Diagram(spec["kind"], spec["items"], self.accent, self.styles["body"], compact=True))
+            if spec.get("caption"):
+                self.bottom.append(Paragraph(plain(spec["caption"]), self.styles["caption"]))
+        used = sum(item.wrap(self.width, math.inf)[1] + SPACE for item in self.top + self.bottom)
+        photo_height = self.height - used - SPACE
+        if photo_height < SPACE * 8:
+            raise ValueError("La portada no cabe en una página: acorta el título/subtítulo o retira su ilustración adicional.")
+        self.photo = ProductPhoto(self.root / self.data["product_images"][0]["path"], self.accent, photo_height)
+        self.photo.wrap(self.width, photo_height)
+        return self.width, self.height
+
+    def draw(self):
+        y = self.height
+        for item in [*self.top, self.photo, *self.bottom]:
+            height = item.wrap(self.width, math.inf)[1]
+            y -= height
+            item.drawOn(self.canv, 0, y)
             y -= SPACE
 
 
@@ -189,12 +310,27 @@ class EbookDoc(BaseDocTemplate):
 
     def decorate(self, canvas, doc):
         canvas.saveState()
+        if self.data.get("background", "waves") == "waves":
+            # Fondo vectorial muy tenue, exclusivamente fuera del marco de lectura.
+            for strength, offset in ((.04, 0), (.025, 12)):
+                canvas.setFillColor(tint(self.accent, strength))
+                wave = canvas.beginPath()
+                wave.moveTo(0, 0)
+                wave.lineTo(0, VERTICAL_MARGIN - offset)
+                wave.curveTo(PAGE_WIDTH * .3, -12, PAGE_WIDTH * .6, VERTICAL_MARGIN - offset,
+                             PAGE_WIDTH, VERTICAL_MARGIN / 2 - offset)
+                wave.lineTo(PAGE_WIDTH, 0)
+                wave.close()
+                canvas.drawPath(wave, fill=1, stroke=0)
         canvas.setFillColor(self.accent)
-        canvas.rect(0, PAGE_HEIGHT - 8, PAGE_WIDTH, 8, stroke=0, fill=1)
+        canvas.roundRect(MARGIN, PAGE_HEIGHT - MARGIN, SPACE * 3, 4, 2, stroke=0, fill=1)
+        if doc.page == 1:
+            canvas.restoreState()
+            return
         canvas.setFillColor(MUTED_INK)
         canvas.setFont(self.regular, 12)
-        canvas.drawString(MARGIN, MARGIN, "Guía de regalo")
-        canvas.drawRightString(PAGE_WIDTH - MARGIN, MARGIN, str(doc.page))
+        canvas.drawString(MARGIN, MARGIN / 2, "Guía de regalo")
+        canvas.drawRightString(PAGE_WIDTH - MARGIN, MARGIN / 2, str(doc.page))
         canvas.restoreState()
 
     def afterFlowable(self, flowable):
@@ -241,15 +377,12 @@ def build(data, root, output, regular="Helvetica", bold="Helvetica-Bold"):
             parts.append(paragraph(spec["caption"], "caption"))
         return parts
 
-    story = []
-    if data.get("brand"):
-        story.append(paragraph(data["brand"], "label"))
-    story.extend([paragraph(data["title"], "title"), paragraph(data["subtitle"], "intro")])
-    story.extend(illustration(data.get("cover_illustration"), compact=True))
-    story.extend([paragraph(f"Para acompañar tu {data['product_name']}.", "caption"), PageBreak()])
+    story = [Cover(data, root, accent, styles), PageBreak()]
     toc = TableOfContents()
     toc.levelStyles = [ParagraphStyle("toc", fontName=regular, fontSize=13, leading=22, textColor=INK, spaceBefore=12)]
-    story.extend([paragraph("Tu recorrido", "title"), toc, PageBreak()])
+    story.extend([paragraph("Tu recorrido", "title"),
+                  paragraph("Ideas prácticas para aprovechar tu compra y hacer más sencillo tu día.", "intro"), toc, PageBreak()])
+    has_product_placement = any("product_image" in c for c in data["chapters"])
     for index, chapter in enumerate(data["chapters"]):
         if index:
             story.append(PageBreak())
@@ -259,6 +392,11 @@ def build(data, root, output, regular="Helvetica", bold="Helvetica-Bold"):
         story.append(heading)
         if chapter.get("intro"):
             story.append(paragraph(chapter["intro"], "intro"))
+        photo_index = chapter.get("product_image", 0 if index == 0 and not has_product_placement else None)
+        if photo_index is not None:
+            picture = data["product_images"][photo_index]
+            story.append(KeepTogether([ProductPhoto(root / picture["path"], accent, SPACE * 8),
+                                      Spacer(1, 8), paragraph(picture["caption"], "caption")]))
         story.extend(illustration(chapter.get("illustration")))
         for value in chapter.get("paragraphs", []):
             story.append(paragraph(value))
