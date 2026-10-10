@@ -20,7 +20,11 @@ const control =
 
 /** Un valor dentro del json por su ruta. */
 function at(value: unknown, path: Path): unknown {
-  return path.reduce<unknown>((v, k) => (v == null ? undefined : (v as Record<string | number, unknown>)[k]), value);
+  return path.reduce<unknown>(
+    (v, k) =>
+      v == null ? undefined : (v as Record<string | number, unknown>)[k],
+    value,
+  );
 }
 
 /** Copia del json con `next` en la ruta (undefined borra la clave: un opcional vacío no se guarda). */
@@ -47,11 +51,20 @@ export interface ComponentFormProps {
   errors: Map<string, string>;
   /** Las reseñas aprobadas, para los campos de reseña. */
   reviews: StoreReview[];
+  verifiedFacts?: { id: string; statement: string }[];
   videos?: { id: string; name: string }[];
 }
 
-export function ComponentForm({ fields, value, onChange, errors, reviews, videos = [] }: ComponentFormProps) {
-  const ctx = { root: value, onChange, errors, reviews, videos };
+export function ComponentForm({
+  fields,
+  value,
+  onChange,
+  errors,
+  reviews,
+  verifiedFacts = [],
+  videos = [],
+}: ComponentFormProps) {
+  const ctx = { root: value, onChange, errors, reviews, verifiedFacts, videos };
   return (
     <div className="flex flex-col gap-5">
       {fields.map((f) => (
@@ -66,20 +79,34 @@ interface Ctx {
   onChange: (next: unknown) => void;
   errors: Map<string, string>;
   reviews: StoreReview[];
+  verifiedFacts?: { id: string; statement: string }[];
   videos?: { id: string; name: string }[];
 }
 
 function ErrorText({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <span id={id} className="flex items-center gap-1 text-caption text-destructive">
+    <span
+      id={id}
+      className="flex items-center gap-1 text-caption text-destructive"
+    >
       <Icon name="alert" size="sm" />
       {message}
     </span>
   );
 }
 
-function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; ctx: Ctx; label?: string }) {
+function FieldView({
+  field,
+  path,
+  ctx,
+  label,
+}: {
+  field: FormField;
+  path: Path;
+  ctx: Ctx;
+  label?: string;
+}) {
   const id = useId();
   const key = path.join(".");
   const error = ctx.errors.get(key);
@@ -89,19 +116,57 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
   const errorId = `${id}-error`;
 
   if (field.key === "script_ids") {
-    const selected = Array.isArray(value) ? value as string[] : [];
+    const selected = Array.isArray(value) ? (value as string[]) : [];
     const available = ctx.videos ?? [];
-    const retired = selected.filter((id) => !available.some((v) => v.id === id));
-    return <fieldset className="flex flex-col gap-2">
-      <legend className="text-label">{name}</legend>
-      <p className="text-caption text-muted-foreground">Elige los videos para esta variante. El número indica su orden; revisa sus textos si cambias la selección.</p>
-      {!available.length && !retired.length ? <p className="text-caption text-muted-foreground">Aprueba un video en Creativos para elegirlo aquí.</p> : null}
-      {[...available, ...retired.map((id) => ({ id, name: "Video retirado: quítalo antes de publicar" }))].map((video) => <label key={video.id} className="flex min-h-touch cursor-pointer items-center gap-3 rounded-md border p-3">
-        <input type="checkbox" checked={selected.includes(video.id)} disabled={!selected.includes(video.id) && selected.length >= 10} onChange={(e) => set(e.target.checked ? [...selected, video.id] : selected.filter((id) => id !== video.id))} />
-        <span className="text-caption">{selected.includes(video.id) ? `${selected.indexOf(video.id)+1}. ` : ""}{video.name}</span>
-      </label>)}
-      <ErrorText id={errorId} message={error} />
-    </fieldset>;
+    const retired = selected.filter(
+      (id) => !available.some((v) => v.id === id),
+    );
+    return (
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-label">{name}</legend>
+        <p className="text-caption text-muted-foreground">
+          Elige los videos para esta variante. El número indica su orden; revisa
+          sus textos si cambias la selección.
+        </p>
+        {!available.length && !retired.length ? (
+          <p className="text-caption text-muted-foreground">
+            Aprueba un video en Creativos para elegirlo aquí.
+          </p>
+        ) : null}
+        {[
+          ...available,
+          ...retired.map((id) => ({
+            id,
+            name: "Video retirado: quítalo antes de publicar",
+          })),
+        ].map((video) => (
+          <label
+            key={video.id}
+            className="flex min-h-touch cursor-pointer items-center gap-3 rounded-md border p-3"
+          >
+            <input
+              type="checkbox"
+              checked={selected.includes(video.id)}
+              disabled={!selected.includes(video.id) && selected.length >= 10}
+              onChange={(e) =>
+                set(
+                  e.target.checked
+                    ? [...selected, video.id]
+                    : selected.filter((id) => id !== video.id),
+                )
+              }
+            />
+            <span className="text-caption">
+              {selected.includes(video.id)
+                ? `${selected.indexOf(video.id) + 1}. `
+                : ""}
+              {video.name}
+            </span>
+          </label>
+        ))}
+        <ErrorText id={errorId} message={error} />
+      </fieldset>
+    );
   }
   switch (field.kind) {
     case "text": {
@@ -112,19 +177,44 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
         id,
         value: text,
         "aria-invalid": error ? true : undefined,
-        "aria-describedby": [field.hint ? hintId : "", error ? errorId : ""].filter(Boolean).join(" ") || undefined,
-        onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(field.optional && !e.target.value ? undefined : e.target.value),
+        "aria-describedby":
+          [field.hint ? hintId : "", error ? errorId : ""]
+            .filter(Boolean)
+            .join(" ") || undefined,
+        onChange: (
+          e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        ) =>
+          set(field.optional && !e.target.value ? undefined : e.target.value),
       };
       return (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor={id} className="text-label">
               {name}
-              {field.optional ? <span className="font-normal text-muted-foreground"> (opcional)</span> : null}
+              {field.optional ? (
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  (opcional)
+                </span>
+              ) : null}
             </Label>
-            {field.max ? <CharCount count={count} limit={field.max} live /> : null}
+            {field.max ? (
+              <CharCount count={count} limit={field.max} live />
+            ) : null}
           </div>
-          {field.multiline ? <textarea rows={3} className={cn(control, "min-h-11 resize-y py-2.5 leading-6")} {...props} /> : <input type="text" className={cn(control, "h-control")} {...props} />}
+          {field.multiline ? (
+            <textarea
+              rows={3}
+              className={cn(control, "min-h-11 resize-y py-2.5 leading-6")}
+              {...props}
+            />
+          ) : (
+            <input
+              type="text"
+              className={cn(control, "h-control")}
+              {...props}
+            />
+          )}
           {field.hint ? (
             <span id={hintId} className="text-caption text-muted-foreground">
               {field.hint}
@@ -136,28 +226,67 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
     }
 
     case "choice":
-    case "review": {
+    case "review":
+    case "fact": {
       const options =
         field.kind === "review"
-          ? ctx.reviews.map((r) => ({ value: r.id, label: `${r.author} · ${r.rating}★ · ${r.body.length > 60 ? `${r.body.slice(0, 59)}…` : r.body}` }))
-          : field.options;
-      const current = typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
+          ? ctx.reviews.map((r) => ({
+              value: r.id,
+              label: `${r.author} · ${r.rating}★ · ${r.body.length > 60 ? `${r.body.slice(0, 59)}…` : r.body}`,
+            }))
+          : field.kind === "fact"
+            ? (ctx.verifiedFacts ?? []).map((f) => ({
+                value: f.id,
+                label: f.statement,
+              }))
+            : field.options;
+      const current =
+        typeof value === "string"
+          ? value
+          : typeof value === "number"
+            ? String(value)
+            : "";
       return (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={id} className="text-label">
             {name}
-            {field.optional ? <span className="font-normal text-muted-foreground"> (opcional)</span> : null}
+            {field.optional ? (
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                (opcional)
+              </span>
+            ) : null}
           </Label>
           <select
             id={id}
             value={current}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
-            onChange={(e) => set(e.target.value ? (field.kind === "choice" && field.numeric ? Number(e.target.value) : e.target.value) : undefined)}
+            onChange={(e) =>
+              set(
+                e.target.value
+                  ? field.kind === "choice" && field.numeric
+                    ? Number(e.target.value)
+                    : e.target.value
+                  : undefined,
+              )
+            }
             className={cn(control, "h-control")}
           >
-            {field.optional || !current ? <option value="">{field.kind === "review" ? "Ninguna" : "Elige una"}</option> : null}
-            {!options.some((o) => o.value === current) && current ? <option value={current}>{field.kind === "review" ? "Reseña que ya no está aprobada" : current}</option> : null}
+            {field.optional || !current ? (
+              <option value="">
+                {field.kind === "review" ? "Ninguna" : "Elige una"}
+              </option>
+            ) : null}
+            {!options.some((o) => o.value === current) && current ? (
+              <option value={current}>
+                {field.kind === "review"
+                  ? "Reseña que ya no está aprobada"
+                  : field.kind === "fact"
+                    ? "Hecho que ya no está disponible"
+                    : current}
+              </option>
+            ) : null}
             {options.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -170,7 +299,12 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
     }
 
     case "icon": {
-      const current = typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
+      const current =
+        typeof value === "string"
+          ? value
+          : typeof value === "number"
+            ? String(value)
+            : "";
       return (
         <fieldset className="flex flex-col gap-1.5">
           <legend className="mb-1.5 text-label">{name}</legend>
@@ -179,11 +313,21 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
               <span className="grid size-8 place-items-center rounded-sm bg-muted text-foreground">
                 <DfIcon name={current} />
               </span>
-              <span className="flex-1">{current ? (ICON_LABELS[current] ?? current) : "Sin ícono"}</span>
-              <span className="text-caption text-primary group-open:hidden">Cambiar</span>
-              <span className="hidden text-caption text-primary group-open:inline">Cerrar</span>
+              <span className="flex-1">
+                {current ? (ICON_LABELS[current] ?? current) : "Sin ícono"}
+              </span>
+              <span className="text-caption text-primary group-open:hidden">
+                Cambiar
+              </span>
+              <span className="hidden text-caption text-primary group-open:inline">
+                Cerrar
+              </span>
             </summary>
-            <div role="radiogroup" aria-label={name} className="grid grid-cols-[repeat(auto-fill,minmax(--spacing(11),1fr))] gap-1 border-t p-2">
+            <div
+              role="radiogroup"
+              aria-label={name}
+              className="grid grid-cols-[repeat(auto-fill,minmax(--spacing(11),1fr))] gap-1 border-t p-2"
+            >
               {ICON_KEYS.map((k) => (
                 <button
                   key={k}
@@ -195,7 +339,8 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
                   onClick={() => set(k)}
                   className={cn(
                     "grid size-11 place-items-center rounded-sm text-foreground transition-colors duration-fast hover:bg-muted",
-                    current === k && "bg-primary-soft text-primary inset-ring-2 inset-ring-primary",
+                    current === k &&
+                      "bg-primary-soft text-primary inset-ring-2 inset-ring-primary",
                   )}
                 >
                   <DfIcon name={k} />
@@ -220,7 +365,9 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
           <select
             id={id}
             value={choice}
-            onChange={(e) => set(e.target.value === "text" ? { text } : e.target.value)}
+            onChange={(e) =>
+              set(e.target.value === "text" ? { text } : e.target.value)
+            }
             className={cn(control, "h-control")}
           >
             {field.options.map((o) => (
@@ -240,7 +387,9 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
                 onChange={(e) => set({ text: e.target.value })}
                 className={cn(control, "h-control")}
               />
-              {field.max ? <CharCount count={[...text.trim()].length} limit={field.max} /> : null}
+              {field.max ? (
+                <CharCount count={[...text.trim()].length} limit={field.max} />
+              ) : null}
             </div>
           ) : null}
           <ErrorText id={errorId} message={error} />
@@ -253,7 +402,12 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
         <fieldset className="flex flex-col gap-4">
           {name ? <legend className="mb-1 text-label">{name}</legend> : null}
           {field.fields.map((f) => (
-            <FieldView key={f.key} field={f} path={[...path, f.key]} ctx={ctx} />
+            <FieldView
+              key={f.key}
+              field={f}
+              path={[...path, f.key]}
+              ctx={ctx}
+            />
           ))}
           <ErrorText id={errorId} message={error} />
         </fieldset>
@@ -264,23 +418,43 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
       const items = Array.isArray(value) ? value : [];
       const itemName = (i: number) => `${singular(field.label)} ${i + 1}`;
       return (
-        <section aria-labelledby={`${id}-titulo`} className="flex flex-col gap-3">
+        <section
+          aria-labelledby={`${id}-titulo`}
+          className="flex flex-col gap-3"
+        >
           <div className="flex items-baseline justify-between gap-2">
             <h3 id={`${id}-titulo`} className="text-label">
               {name}
-              {field.optional ? <span className="font-normal text-muted-foreground"> (opcional)</span> : null}
+              {field.optional ? (
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  (opcional)
+                </span>
+              ) : null}
             </h3>
             <span className="text-caption text-muted-foreground tabular-nums">
-              {items.length} · {field.min === field.max ? `justo ${field.max}` : `de ${field.min} a ${field.max}`}
+              {items.length} ·{" "}
+              {field.min === field.max
+                ? `justo ${field.max}`
+                : `de ${field.min} a ${field.max}`}
             </span>
           </div>
-          {field.hint ? <p className="-mt-2 text-caption text-muted-foreground">{field.hint}</p> : null}
+          {field.hint ? (
+            <p className="-mt-2 text-caption text-muted-foreground">
+              {field.hint}
+            </p>
+          ) : null}
           <ErrorText id={errorId} message={error} />
           <ol className="flex flex-col gap-3">
             {items.map((_, i) => (
-              <li key={i} className="flex flex-col gap-3 rounded-md border bg-card p-3">
+              <li
+                key={i}
+                className="flex flex-col gap-3 rounded-md border bg-card p-3"
+              >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-caption font-semibold text-muted-foreground">{itemName(i)}</span>
+                  <span className="text-caption font-semibold text-muted-foreground">
+                    {itemName(i)}
+                  </span>
                   <IconButton
                     icon="minus"
                     label={`Quitar ${itemName(i).toLowerCase()}`}
@@ -288,12 +462,23 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
                     onClick={() => set(items.filter((__, j) => j !== i))}
                   />
                 </div>
-                <FieldView field={field.item} path={[...path, i]} ctx={ctx} label={field.item.kind === "group" ? "" : itemName(i)} />
+                <FieldView
+                  field={field.item}
+                  path={[...path, i]}
+                  ctx={ctx}
+                  label={field.item.kind === "group" ? "" : itemName(i)}
+                />
               </li>
             ))}
           </ol>
           {items.length < field.max ? (
-            <Button variant="ghost" size="sm" icon="plus" onClick={() => set([...items, emptyValue(field.item)])} className="self-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="plus"
+              onClick={() => set([...items, emptyValue(field.item)])}
+              className="self-start"
+            >
               Agregar {singular(field.label).toLowerCase()}
             </Button>
           ) : null}
@@ -305,7 +490,17 @@ function FieldView({ field, path, ctx, label }: { field: FormField; path: Path; 
 
 /** «Beneficios» → «Beneficio», «Filas» → «Fila». Suficiente para las etiquetas del catálogo. */
 function singular(label: string): string {
-  const special: Record<string, string> = { Razones: "Razón", "Columnas de comparación": "Columna", "Textos de los videos": "Texto", Cifras: "Cifra", Elementos: "Elemento" };
+  const special: Record<string, string> = {
+    Razones: "Razón",
+    "Columnas de comparación": "Columna",
+    "Textos de los videos": "Texto",
+    Cifras: "Cifra",
+    Elementos: "Elemento",
+  };
   if (special[label]) return special[label];
-  return label.endsWith("es") && !label.endsWith("ones") ? label.slice(0, -2) : label.endsWith("s") ? label.slice(0, -1) : label;
+  return label.endsWith("es") && !label.endsWith("ones")
+    ? label.slice(0, -2)
+    : label.endsWith("s")
+      ? label.slice(0, -1)
+      : label;
 }

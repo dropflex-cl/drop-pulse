@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, policyActive } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
@@ -17,31 +18,36 @@ interface Content {
   items?: Item[];
 }
 
-export function ScrollingBenefitsPreview({ content, facts }: PreviewProps<Content>) {
+export function ScrollingBenefitsPreview({
+  content,
+  facts,
+}: PreviewProps<Content>) {
   const s = settingsOf("scrolling-benefits");
 
   // Un ítem atado a una política que la tienda no tiene no se dibuja (lo que falta, con su ejemplo).
   const items = (content.items ?? [])
     .slice(0, 8)
     .filter((it) => policyActive(it?.requires, facts))
-    .map((it) => ({ icon: it?.icon, text: fill((it?.text || "").trim(), facts) }))
+    .map((it) => ({
+      icon: it?.icon,
+      text: fill((it?.text || "").trim(), facts),
+    }))
     .filter((it) => it.text);
 
   const count = items.length;
   if (!count) {
-    return (
-      <div className="df df-scrolling-benefits" style={{ "--df-sb-pt": px(s.padding_top), "--df-sb-pb": px(s.padding_bottom) } as React.CSSProperties}>
-        <p className="df-placeholder">
-          Cinta de beneficios: agrega bloques «Beneficio» o genera el contenido desde DropFlex. Los ítems atados a una política que la tienda no tiene no se muestran.
-        </p>
-      </div>
-    );
+    return <PdpEmptyPreview component="scrolling-benefits" />;
   }
 
-  const heading = s.show_heading ? fill(content.heading || String(s.heading ?? ""), facts) : "";
+  const heading = s.show_heading
+    ? fill(content.heading || String(s.heading ?? ""), facts)
+    : "";
   const isStatic = count < 3;
   // Duración estimada sin JS (~220 px por ítem), como el Liquid.
-  const estimate = Math.max(8, Math.floor((count * 220) / (Number(s.speed) || 50)));
+  const estimate = Math.max(
+    8,
+    Math.floor((count * 220) / (Number(s.speed) || 50)),
+  );
 
   const classes = ["df", "df-scrolling-benefits"];
   if (isStatic) classes.push("df-scrolling-benefits--static");
@@ -79,17 +85,34 @@ export function ScrollingBenefitsPreview({ content, facts }: PreviewProps<Conten
     >
       {heading && (
         <h2 className="df-heading df-scrolling-benefits__heading">
-          {heading.split("**").map((part, i) => (i === 1 || i === 3 ? <span key={i} className="df-scrolling-benefits__hl">{part}</span> : part))}
+          {heading.split("**").map((part, i) =>
+            i === 1 || i === 3 ? (
+              <span key={i} className="df-scrolling-benefits__hl">
+                {part}
+              </span>
+            ) : (
+              part
+            ),
+          )}
         </h2>
       )}
       <div className="df-scrolling-benefits__bar">
         <div className="df-scrolling-benefits__viewport">
           <div className="df-scrolling-benefits__track" data-df-track="">
-            <ul className="df-scrolling-benefits__set" role="list" data-df-set="">
+            <ul
+              className="df-scrolling-benefits__set"
+              role="list"
+              data-df-set=""
+            >
               {set}
             </ul>
             {!isStatic && (
-              <ul className="df-scrolling-benefits__set" role="list" aria-hidden inert>
+              <ul
+                className="df-scrolling-benefits__set"
+                role="list"
+                aria-hidden
+                inert
+              >
                 {set}
               </ul>
             )}

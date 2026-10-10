@@ -20,6 +20,17 @@ import { shippingTimeline } from "./shipping-timeline/content";
 import { statsWithImage } from "./stats-with-image/content";
 import { ugcSlider } from "./ugc-slider/content";
 
+import { productIncludes } from "./product-includes/content";
+import { usageSteps } from "./usage-steps/content";
+import { useCases } from "./use-cases/content";
+import { beforeAfter } from "./before-after/content";
+import { resultsTimeline } from "./results-timeline/content";
+import { customerStories } from "./customer-stories/content";
+import { expertEndorsement } from "./expert-endorsement/content";
+import { mechanism } from "./mechanism/content";
+import { guarantee } from "./guarantee/content";
+import { offerSummary } from "./offer-summary/content";
+
 export const CATALOG: ConversionComponent[] = [
   // Columna del producto
   reviewStars,
@@ -30,15 +41,25 @@ export const CATALOG: ConversionComponent[] = [
   gifStrip,
   reviewSlider,
   ugcSlider,
-  // Secciones de la landing
-  painBlock,
-  statsWithImage,
+  // Recorrido publicado por defecto (templates/product.json).
   scrollingBenefits,
+  painBlock,
   imageWithBenefits,
+  mechanism,
+  useCases,
+  beforeAfter,
+  statsWithImage,
+  resultsTimeline,
+  usageSteps,
+  productIncludes,
   instaStory,
+  customerStories,
   reviewWall,
+  expertEndorsement,
   comparisonTable,
+  guarantee,
   faqAndText,
+  offerSummary,
 ];
 
 export const componentById = (id: string) => CATALOG.find((c) => c.id === id);

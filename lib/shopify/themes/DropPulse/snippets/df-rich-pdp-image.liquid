@@ -1,0 +1,29 @@
+{%- doc -%}
+ Imagen elegida por espacio; las variantes usan índices del pool publicado.
+ @param {object} product
+ @param {string} component
+ @param {string} slot
+ @param {number} [index]
+ @param {object} [df_variant]
+ @param {string} [alt]
+{%- enddoc -%}
+{%- liquid
+ assign key = component | replace: '-', '_' | append: '_' | append: slot
+ assign index = index | default: 0
+ assign media = product.metafields.dropflex[key].value
+ if df_variant != blank
+  assign pool_key = key | append: '_variants'
+  assign selected = df_variant.media_indices[slot][index]
+  assign media = product.metafields.dropflex[pool_key].value
+  assign image = nil
+  if selected != nil
+   assign image = media[selected]
+  endif
+ else
+  assign image = media[index]
+ endif
+ assign image = image.preview_image | default: image
+-%}
+{%- if image != blank -%}
+<img class="df-rich__image" src="{{ image | image_url: width: 1000 }}" alt="{{ alt | escape }}" width="{{ image.width }}" height="{{ image.height }}" loading="lazy">
+{%- endif -%}

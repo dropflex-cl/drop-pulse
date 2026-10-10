@@ -1,0 +1,41 @@
+/* Estructura visual compartida. Medidas de la grilla de 4px y tokens del tema. */
+.df-rich { box-sizing: border-box; --df-rich-touch: 44px; --df-rich-pad: calc(var(--df-gap) * 1.5); --df-rich-space: calc(var(--df-title-gap) * 1.5); padding-block: var(--df-rich-space); }
+.df-rich__heading { font-size: var(--df-title-size); text-align: center; margin-bottom: var(--df-title-gap); text-wrap: balance; }
+.df-rich__grid, .df-rich__timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--df-gap); padding: 0; margin: 0; list-style: none; }
+.df-rich__card { background: var(--df-surface); border: 1px solid var(--df-hairline); border-radius: var(--df-radius-lg); padding: var(--df-rich-pad); display: flex; flex-direction: column; gap: var(--df-gap); min-width: 0; }
+.df-rich__card h3 { font-size: 1.125rem; text-wrap: balance; }
+.df-rich__image { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: var(--df-radius-media); }
+.df-rich__main-image { max-width: 480px; margin: 0 auto var(--df-title-gap); }
+.df-rich__number { display: grid; place-items: center; width: var(--df-rich-touch); height: var(--df-rich-touch); border-radius: var(--df-radius-pill); background: var(--df-accent); color: var(--df-on-accent); font-weight: 700; }
+.df-rich__label { color: var(--df-accent-ink); font-weight: 600; font-size: .875rem; }
+.df-rich__cases { display: grid; gap: var(--df-gap); max-width: 800px; margin-inline: auto; }
+.df-rich__case { border: 1px solid var(--df-hairline); border-radius: var(--df-radius); background: var(--df-surface); }
+.df-rich__case summary { min-height: var(--df-rich-touch); padding: var(--df-gap); display: flex; align-items: center; justify-content: space-between; gap: var(--df-gap); cursor: pointer; font-weight: 600; list-style: none; }
+.df-rich__case summary::-webkit-details-marker { display: none; }
+.df-rich__case[open] summary .df-icon { transform: rotate(90deg); }
+.df-rich__case-body { padding: var(--df-gap); display: grid; gap: var(--df-gap); }
+.df-rich__case-body .df-rich__image { max-width: 320px; }
+.df-rich__comparison { max-width: 800px; margin-inline: auto; }
+.df-rich__comparison-images { display: grid; grid-template-columns: 1fr 1fr; gap: var(--df-gap); }
+.df-rich__comparison figure { margin: 0; min-width: 0; }
+.df-rich__comparison figcaption { padding: var(--df-gap); text-align: center; font-weight: 600; }
+.df-rich__comparison[data-df-comparison-ready] .df-rich__comparison-images { position: relative; display: block; overflow: hidden; border-radius: var(--df-radius-media); }
+.df-rich__comparison[data-df-comparison-ready] [data-df-before] { position: absolute; inset: 0; z-index: 1; clip-path: inset(0 calc(100% - var(--df-comparison-position, 50%)) 0 0); }
+.df-rich__comparison[data-df-comparison-ready] figcaption { position: absolute; bottom: var(--df-gap); background: var(--df-bg); color: var(--df-fg); border-radius: var(--df-radius-sm); }
+.df-rich__comparison [data-df-before] figcaption { left: var(--df-gap); }
+.df-rich__comparison [data-df-after] figcaption { right: var(--df-gap); }
+.df-rich__range { display: grid; gap: var(--df-gap); padding-block: var(--df-gap); font-size: .875rem; }
+.df-rich__range[hidden] { display: none; }
+.df-rich__range input { width: 100%; min-height: var(--df-rich-touch); accent-color: var(--df-accent); cursor: ew-resize; }
+.df-rich__note, .df-rich__intro { text-align: center; margin: var(--df-gap) auto; max-width: 640px; }
+.df-rich__expert { max-width: 800px; margin-inline: auto; }
+.df-rich__expert > .df-rich__image { max-width: 240px; }
+.df-rich blockquote { margin: 0; }
+.df-rich__expert figcaption { margin-top: var(--df-gap); }
+.df-rich__policy-links { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--df-gap); margin-top: var(--df-gap); }
+.df-rich__policy-links a { min-height: var(--df-rich-touch); display: inline-flex; align-items: center; color: var(--df-accent-ink); text-decoration: underline; }
+.df-rich__price { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: 0; }
+.df-rich__price s { font-size: .875rem; color: var(--df-muted); font-weight: 400; }
+.df-rich__cta { display: flex; width: fit-content; min-height: var(--df-rich-touch); margin: var(--df-title-gap) auto 0; gap: var(--df-gap); align-items: center; justify-content: center; padding: var(--df-gap) var(--df-rich-pad); background: var(--df-accent); color: var(--df-on-accent); border-radius: var(--df-radius); text-decoration: none; font-weight: 600; }
+.df-rich :is(a, input, summary):focus-visible { outline: 2px solid var(--df-accent); outline-offset: 4px; }
+@media (min-width: 750px) { .df-rich__expert { flex-direction: row; align-items: center; } .df-rich__case-body { grid-template-columns: auto 1fr; align-items: center; } }

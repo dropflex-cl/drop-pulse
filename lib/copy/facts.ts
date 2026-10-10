@@ -1,3 +1,4 @@
+import { verifiedPageFacts } from "./verified-facts";
 import "server-only";
 import { packLabelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
@@ -29,16 +30,25 @@ export async function storeFacts(
   userId: string,
   productId: string,
 ): Promise<StoreFacts> {
-  const [product, pricing, labels, images, reviews, settings, pageRows] =
-    await Promise.all([
-      getProductRow(userId, productId),
-      getPricingPlan(userId, productId),
-      latestPackLabels(userId, productId),
-      listImageRows(userId, [productId]),
-      approvedReviewRows(userId, productId),
-      getStorePolicies(userId),
-      pageImageRows(userId, [productId]),
-    ]);
+  const [
+    product,
+    pricing,
+    labels,
+    images,
+    reviews,
+    settings,
+    pageRows,
+    verifiedFacts,
+  ] = await Promise.all([
+    getProductRow(userId, productId),
+    getPricingPlan(userId, productId),
+    latestPackLabels(userId, productId),
+    listImageRows(userId, [productId]),
+    approvedReviewRows(userId, productId),
+    getStorePolicies(userId),
+    pageImageRows(userId, [productId]),
+    verifiedPageFacts(userId, productId),
+  ]);
   const cover = baseImage(images) ?? images[0];
   const chosen = pageRows.filter((row) => row.status === "approved");
   const galleryRows = [
@@ -112,6 +122,7 @@ export async function storeFacts(
         badge: l?.badge ?? undefined,
       };
     }),
+    verifiedFacts,
     reviews: reviews.map((r) => ({
       id: r.id,
       author: r.author,

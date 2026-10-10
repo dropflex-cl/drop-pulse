@@ -13,31 +13,74 @@ import { assertUgcPublishable } from "@/lib/video/publication";
 import { after } from "next/server";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { validateLandingProposal } from "@/lib/product-intelligence/landing-service";
-import { contextAccess, createContextRepository } from "@/lib/product-intelligence/repository";
+import {
+  contextAccess,
+  createContextRepository,
+} from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { assertLandingVariantTheme } from "@/lib/shopify/publish/theme";
-import { contentVariants, isVariants, selectVariant } from "@/lib/copy/variants";
+import {
+  contentVariants,
+  isVariants,
+  selectVariant,
+} from "@/lib/copy/variants";
 import { activeComponents, currentContent } from "@/lib/copy/store";
 import { adminClient } from "@/lib/integrations/admin";
-import { shopifyMutation, shopifyQuery } from "@/lib/integrations/shopify/client";
-import { getShopifyConnection, type ShopifyConnection } from "@/lib/integrations/shopify/connection";
+import {
+  shopifyMutation,
+  shopifyQuery,
+} from "@/lib/integrations/shopify/client";
+import {
+  getShopifyConnection,
+  type ShopifyConnection,
+} from "@/lib/integrations/shopify/connection";
 import { missingPublishScopes } from "@/lib/integrations/shopify/oauth";
-import { COVER, GALLERY, GALLERY_MIN, GIFS, slotKind } from "@/lib/page-images/catalog";
+import {
+  COVER,
+  GALLERY,
+  GALLERY_MIN,
+  GIFS,
+  slotKind,
+} from "@/lib/page-images/catalog";
 import { PAGE_MEDIA_BUCKET, pageImageRows } from "@/lib/page-images/store";
 import { packLabelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
-import { getProductRow, listImageRows, REFERENCES_BUCKET, type ImageRow } from "@/lib/products/store";
+import {
+  getProductRow,
+  listImageRows,
+  REFERENCES_BUCKET,
+  type ImageRow,
+} from "@/lib/products/store";
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { logisticsMetafield, policiesMetafield } from "@/lib/settings/policies";
 import { getStorePolicies } from "@/lib/settings/policies-store";
 import { componentById } from "@/lib/shopify/components/catalog";
 import { EVENT_KEY, publishProductEvent } from "@/lib/events/store";
 import { ensureDefinitions } from "@/lib/shopify/publish/definitions";
-import { assertNoUserErrors, ensureImages, ensureVideos, PublishError, type SourceImage } from "@/lib/shopify/publish/files";
-import { deleteMetafields, setMetafields } from "@/lib/shopify/publish/metafields";
-import { fingerprint, landingAtomicKeys, MappingError, PACK_OPTION, productMetafields, productSetInput, type ExistingProduct, type PublishInput } from "@/lib/shopify/publish/mapping";
+import {
+  assertNoUserErrors,
+  ensureImages,
+  ensureVideos,
+  PublishError,
+  type SourceImage,
+} from "@/lib/shopify/publish/files";
+import {
+  deleteMetafields,
+  setMetafields,
+} from "@/lib/shopify/publish/metafields";
+import {
+  fingerprint,
+  landingAtomicGroups,
+  landingAtomicKeys,
+  MappingError,
+  PACK_OPTION,
+  productMetafields,
+  productSetInput,
+  type ExistingProduct,
+  type PublishInput,
+} from "@/lib/shopify/publish/mapping";
 import { packCompareAt } from "@/lib/store-preview/facts";
 import type { ImagePick } from "@/lib/types";
 
@@ -71,10 +114,17 @@ export interface PublishSummary {
   logistics?: boolean;
 }
 
-export async function getPublications(userId: string, productIds: string[]): Promise<Map<string, PublicationRow>> {
+export async function getPublications(
+  userId: string,
+  productIds: string[],
+): Promise<Map<string, PublicationRow>> {
   const out = new Map<string, PublicationRow>();
   if (!productIds.length) return out;
-  const { data, error } = await adminClient().from(TABLE).select("*").eq("user_id", userId).in("product_id", productIds);
+  const { data, error } = await adminClient()
+    .from(TABLE)
+    .select("*")
+    .eq("user_id", userId)
+    .in("product_id", productIds);
   if (error) throw new Error(`Leer las publicaciones: ${error.message}`);
   for (const r of (data ?? []) as PublicationRow[]) out.set(r.product_id, r);
   return out;
@@ -84,7 +134,11 @@ export async function getPublications(userId: string, productIds: string[]): Pro
 export async function expireStalePublications(userId: string): Promise<void> {
   const { error } = await adminClient()
     .from(TABLE)
-    .update({ status: "error", error_message: "La publicación se cortó. Intenta de nuevo.", updated_at: new Date().toISOString() })
+    .update({
+      status: "error",
+      error_message: "La publicación se cortó. Intenta de nuevo.",
+      updated_at: new Date().toISOString(),
+    })
     .eq("user_id", userId)
     .eq("status", "publishing")
     .lt("updated_at", new Date(Date.now() - STALE_MS).toISOString());
@@ -93,9 +147,12 @@ export async function expireStalePublications(userId: string): Promise<void> {
 
 // ---------------------------------------------------------------- Lo aprobado
 
-const refKey = (r: ImageRow) => (r.storage_path ? `${REFERENCES_BUCKET}/${r.storage_path}` : (r.url ?? ""));
+const refKey = (r: ImageRow) =>
+  r.storage_path ? `${REFERENCES_BUCKET}/${r.storage_path}` : (r.url ?? "");
 const refSource = (r: ImageRow, alt: string): SourceImage =>
-  r.storage_path ? { key: refKey(r), bucket: REFERENCES_BUCKET, path: r.storage_path, alt } : { key: refKey(r), url: r.url ?? undefined, alt };
+  r.storage_path
+    ? { key: refKey(r), bucket: REFERENCES_BUCKET, path: r.storage_path, alt }
+    : { key: refKey(r), url: r.url ?? undefined, alt };
 
 export interface Prepared {
   input: PublishInput;
@@ -106,43 +163,74 @@ export interface Prepared {
 }
 
 /** Junta lo aprobado del producto tal como se publicaría. No toca Shopify. */
-export async function preparePublish(userId: string, productId: string): Promise<Prepared> {
-  const [row, rowsByProduct, refs, pageRows, reviews, pricing, labels] = await Promise.all([
-    getProductRow(userId, productId),
-    activeComponents(userId, [productId]),
-    listImageRows(userId, [productId]),
-    pageImageRows(userId, [productId]),
-    approvedReviewRows(userId, productId),
-    getPricingPlan(userId, productId),
-    latestPackLabels(userId, productId),
-  ]);
+export async function preparePublish(
+  userId: string,
+  productId: string,
+): Promise<Prepared> {
+  const [row, rowsByProduct, refs, pageRows, reviews, pricing, labels] =
+    await Promise.all([
+      getProductRow(userId, productId),
+      activeComponents(userId, [productId]),
+      listImageRows(userId, [productId]),
+      pageImageRows(userId, [productId]),
+      approvedReviewRows(userId, productId),
+      getPricingPlan(userId, productId),
+      latestPackLabels(userId, productId),
+    ]);
   if (!row) throw new ProductApiError("No encontramos ese producto.", 404);
   const rows = rowsByProduct.get(productId) ?? [];
   const missing: string[] = [];
 
-  const listingRow = rows.find((r) => r.component === LISTING && r.status === "approved");
+  const listingRow = rows.find(
+    (r) => r.component === LISTING && r.status === "approved",
+  );
   if (!listingRow) missing.push("Aprueba la ficha en Página del producto.");
   const listingContent = listingRow ? currentContent(listingRow) : null;
-  const listing = (listingRow ? selectVariant(listingContent).content : null) as Listing | null;
+  const listing = (
+    listingRow ? selectVariant(listingContent).content : null
+  ) as Listing | null;
 
   // Imágenes: portada, galería en su orden y los beneficios elegidos en la etapa Imágenes.
   const images: SourceImage[] = [];
   const refById = new Map(refs.map((r) => [r.id, r]));
-  const pageSource = (p: (typeof pageRows)[number], alt: string): SourceImage | null => {
+  const pageSource = (
+    p: (typeof pageRows)[number],
+    alt: string,
+  ): SourceImage | null => {
     if (p.source === "reference") {
-      const ref = p.reference_image_id ? refById.get(p.reference_image_id) : undefined;
+      const ref = p.reference_image_id
+        ? refById.get(p.reference_image_id)
+        : undefined;
       return ref ? refSource(ref, alt) : null;
     }
-    return p.storage_path ? { key: `${PAGE_MEDIA_BUCKET}/${p.storage_path}`, bucket: PAGE_MEDIA_BUCKET, path: p.storage_path, alt } : null;
+    return p.storage_path
+      ? {
+          key: `${PAGE_MEDIA_BUCKET}/${p.storage_path}`,
+          bucket: PAGE_MEDIA_BUCKET,
+          path: p.storage_path,
+          alt,
+        }
+      : null;
   };
   const chosen = pageRows.filter((p) => p.status === "approved");
-  await assertVisualBindingsPublishable(userId, productId, chosen.map(p => p.visual_binding_id).filter((id): id is string => Boolean(id)));
+  await assertVisualBindingsPublishable(
+    userId,
+    productId,
+    chosen
+      .map((p) => p.visual_binding_id)
+      .filter((id): id is string => Boolean(id)),
+  );
   const name = listing?.short_name ?? row.title;
   const cover = chosen.find((p) => p.slot === COVER);
-  const gallery = chosen.filter((p) => p.slot === GALLERY).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const gallery = chosen
+    .filter((p) => p.slot === GALLERY)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const benefits = chosen.filter((p) => slotKind(p.slot) === "benefit");
   if (!cover) missing.push("Elige la portada en Imágenes.");
-  if (gallery.length < GALLERY_MIN) missing.push(`Elige al menos ${GALLERY_MIN} imágenes de galería en Imágenes.`);
+  if (gallery.length < GALLERY_MIN)
+    missing.push(
+      `Elige al menos ${GALLERY_MIN} imágenes de galería en Imágenes.`,
+    );
   const galleryImages = [cover, ...gallery, ...benefits]
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .map((p, i) => pageSource(p, i === 0 ? name : `${name}, imagen ${i + 1}`))
@@ -156,8 +244,13 @@ export async function preparePublish(userId: string, productId: string): Promise
       return ref && !ref.excluded ? refSource(ref, name) : null;
     }
     const p = pageRows.find((x) => x.id === pick.id);
-    if (p?.visual_binding_id && p.status !== "approved") throw new PublishError("Revisa y selecciona la pieza visual antes de publicar.");
-    return p && p.render_status === "succeeded" && p.status !== "rejected" ? pageSource(p, name) : null;
+    if (p?.visual_binding_id && p.status !== "approved")
+      throw new PublishError(
+        "Revisa y selecciona la pieza visual antes de publicar.",
+      );
+    return p && p.render_status === "succeeded" && p.status !== "rejected"
+      ? pageSource(p, name)
+      : null;
   };
   // Los GIF de Imágenes, en su orden: el GIF N lleva el texto N de gif-strip.
   const gifs = chosen
@@ -166,7 +259,13 @@ export async function preparePublish(userId: string, productId: string): Promise
     .map((p, i) => pageSource(p, `${name}, en movimiento ${i + 1}`))
     .filter((s): s is SourceImage => Boolean(s));
   const components = rows
-    .filter((r) => r.component !== LISTING && r.status === "approved" && r.enabled && componentById(r.component))
+    .filter(
+      (r) =>
+        r.component !== LISTING &&
+        r.status === "approved" &&
+        r.enabled &&
+        componentById(r.component),
+    )
     .map((r) => {
       const bySlot: Record<string, string[]> = {};
       for (const pick of (r.images ?? []) as ImagePick[]) {
@@ -180,32 +279,75 @@ export async function preparePublish(userId: string, productId: string): Promise
         bySlot[GIFS] = gifs.map((g) => g.key);
       }
       const content = currentContent(r);
-      const variantImages = isVariants(content) ? contentVariants(content).map((v) => {
-        const slots: Record<string, string[]> = {};
-        for (const pick of v.images ?? r.images ?? []) {
-          const src = resolvePick(pick);
-          if (!src) { missing.push(`${r.component} (${v.key}): una imagen ya no está disponible.`); continue; }
-          images.push(src); (slots[pick.slot] ??= []).push(src.key);
-        }
-        for (const slot of componentById(r.component)?.imageSlots ?? []) if ((slots[slot.key] ?? []).length < slot.min) missing.push(`${r.component} (${v.key}): elige al menos ${slot.min} imágenes para ${slot.label}.`);
-        if (r.component === "gif-strip") slots[GIFS] = gifs.map((g) => g.key);
-        return { key: v.key, images: slots };
-      }) : undefined;
+      const variantImages = isVariants(content)
+        ? contentVariants(content).map((v) => {
+            const slots: Record<string, string[]> = {};
+            for (const pick of v.images ?? r.images ?? []) {
+              const src = resolvePick(pick);
+              if (!src) {
+                missing.push(
+                  `${r.component} (${v.key}): una imagen ya no está disponible.`,
+                );
+                continue;
+              }
+              images.push(src);
+              (slots[pick.slot] ??= []).push(src.key);
+            }
+            for (const slot of componentById(r.component)?.imageSlots ?? [])
+              if ((slots[slot.key] ?? []).length < slot.min)
+                missing.push(
+                  `${r.component} (${v.key}): elige al menos ${slot.min} imágenes para ${slot.label}.`,
+                );
+            if (r.component === "gif-strip")
+              slots[GIFS] = gifs.map((g) => g.key);
+            return { key: v.key, images: slots };
+          })
+        : undefined;
       return { id: r.component, content, images: bySlot, variantImages };
     });
 
-  const variantRows = rows.filter((r) => r.status === "approved" && r.enabled && isVariants(currentContent(r)));
+  const variantRows = rows.filter(
+    (r) =>
+      r.status === "approved" && r.enabled && isVariants(currentContent(r)),
+  );
   if (variantRows.length) {
     try {
-      const access = contextAccess({ userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES });
-      const current = await createContextRepository().loadLanding({ p_access: access, p_product_id: productId }, AbortSignal.timeout(10000));
-      validateLandingProposal(userId, current, variantRows.map((r) => ({ component: r.component, content: currentContent(r) })), productId);
-    } catch (error) { missing.push(error instanceof Error ? error.message : "Revisa las variantes antes de publicar."); }
+      const access = contextAccess({
+        userId,
+        actorId: userId,
+        actorKind: "merchant",
+        scopes: PI_SCOPES,
+      });
+      const current = await createContextRepository().loadLanding(
+        { p_access: access, p_product_id: productId },
+        AbortSignal.timeout(10000),
+      );
+      validateLandingProposal(
+        userId,
+        current,
+        variantRows.map((r) => ({
+          component: r.component,
+          content: currentContent(r),
+        })),
+        productId,
+      );
+    } catch (error) {
+      missing.push(
+        error instanceof Error
+          ? error.message
+          : "Revisa las variantes antes de publicar.",
+      );
+    }
   }
 
   // Reseñas aprobadas con sus fotos.
   const publishReviews = reviews.map((r) => {
-    const photos = r.photos.map((p) => ({ key: `${REFERENCES_BUCKET}/${p.path}`, bucket: REFERENCES_BUCKET, path: p.path, alt: `Foto de ${r.author}` }));
+    const photos = r.photos.map((p) => ({
+      key: `${REFERENCES_BUCKET}/${p.path}`,
+      bucket: REFERENCES_BUCKET,
+      path: p.path,
+      alt: `Foto de ${r.author}`,
+    }));
     images.push(...photos);
     return {
       id: r.id,
@@ -218,28 +360,46 @@ export async function preparePublish(userId: string, productId: string): Promise
   });
 
   // Packs: el plan de precios y las etiquetas aprobadas.
-  if (!pricing) missing.push("Guarda el precio y los packs en Información base.");
+  if (!pricing)
+    missing.push("Guarda el precio y los packs en Información base.");
   // Las tarjetas de packs de la tienda usan las etiquetas («Uno solo para ti»): si hay una propuesta
   // sin decidir (o quedó vieja porque cambiaron los precios), se decide antes de publicar; si no, la
   // tienda caería en «1 unidad», «2 unidades».
-  const labelsReady = labels?.status === "approved" && !packLabelsStale(labels, pricing);
-  if (pricing && pricing.packs.length > 1 && labels && !labelsReady) missing.push("Acepta las etiquetas de los packs en Información base.");
+  const labelsReady =
+    labels?.status === "approved" && !packLabelsStale(labels, pricing);
+  if (pricing && pricing.packs.length > 1 && labels && !labelsReady)
+    missing.push("Acepta las etiquetas de los packs en Información base.");
   const approvedLabels = labelsReady ? labels!.payload : [];
   const packs = (pricing?.packs ?? []).map((p) => {
     const l = approvedLabels.find((x) => x.units === p.units);
     return {
       units: p.units,
       price: p.price,
-      compareAt: packCompareAt(p.units, p.price, pricing!.salePrice, pricing!.compareAtPrice),
+      compareAt: packCompareAt(
+        p.units,
+        p.price,
+        pricing!.salePrice,
+        pricing!.compareAtPrice,
+      ),
       label: l?.label,
       support: l?.support ?? undefined,
       badge: l?.badge ?? undefined,
     };
   });
 
-  const { data: approvedVideos, error: videoError } = await adminClient().from("video_scripts").select("id,final_storage_path,final_status,approved_at,provenance,execution_key")
-    .eq("user_id", userId).eq("product_id", productId).is("superseded_at", null).eq("final_status", "approved").not("approved_at", "is", null).not("final_storage_path", "is", null);
-  if (videoError) throw new PublishError("No pudimos leer los videos aprobados.");
+  const { data: approvedVideos, error: videoError } = await adminClient()
+    .from("video_scripts")
+    .select(
+      "id,final_storage_path,final_status,approved_at,provenance,execution_key",
+    )
+    .eq("user_id", userId)
+    .eq("product_id", productId)
+    .is("superseded_at", null)
+    .eq("final_status", "approved")
+    .not("approved_at", "is", null)
+    .not("final_storage_path", "is", null);
+  if (videoError)
+    throw new PublishError("No pudimos leer los videos aprobados.");
   const byId = new Map((approvedVideos ?? []).map((v) => [v.id, v]));
   const videos: SourceImage[] = [];
   const selectedVideoIds: string[] = [];
@@ -249,9 +409,17 @@ export async function preparePublish(userId: string, productId: string): Promise
     selectedVideoIds.push(...ids);
     return ids.map((id) => {
       const video = byId.get(id);
-      if (!video?.final_storage_path) throw new PublishError("Un video de la página ya no está aprobado. Revisa Videos y el componente antes de publicar.");
+      if (!video?.final_storage_path)
+        throw new PublishError(
+          "Un video de la página ya no está aprobado. Revisa Videos y el componente antes de publicar.",
+        );
       const key = `creative-media/${video.final_storage_path}`;
-      videos.push({ key, bucket: "creative-media", path: video.final_storage_path, alt: `Video del producto · ${video.execution_key ?? id}` });
+      videos.push({
+        key,
+        bucket: "creative-media",
+        path: video.final_storage_path,
+        alt: `Video del producto · ${video.execution_key ?? id}`,
+      });
       return key;
     });
   }
@@ -259,22 +427,45 @@ export async function preparePublish(userId: string, productId: string): Promise
     if (isVariants(ugc.content)) {
       const fallback = ugc.content.find((v) => v.key === "default");
       ugc.images.videos = videoKeys(fallback?.content);
-      ugc.variantImages = ugc.content.map((v) => ({ key: v.key, images: { videos: videoKeys(v.content) } }));
+      ugc.variantImages = ugc.content.map((v) => ({
+        key: v.key,
+        images: { videos: videoKeys(v.content) },
+      }));
     } else ugc.images.videos = videoKeys(ugc.content);
   }
   await assertUgcPublishable(userId, productId, selectedVideoIds);
   const input: PublishInput = {
-    listing: listing ?? { title: row.title, short_name: row.title, short_description: "", offer_line: "", seo_title: "", seo_description: "" },
+    listing: listing ?? {
+      title: row.title,
+      short_name: row.title,
+      short_description: "",
+      offer_line: "",
+      seo_title: "",
+      seo_description: "",
+    },
     ...(isVariants(listingContent) ? { listingVariants: listingContent } : {}),
     components,
-    disabledConversionComponents: rows.filter(r => !r.enabled || r.status === "rejected").map(r => r.component),
+    disabledConversionComponents: rows
+      .filter((r) => !r.enabled || r.status === "rejected")
+      .map((r) => r.component),
     reviews: publishReviews,
     packs,
     accent: row.page_accent_color,
     gallery: galleryImages.map((g) => ({ key: g.key, alt: g.alt })),
   };
-  try { input.experienceManifest = await prepareExperienceManifest(userId, productId, input); }
-  catch (error) { missing.push(error instanceof Error ? error.message : "Revisa las experiencias antes de publicar."); }
+  try {
+    input.experienceManifest = await prepareExperienceManifest(
+      userId,
+      productId,
+      input,
+    );
+  } catch (error) {
+    missing.push(
+      error instanceof Error
+        ? error.message
+        : "Revisa las experiencias antes de publicar.",
+    );
+  }
   return { input, images, videos, missing };
 }
 
@@ -286,9 +477,28 @@ const PRODUCT = /* GraphQL */ `
       id
       handle
       onlineStoreUrl
-      options { name optionValues { name } }
-      variants(first: 50) { nodes { id sku title selectedOptions { name value } } }
-      metafields(first: 100, namespace: "dropflex") { nodes { key } }
+      options {
+        name
+        optionValues {
+          name
+        }
+      }
+      variants(first: 50) {
+        nodes {
+          id
+          sku
+          title
+          selectedOptions {
+            name
+            value
+          }
+        }
+      }
+      metafields(first: 100, namespace: "dropflex") {
+        nodes {
+          key
+        }
+      }
     }
   }
 `;
@@ -299,14 +509,23 @@ interface ProductQuery {
     handle: string;
     onlineStoreUrl: string | null;
     options: { name: string; optionValues: { name: string }[] }[];
-    variants: { nodes: { id: string; sku: string | null; title: string; selectedOptions: { name: string; value: string }[] }[] };
+    variants: {
+      nodes: {
+        id: string;
+        sku: string | null;
+        title: string;
+        selectedOptions: { name: string; value: string }[];
+      }[];
+    };
     metafields: { nodes: { key: string }[] };
   } | null;
 }
 
 const PRODUCT_URL = /* GraphQL */ `
   query ProductUrl($id: ID!) {
-    product(id: $id) { onlineStoreUrl }
+    product(id: $id) {
+      onlineStoreUrl
+    }
   }
 `;
 
@@ -320,124 +539,262 @@ function productGid(id: string): string | null {
  * La URL pública del producto hoy: Shopify la arma con el dominio principal de la tienda (el propio,
  * no el myshopify). null si el producto no está a la venta en la tienda online o no hay conexión.
  */
-export async function liveProductUrl(userId: string, productId: string): Promise<string | null> {
-  const [conn, row] = await Promise.all([getShopifyConnection(userId), getProductRow(userId, productId)]);
+export async function liveProductUrl(
+  userId: string,
+  productId: string,
+): Promise<string | null> {
+  const [conn, row] = await Promise.all([
+    getShopifyConnection(userId),
+    getProductRow(userId, productId),
+  ]);
   const gid = row ? productGid(row.shopify_product_id) : null;
   if (!conn || conn.status !== "connected" || !gid) return null;
-  const data = await shopifyQuery<{ product: { onlineStoreUrl: string | null } | null }>(conn, PRODUCT_URL, { id: gid });
+  const data = await shopifyQuery<{
+    product: { onlineStoreUrl: string | null } | null;
+  }>(conn, PRODUCT_URL, { id: gid });
   return data.product?.onlineStoreUrl ?? null;
 }
 
 const PRODUCT_SET = /* GraphQL */ `
   mutation ProductSet($input: ProductSetInput!) {
     productSet(input: $input, synchronous: true) {
-      product { id handle onlineStoreUrl }
-      userErrors { field message }
+      product {
+        id
+        handle
+        onlineStoreUrl
+      }
+      userErrors {
+        field
+        message
+      }
     }
   }
 `;
 
 const SHOP_METAFIELDS = /* GraphQL */ `
   query ShopMeta {
-    shop { id metafields(first: 20, namespace: "dropflex") { nodes { key } } }
+    shop {
+      id
+      metafields(first: 20, namespace: "dropflex") {
+        nodes {
+          key
+        }
+      }
+    }
   }
 `;
 
 /** Los datos de la tienda (políticas y plazos de Ajustes): se publican con cada producto. */
-async function publishShopFacts(conn: ShopifyConnection): Promise<{ policies: boolean; logistics: boolean }> {
+async function publishShopFacts(
+  conn: ShopifyConnection,
+): Promise<{ policies: boolean; logistics: boolean }> {
   const settings = await getStorePolicies(conn.user_id);
   if (!settings) return { policies: false, logistics: false };
-  const shop = await shopifyQuery<{ shop: { id: string; metafields: { nodes: { key: string }[] } } }>(conn, SHOP_METAFIELDS);
-  const logistics = logisticsMetafield(settings.policies, settings.timezone ?? conn.timezone);
-  const list = [{ namespace: "dropflex", key: "policies", type: "json", value: JSON.stringify(policiesMetafield(settings.policies, settings.locale)) }];
-  if (logistics) list.push({ namespace: "dropflex", key: "logistics", type: "json", value: JSON.stringify(logistics) });
+  const shop = await shopifyQuery<{
+    shop: { id: string; metafields: { nodes: { key: string }[] } };
+  }>(conn, SHOP_METAFIELDS);
+  const logistics = logisticsMetafield(
+    settings.policies,
+    settings.timezone ?? conn.timezone,
+  );
+  const list = [
+    {
+      namespace: "dropflex",
+      key: "policies",
+      type: "json",
+      value: JSON.stringify(
+        policiesMetafield(settings.policies, settings.locale),
+      ),
+    },
+  ];
+  if (logistics)
+    list.push({
+      namespace: "dropflex",
+      key: "logistics",
+      type: "json",
+      value: JSON.stringify(logistics),
+    });
   await setMetafields(conn, shop.shop.id, list);
-  if (!logistics && shop.shop.metafields.nodes.some((n) => n.key === "logistics")) await deleteMetafields(conn, shop.shop.id, ["logistics"]);
+  if (
+    !logistics &&
+    shop.shop.metafields.nodes.some((n) => n.key === "logistics")
+  )
+    await deleteMetafields(conn, shop.shop.id, ["logistics"]);
   return { policies: true, logistics: Boolean(logistics) };
 }
 
-async function savePublication(userId: string, productId: string, shop: string, patch: Partial<PublicationRow>) {
+async function savePublication(
+  userId: string,
+  productId: string,
+  shop: string,
+  patch: Partial<PublicationRow>,
+) {
   const { error } = await adminClient()
     .from(TABLE)
-    .upsert({ product_id: productId, user_id: userId, shop_domain: shop, ...patch, updated_at: new Date().toISOString() }, { onConflict: "product_id" });
+    .upsert(
+      {
+        product_id: productId,
+        user_id: userId,
+        shop_domain: shop,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "product_id" },
+    );
   if (error) throw new Error(`Guardar la publicación: ${error.message}`);
 }
 
 /** Por qué no se puede publicar ahora (conexión y permisos), o null. */
-export function connectionProblem(conn: ShopifyConnection | null): string | null {
-  if (!conn || conn.status !== "connected") return "Conecta tu tienda Shopify en Ajustes.";
-  if (missingPublishScopes(conn.scopes).length) return "Dale permiso a DropFlex para instalar el tema, subir imágenes y dejar tus productos a la venta.";
+export function connectionProblem(
+  conn: ShopifyConnection | null,
+): string | null {
+  if (!conn || conn.status !== "connected")
+    return "Conecta tu tienda Shopify en Ajustes.";
+  if (missingPublishScopes(conn.scopes).length)
+    return "Dale permiso a DropFlex para instalar el tema, subir imágenes y dejar tus productos a la venta.";
   return null;
 }
 
 /** Valida y deja el producto «publicando»; el trabajo sigue en segundo plano. */
-export async function startPublish(userId: string, productId: string): Promise<void> {
+export async function startPublish(
+  userId: string,
+  productId: string,
+): Promise<void> {
   const conn = await getShopifyConnection(userId);
   const problem = connectionProblem(conn);
   if (problem) throw new ProductApiError(problem, 409);
   const { missing } = await preparePublish(userId, productId);
   if (missing.length) throw new ProductApiError(missing[0], 409);
   const current = (await getPublications(userId, [productId])).get(productId);
-  if (current?.status === "publishing" && Date.now() - Date.parse(current.updated_at) < STALE_MS) throw new ProductApiError("Ya se está publicando.", 409);
-  await savePublication(userId, productId, conn!.shop_domain, { status: "publishing", error_message: null, started_at: new Date().toISOString() });
-  after(() => runPublish(userId, productId).catch((e) => console.error("[publish]", e)));
+  if (
+    current?.status === "publishing" &&
+    Date.now() - Date.parse(current.updated_at) < STALE_MS
+  )
+    throw new ProductApiError("Ya se está publicando.", 409);
+  await savePublication(userId, productId, conn!.shop_domain, {
+    status: "publishing",
+    error_message: null,
+    started_at: new Date().toISOString(),
+  });
+  after(() =>
+    runPublish(userId, productId).catch((e) => console.error("[publish]", e)),
+  );
 }
 
 /** Mensaje para el comerciante: lo nuestro tal cual; lo técnico, en una frase accionable. */
 function publishMessage(e: unknown): string {
-  if (e instanceof MappingError || e instanceof PublishError || e instanceof ProductApiError) return e.message;
-  if (e instanceof Error && /ACCESS_DENIED|401|403/.test(e.message)) return "Shopify rechazó el permiso. Vuelve a dar permisos a DropFlex y reintenta.";
+  if (
+    e instanceof MappingError ||
+    e instanceof PublishError ||
+    e instanceof ProductApiError
+  )
+    return e.message;
+  if (e instanceof Error && /ACCESS_DENIED|401|403/.test(e.message))
+    return "Shopify rechazó el permiso. Vuelve a dar permisos a DropFlex y reintenta.";
   return "No pudimos publicar en Shopify. Intenta de nuevo en unos minutos.";
 }
 
-export async function runPublish(userId: string, productId: string, options: { expectedFingerprint?: string; beforeWrite?: () => Promise<void> } = {}): Promise<void> {
+export async function runPublish(
+  userId: string,
+  productId: string,
+  options: {
+    expectedFingerprint?: string;
+    beforeWrite?: () => Promise<void>;
+  } = {},
+): Promise<void> {
   const conn = await getShopifyConnection(userId);
   const shop = conn?.shop_domain ?? "";
   try {
     const problem = connectionProblem(conn);
-    if (problem || !conn) throw new PublishError(problem ?? "Conecta tu tienda Shopify.");
+    if (problem || !conn)
+      throw new PublishError(problem ?? "Conecta tu tienda Shopify.");
     const row = await getProductRow(userId, productId);
     if (!row) throw new PublishError("No encontramos ese producto.");
-    const { input, images, videos, missing } = await preparePublish(userId, productId);
+    const { input, images, videos, missing } = await preparePublish(
+      userId,
+      productId,
+    );
     if (missing.length) throw new PublishError(missing[0]);
-    if (options.expectedFingerprint && fingerprint(input) !== options.expectedFingerprint) throw new PublishError("La página cambió después de autorizar su publicación. Recupera el estado y vuelve a publicar.");
+    if (
+      options.expectedFingerprint &&
+      fingerprint(input) !== options.expectedFingerprint
+    )
+      throw new PublishError(
+        "La página cambió después de autorizar su publicación. Recupera el estado y vuelve a publicar.",
+      );
     await options.beforeWrite?.();
 
-    if (input.experienceManifest || input.listingVariants || input.components.some((c) => isVariants(c.content))) await assertLandingVariantTheme(conn);
+    if (
+      input.experienceManifest ||
+      input.listingVariants ||
+      input.components.some((c) => isVariants(c.content))
+    )
+      await assertLandingVariantTheme(conn);
     const gid = productGid(row.shopify_product_id);
-    const found = gid ? await shopifyQuery<ProductQuery>(conn, PRODUCT, { id: gid }) : { product: null };
-    if (!found.product) throw new PublishError("Este producto ya no existe en tu tienda Shopify. Sincroniza tus productos.");
+    const found = gid
+      ? await shopifyQuery<ProductQuery>(conn, PRODUCT, { id: gid })
+      : { product: null };
+    if (!found.product)
+      throw new PublishError(
+        "Este producto ya no existe en tu tienda Shopify. Sincroniza tus productos.",
+      );
     const existing: ExistingProduct = {
       id: found.product.id,
-      options: found.product.options.map((o) => ({ name: o.name, values: o.optionValues.map((v) => v.name) })),
+      options: found.product.options.map((o) => ({
+        name: o.name,
+        values: o.optionValues.map((v) => v.name),
+      })),
       variants: found.product.variants.nodes.map((v) => ({
         id: v.id,
         sku: v.sku,
         title: v.title,
-        option: v.selectedOptions.find((o) => o.name === PACK_OPTION || o.name === "Title")?.value ?? null,
+        option:
+          v.selectedOptions.find(
+            (o) => o.name === PACK_OPTION || o.name === "Title",
+          )?.value ?? null,
       })),
     };
 
     await options.beforeWrite?.();
     await ensureDefinitions(conn);
     const gids = await ensureImages(conn, productId, images);
-    for (const [key, id] of await ensureVideos(conn, productId, videos ?? [])) gids.set(key, id);
-    const ugcContent = input.components.find((c) => c.id === "ugc-slider")?.content;
-    const scriptIds = contentVariants(ugcContent).flatMap((v) => (v.content as { script_ids?: string[] })?.script_ids ?? []);
+    for (const [key, id] of await ensureVideos(conn, productId, videos ?? []))
+      gids.set(key, id);
+    const ugcContent = input.components.find(
+      (c) => c.id === "ugc-slider",
+    )?.content;
+    const scriptIds = contentVariants(ugcContent).flatMap(
+      (v) => (v.content as { script_ids?: string[] })?.script_ids ?? [],
+    );
     await assertUgcPublishable(userId, productId, scriptIds);
     const meta = productMetafields(input, gids);
     await options.beforeWrite?.();
-    const set = await shopifyMutation<{ productSet: { product: { handle: string; onlineStoreUrl: string | null } | null; userErrors: { message: string }[] } }>(conn, PRODUCT_SET, {
+    const set = await shopifyMutation<{
+      productSet: {
+        product: { handle: string; onlineStoreUrl: string | null } | null;
+        userErrors: { message: string }[];
+      };
+    }>(conn, PRODUCT_SET, {
       input: productSetInput(input, existing, gids),
     });
     assertNoUserErrors("Actualizar el producto", set.productSet.userErrors);
 
     await options.beforeWrite?.();
-    await setMetafields(conn, existing.id, meta.set, landingAtomicKeys(input));
+    await setMetafields(
+      conn,
+      existing.id,
+      meta.set,
+      landingAtomicKeys(input),
+      landingAtomicGroups(input),
+    );
     const present = new Set(found.product.metafields.nodes.map((n) => n.key));
     // El evento va aparte (publishProductEvent): lo escribe o lo borra después de guardar la publicación.
     await options.beforeWrite?.();
-    await deleteMetafields(conn, existing.id, meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY));
+    await deleteMetafields(
+      conn,
+      existing.id,
+      meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY),
+    );
     await options.beforeWrite?.();
     const shopFacts = await publishShopFacts(conn);
 
@@ -458,9 +815,18 @@ export async function runPublish(userId: string, productId: string, options: { e
     });
     // Eventos: el metafield dropflex.event (Cyber, Black Friday…) con lo que tenga activado hoy.
     await options.beforeWrite?.();
-    await publishProductEvent(conn, userId, productId, existing.id, present.has(EVENT_KEY));
+    await publishProductEvent(
+      conn,
+      userId,
+      productId,
+      existing.id,
+      present.has(EVENT_KEY),
+    );
   } catch (e) {
     console.error("[publish]", productId, e);
-    await savePublication(userId, productId, shop, { status: "error", error_message: publishMessage(e) });
+    await savePublication(userId, productId, shop, {
+      status: "error",
+      error_message: publishMessage(e),
+    });
   }
 }

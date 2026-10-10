@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
@@ -32,14 +33,25 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   const picks: Pick[] = [];
   for (const item of content.items ?? []) {
     if (picks.length >= maxItems) break;
-    const review = item?.review_id ? facts.reviews.find((r) => r.id === item.review_id) : undefined;
-    if (review) picks.push({ review, excerpt: item.excerpt || review.body, mode: item.excerpt_mode || "condensed" });
+    const review = item?.review_id
+      ? facts.reviews.find((r) => r.id === item.review_id)
+      : undefined;
+    if (review)
+      picks.push({
+        review,
+        excerpt: item.excerpt || review.body,
+        mode: item.excerpt_mode || "condensed",
+      });
   }
   // …o, sin ninguna, las primeras aprobadas con la calificación mínima y el texto completo.
   if (!picks.length) {
     for (const review of facts.reviews) {
       if (picks.length >= maxItems) break;
-      if (review.rating >= minRating && review.body && !(s.only_with_photo && !review.photos.length)) {
+      if (
+        review.rating >= minRating &&
+        review.body &&
+        !(s.only_with_photo && !review.photos.length)
+      ) {
         picks.push({ review, excerpt: review.body, mode: "verbatim" });
       }
     }
@@ -47,15 +59,12 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
 
   const total = picks.length;
   if (!total || facts.count < Number(s.min_reviews)) {
-    return (
-      <div className="df df-placeholder">
-        {`Carrusel de reseñas: se muestra cuando el producto tiene al menos ${s.min_reviews} reseñas aprobadas en DropFlex.`}
-      </div>
-    );
+    return <PdpEmptyPreview component="review-slider" />;
   }
 
   let heading = content.heading || String(s.heading ?? "");
-  if (heading.includes("{rating}") && !facts.rating) heading = String(s.heading ?? "");
+  if (heading.includes("{rating}") && !facts.rating)
+    heading = String(s.heading ?? "");
   heading = fill(heading, facts);
   const autoplay = total > 1;
   const photoStyle = s.style === "photo";
@@ -63,11 +72,21 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   return (
     <df-review-slider
       className={`df df-review-slider df-review-slider--${s.style}`}
-      style={{ "--df-review-lines": String(s.text_lines), marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}
+      style={
+        {
+          "--df-review-lines": String(s.text_lines),
+          marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}`,
+        } as React.CSSProperties
+      }
     >
-      {heading && <p className="df-heading df-review-slider__heading">{heading}</p>}
+      {heading && (
+        <p className="df-heading df-review-slider__heading">{heading}</p>
+      )}
 
-      <df-slider data-autoplay={autoplay ? Number(s.autoplay_delay) * 1000 : undefined} data-loop="">
+      <df-slider
+        data-autoplay={autoplay ? Number(s.autoplay_delay) * 1000 : undefined}
+        data-loop=""
+      >
         <div className="df-slider__track" data-df-track="">
           {picks.map(({ review, excerpt, mode }, i) => {
             const author = review.author || "Comprador";
@@ -78,9 +97,17 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
                   <div className="df-review-slider__avatar">
                     {photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photo} alt="" width={62} height={62} loading="lazy" />
+                      <img
+                        src={photo}
+                        alt=""
+                        width={62}
+                        height={62}
+                        loading="lazy"
+                      />
                     ) : (
-                      <span aria-hidden>{author.slice(0, 1).toUpperCase()}</span>
+                      <span aria-hidden>
+                        {author.slice(0, 1).toUpperCase()}
+                      </span>
                     )}
                   </div>
                 )}
@@ -96,7 +123,10 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
                     <div className="df-review-slider__foot">
                       {mode !== "verbatim" && review.body && (
                         <details className="df-review-slider__full">
-                          <summary>{mode === "translated" ? "Traducida" : "Resumida"} · ver completa</summary>
+                          <summary>
+                            {mode === "translated" ? "Traducida" : "Resumida"} ·
+                            ver completa
+                          </summary>
                           <p>{review.body}</p>
                         </details>
                       )}

@@ -440,3 +440,9 @@ df-slider {
 /* La selección conserva la estructura visual del componente y solo activa una variante. */
 df-landing-content,
 df-landing-content > [data-df-active] { display: contents; }
+
+/* Secciones siempre presentes: estado vacío que no simula prueba social. */
+.df-pdp-empty { display: flex; align-items: flex-start; gap: var(--df-gap); max-width: var(--df-container); margin: var(--df-gap) auto; padding: var(--df-gap) var(--df-gutter); border: 1px dashed var(--df-hairline); border-radius: var(--df-radius); background: var(--df-surface); }
+.df-pdp-empty .df-heading { font-size: 1rem; margin-bottom: calc(var(--df-gap) / 2); }
+.df-pdp-empty .df-text { color: var(--df-muted); font-size: .875rem; }
+.df-pdp-empty > .df-icon { flex-shrink: 0; color: var(--df-accent-ink); }

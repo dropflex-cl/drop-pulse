@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, policyActive } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { ICON_PATHS } from "@/lib/store-preview/theme.generated";
@@ -19,7 +20,10 @@ interface Content {
   cards?: Card[];
 }
 
-export function BenefitDoubleBoxPreview({ content, facts }: PreviewProps<Content>) {
+export function BenefitDoubleBoxPreview({
+  content,
+  facts,
+}: PreviewProps<Content>) {
   const s = settingsOf("benefit-double-box");
   const source: Card[] = content.cards?.length
     ? content.cards.slice(0, 2)
@@ -32,8 +36,12 @@ export function BenefitDoubleBoxPreview({ content, facts }: PreviewProps<Content
 
   const cards = source
     .filter((c) => c?.title && policyActive(c.policy, facts))
-    .map((c) => ({ icon: c.icon && ICON_PATHS[c.icon] ? c.icon : "check", title: fill(c.title, facts), body: fill(c.body, facts) }));
-  if (!cards.length) return null;
+    .map((c) => ({
+      icon: c.icon && ICON_PATHS[c.icon] ? c.icon : "check",
+      title: fill(c.title, facts),
+      body: fill(c.body, facts),
+    }));
+  if (!cards.length) return <PdpEmptyPreview component="benefit-double-box" />;
 
   return (
     <ul
@@ -58,7 +66,9 @@ export function BenefitDoubleBoxPreview({ content, facts }: PreviewProps<Content
           <p className="df-benefit-double-box__title">
             <strong>{c.title}</strong>
           </p>
-          {c.body ? <p className="df-benefit-double-box__body">{c.body}</p> : null}
+          {c.body ? (
+            <p className="df-benefit-double-box__body">{c.body}</p>
+          ) : null}
         </li>
       ))}
     </ul>

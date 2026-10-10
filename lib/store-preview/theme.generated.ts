@@ -52,6 +52,7 @@ export const ICON_PATHS: Record<string, string> = {
 
 /** Los valores por defecto de los ajustes de cada componente ({% schema %} › settings). */
 export const SETTINGS: Record<string, Record<string, unknown>> = {
+  "before-after": {},
   "benefit-double-box": {
     "card_1_icon": "cash",
     "card_1_title": "Pagas al recibir",
@@ -95,6 +96,8 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_top": 48,
     "padding_bottom": 48
   },
+  "customer-stories": {},
+  "expert-endorsement": {},
   "faq-and-text": {
     "eyebrow": "Preguntas frecuentes",
     "heading": "Resolvemos tus dudas antes de pedir",
@@ -115,6 +118,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_top": 8,
     "margin_bottom": 8
   },
+  "guarantee": {},
   "image-with-benefits": {
     "heading": "¿Por qué elegirlo?",
     "use_product_image": true,
@@ -152,6 +156,8 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_top": 0,
     "margin_bottom": 0
   },
+  "mechanism": {},
+  "offer-summary": {},
   "pain-block": {
     "heading": "¿Te pasa esto?",
     "layout": "cards",
@@ -159,6 +165,8 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_top": 48,
     "padding_bottom": 48
   },
+  "product-includes": {},
+  "results-timeline": {},
   "review-slider": {
     "min_reviews": 3,
     "max_items": 5,
@@ -271,5 +279,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "show_progress": true,
     "margin_top": 16,
     "margin_bottom": 0
-  }
+  },
+  "usage-steps": {},
+  "use-cases": {}
 };

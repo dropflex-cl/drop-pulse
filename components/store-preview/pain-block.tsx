@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { settingsOf, px } from "@/lib/store-preview/settings";
 import { Bold } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -19,8 +20,10 @@ interface Content {
 
 export function PainBlockPreview({ content }: PreviewProps<Content>) {
   const s = settingsOf("pain-block");
-  const moments = (content.moments ?? []).slice(0, 3).filter((m) => (m.title ?? "").trim());
-  if (!moments.length) return null;
+  const moments = (content.moments ?? [])
+    .slice(0, 3)
+    .filter((m) => (m.title ?? "").trim());
+  if (!moments.length) return <PdpEmptyPreview component="pain-block" />;
 
   const heading = content.heading || String(s.heading ?? "");
   const bridge = content.bridge || String(s.bridge ?? "");
@@ -39,7 +42,14 @@ export function PainBlockPreview({ content }: PreviewProps<Content>) {
       <div className="df-pain-block__inner">
         {heading.trim() ? (
           <h2 className="df-heading df-pain-block__heading">
-            <Bold text={heading} mark={(part, i) => <span key={i} className="df-pain-block__hl">{part}</span>} />
+            <Bold
+              text={heading}
+              mark={(part, i) => (
+                <span key={i} className="df-pain-block__hl">
+                  {part}
+                </span>
+              )}
+            />
           </h2>
         ) : null}
         <ul className="df-pain-block__list" role="list">
@@ -50,7 +60,10 @@ export function PainBlockPreview({ content }: PreviewProps<Content>) {
                 <h3 className="df-pain-block__title">{m.title}</h3>
                 {(m.text ?? "").trim() ? (
                   <p className="df-text df-pain-block__text">
-                    <Bold text={m.text ?? ""} mark={(part, k) => <strong key={k}>{part}</strong>} />
+                    <Bold
+                      text={m.text ?? ""}
+                      mark={(part, k) => <strong key={k}>{part}</strong>}
+                    />
                   </p>
                 ) : null}
               </div>
@@ -59,7 +72,10 @@ export function PainBlockPreview({ content }: PreviewProps<Content>) {
         </ul>
         {bridge.trim() ? (
           <p className="df-pain-block__bridge">
-            <Bold text={bridge} mark={(part, k) => <strong key={k}>{part}</strong>} />
+            <Bold
+              text={bridge}
+              mark={(part, k) => <strong key={k}>{part}</strong>}
+            />
           </p>
         ) : null}
       </div>

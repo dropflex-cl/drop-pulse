@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
@@ -29,13 +30,19 @@ function Item({ benefit }: { benefit: Benefit }) {
       </span>
       <div>
         <h3 className="df-image-with-benefits__title">{title}</h3>
-        {body ? <p className="df-text df-image-with-benefits__body">{body}</p> : null}
+        {body ? (
+          <p className="df-text df-image-with-benefits__body">{body}</p>
+        ) : null}
       </div>
     </li>
   );
 }
 
-export function ImageWithBenefitsPreview({ content, facts, images }: PreviewProps<Content>) {
+export function ImageWithBenefitsPreview({
+  content,
+  facts,
+  images,
+}: PreviewProps<Content>) {
   const s = settingsOf("image-with-benefits");
   // Sin beneficios la tienda no muestra la sección (el editor usa sus bloques de respaldo, que aquí no hay).
   const benefits = (content.benefits ?? []).slice(0, 6);
@@ -43,11 +50,19 @@ export function ImageWithBenefitsPreview({ content, facts, images }: PreviewProp
   const leftCount = Math.floor((total + 1) / 2);
   const left = benefits.slice(0, leftCount);
   const right = benefits.slice(leftCount);
-  if (!left.some((b) => (b.title ?? "").trim())) return null;
+  if (!left.some((b) => (b.title ?? "").trim()))
+    return <PdpEmptyPreview component="image-with-benefits" />;
 
-  const image = images.main?.[0] || (s.use_product_image ? facts.productImage : undefined);
+  const image =
+    images.main?.[0] || (s.use_product_image ? facts.productImage : undefined);
   // {count} es la cantidad de beneficios (el Liquid lo reemplaza antes); el resto de los tokens, con fill.
-  const heading = fill((content.heading || String(s.heading ?? "")).replaceAll("{count}", String(total)), facts);
+  const heading = fill(
+    (content.heading || String(s.heading ?? "")).replaceAll(
+      "{count}",
+      String(total),
+    ),
+    facts,
+  );
   const rightHasItems = right.some((b) => (b.title ?? "").trim());
 
   return (
@@ -63,21 +78,36 @@ export function ImageWithBenefitsPreview({ content, facts, images }: PreviewProp
       }
     >
       <div className="df-image-with-benefits__inner">
-        {heading.trim() ? <h2 className="df-heading df-image-with-benefits__heading">{heading}</h2> : null}
+        {heading.trim() ? (
+          <h2 className="df-heading df-image-with-benefits__heading">
+            {heading}
+          </h2>
+        ) : null}
         <div className="df-image-with-benefits__grid">
           {image ? (
             <div className="df-image-with-benefits__media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="df-image-with-benefits__img" src={image} alt="" loading="lazy" />
+              <img
+                className="df-image-with-benefits__img"
+                src={image}
+                alt=""
+                loading="lazy"
+              />
             </div>
           ) : null}
-          <ul className="df-image-with-benefits__list df-image-with-benefits__list--left" role="list">
+          <ul
+            className="df-image-with-benefits__list df-image-with-benefits__list--left"
+            role="list"
+          >
             {left.map((b, i) => (
               <Item key={i} benefit={b} />
             ))}
           </ul>
           {rightHasItems ? (
-            <ul className="df-image-with-benefits__list df-image-with-benefits__list--right" role="list">
+            <ul
+              className="df-image-with-benefits__list df-image-with-benefits__list--right"
+              role="list"
+            >
               {right.map((b, i) => (
                 <Item key={i} benefit={b} />
               ))}

@@ -117,20 +117,11 @@
               "additionalProperties": false
             }
           },
-          "required": [
-            "code",
-            "message",
-            "retryable",
-            "details"
-          ],
+          "required": ["code", "message", "retryable", "details"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "ok",
-        "request_id",
-        "error"
-      ],
+      "required": ["ok", "request_id", "error"],
       "additionalProperties": false
     },
     {
@@ -176,7 +167,7 @@
             },
             "components": {
               "minItems": 1,
-              "maxItems": 17,
+              "maxItems": 27,
               "type": "array",
               "items": {
                 "$ref": "#/$defs/__schema3"
@@ -197,13 +188,7 @@
           "additionalProperties": false
         }
       },
-      "required": [
-        "ok",
-        "product_id",
-        "revision",
-        "request_id",
-        "data"
-      ],
+      "required": ["ok", "product_id", "revision", "request_id", "data"],
       "additionalProperties": false
     }
   ],
@@ -241,17 +226,10 @@
         },
         "status": {
           "type": "string",
-          "enum": [
-            "generated",
-            "approved"
-          ]
+          "enum": ["generated", "approved"]
         }
       },
-      "required": [
-        "component",
-        "id",
-        "status"
-      ],
+      "required": ["component", "id", "status"],
       "additionalProperties": false
     }
   },

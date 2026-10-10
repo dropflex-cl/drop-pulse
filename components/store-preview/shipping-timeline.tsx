@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { EXAMPLE, fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
@@ -27,7 +28,13 @@ function todayIn(tz: string): number {
   for (const timeZone of [tz, "America/Santiago", undefined]) {
     try {
       const p: Record<string, string> = {};
-      for (const part of new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now)) p[part.type] = part.value;
+      for (const part of new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      }).formatToParts(now))
+        p[part.type] = part.value;
       return Date.UTC(+p.year, +p.month - 1, +p.day) / DAY;
     } catch {
       // Zona inválida: se prueba la siguiente.
@@ -53,38 +60,64 @@ function nextMatching(day: number, ok: (d: number) => boolean): number {
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content>) {
+export function ShippingTimelinePreview({
+  content,
+  facts,
+}: PreviewProps<Content>) {
   const s = settingsOf("shipping-timeline");
 
   const tOrdered = content.node_ordered_label || String(s.ordered_label ?? "");
   const tOrderedSub = content.node_ordered_sub || String(s.ordered_sub ?? "");
   const tShipped = content.node_shipped_label || String(s.shipped_label ?? "");
-  const tDelivered = content.node_delivered_label || String(s.delivered_label ?? "");
-  const tSuffix = content.node_delivered_sub_suffix || String(s.delivered_suffix ?? "");
-  let tCountdown = s.show_countdown === false ? "" : content.countdown_template || String(s.countdown_text ?? "");
-  const tClosed = s.show_countdown === false ? "" : content.closed_template || String(s.closed_text ?? "");
+  const tDelivered =
+    content.node_delivered_label || String(s.delivered_label ?? "");
+  const tSuffix =
+    content.node_delivered_sub_suffix || String(s.delivered_suffix ?? "");
+  let tCountdown =
+    s.show_countdown === false
+      ? ""
+      : content.countdown_template || String(s.countdown_text ?? "");
+  const tClosed =
+    s.show_countdown === false
+      ? ""
+      : content.closed_template || String(s.closed_text ?? "");
   if (!tCountdown.includes("{time}")) tCountdown = "";
-  if (!tOrdered || !tShipped || !tDelivered) return null;
+  if (!tOrdered || !tShipped || !tDelivered)
+    return <PdpEmptyPreview component="shipping-timeline" />;
 
   // Plazos: los de Ajustes › Envíos (facts.logistics); sin ellos, los del bloque. `max` es el de
   // regiones cuando hay plazo de regiones: la ciudad principal termina `extra` días antes.
   const L = facts.logistics;
   const handling = Math.max(0, L?.handling ?? (Number(s.handling_days) || 0));
   const city = L ? L.city : String(s.main_city ?? "").trim();
-  const extra = city ? Math.max(0, L ? (L.extra ?? 0) : Number(s.regions_extra_days) || 0) : 0;
-  const tmin = L ? Math.max(0, L.min - handling) : Math.max(0, Number(s.transit_days_min) || 0);
-  const tmax = Math.max(tmin, L ? L.max - extra - handling : Number(s.transit_days_max) || 0);
+  const extra = city
+    ? Math.max(0, L ? (L.extra ?? 0) : Number(s.regions_extra_days) || 0)
+    : 0;
+  const tmin = L
+    ? Math.max(0, L.min - handling)
+    : Math.max(0, Number(s.transit_days_min) || 0);
+  const tmax = Math.max(
+    tmin,
+    L ? L.max - extra - handling : Number(s.transit_days_max) || 0,
+  );
   const biz = L?.businessDaysOnly ?? s.business_days_only !== false;
   const sat = L?.saturdayDelivery ?? s.saturday_delivery === true;
-  const shipSat = L ? L.saturdayDispatch === true : s.saturday_dispatch === true;
+  const shipSat = L
+    ? L.saturdayDispatch === true
+    : s.saturday_dispatch === true;
 
   // Calendario del JS (sin feriados: la vista previa no los conoce).
   const weekday = (d: number) => new Date(d * DAY).getUTCDay();
-  const work = (d: number) => !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || shipSat));
-  const deliver = (d: number) => !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || sat));
+  const work = (d: number) =>
+    !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || shipSat));
+  const deliver = (d: number) =>
+    !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || sat));
 
   // «Hoy» simulado: el próximo día de despacho, antes del corte (así hay cuenta regresiva).
-  const today = nextMatching(todayIn(String(s.timezone || "America/Santiago")), work);
+  const today = nextMatching(
+    todayIn(String(s.timezone || "America/Santiago")),
+    work,
+  );
   const ship = addDays(today, handling, work);
   const from = addDays(ship, tmin, deliver);
   const to = addDays(ship, tmax, deliver);
@@ -92,10 +125,15 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
   const regionsTo = addDays(to, extra, deliver);
   const regionsLabel = String(s.regions_label || "Regiones");
 
-  const dtf = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(LOCALE, { ...opts, timeZone: "UTC" });
+  const dtf = (opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(LOCALE, { ...opts, timeZone: "UTC" });
   const fmtShort = dtf({ day: "numeric", month: "short" });
   const fmtWeekday = dtf({ weekday: "long" });
-  const fmtWeekdayDate = dtf({ weekday: "short", day: "numeric", month: "short" });
+  const fmtWeekdayDate = dtf({
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
   const fmtLong = dtf({ day: "numeric", month: "long" });
   const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
   const useWeekday = s.date_format === "weekday";
@@ -108,8 +146,12 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
     if (useWeekday && diff > 1 && diff <= 6) return fmtWeekday.format(date);
     return (useWeekday ? fmtWeekdayDate : fmtShort).format(date);
   };
-  const inSentence = (d: number) => (d - today > 1 ? `el ${dayText(d)}` : dayText(d));
-  const rangeOf = (a: number, b: number) => (a === b ? capitalize(dayText(a)) : fmtShort.formatRange(new Date(a * DAY), new Date(b * DAY)));
+  const inSentence = (d: number) =>
+    d - today > 1 ? `el ${dayText(d)}` : dayText(d);
+  const rangeOf = (a: number, b: number) =>
+    a === b
+      ? capitalize(dayText(a))
+      : fmtShort.formatRange(new Date(a * DAY), new Date(b * DAY));
   const range = extra ? `${city}: ${rangeOf(from, to)}` : rangeOf(from, to);
   const sentence = (a: number, b: number) =>
     a === b
@@ -122,19 +164,28 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
   // Título: la plantilla con {ship}, {arrive} y el tiempo al corte en <strong>, como lo arma el JS.
   const counting = Boolean(tCountdown);
   const template = counting ? tCountdown : tClosed;
-  const [before, after = ""] = template.replaceAll("{ship}", inSentence(ship)).replaceAll("{arrive}", inSentence(from)).split("{time}");
+  const [before, after = ""] = template
+    .replaceAll("{ship}", inSentence(ship))
+    .replaceAll("{arrive}", inSentence(from))
+    .split("{time}");
 
   return (
     <df-shipping-timeline
       className={`df df-shipping-timeline df-shipping-timeline--icons-${s.icon_style} df-shipping-timeline--time-${s.time_color}${s.animate_line ? " df-shipping-timeline--animate" : ""}`}
-      style={{ marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}
+      style={
+        {
+          marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}`,
+        } as React.CSSProperties
+      }
     >
       {template ? (
         <p className="df-shipping-timeline__title" data-df-title="">
           {fill(before, facts)}
           {counting ? (
             <>
-              <strong className="df-shipping-timeline__time">{EXAMPLE.time}</strong>
+              <strong className="df-shipping-timeline__time">
+                {EXAMPLE.time}
+              </strong>
               {fill(after, facts)}
             </>
           ) : null}
@@ -146,14 +197,20 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
           <span className="df-shipping-timeline__circle">
             <DfIcon name="cart" />
           </span>
-          <span className="df-shipping-timeline__label">{fill(tOrdered, facts)}</span>
-          <span className="df-shipping-timeline__sub">{fill(tOrderedSub, facts)}</span>
+          <span className="df-shipping-timeline__label">
+            {fill(tOrdered, facts)}
+          </span>
+          <span className="df-shipping-timeline__sub">
+            {fill(tOrderedSub, facts)}
+          </span>
         </li>
         <li className="df-shipping-timeline__step">
           <span className="df-shipping-timeline__circle">
             <DfIcon name="truck" />
           </span>
-          <span className="df-shipping-timeline__label">{fill(tShipped, facts)}</span>
+          <span className="df-shipping-timeline__label">
+            {fill(tShipped, facts)}
+          </span>
           {s.show_ship_date ? (
             <span className="df-shipping-timeline__sub" data-df-ship="">
               {capitalize(dayText(ship))}
@@ -164,16 +221,25 @@ export function ShippingTimelinePreview({ content, facts }: PreviewProps<Content
           <span className="df-shipping-timeline__circle">
             <DfIcon name="package" />
           </span>
-          <span className="df-shipping-timeline__label">{fill(tDelivered, facts)}</span>
+          <span className="df-shipping-timeline__label">
+            {fill(tDelivered, facts)}
+          </span>
           <span className="df-shipping-timeline__sub" data-df-delivery="">
             {range}
           </span>
           {extra ? (
-            <span className="df-shipping-timeline__sub" data-df-delivery-regions="">
+            <span
+              className="df-shipping-timeline__sub"
+              data-df-delivery-regions=""
+            >
               {`${regionsLabel}: ${rangeOf(regionsFrom, regionsTo)}`}
             </span>
           ) : null}
-          {tSuffix ? <span className="df-shipping-timeline__sub df-shipping-timeline__suffix">{fill(tSuffix, facts)}</span> : null}
+          {tSuffix ? (
+            <span className="df-shipping-timeline__sub df-shipping-timeline__suffix">
+              {fill(tSuffix, facts)}
+            </span>
+          ) : null}
         </li>
       </ol>
 

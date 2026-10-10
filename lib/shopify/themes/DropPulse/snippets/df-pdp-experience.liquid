@@ -8,17 +8,26 @@
     'listing': 'hero', 'review-stars': 'hero', 'benefit-usps': 'hero', 'inventory': 'hero', 'shipping-timeline': 'hero',
     'benefit-double-box': 'body', 'gif-strip': 'body', 'review-slider': 'body', 'ugc-slider': 'body',
     'pain-block': 'body', 'stats-with-image': 'body', 'scrolling-benefits': 'body', 'image-with-benefits': 'body',
+    'product-includes': 'body',
+    'usage-steps': 'body',
+    'use-cases': 'body',
+    'before-after': 'body',
+    'results-timeline': 'body',
+    'customer-stories': 'body',
+    'expert-endorsement': 'body',
+    'mechanism': 'body',
+    'guarantee': 'body',
+    'offer-summary': 'body',
     'insta-story': 'body', 'review-wall': 'body', 'comparison-table': 'body', 'faq-and-text': 'body',
   };
-  const supports = ["review-stars", "benefit-usps", "inventory", "shipping-timeline", "benefit-double-box", "review-slider", "review-wall", "gif-strip", "ugc-slider", "scrolling-benefits"];
-  const disabled = {{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || [];
+    const disabled = {{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || [];
   const valid = (v) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v);
   const uuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
   const validExperience = (e) => {
     if (!e || !valid(e.landing_angle_id) || (e.landing_hook_id !== null && !valid(e.landing_hook_id))
       || !['id','product_id','strategy_id','angle_id','persuasion_plan_id'].every(k => uuid(e[k]))
       || !Number.isSafeInteger(e.revision) || e.revision < 1 || !Number.isSafeInteger(e.plan_revision) || e.plan_revision < 1
-      || typeof e.is_default !== 'boolean' || !valid(e.experience_key) || !valid(e.architecture_variant) || !Array.isArray(e.sections) || !e.sections.length || e.sections.length > 9) return false;
+      || typeof e.is_default !== 'boolean' || !valid(e.experience_key) || !valid(e.architecture_variant) || !Array.isArray(e.sections) || !e.sections.length || e.sections.length > 27) return false;
     if (e.sections[0].component !== 'listing' || new Set(e.sections.map(s => s.component)).size !== e.sections.length
       || new Set(e.sections.map(s => s.section_key)).size !== e.sections.length) return false;
     let body = false;
@@ -87,7 +96,7 @@
         const marker = document.createComment('DropFlex original position'); node.before(marker);
         originals.push({ node, marker, hidden: node.hidden, sectionKey: node.dataset.dfSectionKey, job: node.dataset.dfPersuasionJob, container: node.dataset.dfPdpContainer });
         node.dataset.dfPdpContainer = '';
-        node.hidden = disabled.includes(component) || (!supports.includes(component) && !selected.sections.some(s => s.component === component));
+        node.hidden = disabled.includes(component);
       }
       for (const section of selected.sections) {
         const node = nodes.get(section.component);
@@ -95,6 +104,8 @@
         node.dataset.dfSectionKey = section.section_key; node.dataset.dfPersuasionJob = section.persuasion_job;
         if (section.placement === 'body') stream.append(node);
       }
+      // Los componentes no incluidos en el plan conservan visibilidad y orden relativo.
+      for (const [component, node] of nodes) if (placements[component] === 'body' && !selected.sections.some(s => s.component === component)) stream.append(node);
       window.DropFlexPdp.current = selected;
       window.DropFlexLanding.scan();
       document.dispatchEvent(new CustomEvent('df:experience-selected', { detail: selected }));
@@ -111,3 +122,13 @@
   [data-df-pdp-component][hidden], [data-df-pdp-container][hidden] { display: none !important; }
 </style>
 {%- endif -%}
+
+<script>
+(() => {
+ const disabled = {{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || [];
+ const apply = () => document.querySelectorAll('[data-df-pdp-component]').forEach(node => {
+   if (disabled.includes(node.dataset.dfPdpComponent)) { node.hidden = true; const parent = node.closest('.shopify-section'); if (parent?.querySelectorAll('[data-df-pdp-component]').length === 1) parent.hidden = true; }
+ });
+ document.addEventListener('DOMContentLoaded', apply); document.addEventListener('shopify:section:load', apply);
+})();
+</script>

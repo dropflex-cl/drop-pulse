@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
@@ -19,7 +20,11 @@ interface Content {
   stories?: Story[];
 }
 
-export function InstaStoryPreview({ content, facts, images }: PreviewProps<Content>) {
+export function InstaStoryPreview({
+  content,
+  facts,
+  images,
+}: PreviewProps<Content>) {
   const s = settingsOf("insta-story");
   const media = (images.stories ?? []).slice(0, 12);
   const stories = content.stories ?? [];
@@ -41,7 +46,7 @@ export function InstaStoryPreview({ content, facts, images }: PreviewProps<Conte
       };
     });
   // Sin medios la sección no se muestra en la tienda.
-  if (!items.length) return null;
+  if (!items.length) return <PdpEmptyPreview component="insta-story" />;
 
   const heading = fill(content.heading || String(s.heading ?? ""), facts);
   const subheading = fill(String(s.subheading ?? ""), facts);
@@ -49,13 +54,22 @@ export function InstaStoryPreview({ content, facts, images }: PreviewProps<Conte
   return (
     <df-insta-story
       className={`df df-insta-story df-insta-story--ring-${s.ring_style}${s.card ? " df-insta-story--card" : ""}`}
-      style={{ paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}`, "--df-story-size": px(s.circle_size) } as React.CSSProperties}
+      style={
+        {
+          paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}`,
+          "--df-story-size": px(s.circle_size),
+        } as React.CSSProperties
+      }
     >
       <div className="df-insta-story__inner">
         {heading || subheading ? (
           <div className="df-insta-story__header">
-            {heading ? <h2 className="df-heading df-insta-story__heading">{heading}</h2> : null}
-            {subheading ? <p className="df-text df-insta-story__subheading">{subheading}</p> : null}
+            {heading ? (
+              <h2 className="df-heading df-insta-story__heading">{heading}</h2>
+            ) : null}
+            {subheading ? (
+              <p className="df-text df-insta-story__subheading">{subheading}</p>
+            ) : null}
           </div>
         ) : null}
 
@@ -73,7 +87,10 @@ export function InstaStoryPreview({ content, facts, images }: PreviewProps<Conte
           ))}
         </ul>
 
-        <dialog className="df-insta-story__viewer" aria-label={heading || "Historias"}>
+        <dialog
+          className="df-insta-story__viewer"
+          aria-label={heading || "Historias"}
+        >
           <div className="df-insta-story__stage" data-df-stage>
             <div className="df-insta-story__bars" aria-hidden>
               {items.map((_, i) => (
@@ -85,12 +102,26 @@ export function InstaStoryPreview({ content, facts, images }: PreviewProps<Conte
 
             <ol className="df-insta-story__slides">
               {items.map((it, i) => (
-                <li key={i} className="df-insta-story__slide" data-df-slide data-type="image" data-label={it.title} hidden>
+                <li
+                  key={i}
+                  className="df-insta-story__slide"
+                  data-df-slide
+                  data-type="image"
+                  data-label={it.title}
+                  hidden
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className="df-insta-story__media" src={it.src} alt={it.alt} loading="lazy" />
+                  <img
+                    className="df-insta-story__media"
+                    src={it.src}
+                    alt={it.alt}
+                    loading="lazy"
+                  />
                   {it.line1 || it.line2 || it.cta ? (
                     <div className="df-insta-story__caption">
-                      {it.line1 ? <p className="df-insta-story__line-1">{it.line1}</p> : null}
+                      {it.line1 ? (
+                        <p className="df-insta-story__line-1">{it.line1}</p>
+                      ) : null}
                       {it.line2 ? (
                         <p className="df-insta-story__line-2">
                           <span>{it.line2}</span>
@@ -109,25 +140,51 @@ export function InstaStoryPreview({ content, facts, images }: PreviewProps<Conte
             </ol>
 
             <div className="df-insta-story__controls">
-              <button type="button" className="df-insta-story__control" data-df-pause aria-pressed="false">
+              <button
+                type="button"
+                className="df-insta-story__control"
+                data-df-pause
+                aria-pressed="false"
+              >
                 <DfIcon name="pause" className="df-insta-story__icon-pause" />
                 <DfIcon name="play" className="df-insta-story__icon-play" />
               </button>
-              <button type="button" className="df-insta-story__control" data-df-mute aria-pressed="true" hidden>
+              <button
+                type="button"
+                className="df-insta-story__control"
+                data-df-mute
+                aria-pressed="true"
+                hidden
+              >
                 <DfIcon name="volume" className="df-insta-story__icon-sound" />
-                <DfIcon name="volume-off" className="df-insta-story__icon-muted" />
+                <DfIcon
+                  name="volume-off"
+                  className="df-insta-story__icon-muted"
+                />
               </button>
-              <button type="button" className="df-insta-story__control" data-df-close>
+              <button
+                type="button"
+                className="df-insta-story__control"
+                data-df-close
+              >
                 <DfIcon name="x" />
               </button>
             </div>
 
             {items.length > 1 ? (
               <>
-                <button type="button" className="df-insta-story__nav df-insta-story__nav--prev" data-df-prev>
+                <button
+                  type="button"
+                  className="df-insta-story__nav df-insta-story__nav--prev"
+                  data-df-prev
+                >
                   <DfIcon name="chevron-left" />
                 </button>
-                <button type="button" className="df-insta-story__nav df-insta-story__nav--next" data-df-next>
+                <button
+                  type="button"
+                  className="df-insta-story__nav df-insta-story__nav--next"
+                  data-df-next
+                >
                   <DfIcon name="chevron-right" />
                 </button>
               </>

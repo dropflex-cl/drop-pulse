@@ -1,0 +1,38 @@
+{%- assign df_conversion_product = closest.product | default: product -%}
+{%- unless df_conversion_product.metafields.dropflex.conversion_supports.value.disabled_components contains 'customer-stories' -%}
+<div data-df-pdp-component="customer-stories">
+{%- assign df_product = closest.product | default: product -%}
+{%- assign df_variants = df_product.metafields.dropflex.customer_stories.value -%}
+{{ 'df-components.css' | asset_url | stylesheet_tag }}
+{{ 'df-rich-pdp.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'df-rich-pdp.js' | asset_url }}" defer></script>
+{%- if df_variants.first.key != blank -%}
+ <df-landing-content data-df-component="df-customer-stories">
+ {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
+ <div data-df-active>{% if df_default.content.state == 'empty' %}{% render 'df-component-empty', component: 'customer-stories', product: df_product %}{% else %}{% render 'df-customer-stories-content', product: df_product, section: section, content: df_default.content, df_variant: df_default %}{% endif %}</div>
+ {%- for df_variant in df_variants -%}
+ <template data-df-variant="{{ df_variant.key | escape }}" data-angle="{{ df_variant.angle_id | escape }}" data-hook="{{ df_variant.hook_id | escape }}">{% if df_variant.content.state == 'empty' %}{% render 'df-component-empty', component: 'customer-stories', product: df_product %}{% else %}{% render 'df-customer-stories-content', product: df_product, section: section, content: df_variant.content, df_variant: df_variant %}{% endif %}</template>
+ {%- endfor -%}
+ <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
+ </df-landing-content>
+{%- else -%}
+ {% if df_variants.state == 'empty' %}{% render 'df-component-empty', component: 'customer-stories', product: df_product %}{% else %}{% render 'df-customer-stories-content', product: df_product, section: section, content: df_variants %}{% endif %}
+{%- endif -%}
+</div>
+{%- endunless -%}
+{% stylesheet %}
+ .df-customer-stories { display: block; }
+{% endstylesheet %}
+{% schema %}
+{
+  "name": "Historias de clientes",
+  "tag": "section",
+  "class": "df-rich-section",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Historias de clientes"
+    }
+  ]
+}
+{% endschema %}

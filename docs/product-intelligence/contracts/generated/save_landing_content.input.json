@@ -39,10 +39,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -62,7 +59,7 @@
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema19"
+                    "$ref": "#/$defs/__schema20"
                   }
                 }
               ]
@@ -71,10 +68,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -87,14 +81,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema20"
+                  "$ref": "#/$defs/__schema21"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema22"
+                    "$ref": "#/$defs/__schema23"
                   }
                 }
               ]
@@ -103,10 +97,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -119,14 +110,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema23"
+                  "$ref": "#/$defs/__schema24"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema28"
+                    "$ref": "#/$defs/__schema29"
                   }
                 }
               ]
@@ -135,10 +126,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -151,14 +139,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema29"
+                  "$ref": "#/$defs/__schema30"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema37"
+                    "$ref": "#/$defs/__schema38"
                   }
                 }
               ]
@@ -167,10 +155,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -183,14 +168,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema38"
+                  "$ref": "#/$defs/__schema39"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema40"
+                    "$ref": "#/$defs/__schema41"
                   }
                 }
               ]
@@ -199,10 +184,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -215,14 +197,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema41"
+                  "$ref": "#/$defs/__schema42"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema49"
+                    "$ref": "#/$defs/__schema50"
                   }
                 }
               ]
@@ -231,10 +213,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -247,14 +226,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema50"
+                  "$ref": "#/$defs/__schema51"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema53"
+                    "$ref": "#/$defs/__schema54"
                   }
                 }
               ]
@@ -263,10 +242,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -279,14 +255,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema54"
+                  "$ref": "#/$defs/__schema55"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema60"
+                    "$ref": "#/$defs/__schema61"
                   }
                 }
               ]
@@ -295,74 +271,7 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "component": {
-              "type": "string",
-              "const": "pain-block"
-            },
-            "content": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/__schema61"
-                },
-                {
-                  "minItems": 1,
-                  "maxItems": 12,
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/__schema70"
-                  }
-                }
-              ]
-            },
-            "metadata": {
-              "$ref": "#/$defs/__schema14"
-            }
-          },
-          "required": [
-            "component",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "component": {
-              "type": "string",
-              "const": "stats-with-image"
-            },
-            "content": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/__schema71"
-                },
-                {
-                  "minItems": 1,
-                  "maxItems": 12,
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/__schema76"
-                  }
-                }
-              ]
-            },
-            "metadata": {
-              "$ref": "#/$defs/__schema14"
-            }
-          },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -375,14 +284,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema77"
+                  "$ref": "#/$defs/__schema62"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema84"
+                    "$ref": "#/$defs/__schema69"
                   }
                 }
               ]
@@ -391,10 +300,36 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "pain-block"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema70"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema79"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -407,14 +342,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema85"
+                  "$ref": "#/$defs/__schema80"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema90"
+                    "$ref": "#/$defs/__schema85"
                   }
                 }
               ]
@@ -423,10 +358,210 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "mechanism"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema86"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema91"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "use-cases"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema92"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema93"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "before-after"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema94"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema95"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "stats-with-image"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema96"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema101"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "results-timeline"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema102"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema104"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "usage-steps"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema105"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema106"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "product-includes"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema107"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema108"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -439,71 +574,7 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema91"
-                },
-                {
-                  "minItems": 1,
-                  "maxItems": 12,
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/__schema100"
-                  }
-                }
-              ]
-            },
-            "metadata": {
-              "$ref": "#/$defs/__schema14"
-            }
-          },
-          "required": [
-            "component",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "component": {
-              "type": "string",
-              "const": "review-wall"
-            },
-            "content": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/__schema101"
-                },
-                {
-                  "minItems": 1,
-                  "maxItems": 12,
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/__schema103"
-                  }
-                }
-              ]
-            },
-            "metadata": {
-              "$ref": "#/$defs/__schema14"
-            }
-          },
-          "required": [
-            "component",
-            "content"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "component": {
-              "type": "string",
-              "const": "comparison-table"
-            },
-            "content": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/__schema104"
+                  "$ref": "#/$defs/__schema109"
                 },
                 {
                   "minItems": 1,
@@ -519,10 +590,152 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "customer-stories"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema119"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema121"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "review-wall"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema122"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema124"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "expert-endorsement"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema125"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema126"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "comparison-table"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema127"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema141"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "guarantee"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema142"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema143"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
           "additionalProperties": false
         },
         {
@@ -535,14 +748,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema119"
+                  "$ref": "#/$defs/__schema144"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema137"
+                    "$ref": "#/$defs/__schema162"
                   }
                 }
               ]
@@ -551,10 +764,36 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": [
-            "component",
-            "content"
-          ],
+          "required": ["component", "content"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "const": "offer-summary"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema163"
+                },
+                {
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema164"
+                  }
+                }
+              ]
+            },
+            "metadata": {
+              "$ref": "#/$defs/__schema14"
+            }
+          },
+          "required": ["component", "content"],
           "additionalProperties": false
         }
       ]
@@ -668,10 +907,7 @@
           "$ref": "#/$defs/__schema7"
         }
       },
-      "required": [
-        "icon",
-        "text"
-      ]
+      "required": ["icon", "text"]
     },
     "__schema7": {
       "type": "string"
@@ -722,12 +958,7 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
     "__schema12": {
@@ -743,10 +974,7 @@
         },
         "source": {
           "type": "string",
-          "enum": [
-            "reference",
-            "page_image"
-          ]
+          "enum": ["reference", "page_image"]
         },
         "id": {
           "type": "string",
@@ -754,11 +982,7 @@
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
         }
       },
-      "required": [
-        "slot",
-        "source",
-        "id"
-      ],
+      "required": ["slot", "source", "id"],
       "additionalProperties": false
     },
     "__schema14": {
@@ -852,22 +1076,38 @@
       "pattern": "^[a-z][a-z0-9_-]{0,63}$"
     },
     "__schema18": {
-      "type": "object",
-      "properties": {
-        "label": {
-          "type": "string",
-          "minLength": 6,
-          "maxLength": 40,
-          "format": "includes",
-          "pattern": "\\{count\\}",
-          "description": "Plantilla del texto junto a las estrellas: [{rating} opcional] + {count} + sustantivo concreto de comprador. Ej.: «{rating} · {count} reseñas» o «{count} opiniones de compradores». Sin adjetivos ni superlativos."
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 6,
+              "maxLength": 40,
+              "format": "includes",
+              "pattern": "\\{count\\}",
+              "description": "Plantilla del texto junto a las estrellas: [{rating} opcional] + {count} + sustantivo concreto de comprador. Ej.: «{rating} · {count} reseñas» o «{count} opiniones de compradores». Sin adjetivos ni superlativos."
+            }
+          },
+          "required": ["label"]
         }
-      },
-      "required": [
-        "label"
       ]
     },
     "__schema19": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "empty"
+        }
+      },
+      "required": ["state"],
+      "additionalProperties": false
+    },
+    "__schema20": {
       "type": "object",
       "properties": {
         "key": {
@@ -904,32 +1144,32 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema20": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "minItems": 3,
-          "maxItems": 5,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema21"
+    "__schema21": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "items": {
+              "minItems": 3,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema22"
+              },
+              "description": "Un ítem por objeción, en orden: pago contra entrega, envío, cambios o garantía, origen local, soporte."
+            }
           },
-          "description": "Un ítem por objeción, en orden: pago contra entrega, envío, cambios o garantía, origen local, soporte."
+          "required": ["items"]
         }
-      },
-      "required": [
-        "items"
       ]
     },
-    "__schema21": {
+    "__schema22": {
       "type": "object",
       "properties": {
         "icon": {
@@ -994,13 +1234,9 @@
           "description": "Política real que afirma el texto; la tienda oculta el ítem si no está activa. none = no depende de una política (origen, atención)."
         }
       },
-      "required": [
-        "icon",
-        "text",
-        "policy"
-      ]
+      "required": ["icon", "text", "policy"]
     },
-    "__schema22": {
+    "__schema23": {
       "type": "object",
       "properties": {
         "key": {
@@ -1027,7 +1263,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema20"
+          "$ref": "#/$defs/__schema21"
         },
         "images": {
           "maxItems": 30,
@@ -1037,42 +1273,37 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema23": {
-      "type": "object",
-      "properties": {
-        "available_text": {
-          "description": "Estado positivo + promesa de entrega con {min} y {max} (días hábiles reales). Ej.: «En stock, recíbelo en {min} a {max} días hábiles».",
-          "$ref": "#/$defs/__schema24"
-        },
-        "limited_text": {
-          "description": "Escasez con la cantidad real como {qty}. Ej.: «Solo quedan {qty} unidades». Nunca un número escrito.",
-          "$ref": "#/$defs/__schema25"
-        },
-        "sold_out_text": {
-          "description": "Agotado + siguiente paso, sin prometer fecha. Ej.: «Agotado, vuelve pronto».",
-          "$ref": "#/$defs/__schema26"
-        },
-        "preorder_text": {
-          "description": "Sin stock pero con venta permitida (reposición real).",
-          "$ref": "#/$defs/__schema27"
-        }
-      },
-      "required": [
-        "available_text",
-        "limited_text",
-        "sold_out_text"
-      ]
-    },
     "__schema24": {
-      "type": "string"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "available_text": {
+              "description": "Estado positivo + promesa de entrega con {min} y {max} (días hábiles reales). Ej.: «En stock, recíbelo en {min} a {max} días hábiles».",
+              "$ref": "#/$defs/__schema25"
+            },
+            "limited_text": {
+              "description": "Escasez con la cantidad real como {qty}. Ej.: «Solo quedan {qty} unidades». Nunca un número escrito.",
+              "$ref": "#/$defs/__schema26"
+            },
+            "sold_out_text": {
+              "description": "Agotado + siguiente paso, sin prometer fecha. Ej.: «Agotado, vuelve pronto».",
+              "$ref": "#/$defs/__schema27"
+            },
+            "preorder_text": {
+              "description": "Sin stock pero con venta permitida (reposición real).",
+              "$ref": "#/$defs/__schema28"
+            }
+          },
+          "required": ["available_text", "limited_text", "sold_out_text"]
+        }
+      ]
     },
     "__schema25": {
       "type": "string"
@@ -1084,6 +1315,9 @@
       "type": "string"
     },
     "__schema28": {
+      "type": "string"
+    },
+    "__schema29": {
       "type": "object",
       "properties": {
         "key": {
@@ -1110,7 +1344,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema23"
+          "$ref": "#/$defs/__schema24"
         },
         "images": {
           "maxItems": 30,
@@ -1120,56 +1354,55 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema29": {
-      "type": "object",
-      "properties": {
-        "countdown_template": {
-          "description": "[Verbo imperativo] dentro de {time} + [cuándo lo recibe, con {arrive}]. {time} = tiempo al corte; {arrive} = primer día de entrega ya con artículo («mañana», «el martes»); {ship} = día de despacho, solo si suma. Ej.: «Pide dentro de {time} y recíbelo desde {arrive}».",
-          "$ref": "#/$defs/__schema30"
-        },
-        "closed_template": {
-          "description": "Sin contador (fin de semana, feriado o corte lejano): invitación sin urgencia con {arrive}. Ej.: «Pide hoy y recíbelo desde {arrive}».",
-          "$ref": "#/$defs/__schema31"
-        },
-        "node_ordered_label": {
-          "description": "Hito 1, 1-2 palabras (participio o frase-beneficio). Ej.: «Pedido».",
-          "$ref": "#/$defs/__schema32"
-        },
-        "node_ordered_sub": {
-          "description": "Bajo el hito 1: el momento del pedido. Ej.: «Hoy».",
-          "$ref": "#/$defs/__schema33"
-        },
-        "node_shipped_label": {
-          "description": "Hito 2, 1-2 palabras. Ej.: «Despachado», «En camino».",
-          "$ref": "#/$defs/__schema34"
-        },
-        "node_delivered_label": {
-          "description": "Hito 3, 1-2 palabras. Ej.: «Entregado», «En tu puerta».",
-          "$ref": "#/$defs/__schema35"
-        },
-        "node_delivered_sub_suffix": {
-          "description": "Nota bajo las fechas de entrega, refuerzo del pago contra entrega. Ej.: «pagas al recibir».",
-          "$ref": "#/$defs/__schema36"
-        }
-      },
-      "required": [
-        "countdown_template",
-        "node_ordered_label",
-        "node_ordered_sub",
-        "node_shipped_label",
-        "node_delivered_label"
-      ]
-    },
     "__schema30": {
-      "type": "string"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "countdown_template": {
+              "description": "[Verbo imperativo] dentro de {time} + [cuándo lo recibe, con {arrive}]. {time} = tiempo al corte; {arrive} = primer día de entrega ya con artículo («mañana», «el martes»); {ship} = día de despacho, solo si suma. Ej.: «Pide dentro de {time} y recíbelo desde {arrive}».",
+              "$ref": "#/$defs/__schema31"
+            },
+            "closed_template": {
+              "description": "Sin contador (fin de semana, feriado o corte lejano): invitación sin urgencia con {arrive}. Ej.: «Pide hoy y recíbelo desde {arrive}».",
+              "$ref": "#/$defs/__schema32"
+            },
+            "node_ordered_label": {
+              "description": "Hito 1, 1-2 palabras (participio o frase-beneficio). Ej.: «Pedido».",
+              "$ref": "#/$defs/__schema33"
+            },
+            "node_ordered_sub": {
+              "description": "Bajo el hito 1: el momento del pedido. Ej.: «Hoy».",
+              "$ref": "#/$defs/__schema34"
+            },
+            "node_shipped_label": {
+              "description": "Hito 2, 1-2 palabras. Ej.: «Despachado», «En camino».",
+              "$ref": "#/$defs/__schema35"
+            },
+            "node_delivered_label": {
+              "description": "Hito 3, 1-2 palabras. Ej.: «Entregado», «En tu puerta».",
+              "$ref": "#/$defs/__schema36"
+            },
+            "node_delivered_sub_suffix": {
+              "description": "Nota bajo las fechas de entrega, refuerzo del pago contra entrega. Ej.: «pagas al recibir».",
+              "$ref": "#/$defs/__schema37"
+            }
+          },
+          "required": [
+            "countdown_template",
+            "node_ordered_label",
+            "node_ordered_sub",
+            "node_shipped_label",
+            "node_delivered_label"
+          ]
+        }
+      ]
     },
     "__schema31": {
       "type": "string"
@@ -1190,6 +1423,9 @@
       "type": "string"
     },
     "__schema37": {
+      "type": "string"
+    },
+    "__schema38": {
       "type": "object",
       "properties": {
         "key": {
@@ -1216,7 +1452,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema29"
+          "$ref": "#/$defs/__schema30"
         },
         "images": {
           "maxItems": 30,
@@ -1226,32 +1462,32 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema38": {
-      "type": "object",
-      "properties": {
-        "cards": {
-          "minItems": 2,
-          "maxItems": 2,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema39"
+    "__schema39": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cards": {
+              "minItems": 2,
+              "maxItems": 2,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema40"
+              },
+              "description": "Exactamente 2 tarjetas: la 1 es el pago (en pago contra entrega, siempre pagar al recibir); la 2 es cambio o garantía, o despacho y seguimiento si no hay política de cambio."
+            }
           },
-          "description": "Exactamente 2 tarjetas: la 1 es el pago (en pago contra entrega, siempre pagar al recibir); la 2 es cambio o garantía, o despacho y seguimiento si no hay política de cambio."
+          "required": ["cards"]
         }
-      },
-      "required": [
-        "cards"
       ]
     },
-    "__schema39": {
+    "__schema40": {
       "type": "object",
       "properties": {
         "icon": {
@@ -1321,14 +1557,9 @@
           "description": "Política real que afirma la tarjeta; la tienda la oculta si no está activa."
         }
       },
-      "required": [
-        "icon",
-        "title",
-        "body",
-        "policy"
-      ]
+      "required": ["icon", "title", "body", "policy"]
     },
-    "__schema40": {
+    "__schema41": {
       "type": "object",
       "properties": {
         "key": {
@@ -1355,7 +1586,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema38"
+          "$ref": "#/$defs/__schema39"
         },
         "images": {
           "maxItems": 30,
@@ -1365,76 +1596,74 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema41": {
-      "type": "object",
-      "properties": {
-        "gifs": {
-          "minItems": 5,
-          "maxItems": 5,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema42"
-          },
-          "description": "Exactamente 5 textos, el MÁS FUERTE PRIMERO: el comerciante sube de 1 a 5 GIF y el GIF N usa el texto N, así que con 2 GIF solo se ven los 2 primeros. Cada uno muestra un momento o beneficio distinto del producto funcionando."
-        }
-      },
-      "required": [
-        "gifs"
-      ]
-    },
     "__schema42": {
-      "type": "object",
-      "properties": {
-        "heading": {
-          "$ref": "#/$defs/__schema43"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
         },
-        "text": {
-          "$ref": "#/$defs/__schema44"
-        },
-        "bullets": {
-          "$ref": "#/$defs/__schema46"
+        {
+          "type": "object",
+          "properties": {
+            "gifs": {
+              "minItems": 5,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema43"
+              },
+              "description": "Exactamente 5 textos, el MÁS FUERTE PRIMERO: el comerciante sube de 1 a 5 GIF y el GIF N usa el texto N, así que con 2 GIF solo se ven los 2 primeros. Cada uno muestra un momento o beneficio distinto del producto funcionando."
+            }
+          },
+          "required": ["gifs"]
         }
-      },
-      "required": [
-        "heading"
       ]
     },
     "__schema43": {
+      "type": "object",
+      "properties": {
+        "heading": {
+          "$ref": "#/$defs/__schema44"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema45"
+        },
+        "bullets": {
+          "$ref": "#/$defs/__schema47"
+        }
+      },
+      "required": ["heading"]
+    },
+    "__schema44": {
       "type": "string",
       "minLength": 12,
       "maxLength": 70,
       "description": "La línea sobre el GIF: dice qué mirar. Una pregunta con una CONDUCTA que el comprador se reconoce haciendo («¿Te agarras de la pared al entrar a la ducha?»), o una afirmación que responde 2 o 3 dudas a la vez («Firme, sin taladro y lista en un minuto»). Nunca abre con el nombre del producto."
     },
-    "__schema44": {
-      "description": "Párrafo bajo el GIF (o bullets, nunca los dos): hasta 2 oraciones, lo que hace el producto en ese momento + el resultado que se ve. Una cifra solo si está en la ficha.",
-      "$ref": "#/$defs/__schema45"
-    },
     "__schema45": {
+      "description": "Párrafo bajo el GIF (o bullets, nunca los dos): hasta 2 oraciones, lo que hace el producto en ese momento + el resultado que se ve. Una cifra solo si está en la ficha.",
+      "$ref": "#/$defs/__schema46"
+    },
+    "__schema46": {
       "type": "string",
       "minLength": 40,
       "maxLength": 160
     },
-    "__schema46": {
-      "description": "Lista bajo el GIF (o text, nunca los dos): 2 a 4 líneas cortas con su ícono.",
-      "$ref": "#/$defs/__schema47"
-    },
     "__schema47": {
+      "description": "Lista bajo el GIF (o text, nunca los dos): 2 a 4 líneas cortas con su ícono.",
+      "$ref": "#/$defs/__schema48"
+    },
+    "__schema48": {
       "minItems": 2,
       "maxItems": 4,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema48"
+        "$ref": "#/$defs/__schema49"
       }
     },
-    "__schema48": {
+    "__schema49": {
       "type": "object",
       "properties": {
         "icon": {
@@ -1487,12 +1716,9 @@
           "description": "2 a 6 palabras: el beneficio primero, el mecanismo después."
         }
       },
-      "required": [
-        "icon",
-        "text"
-      ]
+      "required": ["icon", "text"]
     },
-    "__schema49": {
+    "__schema50": {
       "type": "object",
       "properties": {
         "key": {
@@ -1519,7 +1745,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema41"
+          "$ref": "#/$defs/__schema42"
         },
         "images": {
           "maxItems": 30,
@@ -1529,41 +1755,41 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema50": {
-      "type": "object",
-      "properties": {
-        "heading": {
-          "description": "Opcional. Título corto sobre el carrusel, sin cifras escritas. Ej.: «Lo que dicen quienes ya lo usan» o «{count} reseñas de compradores».",
-          "$ref": "#/$defs/__schema51"
+    "__schema51": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
         },
-        "items": {
-          "minItems": 2,
-          "maxItems": 8,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema52"
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "description": "Opcional. Título corto sobre el carrusel, sin cifras escritas. Ej.: «Lo que dicen quienes ya lo usan» o «{count} reseñas de compradores».",
+              "$ref": "#/$defs/__schema52"
+            },
+            "items": {
+              "minItems": 2,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema53"
+              },
+              "description": "De 2 a 8 reseñas reales, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."
+            }
           },
-          "description": "De 2 a 8 reseñas reales, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."
+          "required": ["items"]
         }
-      },
-      "required": [
-        "items"
       ]
     },
-    "__schema51": {
+    "__schema52": {
       "type": "string",
       "minLength": 8,
       "maxLength": 48
     },
-    "__schema52": {
+    "__schema53": {
       "type": "object",
       "properties": {
         "review_id": {
@@ -1579,21 +1805,13 @@
         },
         "excerpt_mode": {
           "type": "string",
-          "enum": [
-            "verbatim",
-            "condensed",
-            "translated"
-          ],
+          "enum": ["verbatim", "condensed", "translated"],
           "description": "verbatim = copia exacta; condensed = acortada sin cambiar el sentido; translated = traducida (y quizá acortada) al español neutro."
         }
       },
-      "required": [
-        "review_id",
-        "excerpt",
-        "excerpt_mode"
-      ]
+      "required": ["review_id", "excerpt", "excerpt_mode"]
     },
-    "__schema53": {
+    "__schema54": {
       "type": "object",
       "properties": {
         "key": {
@@ -1620,7 +1838,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema50"
+          "$ref": "#/$defs/__schema51"
         },
         "images": {
           "maxItems": 30,
@@ -1630,409 +1848,149 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema54": {
-      "type": "object",
-      "properties": {
-        "script_ids": {
-          "description": "IDs de video_scripts con video final aprobado de este producto, en el orden de captions. Consulta get_ugc_content. En variantes selecciona los videos correspondientes a su ángulo y hook.",
-          "$ref": "#/$defs/__schema55"
-        },
-        "heading": {
-          "description": "Opcional. Sin cifra: describe el contenido («Así lo usan quienes ya lo tienen»). Con cifra real: «**{count} reseñas** de compradores». **…** resalta en el color de acento.",
-          "$ref": "#/$defs/__schema57"
-        },
-        "captions": {
-          "description": "Un texto corto por video, en el mismo orden de los videos subidos (índice 0 = primer video).",
-          "$ref": "#/$defs/__schema58"
-        }
-      }
-    },
     "__schema55": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "script_ids": {
+              "description": "IDs de video_scripts con video final aprobado de este producto, en el orden de captions. Consulta get_ugc_content. En variantes selecciona los videos correspondientes a su ángulo y hook.",
+              "$ref": "#/$defs/__schema56"
+            },
+            "heading": {
+              "description": "Opcional. Sin cifra: describe el contenido («Así lo usan quienes ya lo tienen»). Con cifra real: «**{count} reseñas** de compradores». **…** resalta en el color de acento.",
+              "$ref": "#/$defs/__schema58"
+            },
+            "captions": {
+              "description": "Un texto corto por video, en el mismo orden de los videos subidos (índice 0 = primer video).",
+              "$ref": "#/$defs/__schema59"
+            }
+          }
+        }
+      ]
+    },
+    "__schema56": {
       "maxItems": 10,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema56"
+        "$ref": "#/$defs/__schema57"
       }
     },
-    "__schema56": {
+    "__schema57": {
       "type": "string",
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
     },
-    "__schema57": {
+    "__schema58": {
       "type": "string",
       "minLength": 8,
       "maxLength": 48
     },
-    "__schema58": {
+    "__schema59": {
       "maxItems": 10,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema59"
+        "$ref": "#/$defs/__schema60"
       }
     },
-    "__schema59": {
+    "__schema60": {
       "type": "string",
       "minLength": 3,
       "maxLength": 40,
       "description": "≤ 40 caracteres: lo que se ve o el uso («Se ajusta en segundos», «Debajo de la ropa»). Sin cifras ni resultados."
     },
-    "__schema60": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "$ref": "#/$defs/__schema12"
-        },
-        "angle_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema12"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "hook_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema12"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "content": {
-          "$ref": "#/$defs/__schema54"
-        },
-        "images": {
-          "maxItems": 30,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema13"
-          }
-        }
-      },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
-      "additionalProperties": false
-    },
     "__schema61": {
       "type": "object",
       "properties": {
-        "heading": {
-          "$ref": "#/$defs/__schema62"
+        "key": {
+          "$ref": "#/$defs/__schema12"
         },
-        "moments": {
-          "$ref": "#/$defs/__schema64"
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
-        "bridge": {
-          "$ref": "#/$defs/__schema68"
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema55"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
         }
       },
-      "required": [
-        "heading",
-        "moments",
-        "bridge"
-      ]
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
     },
     "__schema62": {
-      "description": "Una pregunta de reconocimiento, sin diagnosticar. Ej.: «¿Te pasa esto frente al espejo?».",
-      "$ref": "#/$defs/__schema63"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "description": "Opcional (el editor lo oculta por defecto). Una palabra destacada con **…**. Ej.: «Compra **sin riesgo**».",
+              "$ref": "#/$defs/__schema63"
+            },
+            "items": {
+              "minItems": 3,
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema64"
+              },
+              "description": "3 a 6 ítems de largo parecido. Orden: pago al recibir, envío (plazo real), cambio o garantía, soporte, atributo del producto."
+            }
+          },
+          "required": ["items"]
+        }
+      ]
     },
     "__schema63": {
-      "type": "string"
-    },
-    "__schema64": {
-      "minItems": 1,
-      "maxItems": 3,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema65"
-      },
-      "description": "De 1 a 3 momentos del mensaje activo. slot identifica el momento, sin repetir."
-    },
-    "__schema65": {
-      "type": "object",
-      "properties": {
-        "slot": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3,
-          "description": "Orden del momento dentro del argumento activo (1, 2 o 3)."
-        },
-        "title": {
-          "description": "La escena en pocas palabras, sin punto final. Ej.: «La cara tirante a las siete».",
-          "$ref": "#/$defs/__schema66"
-        },
-        "text": {
-          "description": "1 o 2 oraciones en primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»), con palabras de todos los días.",
-          "$ref": "#/$defs/__schema67"
-        }
-      },
-      "required": [
-        "slot",
-        "title",
-        "text"
-      ]
-    },
-    "__schema66": {
-      "type": "string"
-    },
-    "__schema67": {
-      "type": "string"
-    },
-    "__schema68": {
-      "description": "Una frase que lleva del dolor al diferenciador del producto (qué faltaba), no a la oferta. Ej.: «La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.». Es la solución, no un complemento.",
-      "$ref": "#/$defs/__schema69"
-    },
-    "__schema69": {
-      "type": "string"
-    },
-    "__schema70": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "$ref": "#/$defs/__schema12"
-        },
-        "angle_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema12"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "hook_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema12"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "content": {
-          "$ref": "#/$defs/__schema61"
-        },
-        "images": {
-          "maxItems": 30,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema13"
-          }
-        }
-      },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
-      "additionalProperties": false
-    },
-    "__schema71": {
-      "type": "object",
-      "properties": {
-        "heading": {
-          "type": "string",
-          "minLength": 12,
-          "maxLength": 64,
-          "description": "[verbo de invitación o resultado] + [beneficio concreto] con UNA palabra o marca destacada entre **…** (≤ 60 caracteres visibles). Ej.: «Recupera una postura erguida con **PosturaFit**»."
-        },
-        "description": {
-          "type": "string",
-          "minLength": 80,
-          "maxLength": 224,
-          "description": "1 o 2 oraciones: para quién o en qué situación + cómo funciona (mecanismo real) + resultado esperable no médico. Máximo una frase en **negrita**."
-        },
-        "bullets": {
-          "minItems": 2,
-          "maxItems": 4,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema72"
-          },
-          "description": "3 razones (2 a 4): atributo verificable → beneficio, 3 a 7 palabras, sin punto final. Una puede ser sobre el pago al recibir."
-        },
-        "cta_label": {
-          "type": "string",
-          "minLength": 6,
-          "maxLength": 24,
-          "description": "Acción + beneficio de bajo riesgo. Ej.: «Pídelo y paga al recibir», «Quiero el mío». Evita «Comprar ahora»."
-        },
-        "rating_label": {
-          "type": "string",
-          "minLength": 10,
-          "maxLength": 48,
-          "format": "includes",
-          "pattern": "\\{rating\\}",
-          "description": "Plantilla de la línea de calificación con {rating} y, si quieres, {count}. Ej.: «{rating} de 5 según {count} reseñas». Nunca «pedidos»."
-        },
-        "review_id": {
-          "description": "Id de una reseña APROBADA de la lista recibida para el testimonio (la más concreta: antes → después). Se muestra tal cual; omítelo si ninguna sirve.",
-          "$ref": "#/$defs/__schema73"
-        },
-        "stats": {
-          "description": "0 a 3 cifras. Solo hechos que la tienda tiene (se ocultan si falta el dato).",
-          "$ref": "#/$defs/__schema74"
-        }
-      },
-      "required": [
-        "heading",
-        "description",
-        "bullets",
-        "cta_label",
-        "rating_label"
-      ]
-    },
-    "__schema72": {
-      "type": "string",
-      "minLength": 8,
-      "maxLength": 48
-    },
-    "__schema73": {
-      "type": "string",
-      "minLength": 1
-    },
-    "__schema74": {
-      "maxItems": 3,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema75"
-      }
-    },
-    "__schema75": {
-      "type": "object",
-      "properties": {
-        "fact": {
-          "type": "string",
-          "enum": [
-            "rating",
-            "review_count",
-            "return_days",
-            "warranty_months",
-            "delivery_days_max"
-          ],
-          "description": "Dato real que pone el valor: rating, review_count, return_days, warranty_months o delivery_days_max."
-        },
-        "label": {
-          "type": "string",
-          "minLength": 4,
-          "maxLength": 32,
-          "description": "Qué significa la cifra, sin el número. Ej.: «días para cambiarlo»."
-        }
-      },
-      "required": [
-        "fact",
-        "label"
-      ]
-    },
-    "__schema76": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "$ref": "#/$defs/__schema12"
-        },
-        "angle_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema12"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "hook_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema12"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "content": {
-          "$ref": "#/$defs/__schema71"
-        },
-        "images": {
-          "maxItems": 30,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema13"
-          }
-        }
-      },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
-      "additionalProperties": false
-    },
-    "__schema77": {
-      "type": "object",
-      "properties": {
-        "heading": {
-          "description": "Opcional (el editor lo oculta por defecto). Una palabra destacada con **…**. Ej.: «Compra **sin riesgo**».",
-          "$ref": "#/$defs/__schema78"
-        },
-        "items": {
-          "minItems": 3,
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema79"
-          },
-          "description": "3 a 6 ítems de largo parecido. Orden: pago al recibir, envío (plazo real), cambio o garantía, soporte, atributo del producto."
-        }
-      },
-      "required": [
-        "items"
-      ]
-    },
-    "__schema78": {
       "type": "string",
       "maxLength": 40
     },
-    "__schema79": {
+    "__schema64": {
       "type": "object",
       "properties": {
         "icon": {
-          "$ref": "#/$defs/__schema80"
+          "$ref": "#/$defs/__schema65"
         },
         "text": {
-          "$ref": "#/$defs/__schema81"
+          "$ref": "#/$defs/__schema66"
         },
         "requires": {
-          "$ref": "#/$defs/__schema82"
+          "$ref": "#/$defs/__schema67"
         }
       },
-      "required": [
-        "icon",
-        "text"
-      ]
+      "required": ["icon", "text"]
     },
-    "__schema80": {
+    "__schema65": {
       "type": "string",
       "enum": [
         "check",
@@ -2075,17 +2033,17 @@
       ],
       "description": "Ícono del beneficio: cash (pago al recibir), truck, return, shield, headset, lock…"
     },
-    "__schema81": {
+    "__schema66": {
       "type": "string",
       "minLength": 6,
       "maxLength": 48,
       "description": "[dato real como token opcional] + [beneficio de servicio], 2 a 5 palabras. Ej.: «Llega en {min} a {max} días hábiles»."
     },
-    "__schema82": {
+    "__schema67": {
       "description": "Política real que hace verdadero el ítem; si la tienda no la tiene, el ítem no se publica.",
-      "$ref": "#/$defs/__schema83"
+      "$ref": "#/$defs/__schema68"
     },
-    "__schema83": {
+    "__schema68": {
       "type": "string",
       "enum": [
         "cod",
@@ -2096,7 +2054,7 @@
         "delivery"
       ]
     },
-    "__schema84": {
+    "__schema69": {
       "type": "object",
       "properties": {
         "key": {
@@ -2123,7 +2081,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema77"
+          "$ref": "#/$defs/__schema62"
         },
         "images": {
           "maxItems": 30,
@@ -2133,40 +2091,150 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema85": {
-      "type": "object",
-      "properties": {
-        "heading": {
-          "description": "«¿Por qué [marca o producto]?» o «{count} razones para elegirlo» ({count} = cantidad real de beneficios, la pone la tienda).",
-          "$ref": "#/$defs/__schema86"
+    "__schema70": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
         },
-        "benefits": {
-          "minItems": 4,
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema87"
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema71"
+            },
+            "moments": {
+              "$ref": "#/$defs/__schema73"
+            },
+            "bridge": {
+              "$ref": "#/$defs/__schema77"
+            }
           },
-          "description": "4 o 6 beneficios, cada uno de un eje distinto: función principal, comodidad, material, facilidad de uso, versatilidad, cuidado o durabilidad."
+          "required": ["heading", "moments", "bridge"]
         }
-      },
-      "required": [
-        "heading",
-        "benefits"
       ]
     },
-    "__schema86": {
+    "__schema71": {
+      "description": "Una pregunta de reconocimiento, sin diagnosticar. Ej.: «¿Te pasa esto frente al espejo?».",
+      "$ref": "#/$defs/__schema72"
+    },
+    "__schema72": {
       "type": "string"
     },
-    "__schema87": {
+    "__schema73": {
+      "minItems": 1,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema74"
+      },
+      "description": "De 1 a 3 momentos del mensaje activo. slot identifica el momento, sin repetir."
+    },
+    "__schema74": {
+      "type": "object",
+      "properties": {
+        "slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "Orden del momento dentro del argumento activo (1, 2 o 3)."
+        },
+        "title": {
+          "description": "La escena en pocas palabras, sin punto final. Ej.: «La cara tirante a las siete».",
+          "$ref": "#/$defs/__schema75"
+        },
+        "text": {
+          "description": "1 o 2 oraciones en primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»), con palabras de todos los días.",
+          "$ref": "#/$defs/__schema76"
+        }
+      },
+      "required": ["slot", "title", "text"]
+    },
+    "__schema75": {
+      "type": "string"
+    },
+    "__schema76": {
+      "type": "string"
+    },
+    "__schema77": {
+      "description": "Una frase que lleva del dolor al diferenciador del producto (qué faltaba), no a la oferta. Ej.: «La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.». Es la solución, no un complemento.",
+      "$ref": "#/$defs/__schema78"
+    },
+    "__schema78": {
+      "type": "string"
+    },
+    "__schema79": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema70"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema80": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "description": "«¿Por qué [marca o producto]?» o «{count} razones para elegirlo» ({count} = cantidad real de beneficios, la pone la tienda).",
+              "$ref": "#/$defs/__schema81"
+            },
+            "benefits": {
+              "minItems": 4,
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema82"
+              },
+              "description": "4 o 6 beneficios, cada uno de un eje distinto: función principal, comodidad, material, facilidad de uso, versatilidad, cuidado o durabilidad."
+            }
+          },
+          "required": ["heading", "benefits"]
+        }
+      ]
+    },
+    "__schema81": {
+      "type": "string"
+    },
+    "__schema82": {
       "type": "object",
       "properties": {
         "icon": {
@@ -2214,26 +2282,22 @@
         },
         "title": {
           "description": "2 o 3 palabras, sustantivo + adjetivo concreto. Ej.: «Tela respirable».",
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema83"
         },
         "body": {
           "description": "Una oración: característica real → beneficio en tu día a día, con el momento de uso cuando aplique. Tuteo.",
-          "$ref": "#/$defs/__schema89"
+          "$ref": "#/$defs/__schema84"
         }
       },
-      "required": [
-        "icon",
-        "title",
-        "body"
-      ]
+      "required": ["icon", "title", "body"]
     },
-    "__schema88": {
+    "__schema83": {
       "type": "string"
     },
-    "__schema89": {
+    "__schema84": {
       "type": "string"
     },
-    "__schema90": {
+    "__schema85": {
       "type": "object",
       "properties": {
         "key": {
@@ -2260,7 +2324,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema85"
+          "$ref": "#/$defs/__schema80"
         },
         "images": {
           "maxItems": 30,
@@ -2270,86 +2334,134 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
+    },
+    "__schema86": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "items": {
+              "minItems": 2,
+              "maxItems": 4,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema88"
+              }
+            }
+          },
+          "required": ["heading", "items"]
+        }
+      ]
+    },
+    "__schema87": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 70,
+      "pattern": "^[^<>]*$"
+    },
+    "__schema88": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 45,
+          "pattern": "^[^<>]*$"
+        },
+        "body": {
+          "$ref": "#/$defs/__schema89"
+        },
+        "fact_id": {
+          "$ref": "#/$defs/__schema90"
+        }
+      },
+      "required": ["title", "body", "fact_id"]
+    },
+    "__schema89": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 160,
+      "pattern": "^[^<>]*$"
+    },
+    "__schema90": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "ID de un hecho aprobado y verificado de este producto que respalda esta afirmación. No un ID inventado ni una hipótesis."
     },
     "__schema91": {
       "type": "object",
       "properties": {
-        "heading": {
-          "$ref": "#/$defs/__schema92"
+        "key": {
+          "$ref": "#/$defs/__schema12"
         },
-        "stories": {
-          "$ref": "#/$defs/__schema94"
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema86"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
         }
       },
-      "required": [
-        "stories"
-      ]
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
     },
     "__schema92": {
-      "description": "«Verbo de ver + contexto»: «Míralo en acción», «Así se usa».",
-      "$ref": "#/$defs/__schema93"
-    },
-    "__schema93": {
-      "type": "string",
-      "minLength": 6,
-      "maxLength": 32
-    },
-    "__schema94": {
-      "minItems": 3,
-      "maxItems": 10,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema95"
-      },
-      "description": "Una por medio, en el MISMO orden que insta_story_media: gancho → cómo se usa → detalle → uso diario → cierre con CTA."
-    },
-    "__schema95": {
-      "type": "object",
-      "properties": {
-        "title": {
-          "description": "1-2 palabras bajo el círculo: sustantivo o momento de uso («Cómo se usa», «Detalle», «En la oficina»). Nada de frases.",
-          "$ref": "#/$defs/__schema96"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
         },
-        "caption_line_1": {
-          "description": "Contexto o beneficio observable, ≈ 20 caracteres: «Te lo pones en segundos».",
-          "$ref": "#/$defs/__schema97"
-        },
-        "caption_line_2": {
-          "description": "Remate en acento, 1-4 palabras: «sin ayuda», «no rozan».",
-          "$ref": "#/$defs/__schema98"
-        },
-        "cta_label": {
-          "description": "Solo en la última historia (máx. 2): verbo + riesgo cero COD. «Pedir y pagar al recibir».",
-          "$ref": "#/$defs/__schema99"
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "cases": {
+              "minItems": 2,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema88"
+              }
+            }
+          },
+          "required": ["heading", "cases"]
         }
-      },
-      "required": [
-        "title",
-        "caption_line_1"
       ]
     },
-    "__schema96": {
-      "type": "string"
-    },
-    "__schema97": {
-      "type": "string"
-    },
-    "__schema98": {
-      "type": "string"
-    },
-    "__schema99": {
-      "type": "string",
-      "minLength": 4,
-      "maxLength": 22
-    },
-    "__schema100": {
+    "__schema93": {
       "type": "object",
       "properties": {
         "key": {
@@ -2376,7 +2488,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema91"
+          "$ref": "#/$defs/__schema92"
         },
         "images": {
           "maxItems": 30,
@@ -2386,54 +2498,284 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
+    },
+    "__schema94": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "before_label": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 35,
+              "pattern": "^[^<>]*$"
+            },
+            "after_label": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 35,
+              "pattern": "^[^<>]*$"
+            },
+            "body": {
+              "$ref": "#/$defs/__schema89"
+            },
+            "fact_id": {
+              "$ref": "#/$defs/__schema90"
+            }
+          },
+          "required": [
+            "heading",
+            "before_label",
+            "after_label",
+            "body",
+            "fact_id"
+          ]
+        }
+      ]
+    },
+    "__schema95": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema94"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema96": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "type": "string",
+              "minLength": 12,
+              "maxLength": 64,
+              "description": "[verbo de invitación o resultado] + [beneficio concreto] con UNA palabra o marca destacada entre **…** (≤ 60 caracteres visibles). Ej.: «Recupera una postura erguida con **PosturaFit**»."
+            },
+            "description": {
+              "type": "string",
+              "minLength": 80,
+              "maxLength": 224,
+              "description": "1 o 2 oraciones: para quién o en qué situación + cómo funciona (mecanismo real) + resultado esperable no médico. Máximo una frase en **negrita**."
+            },
+            "bullets": {
+              "minItems": 2,
+              "maxItems": 4,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema97"
+              },
+              "description": "3 razones (2 a 4): atributo verificable → beneficio, 3 a 7 palabras, sin punto final. Una puede ser sobre el pago al recibir."
+            },
+            "cta_label": {
+              "type": "string",
+              "minLength": 6,
+              "maxLength": 24,
+              "description": "Acción + beneficio de bajo riesgo. Ej.: «Pídelo y paga al recibir», «Quiero el mío». Evita «Comprar ahora»."
+            },
+            "rating_label": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 48,
+              "format": "includes",
+              "pattern": "\\{rating\\}",
+              "description": "Plantilla de la línea de calificación con {rating} y, si quieres, {count}. Ej.: «{rating} de 5 según {count} reseñas». Nunca «pedidos»."
+            },
+            "review_id": {
+              "description": "Id de una reseña APROBADA de la lista recibida para el testimonio (la más concreta: antes → después). Se muestra tal cual; omítelo si ninguna sirve.",
+              "$ref": "#/$defs/__schema98"
+            },
+            "stats": {
+              "description": "0 a 3 cifras. Solo hechos que la tienda tiene (se ocultan si falta el dato).",
+              "$ref": "#/$defs/__schema99"
+            }
+          },
+          "required": [
+            "heading",
+            "description",
+            "bullets",
+            "cta_label",
+            "rating_label"
+          ]
+        }
+      ]
+    },
+    "__schema97": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 48
+    },
+    "__schema98": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema99": {
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema100"
+      }
+    },
+    "__schema100": {
+      "type": "object",
+      "properties": {
+        "fact": {
+          "type": "string",
+          "enum": [
+            "rating",
+            "review_count",
+            "return_days",
+            "warranty_months",
+            "delivery_days_max"
+          ],
+          "description": "Dato real que pone el valor: rating, review_count, return_days, warranty_months o delivery_days_max."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32,
+          "description": "Qué significa la cifra, sin el número. Ej.: «días para cambiarlo»."
+        }
+      },
+      "required": ["fact", "label"]
     },
     "__schema101": {
       "type": "object",
       "properties": {
-        "heading": {
-          "type": "string",
-          "minLength": 8,
-          "maxLength": 48,
-          "description": "Título sobre el muro, sin cifras escritas. Ej.: «Fotos de quienes ya lo recibieron» o «{count} compradores ya lo tienen»."
+        "key": {
+          "$ref": "#/$defs/__schema12"
         },
-        "items": {
-          "minItems": 4,
-          "maxItems": 12,
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema96"
+        },
+        "images": {
+          "maxItems": 30,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema102"
-          },
-          "description": "De 4 a 12 reseñas reales, en el orden del muro (la primera arriba a la izquierda). Primero las que tienen fotos; un número par (2 por fila en el teléfono)."
+            "$ref": "#/$defs/__schema13"
+          }
         }
       },
-      "required": [
-        "heading",
-        "items"
-      ]
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
     },
     "__schema102": {
-      "type": "object",
-      "properties": {
-        "review_id": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Id de una reseña APROBADA de la lista recibida. Nunca inventado."
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "stages": {
+              "minItems": 2,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema103"
+              }
+            },
+            "footnote": {
+              "$ref": "#/$defs/__schema89"
+            }
+          },
+          "required": ["heading", "stages", "footnote"]
         }
-      },
-      "required": [
-        "review_id"
       ]
     },
     "__schema103": {
       "type": "object",
       "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 35,
+          "pattern": "^[^<>]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 45,
+          "pattern": "^[^<>]*$"
+        },
+        "body": {
+          "$ref": "#/$defs/__schema89"
+        },
+        "fact_id": {
+          "$ref": "#/$defs/__schema90"
+        }
+      },
+      "required": ["label", "title", "body", "fact_id"]
+    },
+    "__schema104": {
+      "type": "object",
+      "properties": {
         "key": {
           "$ref": "#/$defs/__schema12"
         },
@@ -2458,7 +2800,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema102"
         },
         "images": {
           "maxItems": 30,
@@ -2468,149 +2810,209 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
-    "__schema104": {
-      "type": "object",
-      "properties": {
-        "heading": {
-          "$ref": "#/$defs/__schema105"
-        },
-        "us_label": {
-          "$ref": "#/$defs/__schema107"
-        },
-        "other_labels": {
-          "$ref": "#/$defs/__schema108"
-        },
-        "rows": {
-          "$ref": "#/$defs/__schema110"
-        },
-        "footnote": {
-          "$ref": "#/$defs/__schema116"
-        }
-      },
-      "required": [
-        "heading",
-        "us_label",
-        "other_labels",
-        "rows"
-      ]
-    },
     "__schema105": {
-      "description": "«[Producto o marca propia] vs. [categoría genérica]» o «¿Por qué elegir [producto]?». Nunca una marca o tienda de terceros.",
-      "$ref": "#/$defs/__schema106"
-    },
-    "__schema106": {
-      "type": "string"
-    },
-    "__schema107": {
-      "type": "string",
-      "minLength": 2,
-      "maxLength": 18,
-      "description": "Nombre corto de nuestra columna: el producto o la tienda («PosturaFit», «Nuestra tienda»)."
-    },
-    "__schema108": {
-      "minItems": 1,
-      "maxItems": 2,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema109"
-      },
-      "description": "1 o 2 columnas: lo que el cliente ya probó (alternatives_already_tried: «Crema más espesa», «Colágeno para tomar»); «Genéricos» solo si no hay una alternativa previa clara; canales («Tiendas internacionales», «Tienda física») solo en una tabla de dónde comprar. NUNCA una marca."
-    },
-    "__schema109": {
-      "type": "string"
-    },
-    "__schema110": {
-      "minItems": 4,
-      "maxItems": 6,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema111"
-      },
-      "description": "4 a 6 filas: al menos 3 de producto (basis spec: qué hace, dónde actúa, cómo entra en la rutina) y primero. Filas de compra (policy o service: pago al recibir, envío, cambios) solo si las otras columnas son canales o tiendas."
-    },
-    "__schema111": {
-      "type": "object",
-      "properties": {
-        "feature": {
-          "description": "Atributo en positivo, 2 a 5 palabras, sin negaciones dobles. Ej.: «Pago al recibir».",
-          "$ref": "#/$defs/__schema112"
-        },
-        "us": {
-          "$ref": "#/$defs/__schema113"
-        },
-        "others": {
-          "minItems": 1,
-          "maxItems": 2,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema113"
-          },
-          "description": "Un valor por cada other_labels, en el mismo orden."
-        },
-        "basis": {
-          "type": "string",
-          "enum": [
-            "spec",
-            "policy",
-            "service"
-          ],
-          "description": "Dato real que sostiene nuestro valor: spec (ficha), policy (políticas), service (atención)."
-        }
-      },
-      "required": [
-        "feature",
-        "us",
-        "others",
-        "basis"
-      ]
-    },
-    "__schema112": {
-      "type": "string"
-    },
-    "__schema113": {
       "anyOf": [
         {
-          "$ref": "#/$defs/__schema114"
+          "$ref": "#/$defs/__schema19"
         },
         {
-          "$ref": "#/$defs/__schema115"
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "steps": {
+              "minItems": 2,
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema88"
+              }
+            }
+          },
+          "required": ["heading", "steps"]
         }
-      ],
-      "description": "\"yes\" | \"no\" | \"partial\" | { text } (≤ 18 con tokens, solo valores cortos; plazos con {min}–{max})."
-    },
-    "__schema114": {
-      "type": "string",
-      "enum": [
-        "yes",
-        "no",
-        "partial"
       ]
     },
-    "__schema115": {
+    "__schema106": {
       "type": "object",
       "properties": {
-        "text": {
-          "type": "string"
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema105"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
         }
       },
-      "required": [
-        "text"
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema107": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "items": {
+              "minItems": 1,
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema88"
+              }
+            }
+          },
+          "required": ["heading", "items"]
+        }
       ]
     },
+    "__schema108": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema107"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema109": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema110"
+            },
+            "stories": {
+              "$ref": "#/$defs/__schema112"
+            }
+          },
+          "required": ["stories"]
+        }
+      ]
+    },
+    "__schema110": {
+      "description": "«Verbo de ver + contexto»: «Míralo en acción», «Así se usa».",
+      "$ref": "#/$defs/__schema111"
+    },
+    "__schema111": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 32
+    },
+    "__schema112": {
+      "minItems": 3,
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema113"
+      },
+      "description": "Una por medio, en el MISMO orden que insta_story_media: gancho → cómo se usa → detalle → uso diario → cierre con CTA."
+    },
+    "__schema113": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "description": "1-2 palabras bajo el círculo: sustantivo o momento de uso («Cómo se usa», «Detalle», «En la oficina»). Nada de frases.",
+          "$ref": "#/$defs/__schema114"
+        },
+        "caption_line_1": {
+          "description": "Contexto o beneficio observable, ≈ 20 caracteres: «Te lo pones en segundos».",
+          "$ref": "#/$defs/__schema115"
+        },
+        "caption_line_2": {
+          "description": "Remate en acento, 1-4 palabras: «sin ayuda», «no rozan».",
+          "$ref": "#/$defs/__schema116"
+        },
+        "cta_label": {
+          "description": "Solo en la última historia (máx. 2): verbo + riesgo cero COD. «Pedir y pagar al recibir».",
+          "$ref": "#/$defs/__schema117"
+        }
+      },
+      "required": ["title", "caption_line_1"]
+    },
+    "__schema114": {
+      "type": "string"
+    },
+    "__schema115": {
+      "type": "string"
+    },
     "__schema116": {
-      "description": "A qué se compara, en una frase: «Comparación referencial con correctores genéricos sin tallas».",
-      "$ref": "#/$defs/__schema117"
+      "type": "string"
     },
     "__schema117": {
-      "type": "string"
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 22
     },
     "__schema118": {
       "type": "object",
@@ -2639,7 +3041,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema104"
+          "$ref": "#/$defs/__schema109"
         },
         "images": {
           "maxItems": 30,
@@ -2649,145 +3051,52 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
-      ],
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     },
     "__schema119": {
-      "type": "object",
-      "properties": {
-        "eyebrow": {
-          "$ref": "#/$defs/__schema120"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
         },
-        "heading": {
-          "$ref": "#/$defs/__schema122"
-        },
-        "heading_highlight": {
-          "$ref": "#/$defs/__schema124"
-        },
-        "body": {
-          "$ref": "#/$defs/__schema126"
-        },
-        "cta_label": {
-          "$ref": "#/$defs/__schema128"
-        },
-        "social_proof_text": {
-          "$ref": "#/$defs/__schema130"
-        },
-        "items": {
-          "$ref": "#/$defs/__schema133"
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "stories": {
+              "minItems": 1,
+              "maxItems": 4,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema120"
+              }
+            }
+          },
+          "required": ["heading", "stories"]
         }
-      },
-      "required": [
-        "heading",
-        "items"
       ]
     },
     "__schema120": {
-      "description": "Rótulo corto sobre el título: «Preguntas frecuentes».",
-      "$ref": "#/$defs/__schema121"
-    },
-    "__schema121": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 28
-    },
-    "__schema122": {
-      "description": "Tranquilidad + «tus dudas/preguntas», 3 a 7 palabras. Ej.: «Resolvemos tus dudas antes de pedir».",
-      "$ref": "#/$defs/__schema123"
-    },
-    "__schema123": {
-      "type": "string"
-    },
-    "__schema124": {
-      "description": "1 o 2 palabras LITERALES del título que van en acento («tus dudas»).",
-      "$ref": "#/$defs/__schema125"
-    },
-    "__schema125": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 20
-    },
-    "__schema126": {
-      "description": "Una frase de apoyo: dónde más resolver dudas (WhatsApp, soporte en español).",
-      "$ref": "#/$defs/__schema127"
-    },
-    "__schema127": {
-      "type": "string"
-    },
-    "__schema128": {
-      "description": "Verbo + beneficio sin riesgo: «Pedir y pagar al recibir».",
-      "$ref": "#/$defs/__schema129"
-    },
-    "__schema129": {
-      "type": "string",
-      "minLength": 4,
-      "maxLength": 24
-    },
-    "__schema130": {
-      "description": "Solo con reseñas reales: «{rating} de 5 según {count} reseñas». Sin tokens no se publica.",
-      "$ref": "#/$defs/__schema131"
-    },
-    "__schema131": {
-      "$ref": "#/$defs/__schema132"
-    },
-    "__schema132": {
-      "type": "string"
-    },
-    "__schema133": {
-      "minItems": 3,
-      "maxItems": 8,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema134"
-      },
-      "description": "Orden COD: pago_cod, envio, uso, duracion, talla_compat, cuidado, diferencial, resultados, garantia al final."
-    },
-    "__schema134": {
       "type": "object",
       "properties": {
-        "question": {
-          "description": "Como la pensaría el comprador, 1ª persona y coloquial, una sola pregunta. Ej.: «¿Pago cuando me llegue?».",
-          "$ref": "#/$defs/__schema135"
-        },
-        "answer": {
-          "description": "1ª frase responde directo («Sí.», «Entre {min} y {max} días hábiles.»), 2ª el detalle, 3ª opcional la red de seguridad. Sin números, salvo en la de duración (el rendimiento que dio el comerciante).",
-          "$ref": "#/$defs/__schema136"
-        },
-        "topic": {
+        "title": {
           "type": "string",
-          "enum": [
-            "pago_cod",
-            "envio",
-            "uso",
-            "duracion",
-            "talla_compat",
-            "cuidado",
-            "diferencial",
-            "resultados",
-            "garantia",
-            "otro"
-          ],
-          "description": "Tema, para cobertura y orden. No se muestra. duracion = «¿Cuánto me dura?»."
+          "minLength": 3,
+          "maxLength": 45,
+          "pattern": "^[^<>]*$"
+        },
+        "review_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[^<>]*$"
         }
       },
-      "required": [
-        "question",
-        "answer",
-        "topic"
-      ]
+      "required": ["title", "review_id"]
     },
-    "__schema135": {
-      "type": "string"
-    },
-    "__schema136": {
-      "type": "string"
-    },
-    "__schema137": {
+    "__schema121": {
       "type": "object",
       "properties": {
         "key": {
@@ -2824,12 +3133,620 @@
           }
         }
       },
-      "required": [
-        "key",
-        "angle_id",
-        "hook_id",
-        "content"
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema122": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 48,
+              "description": "Título sobre el muro, sin cifras escritas. Ej.: «Fotos de quienes ya lo recibieron» o «{count} compradores ya lo tienen»."
+            },
+            "items": {
+              "minItems": 4,
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema123"
+              },
+              "description": "De 4 a 12 reseñas reales, en el orden del muro (la primera arriba a la izquierda). Primero las que tienen fotos; un número par (2 por fila en el teléfono)."
+            }
+          },
+          "required": ["heading", "items"]
+        }
+      ]
+    },
+    "__schema123": {
+      "type": "object",
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id de una reseña APROBADA de la lista recibida. Nunca inventado."
+        }
+      },
+      "required": ["review_id"]
+    },
+    "__schema124": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema122"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema125": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 70,
+              "pattern": "^[^<>]*$"
+            },
+            "credential": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 100,
+              "pattern": "^[^<>]*$"
+            },
+            "quote": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 280,
+              "pattern": "^[^<>]*$"
+            },
+            "fact_id": {
+              "$ref": "#/$defs/__schema90"
+            }
+          },
+          "required": ["heading", "name", "credential", "quote", "fact_id"]
+        }
+      ]
+    },
+    "__schema126": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema125"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema127": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema128"
+            },
+            "us_label": {
+              "$ref": "#/$defs/__schema130"
+            },
+            "other_labels": {
+              "$ref": "#/$defs/__schema131"
+            },
+            "rows": {
+              "$ref": "#/$defs/__schema133"
+            },
+            "footnote": {
+              "$ref": "#/$defs/__schema139"
+            }
+          },
+          "required": ["heading", "us_label", "other_labels", "rows"]
+        }
+      ]
+    },
+    "__schema128": {
+      "description": "«[Producto o marca propia] vs. [categoría genérica]» o «¿Por qué elegir [producto]?». Nunca una marca o tienda de terceros.",
+      "$ref": "#/$defs/__schema129"
+    },
+    "__schema129": {
+      "type": "string"
+    },
+    "__schema130": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 18,
+      "description": "Nombre corto de nuestra columna: el producto o la tienda («PosturaFit», «Nuestra tienda»)."
+    },
+    "__schema131": {
+      "minItems": 1,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema132"
+      },
+      "description": "1 o 2 columnas: lo que el cliente ya probó (alternatives_already_tried: «Crema más espesa», «Colágeno para tomar»); «Genéricos» solo si no hay una alternativa previa clara; canales («Tiendas internacionales», «Tienda física») solo en una tabla de dónde comprar. NUNCA una marca."
+    },
+    "__schema132": {
+      "type": "string"
+    },
+    "__schema133": {
+      "minItems": 4,
+      "maxItems": 6,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema134"
+      },
+      "description": "4 a 6 filas: al menos 3 de producto (basis spec: qué hace, dónde actúa, cómo entra en la rutina) y primero. Filas de compra (policy o service: pago al recibir, envío, cambios) solo si las otras columnas son canales o tiendas."
+    },
+    "__schema134": {
+      "type": "object",
+      "properties": {
+        "feature": {
+          "description": "Atributo en positivo, 2 a 5 palabras, sin negaciones dobles. Ej.: «Pago al recibir».",
+          "$ref": "#/$defs/__schema135"
+        },
+        "us": {
+          "$ref": "#/$defs/__schema136"
+        },
+        "others": {
+          "minItems": 1,
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema136"
+          },
+          "description": "Un valor por cada other_labels, en el mismo orden."
+        },
+        "basis": {
+          "type": "string",
+          "enum": ["spec", "policy", "service"],
+          "description": "Dato real que sostiene nuestro valor: spec (ficha), policy (políticas), service (atención)."
+        }
+      },
+      "required": ["feature", "us", "others", "basis"]
+    },
+    "__schema135": {
+      "type": "string"
+    },
+    "__schema136": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema137"
+        },
+        {
+          "$ref": "#/$defs/__schema138"
+        }
       ],
+      "description": "\"yes\" | \"no\" | \"partial\" | { text } (≤ 18 con tokens, solo valores cortos; plazos con {min}–{max})."
+    },
+    "__schema137": {
+      "type": "string",
+      "enum": ["yes", "no", "partial"]
+    },
+    "__schema138": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["text"]
+    },
+    "__schema139": {
+      "description": "A qué se compara, en una frase: «Comparación referencial con correctores genéricos sin tallas».",
+      "$ref": "#/$defs/__schema140"
+    },
+    "__schema140": {
+      "type": "string"
+    },
+    "__schema141": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema127"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema142": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "body": {
+              "$ref": "#/$defs/__schema89"
+            }
+          },
+          "required": ["heading", "body"]
+        }
+      ]
+    },
+    "__schema143": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema142"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema144": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "eyebrow": {
+              "$ref": "#/$defs/__schema145"
+            },
+            "heading": {
+              "$ref": "#/$defs/__schema147"
+            },
+            "heading_highlight": {
+              "$ref": "#/$defs/__schema149"
+            },
+            "body": {
+              "$ref": "#/$defs/__schema151"
+            },
+            "cta_label": {
+              "$ref": "#/$defs/__schema153"
+            },
+            "social_proof_text": {
+              "$ref": "#/$defs/__schema155"
+            },
+            "items": {
+              "$ref": "#/$defs/__schema158"
+            }
+          },
+          "required": ["heading", "items"]
+        }
+      ]
+    },
+    "__schema145": {
+      "description": "Rótulo corto sobre el título: «Preguntas frecuentes».",
+      "$ref": "#/$defs/__schema146"
+    },
+    "__schema146": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 28
+    },
+    "__schema147": {
+      "description": "Tranquilidad + «tus dudas/preguntas», 3 a 7 palabras. Ej.: «Resolvemos tus dudas antes de pedir».",
+      "$ref": "#/$defs/__schema148"
+    },
+    "__schema148": {
+      "type": "string"
+    },
+    "__schema149": {
+      "description": "1 o 2 palabras LITERALES del título que van en acento («tus dudas»).",
+      "$ref": "#/$defs/__schema150"
+    },
+    "__schema150": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 20
+    },
+    "__schema151": {
+      "description": "Una frase de apoyo: dónde más resolver dudas (WhatsApp, soporte en español).",
+      "$ref": "#/$defs/__schema152"
+    },
+    "__schema152": {
+      "type": "string"
+    },
+    "__schema153": {
+      "description": "Verbo + beneficio sin riesgo: «Pedir y pagar al recibir».",
+      "$ref": "#/$defs/__schema154"
+    },
+    "__schema154": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 24
+    },
+    "__schema155": {
+      "description": "Solo con reseñas reales: «{rating} de 5 según {count} reseñas». Sin tokens no se publica.",
+      "$ref": "#/$defs/__schema156"
+    },
+    "__schema156": {
+      "$ref": "#/$defs/__schema157"
+    },
+    "__schema157": {
+      "type": "string"
+    },
+    "__schema158": {
+      "minItems": 3,
+      "maxItems": 8,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema159"
+      },
+      "description": "Orden COD: pago_cod, envio, uso, duracion, talla_compat, cuidado, diferencial, resultados, garantia al final."
+    },
+    "__schema159": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "description": "Como la pensaría el comprador, 1ª persona y coloquial, una sola pregunta. Ej.: «¿Pago cuando me llegue?».",
+          "$ref": "#/$defs/__schema160"
+        },
+        "answer": {
+          "description": "1ª frase responde directo («Sí.», «Entre {min} y {max} días hábiles.»), 2ª el detalle, 3ª opcional la red de seguridad. Sin números, salvo en la de duración (el rendimiento que dio el comerciante).",
+          "$ref": "#/$defs/__schema161"
+        },
+        "topic": {
+          "type": "string",
+          "enum": [
+            "pago_cod",
+            "envio",
+            "uso",
+            "duracion",
+            "talla_compat",
+            "cuidado",
+            "diferencial",
+            "resultados",
+            "garantia",
+            "otro"
+          ],
+          "description": "Tema, para cobertura y orden. No se muestra. duracion = «¿Cuánto me dura?»."
+        }
+      },
+      "required": ["question", "answer", "topic"]
+    },
+    "__schema160": {
+      "type": "string"
+    },
+    "__schema161": {
+      "type": "string"
+    },
+    "__schema162": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema144"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
+      "additionalProperties": false
+    },
+    "__schema163": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema19"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "$ref": "#/$defs/__schema87"
+            },
+            "body": {
+              "$ref": "#/$defs/__schema89"
+            },
+            "cta_label": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 35,
+              "pattern": "^[^<>]*$"
+            }
+          },
+          "required": ["heading", "body", "cta_label"]
+        }
+      ]
+    },
+    "__schema164": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "angle_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hook_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema12"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/__schema163"
+        },
+        "images": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema13"
+          }
+        }
+      },
+      "required": ["key", "angle_id", "hook_id", "content"],
       "additionalProperties": false
     }
   },
@@ -2841,11 +3758,7 @@
     },
     "schema_version": {
       "type": "string",
-      "enum": [
-        "1.0",
-        "1.1",
-        "1.2"
-      ]
+      "enum": ["1.0", "1.1", "1.2"]
     },
     "expected_revision": {
       "type": "integer",
@@ -2866,7 +3779,7 @@
     },
     "entries": {
       "minItems": 1,
-      "maxItems": 17,
+      "maxItems": 27,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema0"

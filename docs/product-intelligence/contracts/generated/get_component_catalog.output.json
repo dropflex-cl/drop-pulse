@@ -117,20 +117,11 @@
               "additionalProperties": false
             }
           },
-          "required": [
-            "code",
-            "message",
-            "retryable",
-            "details"
-          ],
+          "required": ["code", "message", "retryable", "details"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "ok",
-        "request_id",
-        "error"
-      ],
+      "required": ["ok", "request_id", "error"],
       "additionalProperties": false
     },
     {
@@ -155,26 +146,18 @@
           "type": "object",
           "properties": {
             "catalog": {
-              "maxItems": 17,
+              "maxItems": 27,
               "type": "array",
               "items": {
                 "$ref": "#/$defs/__schema3"
               }
             }
           },
-          "required": [
-            "catalog"
-          ],
+          "required": ["catalog"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "ok",
-        "product_id",
-        "revision",
-        "request_id",
-        "data"
-      ],
+      "required": ["ok", "product_id", "revision", "request_id", "data"],
       "additionalProperties": false
     }
   ],
@@ -209,14 +192,24 @@
             "gif-strip",
             "review-slider",
             "ugc-slider",
-            "pain-block",
-            "stats-with-image",
             "scrolling-benefits",
+            "pain-block",
             "image-with-benefits",
+            "mechanism",
+            "use-cases",
+            "before-after",
+            "stats-with-image",
+            "results-timeline",
+            "usage-steps",
+            "product-includes",
             "insta-story",
+            "customer-stories",
             "review-wall",
+            "expert-endorsement",
             "comparison-table",
-            "faq-and-text"
+            "guarantee",
+            "faq-and-text",
+            "offer-summary"
           ]
         },
         "name": {
@@ -251,10 +244,7 @@
         },
         "placement": {
           "type": "string",
-          "enum": [
-            "hero",
-            "body"
-          ]
+          "enum": ["hero", "body"]
         },
         "attention_cost": {
           "type": "number",
@@ -272,11 +262,7 @@
         },
         "copy_density": {
           "type": "string",
-          "enum": [
-            "very_low",
-            "low",
-            "medium"
-          ]
+          "enum": ["very_low", "low", "medium"]
         },
         "supports_cta": {
           "type": "boolean"
@@ -324,24 +310,13 @@
               },
               "ratio": {
                 "type": "string",
-                "enum": [
-                  "1:1",
-                  "3:4",
-                  "9:16"
-                ]
+                "enum": ["1:1", "3:4", "9:16"]
               },
               "hint": {
                 "type": "string"
               }
             },
-            "required": [
-              "key",
-              "label",
-              "min",
-              "max",
-              "ratio",
-              "hint"
-            ],
+            "required": ["key", "label", "min", "max", "ratio", "hint"],
             "additionalProperties": false
           }
         },

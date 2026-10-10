@@ -1,0 +1,38 @@
+{%- assign df_conversion_product = closest.product | default: product -%}
+{%- unless df_conversion_product.metafields.dropflex.conversion_supports.value.disabled_components contains 'product-includes' -%}
+<div data-df-pdp-component="product-includes">
+{%- assign df_product = closest.product | default: product -%}
+{%- assign df_variants = df_product.metafields.dropflex.product_includes.value -%}
+{{ 'df-components.css' | asset_url | stylesheet_tag }}
+{{ 'df-rich-pdp.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'df-rich-pdp.js' | asset_url }}" defer></script>
+{%- if df_variants.first.key != blank -%}
+ <df-landing-content data-df-component="df-product-includes">
+ {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
+ <div data-df-active>{% if df_default.content.state == 'empty' %}{% render 'df-component-empty', component: 'product-includes', product: df_product %}{% else %}{% render 'df-product-includes-content', product: df_product, section: section, content: df_default.content, df_variant: df_default %}{% endif %}</div>
+ {%- for df_variant in df_variants -%}
+ <template data-df-variant="{{ df_variant.key | escape }}" data-angle="{{ df_variant.angle_id | escape }}" data-hook="{{ df_variant.hook_id | escape }}">{% if df_variant.content.state == 'empty' %}{% render 'df-component-empty', component: 'product-includes', product: df_product %}{% else %}{% render 'df-product-includes-content', product: df_product, section: section, content: df_variant.content, df_variant: df_variant %}{% endif %}</template>
+ {%- endfor -%}
+ <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
+ </df-landing-content>
+{%- else -%}
+ {% if df_variants.state == 'empty' %}{% render 'df-component-empty', component: 'product-includes', product: df_product %}{% else %}{% render 'df-product-includes-content', product: df_product, section: section, content: df_variants %}{% endif %}
+{%- endif -%}
+</div>
+{%- endunless -%}
+{% stylesheet %}
+ .df-product-includes { display: block; }
+{% endstylesheet %}
+{% schema %}
+{
+  "name": "Contenido del pack",
+  "tag": "section",
+  "class": "df-rich-section",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Contenido del pack"
+    }
+  ]
+}
+{% endschema %}

@@ -49,7 +49,7 @@ Las carpetas `sections/`, `blocks/`, `snippets/` y `assets/` replican las de un 
 ## Reglas
 
 1. **Portables.** Nada importa JS del tema (`@theme/*`) ni usa sus snippets (`spacing-style`, `contrast-override`…). Colores, radios y fuentes salen de los tokens `--df-*` de `_shared/assets/df-components.css`, que leen las variables del tema con un respaldo neutro. Clase raíz `df` en todo componente.
-2. **Contenido: metafield → editor → nada.** Cada componente lee `product.metafields.dropflex.<key>.value` (lo que genera la IA). Si falta, usa los ajustes o bloques del editor. Si tampoco hay, no renderiza nada (en el editor, `request.design_mode`, puede mostrar un aviso `.df-placeholder`).
+2. **Contenido: metafield → editor → estado vacío.** Cada componente lee `product.metafields.dropflex.<key>.value` (lo que genera la IA). Si falta, usa los ajustes o bloques del editor. Si tampoco hay, el wrapper muestra `df-component-empty` para clientes. Un `{state: "empty"}` explícito conserva ese estado sin usar respaldos del editor.
 3. **Los hechos no los escribe la IA.** Inventario, cantidades, calificaciones, cantidad de reseñas, reseñas, fechas, plazos, precios, políticas y archivos salen de datos reales (Liquid, metafields de la app, ajustes de logística). La IA escribe textos con tokens (`{qty}`, `{min}`, `{max}`, `{count}`, `{rating}`, `{time}`) que la tienda reemplaza. Si el dato real falta, el componente cae a un texto sin el dato o no se muestra.
 4. **Texto plano y escapado.** Todo texto de metafield se imprime con `| escape`. Negrita solo con `**…**` convertido en Liquid, nunca HTML del modelo. Las imágenes van en su propio metafield `file_reference`, nunca como URL dentro del json.
 5. **Producto:** en bloques, `assign product = closest.product | default: product`. **Nunca un ajuste `product` propio en un bloque**: `closest.product` toma primero el ajuste de producto del mismo bloque y, vacío, deja el bloque sin producto (en v2 eso ocultó precio, packs, reseñas y bajada en la ficha). En secciones, `product` si existe, si no un ajuste `product`.
@@ -83,3 +83,7 @@ Los componentes leen objetos históricos o arrays de variantes. El archivo princ
 ### Activación por defecto
 
 Los apoyos comerciales (estrellas, beneficios, inventario, entrega, doble tarjeta, reseñas, GIF y UGC aprobados, cinta de servicios) no dependen de los slots narrativos del recorrido. Cada uno conserva sus requisitos reales. El muro puede seleccionar automáticamente reseñas aprobadas cuando no existe contenido específico. `conversion_supports.disabled_components` conserva exclusiones expresas. No hay aprobación automática de reseñas o assets.
+
+## PDP completa
+
+Los componentes están visibles por defecto. Sin datos reales muestran un estado vacío para clientes; ya no se ocultan. El estado `{state: "empty"}` permite mantener una sección sin inventar contenido. Las decisiones explícitas de apagar se conservan. Contrato y recorrido: `docs/spec-pdp-completa.md`.

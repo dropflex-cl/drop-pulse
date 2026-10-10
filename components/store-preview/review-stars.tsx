@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, reviewProof } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
@@ -15,12 +16,16 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-stars");
   const rating = Math.min(5, Math.max(0, facts.rating ?? 0));
   const count = facts.count;
-  if (rating <= 0 || count < (Number(s.min_reviews) || 0)) return null;
+  if (rating <= 0 || count < (Number(s.min_reviews) || 0))
+    return <PdpEmptyPreview component="review-stars" />;
 
   // Igual que el Liquid: 4.6 → «4,6», 5 → «5,0»; 1234 → «1.234».
   const r10 = Math.round(rating * 10);
   const ratingText = `${Math.floor(r10 / 10)},${r10 % 10}`;
-  const countText = count >= 1000 ? `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, "0")}` : String(count);
+  const countText =
+    count >= 1000
+      ? `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, "0")}`
+      : String(count);
 
   const template = content.label || String(s.label ?? "");
   // Con pocas reseñas, la proporción; una plantilla sin {count} escribiría la cantidad a mano: la
@@ -29,11 +34,18 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   const label = proof
     ? `${ratingText} · ${proof}`
     : template.includes("{count}")
-    ? fill(template.replaceAll("{count}", countText).replaceAll("{rating}", ratingText), facts)
-    : `${ratingText} · ${countText} reseñas`;
+      ? fill(
+          template
+            .replaceAll("{count}", countText)
+            .replaceAll("{rating}", ratingText),
+          facts,
+        )
+      : `${ratingText} · ${countText} reseñas`;
 
   const aria = `Calificación ${ratingText} de 5, basada en ${countText} reseñas`;
-  const anchor = String(s.anchor ?? "").replace(/#/g, "").trim();
+  const anchor = String(s.anchor ?? "")
+    .replace(/#/g, "")
+    .trim();
   const inner = (
     <>
       <span aria-hidden className="df-review-stars__stars">
@@ -59,7 +71,12 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
       }
     >
       {anchor ? (
-        <a className="df-review-stars__row" href={`#${anchor}`} aria-label={`${aria}. Ir a las reseñas`} data-df-review-stars-link="">
+        <a
+          className="df-review-stars__row"
+          href={`#${anchor}`}
+          aria-label={`${aria}. Ir a las reseñas`}
+          data-df-review-stars-link=""
+        >
           {inner}
         </a>
       ) : (

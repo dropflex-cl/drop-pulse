@@ -6,17 +6,64 @@ import { toJSONSchema } from "zod/v4";
 import { LISTING_FIELDS } from "./listing";
 
 export type FormField =
-  | { kind: "text"; key: string; label: string; hint?: string; min?: number; max?: number; optional: boolean; multiline: boolean }
+  | {
+      kind: "text";
+      key: string;
+      label: string;
+      hint?: string;
+      min?: number;
+      max?: number;
+      optional: boolean;
+      multiline: boolean;
+    }
   | { kind: "icon"; key: string; label: string; optional: boolean }
-  | { kind: "choice"; key: string; label: string; options: { value: string; label: string }[]; optional: boolean; numeric?: boolean }
+  | {
+      kind: "choice";
+      key: string;
+      label: string;
+      options: { value: string; label: string }[];
+      optional: boolean;
+      numeric?: boolean;
+    }
+  | { kind: "fact"; key: string; label: string; optional: boolean }
   | { kind: "review"; key: string; label: string; optional: boolean }
-  | { kind: "cell"; key: string; label: string; options: { value: string; label: string }[]; max?: number }
-  | { kind: "group"; key: string; label: string; fields: FormField[]; optional: boolean }
-  | { kind: "list"; key: string; label: string; hint?: string; min: number; max: number; item: FormField; optional: boolean };
+  | {
+      kind: "cell";
+      key: string;
+      label: string;
+      options: { value: string; label: string }[];
+      max?: number;
+    }
+  | {
+      kind: "group";
+      key: string;
+      label: string;
+      fields: FormField[];
+      optional: boolean;
+    }
+  | {
+      kind: "list";
+      key: string;
+      label: string;
+      hint?: string;
+      min: number;
+      max: number;
+      item: FormField;
+      optional: boolean;
+    };
 
 /** Nombres de los campos en la pantalla. Una clave nueva sin nombre se muestra tal cual (y el test avisa). */
 export const FIELD_LABELS: Record<string, string> = {
   ...LISTING_FIELDS,
+  fact_id: "Hecho que lo respalda",
+  steps: "Pasos",
+  cases: "Usos",
+  stages: "Etapas",
+  before_label: "Etiqueta del antes",
+  after_label: "Etiqueta del después",
+  name: "Nombre",
+  credential: "Credencial",
+  quote: "Declaración literal",
   heading: "Título",
   moments: "Momentos",
   slot: "Orden",
@@ -110,7 +157,8 @@ export const CHOICE_LABELS: Record<string, string> = {
 };
 
 type Def = { type: string; [k: string]: unknown };
-const defOf = (s: z.ZodType) => (s as unknown as { _zod: { def: Def } })._zod.def;
+const defOf = (s: z.ZodType) =>
+  (s as unknown as { _zod: { def: Def } })._zod.def;
 
 /** El ejemplo de la descripción («Ej.: «…»») como ayuda; la descripción entera es para la IA. */
 function exampleOf(description?: string): string | undefined {
@@ -120,23 +168,37 @@ function exampleOf(description?: string): string | undefined {
 
 function range(schema: z.ZodType): { min?: number; max?: number } {
   try {
-    const js = toJSONSchema(schema, { unrepresentable: "any" }) as Record<string, number | undefined>;
-    return { min: js.minLength ?? js.minItems, max: js.maxLength ?? js.maxItems };
+    const js = toJSONSchema(schema, { unrepresentable: "any" }) as Record<
+      string,
+      number | undefined
+    >;
+    return {
+      min: js.minLength ?? js.minItems,
+      max: js.maxLength ?? js.maxItems,
+    };
   } catch {
     return {};
   }
 }
 
-const choice = (values: string[]) => values.map((value) => ({ value, label: CHOICE_LABELS[value] ?? value }));
+const choice = (values: string[]) =>
+  values.map((value) => ({ value, label: CHOICE_LABELS[value] ?? value }));
 
 /** Los campos de un esquema de contenido (objeto zod), en su orden. */
 export function formFields(schema: z.ZodType): FormField[] {
   const f = field("", "", schema, false);
-  if (f.kind !== "group") throw new Error("form: el contenido de un componente es un objeto");
+  if (f.kind !== "group")
+    throw new Error("form: el contenido de un componente es un objeto");
   return f.fields;
 }
 
-function field(key: string, label: string, schema: z.ZodType, optional: boolean, description = schema.description): FormField {
+function field(
+  key: string,
+  label: string,
+  schema: z.ZodType,
+  optional: boolean,
+  description = schema.description,
+): FormField {
   const def = defOf(schema);
   switch (def.type) {
     case "optional":
@@ -146,23 +208,56 @@ function field(key: string, label: string, schema: z.ZodType, optional: boolean,
     }
     case "pipe": {
       const out = def.out as z.ZodType;
-      return field(key, label, out, optional, description ?? out.description ?? (def.in as z.ZodType).description);
+      return field(
+        key,
+        label,
+        out,
+        optional,
+        description ?? out.description ?? (def.in as z.ZodType).description,
+      );
     }
     case "object": {
       const shape = def.shape as Record<string, z.ZodType>;
-      return { kind: "group", key, label, optional, fields: Object.entries(shape).map(([k, v]) => field(k, FIELD_LABELS[k] ?? k, v, false)) };
+      return {
+        kind: "group",
+        key,
+        label,
+        optional,
+        fields: Object.entries(shape).map(([k, v]) =>
+          field(k, FIELD_LABELS[k] ?? k, v, false),
+        ),
+      };
     }
     case "array": {
       const { min = 0, max = 10 } = range(schema);
-      return { kind: "list", key, label, hint: exampleOf(description), min, max, optional, item: field("", label, def.element as z.ZodType, false) };
+      return {
+        kind: "list",
+        key,
+        label,
+        hint: exampleOf(description),
+        min,
+        max,
+        optional,
+        item: field("", label, def.element as z.ZodType, false),
+      };
     }
     case "union": {
       // La celda de la comparativa: un valor fijo o un texto corto.
       const options = def.options as z.ZodType[];
-      const values = options.flatMap((o) => (defOf(o).type === "enum" ? ((o as z.ZodEnum).options as string[]) : []));
+      const values = options.flatMap((o) =>
+        defOf(o).type === "enum" ? ((o as z.ZodEnum).options as string[]) : [],
+      );
       const text = options.find((o) => defOf(o).type === "object");
-      const inner = text ? (defOf(text).shape as Record<string, z.ZodType>).text : undefined;
-      return { kind: "cell", key, label, options: choice(values), max: inner ? range(inner).max : undefined };
+      const inner = text
+        ? (defOf(text).shape as Record<string, z.ZodType>).text
+        : undefined;
+      return {
+        kind: "cell",
+        key,
+        label,
+        options: choice(values),
+        max: inner ? range(inner).max : undefined,
+      };
     }
     case "enum": {
       const values = (schema as z.ZodEnum).options as string[];
@@ -170,9 +265,19 @@ function field(key: string, label: string, schema: z.ZodType, optional: boolean,
       return { kind: "choice", key, label, options: choice(values), optional };
     }
     case "string": {
+      if (key === "fact_id") return { kind: "fact", key, label, optional };
       if (key === "review_id") return { kind: "review", key, label, optional };
       const { min, max } = range(schema);
-      return { kind: "text", key, label, hint: exampleOf(description), min, max, optional, multiline: (max ?? 0) > 90 };
+      return {
+        kind: "text",
+        key,
+        label,
+        hint: exampleOf(description),
+        min,
+        max,
+        optional,
+        multiline: (max ?? 0) > 90,
+      };
     }
     case "number": {
       // Un entero chico con mínimo y máximo (el ángulo de un momento): se elige de una lista.
@@ -182,8 +287,11 @@ function field(key: string, label: string, schema: z.ZodType, optional: boolean,
       } catch {}
       const lo = js.minimum ?? 1;
       const hi = js.maximum ?? lo;
-      if (hi - lo > 10) throw new Error(`form: número sin rango chico en ${key}`);
-      const options = Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i)).map((v) => ({ value: v, label: key === "slot" ? `Momento ${v}` : v }));
+      if (hi - lo > 10)
+        throw new Error(`form: número sin rango chico en ${key}`);
+      const options = Array.from({ length: hi - lo + 1 }, (_, i) =>
+        String(lo + i),
+      ).map((v) => ({ value: v, label: key === "slot" ? `Momento ${v}` : v }));
       return { kind: "choice", key, label, options, optional, numeric: true };
     }
     default:
@@ -196,15 +304,22 @@ export function emptyValue(f: FormField): unknown {
   switch (f.kind) {
     case "text":
     case "review":
+    case "fact":
       return "";
     case "icon":
       return "check";
     case "choice":
-      return f.numeric ? Number(f.options[0]?.value ?? 0) : (f.options[0]?.value ?? "");
+      return f.numeric
+        ? Number(f.options[0]?.value ?? 0)
+        : (f.options[0]?.value ?? "");
     case "cell":
       return f.options[0]?.value ?? "yes";
     case "group":
-      return Object.fromEntries(f.fields.filter((c) => !("optional" in c && c.optional)).map((c) => [c.key, emptyValue(c)]));
+      return Object.fromEntries(
+        f.fields
+          .filter((c) => !("optional" in c && c.optional))
+          .map((c) => [c.key, emptyValue(c)]),
+      );
     case "list":
       return Array.from({ length: f.min }, () => emptyValue(f.item));
   }

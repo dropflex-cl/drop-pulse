@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
@@ -27,7 +28,10 @@ type Value = "yes" | "no" | "partial" | "text";
 
 /** Como el Liquid: un { text } con texto es «text»; cualquier otro objeto cae en el `else` (Parcial). */
 function cellValue(cell: Cell | undefined): { value: Value; text: string } {
-  if (cell && typeof cell === "object") return cell.text ? { value: "text", text: cell.text } : { value: "partial", text: "" };
+  if (cell && typeof cell === "object")
+    return cell.text
+      ? { value: "text", text: cell.text }
+      : { value: "partial", text: "" };
   if (cell === "yes" || cell === "no") return { value: cell, text: "" };
   return { value: "partial", text: "" };
 }
@@ -59,20 +63,29 @@ function CellMark({ value, text }: { value: Value; text: string }) {
     default:
       return (
         <>
-          <span className="df-comparison-table__mark df-comparison-table__mark--partial" aria-hidden />
+          <span
+            className="df-comparison-table__mark df-comparison-table__mark--partial"
+            aria-hidden
+          />
           <span className="df-visually-hidden">Parcial</span>
         </>
       );
   }
 }
 
-export function ComparisonTablePreview({ content, facts }: PreviewProps<Content>) {
+export function ComparisonTablePreview({
+  content,
+  facts,
+}: PreviewProps<Content>) {
   const s = settingsOf("comparison-table");
   const rowsIn = content.rows ?? [];
   // Con filas del metafield, los títulos salen de él (los del editor solo como respaldo de heading y us_label).
   const heading = fill(content.heading || String(s.heading ?? ""), facts);
   // En la tienda el último respaldo es el nombre de la tienda, que la vista previa no tiene.
-  const usLabel = fill(content.us_label || String(s.us_label ?? "") || "Nuestra tienda", facts);
+  const usLabel = fill(
+    content.us_label || String(s.us_label ?? "") || "Nuestra tienda",
+    facts,
+  );
   const o1Label = fill(content.other_labels?.[0], facts);
   const o2Label = fill(content.other_labels?.[1], facts);
   const cols = o2Label ? 2 : 1;
@@ -83,15 +96,29 @@ export function ComparisonTablePreview({ content, facts }: PreviewProps<Content>
         const us = cellValue(row.us);
         const o1 = cellValue(row.others?.[0]);
         const o2 = cellValue(row.others?.[1]);
-        const texts = [row.feature, us.text, o1.text, o2.text].map((t) => fill(t, facts));
+        const texts = [row.feature, us.text, o1.text, o2.text].map((t) =>
+          fill(t, facts),
+        );
         if (!texts[0] || texts.some((t) => t.includes("{"))) return [];
-        return [{ feature: texts[0], us: { ...us, text: texts[1] }, o1: { ...o1, text: texts[2] }, o2: { ...o2, text: texts[3] } }];
+        return [
+          {
+            feature: texts[0],
+            us: { ...us, text: texts[1] },
+            o1: { ...o1, text: texts[2] },
+            o2: { ...o2, text: texts[3] },
+          },
+        ];
       })
     : [];
-  if (!rows.length) return null;
+  if (!rows.length) return <PdpEmptyPreview component="comparison-table" />;
 
-  const shown = (c: { value: Value; text: string }) => (c.value === "text" && !c.text ? "partial" : c.value);
-  const hasPartial = rows.some((r) => [r.us, r.o1, ...(cols === 2 ? [r.o2] : [])].some((c) => shown(c) === "partial"));
+  const shown = (c: { value: Value; text: string }) =>
+    c.value === "text" && !c.text ? "partial" : c.value;
+  const hasPartial = rows.some((r) =>
+    [r.us, r.o1, ...(cols === 2 ? [r.o2] : [])].some(
+      (c) => shown(c) === "partial",
+    ),
+  );
   const footnote = fill(content.footnote, facts);
 
   return (
@@ -101,24 +128,39 @@ export function ComparisonTablePreview({ content, facts }: PreviewProps<Content>
     >
       <div className="df-comparison-table__inner">
         {heading ? (
-          <h2 className={`df-heading df-comparison-table__heading${s.heading_italic ? " df-comparison-table__heading--italic" : ""}`}>{heading}</h2>
+          <h2
+            className={`df-heading df-comparison-table__heading${s.heading_italic ? " df-comparison-table__heading--italic" : ""}`}
+          >
+            {heading}
+          </h2>
         ) : null}
 
-        <div className={`df-comparison-table__scroll df-comparison-table__scroll--cols-${cols}`}>
+        <div
+          className={`df-comparison-table__scroll df-comparison-table__scroll--cols-${cols}`}
+        >
           <table className="df-comparison-table__table">
             <thead>
               <tr>
                 <td className="df-comparison-table__corner">
                   <span className="df-visually-hidden">Característica</span>
                 </td>
-                <th scope="col" className="df-comparison-table__us df-comparison-table__us--head">
+                <th
+                  scope="col"
+                  className="df-comparison-table__us df-comparison-table__us--head"
+                >
                   {usLabel}
                 </th>
-                <th scope="col" className="df-comparison-table__other df-comparison-table__other--head">
+                <th
+                  scope="col"
+                  className="df-comparison-table__other df-comparison-table__other--head"
+                >
                   {o1Label}
                 </th>
                 {cols === 2 ? (
-                  <th scope="col" className="df-comparison-table__other df-comparison-table__other--head">
+                  <th
+                    scope="col"
+                    className="df-comparison-table__other df-comparison-table__other--head"
+                  >
                     {o2Label}
                   </th>
                 ) : null}
@@ -151,11 +193,18 @@ export function ComparisonTablePreview({ content, facts }: PreviewProps<Content>
           <div className="df-comparison-table__notes">
             {hasPartial ? (
               <p className="df-comparison-table__legend">
-                <span className="df-comparison-table__mark df-comparison-table__mark--partial" aria-hidden />
+                <span
+                  className="df-comparison-table__mark df-comparison-table__mark--partial"
+                  aria-hidden
+                />
                 Parcial: solo en algunos casos o modelos.
               </p>
             ) : null}
-            {footnote ? <p className="df-text df-comparison-table__footnote">{footnote}</p> : null}
+            {footnote ? (
+              <p className="df-text df-comparison-table__footnote">
+                {footnote}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>

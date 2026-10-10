@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Icon, Switch } from "@/components/df";
+import { PdpEmptyPreview } from "@/components/store-preview/pdp-empty";
 import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
 import {
@@ -58,10 +59,10 @@ export function ComponentCard({
       )
     : [];
   const missing = view ? missingImages(id, view.images) : [];
-  // Sin sus fotos mínimas (las historias) el componente no se dibuja en la tienda: se dice en vez de un marco vacío.
+  // Sin sus fotos mínimas (las historias) el componente muestra su estado vacío en la tienda: se dice en vez de un marco vacío.
   const needsPhotos = missing.find((s) => s.min > 0);
   const noImage = view?.enabled ? missing : [];
-  // gif-strip toma sus GIF de Imágenes: sin ellos, la tienda no lo muestra.
+  // gif-strip toma sus GIF de Imágenes: sin ellos, la tienda muestra su estado vacío.
   const noGifs = Boolean(view?.enabled) && missingGifs(id, facts.gifs);
   const approved = view?.status === "aprobado";
   // El degradado de abajo solo cuando la vista previa de verdad se corta.
@@ -83,7 +84,7 @@ export function ComponentCard({
       aria-labelledby={`c-${id}`}
       className={cn(
         "flex flex-col gap-3 rounded-lg border bg-card p-4",
-        view?.enabled && "border-primary/40",
+        view?.enabled !== false && "border-primary/40",
       )}
     >
       <header className="flex flex-col gap-0.5">
@@ -115,7 +116,13 @@ export function ComponentCard({
       {view ? (
         <>
           <p className="sr-only">Dice: {componentSummary(view.content)}</p>
-          <div ref={box} className={cn("relative overflow-hidden rounded-md border", def.kind === "block" ? "max-h-72" : "max-h-112")}>
+          <div
+            ref={box}
+            className={cn(
+              "relative overflow-hidden rounded-md border",
+              def.kind === "block" ? "max-h-72" : "max-h-112",
+            )}
+          >
             {needsPhotos ? (
               <div
                 aria-hidden
@@ -136,7 +143,12 @@ export function ComponentCard({
                 </div>
               </StoreFrame>
             )}
-            {clipped ? <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-card to-transparent" /> : null}
+            {clipped ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-card to-transparent"
+              />
+            ) : null}
             {/* Tocar la vista previa también abre la edición; con teclado, el botón «Editar» de abajo. */}
             <button
               type="button"
@@ -200,8 +212,11 @@ export function ComponentCard({
         </>
       ) : unavailable ? (
         <div className="flex flex-col items-start gap-2 rounded-md bg-muted p-3">
+          <StoreFrame accent={accent}>
+            <PdpEmptyPreview component={id} />
+          </StoreFrame>
           <p className="text-small text-muted-foreground">
-            {unavailable.reason}
+            Visible por defecto con estado vacío. {unavailable.reason}
           </p>
           <Button
             size="sm"
@@ -213,9 +228,15 @@ export function ComponentCard({
           </Button>
         </div>
       ) : (
-        <p className="rounded-md bg-muted p-3 text-small text-muted-foreground">
-          Se escribe con el resto de la página.
-        </p>
+        <div className="flex flex-col gap-2">
+          <StoreFrame accent={accent}>
+            <PdpEmptyPreview component={id} />
+          </StoreFrame>
+          <p className="text-small text-muted-foreground">
+            Visible por defecto con estado vacío. Completa el contenido desde el
+            chat.
+          </p>
+        </div>
       )}
     </article>
   );

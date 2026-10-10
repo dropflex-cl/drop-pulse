@@ -1,0 +1,146 @@
+{%- doc -%}
+ Estructura de la PDP: información respaldada, reseñas y comercio reales.
+ @param {string} component
+ @param {object} product
+ @param {object} section
+ @param {object} [content]
+ @param {object} [df_variant]
+{%- enddoc -%}
+{%- liquid
+ assign heading = content.heading
+ if heading == blank
+  case component
+   when 'guarantee'
+    assign heading = 'Compra con confianza'
+   when 'offer-summary'
+    assign heading = 'Elige tu pack'
+  endcase
+ endif
+ assign valid = false
+ assign policies = shop.metafields.dropflex.policies.value
+ assign packs = product.metafields.dropflex.offer.value.packs
+ case component
+  when 'product-includes', 'mechanism'
+   if content.items.size > 0
+    assign valid = true
+   endif
+  when 'usage-steps'
+   if content.steps.size > 0
+    assign valid = true
+   endif
+  when 'use-cases'
+   if content.cases.size > 0
+    assign valid = true
+   endif
+  when 'results-timeline'
+   if content.stages.size > 0
+    assign valid = true
+   endif
+  when 'customer-stories'
+   assign reviews = product.metafields.dropflex.reviews.value.items
+   for story in content.stories
+    assign review = reviews | where: 'id', story.review_id | first
+    if review != blank
+     assign valid = true
+    endif
+   endfor
+  when 'expert-endorsement'
+   if content.fact_id != blank and content.quote != blank
+    assign valid = true
+   endif
+  when 'guarantee'
+   if policies.cod or policies.return_days > 0 or policies.warranty_months > 0 or policies.free_shipping
+    assign valid = true
+   endif
+  when 'offer-summary'
+   if packs.size > 0
+    assign valid = true
+   endif
+ endcase
+-%}
+{%- capture before_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'before', index: 0, df_variant: df_variant, alt: content.before_label %}{%- endcapture -%}
+{%- capture after_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'after', index: 0, df_variant: df_variant, alt: content.after_label %}{%- endcapture -%}
+{%- if component == 'before-after' and content.fact_id != blank and before_image != blank and after_image != blank -%}{%- assign valid = true -%}{%- endif -%}
+{%- if valid -%}
+<section class="df df-rich df-{{ component | escape }} df-container" style="{% render 'df-accent-vars', product: product %}" aria-labelledby="df-rich-title-{{ section.id }}">
+ <h2 class="df-heading df-rich__heading" id="df-rich-title-{{ section.id }}">{{ heading | escape }}</h2>
+ {% case component %}
+ {% when 'product-includes', 'mechanism', 'usage-steps' %}
+  {% assign items = content.items | default: content.steps %}
+  {% if component == 'mechanism' %}<div class="df-rich__main-image">{% render 'df-rich-pdp-image', component: component, product: product, slot: 'main', df_variant: df_variant, alt: product.title %}</div>{% endif %}
+  <ol class="df-rich__grid" role="list">
+   {% for item in items %}
+   <li class="df-rich__card">
+    {% if component == 'usage-steps' %}<span class="df-rich__number">{{ forloop.index }}</span>{% assign slot = 'steps' %}{% else %}{% assign slot = 'items' %}{% endif %}
+    {% render 'df-rich-pdp-image', component: component, product: product, slot: slot, index: forloop.index0, df_variant: df_variant, alt: item.title %}
+    <h3 class="df-heading">{{ item.title | escape }}</h3><p class="df-text">{{ item.body | escape }}</p>
+   </li>
+   {% endfor %}
+  </ol>
+ {% when 'use-cases' %}
+  <div class="df-rich__cases">
+   {% for item in content.cases %}
+    <details class="df-rich__case" name="df-cases-{{ section.id }}" {% if forloop.first %}open{% endif %}>
+     <summary>{{ item.title | escape }}{% render 'df-icon', name: 'chevron-right' %}</summary>
+     <div class="df-rich__case-body">{% render 'df-rich-pdp-image', component: component, product: product, slot: 'cases', index: forloop.index0, df_variant: df_variant, alt: item.title %}<p class="df-text">{{ item.body | escape }}</p></div>
+    </details>
+   {% endfor %}
+  </div>
+ {% when 'before-after' %}
+  <div data-df-comparison class="df-rich__comparison">
+   <div class="df-rich__comparison-images">
+    <figure data-df-before>{{ before_image }}<figcaption>{{ content.before_label | escape }}</figcaption></figure>
+    <figure data-df-after>{{ after_image }}<figcaption>{{ content.after_label | escape }}</figcaption></figure>
+   </div>
+   <label class="df-rich__range" hidden>Desliza para comparar<input type="range" min="0" max="100" value="50" aria-label="Proporción visible del antes y después"></label>
+  </div>
+  <p class="df-text df-rich__note">{{ content.body | escape }}</p>
+ {% when 'results-timeline' %}
+  <ol class="df-rich__timeline" role="list">
+   {% for stage in content.stages %}<li class="df-rich__card"><span class="df-rich__label">{{ stage.label | escape }}</span><h3 class="df-heading">{{ stage.title | escape }}</h3><p class="df-text">{{ stage.body | escape }}</p></li>{% endfor %}
+  </ol>
+  <p class="df-text df-rich__note">{{ content.footnote | escape }}</p>
+ {% when 'customer-stories' %}
+  {% assign photos = product.metafields.dropflex.reviews_images.value %}
+  <div class="df-rich__grid">
+   {% for story in content.stories %}
+    {% assign review = reviews | where: 'id', story.review_id | first %}
+    {% if review != blank %}<article class="df-rich__card">
+     {% if review.image_count > 0 %}{% assign photo = photos[review.image_from] %}{{ photo | image_url: width: 800 | image_tag: loading: 'lazy', class: 'df-rich__image', alt: story.title }}{% endif %}
+     <h3 class="df-heading">{{ story.title | escape }}</h3>{% render 'df-stars', rating: review.rating %}
+     <blockquote class="df-text">{{ review.body | escape }}</blockquote><p class="df-rich__label">{{ review.author | escape }}</p>
+    </article>{% endif %}
+   {% endfor %}
+  </div>
+ {% when 'expert-endorsement' %}
+  <figure class="df-rich__expert df-rich__card">
+   {% render 'df-rich-pdp-image', component: component, product: product, slot: 'portrait', df_variant: df_variant, alt: content.name %}
+   <div><blockquote class="df-text">{{ content.quote | escape }}</blockquote><figcaption><strong>{{ content.name | escape }}</strong><p class="df-text">{{ content.credential | escape }}</p></figcaption></div>
+  </figure>
+ {% when 'guarantee' %}
+  <p class="df-text df-rich__intro">{{ content.body | escape }}</p>
+  <ul class="df-rich__grid" role="list">
+   {% if policies.cod %}<li class="df-rich__card">{% render 'df-icon', name: 'cash' %}<h3 class="df-heading">Paga al recibir</h3><p class="df-text">Elige pago contra entrega al confirmar tu pedido.</p></li>{% endif %}
+   {% if policies.return_days > 0 %}<li class="df-rich__card">{% render 'df-icon', name: 'return' %}<h3 class="df-heading">Cambios y devoluciones</h3><p class="df-text">{{ policies.return_days }} días, según las condiciones de la tienda.</p></li>{% endif %}
+   {% if policies.warranty_months > 0 %}<li class="df-rich__card">{% render 'df-icon', name: 'shield' %}<h3 class="df-heading">Garantía</h3><p class="df-text">{{ policies.warranty_months }} meses, según las condiciones de la tienda.</p></li>{% endif %}
+   {% if policies.free_shipping %}<li class="df-rich__card">{% render 'df-icon', name: 'truck' %}<h3 class="df-heading">Envío gratis</h3><p class="df-text">{% if policies.free_shipping_threshold > 0 %}Desde {{ policies.free_shipping_threshold | times: 100 | money }}.{% else %}En tu pedido.{% endif %}</p></li>{% endif %}
+  </ul>
+  <div class="df-rich__policy-links">{% if shop.refund_policy.url != blank %}<a href="{{ shop.refund_policy.url }}">Lee las condiciones de devolución</a>{% endif %}{% if shop.shipping_policy.url != blank %}<a href="{{ shop.shipping_policy.url }}">Consulta los envíos</a>{% endif %}</div>
+ {% when 'offer-summary' %}
+  <p class="df-text df-rich__intro">{{ content.body | escape }}</p>
+  <ul class="df-rich__grid" role="list">
+   {% for pack in packs %}<li class="df-rich__card">
+    {% if pack.badge != blank %}<span class="df-rich__label">{{ pack.badge | escape }}</span>{% endif %}
+    <h3 class="df-heading">{{ pack.label | default: pack.units | escape }}{% if pack.label == blank %} unidades{% endif %}</h3>
+    <p class="df-rich__price">{{ pack.price | money }}{% if pack.compare_at > pack.price %} <s>{{ pack.compare_at | money }}</s>{% endif %}</p>
+    {% if pack.compare_at > pack.price %}<p class="df-text">Ahorras {{ pack.compare_at | minus: pack.price | money }}</p>{% endif %}
+    {% if pack.support != blank %}<p class="df-text">{{ pack.support | escape }}</p>{% endif %}
+   </li>{% endfor %}
+  </ul>
+  <a class="df-rich__cta df-press" href="#df-product-purchase" data-df-purchase-link>{{ content.cta_label | default: 'Elegir mi pack' | escape }}{% render 'df-icon', name: 'arrow-right' %}</a>
+  {% if policies.cod %}<p class="df-text df-rich__note">Paga al recibir tu pedido</p>{% endif %}
+ {% endcase %}
+</section>
+{%- else -%}
+ {% render 'df-component-empty', component: component, product: product %}
+{%- endif -%}

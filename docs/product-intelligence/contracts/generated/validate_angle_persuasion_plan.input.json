@@ -1,11 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": [
-    "product_id",
-    "expected_revision",
-    "plan"
-  ],
+  "required": ["product_id", "expected_revision", "plan"],
   "additionalProperties": false,
   "$defs": {
     "__schema0": {
@@ -115,10 +111,7 @@
         },
         "kind": {
           "type": "string",
-          "enum": [
-            "primary",
-            "support"
-          ]
+          "enum": ["primary", "support"]
         },
         "primary_job": {
           "$ref": "#/$defs/__schema8"
@@ -170,10 +163,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "headline_intent",
-            "takeaway"
-          ],
+          "required": ["headline_intent", "takeaway"],
           "additionalProperties": false
         },
         "necessity": {
@@ -213,11 +203,7 @@
             },
             "product_role": {
               "type": "string",
-              "enum": [
-                "hero",
-                "supporting",
-                "absent"
-              ]
+              "enum": ["hero", "supporting", "absent"]
             },
             "generation_required": {
               "type": "boolean"
@@ -254,11 +240,7 @@
         },
         "cta": {
           "type": "string",
-          "enum": [
-            "none",
-            "soft",
-            "primary"
-          ]
+          "enum": ["none", "soft", "primary"]
         }
       },
       "required": [
@@ -318,14 +300,24 @@
         "gif-strip",
         "review-slider",
         "ugc-slider",
-        "pain-block",
-        "stats-with-image",
         "scrolling-benefits",
+        "pain-block",
         "image-with-benefits",
+        "mechanism",
+        "use-cases",
+        "before-after",
+        "stats-with-image",
+        "results-timeline",
+        "usage-steps",
+        "product-includes",
         "insta-story",
+        "customer-stories",
         "review-wall",
+        "expert-endorsement",
         "comparison-table",
-        "faq-and-text"
+        "guarantee",
+        "faq-and-text",
+        "offer-summary"
       ]
     },
     "__schema11": {
@@ -333,24 +325,14 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": [
-            "reference",
-            "page_image",
-            "ugc"
-          ]
+          "enum": ["reference", "page_image", "ugc"]
         },
         "id": {
           "$ref": "#/$defs/__schema0"
         },
         "role": {
           "type": "string",
-          "enum": [
-            "hero",
-            "proof",
-            "demo",
-            "explanation",
-            "comparison"
-          ]
+          "enum": ["hero", "proof", "demo", "explanation", "comparison"]
         },
         "slot": {
           "$ref": "#/$defs/__schema4"
@@ -359,11 +341,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "source",
-        "id",
-        "role"
-      ],
+      "required": ["source", "id", "role"],
       "additionalProperties": false
     },
     "__schema12": {
@@ -410,11 +388,7 @@
           }
         }
       },
-      "required": [
-        "key",
-        "text_intent",
-        "type"
-      ],
+      "required": ["key", "text_intent", "type"],
       "additionalProperties": false
     }
   },
@@ -446,12 +420,7 @@
         },
         "status": {
           "type": "string",
-          "enum": [
-            "draft",
-            "review",
-            "approved",
-            "archived"
-          ]
+          "enum": ["draft", "review", "approved", "archived"]
         },
         "audience_state": {
           "type": "object",
@@ -471,12 +440,7 @@
             },
             "sophistication": {
               "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high",
-                "very_high"
-              ]
+              "enum": ["low", "medium", "high", "very_high"]
             },
             "primary_jtbd_ids": {
               "maxItems": 3,
@@ -570,19 +534,15 @@
               "maximum": 7
             },
             "max_support_sections": {
-              "default": 2,
+              "default": 26,
               "type": "integer",
               "minimum": 0,
-              "maximum": 2
+              "maximum": 26
             },
             "copy_density": {
               "default": "low",
               "type": "string",
-              "enum": [
-                "very_low",
-                "low",
-                "medium"
-              ]
+              "enum": ["very_low", "low", "medium"]
             },
             "max_headline_chars": {
               "default": 70,
@@ -629,7 +589,7 @@
         },
         "sections": {
           "minItems": 1,
-          "maxItems": 9,
+          "maxItems": 27,
           "type": "array",
           "items": {
             "$ref": "#/$defs/__schema7"

@@ -10,8 +10,23 @@ import KIT_HISTORY from "./kit-history.json";
 export const kitHistory: Record<string, string[]> = KIT_HISTORY;
 
 export const KIT_THEME = "DropPulse";
-export const KIT_DIR = join(process.cwd(), "lib", "shopify", "themes", KIT_THEME);
-const FOLDERS = ["assets", "blocks", "config", "layout", "locales", "sections", "snippets", "templates"];
+export const KIT_DIR = join(
+  process.cwd(),
+  "lib",
+  "shopify",
+  "themes",
+  KIT_THEME,
+);
+const FOLDERS = [
+  "assets",
+  "blocks",
+  "config",
+  "layout",
+  "locales",
+  "sections",
+  "snippets",
+  "templates",
+];
 
 export interface KitFile {
   /** «sections/header.liquid». */
@@ -31,7 +46,11 @@ export interface Kit {
  * ajustes). Una actualización nunca los toca; solo se reponen si faltan (principio 4 del spec).
  */
 export function isProtected(path: string): boolean {
-  return path.startsWith("templates/") || /^sections\/[^/]+\.json$/.test(path) || path === "config/settings_data.json";
+  return (
+    path.startsWith("templates/") ||
+    /^sections\/[^/]+\.json$/.test(path) ||
+    path === "config/settings_data.json"
+  );
 }
 
 const md5 = (b: Buffer) => createHash("md5").update(b).digest("hex");
@@ -40,7 +59,8 @@ let memo: Kit | null = null;
 
 /** El kit del repo. En producción no cambia mientras corre la instancia: se lee una vez. */
 export function readKit(dir = KIT_DIR): Kit {
-  if (dir === KIT_DIR && memo && process.env.NODE_ENV === "production") return memo;
+  if (dir === KIT_DIR && memo && process.env.NODE_ENV === "production")
+    return memo;
   const files: KitFile[] = [];
   for (const folder of FOLDERS) {
     const base = join(dir, folder);
@@ -50,13 +70,20 @@ export function readKit(dir = KIT_DIR): Kit {
         if (statSync(full).isDirectory()) walk(full);
         else {
           const data = readFileSync(full);
-          files.push({ path: relative(dir, full).split(sep).join("/"), data, md5: md5(data) });
+          files.push({
+            path: relative(dir, full).split(sep).join("/"),
+            data,
+            md5: md5(data),
+          });
         }
       }
     };
     walk(base);
   }
-  const code = files.filter((f) => !isProtected(f.path)).map((f) => `${f.path}:${f.md5}`).join("\n");
+  const code = files
+    .filter((f) => !isProtected(f.path))
+    .map((f) => `${f.path}:${f.md5}`)
+    .join("\n");
   const kit = { files, version: md5(Buffer.from(code)).slice(0, 10) };
   if (dir === KIT_DIR) memo = kit;
   return kit;
@@ -84,17 +111,28 @@ export interface UpdatePlan {
  * (kit-history.json, generado desde git). Un template igual a una versión nuestra anterior no lo
  * editó nadie: se actualiza. Uno distinto lo cambió el comerciante en el editor: no se toca.
  */
-export function planUpdate(local: Pick<KitFile, "path" | "md5">[], remote: RemoteFile[], history: Record<string, string[]> = {}): UpdatePlan {
+export function planUpdate(
+  local: Pick<KitFile, "path" | "md5">[],
+  remote: RemoteFile[],
+  history: Record<string, string[]> = {},
+): UpdatePlan {
   const theirs = new Map(remote.map((r) => [r.path, r.md5]));
   const ours = new Set(local.map((f) => f.path));
-  const plan: UpdatePlan = { upsert: [], restore: [], remove: [], unchanged: 0, skippedProtected: 0 };
+  const plan: UpdatePlan = {
+    upsert: [],
+    restore: [],
+    remove: [],
+    unchanged: 0,
+    skippedProtected: 0,
+  };
   for (const f of local) {
     const remoteMd5 = theirs.get(f.path);
     if (isProtected(f.path)) {
       // Lo que falta se repone (Shopify lo descartó o lo borraron).
       if (!theirs.has(f.path)) plan.restore.push(f.path);
       else if (remoteMd5 === f.md5) plan.unchanged++;
-      else if (remoteMd5 && history[f.path]?.includes(remoteMd5)) plan.upsert.push(f.path);
+      else if (remoteMd5 && history[f.path]?.includes(remoteMd5))
+        plan.upsert.push(f.path);
       else plan.skippedProtected++;
       continue;
     }
@@ -103,13 +141,15 @@ export function planUpdate(local: Pick<KitFile, "path" | "md5">[], remote: Remot
   }
   for (const r of remote) {
     const name = r.path.split("/").pop() ?? "";
-    if (!ours.has(r.path) && name.startsWith("df-") && !isProtected(r.path)) plan.remove.push(r.path);
+    if (!ours.has(r.path) && name.startsWith("df-") && !isProtected(r.path))
+      plan.remove.push(r.path);
   }
   return plan;
 }
 
 /** Shopify antepone un comentario (barra-asterisco) a los JSON que guarda el editor: se quita. */
-export const parseThemeJson = (text: string) => JSON.parse(text.replace(/^\s*\/\*[\s\S]*?\*\/\s*/, ""));
+export const parseThemeJson = (text: string) =>
+  JSON.parse(text.replace(/^\s*\/\*[\s\S]*?\*\/\s*/, ""));
 
 /**
  * EasySell COD Form (el formulario de pago contra entrega): su app embed queda SIEMPRE encendido en
@@ -121,7 +161,9 @@ export const EASYSELL_EMBED = {
   id: "17754088914158789468",
   type: "shopify://apps/easysell-cod-form/blocks/app-embed/7bfd0a95-6839-4f02-b2ee-896832dbe67e",
 } as const;
-const isEasySell = (type: unknown) => typeof type === "string" && type.startsWith("shopify://apps/easysell-cod-form/");
+const isEasySell = (type: unknown) =>
+  typeof type === "string" &&
+  type.startsWith("shopify://apps/easysell-cod-form/");
 
 /**
  * El settings_data con EasySell encendido: reusa el bloque que ya exista (el primero; los repetidos
@@ -130,15 +172,24 @@ const isEasySell = (type: unknown) => typeof type === "string" && type.startsWit
 export function withEasySellOn(settings: string): string | null {
   try {
     const data = parseThemeJson(settings);
-    if (!data || typeof data.current !== "object" || data.current === null) return null;
-    const blocks: Record<string, { type?: string; disabled?: boolean }> = { ...(data.current.blocks ?? {}) };
-    const ids = Object.keys(blocks).filter((id) => isEasySell(blocks[id]?.type));
+    if (!data || typeof data.current !== "object" || data.current === null)
+      return null;
+    const blocks: Record<string, { type?: string; disabled?: boolean }> = {
+      ...(data.current.blocks ?? {}),
+    };
+    const ids = Object.keys(blocks).filter((id) =>
+      isEasySell(blocks[id]?.type),
+    );
     if (ids.length === 1 && blocks[ids[0]].disabled !== true) return null;
     if (ids.length) {
       blocks[ids[0]] = { ...blocks[ids[0]], disabled: false };
       for (const id of ids.slice(1)) delete blocks[id];
     } else {
-      blocks[EASYSELL_EMBED.id] = { type: EASYSELL_EMBED.type, disabled: false, settings: {} } as { type: string; disabled: boolean };
+      blocks[EASYSELL_EMBED.id] = {
+        type: EASYSELL_EMBED.type,
+        disabled: false,
+        settings: {},
+      } as { type: string; disabled: boolean };
     }
     data.current.blocks = blocks;
     return JSON.stringify(data);
@@ -152,16 +203,28 @@ export function withEasySellOn(settings: string): string | null {
  * por tema, y sin esto quedan apagados en el tema nuevo. Los del kit mandan si ya existen, y
  * EasySell queda encendido (el del tema publicado, si lo tenía). Best effort: si falla, se instala igual.
  */
-export function mergeAppEmbeds(kitSettings: string, liveSettings: string | null): string {
+export function mergeAppEmbeds(
+  kitSettings: string,
+  liveSettings: string | null,
+): string {
   let merged = kitSettings;
   if (liveSettings) {
     try {
       const kit = parseThemeJson(kitSettings);
       const live = parseThemeJson(liveSettings);
-      const blocks = (live?.current?.blocks ?? {}) as Record<string, { type?: string }>;
-      const embeds = Object.entries(blocks).filter(([, b]) => typeof b?.type === "string" && b.type.startsWith("shopify://apps/"));
+      const blocks = (live?.current?.blocks ?? {}) as Record<
+        string,
+        { type?: string }
+      >;
+      const embeds = Object.entries(blocks).filter(
+        ([, b]) =>
+          typeof b?.type === "string" && b.type.startsWith("shopify://apps/"),
+      );
       if (embeds.length && typeof kit.current === "object") {
-        kit.current.blocks = { ...Object.fromEntries(embeds), ...(kit.current.blocks ?? {}) };
+        kit.current.blocks = {
+          ...Object.fromEntries(embeds),
+          ...(kit.current.blocks ?? {}),
+        };
         merged = JSON.stringify(kit);
       }
     } catch {
@@ -172,6 +235,76 @@ export function mergeAppEmbeds(kitSettings: string, liveSettings: string | null)
 }
 
 /** Los archivos del kit que no llegaron al tema (Shopify los descartó al importar). */
-export function missingFromTheme(kitPaths: string[], remote: Set<string>): string[] {
+export function missingFromTheme(
+  kitPaths: string[],
+  remote: Set<string>,
+): string[] {
   return kitPaths.filter((p) => !remote.has(p));
+}
+
+/** Agrega las nuevas secciones a plantillas DropFlex personalizadas sin cambiar sus ajustes. */
+export function withPdpSections(
+  remote: string,
+  kitTemplate: string,
+): string | null {
+  try {
+    const data = parseThemeJson(remote),
+      kit = parseThemeJson(kitTemplate);
+    if (!data?.sections || !Array.isArray(data.order) || !kit?.sections)
+      return null;
+    if (
+      !Object.values(data.sections).some(
+        (s) => (s as { type?: string }).type === "product-information",
+      )
+    )
+      return null;
+    const newTypes = new Set([
+      "df-product-includes",
+      "df-usage-steps",
+      "df-use-cases",
+      "df-before-after",
+      "df-results-timeline",
+      "df-customer-stories",
+      "df-expert-endorsement",
+      "df-mechanism",
+      "df-guarantee",
+      "df-offer-summary",
+    ]);
+    const present = new Set(
+      Object.values(data.sections).map((s) => (s as { type?: string }).type),
+    );
+    let changed = false;
+    for (const key of kit.order) {
+      const section = kit.sections[key];
+      if (!newTypes.has(section.type) || present.has(section.type)) continue;
+      let id = key;
+      while (Object.hasOwn(data.sections, id)) id += "_df";
+      const previous = kit.order
+        .slice(0, kit.order.indexOf(key))
+        .reverse()
+        .find((k: string) =>
+          data.order.some(
+            (id: string) => data.sections[id]?.type === kit.sections[k].type,
+          ),
+        );
+      const anchor = previous
+        ? data.order.findIndex(
+            (id: string) =>
+              data.sections[id]?.type === kit.sections[previous].type,
+          )
+        : data.order.length - 1;
+      data.sections[id] = section;
+      data.order.splice(anchor + 1, 0, id);
+      present.add(section.type);
+      changed = true;
+    }
+    if (Object.keys(data.sections).length > 25)
+      throw new Error(
+        "La plantilla supera las 25 secciones de Shopify. Quita secciones duplicadas antes de actualizar la PDP.",
+      );
+    return changed ? JSON.stringify(data) : null;
+  } catch (error) {
+    if (error instanceof SyntaxError) return null;
+    throw error;
+  }
 }

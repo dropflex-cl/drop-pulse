@@ -42,6 +42,8 @@ export interface StorePack {
 }
 
 export interface StoreFacts {
+  /** Hechos aprobados/verificados del producto, sin contradicciones activas. */
+  verifiedFacts?: { id: string; statement: string }[];
   productName: string;
   productImage?: string;
   /** Portada y galería aprobadas, en el mismo orden que Shopify. */
@@ -78,7 +80,12 @@ export interface StoreFacts {
 }
 
 /** El tachado de un pack: lo que costarían sus unidades al precio de referencia, si es mayor. */
-export function packCompareAt(units: number, price: number, unitPrice: number, unitCompareAt?: number | null): number | undefined {
+export function packCompareAt(
+  units: number,
+  price: number,
+  unitPrice: number,
+  unitCompareAt?: number | null,
+): number | undefined {
   const ref = (unitCompareAt ?? unitPrice) * units;
   return ref > price ? ref : undefined;
 }
@@ -102,7 +109,10 @@ export const EXAMPLE = {
  * plazos de entrega todavía no se cargan en la app: se muestran con su ejemplo marcado, porque todas
  * las tiendas despachan. Lo demás (cambios, garantía, WhatsApp) se oculta si la tienda no lo tiene.
  */
-export function policyActive(policy: string | undefined, facts: StoreFacts): boolean {
+export function policyActive(
+  policy: string | undefined,
+  facts: StoreFacts,
+): boolean {
   const p = facts.policies;
   switch (policy) {
     case "cod":
@@ -123,7 +133,11 @@ export function policyActive(policy: string | undefined, facts: StoreFacts): boo
 /** Promedio con 1 decimal de las reseñas. */
 export function averageRating(reviews: { rating: number }[]): number | null {
   if (!reviews.length) return null;
-  return Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10;
+  return (
+    Math.round(
+      (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10,
+    ) / 10
+  );
 }
 
 /**
@@ -145,25 +159,57 @@ export function reviewProof(reviews: { rating: number }[]): string {
   return "";
 }
 
-const decimal = new Intl.NumberFormat("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const decimal = new Intl.NumberFormat("es-CL", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const integer = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 });
 
 export function formatMoney(value: number, currency: string): string {
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency, maximumFractionDigits: 0 }).format(value).replace(/\s/g, "");
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  })
+    .format(value)
+    .replace(/\s/g, "");
 }
 
 /** El valor de cada token y si es un ejemplo. */
-export function tokenValues(facts: StoreFacts): Record<string, { value: string; example: boolean }> {
+export function tokenValues(
+  facts: StoreFacts,
+): Record<string, { value: string; example: boolean }> {
   const hasReviews = facts.count > 0 && facts.rating != null;
   const p = facts.policies;
   return {
-    rating: { value: decimal.format(hasReviews ? facts.rating! : EXAMPLE.rating), example: !hasReviews },
-    count: { value: integer.format(hasReviews ? facts.count : EXAMPLE.count), example: !hasReviews },
-    min: { value: String(facts.logistics?.min ?? EXAMPLE.min), example: !facts.logistics },
-    max: { value: String(facts.logistics?.max ?? EXAMPLE.max), example: !facts.logistics },
-    return_days: { value: String(p.return_days ?? EXAMPLE.return_days), example: p.return_days == null },
-    warranty_months: { value: String(p.warranty_months ?? EXAMPLE.warranty_months), example: p.warranty_months == null },
-    threshold: { value: formatMoney(p.threshold ?? EXAMPLE.threshold, facts.currency), example: p.threshold == null },
+    rating: {
+      value: decimal.format(hasReviews ? facts.rating! : EXAMPLE.rating),
+      example: !hasReviews,
+    },
+    count: {
+      value: integer.format(hasReviews ? facts.count : EXAMPLE.count),
+      example: !hasReviews,
+    },
+    min: {
+      value: String(facts.logistics?.min ?? EXAMPLE.min),
+      example: !facts.logistics,
+    },
+    max: {
+      value: String(facts.logistics?.max ?? EXAMPLE.max),
+      example: !facts.logistics,
+    },
+    return_days: {
+      value: String(p.return_days ?? EXAMPLE.return_days),
+      example: p.return_days == null,
+    },
+    warranty_months: {
+      value: String(p.warranty_months ?? EXAMPLE.warranty_months),
+      example: p.warranty_months == null,
+    },
+    threshold: {
+      value: formatMoney(p.threshold ?? EXAMPLE.threshold, facts.currency),
+      example: p.threshold == null,
+    },
     // Simulados: en la tienda salen del stock y del reloj de cada visita, no son un dato que falte.
     qty: { value: String(EXAMPLE.qty), example: false },
     time: { value: EXAMPLE.time, example: false },
@@ -175,16 +221,24 @@ export function tokenValues(facts: StoreFacts): Record<string, { value: string; 
 export function fill(text: string | undefined, facts: StoreFacts): string {
   if (!text) return "";
   const values = tokenValues(facts);
-  return text.replace(/\{([a-z_]+)\}/g, (m, k: string) => values[k]?.value ?? m);
+  return text.replace(
+    /\{([a-z_]+)\}/g,
+    (m, k: string) => values[k]?.value ?? m,
+  );
 }
 
 /**
  * Los tokens de un contenido que se llenan con un ejemplo (la tarjeta lo dice). `ignore`: tokens que
  * ese componente llena solo (en «Foto y razones», {count} es la cantidad de beneficios).
  */
-export function exampleTokens(content: unknown, facts: StoreFacts, ignore: string[] = []): string[] {
+export function exampleTokens(
+  content: unknown,
+  facts: StoreFacts,
+  ignore: string[] = [],
+): string[] {
   const values = tokenValues(facts);
   const found = new Set<string>();
-  for (const m of JSON.stringify(content ?? "").matchAll(/\{([a-z_]+)\}/g)) if (values[m[1]]?.example && !ignore.includes(m[1])) found.add(m[1]);
+  for (const m of JSON.stringify(content ?? "").matchAll(/\{([a-z_]+)\}/g))
+    if (values[m[1]]?.example && !ignore.includes(m[1])) found.add(m[1]);
   return [...found];
 }

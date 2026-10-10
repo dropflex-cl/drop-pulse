@@ -1,3 +1,5 @@
+{%- assign df_conversion_product = closest.product | default: product -%}
+{%- unless df_conversion_product.metafields.dropflex.conversion_supports.value.disabled_components contains 'faq-and-text' -%}
 <div data-df-pdp-component="faq-and-text">
 {%- comment -%} Contenido por df_angle/df_hook; fuente editable: lib/shopify/components/. {%- endcomment -%}
 {%- assign df_product = closest.product | default: product | default: section.settings.product -%}
@@ -7,20 +9,21 @@
 {%- if df_variants.first.key != blank -%}
   <df-landing-content data-df-component="df-faq-and-text">
     {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
-    <div data-df-active>{% render 'df-faq-and-text-content', product: df_product, section: section, content: df_default.content, df_variant: df_default %}</div>
+    <div data-df-active>{% capture df_rendered %}{% if df_default.content.state == 'empty' %}{% render 'df-component-empty', component: 'faq-and-text', product: df_product %}{% else %}{% render 'df-faq-and-text-content', product: df_product, section: section, content: df_default.content, df_variant: df_default %}{% endif %}{% endcapture %}{% if df_rendered contains 'class="df' %}{{ df_rendered }}{% else %}{% render 'df-component-empty', component: 'faq-and-text', product: df_product %}{% endif %}</div>
     {%- for df_variant in df_variants -%}
       <template data-df-variant="{{ df_variant.key | escape }}" data-angle="{{ df_variant.angle_id | escape }}" data-hook="{{ df_variant.hook_id | escape }}">
-        {% render 'df-faq-and-text-content', product: df_product, section: section, content: df_variant.content, df_variant: df_variant %}
+        {% capture df_rendered %}{% if df_variant.content.state == 'empty' %}{% render 'df-component-empty', component: 'faq-and-text', product: df_product %}{% else %}{% render 'df-faq-and-text-content', product: df_product, section: section, content: df_variant.content, df_variant: df_variant %}{% endif %}{% endcapture %}{% if df_rendered contains 'class="df' %}{{ df_rendered }}{% else %}{% render 'df-component-empty', component: 'faq-and-text', product: df_product %}{% endif %}
       </template>
     {%- endfor -%}
     <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
   </df-landing-content>
 {%- else -%}
-  {% render 'df-faq-and-text-content', product: df_product, section: section, content: df_variants %}
+  {% capture df_rendered %}{% if df_variants.state == 'empty' %}{% render 'df-component-empty', component: 'faq-and-text', product: df_product %}{% else %}{% render 'df-faq-and-text-content', product: df_product, section: section, content: df_variants %}{% endif %}{% endcapture %}{% if df_rendered contains 'class="df' %}{{ df_rendered }}{% else %}{% render 'df-component-empty', component: 'faq-and-text', product: df_product %}{% endif %}
 {%- endif -%}
 
 </div>
 
+{%- endunless -%}
 {% stylesheet %}
   df-faq-and-text {
     display: block;

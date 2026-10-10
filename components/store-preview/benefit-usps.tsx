@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, policyActive } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { ICON_PATHS } from "@/lib/store-preview/theme.generated";
@@ -22,12 +23,19 @@ export function BenefitUspsPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("benefit-usps");
   const source: Item[] = content.items?.length
     ? content.items.slice(0, 5)
-    : [1, 2, 3, 4, 5].map((i) => ({ icon: s[`item_${i}_icon`] as string | undefined, text: s[`item_${i}_text`] as string | undefined, policy: "none" }));
+    : [1, 2, 3, 4, 5].map((i) => ({
+        icon: s[`item_${i}_icon`] as string | undefined,
+        text: s[`item_${i}_text`] as string | undefined,
+        policy: "none",
+      }));
 
   const items = source
     .filter((it) => it?.text && policyActive(it.policy, facts))
-    .map((it) => ({ icon: it.icon && ICON_PATHS[it.icon] ? it.icon : "check", text: fill(it.text, facts) }));
-  if (!items.length) return null;
+    .map((it) => ({
+      icon: it.icon && ICON_PATHS[it.icon] ? it.icon : "check",
+      text: fill(it.text, facts),
+    }));
+  if (!items.length) return <PdpEmptyPreview component="benefit-usps" />;
 
   return (
     <ul
@@ -48,7 +56,10 @@ export function BenefitUspsPreview({ content, facts }: PreviewProps<Content>) {
             <DfIcon name={it.icon} />
           </span>
           <span className="df-benefit-usps__text">
-            <Bold text={it.text} mark={(part, k) => <strong key={k}>{part}</strong>} />
+            <Bold
+              text={it.text}
+              mark={(part, k) => <strong key={k}>{part}</strong>}
+            />
           </span>
         </li>
       ))}

@@ -8,16 +8,16 @@
 {%- if df_variants.first.key != blank -%}
   <df-landing-content data-df-component="df-shipping-timeline">
     {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
-    <div data-df-active>{% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_default.content, df_variant: df_default %}</div>
+    <div data-df-active>{% capture df_rendered %}{% if df_default.content.state == 'empty' %}{% render 'df-component-empty', component: 'shipping-timeline', product: df_product %}{% else %}{% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_default.content, df_variant: df_default %}{% endif %}{% endcapture %}{% if df_rendered contains 'class="df' %}{{ df_rendered }}{% else %}{% render 'df-component-empty', component: 'shipping-timeline', product: df_product %}{% endif %}</div>
     {%- for df_variant in df_variants -%}
       <template data-df-variant="{{ df_variant.key | escape }}" data-angle="{{ df_variant.angle_id | escape }}" data-hook="{{ df_variant.hook_id | escape }}">
-        {% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_variant.content, df_variant: df_variant %}
+        {% capture df_rendered %}{% if df_variant.content.state == 'empty' %}{% render 'df-component-empty', component: 'shipping-timeline', product: df_product %}{% else %}{% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_variant.content, df_variant: df_variant %}{% endif %}{% endcapture %}{% if df_rendered contains 'class="df' %}{{ df_rendered }}{% else %}{% render 'df-component-empty', component: 'shipping-timeline', product: df_product %}{% endif %}
       </template>
     {%- endfor -%}
     <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
   </df-landing-content>
 {%- else -%}
-  {% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_variants %}
+  {% capture df_rendered %}{% if df_variants.state == 'empty' %}{% render 'df-component-empty', component: 'shipping-timeline', product: df_product %}{% else %}{% render 'df-shipping-timeline-content', product: df_product, section: section, block: block, content: df_variants %}{% endif %}{% endcapture %}{% if df_rendered contains 'class="df' %}{{ df_rendered }}{% else %}{% render 'df-component-empty', component: 'shipping-timeline', product: df_product %}{% endif %}
 {%- endif -%}
 
 </div>

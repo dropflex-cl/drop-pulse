@@ -1,5 +1,11 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { Fragment } from "react";
-import { fill, reviewProof, tokenValues, type StoreFacts } from "@/lib/store-preview/facts";
+import {
+  fill,
+  reviewProof,
+  tokenValues,
+  type StoreFacts,
+} from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -7,7 +13,12 @@ import type { PreviewProps } from "./types";
 // sections/df-stats-with-image.liquid + snippets/df-stats-with-image-image.liquid en la ficha del
 // producto: el botón va dentro de <df-buy-link> (en la tienda baja al formulario de compra).
 
-type Fact = "rating" | "review_count" | "return_days" | "warranty_months" | "delivery_days_max";
+type Fact =
+  | "rating"
+  | "review_count"
+  | "return_days"
+  | "warranty_months"
+  | "delivery_days_max";
 
 interface Content {
   heading?: string;
@@ -21,11 +32,19 @@ interface Content {
 
 /** Como `split: '**'` del Liquid, pero solo la primera parte destacada lleva `mark`. */
 function firstMark(text: string, mark: (part: string) => React.ReactNode) {
-  return text.split("**").map((part, i) => (i === 1 ? <Fragment key={i}>{mark(part)}</Fragment> : part));
+  return text
+    .split("**")
+    .map((part, i) =>
+      i === 1 ? <Fragment key={i}>{mark(part)}</Fragment> : part,
+    );
 }
 
 /** El valor de una cifra con el dato real; vacío si la tienda no lo tiene (la cifra se oculta). */
-function statValue(fact: Fact | undefined, facts: StoreFacts, hasRating: boolean): string {
+function statValue(
+  fact: Fact | undefined,
+  facts: StoreFacts,
+  hasRating: boolean,
+): string {
   const values = tokenValues(facts);
   switch (fact) {
     case "rating":
@@ -33,9 +52,13 @@ function statValue(fact: Fact | undefined, facts: StoreFacts, hasRating: boolean
     case "review_count":
       return hasRating ? values.count.value : "";
     case "return_days":
-      return (facts.policies.return_days ?? 0) > 0 ? String(facts.policies.return_days) : "";
+      return (facts.policies.return_days ?? 0) > 0
+        ? String(facts.policies.return_days)
+        : "";
     case "warranty_months":
-      return (facts.policies.warranty_months ?? 0) > 0 ? String(facts.policies.warranty_months) : "";
+      return (facts.policies.warranty_months ?? 0) > 0
+        ? String(facts.policies.warranty_months)
+        : "";
     case "delivery_days_max":
       return facts.logistics ? String(facts.logistics.max) : "";
     default:
@@ -44,9 +67,14 @@ function statValue(fact: Fact | undefined, facts: StoreFacts, hasRating: boolean
 }
 
 /** `truncate: 240` de Liquid: el total, con los puntos suspensivos, no pasa de 240. */
-const truncate = (text: string, n: number) => (text.length > n ? `${text.slice(0, n - 3)}...` : text);
+const truncate = (text: string, n: number) =>
+  text.length > n ? `${text.slice(0, n - 3)}...` : text;
 
-export function StatsWithImagePreview({ content, facts, images }: PreviewProps<Content>) {
+export function StatsWithImagePreview({
+  content,
+  facts,
+  images,
+}: PreviewProps<Content>) {
   const s = settingsOf("stats-with-image");
   const heading = content.heading || String(s.heading ?? "");
   const description = content.description || String(s.description ?? "");
@@ -55,52 +83,73 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
   const reviewId = content.review_id || String(s.review_id ?? "");
 
   // Calificación real, solo con suficientes reseñas.
-  const hasRating = (facts.rating ?? 0) > 0 && facts.count >= Number(s.min_reviews);
-  const showRating = Boolean(s.show_rating) && hasRating && Boolean(ratingLabel);
+  const hasRating =
+    (facts.rating ?? 0) > 0 && facts.count >= Number(s.min_reviews);
+  const showRating =
+    Boolean(s.show_rating) && hasRating && Boolean(ratingLabel);
   // Con pocas reseñas, la proporción en vez de la plantilla con {count}.
   const proof = reviewProof(facts.reviews);
-  const ratingLine = proof ? `${tokenValues(facts).rating.value} de 5 · ${proof}` : fill(ratingLabel, facts);
+  const ratingLine = proof
+    ? `${tokenValues(facts).rating.value} de 5 · ${proof}`
+    : fill(ratingLabel, facts);
 
   // Testimonio real, elegido por id (tal cual, recortado a 240).
-  const review = s.show_testimonial && reviewId ? facts.reviews.find((r) => r.id === reviewId) : undefined;
+  const review =
+    s.show_testimonial && reviewId
+      ? facts.reviews.find((r) => r.id === reviewId)
+      : undefined;
 
   // Fotos: las elegidas para el collage; si no, las del producto (hasta max_images).
   const chosen = (images.collage ?? []).slice(0, 4);
-  const photos = chosen.length ? chosen : facts.productImage ? [facts.productImage].slice(0, Number(s.max_images) || 1) : [];
+  const photos = chosen.length
+    ? chosen
+    : facts.productImage
+      ? [facts.productImage].slice(0, Number(s.max_images) || 1)
+      : [];
 
   const bullets = content.bullets?.length
     ? content.bullets.slice(0, 4)
-    : [s.bullet_1, s.bullet_2, s.bullet_3, s.bullet_4].map((b) => String(b ?? ""));
+    : [s.bullet_1, s.bullet_2, s.bullet_3, s.bullet_4].map((b) =>
+        String(b ?? ""),
+      );
   const bulletTexts = bullets.map((b) => (b || "").trim()).filter(Boolean);
 
   const stats = s.show_stats
     ? (content.stats ?? [])
         .slice(0, 3)
-        .map((st) => ({ value: statValue(st?.fact, facts, hasRating), label: st?.label || "" }))
+        .map((st) => ({
+          value: statValue(st?.fact, facts, hasRating),
+          label: st?.label || "",
+        }))
         .filter((st) => st.value && st.label)
     : [];
 
   if (!heading) {
-    return (
-      <div className="df df-stats-with-image" style={{ "--df-swi-pt": px(s.padding_top), "--df-swi-pb": px(s.padding_bottom) } as React.CSSProperties}>
-        <p className="df-placeholder">Hero y cifras: escribe un título en los ajustes o genera el contenido desde DropFlex.</p>
-      </div>
-    );
+    return <PdpEmptyPreview component="stats-with-image" />;
   }
 
   const classes = ["df", "df-stats-with-image"];
   if (photos.length) classes.push("df-stats-with-image--media");
-  if (s.image_position === "right") classes.push("df-stats-with-image--reverse");
+  if (s.image_position === "right")
+    classes.push("df-stats-with-image--reverse");
   if (!s.mobile_image_first) classes.push("df-stats-with-image--media-last");
 
   return (
     <div
       className={classes.join(" ")}
-      style={{ "--df-swi-pt": px(s.padding_top), "--df-swi-pb": px(s.padding_bottom), "--df-swi-radius": px(s.card_radius) } as React.CSSProperties}
+      style={
+        {
+          "--df-swi-pt": px(s.padding_top),
+          "--df-swi-pb": px(s.padding_bottom),
+          "--df-swi-radius": px(s.card_radius),
+        } as React.CSSProperties
+      }
     >
       <div className="df-stats-with-image__card">
         {photos.length > 0 && (
-          <div className={`df-stats-with-image__collage df-stats-with-image__collage--${photos.length}`}>
+          <div
+            className={`df-stats-with-image__collage df-stats-with-image__collage--${photos.length}`}
+          >
             {photos.map((src, i) => (
               <div key={i} className="df-stats-with-image__photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -124,7 +173,11 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
             ))}
           </h2>
           {description && (
-            <p className="df-text df-stats-with-image__description">{firstMark(fill(description, facts), (part) => <strong>{part}</strong>)}</p>
+            <p className="df-text df-stats-with-image__description">
+              {firstMark(fill(description, facts), (part) => (
+                <strong>{part}</strong>
+              ))}
+            </p>
           )}
           {bulletTexts.length > 0 && (
             <ul className="df-stats-with-image__bullets" role="list">
@@ -140,8 +193,12 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
             <ul className="df-stats-with-image__stats" role="list">
               {stats.map((st, i) => (
                 <li key={i} className="df-stats-with-image__stat">
-                  <span className="df-stats-with-image__stat-value">{st.value}</span>
-                  <span className="df-stats-with-image__stat-label">{fill(st.label, facts)}</span>
+                  <span className="df-stats-with-image__stat-value">
+                    {st.value}
+                  </span>
+                  <span className="df-stats-with-image__stat-label">
+                    {fill(st.label, facts)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -157,7 +214,9 @@ export function StatsWithImagePreview({ content, facts, images }: PreviewProps<C
                 </blockquote>
                 <figcaption className="df-stats-with-image__review-meta">
                   <DfStars rating={review.rating} size="0.875rem" />
-                  <span className="df-stats-with-image__author">{review.author}</span>
+                  <span className="df-stats-with-image__author">
+                    {review.author}
+                  </span>
                 </figcaption>
               </div>
             </figure>

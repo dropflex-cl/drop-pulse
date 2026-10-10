@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, reviewProof, type StoreReview } from "@/lib/store-preview/facts";
 import { wallAuthor, wallDate } from "@/lib/store-preview/review-wall";
 import { px, settingsOf } from "@/lib/store-preview/settings";
@@ -41,30 +42,33 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
   const picks: { review: StoreReview; ri: number }[] = [];
   for (const item of content.items ?? []) {
     if (picks.length >= 12) break;
-    const ri = item?.review_id ? facts.reviews.findIndex((r) => r.id === item.review_id) : -1;
+    const ri = item?.review_id
+      ? facts.reviews.findIndex((r) => r.id === item.review_id)
+      : -1;
     const review = facts.reviews[ri];
-    if (review && (review.body || review.photos.length)) picks.push({ review, ri });
+    if (review && (review.body || review.photos.length))
+      picks.push({ review, ri });
   }
 
   if (!content.items) {
-    const ordered = facts.reviews.map((review, ri) => ({ review, ri }))
+    const ordered = facts.reviews
+      .map((review, ri) => ({ review, ri }))
       .filter(({ review }) => review.body || review.photos.length)
-      .sort((a, b) => Number(b.review.photos.length > 0) - Number(a.review.photos.length > 0));
+      .sort(
+        (a, b) =>
+          Number(b.review.photos.length > 0) -
+          Number(a.review.photos.length > 0),
+      );
     picks.push(...ordered.slice(0, 12));
   }
 
   if (picks.length < 2 || facts.count < Number(s.min_reviews)) {
-    return (
-      <div className="df df-review-wall" style={{ "--df-rw-pt": px(s.padding_top), "--df-rw-pb": px(s.padding_bottom) } as React.CSSProperties}>
-        <div className="df-review-wall__inner">
-          <p className="df-placeholder">{`Testimonios: se muestra cuando lo usas en la página desde DropFlex y el producto tiene al menos ${s.min_reviews} reseñas aprobadas.`}</p>
-        </div>
-      </div>
-    );
+    return <PdpEmptyPreview component="review-wall" />;
   }
 
   let heading = content.heading || String(s.heading ?? "");
-  if (heading.includes("{rating}") && !facts.rating) heading = String(s.heading ?? "");
+  if (heading.includes("{rating}") && !facts.rating)
+    heading = String(s.heading ?? "");
   heading = fill(heading, facts);
   const rating = facts.rating ?? 0;
   const ratingText = rating.toFixed(1).replace(".", ",");
@@ -91,14 +95,20 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
       <div className="df-review-wall__inner">
         {heading || s.show_rating ? (
           <div className="df-review-wall__head">
-            {heading && <h2 className="df-heading df-review-wall__heading">{heading}</h2>}
+            {heading && (
+              <h2 className="df-heading df-review-wall__heading">{heading}</h2>
+            )}
             {s.show_rating && rating > 0 && (
               <p className="df-review-wall__rating">
                 <DfStars rating={rating} size="1.125rem" />
                 <span className="df-review-wall__score" aria-hidden>
                   {ratingText}
                 </span>
-                <span>{proof ? proof.charAt(0).toUpperCase() + proof.slice(1) : `${facts.count} ${facts.count === 1 ? "reseña" : "reseñas"}`}</span>
+                <span>
+                  {proof
+                    ? proof.charAt(0).toUpperCase() + proof.slice(1)
+                    : `${facts.count} ${facts.count === 1 ? "reseña" : "reseñas"}`}
+                </span>
               </p>
             )}
           </div>
@@ -107,10 +117,16 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
         <ul className="df-review-wall__grid" role="list">
           {shown.map(({ review }) => {
             const author = wallAuthor(review.author);
-            const date = s.show_date ? wallDate(review.iso, THIS_YEAR) : { long: "", short: "" };
+            const date = s.show_date
+              ? wallDate(review.iso, THIS_YEAR)
+              : { long: "", short: "" };
             const photos = review.photos.slice(0, 3);
             return (
-              <li key={review.id} className="df-review-wall__cell" data-df-rw-post="">
+              <li
+                key={review.id}
+                className="df-review-wall__cell"
+                data-df-rw-post=""
+              >
                 <article className="df-review-wall__post" tabIndex={-1}>
                   <div className="df-review-wall__top">
                     <span className="df-review-wall__avatar" aria-hidden>
@@ -121,8 +137,12 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
                       {date.long && (
                         <p className="df-review-wall__date">
                           <time dateTime={review.iso}>
-                            <span className="df-review-wall__date-short">{date.short}</span>
-                            <span className="df-review-wall__date-long">{date.long}</span>
+                            <span className="df-review-wall__date-short">
+                              {date.short}
+                            </span>
+                            <span className="df-review-wall__date-long">
+                              {date.long}
+                            </span>
                           </time>
                           <span aria-hidden> · </span>
                           <Globe />
@@ -139,23 +159,33 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
                       <p className="df-review-wall__text" data-df-rw-text="">
                         {review.body}
                       </p>
-                      <button type="button" className="df-review-wall__expand" data-df-rw-expand="" hidden>
+                      <button
+                        type="button"
+                        className="df-review-wall__expand"
+                        data-df-rw-expand=""
+                        hidden
+                      >
                         Ver más
                       </button>
                     </>
                   )}
 
                   {photos.length > 0 && (
-                    <div className={`df-review-wall__photos df-review-wall__photos--${photos.length}`}>
+                    <div
+                      className={`df-review-wall__photos df-review-wall__photos--${photos.length}`}
+                    >
                       {photos.map((src, k) => (
                         <div key={k} className="df-review-wall__photo">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={src} alt={`Foto de ${author}`} loading="lazy" />
+                          <img
+                            src={src}
+                            alt={`Foto de ${author}`}
+                            loading="lazy"
+                          />
                         </div>
                       ))}
                     </div>
                   )}
-
                 </article>
               </li>
             );
@@ -164,7 +194,12 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
 
         {picks.length > initial && (
           <div className="df-review-wall__more">
-            <button type="button" className="df-review-wall__more-button" data-df-rw-more="" data-step={initial}>
+            <button
+              type="button"
+              className="df-review-wall__more-button"
+              data-df-rw-more=""
+              data-step={initial}
+            >
               {String(s.more_label || "Ver más testimonios")}
             </button>
           </div>

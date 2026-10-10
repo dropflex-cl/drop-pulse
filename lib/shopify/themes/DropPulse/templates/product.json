@@ -1,12 +1,4 @@
-/*
- * ------------------------------------------------------------
- * IMPORTANT: The contents of this file are auto-generated.
- *
- * This file may be updated by the Shopify admin theme editor
- * or related systems. Please exercise caution as any changes
- * made to this file may be overwritten.
- * ------------------------------------------------------------
- */{
+{
   "sections": {
     "main": {
       "type": "product-information",
@@ -90,10 +82,7 @@
                   }
                 }
               },
-              "block_order": [
-                "review_stars",
-                "hype_badge"
-              ]
+              "block_order": ["review_stars", "hype_badge"]
             },
             "title": {
               "type": "df-title",
@@ -131,7 +120,9 @@
             },
             "inventory": {
               "type": "df-inventory",
-              "settings": {}
+              "settings": {
+                "show_when_untracked": true
+              }
             },
             "pack_offers": {
               "type": "df-pack-offers",
@@ -244,14 +235,10 @@
                       "settings": {}
                     }
                   },
-                  "block_order": [
-                    "description"
-                  ]
+                  "block_order": ["description"]
                 }
               },
-              "block_order": [
-                "row_description"
-              ]
+              "block_order": ["row_description"]
             }
           },
           "block_order": [
@@ -318,17 +305,67 @@
     "faq_and_text": {
       "type": "df-faq-and-text",
       "settings": {}
+    },
+    "product_includes": {
+      "type": "df-product-includes",
+      "settings": {}
+    },
+    "usage_steps": {
+      "type": "df-usage-steps",
+      "settings": {}
+    },
+    "use_cases": {
+      "type": "df-use-cases",
+      "settings": {}
+    },
+    "before_after": {
+      "type": "df-before-after",
+      "settings": {}
+    },
+    "results_timeline": {
+      "type": "df-results-timeline",
+      "settings": {}
+    },
+    "customer_stories": {
+      "type": "df-customer-stories",
+      "settings": {}
+    },
+    "expert_endorsement": {
+      "type": "df-expert-endorsement",
+      "settings": {}
+    },
+    "mechanism": {
+      "type": "df-mechanism",
+      "settings": {}
+    },
+    "guarantee": {
+      "type": "df-guarantee",
+      "settings": {}
+    },
+    "offer_summary": {
+      "type": "df-offer-summary",
+      "settings": {}
     }
   },
   "order": [
     "main",
-    "pain_block",
-    "stats_with_image",
     "scrolling_benefits",
+    "pain_block",
     "image_with_benefits",
+    "mechanism",
+    "use_cases",
+    "before_after",
+    "stats_with_image",
+    "results_timeline",
+    "usage_steps",
+    "product_includes",
     "insta_story",
+    "customer_stories",
     "review_wall",
+    "expert_endorsement",
     "comparison_table",
-    "faq_and_text"
+    "guarantee",
+    "faq_and_text",
+    "offer_summary"
   ]
 }

@@ -1,3 +1,4 @@
+import { PdpEmptyPreview } from "./pdp-empty";
 import { Fragment, useId } from "react";
 import { fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
@@ -58,10 +59,16 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
   // Pregunta y respuesta con sus tokens llenos; una que quede con un token sin llenar no se muestra.
   const items = (content.items ?? [])
     .slice(0, 8)
-    .map((it) => ({ question: fill(it.question, facts), answer: fill(it.answer, facts) }))
-    .filter((it) => it.question && it.answer && !`${it.question}${it.answer}`.includes("{"));
+    .map((it) => ({
+      question: fill(it.question, facts),
+      answer: fill(it.answer, facts),
+    }))
+    .filter(
+      (it) =>
+        it.question && it.answer && !`${it.question}${it.answer}`.includes("{"),
+    );
   // Sin preguntas la sección no se muestra en la tienda.
-  if (!items.length) return null;
+  if (!items.length) return <PdpEmptyPreview component="faq-and-text" />;
 
   const eyebrow = fill(content.eyebrow, facts);
   const heading = fill(content.heading || String(s.heading ?? ""), facts);
@@ -78,7 +85,12 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
   return (
     <df-faq-and-text
       className={`df df-faq-and-text df-faq-and-text--${s.item_style}${s.card ? " df-faq-and-text--card" : ""}`}
-      style={{ paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}`, "--df-faq-left": `${Number(s.left_width) || 0}%` } as React.CSSProperties}
+      style={
+        {
+          paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}`,
+          "--df-faq-left": `${Number(s.left_width) || 0}%`,
+        } as React.CSSProperties
+      }
       {...(s.exclusive ? { "data-exclusive": "" } : {})}
     >
       <div className="df-faq-and-text__inner">
@@ -99,7 +111,9 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
           {showSocial ? (
             <div className="df-faq-and-text__proof">
               <div className="df-faq-and-text__proof-text">
-                {hasSummary ? <DfStars rating={facts.rating ?? 0} size="0.875rem" /> : null}
+                {hasSummary ? (
+                  <DfStars rating={facts.rating ?? 0} size="0.875rem" />
+                ) : null}
                 <p className="df-faq-and-text__proof-line">{social}</p>
               </div>
             </div>
@@ -111,7 +125,12 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
 
         <div className="df-faq-and-text__list">
           {items.map((it, i) => (
-            <details key={i} className="df-faq-and-text__item" name={s.exclusive ? group : undefined} open={Boolean(s.open_first) && i === 0}>
+            <details
+              key={i}
+              className="df-faq-and-text__item"
+              name={s.exclusive ? group : undefined}
+              open={Boolean(s.open_first) && i === 0}
+            >
               <summary className="df-faq-and-text__question">
                 <span>{it.question}</span>
                 <span className="df-faq-and-text__sign" aria-hidden />
