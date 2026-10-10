@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks habilita aprobar el resto y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.3.3"}
+metadata: {"version": "1.3.4"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -31,6 +31,8 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 ## Página e imágenes
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
+
+Por defecto, pedir «genera la galería» significa crear piezas comerciales con fotografía del producto y texto integrado en la imagen: titulares dominantes, mensajes breves y recursos gráficos que ayuden a vender. Cada pieza desarrolla un argumento distinto del hook y la estrategia elegidos, con composiciones variadas y lectura clara en móvil. Define y guarda el texto exacto y su ubicación antes de generar, y pásalos al generador; no esperes a que el comerciante pida «más informativas» para hacerlo. Si pide fotos sin texto, respeta esa dirección. Revisa la riqueza informativa y visual junto con la fidelidad al producto siguiendo [la dirección visual](references/production.md#dirección-visual-para-pago-contra-entrega).
 
 En producción visual, exige `get_visual_generation_context` y `get_visual_reference_image`. Si la foto canónica ya está adjunta y coincide con el producto, ID y hash vigentes, reutiliza ese archivo: no repitas `get_visual_reference_image` ni el botón de continuación. Solo recupera la foto si falta o cambió la referencia. En ChatGPT, si acabas de mostrar «Usar referencia y continuar» y todavía falta el adjunto, termina ese turno con «Pulsa Usar referencia y continuar para seguir». No sigas llamando herramientas, no diagnostiques el archivo como inaccesible ni pidas una subida manual mientras el clic está pendiente. Retoma la inspección y el último pedido autorizado en el nuevo turno que comparte el archivo; no necesitas que el usuario repita el pedido. Inspecciónala y pásala como imagen de entrada al generador siguiendo [la ejecución](references/production.md). Un ID, URL o descripción en texto no demuestra que el generador recibió la foto. Si faltan estas tools, pide actualizar/reconectar el plugin y continúa solo lo independiente. Si el cliente no puede adjuntar la imagen al generador, explica la limitación y pide al usuario adjuntar la foto original manualmente una sola vez; detén esa toma sin repetir la tarjeta; no generes un producto aproximado. Reutiliza assets compatibles y vigentes antes de generar. DropFlex ingiere y conserva archivos. En modo automático, revisa tú la toma principal contra la foto base y continúa el lote sin otra confirmación del comerciante. En modo de propuestas, muestra esa toma para revisar la dirección antes del resto, salvo que ya se autorizara el lote.
 

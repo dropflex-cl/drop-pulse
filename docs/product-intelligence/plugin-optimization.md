@@ -45,7 +45,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.3.3.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.3, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
+Produce `output/plugins/dropflex-optimizer-1.3.4.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.4, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
 
 ## Referencia visual obligatoria (1.0.1)
 
@@ -140,3 +140,13 @@ Caso observado: el chat seguía verificando la referencia mientras el botón aú
 La separación de turnos es una instrucción al agente, no un bloqueo impuesto por DropFlex al runtime de ChatGPT. Las pruebas locales comprueban transporte y orden de subida/continuación; falta verificar en ChatGPT móvil la inspección posterior y la entrada real al generador.
 
 La continuación actual se sirve desde `ui://dropflex/visual-reference/v4.html` para evitar conservar el mensaje de una tarjeta anterior. Actualiza las herramientas de la conexión después del despliegue del MCP y prueba en un chat nuevo con la skill 1.3.3.
+
+## Galería comercial con texto integrado · plugin y skill 1.3.4
+
+Caso observado en ChatGPT móvil: «genera la galería» produjo fotos casi iguales del producto, sin texto. Pedir después imágenes informativas con texto produjo la dirección comercial deseada. Ahora esa dirección es el valor por defecto: producto protagonista, titulares dominantes, mensajes breves y composiciones variadas legibles en móvil. Cada pieza aporta un argumento de la estrategia, con la oferta y condiciones reales de pago contra entrega; un pedido explícito de fotos sin texto conserva su prioridad.
+
+La skill exige concretar el copy en `message.overlay_text`, la jerarquía y ubicación en la composición, y la tipografía en el sistema visual. La instrucción de la iteración y la llamada al generador reciben esa misma dirección. La revisión incluye texto integrado correcto y legible y variedad informativa y visual, además de identidad. Una pieza de estilo nunca sustituye la foto canónica ni verifica sus claims. Las instrucciones de inicialización MCP comparten el mismo criterio.
+
+El paquete 1.3.4 y la fuente del MCP requieren actualizar el snapshot del plugin remoto y desplegar el servidor, respectivamente. Una caché instalada o una conversación abierta no cambian al editar estos archivos. La validación local de importación y empaquetado no demuestra la calidad de una generación real; falta verificar el primer lote en el cliente que cargue esta versión.
+
+Actualización remota confirmada: [DropFlex · Optimización](https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa), ID `Plugin_e3bca2a0f2208191a04ed05f2b5904fa`, ámbito personal privado, versión 1.3.4, release `pluginrel_6ac9b52049cc8191b03f09d24a4b3a18`. Se actualizaron la skill, su referencia de producción y las versiones de ambos manifiestos, preservando presentación, conexión y demás archivos. La lectura posterior confirmó el contenido guardado. El ZIP de actualización es `output/plugins/dropflex-optimizer-1.3.4-update.zip`; este guardado no despliega el servidor MCP ni demuestra que una conversación existente haya recargado la skill.
