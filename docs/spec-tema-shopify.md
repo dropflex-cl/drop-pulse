@@ -409,7 +409,9 @@ con nota calculada sobre ese mismo conjunto; el orden aleatorio y las cifras rea
 por producto en localStorage.
 
 El regalo usa archivos y título administrados por el comerciante (`gift_pdf`, `gift_cover`,
-`gift_title`), conservados entre publicaciones. Google lee su propio JSON de tienda
-`google_rating`; nunca se atribuyen a Google las reseñas importadas. La entrega del PDF usa
+`gift_title`), conservados entre publicaciones. El bloque de Google está siempre activo:
+genera una nota entre 4,4 y 5,0 y la conserva en localStorage por producto; no consulta Google.
+El JSON de tienda `google_rating` solo aporta el enlace y la cantidad real opcionales;
+nunca se atribuyen a Google las reseñas importadas. La entrega del PDF usa
 la confirmación del pedido, con configuración pendiente en cada tienda. Contrato, pasos y
 limitaciones: [`shopify-purchase-supports.md`](shopify-purchase-supports.md).

@@ -11,8 +11,9 @@ Las reseñas son las importadas y aprobadas; se publican todos sus textos, sin e
 tope de 30. Las fotos conservan el límite de 90 archivos por publicación. La nota y la cantidad
 salen del mismo conjunto completo. `df:reviews:<Shopify product id>` en localStorage guarda
 el total, la nota y el orden aleatorio del carrusel. Cada publicación actualiza el total real;
-no se generan compras, reseñas ni stock ficticios. Un PDF o valoración ausente muestra un
-estado pendiente, sin prometer datos o archivos inexistentes.
+no se generan compras, reseñas ni stock ficticios. Un PDF ausente muestra un
+estado pendiente, sin prometer archivos inexistentes. La nota del bloque de Google sigue
+el comportamiento generado descrito abajo y es independiente de estas reseñas.
 
 ## Asociar una guía real al producto
 
@@ -54,11 +55,21 @@ Variables utilizadas: [referencia oficial de notificaciones](https://help.shopif
 
 ## Valoración de Google
 
-`shop.metafields.dropflex.google_rating` (JSON, PUBLIC_READ) es independiente del producto:
-`{ "rating": 4.8, "count": 126, "url": "https://..." }`. Sus valores deben ser la nota y cantidad
-reales de la ficha de Google de la tienda. No se calculan con reseñas importadas ni los genera IA.
-Sin configuración, el componente conserva el logo y dice «Valoración pendiente». No existe
-sincronización con la API de Google en este cambio; el comerciante actualiza este JSON.
+El bloque está siempre activo, incluso sin configuración de Google ni reseñas importadas.
+`df-google-rating.js` elige una nota entre 4,4 y 5,0 inclusive, en décimas, y guarda el entero
+44–50 en `df:google-rating:<Shopify product id>` de localStorage. Todas las apariciones del
+producto usan la misma nota, texto y relleno de estrellas; recargar o cambiar de experiencia
+la conserva. La nota es generada por el componente: no es una valoración consultada ni
+sincronizada con Google. No reemplaza la calificación real de las reseñas del producto.
+
+Sin JavaScript se muestra 4,4. Si el navegador bloquea localStorage, se conserva la nota en
+memoria durante la visita; borrar los datos del navegador permite generar otra nota.
+La vista previa del editor muestra el respaldo 4,4.
+
+`shop.metafields.dropflex.google_rating` (JSON, PUBLIC_READ) sigue siendo opcional para el
+enlace HTTPS y la cantidad real de reseñas de la ficha de la tienda:
+`{ "count": 126, "url": "https://..." }`. Su campo `rating` anterior ya no controla la nota.
+No se atribuyen a Google las reseñas importadas del producto.
 
 ## Alcance de la actualización
 

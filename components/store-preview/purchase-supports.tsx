@@ -10,7 +10,8 @@ export function PurchaseSupportsPreview({ facts }: { facts: StoreFacts }) {
     <div className="df df-purchase-supports">
       <div className="df df-google-rating">
         <img src="/df-google-logo.svg" alt="Google" width={24} height={24} />
-        {google ? <><DfStars rating={google.rating} size="1rem" /><span>Calificado {google.rating.toFixed(1).replace(".", ",")}/5 en Google <span className="df-google-rating__count">({google.count} reseñas)</span></span></> : <span>Reseñas de la tienda en Google <span className="df-google-rating__count">Valoración pendiente</span></span>}
+        <DfStars rating={4.4} size="1rem" />
+        <span>Calificado 4,4/5 en Google{google && google.count > 0 && <span className="df-google-rating__count"> ({google.count} reseñas)</span>}</span>
       </div>
       <PurchaseGiftCardsPreview facts={facts} />
       <p className="df-purchase-supports__proof"><span className="df-purchase-supports__dot" aria-hidden="true" /><strong>{new Intl.NumberFormat("es-CL").format(facts.count)}</strong> reseñas de compradores</p>

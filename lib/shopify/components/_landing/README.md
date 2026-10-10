@@ -144,9 +144,11 @@ Los apoyos comerciales se activan por defecto con datos reales, incluso cuando u
 ## Apoyos permanentes de compra
 
 `df-purchase-supports` se renderiza antes y después de `buy-buttons`. Antes: valoración de
-Google de la tienda (fuente propia, nunca reseñas importadas), tarjetas de envío y guía y
+Google (nota generada entre 4,4 y 5,0, persistida por producto), tarjetas de envío y guía y
 cantidad real de reseñas. Después: disponibilidad y carrusel de todas las reseñas aprobadas.
 `df-review-state.js` evita duplicados en templates anteriores y conserva el orden del carrusel
- y la cantidad por producto en localStorage. El enlace del PDF no se incluye en la ficha.
+ y la cantidad por producto en localStorage. `df-google-rating.js` conserva la nota bajo
+`df:google-rating:<product id>`; no consulta Google ni usa las reseñas importadas.
+El enlace del PDF no se incluye en la ficha.
 La plantilla de confirmación está en `lib/shopify/notifications/order-gift.liquid` y requiere
 instalarse una vez en las notificaciones de la tienda. Detalle en `docs/shopify-purchase-supports.md`.
