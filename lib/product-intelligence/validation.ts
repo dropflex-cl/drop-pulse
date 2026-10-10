@@ -65,12 +65,23 @@ export function parseToolInput<K extends ToolName>(tool: K, value: unknown): Too
   // Los esquemas existentes de Shopify quitan claves desconocidas. MCP debe rechazarlas:
   // ni URLs/HTML/estado de aprobación ni hechos adicionales se descartan en silencio.
   if (tool === "save_landing_content" || tool === "save_ugc_content" || ["save_creative_content", "save_gallery_content", "save_event_content", "save_usage_tip"].includes(tool)) {
-    const sameKeys = (raw: unknown, parsed: unknown): boolean => {
-      if (Array.isArray(raw)) return Array.isArray(parsed) && raw.every((item, i) => sameKeys(item, parsed[i]));
-      if (raw && typeof raw === "object") return Boolean(parsed) && typeof parsed === "object" && Object.keys(raw).every((key) => Object.hasOwn(parsed!, key) && sameKeys((raw as Record<string, unknown>)[key], (parsed as Record<string, unknown>)[key]));
-      return true;
+    const unknownFields = (raw: unknown, parsed: unknown, path: string[] = []): string[] => {
+      if (Array.isArray(raw)) {
+        if (!Array.isArray(parsed)) return [path.join(".") || "input"];
+        return raw.flatMap((item, i) => unknownFields(item, parsed[i], [...path, String(i)]));
+      }
+      if (raw && typeof raw === "object") {
+        if (!parsed || typeof parsed !== "object") return [path.join(".") || "input"];
+        return Object.keys(raw).flatMap((key) => {
+          const field = [...path, key];
+          if (!Object.hasOwn(parsed, key)) return [field.join(".")];
+          return unknownFields((raw as Record<string, unknown>)[key], (parsed as Record<string, unknown>)[key], field);
+        });
+      }
+      return [];
     };
-    if (!sameKeys(value, result.data)) throw new ProductIntelligenceError("VALIDATION_ERROR", "El contenido incluye campos que el componente no admite.", { fields: ["entries.content"] });
+    const fields = unknownFields(value, result.data);
+    if (fields.length) throw new ProductIntelligenceError("VALIDATION_ERROR", "El contenido incluye campos que el componente no admite. Quita los campos indicados y vuelve a validar.", { fields: fields.slice(0, 100).map((field) => field.slice(0, 256)) });
   }
   return result.data as ToolInputs[K];
 }

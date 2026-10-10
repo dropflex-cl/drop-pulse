@@ -13,6 +13,9 @@ import { attachToolImage } from "./tool-media";
 import { referenceImageContent } from "./visual-reference";
 import sharp from "sharp";
 import { VISUAL_REFERENCE_UI } from "./visual-reference-widget";
+import { createUgcExecutor } from "./ugc-service";
+import { ugcInputFixture } from "./ugc-fixtures";
+import { parseToolInput } from "./validation";
 
 const validators = (): jsonSchemaValidator => {
   const ajv = new Ajv2020({ strict: false }); addFormats(ajv);
@@ -30,6 +33,33 @@ async function connect(execute: DomainExecutor, userId = "merchant-a", requestTi
 }
 
 describe("PI · protocolo MCP oficial", () => {
+  it("devuelve el contrato UGC real por MCP y permite escribir ambos formatos", async () => {
+    const input = ugcInputFixture();
+    const repository = {
+      loadUgc: vi.fn(async () => ({ revision: 64, stamp: "a".repeat(64), ugc_etag: "b".repeat(64), scripts: [], shots: [], operation: null })),
+      commitUgc: vi.fn(), load: vi.fn(), commit: vi.fn(), loadKnowledge: vi.fn(), commitKnowledge: vi.fn(),
+    };
+    const session = await connect(createUgcExecutor(repository));
+    try {
+      const without = await session.client.callTool({ name: "get_ugc_content", arguments: { product_id: input.product_id } });
+      expect(without).toMatchObject({ isError: false, structuredContent: { data: { contract: null } } });
+      const result = await session.client.callTool({ name: "get_ugc_content", arguments: { product_id: input.product_id, include_contract: true } });
+      expect(result.isError).toBe(false);
+      const response = result.structuredContent as { data: { contract: Record<string, unknown> } };
+      expect(result.content).toEqual([{ type: "text", text: JSON.stringify(response) }]);
+      expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThanOrEqual(PI_LIMITS.outputBytes);
+      const validate = new Ajv2020({ strict: false, allErrors: true }).compile(response.data.contract);
+      expect(validate(input.content), JSON.stringify(validate.errors)).toBe(true);
+      if (input.content.format !== "ugc") throw new Error("La fixture debe ser UGC.");
+      const { persona, character, ...shots } = input.content.plan;
+      void persona; void character;
+      const mascot = { ...input, content: { format: "mascot", lines: input.content.lines, plan: { ...shots,
+        character: { body: "cloud", color: "soft mint green", face: "Round eyes", setting: "A desk" } } } };
+      expect(validate(mascot.content), JSON.stringify(validate.errors)).toBe(true);
+      expect(() => parseToolInput("save_ugc_content", mascot)).not.toThrow();
+      expect(repository.commitUgc).not.toHaveBeenCalled();
+    } finally { await session.close(); }
+  });
   it("envía la referencia como imagen MCP sin duplicar base64 en JSON", async () => {
     const bytes = await sharp({ create: { width: 600, height: 600, channels: 3, background: "purple" } }).png().toBuffer();
     const image = await referenceImageContent(bytes), product = "00000000-0000-4000-8000-000000000001", reference = "00000000-0000-4000-8000-000000000002";

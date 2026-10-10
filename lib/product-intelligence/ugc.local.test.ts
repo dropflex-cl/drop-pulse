@@ -14,6 +14,7 @@ import { deleteProducts } from "@/lib/products/delete";
 import { processShot } from "@/lib/pipeline/video";
 import { HiggsfieldError, submit } from "@/lib/integrations/higgsfield/client";
 import type { ToolName } from "./schemas";
+import Ajv2020 from "ajv/dist/2020";
 vi.mock("@/lib/integrations/higgsfield/connection", () => ({ higgsfieldKey: vi.fn(async () => "local-test-never-submitted"), markHiggsfieldInvalid: vi.fn() }));
 vi.mock("@/lib/integrations/higgsfield/client", async (actual) => ({ ...await actual<typeof import("@/lib/integrations/higgsfield/client")>(), submit: vi.fn() }));
 const local = process.env.PI_LOCAL_TEST === "1" ? describe : describe.skip;
@@ -65,12 +66,19 @@ local("UGC · persistencia y cola local", () => {
   });
   afterAll(async()=>{for(const id of users)await checked(db.auth.admin.deleteUser(id));},20000);
   it("propuesta del chat sin llamadas, con historia y revisión; dry_run no escribe",async()=>{
-    const i=await input(),before=await count("video_scripts");
+    const contract=await call("get_ugc_content",{product_id:product,include_contract:true});
+    if(!contract.ok||!contract.data.contract)throw contract;
+    const i={...ugcInputFixture(product,strategy,angle),expected_revision:contract.revision,expected_ugc_etag:contract.data.ugc_etag},before=await count("video_scripts");
+    const validate=new Ajv2020({strict:false}).compile(contract.data.contract);
+    expect(validate(i.content),JSON.stringify(validate.errors)).toBe(true);
     expect(await call("save_ugc_content",{...i,dry_run:true})).toMatchObject({data:{applied:false,script_id:null,dry_run:true}});
     expect(await count("video_scripts")).toBe(before);
     const r=await call("save_ugc_content",i);expect(r).toMatchObject({revision:6,data:{status:"in_review",applied:true}});
+    if(!r.ok||!r.data.script_id)throw r;
     const row=(await checked(db.from("video_scripts").select("*").eq("id",r.ok?r.data.script_id:"").single())).data!;
     expect(row).toMatchObject({source:"mcp_chat",model:"chat",approved_at:null,provenance:{strategy_id:strategy,angle_id:angle,landing_hook_id:"lost-pencil"}});
+    const detail=await call("get_ugc_content",{product_id:product,script_id:r.data.script_id,include_contract:true});
+    expect(detail).toMatchObject({ok:true,data:{scripts:[{id:r.data.script_id,payload:row.payload}],contract:expect.any(Object)}});
     expect(await count("ai_generations")).toBe(0);expect(await count("pi_ugc_operations")).toBe(0);
   });
   it("receipt antes de CAS, clave distinta con cambio rechaza y reemplazo conserva versión",async()=>{

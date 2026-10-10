@@ -9,6 +9,19 @@ import type { ScriptRow } from "@/lib/video/store";
 const pricing = buildPricingPlan({ unitCost: 4000, avgShippingCost: 9000, purchaseCostLimit: 5000, confirmationRate: 75, deliveryRate: 75, extraUnitDiscount: 50, salePrice: 29990, compareAtPrice: 39990 }, "CLP")!;
 const fixture = () => { const input = ugcInputFixture(); return { input, payload: buildChatUgc(input, pricing) }; };
 describe("UGC desde chat", () => {
+  it("indica el campo UGC omitido o desconocido sin aceptar contenido incompleto", () => {
+    const input = ugcInputFixture();
+    const { speaker, ...incomplete } = input.content.lines;
+    void speaker;
+    expect(() => parseToolInput("save_ugc_content", { ...input, content: { ...input.content, lines: incomplete } })).toThrowError(expect.objectContaining({
+      code: "VALIDATION_ERROR", details: { fields: ["content.lines.speaker"] },
+    }));
+    const extra = { ...input, content: { ...input.content, plan: { ...input.content.plan,
+      keyframes: input.content.plan.keyframes.map((frame, i) => i ? frame : { ...frame, url: "https://example.test/untrusted.webp" }) } } };
+    expect(() => parseToolInput("save_ugc_content", extra)).toThrowError(expect.objectContaining({
+      code: "VALIDATION_ERROR", details: { fields: ["content.plan.keyframes.0.url"] },
+    }));
+  });
   it("arma K1 y claves, mantiene la apertura y valida sin proveedor", () => {
     const { payload } = fixture(); expect(payload.keyframes.map((k) => k.key)).toEqual(["K1", "K2", "K3"]);
     expect(payload.a_roll.map((a) => a.key)).toEqual(["A1", "A2", "A3", "A4"]); expect(payload.opening?.keyframe).toBe("K2");
