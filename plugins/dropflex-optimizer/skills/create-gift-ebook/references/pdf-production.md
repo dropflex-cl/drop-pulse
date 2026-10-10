@@ -1,36 +1,41 @@
-# Producción editorial del ebook
+# Páginas generadas como imágenes → PDF automático
 
-El chat dirige, escribe y crea los assets. DropFlex aporta hechos, estrategia y la referencia real. El helper compone archivos locales, infiere la paleta desde esa referencia y respeta el orden editorial; no genera imágenes por su cuenta, publica ni configura la entrega con los pedidos.
+El chat escribe, diseña y genera cada página terminada como una imagen. DropFlex aporta hechos, estrategia y referencia real. El helper une esos archivos en orden, una imagen por página de PDF, sin volver a maquetar. Se ejecuta en el entorno del chat y no configura la entrega con pedidos.
 
-## Dirección visual y assets
+## Preparar y generar
 
-Inspecciona primero la referencia real. Selecciona una región que cubra el producto o su envase, evitando fondos que puedan sesgar la paleta. Ejecuta:
+Inspecciona la referencia canónica. Elige la región del producto o su envase, evitando fondo, manos u otros objetos, e infiere su paleta:
 
 ```sh
 python scripts/build_ebook.py --inspect-reference assets/product-base.webp --subject-region 0.12 0.10 0.88 0.90
 ```
 
-El helper devuelve un acento inferido y su región. Prefiere colores del sujeto suficientemente representados; filtra blancos y negros de fondo y trabaja tonos neutros cuando el producto es neutro. La región usa coordenadas normalizadas [izquierda, arriba, derecha, abajo]. Comprueba visualmente que el tono corresponde al producto; ajusta la región si incluyó un fondo, una mano u otro objeto. No copies el acento informado por DropFlex ni fuerces un color de categoría.
+Las coordenadas son [izquierda, arriba, derecha, abajo], entre 0 y 1. El helper filtra blancos/negros y prioriza colores suficientemente representados; en productos neutros usa tonos neutros. Revisa el resultado y ajusta la región si corresponde. No uses el acento informado por la PDP.
 
-Define una dirección común: paleta inferida, fondos, iluminación, sombras, textura y tratamiento minimalista. Usa esa dirección tanto en todos los prompts como en el PDF. Conserva una imagen protagonista propia de portada y escenas/detalles diferentes para el interior. Cada una debe enseñar algo o apoyar una acción de la guía.
+Antes de llamar al generador, prepara un plan editorial con contenido literal por página, finalidad y composición. Define una proporción común; el formato vertical suele servir a la lectura móvil. Recomienda al menos 1024 píxeles en el lado menor y más resolución para páginas con texto. Si el contenido exige texto diminuto, divídelo entre más páginas.
 
-Diseña infografías originales con la información del producto, el objetivo del lector y la acción que quieres explicar. Una rutina de skincare, por ejemplo, se ilustra con pasos y uso confirmado; una guía de organización puede mostrar zonas, agrupaciones o un cierre del día. La forma visual se elige para esa explicación, no de un catálogo fijo de cajas. Puedes crear diagramas sencillos como vectores propios y rasterizarlos para el helper.
+Genera una página completa por llamada. El prompt incluye:
 
-Para imágenes e infografías ilustradas usa el generador disponible. Cada llamada que represente el producto lleva su referencia real adjunta; una segunda imagen aprobada puede servir como referencia de estilo, sin sustituir la base. Conserva la identidad: silueta, proporciones, piezas, materiales y detalles confirmados. No inventes funciones, componentes incluidos ni resultados. Inspecciona cada asset antes de maquetar.
+- Papel de cada referencia: foto canónica para identidad; página aprobada o ejemplo para estilo.
+- Paleta inferida y dirección común de tipografía, iluminación, fondos y materiales.
+- Texto literal y jerarquía; propósito y composición propios de esa página.
+- Imagen del producto e infografía contextual integradas cuando corresponda.
+- Proporción, resolución y petición de arte plano a sangre: sin UI, marco, mockup de libro ni mosaico de varias páginas.
 
-Un prompt útil contiene: papel de las imágenes de entrada, propósito de la pieza, contenido exacto, composición, dirección compartida, paleta inferida y elementos que deben conservarse. Guarda el prompt completo con el asset. Si tiene rótulos, pásalos literalmente al generador y revisa su escritura. Los textos educativos importantes también deben estar en bloques seleccionables del PDF.
+Mantén la referencia real adjunta siempre que aparezca el producto. Una página de estilo no la sustituye. Conserva silueta, proporciones, piezas, materiales y detalles confirmados. Varía escenas, encuadres y distribución según el contenido; no ubiques fotos o texto siempre en el mismo lugar.
 
-## Manuscrito 2.0
+La portada es obligatoria y tiene imagen propia del producto. El interior incluye otra representación del producto y una infografía útil diseñada para las acciones de esta guía; una página puede cumplir ambas funciones. La infografía, sus rótulos y el texto educativo son parte de la imagen completa. No se entregan como piezas sueltas para reconstruir una plantilla de PDF.
 
-El contrato anterior de posiciones fijas se reemplaza por bloques ordenados. Para actualizar un ebook anterior, recupera su contenido útil, referencia y assets; crea las piezas faltantes y transforma cada sección en `blocks` según su propósito. No mantengas automáticamente la secuencia de la versión anterior.
+Revisa cada página contra su texto antes de aprobarla. Usa OCR si está disponible para detectar omisiones o erratas, seguido de inspección visual: el código no comprueba exactitud del texto ni fidelidad del producto. Regenera la página que falle manteniendo referencias y dirección. La captura de ejemplo del usuario es inspiración editorial, no una fuente de identidad del producto ni una paleta obligatoria.
 
-Ejemplo abreviado de estructura, no plantilla editorial para todos los productos:
+## Manifiesto 3.0
+
+El array `pages` es el orden exacto; la primera es `cover`, todas las demás `content`. Los archivos son páginas completas ya aprobadas. Este ejemplo mínimo describe el contrato, no fija un ebook de dos páginas ni una estructura para todas las categorías:
 
 ```json
 {
-  "schema_version": "2.0",
+  "schema_version": "3.0",
   "title": "Tu espacio, listo para empezar",
-  "subtitle": "Una guía práctica para organizar lo que usas a diario",
   "product_name": "Nombre confirmado del producto",
   "product_reference": {
     "id": "ID de la referencia canónica",
@@ -38,45 +43,33 @@ Ejemplo abreviado de estructura, no plantilla editorial para todos los productos
     "subject_region": [0.12, 0.10, 0.88, 0.90]
   },
   "visual_direction": {
-    "style": "Minimalismo editorial, luz suave, materiales fieles y sombras discretas",
-    "palette_basis": "Colores del producto y su envase, aislados del fondo"
+    "style": "Editorial limpio, tipografía consistente, luz suave y ondas tenues",
+    "palette_basis": "Tonos del producto y su envase, aislados del fondo"
   },
-  "background": "plain",
-  "show_contents": false,
-  "cover": {"asset": "cover-scene", "layout": "image_first"},
-  "visual_assets": [
+  "pages": [
     {
-      "id": "cover-scene",
-      "kind": "product_image",
-      "path": "assets/cover.png",
-      "contains_product": true,
+      "id": "cover",
+      "role": "cover",
+      "label": "Portada",
+      "path": "pages/01-cover.png",
+      "text": "Todo el texto literal incluido en esta imagen de portada",
+      "prompt": "Prompt completo utilizado para generar la página",
       "source": "generated_from_reference",
+      "contains_product": true,
       "reference_id": "ID de la referencia canónica",
-      "purpose": "Protagonizar la promesa editorial",
-      "prompt": "Prompt completo utilizado con la referencia adjunta"
+      "has_infographic": false
     },
     {
-      "id": "usage-map",
-      "kind": "infographic",
-      "path": "assets/usage-map.png",
-      "contains_product": true,
+      "id": "daily-routine",
+      "role": "content",
+      "label": "Una rutina posible",
+      "path": "pages/02-daily-routine.png",
+      "text": "Todo el texto literal de la página, incluidos rótulos y numeración",
+      "prompt": "Prompt completo de la página con la infografía original integrada",
       "source": "generated_from_reference",
+      "contains_product": true,
       "reference_id": "ID de la referencia canónica",
-      "purpose": "Explicar una acción aplicable con una composición distinta",
-      "prompt": "Prompt completo de la infografía propia"
-    }
-  ],
-  "chapters": [
-    {
-      "title": "Empieza por lo que sí usas",
-      "blocks": [
-        {"kind": "paragraph", "text": "Una acción concreta y por qué ayuda."},
-        {
-          "kind": "infographic", "asset": "usage-map", "layout": "wide", "size": "large",
-          "caption": "Qué explica esta pieza y cómo aplicarlo."
-        },
-        {"kind": "callout", "title": "Pruébalo hoy", "body": "Una tarea pequeña."}
-      ]
+      "has_infographic": true
     }
   ],
   "context": {
@@ -89,43 +82,36 @@ Ejemplo abreviado de estructura, no plantilla editorial para todos los productos
     "headline": "Una guía práctica de regalo",
     "body": "Su utilidad concreta. Incluida gratis con cada compra.",
     "delivery_note": "Mecanismo real o pendiente de conectar"
-  }
+  },
+  "sources": [
+    {"label": "Documento consultado del fabricante", "url": "https://example.com/product"}
+  ]
 }
-
 ```
 
+Las claves van en inglés y el contenido usa el idioma del mercado. `brand`, `context`, `landing_gift` y `sources` son opcionales y se conservan en el manuscrito, sin imprimirlos automáticamente. `sources` contiene solo fuentes realmente consultadas; la URL del ejemplo es un marcador de contrato.
 
-`brand`, `context`, `landing_gift` y `sources` son opcionales. Las claves van en inglés; el contenido usa el idioma del mercado. Las rutas son locales, relativas al manuscrito o absolutas. El helper no descarga URLs ni recibe `accent_color`: lo calcula desde `product_reference`.
+Cada página requiere ID único, `label` (bookmark de navegación), archivo local PNG/JPEG/WebP estático, texto literal y prompt completo. `contains_product` y `has_infographic` son booleanos. `source` es `generated_from_reference` cuando aparece el producto y `generated` en otro caso. Las que muestran el producto deben guardar su `reference_id`. Estos datos declaran la procedencia; no demuestran que se adjuntó la foto ni que los rótulos sean correctos.
 
-Cada asset tiene ID único, PNG/JPEG/WebP legible, propósito, tipo y procedencia. `kind` es `product_image`, `infographic` o `illustration`. `source` es `generated_from_reference`, `generated`, `authored_vector` o `approved_gallery`. Las piezas creadas guardan su prompt; todas las que contengan el producto guardan el ID de la referencia utilizada. El helper comprueba esa trazabilidad declarada; la inspección contra la foto base comprueba la fidelidad real.
+Las rutas son relativas al manifiesto o absolutas. El helper no descarga URLs, llama generadores ni recibe `accent_color`: infiere la paleta desde la referencia para trazabilidad, sin recolorear las páginas. Rechaza imágenes ilegibles, animadas, duplicadas, con lado menor inferior a 768 píxeles o con proporciones que difieran más de 0,5 %. No admite sobrescribir una imagen con el PDF. La inspección final comprueba calidad de lectura, composiciones distintas y referencias.
 
-La portada requiere un asset propio creado desde la referencia del producto. El interior utiliza una escena/detalle diferente, comprobado también por hash del archivo, y al menos una infografía propia. Una infografía puede contener el producto y cumplir ambos fines. No copies la misma imagen bajo dos nombres. Assets de galería aprobados pueden complementar la guía si son coherentes con su dirección.
+## Ensamblar sin confirmación adicional
 
-## Composición variable
-
-`cover.layout` acepta `image_first` o `title_first`. Siempre hay portada dedicada, medida para no dividirse ni reducir la tipografía a un tamaño ilegible.
-
-`show_contents` es opcional y por defecto false: decide si la guía se beneficia de un índice. Los bookmarks existen con o sin índice. `chapters[].start_on_new_page` es opcional y por defecto false: las secciones pueden continuar en la misma página. No impongas un número de capítulos o páginas.
-
-El orden de `blocks` es el orden exacto de lectura. El helper no inserta una foto debajo del título ni añade una introducción, pasos o checklist por su cuenta:
-
-- `paragraph` / `intro`: texto plano en `text`.
-- `image` / `infographic`: el ID de `asset`, `caption` opcional y tamaño `small`, `medium` o `large`. `layout: wide` aprovecha el ancho, `inset` crea una pieza más pequeña, `image_left` / `image_right` coloca la imagen junto al texto de `aside`. Usa párrafos breves en composiciones laterales para conservar legibilidad.
-- `steps` / `checklist`: lista de `items`, solo donde esa herramienta aporte valor.
-- `callout`: `title` y `body`.
-- `page_break`: salto editorial explícito entre bloques; no al comienzo o cierre de una sección.
-
-Las imágenes mantienen proporciones y transparencia; no se recortan ni estiran. Los fondos y las cajas ya forman parte del asset diseñado: el PDF no los encierra todos en la misma tarjeta. `background: waves` agrega ondas muy tenues en los márgenes; `plain` (predeterminado) mantiene fondo limpio. Todo usa el tono inferido. Las fuentes TTF propias se pasan con `--font-regular` / `--font-bold`; sin ellas usa Helvetica.
-
-## Generar y verificar
-
-Localiza Python/ReportLab/Pillow con las dependencias del host. Para QA usa pypdf/pdfplumber y Poppler o un renderizador disponible.
+Con las páginas aprobadas, ejecuta el ensamblador automáticamente; una galería opcional no es el final del trabajo:
 
 ```sh
 python scripts/build_ebook.py manuscript.json --output ebook.pdf
-pdftoppm -scale-to 1200 -png ebook.pdf preview/page
+pdftoppm -scale-to 1536 -png ebook.pdf preview/page
 ```
 
-La salida informa páginas y paleta inferida. Conserva ese resultado junto al manuscrito, referencia, región, prompts y assets. Fuentes consultadas se guardan como `sources: [{label, url}]` con HTTPS; el helper las imprime solo si existen.
+El helper coloca cada imagen a sangre: no agrega márgenes, marcos, encabezados, ondas, numeración ni textos. No recorta, estira ni reduce resolución. Usa ancho A5 y calcula la altura de cada hoja desde la proporción de su imagen; permite pequeñas diferencias por redondeo de píxeles. Aplica orientación EXIF, convierte a RGB y compone transparencias sobre blanco. ReportLab incrusta los píxeles sin compresión con pérdida adicional. Una fuente JPEG ya puede contener pérdida previa; el helper no la recupera.
 
-Renderiza e inspecciona todas las páginas. Revisa identidad del producto, información y rótulos de las infografías, consistencia con la dirección visual, variedad de composición, contraste, saltos y espacio en blanco. Corrige piezas que no coincidan con la referencia o la estética antes de entregar. Extrae texto y prueba enlaces. Un PDF creado no confirma una experiencia editorial terminada ni entrega automática con las compras.
+La salida JSON informa `mode: "page_images"`, número de páginas, imágenes en orden y paleta inferida. Cada página tiene bookmark con su `label`. Las fuentes y el texto editable quedan en el manuscrito; no se añade una página de referencias fuera de las imágenes aprobadas. Si se necesita una página de fuentes visible, diséñala y genérala como otra imagen.
+
+Renderiza e inspecciona todas las hojas. Comprueba orden, cobertura de borde a borde, ausencia de recortes y nitidez frente a los originales. El PDF contiene imágenes: el texto no es seleccionable ni buscable por defecto y un enlace dibujado no es clicable. Una extracción vacía es esperable y no sirve para revisar el contenido; compáralo con el manuscrito y las páginas, con OCR opcional.
+
+Entrega PDF, imágenes ordenadas, manifiesto y contenido editable. Si el entorno no puede ejecutar Python/ReportLab/Pillow, usa un ensamblador local equivalente con las mismas propiedades. Comunica un bloqueo real si no puedes completar el PDF; no afirmes que está listo ni sustituyas silenciosamente el diseño por una guía de texto.
+
+## Compatibilidad anterior
+
+El helper conserva el contrato 2.0 (`visual_assets`, `cover`, `chapters[].blocks`) para editar ebooks existentes sin romperlos. No es el modo de nuevas guías. Para convertir una anterior, recupera su contenido y genera páginas completas con dirección visual coherente; crea el manifiesto 3.0 y une sus imágenes. Los argumentos `--font-regular` / `--font-bold` pertenecen a la maquetación 2.0; en 3.0 la tipografía ya está en las imágenes.

@@ -1,43 +1,43 @@
 # Ebook de regalo desde el chat
 
-DropFlex · Optimización 1.5.0 incluye `create-gift-ebook` 2.0.0 y `optimize-product` 1.5.0. La skill crea una guía útil como regalo permanente con cada compra: portada dedicada, infografías propias e imágenes diferentes creadas desde la referencia del producto. Su fuente vive en `plugins/dropflex-optimizer/skills/create-gift-ebook/`.
+DropFlex · Optimización 1.6.0 incluye `create-gift-ebook` 3.0.0 y `optimize-product` 1.6.0. La skill genera las páginas completas como imágenes con texto, fotos e infografías integrados y las une automáticamente en un PDF. El ebook aporta utilidad como regalo permanente con cada compra, incluida una unidad. Su fuente vive en `plugins/dropflex-optimizer/skills/create-gift-ebook/`.
 
-## Contexto y dirección visual
+## Contenido y dirección visual
 
-«Crea un ebook de regalo para este producto y su ángulo, con imágenes e infografías propias» activa el recorrido. Recupera hechos, cliente ideal, JTBD, objeciones, diferenciador, ángulo, hook y oferta con el MCP. El contenido complementa el objetivo de la compra con acciones, ejemplos y recursos aplicables, sin volver a abrir la elección de hooks.
+El MCP entrega hechos, cliente ideal, JTBD, objeciones, diferenciador, ángulo, hook, oferta y referencia canónica del producto. La guía complementa el objetivo de la compra, sin volver a elegir hooks. La referencia se inspecciona y se adjunta siempre que una generación muestre el producto.
 
-La referencia canónica se inspecciona y se adjunta a cada generación que contenga el producto. El chat define el propósito de cada pieza, su composición y una dirección visual común; las imágenes e infografías se crean con el generador disponible. Los diagramas simples pueden ser vectores propios. Cada asset conserva prompt, propósito, origen e ID de referencia. Los archivos viven en el entorno del chat, no en el servidor MCP.
+El acento se infiere desde la región del producto o su envase con `build_ebook.py --inspect-reference`; no se toma del color informado o guardado en la PDP. Se define una dirección común de paleta, tipografías, luz, materiales y gráficos. Una guía aportada por el usuario inspira el tratamiento editorial, sin imponer su categoría, producto ni paleta. Las composiciones varían según el contenido y no fijan las imágenes en el mismo lugar.
 
-El acento se infiere desde la región del producto o su envase en la foto real. `build_ebook.py --inspect-reference` devuelve la paleta antes de generar los assets. El helper descarta blancos/negros de fondo y prioriza colores suficientemente representados en el sujeto; en productos neutros utiliza sus tonos neutros. El chat elige y comprueba la región para no tomar el fondo, una mano u otro objeto. Los prompts y el PDF comparten esa paleta, luz, materiales y tratamiento gráfico.
+Las búsquedas complementan información del producto y su uso, sin investigar leyes locales. El contenido de cuidado o bienestar conserva consejos educativos respaldados, sin inventar diagnósticos, dosis ni resultados clínicos.
 
-`get_landing_content.data.appearance` sigue disponible para otros usos del MCP, pero la skill de ebook no toma su acento como fuente ni modifica el color guardado de la PDP.
+## Páginas completas y ensamblado
 
-Las búsquedas complementan información del producto y su uso, sin investigar leyes locales. El contenido de cuidado o bienestar usa consejos educativos respaldados, sin inventar diagnósticos, dosis ni resultados clínicos.
+El recorrido predeterminado es contenido literal por página → generación de imágenes completas → revisión de texto y diseño → PDF automático. La portada es obligatoria, el interior contiene una representación distinta del producto y una infografía propia útil. Los títulos, párrafos, fotografías, rótulos, ondas y numeración se generan dentro de cada imagen. No se construye primero un PDF de texto ni se reconstruye su diseño con bloques después.
 
-## Composición y contrato 2.0
+Una página aprobada sirve de referencia adicional de estilo, sin sustituir la foto canónica. El chat revisa cada imagen contra el manuscrito y el producto; OCR ayuda si existe, pero no sustituye la inspección visual. Se regenera la página defectuosa antes de ensamblar. La galería opcional es una previsualización; el flujo no se detiene ahí ni solicita una nueva confirmación para crear el PDF.
 
-El manuscrito usa `schema_version: "2.0"`, `product_reference`, `visual_direction`, `visual_assets`, una selección explícita de portada y `chapters[].blocks`. El contrato anterior de `product_images` y posiciones fijas se migra recuperando su contenido útil y creando las piezas faltantes. El helper pide esa migración, sin maquetar silenciosamente con el patrón anterior.
+El manifiesto `schema_version: "3.0"` conserva `product_reference`, `visual_direction` y `pages[]` ordenadas, cada una con ID, rol, etiqueta, ruta, texto literal, prompt y procedencia. Las páginas que muestran el producto conservan el ID de referencia. El contrato completo vive en `references/pdf-production.md`.
 
-El orden de bloques es el orden de lectura. Las imágenes pueden ser anchas, pequeñas o acompañar texto por izquierda/derecha; los tamaños y la posición se deciden según su función. Las infografías son assets originales con una explicación concreta, en lugar de una lista genérica de cajas creada por el helper.
+`build_ebook.py` valida archivos, referencia, portada, infografía e imagen interior declaradas, proporciones comunes y duplicados por píxeles. Requiere archivos estáticos PNG/JPEG/WebP y al menos 768 píxeles en el lado menor; la skill recomienda más resolución según el texto. La declaración de procedencia no reemplaza revisar fidelidad ni comprobar lo que escribió el generador.
 
-La portada permite imagen o promesa primero. El índice es opcional, y las secciones pueden continuar en una misma página o empezar una nueva. No se inserta automáticamente una foto debajo de cada título ni se fija una secuencia de introducción/imagen/párrafos/checklist. El fondo liso es predeterminado y las ondas tenues son opcionales. Se conservan lectura móvil, proporciones, transparencia, tipografía y espacio en blanco.
+El ensamblador coloca una imagen por hoja, a sangre y en orden, sin añadir márgenes, texto, decoraciones ni páginas de fuentes. Usa ancho A5 y altura calculada desde cada imagen para conservar proporciones; tolera diferencias de proporción de hasta 0,5 % por redondeo de píxeles. Aplica EXIF y convierte a RGB, con transparencia sobre blanco, sin reducir resolución ni recomprimir con pérdida. Los bookmarks usan la etiqueta de cada página.
 
-El helper valida la referencia local, archivos, procedencia declarada, prompts y uso real de los assets. Requiere una portada propia creada desde la referencia, otra escena/detalle generado del producto en el interior con hash diferente y una infografía propia utilizada. El hash detecta repetir el mismo archivo bajo otro nombre; la inspección visual compara identidad, rótulos y estética, que el código no puede verificar.
+El texto del PDF es rasterizado y no seleccionable por defecto; el texto editable y enlaces de fuentes quedan en el manuscrito. Los enlaces dibujados no son clicables. Para nuevas guías no se sustituye silenciosamente este modo por maquetación de texto. El contrato 2.0 y su maquetador siguen disponibles para actualizar guías existentes.
 
-No llama proveedores, usa claves de IA ni genera assets. Se ejecuta localmente con ReportLab y Pillow. La skill orquesta las generaciones antes de componer; si falta generador o referencia, comunica el asset pendiente y no da una guía de fotos repetidas por terminada.
+## MCP, distribución y entrega
 
-## MCP y entrega
+El MCP conserva dos skills y ocho recursos autorizados, con SHA-256 y Python como `text/x-python`. No cambian URIs, conexión, permisos, tablas ni buckets. El helper se ejecuta en el entorno del chat, sin claves ni llamadas a proveedores; la skill dirige las generaciones antes de ejecutarlo.
 
-El MCP anuncia dos skills y ocho recursos autorizados, con hashes SHA-256 y script Python como `text/x-python`. Se conservan las URIs e integraciones existentes y el trace de producción. No hay tablas ni buckets nuevos.
+La entrega es PDF, páginas originales ordenadas, manifiesto, texto editable, prompts y contexto editorial. El texto de PDP presenta «Incluido gratis con cada compra». El ensamblado automático del PDF no configura su entrega con pedidos: debe existir un mecanismo real antes de anunciarla como conectada. Publicar la PDP mantiene la autorización y writers existentes.
 
-La entrega es PDF, manuscrito editable, referencia, región, dirección visual, prompts, assets y texto para anunciar «Incluido gratis con cada compra». Crear estos archivos no configura su entrega con los pedidos; el MCP actual no ingiere documentos ni ofrece envío de regalos digitales. Anunciarlo o publicar la PDP requiere el pedido y autorización correspondientes, usando los writers existentes.
+## Verificación de esta versión
 
-## Validación
+Se generaron con la herramienta de imágenes dos páginas completas: portada y página interior con infografía, desde una referencia sintética marcada como QA y la portada como referencia adicional de estilo. El ejemplo del usuario se usó solo como inspiración editorial. La prueba no se atribuye a un producto conectado.
 
-La prueba visual usa una referencia sintética marcada como QA, sin atribuirla a un producto real conectado. Se generaron con la herramienta de imágenes una portada, una infografía contextual y una escena distinta, con referencia y estilo compartidos. Los archivos de ensayo permanecen en `output/pdf/`, fuera del plugin y del commit. El ejemplo no sustituye la referencia real en producción.
+`output/pdf/ebook-page-images-qa.pdf` se ensambló y renderizó; se inspeccionaron ambas hojas. pypdf confirmó dos imágenes en orden con píxeles RGB idénticos a sus originales, proporciones correctas y ningún texto añadido. Las páginas, manifiesto con prompts y renders permanecen en `output/pdf/`, fuera del paquete y del commit.
 
-Se renderizaron e inspeccionaron las tres páginas de `ebook-editorial-qa.pdf`: portada con imagen primero, infografía después de la explicación y escena lateral con texto. La prueba adicional comprobó ambas portadas, índice opcional y bookmarks, ambas posiciones laterales, cambio de orden de bloques, secciones continuas, enlaces y 12 páginas de contenido largo sin perder el cierre. Se rechazaron 12 entradas inválidas, incluyendo acento informado, referencia incoherente, imagen repetida, infografía sin usar y portada excesiva. Una prueba con fondo azul y sujeto rojo confirmó que la región del sujeto determina el acento. La sintaxis Python, el JSON de ejemplo y ambos validadores de skills pasaron.
+`scripts/test-gift-ebook.py` verifica orden, cobertura a sangre, píxeles, bookmarks, transparencia, orientación EXIF/JPEG, duplicados con distinta codificación, proporciones, resolución, procedencia, ausencia de portada/infografía/producto interior, archivos ilegibles/animados y protección de imágenes de entrada. Pasaron sus siete pruebas y ambos validadores de skills. La suite de la aplicación pasó con 1195 pruebas y 135 omitidas por sus condiciones de entorno; el catálogo MCP sirve las versiones y hashes nuevos. Las pruebas de ensamblado verifican archivos y píxeles; la generación y ejecución con un producto real desde ChatGPT móvil requieren ese contexto.
 
-La suite pasó con 1191 pruebas y 135 omitidas por sus condiciones de entorno. La compilación de producción con Webpack, incluido TypeScript, pasó; el trace contiene los ocho recursos. El lint global conserva los errores existentes del tema Shopify documentados en la revisión anterior; no se ampliaron los cambios a esos archivos. La generación y fidelidad con un producto real conectado y la ejecución desde ChatGPT móvil requieren validación en ese contexto.
+La compilación de producción con Webpack, TypeScript y la comprobación de valores de diseño pasaron. El trace de producción incluye los ocho recursos. El lint global conserva 139 errores y cinco advertencias en archivos ajenos a este cambio, incluidos assets del tema Shopify; no se modificaron para esta tarea.
 
-Se actualizó el plugin privado a 1.5.0, release `pluginrel_6aca775bd9a88191ace717b274235a74`. La lectura posterior verificó los siete archivos enviados y los once del paquete, conservando identidad, conexión, presentación y audiencia. El ZIP reproducible contiene ambas skills y excluye los assets de ensayo.
+El plugin privado se actualizó a 1.6.0, release `pluginrel_6aca918566d4819185b0b766a1a5e420`. La lectura posterior verificó los once archivos, las seis fuentes locales modificadas y el manifiesto legado sincronizado, conservando identidad, conexión, presentación y audiencia. El ZIP reproducible contiene ambas skills; excluye las imágenes de ensayo y la prueba de regresión del repositorio.

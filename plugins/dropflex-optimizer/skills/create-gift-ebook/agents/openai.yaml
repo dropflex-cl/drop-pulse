@@ -1,7 +1,7 @@
 interface:
   display_name: "Crear ebook de regalo"
-  short_description: "Crea un PDF ilustrado para regalar con cada compra"
-  default_prompt: "Usa $create-gift-ebook para crear un ebook premium de regalo para mi producto y su ángulo. Infiere la paleta desde su referencia real, crea imágenes e infografías minimalistas propias y diseña una portada y composiciones variadas y coherentes. Incluido gratis con cada compra."
+  short_description: "Genera páginas como imágenes y únelas en un PDF"
+  default_prompt: "Usa $create-gift-ebook para crear un ebook premium de regalo para mi producto y su ángulo. Infiere la paleta desde su referencia real y genera cada página completa como una imagen con textos, fotos e infografías integrados, portada obligatoria y composiciones variadas y coherentes. Une automáticamente las páginas a sangre en un PDF y entrégalo junto con las imágenes. Incluido gratis con cada compra."
 dependencies:
   tools:
     - type: "mcp"

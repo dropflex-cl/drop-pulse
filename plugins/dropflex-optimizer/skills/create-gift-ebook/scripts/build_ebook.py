@@ -1,4 +1,4 @@
-"""Compone un ebook editorial desde assets propios y una referencia local del producto."""
+"""Une páginas completas generadas como imágenes en un PDF; admite guías 2.0 anteriores."""
 import argparse
 import colorsys
 import hashlib
@@ -13,6 +13,8 @@ from PIL import Image as PillowImage, ImageOps
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A5
 from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     BaseDocTemplate, Flowable, Frame, Image, KeepTogether, PageBreak,
     PageTemplate, Paragraph, Spacer, Table, TableStyle,
@@ -362,7 +364,110 @@ class EbookDoc(BaseDocTemplate):
             self.notify("TOCEntry", (0, flowable.getPlainText(), self.page, key))
 
 
+def validate_page_images(data, root, output):
+    """Comprueba archivos y trazabilidad; la fidelidad y el texto se revisan visualmente."""
+    for field in ("title", "product_name"):
+        text(data.get(field), field)
+    if "accent_color" in data:
+        raise ValueError("Infiere la paleta desde product_reference, no desde accent_color.")
+    reference = data.get("product_reference")
+    if not isinstance(reference, dict):
+        raise ValueError("Incluye product_reference con la foto real local y su ID.")
+    reference_id = text(reference.get("id"), "product_reference.id")
+    reference_path = image_path(reference, root)
+    palette = infer_palette(reference_path, reference.get("subject_region"))
+    direction = data.get("visual_direction")
+    if not isinstance(direction, dict):
+        raise ValueError("Incluye visual_direction.")
+    for field in ("style", "palette_basis"):
+        text(direction.get(field), f"visual_direction.{field}")
+    pages = data.get("pages")
+    if not isinstance(pages, list) or len(pages) < 2:
+        raise ValueError("pages: incluye portada y contenido, en orden de lectura.")
+    ids, fingerprints, images, first_ratio = set(), set(), [], None
+    has_infographic, has_interior_product = False, False
+    for index, page in enumerate(pages):
+        if not isinstance(page, dict):
+            raise ValueError("pages: cada página debe ser un objeto.")
+        page_id = text(page.get("id"), "pages.id")
+        if page_id in ids:
+            raise ValueError(f"ID de página repetido: {page_id}")
+        ids.add(page_id)
+        if page.get("role") != ("cover" if index == 0 else "content"):
+            raise ValueError("La primera página es cover; las siguientes son content.")
+        for field in ("label", "text", "prompt"):
+            text(page.get(field), f"pages.{page_id}.{field}")
+        for field in ("contains_product", "has_infographic"):
+            if type(page.get(field)) is not bool:
+                raise ValueError(f"pages.{page_id}.{field}: indica true o false.")
+        contains_product = page["contains_product"]
+        expected_source = "generated_from_reference" if contains_product else "generated"
+        if page.get("source") != expected_source:
+            raise ValueError(f"pages.{page_id}.source: usa {expected_source}.")
+        if contains_product and page.get("reference_id") != reference_id:
+            raise ValueError(f"pages.{page_id}: adjunta la referencia canónica del producto.")
+        if index == 0 and not contains_product:
+            raise ValueError("La portada incluye una imagen propia del producto real.")
+        has_infographic |= index > 0 and page["has_infographic"]
+        has_interior_product |= index > 0 and contains_product
+        path = image_path(page, root)
+        if output.resolve() in (path.resolve(), reference_path.resolve()):
+            raise ValueError("El PDF de salida no puede sobrescribir una imagen de entrada.")
+        with PillowImage.open(path) as original:
+            if getattr(original, "n_frames", 1) != 1:
+                raise ValueError("Cada archivo debe contener una sola página estática.")
+            picture = ImageOps.exif_transpose(original)
+            width, height = picture.size
+            if min(width, height) < 768:
+                raise ValueError(f"{page_id}: usa al menos 768 píxeles en el lado menor.")
+            ratio = width / height
+            if first_ratio is None:
+                first_ratio = ratio
+            elif abs(ratio / first_ratio - 1) > .005:
+                raise ValueError("Las páginas deben compartir proporción; regenera la que difiera.")
+            # Comparar píxeles normalizados detecta copias guardadas bajo otro nombre/formato.
+            rgba = picture.convert("RGBA")
+            fingerprint = hashlib.sha256(str(rgba.size).encode() + rgba.tobytes()).hexdigest()
+        if fingerprint in fingerprints:
+            raise ValueError("No repitas la misma imagen de página bajo otro nombre.")
+        fingerprints.add(fingerprint)
+        images.append((page, path, width, height))
+    if not has_interior_product or not has_infographic:
+        raise ValueError("El interior incluye otra imagen del producto y una infografía propia.")
+    return images, palette
+
+
+def build_page_images(data, root, output):
+    images, palette = validate_page_images(data, root, output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # Ancho A5; la altura exacta de cada imagen evita recortes o estiramientos.
+    width_pt = A5[0]
+    canvas = Canvas(str(output), pageCompression=1)
+    canvas.setTitle(data["title"])
+    canvas.setAuthor(data.get("brand", ""))
+    for index, (page, path, width, height) in enumerate(images):
+        height_pt = width_pt * height / width
+        canvas.setPageSize((width_pt, height_pt))
+        with PillowImage.open(path) as original:
+            picture = ImageOps.exif_transpose(original)
+            if picture.mode != "RGB":
+                # Fondo blanco solo para transparencia; ninguna página se redimensiona.
+                rgba = picture.convert("RGBA")
+                picture = PillowImage.new("RGB", rgba.size, "white")
+                picture.paste(rgba, mask=rgba.getchannel("A"))
+            canvas.drawImage(ImageReader(picture), 0, 0, width=width_pt, height=height_pt)
+        key = f"page-{index + 1}"
+        canvas.bookmarkPage(key)
+        canvas.addOutlineEntry(page["label"], key, level=0)
+        canvas.showPage()
+    canvas.save()
+    return {"pages": len(images), "mode": "page_images", "palette": palette,
+            "page_images": [str(path.resolve()) for _, path, _, _ in images]}
+
+
 def build(data, root, output, regular="Helvetica", bold="Helvetica-Bold"):
+    if data.get("schema_version") == "3.0":
+        return build_page_images(data, root, output)
     catalog = validate(data, root)
     reference = data["product_reference"]
     palette = infer_palette(root / reference["path"], reference.get("subject_region"))
