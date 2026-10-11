@@ -626,7 +626,6 @@
       ]
     },
     "idempotency_key": {
-      "default": "2554eb96-bccf-42f6-94d4-28cd1e317534",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

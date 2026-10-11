@@ -68,3 +68,13 @@ Resultados de cierre (2026-10-11):
 | Producción | Diagnóstico de lectura únicamente; sin migraciones, despliegues ni publicaciones |
 
 El lint global conserva errores preexistentes, principalmente en los assets del tema Shopify. La verificación acotada a los archivos modificados no presenta errores. No se alteraron autenticación ni archivos protegidos.
+
+## Limpieza del flujo histórico
+
+Las instrucciones de inicialización MCP y las descripciones de tools expresan contenido vigente y decisiones explícitas. Guardar no requiere autorización de publicación ni una llamada posterior a `review_visual_record`. `bind_visual_asset` asigna y selecciona el uso; revisiones, etags y stamps se resuelven internamente. Los aliases de revisión y reconciliación siguen disponibles para clientes anteriores, identificados como compatibilidad opcional.
+
+Los schemas públicos no exportan una clave idempotente fija como valor por defecto. Si se omite, el servidor crea una clave por pedido; un cliente puede conservar su propia clave para reintentar una respuesta ambigua. La exportación es determinista y las pruebas comprueban claves distintas para pedidos nuevos y conservación de una clave explícita para reintentos.
+
+Se retiraron `StageNav`, `showsBaseScreen` y la fábrica aislada `freezeGenerationContext` con sus pruebas del modelo anterior. No tenían consumidores operativos. `ReviewFlow` conserva su demo; `StageMeter` sigue utilizado por onboarding. El schema histórico de generación y su exportador permanecen por los contratos publicados. Esta limpieza no elimina campos de base de datos, autenticidad de evidencias, permisos, auditoría ni concurrencia.
+
+Verificación de esta limpieza: 1.197 pruebas generales aprobadas; TypeScript, lint de los archivos modificados y validación de los 65 pares de contratos correctos. Inicialización y discovery MCP comprobados localmente. No se añadieron migraciones ni se ejecutaron acciones en producción.

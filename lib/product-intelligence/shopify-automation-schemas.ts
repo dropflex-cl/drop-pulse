@@ -15,7 +15,7 @@ export const automationStateSchema = z.object({ enabled: z.boolean(), active: z.
 export const shopifyAutomationInputs = {
   get_shopify_automation: z.strictObject(read),
   authorize_shopify_automation: z.strictObject({ ...write, strategy_id: uuid, confirmed_hooks: confirmedHooksSchema,
-    auto_approve_and_publish: z.literal(true).describe("El comerciante eligió estos hooks y autorizó aprobar el contenido y publicar en Shopify desde el chat.") }),
+    auto_approve_and_publish: z.literal(true).describe("Campo compatible: el comerciante eligió estos hooks y autorizó publicar en Shopify desde el chat. Guardar contenido no requiere esta autorización ni aprobación adicional.") }),
   disable_shopify_automation: z.strictObject(write),
   publish_product: z.strictObject({ ...write, expected_fingerprint: publicationFingerprint.or(z.literal("")).optional().default("") }),
   review_visual_record: visualReviewInput,

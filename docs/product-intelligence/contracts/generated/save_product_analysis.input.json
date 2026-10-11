@@ -2156,7 +2156,6 @@
       "maximum": 9007199254740991
     },
     "idempotency_key": {
-      "default": "a7c67a1d-719d-4ac2-8b2b-61d0c32f8bb1",
       "type": "string",
       "minLength": 8,
       "maxLength": 128,

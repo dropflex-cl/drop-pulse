@@ -44,7 +44,6 @@
       "maximum": 9007199254740991
     },
     "idempotency_key": {
-      "default": "50f62a33-bc48-4c13-988c-435dde7ba835",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },
@@ -66,7 +65,7 @@
     "auto_approve_and_publish": {
       "type": "boolean",
       "const": true,
-      "description": "El comerciante eligió estos hooks y autorizó aprobar el contenido y publicar en Shopify desde el chat."
+      "description": "Campo compatible: el comerciante eligió estos hooks y autorizó publicar en Shopify desde el chat. Guardar contenido no requiere esta autorización ni aprobación adicional."
     }
   }
 }

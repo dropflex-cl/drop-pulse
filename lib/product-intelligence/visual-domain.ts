@@ -53,8 +53,7 @@ export function assertCurrent(r: VisualRecord, state: VisualState) {
   const validity = recordValidity(r, state);
   if (validity.state !== "current") invalidVisual(validity.reasons[0].message, "VALIDATION_ERROR");
 }
-function currentPlanIdentity(ref: VisualRef, state: VisualState, _requireApproved = false): VisualRef {
-  void _requireApproved;
+function currentPlanIdentity(ref: VisualRef, state: VisualState): VisualRef {
   const head = findVisual(state, ref.id, "identity");
   assertCurrent(head, state);
   return recordRef(head);
@@ -187,7 +186,7 @@ export function prepareVisualReview(state: VisualState, input: { record_id: stri
   if (input.decision === "approve") {
     if (record.payload.archived_at) invalidVisual("Vuelve a revisar la pieza archivada antes de aprobarla.", "VALIDATION_ERROR");
     if (record.kind === "binding") invalidVisual("Elige el destino para usar esta imagen.", "VALIDATION_ERROR");
-    if (record.kind === "plan") payload.identity_ref = currentPlanIdentity(record.payload.identity_ref as VisualRef, state, true);
+    if (record.kind === "plan") payload.identity_ref = currentPlanIdentity(record.payload.identity_ref as VisualRef, state);
     assertCurrent(record, state);
     status = "approved";
   } else if (input.decision === "select") {

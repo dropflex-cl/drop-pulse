@@ -36,6 +36,23 @@ describe("PI · contratos Zod y JSON Schema 2020-12", () => {
   it("valida el contexto interno con el schema exportado", () => {
     expect(ajv.compile(generationContextJsonSchema())(contextFixture())).toBe(true);
   });
+  it("resuelve claves omitidas por pedido sin publicar un default reutilizable", () => {
+    const firstExport = publishedSchemas(), secondExport = publishedSchemas();
+    expect(secondExport).toEqual(firstExport);
+    const check = (value: unknown) => {
+      if (!value || typeof value !== "object") return;
+      for (const [key, child] of Object.entries(value)) {
+        if (key === "idempotency_key") expect(child).not.toHaveProperty("default");
+        check(child);
+      }
+    };
+    check(firstExport);
+    const product_id = "00000000-0000-4000-8000-000000000001";
+    const first = parseToolInput("disable_shopify_automation", { product_id });
+    const second = parseToolInput("disable_shopify_automation", { product_id });
+    expect(first.idempotency_key).not.toBe(second.idempotency_key);
+    expect(parseToolInput("disable_shopify_automation", { product_id, idempotency_key: first.idempotency_key }).idempotency_key).toBe(first.idempotency_key);
+  });
   it("aplica bytes UTF-8 además de caracteres", () => {
     expect(() => jsonBytes({ field: "😀".repeat(3000) }, PI_LIMITS.inputBytes)).toThrow();
     expect(() => jsonBytes({ fields: Array(40).fill("x".repeat(8000)) }, PI_LIMITS.inputBytes)).toThrow();

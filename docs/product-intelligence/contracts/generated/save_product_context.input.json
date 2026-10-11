@@ -35,7 +35,6 @@
       "maximum": 9007199254740991
     },
     "__schema3": {
-      "default": "7bc68801-d2a0-4e0b-a23b-ecd17806948a",
       "type": "string",
       "minLength": 8,
       "maxLength": 128,

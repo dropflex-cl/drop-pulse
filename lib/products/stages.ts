@@ -148,4 +148,3 @@ export function productPosition(f: ProductFacts): ProductPosition {
     nextStage: "publicar", reason: situation.label, summary: situation.label, status: situation.status,
   };
 }
-export const showsBaseScreen = () => false;

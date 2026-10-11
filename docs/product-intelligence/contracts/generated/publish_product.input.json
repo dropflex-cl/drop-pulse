@@ -18,7 +18,6 @@
       "maximum": 9007199254740991
     },
     "idempotency_key": {
-      "default": "db54b15e-3313-404e-9c13-13b395147af1",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },
