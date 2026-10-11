@@ -10,7 +10,7 @@ export function GoogleRatingPreview({ facts }: { facts: StoreFacts }) {
   const label = <>Calificado {String(google.rating).replace(".", ",")}/5 en Google<span className="df-google-rating__count">({google.count} reseñas)</span></>;
   return (
     <div className="df df-google-rating" aria-label="Reseñas de la tienda en Google">
-      <img src="/df-google-logo.svg" alt="" width={24} height={24} />
+      <img src="/store-preview/df-google-logo.svg" alt="" width={24} height={24} />
       <DfStars rating={google.rating} size="1rem" />
       {google.url.startsWith("https://") ? <a href={google.url} target="_blank" rel="noopener noreferrer">{label}</a> : <span>{label}</span>}
     </div>

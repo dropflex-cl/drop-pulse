@@ -21,6 +21,7 @@ const IMAGES = {
     "https://example.test/s2.jpg",
     "https://example.test/s3.jpg",
   ],
+  videos: ["https://example.test/1.mp4", "https://example.test/2.mp4", "https://example.test/3.mp4"],
 };
 
 /** Los textos visibles más largos de un ejemplo (sin claves ni ids), para buscarlos en el render. */
@@ -43,6 +44,9 @@ function visibleTexts(value: unknown, key = ""): string[] {
  */
 const MANY_REVIEWS = {
   ...FIXTURE_FACTS,
+  logistics: { min: 2, max: 5, handling: 0, cutoff: 14 },
+  policies: { ...FIXTURE_FACTS.policies, warranty_months: 6, whatsapp: "+56912345678", threshold: 29990 },
+  gifs: Array.from({ length: 5 }, (_, i) => `https://example.test/${i}.webp`),
   reviews: [
     ...FIXTURE_FACTS.reviews,
     ...Array.from(
@@ -93,6 +97,11 @@ describe("vistas previas de los componentes", () => {
             }
             continue;
           }
+          if (c.id === "review-stars") {
+            expect(html).toContain("4,7 · 6 reseñas");
+            expect(html).toContain("df-review-stars--compact");
+            continue;
+          }
           const texts = visibleTexts(example).map((t) =>
             fill(t, MANY_REVIEWS).replaceAll("**", ""),
           );
@@ -119,7 +128,7 @@ describe("vistas previas de los componentes", () => {
       });
 
       if (c.id === "review-stars") {
-        it("con pocas reseñas muestra la proporción en vez de la plantilla", () => {
+        it("respeta el modo compacto del template aunque haya pocas reseñas", () => {
           const proof = reviewProof(FIXTURE_FACTS.reviews);
           expect(proof).not.toBe("");
           const html = renderToStaticMarkup(
@@ -129,7 +138,8 @@ describe("vistas previas de los componentes", () => {
               images={IMAGES}
             />,
           );
-          expect(html).toContain(proof);
+          expect(html).not.toContain(proof);
+          expect(html).toContain("4,7 · 6 reseñas");
         });
       }
 
@@ -192,11 +202,12 @@ describe("gif-strip: el GIF N lleva el texto N", () => {
       expect(html).not.toContain(escape(t.heading));
   });
 
-  it("sin GIF muestra los 5 textos para revisarlos", () => {
+  it("sin GIF muestra el mismo estado vacío que la tienda", () => {
     const html = renderToStaticMarkup(
       <Preview content={example} facts={FIXTURE_FACTS} images={{}} />,
     );
-    expect(html.match(/df-gif-strip__item/g)).toHaveLength(5);
+    expect(html).toContain('data-df-empty="gif-strip"');
+    expect(html).not.toContain("df-gif-strip__item");
     expect(html).not.toContain("<img");
   });
 });

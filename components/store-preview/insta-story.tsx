@@ -56,7 +56,7 @@ export function InstaStoryPreview({
       className={`df df-insta-story df-insta-story--ring-${s.ring_style}${s.card ? " df-insta-story--card" : ""}`}
       style={
         {
-          paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}`,
+          paddingBlock: `calc(${px(s.padding_top)} * var(--df-space, 1)) calc(${px(s.padding_bottom)} * var(--df-space, 1))`,
           "--df-story-size": px(s.circle_size),
         } as React.CSSProperties
       }
@@ -76,7 +76,7 @@ export function InstaStoryPreview({
         <ul className="df-insta-story__row" role="list">
           {items.map((it, i) => (
             <li key={i} className="df-insta-story__item" data-df-story={i}>
-              <button type="button" className="df-insta-story__circle">
+              <button type="button" className="df-insta-story__circle df-press" aria-label={`Ver historia ${i + 1} de ${items.length}: ${it.title}`} aria-haspopup="dialog">
                 <span className="df-insta-story__ring">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img className="df-insta-story__thumb" src={it.src} alt="" />
@@ -88,7 +88,7 @@ export function InstaStoryPreview({
         </ul>
 
         <dialog
-          className="df-insta-story__viewer"
+          className="df-insta-story__viewer df-dialog-motion"
           aria-label={heading || "Historias"}
         >
           <div className="df-insta-story__stage" data-df-stage>

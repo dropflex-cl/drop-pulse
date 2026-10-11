@@ -1,5 +1,5 @@
 import { PdpEmptyPreview } from "./pdp-empty";
-import { fill, policyActive } from "@/lib/store-preview/facts";
+import { fillAvailable, policyActive } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { ICON_PATHS } from "@/lib/store-preview/theme.generated";
 import { Bold, DfIcon } from "./primitives";
@@ -33,8 +33,8 @@ export function BenefitUspsPreview({ content, facts }: PreviewProps<Content>) {
     .filter((it) => it?.text && policyActive(it.policy, facts))
     .map((it) => ({
       icon: it.icon && ICON_PATHS[it.icon] ? it.icon : "check",
-      text: fill(it.text, facts),
-    }));
+      text: fillAvailable(it.text, facts),
+    })).filter(it => !it.text.includes("{"));
   if (!items.length) return <PdpEmptyPreview component="benefit-usps" />;
 
   return (

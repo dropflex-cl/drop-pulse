@@ -1,6 +1,6 @@
 import { PdpEmptyPreview } from "./pdp-empty";
 import { Fragment, useId } from "react";
-import { fill } from "@/lib/store-preview/facts";
+import { fill, fillPolicyTokens } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -60,8 +60,8 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
   const items = (content.items ?? [])
     .slice(0, 8)
     .map((it) => ({
-      question: fill(it.question, facts),
-      answer: fill(it.answer, facts),
+      question: fillPolicyTokens(it.question, facts),
+      answer: fillPolicyTokens(it.answer, facts),
     }))
     .filter(
       (it) =>
@@ -87,7 +87,7 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
       className={`df df-faq-and-text df-faq-and-text--${s.item_style}${s.card ? " df-faq-and-text--card" : ""}`}
       style={
         {
-          paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}`,
+          paddingBlock: `calc(${px(s.padding_top)} * var(--df-space, 1)) calc(${px(s.padding_bottom)} * var(--df-space, 1))`,
           "--df-faq-left": `${Number(s.left_width) || 0}%`,
         } as React.CSSProperties
       }
@@ -120,7 +120,7 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
           ) : null}
 
           {/* El destino real es la página del producto: aquí no navega. */}
-          {cta ? <a className="df-faq-and-text__cta">{cta}</a> : null}
+          {cta ? <a className="df-faq-and-text__cta df-press" href="#df-product-purchase">{cta}</a> : null}
         </div>
 
         <div className="df-faq-and-text__list">

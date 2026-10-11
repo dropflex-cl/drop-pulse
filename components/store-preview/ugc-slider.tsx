@@ -2,6 +2,7 @@ import { fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { Bold, DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
+import { PdpEmptyPreview } from "./pdp-empty";
 
 // blocks/df-ugc-slider.liquid + snippets/df-ugc-slider-card.liquid con la pista cerrada: las
 // tarjetas sin póster (los videos los sube el comerciante después), el play y los textos. El
@@ -12,13 +13,12 @@ interface Content {
   captions?: string[];
 }
 
-/** Tarjetas de muestra cuando la IA no escribió textos: las que caben en la pista. */
-const SAMPLE_CARDS = 3;
-
-export function UgcSliderPreview({ content, facts }: PreviewProps<Content>) {
+export function UgcSliderPreview({ content, facts, images }: PreviewProps<Content>) {
   const s = settingsOf("ugc-slider");
   const captions = content.captions ?? [];
-  const total = captions.length || SAMPLE_CARDS;
+  const videos = images.videos ?? [];
+  const total = videos.length;
+  if (!total) return <PdpEmptyPreview component="ugc-slider" />;
   const perView = String(s.cards_visible || "3");
   const shape = String(s.shape);
 
@@ -76,13 +76,16 @@ export function UgcSliderPreview({ content, facts }: PreviewProps<Content>) {
         </div>
       )}
 
-      <df-slider data-dot-label="Ir al video">
+      <df-slider data-dot-label="Ir al video" role="region" aria-roledescription="carrusel" aria-label="Videos del producto">
         <div className="df-slider__track" data-df-track="">
           {Array.from({ length: total }, (_, i) => {
             const caption = captions[i] || "";
             return (
-              <button key={i} type="button" className="df-ugc-slider__card" data-df-ugc-card="" data-caption={caption}>
-                <span className="df-ugc-slider__media" data-df-ugc-media="" />
+              <button key={i} type="button" className="df-ugc-slider__card df-press" data-df-ugc-card="" data-src={videos[i]} data-caption={caption} aria-label={`Ver video ${i + 1} de ${total}${caption ? `: ${caption}` : ""}`} aria-haspopup="dialog">
+                <span className="df-ugc-slider__media" data-df-ugc-media="">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {images.posters?.[i] ? <img src={images.posters[i]} alt="" loading="lazy" /> : null}
+                </span>
                 <span className="df-ugc-slider__play" aria-hidden>
                   <DfIcon name="play" />
                 </span>

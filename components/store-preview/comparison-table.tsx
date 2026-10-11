@@ -1,5 +1,5 @@
 import { PdpEmptyPreview } from "./pdp-empty";
-import { fill } from "@/lib/store-preview/facts";
+import { fill, fillPolicyTokens } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -97,7 +97,7 @@ export function ComparisonTablePreview({
         const o1 = cellValue(row.others?.[0]);
         const o2 = cellValue(row.others?.[1]);
         const texts = [row.feature, us.text, o1.text, o2.text].map((t) =>
-          fill(t, facts),
+          fillPolicyTokens(t, facts),
         );
         if (!texts[0] || texts.some((t) => t.includes("{"))) return [];
         return [
@@ -124,7 +124,7 @@ export function ComparisonTablePreview({
   return (
     <df-comparison-table
       className={`df df-comparison-table${s.red_crosses ? " df-comparison-table--red-crosses" : ""}${s.pulse ? " df-comparison-table--pulse" : ""}`}
-      style={{ paddingBlock: `${px(s.padding_top)} ${px(s.padding_bottom)}` }}
+      style={{ paddingBlock: `calc(${px(s.padding_top)} * var(--df-space, 1)) calc(${px(s.padding_bottom)} * var(--df-space, 1))` }}
     >
       <div className="df-comparison-table__inner">
         {heading ? (

@@ -97,6 +97,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_bottom": 48
   },
   "customer-stories": {},
+  "event-badges": {},
   "expert-endorsement": {},
   "faq-and-text": {
     "eyebrow": "Preguntas frecuentes",
@@ -113,12 +114,23 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_top": 48,
     "padding_bottom": 48
   },
+  "gallery-benefits": {},
   "gif-strip": {
     "radius": 12,
     "margin_top": 8,
     "margin_bottom": 8
   },
+  "google-rating": {},
   "guarantee": {},
+  "hype-badge": {
+    "text": "Pagas al recibir",
+    "show_low_stock": true,
+    "low_stock_text": "Stock bajo",
+    "low_stock_threshold": 10,
+    "style": "solid",
+    "margin_top": 0,
+    "margin_bottom": 0
+  },
   "image-with-benefits": {
     "heading": "¿Por qué elegirlo?",
     "use_product_image": true,
@@ -158,12 +170,27 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
   },
   "mechanism": {},
   "offer-summary": {},
+  "pack-offers": {
+    "heading": "Elige tu pack",
+    "show_image": true,
+    "show_savings": true,
+    "savings_label": "Ahorras {amount}",
+    "margin_top": 8,
+    "margin_bottom": 0
+  },
   "pain-block": {
     "heading": "¿Te pasa esto?",
     "layout": "cards",
     "heading_size": 36,
     "padding_top": 48,
     "padding_bottom": 48
+  },
+  "price": {
+    "show_badge": true,
+    "badge_label": "Ahorras {amount}",
+    "price_size": 28,
+    "margin_top": 0,
+    "margin_bottom": 0
   },
   "product-includes": {},
   "results-timeline": {},
@@ -247,6 +274,19 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_top": 0,
     "margin_bottom": 0
   },
+  "social-badge": {
+    "platform": "tiktok",
+    "icon": "fire",
+    "text": "Viral en TikTok: {views} vistas",
+    "margin_top": 4,
+    "margin_bottom": 0
+  },
+  "social-proof": {
+    "show_verified": true,
+    "min_reviews": 3,
+    "margin_top": 0,
+    "margin_bottom": 0
+  },
   "stats-with-image": {
     "max_images": 3,
     "image_position": "left",
@@ -264,6 +304,23 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "card_radius": 14,
     "padding_top": 48,
     "padding_bottom": 48
+  },
+  "subtitle": {
+    "text_size": 15,
+    "margin_top": 0,
+    "margin_bottom": 0
+  },
+  "title": {
+    "margin_top": 0,
+    "margin_bottom": 0
+  },
+  "trust-note": {
+    "policy": "cod",
+    "icon": "cash",
+    "visibility": "all",
+    "text": "**Pagas al recibir.** No adelantas nada: pagas cuando el producto llega a tu puerta.",
+    "margin_top": 0,
+    "margin_bottom": 0
   },
   "ugc-slider": {
     "show_rating": false,

@@ -31,8 +31,8 @@ interface Content {
 }
 function Image({ src, alt = "" }: { src?: string; alt?: string }) {
   // Imágenes elegidas en la página, sin sintetizar pruebas de resultados.
-  // eslint-disable-next-line @next/next/no-img-element
   return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
     <img className="df-rich__image" src={src} alt={alt} loading="lazy" />
   ) : null;
 }
@@ -61,8 +61,8 @@ export function RichPdpPreview({
           : component === "guarantee"
             ? Boolean(
                 policy.cod ||
-                policy.return_days ||
-                policy.warranty_months ||
+                (policy.return_days ?? 0) > 0 ||
+                (policy.warranty_months ?? 0) > 0 ||
                 policy.free_shipping,
               )
             : component === "offer-summary"
@@ -85,7 +85,7 @@ export function RichPdpPreview({
       aria-labelledby={id}
     >
       <h2 className="df-heading df-rich__heading" id={id}>
-        {content.heading || PDP_EMPTY_STATES[component]?.heading}
+        {content.heading || (["guarantee", "offer-summary"].includes(component) ? PDP_EMPTY_STATES[component]?.heading : "")}
       </h2>
       {["product-includes", "mechanism", "usage-steps"].includes(component) ? (
         <>
@@ -102,7 +102,7 @@ export function RichPdpPreview({
                 ) : null}
                 <Image
                   src={
-                    images[component === "usage-steps" ? "steps" : "items"]?.[i]
+                    component === "mechanism" ? undefined : images[component === "usage-steps" ? "steps" : "items"]?.[i]
                   }
                   alt={item.title}
                 />
@@ -223,7 +223,7 @@ export function RichPdpPreview({
                 </p>
               </li>
             ) : null}
-            {policy.return_days ? (
+            {(policy.return_days ?? 0) > 0 ? (
               <li className="df-rich__card">
                 <DfIcon name="return" />
                 <h3 className="df-heading">Cambios y devoluciones</h3>
@@ -232,7 +232,7 @@ export function RichPdpPreview({
                 </p>
               </li>
             ) : null}
-            {policy.warranty_months ? (
+            {(policy.warranty_months ?? 0) > 0 ? (
               <li className="df-rich__card">
                 <DfIcon name="shield" />
                 <h3 className="df-heading">Garantía</h3>
@@ -254,6 +254,10 @@ export function RichPdpPreview({
               </li>
             ) : null}
           </ul>
+          <div className="df-rich__policy-links">
+            {facts.policyLinks?.refund ? <a href={facts.policyLinks.refund}>Lee las condiciones de devolución</a> : null}
+            {facts.policyLinks?.shipping ? <a href={facts.policyLinks.shipping}>Consulta los envíos</a> : null}
+          </div>
         </>
       ) : null}
       {component === "offer-summary" ? (
@@ -288,7 +292,7 @@ export function RichPdpPreview({
               </li>
             ))}
           </ul>
-          <a className="df-rich__cta df-press" href="#df-preview-purchase">
+          <a className="df-rich__cta df-press" href="#df-product-purchase" data-df-purchase-link="">
             {content.cta_label || "Elegir mi pack"}
             <DfIcon name="arrow-right" />
           </a>

@@ -1,5 +1,4 @@
 import { createElement } from "react";
-import { CATALOG } from "@/lib/shopify/components/catalog";
 import { PdpEmptyPreview } from "./pdp-empty";
 import type { ComponentType } from "react";
 import { BenefitDoubleBoxPreview } from "./benefit-double-box";
@@ -72,16 +71,10 @@ export const PREVIEWS: typeof NATIVE_PREVIEWS = Object.fromEntries(
     function PreviewWithEmpty(props: PreviewProps) {
       const content = props.content as Record<string, unknown> | null;
       if (
-        !["listing", "review-slider", "review-stars", "shipping-timeline"].includes(id) &&
-        (!content ||
-          (!Object.keys(content).length &&
-            !["guarantee", "offer-summary"].includes(id)) ||
-          content.state === "empty" ||
-          props.facts.count <
-            (CATALOG.find((c) => c.id === id)?.minReviews ?? 0))
+        id !== "shipping-timeline" && content?.state === "empty"
       )
         return createElement(PdpEmptyPreview, { component: id });
-      return createElement(Preview, props);
+      return createElement(Preview, { ...props, content: content ?? {} });
     }
     return [id, PreviewWithEmpty];
   }),

@@ -83,30 +83,32 @@ function Ticker({ items }: { items: TickerItem[] }) {
   return (
     <df-scrolling-benefits
       className={`df df-scrolling-benefits df-scrolling-benefits--hover-pause df-event-ticker${isStatic ? " df-scrolling-benefits--static" : ""}`}
-      style={{ "--df-sb-pt": "0px", "--df-sb-pb": "0px", "--df-sb-gap": "40px", "--df-sb-text": "13px", "--df-sb-icon": "18px" } as React.CSSProperties}
+      style={{ "--df-sb-pt": "0px", "--df-sb-pb": "0px", "--df-sb-gap": "40px", "--df-sb-text": "13px", "--df-sb-icon": "18px", "--df-marquee-duration": `${Math.max(8, Math.floor(items.length * 260 / 40))}s` } as React.CSSProperties}
+      data-speed="40"
       data-static={isStatic ? "" : undefined}
       // Como la vista previa de la cinta de beneficios: detenida en su primer cuadro.
       data-paused={isStatic ? undefined : ""}
     >
       <div className="df-scrolling-benefits__bar">
         <div className="df-scrolling-benefits__viewport">
-          <div className="df-scrolling-benefits__track">
-            <ul className="df-scrolling-benefits__set" role="list">
+          <div className="df-scrolling-benefits__track" data-df-track="">
+            <ul className="df-scrolling-benefits__set" role="list" data-df-set="">
               {set}
             </ul>
             {isStatic ? null : (
-              <ul className="df-scrolling-benefits__set" role="list" aria-hidden="true">
+              <ul className="df-scrolling-benefits__set" role="list" aria-hidden="true" inert>
                 {set}
               </ul>
             )}
           </div>
         </div>
         {isStatic ? null : (
-          <span className="df-event-ticker__pause" aria-hidden="true">
+          <button type="button" className="df-event-ticker__pause" data-df-pause="" aria-pressed="false" aria-label="Pausar avisos">
             <span className="df-event-ticker__icon-pause">
               <DfIcon name="pause" />
             </span>
-          </span>
+            <span className="df-event-ticker__icon-play"><DfIcon name="play" /></span>
+          </button>
         )}
       </div>
     </df-scrolling-benefits>

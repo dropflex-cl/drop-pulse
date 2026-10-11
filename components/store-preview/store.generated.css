@@ -1,45 +1,69 @@
 /* Generado por scripts/store-preview.ts desde lib/shopify/components. No editar a mano. */
+@font-face {
+      font-family: 'DropFlex Store Geist';
+      src: url(/store-preview/df-geist-400.woff2) format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+@font-face {
+      font-family: 'DropFlex Store Geist';
+      src: url(/store-preview/df-geist-500.woff2) format('woff2');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+@font-face {
+      font-family: 'DropFlex Store Geist';
+      src: url(/store-preview/df-geist-600.woff2) format('woff2');
+      font-weight: 600 700;
+      font-style: normal;
+      font-display: swap;
+    }
 .df-store {
   --color-foreground: #15171c;
   --color-background: #ffffff;
   --color-primary-button-background: #1f4bd8;
   --color-primary-button-text: #ffffff;
-  --font-body--family: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-heading--family: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body--family: "DropFlex Store Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading--family: var(--font-body--family);
   --font-heading--weight: 600;
   --style-border-radius-sm: 6px;
   --style-border-radius-md: 10px;
   --style-border-radius-lg: 14px;
-  --style-border-radius-pills: 999px;
+  --style-border-radius-pills: 40px;
+  --gap-md: 0.9rem;
+  --page-margin: max(16px, var(--safe-area-inset-left, 0px), var(--safe-area-inset-right, 0px));
   container: store / inline-size;
   color-scheme: light;
-  background: #ffffff;
-  color: #15171c;
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-family: var(--font-body--family);
-  font-variant-numeric: tabular-nums;
   font-size: 16px;
-  line-height: 1.5;
+  font-weight: 400;
+  line-height: 1.4;
   -webkit-font-smoothing: antialiased;
 }
 
-.df-store h2,
-.df-store h3,
-.df-store p,
-.df-store ul,
-.df-store ol,
-.df-store figure,
-.df-store blockquote {
+:where(.df-store) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, figure, blockquote) {
   margin: 0;
 }
 
-.df-store button {
+:where(.df-store) :where(button, input, textarea, select) {
   font: inherit;
   color: inherit;
 }
 
-.df-store img {
+:where(.df-store) :where(img, picture, video, canvas, svg) {
   display: block;
   max-width: 100%;
+}
+:where(.df-store) img { width: 100%; height: auto; }
+:where(.df-store) :where(p, h1, h2, h3, h4, h5, h6) { overflow-wrap: break-word; }
+:where(.df-store) p:empty { display: none; }
+:where(.df-store) :where(.df-price, .df-pack-offers) { font-variant-numeric: tabular-nums; }
+@container store (min-width: 750px) {
+  .df-store > * { --page-margin: max(40px, var(--safe-area-inset-left, 0px), var(--safe-area-inset-right, 0px)); }
 }
 
 /*
@@ -97,7 +121,7 @@
   --df-container: 1200px;
   --df-gutter: var(--page-margin, 16px);
   --df-space: 0.67;
-  --df-title-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.5rem);
+  --df-title-size: clamp(1.75rem, 1.25rem + 1.6cqw, 2.5rem);
   /* Del título de una sección a su contenido: 48px en escritorio, 32px en móvil. */
   --df-title-gap: calc(48px * var(--df-space));
   --df-radius-lg: var(--style-border-radius-lg, 14px);
@@ -444,7 +468,9 @@ df-slider {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) and (max-width: 749px) {
+@media (prefers-reduced-motion: no-preference) {
+
+  @container store (max-width: 749px) {
   /* Hoja: sube 24px en 320ms y baja en 200ms. */
   :root:not([data-df-motion='off']) .df-dialog-motion--sheet {
     scale: 1;
@@ -460,6 +486,7 @@ df-slider {
       scale: 1;
       translate: 0 24px;
     }
+  }
   }
 }
 
@@ -1538,7 +1565,7 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 
 /* _landing/blocks/df-title.liquid */
 .df-title {
-  font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.25rem);
+  font-size: clamp(1.625rem, 1.3rem + 1.1cqw, 2.25rem);
   line-height: 1.15;
   letter-spacing: -0.02em;
   text-wrap: balance;
@@ -1775,7 +1802,7 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
   z-index: 30;
   inset-inline-start: 12px;
   inset-block-end: calc(var(--df-rp-lift, 0px) + 12px + env(safe-area-inset-bottom, 0px));
-  inline-size: min(340px, calc(100vw - 24px));
+  inline-size: min(340px, calc(100cqw - 24px));
   font-family: var(--df-font-body);
   color: var(--df-fg);
   opacity: 0;
@@ -1919,7 +1946,7 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
   color: var(--df-fg);
 }
 
-@media screen and (min-width: 750px) {
+@container store (min-width: 750px) {
   .df-rp {
     inset-inline-start: 24px;
     inset-block-end: calc(var(--df-rp-lift, 0px) + 24px + env(safe-area-inset-bottom, 0px));
@@ -5061,7 +5088,7 @@ df-ugc-slider[data-fits] .df-ugc-slider__controls {
 
 @container store (min-width: 750px) {
   .df-ugc-slider__dialog:modal {
-    width: min(420px, 90vw);
+    width: min(420px, 90cqw);
     height: min(700px, 90vh);
     margin: auto;
     border-radius: var(--df-radius-media);
@@ -5077,7 +5104,7 @@ df-ugc-slider[data-fits] .df-ugc-slider__controls {
   position: fixed;
   inset: auto 20px 20px auto;
   z-index: 2147483000;
-  width: min(340px, calc(100vw - 40px));
+  width: min(340px, calc(100cqw - 40px));
   height: min(567px, calc(100vh - 40px));
   border-radius: var(--df-radius-media);
   box-shadow: 0 16px 48px color-mix(in srgb, #000000 35%, transparent);
@@ -5110,3 +5137,74 @@ df-ugc-slider[data-fits] .df-ugc-slider__controls {
 
 /* use-cases/sections/df-use-cases.liquid */
 .df-use-cases { display: block; }
+
+/* Galería: slideshow-controls.liquid y df-design-system.liquid. */
+  .df-gallery-preview {
+    padding-inline: 0;
+    --thumbnail-width: 72px;
+    --thumbnail-radius: 12px;
+    --aspect-ratio: 1;
+    --focus-outline-width: 2px;
+    --focus-outline-offset: 2px;
+    --style-border-width: 0px;
+    --padding-sm: 0.7rem;
+    --gap-xs: 0.5rem;
+  }
+  .df-gallery-preview__image { border-radius: 12px; }
+  .df-gallery-preview__image img { object-fit: cover; }
+  .df-gallery-preview__thumbnail { flex: none; padding: 0; background-color: inherit; box-shadow: none; }
+  .df-gallery-preview__thumbnails {
+    display: inline-flex;
+    padding-inline: var(--slideshow-thumbnails-padding-inline, var(--padding-sm));
+    padding-block: var(--slideshow-thumbnails-padding-block, var(--padding-sm));
+    gap: var(--gap-xs);
+    margin-inline: auto;
+    height: fit-content;
+
+    .df-gallery-preview__thumbnail {
+      border-radius: var(--thumbnail-radius, var(--media-radius));
+      width: clamp(44px, 7cqw, var(--thumbnail-width));
+      height: auto;
+      aspect-ratio: var(--aspect-ratio);
+
+      img {
+        height: 100%;
+        object-fit: cover;
+        border-radius: var(--thumbnail-radius, var(--media-radius));
+      }
+
+      &:is([aria-pressed='true']) {
+        outline: var(--focus-outline-width) solid currentcolor;
+        outline-offset: calc(var(--focus-outline-offset) / 2);
+        border: var(--style-border-width) solid rgb(var(--color-border-rgb) / var(--media-border-opacity));
+      }
+    }
+  }
+  .df-gallery-preview__thumbnail[aria-pressed='true'] { box-shadow: none; outline-color: var(--df-accent-ink); }
+  .df-listing-preview { display: flex; flex-direction: column; padding-block-end: 32px; }
+  .df-listing-preview__details { display: flex; flex-direction: column; gap: 12px; padding-inline: var(--df-gutter); }
+  .df-listing-preview__divider { padding-block: 4px 4px; }
+  .df-listing-preview__divider hr { margin: 0; border: 0; border-top: 1px solid #e4e6eb; }
+  @container store (max-width: 749px) {
+    .df-gallery-preview__hero {
+        padding-inline: 16px;
+       }
+    .df-gallery-preview__thumbnails {
+        margin-inline: 0;
+        padding-inline: 16px;
+        padding-block: 10px 4px;
+        gap: 8px;
+       }
+    .df-gallery-preview__thumbnail {
+        width: 64px;
+        flex: none;
+        scroll-snap-align: start;
+       }
+    .df-listing-preview__details {
+        padding-block-start: 20px;
+       }
+  }
+  @container store (min-width: 750px) {
+    .df-listing-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; padding-block-start: 32px; padding-inline: var(--page-margin); max-width: calc(75rem + var(--page-margin) * 2); margin-inline: auto; }
+    .df-listing-preview__details { padding-inline: 0; }
+  }

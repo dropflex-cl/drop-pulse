@@ -43,7 +43,8 @@ export interface StorePack {
 
 export interface StoreFacts {
   /** Solo cuando existe una lectura operativa real. Sin ella el preview indica que Shopify lo resuelve. */
-  inventory?: { available: boolean };
+  inventory?: { available: boolean; quantity?: number; management?: string | null; policy?: string };
+  policyLinks?: { refund?: string; shipping?: string };
   /** Datos propios de Google; nunca se completan con reseñas importadas. */
   googleRating?: { rating: number; count: number; url: string };
   /** Archivo asociado por el comerciante en Shopify. El enlace no llega al preview público. */
@@ -126,9 +127,13 @@ export function policyActive(
     case "free_shipping":
       return p.free_shipping;
     case "returns":
-      return p.return_days != null;
+      return (p.return_days ?? 0) > 0;
     case "warranty":
-      return p.warranty_months != null;
+      return (p.warranty_months ?? 0) > 0;
+    case "shipping_time":
+      return (facts.logistics?.max ?? 0) > 0;
+    case "delivery":
+      return Boolean(facts.logistics);
     case "whatsapp":
       return Boolean(p.whatsapp);
     default:
@@ -231,6 +236,31 @@ export function fill(text: string | undefined, facts: StoreFacts): string {
     /\{([a-z_]+)\}/g,
     (m, k: string) => values[k]?.value ?? m,
   );
+}
+
+/** Render de tienda: conserva el token sin dato para que el componente lo omita, igual que Liquid. */
+export function fillAvailable(text: string | undefined, facts: StoreFacts): string {
+  const values = tokenValues(facts);
+  return (text ?? "").replace(/\{([a-z_]+)\}/g, (token, key: string) => {
+    const value = values[key];
+    if (!value || value.example) return token;
+    if (key === "threshold" && !(facts.policies.threshold && facts.policies.threshold > 0)) return token;
+    if (key === "return_days" && !(facts.policies.return_days && facts.policies.return_days > 0)) return token;
+    if (key === "warranty_months" && !(facts.policies.warranty_months && facts.policies.warranty_months > 0)) return token;
+    return value.value;
+  });
+}
+
+/** FAQ y tabla comparativa aceptan políticas guardadas con 0; no sustituyen otros tokens. */
+export function fillPolicyTokens(text: string | undefined, facts: StoreFacts): string {
+  const values: Record<string, number | undefined> = {
+    min: facts.logistics?.min,
+    max: facts.logistics ? Math.max(facts.logistics.min, facts.logistics.max) : undefined,
+    return_days: facts.policies.return_days,
+    warranty_months: facts.policies.warranty_months,
+  };
+  return (text ?? "").replace(/\{([a-z_]+)\}/g, (token, key: string) =>
+    values[key] != null ? String(values[key]) : token);
 }
 
 /**

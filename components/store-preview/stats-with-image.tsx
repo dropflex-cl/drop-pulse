@@ -103,8 +103,8 @@ export function StatsWithImagePreview({
   const chosen = (images.collage ?? []).slice(0, 4);
   const photos = chosen.length
     ? chosen
-    : facts.productImage
-      ? [facts.productImage].slice(0, Number(s.max_images) || 1)
+    : facts.productImages?.length || facts.productImage
+      ? (facts.productImages?.length ? facts.productImages : [facts.productImage!]).slice(0, Number(s.max_images) || 1)
       : [];
 
   const bullets = content.bullets?.length
@@ -194,7 +194,7 @@ export function StatsWithImagePreview({
               {stats.map((st, i) => (
                 <li key={i} className="df-stats-with-image__stat">
                   <span className="df-stats-with-image__stat-value">
-                    {st.value}
+                    <span aria-hidden="true" data-df-count="">{st.value}</span><span className="df-visually-hidden">{st.value}</span>
                   </span>
                   <span className="df-stats-with-image__stat-label">
                     {fill(st.label, facts)}
@@ -223,7 +223,7 @@ export function StatsWithImagePreview({
           )}
           {ctaLabel && (
             <df-buy-link className="df-stats-with-image__cta-wrap">
-              <a className="df-stats-with-image__cta" href="#">
+              <a className="df-stats-with-image__cta df-press" href="#df-product-purchase">
                 <span>{ctaLabel}</span>
                 <DfIcon name="arrow-right" />
               </a>

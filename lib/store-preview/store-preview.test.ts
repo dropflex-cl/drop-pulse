@@ -6,7 +6,7 @@ import { contrast } from "@/lib/copy/accent";
 import { ACCENT_PALETTE } from "@/lib/copy/accent";
 import { accentTones, accentVars, brightness, withLightness } from "./accent";
 import { EXAMPLE, exampleTokens, fill, reviewProof, tokenValues, type StoreFacts } from "./facts";
-import { CSS_OUT, TS_OUT, storeCss, themeTs } from "./generate";
+import { CSS_OUT, TS_OUT, storeAssets, storeCss, themeTs, toContainer } from "./generate";
 import { ICON_PATHS } from "./theme.generated";
 import { boldParts } from "./settings";
 
@@ -19,6 +19,33 @@ describe("lo que la vista previa toma del tema", () => {
   it("trae todos los íconos y ningún @media del tema", () => {
     expect(Object.keys(ICON_PATHS).sort()).toEqual([...ICON_KEYS, ...UI_ICON_KEYS].sort());
     expect(storeCss()).not.toMatch(/@media\s*\(\s*(min|max)-width/);
+  });
+
+  it("sirve los mismos archivos de fuente y logo que Shopify", () => {
+    for (const asset of storeAssets()) expect(readFileSync(asset.path)).toEqual(asset.bytes);
+    expect(storeCss()).toContain("font-weight: 600 700;");
+  });
+
+  it("respeta el ancho del marco y conserva las preferencias de movimiento", () => {
+    const css = toContainer("@media screen and (min-width: 750px) { .a { width: 50vw; } } @media (prefers-reduced-motion: no-preference) and (max-width: 749px) { .a { scale: 1; } }");
+    expect(css).toContain("@container store (min-width: 750px)");
+    expect(css).toContain("width: 50cqw");
+    expect(css).toContain("@media (prefers-reduced-motion: no-preference)");
+    expect(css).toContain("@container store (max-width: 749px)");
+  });
+
+  it("los resets del marco no anulan los márgenes del componente", () => {
+    expect(storeCss()).toContain(":where(.df-store) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, figure, blockquote)");
+    expect(storeCss()).not.toMatch(/\.df-store\s+(?:h2|h3|p)\s*[,\{]/);
+  });
+
+  it("la galería toma el encuadre y el contorno de Horizon; la ficha toma los ajustes del template", () => {
+    const css = storeCss();
+    expect(css).toContain(".df-gallery-preview__image img { object-fit: cover; }");
+    expect(css).toContain("outline-offset: calc(var(--focus-outline-offset) / 2);");
+    expect(css).toContain("padding-block: 10px 4px;");
+    expect(css).toContain("padding-block-start: 20px;");
+    expect(css).not.toContain("undefined");
   });
 });
 

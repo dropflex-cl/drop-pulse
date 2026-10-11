@@ -1,5 +1,5 @@
 import { PdpEmptyPreview } from "./pdp-empty";
-import { fill, policyActive } from "@/lib/store-preview/facts";
+import { fillAvailable, policyActive } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -30,9 +30,9 @@ export function ScrollingBenefitsPreview({
     .filter((it) => policyActive(it?.requires, facts))
     .map((it) => ({
       icon: it?.icon,
-      text: fill((it?.text || "").trim(), facts),
+      text: fillAvailable((it?.text || "").trim(), facts),
     }))
-    .filter((it) => it.text);
+    .filter((it) => it.text && !it.text.includes("{"));
 
   const count = items.length;
   if (!count) {
@@ -40,7 +40,7 @@ export function ScrollingBenefitsPreview({
   }
 
   const heading = s.show_heading
-    ? fill(content.heading || String(s.heading ?? ""), facts)
+    ? content.heading || String(s.heading ?? "")
     : "";
   const isStatic = count < 3;
   // Duración estimada sin JS (~220 px por ítem), como el Liquid.

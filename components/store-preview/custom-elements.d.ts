@@ -14,6 +14,8 @@ declare module "react" {
       "df-faq-and-text": StoreElement;
       "df-insta-story": StoreElement;
       "df-inventory": StoreElement;
+      "df-pack-offers": StoreElement;
+      "df-price": StoreElement;
       "df-review-slider": StoreElement;
       "df-review-stars": StoreElement;
       "df-review-wall": StoreElement;

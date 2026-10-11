@@ -4,10 +4,10 @@
 //   npx tsx scripts/store-preview.ts          → escribe store.generated.css y theme.generated.ts
 //   npx tsx scripts/store-preview.ts --check  → solo compara; sale con 1 si difieren
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { relative } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, relative } from "node:path";
 import { CATALOG } from "../lib/shopify/components/catalog";
-import { CSS_OUT, TS_OUT, storeCss, themeTs } from "../lib/store-preview/generate";
+import { CSS_OUT, TS_OUT, storeAssets, storeCss, themeTs } from "../lib/store-preview/generate";
 
 const check = process.argv.includes("--check");
 const files = Object.fromEntries(CATALOG.map((c) => [c.id, c.file]));
@@ -24,6 +24,12 @@ for (const [path, next] of [
     writeFileSync(path, next);
     console.log(`Escrito ${relative(process.cwd(), path)}`);
   }
+}
+for (const { path, bytes } of storeAssets()) {
+  if (existsSync(path) && readFileSync(path).equals(bytes)) continue;
+  stale++;
+  if (check) console.error(`${relative(process.cwd(), path)} no está al día: corre npm run store-preview`);
+  else { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, bytes); console.log(`Escrito ${relative(process.cwd(), path)}`); }
 }
 if (check && stale) process.exit(1);
 if (!stale) console.log("La vista previa está al día con el tema");

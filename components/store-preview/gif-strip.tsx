@@ -20,9 +20,7 @@ export function GifStripPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("gif-strip");
   const gifs = (facts.gifs ?? []).slice(0, 5);
   const items = content.gifs ?? [];
-  const rows = gifs.length
-    ? gifs.map((src, i) => ({ src, item: items[i] }))
-    : items.map((item) => ({ src: undefined, item }));
+  const rows = gifs.map((src, i) => ({ src, item: items[i] }));
   if (!rows.length) return <PdpEmptyPreview component="gif-strip" />;
 
   return (

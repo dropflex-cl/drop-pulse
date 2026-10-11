@@ -1,6 +1,6 @@
 import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
-import { DfStars } from "./primitives";
+import { DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
 
 // blocks/df-review-slider.liquid en su primer estado: la primera reseña a la vista, sin rotar (el
@@ -30,14 +30,14 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
     return review ? [{ review, excerpt: item.excerpt || review.body, mode: item.excerpt_mode ?? "verbatim" }] : [];
   });
   const total = picks.length;
-  if (!total) return <p className="df df-placeholder" data-df-empty="review-slider">Aún no hay reseñas de este producto.</p>;
+  if (!total) return <div className="df df-placeholder" data-df-empty="review-slider">Aún no hay reseñas de este producto.</div>;
 
   let heading = content.heading || String(s.heading ?? "");
   if (heading.includes("{rating}") && !facts.rating)
     heading = String(s.heading ?? "");
   heading = fill(heading, facts);
   const autoplay = total > 1;
-  const photoStyle = s.style === "photo";
+  const photoStyle = s.style !== "compact";
 
   return (
     <df-review-slider
@@ -60,19 +60,19 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
         aria-roledescription="carrusel"
         aria-label="Reseñas de compradores"
       >
-        <div className="df-slider__track" data-df-track="">
+        <div className="df-slider__track" data-df-track="" data-df-review-order="">
           {picks.map(({ review, excerpt, mode }, i) => {
             const author = review.author || "Comprador";
             const photo = review.photos[0];
             return (
-              <div key={`${review.id}-${i}`} className="df-review-slider__card" role="group" aria-roledescription="reseña" aria-label={`${i + 1} de ${total}`}>
+              <div key={`${review.id}-${i}`} className="df-review-slider__card" data-review-id={review.id} role="group" aria-roledescription="reseña" aria-label={`${i + 1} de ${total}`}>
                 {photoStyle && (
                   <div className="df-review-slider__avatar">
                     {photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={photo}
-                        alt=""
+                        alt={`Foto de la reseña de ${author}`}
                         width={62}
                         height={62}
                         loading="lazy"
@@ -103,7 +103,7 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
                           <p>{review.body}</p>
                         </details>
                       )}
-                      {s.show_date && review.date && <time>{review.date}</time>}
+                      {s.show_date && review.iso && <time dateTime={review.iso}>{review.iso.split("-").reverse().join("/")}</time>}
                     </div>
                   )}
                 </div>
@@ -112,10 +112,10 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
           })}
         </div>
         {total > 1 && <div className="df-slider__controls">
-          <button type="button" className="df-slider__arrow" data-df-prev="" aria-label="Ver reseña anterior">‹</button>
+          <button type="button" className="df-slider__arrow" data-df-prev="" aria-label="Ver reseña anterior"><DfIcon name="chevron-left" /></button>
           <span data-df-review-page="">1 / {total}</span>
-          <button type="button" className="df-slider__arrow" data-df-pause="" aria-label="Pausar reseñas" aria-pressed="false">Ⅱ</button>
-          <button type="button" className="df-slider__arrow" data-df-next="" aria-label="Ver reseña siguiente">›</button>
+          <button type="button" className="df-slider__arrow" data-df-pause="" aria-label="Pausar reseñas" aria-pressed="false"><DfIcon name="pause" /></button>
+          <button type="button" className="df-slider__arrow" data-df-next="" aria-label="Ver reseña siguiente"><DfIcon name="chevron-right" /></button>
         </div>}
       </df-slider>
     </df-review-slider>
