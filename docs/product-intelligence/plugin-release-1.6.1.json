@@ -1,0 +1,120 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acb9a62a038819180b2f09574a4218c",
+  "version": "1.6.1",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "files_before": [
+    ".app.json",
+    ".codex-plugin/plugin.json",
+    "plugin.json",
+    "skills/create-gift-ebook/SKILL.md",
+    "skills/create-gift-ebook/agents/openai.yaml",
+    "skills/create-gift-ebook/references/pdf-production.md",
+    "skills/create-gift-ebook/scripts/build_ebook.py",
+    "skills/optimize-product/SKILL.md",
+    "skills/optimize-product/agents/openai.yaml",
+    "skills/optimize-product/references/production.md",
+    "skills/optimize-product/references/strategy-and-hooks.md"
+  ],
+  "files_after": [
+    ".app.json",
+    ".codex-plugin/plugin.json",
+    "plugin.json",
+    "skills/create-gift-ebook/SKILL.md",
+    "skills/create-gift-ebook/agents/openai.yaml",
+    "skills/create-gift-ebook/references/pdf-production.md",
+    "skills/create-gift-ebook/scripts/build_ebook.py",
+    "skills/optimize-product/SKILL.md",
+    "skills/optimize-product/agents/openai.yaml",
+    "skills/optimize-product/references/production.md",
+    "skills/optimize-product/references/strategy-and-hooks.md"
+  ],
+  "checks": [
+    {
+      "path": ".app.json",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": ".codex-plugin/plugin.json",
+      "updated": true,
+      "matches": true,
+      "comparison": "equivalent_json"
+    },
+    {
+      "path": "plugin.json",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/SKILL.md",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/agents/openai.yaml",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/references/pdf-production.md",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/scripts/build_ebook.py",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/SKILL.md",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/agents/openai.yaml",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/references/production.md",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/references/strategy-and-hooks.md",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    }
+  ],
+  "verification": {
+    "mcp_http_and_skill_tests_passed": 40,
+    "current_content_and_shopify_local_tests_passed": 17,
+    "typecheck": "passed",
+    "lint_modified_test": "passed",
+    "contracts": "65 pairs exported and validated, no diff",
+    "build": "webpack passed",
+    "packaging": "11 files, synchronized root/compatibility manifests; mismatched version rejected",
+    "app_configuration": "preserved",
+    "ebook_files": "preserved exactly",
+    "host_conversation": "not exercised; an existing conversation can retain the previous skill snapshot"
+  },
+  "operational_actions": {
+    "paid_generation": false,
+    "product_publication": false,
+    "campaign_launch": false,
+    "database_migration": false
+  }
+}

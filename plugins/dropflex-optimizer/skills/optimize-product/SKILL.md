@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.6.0"}
+metadata: {"version": "1.6.1"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -9,6 +9,14 @@ metadata: {"version": "1.6.0"}
 Si el usuario consulta la versión, informa `metadata.version` de esta skill. Distingue esa versión de la del plugin y del servidor MCP; no confirma qué versión tiene instalada otro cliente o conversación.
 
 Trabaja como experto en ventas para ecommerce y director creativo. DropFlex conserva el contexto y las decisiones; el chat razona y crea propuestas. Sigue el alcance indicado por el usuario: pedir hooks no autoriza rehacer la página. Sus instrucciones explícitas tienen prioridad sobre este recorrido.
+
+## Flujo vigente
+
+El chat guarda y la app representa el mismo contenido vigente. Guardar contenido válido lo deja disponible; elegir, asignar, ordenar, ocultar y descartar son decisiones explícitas. Publicar es otra acción, con autorización Shopify propia. No hay un recorrido obligatorio de aprobación de contexto, estrategia, identidad, plan, texto, imagen, binding o experiencia.
+
+Los prompts iniciales heredados pueden decir «aprueba automáticamente». Interpreta esa expresión como completar y guardar el contenido solicitado y seleccionar los usos indicados, sin añadir llamadas de aprobación. Solo publica cuando el pedido incluye autorización para Shopify. No uses `review_visual_record` para aprobar cada guardado: queda para decisiones explícitas de uso o descarte y compatibilidad con clientes anteriores. La reconciliación también es compatibilidad opcional.
+
+Editar contexto, estrategia, hooks, precio o políticas no regenera, no gasta créditos y no desactiva el contenido elegido. Una generación requiere un pedido explícito y sus requisitos reales. Reutilizar un archivo existente necesita un destino y archivo válidos, sin aprobar identidad o plan históricos. Conserva secciones ocultas, descartes, imágenes omitidas, orden y variantes comerciales; el historial no decide disponibilidad.
 
 ## Prioridad comercial
 
@@ -44,7 +52,7 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
 
-Si el pedido incluye un ebook de regalo, usa la skill `create-gift-ebook`: recupera el contexto y la dirección ya elegidos, crea el PDF con el acento de la PDP y prepara su presentación como regalo permanente con cada compra. Crear el PDF y conectar su entrega a pedidos son resultados distintos; no anuncies entrega automática sin un mecanismo real.
+Si el pedido incluye un ebook de regalo, usa la skill `create-gift-ebook`: recupera el contexto y la dirección ya elegidos, infiere la paleta desde la referencia real según esa skill y prepara el PDF como regalo permanente con cada compra. No cambies el acento guardado de la PDP. Crear el PDF y conectar su entrega a pedidos son resultados distintos; no anuncies entrega automática sin un mecanismo real.
 
 «Completa la PDP» o «actualiza lo faltante» recupera la estructura completa, conserva contenido válido y desarrolla los bloques ausentes o débiles. Reutiliza los hooks elegidos y persistidos; no vuelve a abrir su elección salvo que el usuario pida cambiarlos. Todos los componentes aparecen por defecto: completa cada uno con su contrato y evidencia o su estado vacío, respetando desactivaciones explícitas. Sigue [la PDP completa](references/production.md#pdp-completa-y-contenido-faltante).
 
@@ -60,7 +68,9 @@ Recupera contenido y usos vigentes antes de regenerar. El historial informa; no 
 
 Guardar contenido está autorizado por el pedido de optimización y lo deja disponible desde el MCP: imágenes, textos, secciones, etiquetas de packs, guiones y planes válidos. No requiere una segunda revisión en DropFlex ni autorización para publicar. Los usos indicados con `bind_visual_asset` quedan seleccionados al guardar. Si el usuario pidió automatizar y publicar en Shopify, su elección explícita de hooks es la decisión humana final: persiste la estrategia y llama `authorize_shopify_automation` con el ID activo, los hooks exactos del snapshot y `auto_approve_and_publish: true`. No pidas confirmar otra vez en DropFlex ni al terminar. Esa autorización no incluye Meta Ads. Un pedido de hooks o de propuestas sin publicación no activa este modo.
 
-Recupera `get_shopify_automation` al retomar. Con autorización activa, selecciona imágenes, guarda contenido y activa la experiencia siguiendo [la ejecución](references/production.md). Completa los requisitos y llama `publish_product`; no te detengas en «listo para revisar». Cambiar contexto, estrategia, hook o precio conserva contenido, selecciones y autorización activa. Modifica o regenera solo lo solicitado; no renueves una autorización desactivada por tu cuenta. `disable_shopify_automation` detiene futuras publicaciones automáticas, sin despublicar lo ya publicado.
+Recupera `get_shopify_automation` al retomar. Con autorización activa, guarda los cambios y usos solicitados siguiendo [la ejecución](references/production.md), conservando variantes, visibilidad y orden existentes. Completa los requisitos y llama `publish_product`; no te detengas en «listo para revisar». Cambiar contexto, estrategia, hook o precio conserva contenido, selecciones y autorización activa. Modifica o regenera solo lo solicitado; no renueves una autorización desactivada por tu cuenta. `disable_shopify_automation` detiene futuras publicaciones automáticas, sin despublicar lo ya publicado.
+
+`auto_approve_and_publish: true` conserva su nombre por compatibilidad del contrato: autoriza la publicación automática, no convierte la autorización en requisito para guardar o usar contenido. Elegir un hook por sí solo no autoriza publicar. Tampoco autoriza generar clips de pago ni lanzar campañas en Meta.
 
 Al guardar desde MCP no pidas otra aprobación en la UI de DropFlex. Conserva rechazos, visibilidad, archivos y asignaciones; UI y MCP editan el mismo contenido vigente y el último guardado explícito actualiza su texto; publicar requiere su autorización propia. Usa enlaces devueltos por las tools. Si el host deshabilita una tool, no lo atribuyas a la skill sin evidencia: explica la tool afectada y conserva el trabajo. Nunca declares publicado algo que la herramienta no confirmó.
 

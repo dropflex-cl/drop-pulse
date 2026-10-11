@@ -1,7 +1,7 @@
 interface:
   display_name: "Optimizar producto"
   short_description: "Elige hooks y automatiza la página en Shopify"
-  default_prompt: "Usa $optimize-product para elegir los hooks de mi producto. Después de mi elección, aprueba automáticamente la página y sus imágenes y publica en Shopify sin otra confirmación en DropFlex."
+  default_prompt: "Usa $optimize-product para elegir los hooks de mi producto. Después de mi elección, guarda la página y asigna sus imágenes. Autorizo publicarla en Shopify sin otra confirmación en DropFlex."
 dependencies:
   tools:
     - type: "mcp"

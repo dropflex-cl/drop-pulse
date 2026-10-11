@@ -22,6 +22,62 @@ async function connect() {
 }
 
 describe("DropFlex · importación de skill MCP", () => {
+  it.each([
+    { name: "guardar sin aprobación ni permiso Shopify", path: "SKILL.md", requires: [
+      /Guardar contenido válido lo deja disponible/, /Publicar es otra acción, con autorización Shopify propia/,
+      /No hay un recorrido obligatorio de aprobación/, /No uses `review_visual_record` para aprobar cada guardado/,
+      /prompts iniciales heredados pueden decir «aprueba automáticamente»/,
+    ], forbids: [/Con autorización activa, aprueba planes/, /guarda contenido aprobado/, /Cada mutación usa revisión, etag/] },
+    { name: "editar hooks sin versiones, regeneración o revocación", path: "references/strategy-and-hooks.md", requires: [
+      /guardar la selección actualiza el mismo ID/, /No exige versiones, reconciliación ni aprobación nueva/,
+      /no regenera imágenes o copy ni gasta créditos/, /No reactives una autorización desactivada/,
+    ], forbids: [/versiona la selección/, /No ejecutes contra una selección stale/] },
+    { name: "editar un componente conserva filas y decisiones", path: "references/production.md", requires: [
+      /Para editar un componente, lee ese componente/, /UI y MCP editan la misma fila/,
+      /imágenes omitidas, orden y secciones ocultas/, /no es una etapa obligatoria para editar copy o reutilizar imágenes/,
+      /dry_run.*paso obligatorio para cada edición/,
+    ], forbids: [/fijan revisión exacta del plan/, /guarda con revisión\/etag actuales/, /vuelve a guardar propuestas anteriores/] },
+    { name: "asignar assets sin revisiones posteriores", path: "references/production.md", requires: [
+      /Si pasa y su uso fue indicado/, /destino válido queda seleccionado al guardar/,
+      /solo pidió propuestas, guarda el archivo sin elegir un destino/, /No uses `review_visual_record` para aprobar el asset/,
+      /no obliga a reconciliar ni aprobar un plan o archivo existente/,
+    ], forbids: [/Identidad y plan deben estar aprobados/, /Resuelve `approve_identity`/, /selecciona el binding con `review_visual_record`/] },
+    { name: "publicar solo con consentimiento vigente", path: "SKILL.md", requires: [
+      /Elegir un hook por sí solo no autoriza publicar/, /No pidas al comerciante revisiones, etags, stamps ni aprobaciones/,
+      /no renueves una autorización desactivada por tu cuenta/, /no regenera, no gasta créditos y no desactiva el contenido elegido/,
+      /no convierte la autorización en requisito para guardar o usar contenido/,
+    ], forbids: [/Si cambian el hook.*concilia/, /permite renovar la autorización/] },
+    { name: "UGC conserva medios y usa montaje local", path: "references/production.md", requires: [
+      /conservando medios existentes/, /Keyframes externos crean solo destinos faltantes/,
+      /montaje se realiza localmente con CapCut/, /No uses el worker Remotion retirado/,
+      /Generar clips de pago requiere un pedido explícito/,
+    ], forbids: [/Renderizar video sigue un flujo separado con permisos, aprobación/] },
+  ])("la skill servida respeta el flujo vigente: $name", async scenario => {
+    const session = await connect();
+    try {
+      const response = await session.client.readResource({ uri: `skill://dropflex/optimize-product/${scenario.path}` });
+      const resource = response.contents[0];
+      if (!("text" in resource)) throw new Error("La skill debe ser texto.");
+      for (const rule of scenario.requires) expect(resource.text).toMatch(rule);
+      for (const rule of scenario.forbids) expect(resource.text).not.toMatch(rule);
+      expect(session.execute).not.toHaveBeenCalled();
+    } finally { await session.close(); }
+  });
+  it("mantiene manifiestos compatibles y un prompt de skill sin aprobaciones intermedias", async () => {
+    const pluginRoot = join(root, "..");
+    const legacy = JSON.parse(await readFile(join(pluginRoot, ".codex-plugin/plugin.json"), "utf8"));
+    expect(legacy.name).toBe(pluginManifest.name);
+    expect(legacy.version).toBe(pluginManifest.version);
+    expect(legacy.interface).toEqual(pluginManifest.extensions["com.openai"].interface);
+    expect(legacy.apps).toBe(pluginManifest.extensions["com.openai"].apps);
+    const prompt = await readFile(join(root, "optimize-product/agents/openai.yaml"), "utf8");
+    expect(prompt).toMatch(/guarda la página y asigna sus imágenes/);
+    expect(prompt).toMatch(/Autorizo publicarla en Shopify/);
+    expect(prompt).not.toMatch(/aprueba automáticamente/);
+    const main = await readFile(join(root, "optimize-product/SKILL.md"), "utf8");
+    expect(main).toMatch(/infiere la paleta desde la referencia real/);
+    expect(main).not.toMatch(/crea el PDF con el acento de la PDP/);
+  });
   it("anuncia la extensión y sirve un catálogo completo con hashes verificables sin ejecutar tools", async () => {
     const session = await connect();
     try {

@@ -1,0 +1,26 @@
+{
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "DropFlex · Optimización",
+    "shortDescription": "Elige hooks y publica automáticamente en Shopify",
+    "longDescription": "Elige hooks y, con tu autorización, aprueba automáticamente página e imágenes y publica en Shopify desde el chat.",
+    "developerName": "DropFlex",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Optimiza mi producto: yo elijo los hooks y después aprueba automáticamente la página e imágenes y publica en Shopify sin más confirmaciones en DropFlex.",
+      "Retoma la publicación automática de mi producto en Shopify."
+    ]
+  },
+  "name": "dropflex-optimizer",
+  "version": "1.6.1",
+  "description": "Elige hooks y, con tu autorización, aprueba automáticamente página e imágenes y publica en Shopify desde el chat.",
+  "author": {
+    "name": "DropFlex"
+  },
+  "keywords": [],
+  "skills": "./skills"
+}

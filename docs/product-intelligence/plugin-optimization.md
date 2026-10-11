@@ -2,6 +2,30 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
+## Flujo vigente y adaptación 1.6.1
+
+Esta sección y [contenido vigente](current-content.md) prevalecen sobre los registros históricos de este documento. La versión 1.6.0 publicada tenía instrucciones de aprobación, reconciliación y snapshots que ya no correspondían al servidor. Parte de los archivos del repositorio había cambiado sin una nueva publicación; desplegar el servidor no actualizó el snapshot distribuido del plugin.
+
+La skill 1.6.1 aplica estas reglas:
+
+- Guardar deja el contenido válido disponible; elegir, asignar, ordenar, ocultar y descartar son decisiones explícitas. Publicar requiere su autorización Shopify propia.
+- UI y MCP editan la misma fila vigente; cambiar contexto, hooks, estrategia, precios o políticas conserva contenido, imágenes omitidas, usos, descartes, orden y secciones ocultas. No genera ni gasta créditos.
+- Plan persuasivo y experiencia no son etapas obligatorias para editar un componente o reutilizar un archivo. Una generación nueva necesita su pedido y requisitos reales.
+- `bind_visual_asset` guarda el uso indicado sin llamadas posteriores de aprobación o selección. `review_visual_record` y reconciliación permanecen como decisiones explícitas/compatibilidad, no como pasos del recorrido.
+- Revisión, etag, stamps e idempotencia se resuelven en el servidor; el cliente puede conservar una clave para reintentos ambiguos. Un conflicto requiere releer, respetando ediciones concurrentes.
+- La autorización Shopify activa se conserva al editar; una desactivada no se reactiva. Elegir un hook no autoriza por sí solo publicar, generar clips de pago o lanzar campañas Meta.
+- UGC conserva guiones y medios; keyframes externos crean destinos faltantes y el montaje se realiza localmente en CapCut. La referencia real, su transferencia al generador, la autenticidad de hechos/reseñas y los requisitos de archivos, destinos y permisos siguen vigentes.
+
+Se conserva íntegra la conexión y presentación del plugin asociado a la App, incluidos los prompts de entrada existentes. La skill define cómo interpretar el texto heredado «aprueba automáticamente» sin introducir aprobaciones. Su propio `agents/openai.yaml` pide guardar, asignar y publicar con autorización explícita. El manifiesto raíz y el overlay `.codex-plugin/plugin.json` comparten versión 1.6.1 e identidad; el empaquetador conserva el overlay y rechaza versiones distintas. `create-gift-ebook` 3.0.0 y sus archivos permanecen intactos; la optimización remite a su paleta desde la referencia real en lugar de imponer el acento de la PDP.
+
+Las pruebas de `mcp-skills.test.ts` ejercen los recursos servidos por el transporte MCP y detectan instrucciones que reintroducen aprobaciones, reconciliación obligatoria, invalidaciones, versiones comerciales, requisitos técnicos o el worker Remotion. También comprueban integridad de archivos/hashes y compatibilidad de manifiestos. Son comprobaciones deterministas de las instrucciones; no equivalen a una evaluación conversacional del modelo en ChatGPT.
+
+La actualización privada se guardó con Plugin Creator sobre el ID existente `Plugin_e3bca2a0f2208191a04ed05f2b5904fa`, usando el release anterior como control de concurrencia. El readback confirmó versión 1.6.1 y release `pluginrel_6acb9a62a038819180b2f09574a4218c`, los mismos once archivos, los cuatro archivos de optimización exactamente iguales al candidato y los cuatro de ebook y `.app.json` intactos. El manifiesto compatible se normalizó con escapes Unicode, conservando el mismo JSON. No cambió el scope personal ni la visibilidad privada.
+
+Verificación: 40 pruebas MCP/HTTP/skill/decisiones y 17 de integración local de contenido vigente/Shopify; TypeScript, lint del test modificado, 65 contratos sin diff y build Webpack correctos. El empaquetado incluye el overlay y una prueba negativa rechazó versiones distintas. La primera ejecución TypeScript coincidió con la regeneración de `.next` del build y falló por archivos transitorios ausentes; pasó al repetirla después del build. No hubo migraciones, generaciones pagadas, campañas ni publicaciones de productos. [Evidencia de release y readback](plugin-release-1.6.1.json).
+
+Una conversación abierta puede conservar la skill 1.6.0; refresca la instalación/conexión y abre un chat nuevo para cargar el release vigente. Guardar esta actualización no acredita un ensayo conversacional de ChatGPT ni el estado final de Vercel.
+
 ## Uso
 
 Invoca la skill como `$optimize-product` en Codex o selecciónala en el plugin del cliente que la tenga instalada. Ejemplos:
@@ -45,9 +69,9 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.3.8.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.3.8, declarada en `metadata.version` de su frontmatter. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
+Produce `output/plugins/dropflex-optimizer-1.6.1.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.6.1, declarada en `metadata.version` de su frontmatter, y conserva `create-gift-ebook` 3.0.0. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
 
-## Referencia visual obligatoria (1.0.1)
+## Registro histórico: referencia visual obligatoria (1.0.1)
 
 La incidencia del 2026-10-07 mostró un SKU blanco generado en ChatGPT mientras la base guardada era negra/violeta. En producción el producto no tenía registros Visual Production, y el catálogo conectado en la sesión de diagnóstico conservaba 37 tools sin las visuales. Esto confirma que el flujo persistido no se había ejecutado; no permite inspeccionar los argumentos privados del generador de otro chat.
 
@@ -90,7 +114,7 @@ Prueba conversacional en un producto piloto: iniciar sin selección → elegir/e
 
 Fuentes: [skills y snapshot de importación](https://developers.openai.com/plugins/build/skills), [protocolo de importación MCP](https://developers.openai.com/plugins/build/mcp-server#import-skills-from-the-mcp-server), [empaquetado e instalación local](https://developers.openai.com/plugins/build/plugins).
 
-## Automatización Shopify (1.1.0)
+## Registro histórico: automatización Shopify (1.1.0)
 
 Pedido previsto: «Yo elijo los hooks; después aprueba la página y las imágenes y publica automáticamente en Shopify». El comerciante sigue decidiendo esos hooks en el chat. Esto no autoriza campañas en Meta ni convierte hipótesis en hechos verificados.
 
