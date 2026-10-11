@@ -150,7 +150,7 @@ V1 incorpora setup y generación, por lo que provenance de runs/medios y pi_gene
 
 `pi_product_learnings`: UUID, product/user, revisión única por producto, strategy_id, ventana de medición, contenido del chat, performance congelada, actor y fecha. Inmutable, lectura del dueño, FK compuesta hacia el agregado y FK de estrategia con cascada. Puede citarse como fuente interna `product_learning`.
 
-`pi_gallery_operations`: UUID, product/user, identidad delegada para reautorización interna, huella de contexto, UUID de imagen base congelado, coste estimado, QA, estado y timestamps. RLS sin SELECT del cliente: la consulta autorizada de estado proyecta solo datos públicos de la operación. `page_images.pi_operation_id` enlaza la cola con cascada. El UUID base es snapshot sin FK hacia la referencia: borrar una referencia no debe borrar assets antes de limpiar Storage.
+`pi_gallery_operations`: UUID, product/user, identidad delegada para reautorización interna, huella de contexto, UUID de imagen base congelado, coste estimado, estado y timestamps. El campo QA fue retirado por `20261216000000_retire_image_qa.sql`. RLS sin SELECT del cliente: la consulta autorizada de estado proyecta solo datos públicos de la operación. `page_images.pi_operation_id` enlaza la cola con cascada. El UUID base es snapshot sin FK hacia la referencia: borrar una referencia no debe borrar assets antes de limpiar Storage.
 
 `event_copy.provenance` y `ad_media.content_provenance` conservan autoría/contexto y selectores. Los inputs de runs guardan estrategia, pricing, hechos verificados y huella/base de generación. `products.usage_tip` añade source/status/provenance/revisiones de hechos aprobados. Ningún valor de estado UI en español se persiste.
 

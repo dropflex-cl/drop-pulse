@@ -1,0 +1,71 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.6.4",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acc1f6faea48191ad157a7a63e92af6",
+  "previous_release_id": "pluginrel_6acc1b358be48191a2b6be5ac2450a3c",
+  "checks": [
+    {
+      "path": ".app.json",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": ".codex-plugin/plugin.json",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "plugin.json",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/SKILL.md",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/agents/openai.yaml",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/references/pdf-production.md",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/scripts/build_ebook.py",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/SKILL.md",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/agents/openai.yaml",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/references/production.md",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/references/strategy-and-hooks.md",
+      "changed": false,
+      "matches": true
+    }
+  ],
+  "validation": {
+    "mcp_http_skill_tests": 34,
+    "lint": "passed",
+    "conversation_host_test": "not_run"
+  }
+}

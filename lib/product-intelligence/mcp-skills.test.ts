@@ -22,7 +22,25 @@ async function connect() {
 }
 
 describe("DropFlex · importación de skill MCP", () => {
+  it("el servidor exige un pedido explícito antes de regenerar o descartar por un fallo visual", async () => {
+    const session = await connect();
+    try {
+      expect(session.client.getInstructions()).toMatch(/revisión automática pagada de imágenes está retirada/);
+      expect(session.client.getInstructions()).toMatch(/regenerar o descartar requiere un pedido explícito del comerciante/);
+      expect(session.client.getInstructions()).toMatch(/autorización del lote o de publicación en Shopify no autoriza intentos adicionales por QA/);
+      expect(session.execute).not.toHaveBeenCalled();
+    } finally { await session.close(); }
+  });
   it.each([
+    { name: "inspeccionar sin QA pagado ni regeneración automática", path: "SKILL.md", requires: [
+      /revisión automática pagada de imágenes está retirada/, /regenerar requiere un pedido explícito/,
+      /No añadas intentos ni gastos por tu evaluación/,
+    ], forbids: [/revisa tú la toma principal contra la foto base y continúa el lote/] },
+    { name: "fallos visuales conservan decisiones y requieren otra solicitud", path: "references/production.md", requires: [
+      /regenerar requiere un pedido explícito nuevo/, /conserva la pieza y sus decisiones de uso/,
+      /no activa QA pagado, reintentos automáticos ni gastos adicionales/,
+      /autorización del lote o de publicación no autoriza intentos adicionales por QA/,
+    ], forbids: [/prepara una corrección dentro del pedido de generación autorizado/, /corrige las tomas afectadas dentro del alcance autorizado/] },
     { name: "guardar sin aprobación ni permiso Shopify", path: "SKILL.md", requires: [
       /Guardar contenido válido lo deja disponible/, /Publicar es otra acción, con autorización Shopify propia/,
       /No hay un recorrido obligatorio de aprobación/, /No uses `review_visual_record` para aprobar cada guardado/,
