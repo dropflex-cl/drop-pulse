@@ -1,0 +1,378 @@
+{
+  "mode": "optimized",
+  "runtime": "v24.19.0",
+  "rounds": 25,
+  "scope": "local RPC + HTTP + JSON, sin proveedores; signing Storage local; helpers SQL compartidos en ambos modos",
+  "results": {
+    "empty": {
+      "visual_current": {
+        "median_ms": 4.168875000000071,
+        "p95_ms": 6.880541999999878,
+        "transform": {
+          "median_ms": 0.030250000000023647,
+          "p95_ms": 0.040500000000065484
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 2381.96,
+        "materialized_bytes": 2213,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "ingestion_status": {
+        "median_ms": 3.8150419999999485,
+        "p95_ms": 4.481874999999945,
+        "transform": {
+          "median_ms": 0.008166000000073836,
+          "p95_ms": 0.02091700000005403
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 424,
+        "materialized_bytes": 404,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_component": {
+        "median_ms": 2.767124999999851,
+        "p95_ms": 3.2002919999999904,
+        "transform": {
+          "median_ms": 0.011708999999882508,
+          "p95_ms": 0.016375000000152795
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 784,
+        "materialized_bytes": 725,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 2.9440420000000813,
+        "p95_ms": 3.5481249999998,
+        "transform": {
+          "median_ms": 0.0128340000001117,
+          "p95_ms": 0.0182079999999587
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 784,
+        "materialized_bytes": 725,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "complete": {
+      "visual_current": {
+        "median_ms": 5.595833999999741,
+        "p95_ms": 6.648749999999836,
+        "transform": {
+          "median_ms": 0.38733400000000984,
+          "p95_ms": 0.7173750000001746
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 32014.92,
+        "materialized_bytes": 30151,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "ingestion_status": {
+        "median_ms": 4.831916999999976,
+        "p95_ms": 5.938834000000043,
+        "transform": {
+          "median_ms": 0.009958999999980733,
+          "p95_ms": 0.012542000000394182
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 423,
+        "materialized_bytes": 403,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_component": {
+        "median_ms": 3.1660839999999553,
+        "p95_ms": 4.71770800000013,
+        "transform": {
+          "median_ms": 0.04195900000013353,
+          "p95_ms": 0.08762500000011642
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 3264,
+        "materialized_bytes": 3026,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 2.4626249999996617,
+        "p95_ms": 3.2825000000002547,
+        "transform": {
+          "median_ms": 0.029667000000245025,
+          "p95_ms": 0.05266699999992852
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 2860,
+        "materialized_bytes": 2633,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 1.5040829999998095,
+        "p95_ms": 1.7449999999998909,
+        "transform": {
+          "median_ms": 0.007625000000189175,
+          "p95_ms": 0.025791000000026543
+        },
+        "queries": 0,
+        "storage_calls": 1,
+        "transferred_bytes": 1663,
+        "materialized_bytes": 3079,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "many_images": {
+      "visual_current": {
+        "median_ms": 5.294250000000375,
+        "p95_ms": 6.338082999999642,
+        "transform": {
+          "median_ms": 0.7867079999996349,
+          "p95_ms": 1.006750000000011
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 96219.76,
+        "materialized_bytes": 90044,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "ingestion_status": {
+        "median_ms": 3.2955830000000788,
+        "p95_ms": 3.6299159999998665,
+        "transform": {
+          "median_ms": 0.003957999999329331,
+          "p95_ms": 0.008166000000528584
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 424,
+        "materialized_bytes": 404,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_component": {
+        "median_ms": 1.8924579999993512,
+        "p95_ms": 2.4227920000002996,
+        "transform": {
+          "median_ms": 0.07375000000047294,
+          "p95_ms": 0.09016599999995378
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 8731,
+        "materialized_bytes": 8185,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 1.8322499999994761,
+        "p95_ms": 2.1565419999997175,
+        "transform": {
+          "median_ms": 0.06599999999980355,
+          "p95_ms": 0.09170799999992596
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 8327,
+        "materialized_bytes": 7792,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 3.465165999999954,
+        "p95_ms": 11.16466599999967,
+        "transform": {
+          "median_ms": 0.224250000000211,
+          "p95_ms": 0.321458999999777
+        },
+        "queries": 0,
+        "storage_calls": 1,
+        "transferred_bytes": 44531,
+        "materialized_bytes": 82431,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "wide_history": {
+      "visual_current": {
+        "median_ms": 3.374749999999949,
+        "p95_ms": 4.411874999999782,
+        "transform": {
+          "median_ms": 0.36062500000025466,
+          "p95_ms": 0.6473749999995562
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 32024.76,
+        "materialized_bytes": 30161,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "ingestion_status": {
+        "median_ms": 2.6742910000002666,
+        "p95_ms": 4.096082999999453,
+        "transform": {
+          "median_ms": 0.006457999999838648,
+          "p95_ms": 0.012582999999722233
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 423,
+        "materialized_bytes": 403,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_component": {
+        "median_ms": 1.6645410000000993,
+        "p95_ms": 2.1252919999997175,
+        "transform": {
+          "median_ms": 0.03187500000058208,
+          "p95_ms": 0.044667000000117696
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 3264,
+        "materialized_bytes": 3026,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 1.7697079999998095,
+        "p95_ms": 2.2559170000004087,
+        "transform": {
+          "median_ms": 0.029125000000021828,
+          "p95_ms": 0.0398750000003929
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 2860,
+        "materialized_bytes": 2633,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 1.4154159999998228,
+        "p95_ms": 2.6760000000003856,
+        "transform": {
+          "median_ms": 0.014041999999790278,
+          "p95_ms": 0.01766700000007404
+        },
+        "queries": 0,
+        "storage_calls": 1,
+        "transferred_bytes": 1663,
+        "materialized_bytes": 3079,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "changed": {
+      "visual_current": {
+        "median_ms": 3.2281659999998737,
+        "p95_ms": 3.478874999999789,
+        "transform": {
+          "median_ms": 0.2736249999998108,
+          "p95_ms": 0.5027079999999842
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 32029.84,
+        "materialized_bytes": 30164,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "ingestion_status": {
+        "median_ms": 2.7929590000003373,
+        "p95_ms": 3.200582999999824,
+        "transform": {
+          "median_ms": 0.008083000000624452,
+          "p95_ms": 0.011999999999716238
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 424,
+        "materialized_bytes": 404,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_component": {
+        "median_ms": 1.6158340000001772,
+        "p95_ms": 1.9096250000002328,
+        "transform": {
+          "median_ms": 0.027665999999953783,
+          "p95_ms": 0.03987499999948341
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 3279,
+        "materialized_bytes": 3040,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 1.5163329999995767,
+        "p95_ms": 2.19695800000045,
+        "transform": {
+          "median_ms": 0.02291700000023411,
+          "p95_ms": 0.029166999999688414
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 2860,
+        "materialized_bytes": 2633,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 1.2749170000006416,
+        "p95_ms": 2.3801669999993464,
+        "transform": {
+          "median_ms": 0.010541999999986729,
+          "p95_ms": 0.01320899999973335
+        },
+        "queries": 0,
+        "storage_calls": 1,
+        "transferred_bytes": 1663,
+        "materialized_bytes": 3079,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    }
+  }
+}

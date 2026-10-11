@@ -11,7 +11,7 @@ import { ProductIntelligenceError } from "./errors";
 export async function assertVisualBindingsPublishable(userId: string, productId: string, ids: string[]) {
   if (!ids.length) return;
   const principal = { userId, actorId: userId, actorKind: "merchant" as const, scopes: PI_SCOPES }, repo = createContextRepository();
-  const state = await hydrateVisualState(await repo.loadVisual({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(20000)), principal, productId);
+  const state = await hydrateVisualState(await repo.readVisual({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(20000)), principal, productId);
   for (const id of new Set(ids)) {
     const binding = findVisual(state, id, "binding"), asset = findVisual(state, String(binding.payload.asset_id), "asset");
     if (!selectedUse(binding)) throw new ProductIntelligenceError("VALIDATION_ERROR", "Elige una imagen para ese espacio antes de publicar.");

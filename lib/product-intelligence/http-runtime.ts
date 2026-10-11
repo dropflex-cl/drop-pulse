@@ -25,19 +25,23 @@ export async function serveMcpMetadata(request: Request) {
 }
 
 export async function serveMcpRequest(request: Request): Promise<Response> {
+  const started = performance.now();
   let config;
   try {
     config = mcpConfiguration();
     if (!config) return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
-    const repository = createContextRepository();
+    // after/waitUntil conserva la vida del runtime hasta persistir; nunca fire-and-forget.
+    const repository = { ...createContextRepository(), deferVisualTelemetry: (task: () => Promise<void>) => after(task) };
     const wake = (id: string) => after(() => runUgcOperation(id));
     const wakeGallery = (id: string) => after(() => runGalleryOperation(id));
     const wakePublish = (id: string) => after(() => runAutomaticShopifyPublication(id));
     const wakeVisual = (id: string) => after(() => runVisualIngestion(id));
-    return await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery, wakeVisual, wakePublish), {
+    const response = await createMcpHttpHandler(config, createMcpAuthenticator(config, checkLiveMcpGrant), createProductIntelligenceExecutor(repository, undefined, undefined, wake, wakeGallery, wakeVisual, wakePublish), {
       availableTools: PERSISTED_INTELLIGENCE_TOOLS.filter(tool => (persuasionEnabled() || !persuasionTools.includes(tool as typeof persuasionTools[number])) && (visualEnabled() || (tool !== "review_visual_record" && !visualTools.includes(tool as typeof visualTools[number])))),
       executorForAuthentication: (auth) => createProductIntelligenceExecutor(repository, auth.identity, undefined, wake, wakeGallery, wakeVisual, wakePublish),
     })(request);
+    console.info("[mcp/response]", JSON.stringify({ server_response_ms: performance.now() - started, status: response.status }));
+    return response;
   } catch (error) {
     const response = mcpHttpError(error, config ?? undefined);
     const origin = request.headers.get("origin");

@@ -254,8 +254,13 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
     const delegated = createContextExecutor(repository, auth.identity);
     const request = { ...input(12), context: { description: "Revoke race" } };
     const loaded = await repository.load({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId }, signal());
+    const visual = await repository.readVisual({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId, p_paginate: true }, signal()) as { snapshot_id: string };
     expect(parseContextRead(loaded).revision).toBe(12);
     await rpc("pi_revoke_oauth_grant", { p_user_id: owner.userId, p_client_id: auth.identity.clientId });
+    for (const extra of [{}, { p_snapshot_id: visual.snapshot_id }]) {
+      await expect(repository.readVisual({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId, ...extra }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
+    }
+    await expect(repository.readVisualOperation({ p_access: contextAccess(auth.principal, auth.identity), p_product_id: productId, p_operation_id: randomUUID() }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(delegated(auth.principal, { tool: "save_product_context", input: request }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(delegated(auth.principal, { tool: "save_product_context", input: initialInput }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(delegated(auth.principal, { tool: "get_product_context", input: parseToolInput("get_product_context", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });

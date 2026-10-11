@@ -68,6 +68,20 @@ function raw() {
   };
 }
 describe("PI · contenido de Shopify desde chat", () => {
+  it.each(["listing", "pain-block"])("la proyección de %s mantiene la respuesta y evita las lecturas amplias", async component => {
+    const full = { ...raw(), image_catalog: [{ source: "reference", id: randomUUID() }] };
+    const legacy = { loadLanding: vi.fn(async () => full), commitLanding: vi.fn(), loadPageAccent: vi.fn(async () => null) };
+    const projected = { ...legacy, readLandingComponent: vi.fn(async () => ({ ...full, stamp: undefined, snapshot: {
+      pricing: full.snapshot.pricing, settings: full.snapshot.settings,
+    }, page_accent_color: null })) };
+    const command = { tool: "get_landing_content" as const, input: parseToolInput("get_landing_content", { product_id: id, component }) };
+    const before = await createLandingExecutor(legacy)(owner, command, AbortSignal.timeout(1000));
+    legacy.loadLanding.mockClear(); legacy.loadPageAccent.mockClear();
+    const after = await createLandingExecutor(projected)(owner, command, AbortSignal.timeout(1000));
+    expect({ ...after as object, request_id: null }).toEqual({ ...before as object, request_id: null });
+    expect(projected.readLandingComponent).toHaveBeenCalledWith(expect.objectContaining({ p_component: component }), expect.any(AbortSignal));
+    expect(legacy.loadLanding).not.toHaveBeenCalled(); expect(legacy.loadPageAccent).not.toHaveBeenCalled();
+  });
   it.each(["#0f766e", null])("lee el acento vigente después de autorizar el producto (%s)", async accent => {
     const repository = { loadLanding: vi.fn(async () => raw()), commitLanding: vi.fn(), loadPageAccent: vi.fn(async () => accent) };
     const signal = AbortSignal.timeout(1000);

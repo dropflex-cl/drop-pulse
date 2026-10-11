@@ -1,0 +1,214 @@
+{
+  "mode": "baseline",
+  "runtime": "v24.19.0",
+  "rounds": 25,
+  "scope": "local RPC + HTTP + JSON, sin proveedores; signing Storage local",
+  "results": {
+    "empty": {
+      "ingestion_status": {
+        "median_ms": 6.748417000000018,
+        "p95_ms": 7.672709000000168,
+        "transform": {
+          "median_ms": 0.03562499999998181,
+          "p95_ms": 0.09379100000001017
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 7079.84,
+        "materialized_bytes": 6546,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 5786.84
+      },
+      "landing_component": {
+        "median_ms": 3.4987499999999727,
+        "p95_ms": 3.7289579999999205,
+        "transform": {
+          "median_ms": 0.031375000000025466,
+          "p95_ms": 0.03850000000011278
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 1331,
+        "materialized_bytes": 1223,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      }
+    },
+    "complete": {
+      "ingestion_status": {
+        "median_ms": 11.851750000000038,
+        "p95_ms": 14.136457999999948,
+        "transform": {
+          "median_ms": 0.8824170000000322,
+          "p95_ms": 1.0237919999999576
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 61457.8,
+        "materialized_bytes": 59330,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 58570.8
+      },
+      "landing_component": {
+        "median_ms": 4.4554580000003625,
+        "p95_ms": 5.455375000000004,
+        "transform": {
+          "median_ms": 0.2112909999996191,
+          "p95_ms": 0.427958000000217
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 26077,
+        "materialized_bytes": 24614,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 3.8470000000002074,
+        "p95_ms": 10.093249999999898,
+        "transform": {
+          "median_ms": 0.012416999999913969,
+          "p95_ms": 0.022375000000010914
+        },
+        "queries": 0,
+        "storage_calls": 3,
+        "transferred_bytes": 1320,
+        "materialized_bytes": 1423,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      }
+    },
+    "many_images": {
+      "ingestion_status": {
+        "median_ms": 13.764083000000028,
+        "p95_ms": 15.278042000000369,
+        "transform": {
+          "median_ms": 1.9317500000001928,
+          "p95_ms": 2.3715830000001006
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 158295.92,
+        "materialized_bytes": 149468,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 148709.92
+      },
+      "landing_component": {
+        "median_ms": 4.597541999999976,
+        "p95_ms": 6.159250000000156,
+        "transform": {
+          "median_ms": 0.23766599999999016,
+          "p95_ms": 0.34400000000005093
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 40780,
+        "materialized_bytes": 38239,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 23.313582999999653,
+        "p95_ms": 46.094208999999864,
+        "transform": {
+          "median_ms": 0.07508300000017698,
+          "p95_ms": 0.1408329999999296
+        },
+        "queries": 0,
+        "storage_calls": 80,
+        "transferred_bytes": 35340,
+        "materialized_bytes": 38061,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      }
+    },
+    "wide_history": {
+      "ingestion_status": {
+        "median_ms": 51.57166700000016,
+        "p95_ms": 77.07058400000005,
+        "transform": {
+          "median_ms": 5.528874999999971,
+          "p95_ms": 6.7030839999997625
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 4443372.96,
+        "materialized_bytes": 4436772,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 4436012.96
+      },
+      "landing_component": {
+        "median_ms": 5.6391670000002705,
+        "p95_ms": 7.260874999999942,
+        "transform": {
+          "median_ms": 0.09516699999949196,
+          "p95_ms": 0.12387500000022555
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 26029,
+        "materialized_bytes": 24566,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 4.373166999999739,
+        "p95_ms": 6.667833999999857,
+        "transform": {
+          "median_ms": 0.006041000000550412,
+          "p95_ms": 0.008791000000201166
+        },
+        "queries": 0,
+        "storage_calls": 3,
+        "transferred_bytes": 1320,
+        "materialized_bytes": 1423,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      }
+    },
+    "changed": {
+      "ingestion_status": {
+        "median_ms": 11.582457999998951,
+        "p95_ms": 17.55870800000048,
+        "transform": {
+          "median_ms": 0.41683300000113377,
+          "p95_ms": 1.4937910000007832
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 299492.88,
+        "materialized_bytes": 297121,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 296361.88
+      },
+      "landing_component": {
+        "median_ms": 3.700542000000496,
+        "p95_ms": 4.135874999999942,
+        "transform": {
+          "median_ms": 0.16566700000112178,
+          "p95_ms": 0.26958399999966787
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 26091,
+        "materialized_bytes": 24627,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 2.805291999999099,
+        "p95_ms": 3.957582999999431,
+        "transform": {
+          "median_ms": 0.005875000000742148,
+          "p95_ms": 0.01116600000023027
+        },
+        "queries": 0,
+        "storage_calls": 3,
+        "transferred_bytes": 1320,
+        "materialized_bytes": 1423,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0
+      }
+    }
+  }
+}

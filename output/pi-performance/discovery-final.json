@@ -1,0 +1,23 @@
+{
+  "rounds": {
+    "construction": 30,
+    "discovery": 10
+  },
+  "cold_server_ms": 40.67987499999998,
+  "warm_server": {
+    "median_ms": 0.09687499999998295,
+    "p95_ms": 0.25466700000001197
+  },
+  "discovery_in_memory": {
+    "median_ms": 190.94595900000013,
+    "p95_ms": 228.93291699999997
+  },
+  "discovery_stateless_http": {
+    "median_ms": 9.065207999999984,
+    "p95_ms": 11.254625000000033
+  },
+  "pages": 6,
+  "tools": 65,
+  "contracts_sha256": "aa633dca028ced5095163c0ea15135d63085502ecf7d6f57e564d72ad5d8211a",
+  "discovery_sha256": "141e0a0a01c8857545463fff8db40534f6f35563dde5a4baac97431fa2e9133e"
+}

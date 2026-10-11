@@ -10,7 +10,7 @@ import type { VisualWorkbench } from "@/lib/types";
 
 export async function getVisualWorkbench(userId: string, productId: string, offset = 0): Promise<VisualWorkbench | null> {
   const principal = { userId, actorId: userId, actorKind: "merchant" as const, scopes: PI_SCOPES };
-  const raw = await createContextRepository().loadVisual({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(20000));
+  const raw = await createContextRepository().readVisual({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(20000));
   const state = await hydrateVisualState(raw, principal, productId), canonical = state.references.find(r => r.is_base);
   const value = canonical ? state.live[`reference:${canonical.id}`]?.value as { content_hash: string | null } : null;
   const assets = state.records.filter(r => r.kind === "asset").reverse();

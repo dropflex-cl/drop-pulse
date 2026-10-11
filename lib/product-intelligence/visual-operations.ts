@@ -21,7 +21,12 @@ export async function runVisualIngestion(id: string) {
   if (!claim.data) return;
   const op = opSchema.parse(claim.data); let uploaded: string | null = null;
   const started = Date.now(), attempt = op.id;
-  const event = (state: "started" | "succeeded" | "failed", error_code?: string) => recordServerVisualEvent(createContextRepository(db), op.access, op.product_id,
+  let diagnostics = Promise.resolve();
+  const eventRepository = { ...createContextRepository(db), deferVisualTelemetry: (task: () => Promise<void>) => {
+    // Conserva el orden started → terminal sin detener la copia o el commit.
+    diagnostics = diagnostics.then(task);
+  } };
+  const event = (state: "started" | "succeeded" | "failed", error_code?: string) => recordServerVisualEvent(eventRepository, op.access, op.product_id,
     { attempt_id: attempt, stage: "ingestion", state, duration_ms: Math.min(Date.now() - started, 300000), iteration_id: op.iteration_id, operation_id: op.id, ...(error_code ? { error_code } : {}) });
   let failureCode = "TRANSFER_EXPIRED";
   await event("started");
@@ -77,6 +82,9 @@ export async function runVisualIngestion(id: string) {
     // Do not log temporary URLs or tokens. Terminalizing a failed lease never creates content.
     await db.rpc("pi_complete_visual_ingestion", { p_operation_id: op.id, p_token: op.lease_token, p_file: null, p_asset: null,
       p_error: error instanceof Error && !/https?:\/\//.test(error.message) ? error.message : "No pudimos recibir la imagen. Usa otro enlace o prepara una nueva subida." });
+  } finally {
+    // El worker ya corre en after/cron; su lifetime incluye todos los eventos iniciados.
+    await diagnostics;
   }
 }
 export async function resumeVisualIngestions() {

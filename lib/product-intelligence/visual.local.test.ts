@@ -130,6 +130,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await fetch((ticket.data.upload as { url: string }).url, { method: "PUT", headers: { "Content-Type": "image/png", "x-upsert": "false" }, body: new Uint8Array(bytes) })).ok).toBe(true);
     const ingestion = await call("ingest_external_visual_asset", { ...await preconditions(), iteration_id: iteration.id, source: { type: "upload_ticket", ticket_id: ticket.data.operation_id } });
     await runVisualIngestion(String(ingestion.data.operation_id));
+    const diagnostics = await call("get_visual_transfer_history", { product_id: product, attempt_id: ingestion.data.operation_id });
+    expect(diagnostics.data.events.map(event => event.state)).toEqual(["succeeded", "started"]);
     const current = await preconditions();
     const bytesRead = vi.spyOn(visualMedia, "visualStoredBytes").mockRejectedValue(new Error("La consulta de estado no necesita fotos"));
     const signedUrl = vi.spyOn(visualMedia, "visualSignedUrl").mockRejectedValue(new Error("La consulta de estado no necesita URLs"));

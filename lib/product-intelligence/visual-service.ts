@@ -19,7 +19,7 @@ import { visualInputSchemas, visualReviewInput, VISUAL_LIMITS, type VisualRecord
 import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration, visualPlanReadiness,
   prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, visualReadSchema, vHash, type VisualState } from "./visual-domain";
 import { hydrateVisualState, visualReferenceBytes } from "./visual-state";
-import { visualSignedUrl } from "./visual-media";
+import { stateVisualSigner } from "./visual-url-signer";
 import { attachToolImage } from "./tool-media";
 import { referenceImageContent } from "./visual-reference";
 import { recordServerVisualEvent } from "./visual-transfer";
@@ -30,7 +30,8 @@ const operationContextSchema = visualReadSchema.pick({ revision: true, etag: tru
 const operationSchema = z.object({ id: z.string().uuid(), kind: z.string(), iteration_id: z.string().uuid(), status: z.string(), source: object,
   expires_at: z.string(), result: z.unknown().nullable(), error_message: z.string().nullable() });
 type Operation = z.infer<typeof operationSchema>;
-export const safeOperation = (op: Operation) => ({ operation_id: op.id, kind: op.kind, iteration_id: op.iteration_id, state: op.status,
+const operationStatusSchema = operationSchema.omit({ source: true });
+export const safeOperation = (op: z.infer<typeof operationStatusSchema>) => ({ operation_id: op.id, kind: op.kind, iteration_id: op.iteration_id, state: op.status,
   expires_at: op.expires_at, result: op.result, error: op.error_message });
 async function signedUpload(op: Operation) {
   if (op.kind !== "upload" || new Date(op.expires_at).getTime() < Date.now()) invalidVisual("El ticket venció. Prepara una nueva subida.", "VALIDATION_ERROR");
@@ -41,7 +42,7 @@ async function signedUpload(op: Operation) {
 }
 export async function visualRecordView(r: VisualRecord, state: VisualState) {
   const file = r.kind === "asset" ? state.files.find(f => f.id === r.payload.file_id) : undefined;
-  return { ...r, validity: recordValidity(r, state), ...(r.kind === "plan" ? { readiness: visualPlanReadiness(r, state), shot_validity: Object.fromEntries((r.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).map(s => [s.shot_key, { state: "current" as const, reasons: [] }])) } : {}), ...(file ? { file: { ...file, url: await visualSignedUrl(file.bucket, file.storage_path) } } : {}),
+  return { ...r, validity: recordValidity(r, state), ...(r.kind === "plan" ? { readiness: visualPlanReadiness(r, state), shot_validity: Object.fromEntries((r.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).map(s => [s.shot_key, { state: "current" as const, reasons: [] }])) } : {}), ...(file ? { file: { ...file, url: await stateVisualSigner(state)(file.bucket, file.storage_path) } } : {}),
     reviews: state.records.filter(f => f.kind === "review" && f.payload.subject_id === r.id).slice(-10) };
 }
 export function createVisualExecutor(repository: VisualRepository, identity?: DelegatedIdentity, wake?: (id: string) => void, secret = process.env.OAUTH_STATE_SECRET ?? ""): DomainExecutor {
@@ -58,6 +59,13 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     }
     const persistedTool = tool === "ingest_chatgpt_visual_asset" ? "ingest_external_visual_asset" : tool;
     const writing = "expected_revision" in input, access = contextAccess(principal, identity);
+    if (tool === "get_visual_ingestion_status" && repository.readVisualOperation) {
+      const q = visualInputSchemas[tool].parse(input);
+      const raw = object.parse(await repository.readVisualOperation({ p_access: access, p_product_id: input.product_id, p_operation_id: q.operation_id }, signal));
+      const context = operationContextSchema.parse(raw), operation = operationStatusSchema.parse(raw.operation);
+      return parseToolOutput(tool, { ok: true, request_id: randomUUID(), product_id: input.product_id, revision: context.revision,
+        data: { etag: context.etag, dependency_stamp: context.dependency_stamp, ...safeOperation(operation) } });
+    }
     const queryHash = vHash({ tool, user: principal.userId, actor: principal.actorId, input: Object.fromEntries(Object.entries(input).filter(([k]) => k !== "cursor")) });
     let snapshotId: string | null = null, offset = 0;
     if ("cursor" in input && input.cursor) {
@@ -68,8 +76,9 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     }
     const hashInput = tool === "ingest_chatgpt_visual_asset" ? { ...input, file: { ...visualInputSchemas.ingest_chatgpt_visual_asset.parse(input).file, download_url: undefined } } : input;
     const hash = writing ? commandHash(tool, hashInput) : null;
-    const raw = await repository.loadVisual({ p_access: access, p_product_id: input.product_id, p_tool: writing ? persistedTool : null,
-      p_key: writing ? input.idempotency_key : null, p_hash: hash, p_dry_run: writing && input.dry_run, p_snapshot_id: snapshotId }, signal);
+    const raw = await (repository.readVisual ?? repository.loadVisual)({ p_access: access, p_product_id: input.product_id, p_tool: writing ? persistedTool : null,
+      p_key: writing ? input.idempotency_key : null, p_hash: hash, p_dry_run: writing && input.dry_run, p_snapshot_id: snapshotId,
+      ...(repository.readVisual ? { p_paginate: "cursor" in schema.shape, p_history: "version" in input && Boolean(input.version) } : {}) }, signal);
     const replay = object.safeParse(raw);
     if (replay.success && replay.data.replay) {
       const result = parseToolOutput(tool, replay.data.replay);
@@ -298,7 +307,7 @@ export async function reviewVisualRecord(repository: VisualRepository, principal
   if (!visualEnabled()) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La producción visual no está habilitada.");
   const input = visualReviewInput.parse(raw);
   const access = contextAccess(principal, identity), hash = vHash({ tool: "review_visual_record", input });
-  const loaded = await repository.loadVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_key: input.idempotency_key, p_hash: hash, p_dry_run: input.dry_run }, signal);
+  const loaded = await (repository.readVisual ?? repository.loadVisual)({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_key: input.idempotency_key, p_hash: hash, p_dry_run: input.dry_run }, signal);
   const replay = object.parse(loaded); if (replay.replay) return replay.replay;
   const state = await hydrateVisualState(loaded, principal, input.product_id), current = findVisual(state, input.record_id);
   if (input.expected_etag && input.expected_etag !== current.etag && input.expected_etag !== state.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de decidir.");

@@ -63,6 +63,10 @@ const readSchema = z.object({
   ),
   review_count: z.number().int().nonnegative(),
 });
+const componentReadSchema = readSchema.omit({ stamp: true, snapshot: true }).extend({
+  snapshot: readSchema.shape.snapshot.pick({ pricing: true, settings: true }),
+  page_accent_color: z.string().nullable().optional(),
+});
 
 export function createLandingExecutor(
   repository: LandingRepository,
@@ -86,19 +90,20 @@ export function createLandingExecutor(
         ? parseToolInput(tool, command.input)
         : null;
     const hash = write ? commandHash("save_landing_content", write) : null;
-    const raw = await repository.loadLanding(
+    const projected = !write && repository.readLandingComponent;
+    const raw = await (projected || repository.loadLanding)(
       {
         p_access: access,
         p_product_id: input.product_id,
-        p_key: write?.idempotency_key ?? null,
-        p_hash: hash,
-        p_dry_run: write?.dry_run ?? false,
+        ...(projected ? { p_component: parseToolInput("get_landing_content", command.input).component } : {
+          p_key: write?.idempotency_key ?? null, p_hash: hash, p_dry_run: write?.dry_run ?? false,
+        }),
       },
       signal,
     );
     if (raw && typeof raw === "object" && "replay" in raw)
       return parseToolOutput("save_landing_content", raw.replay);
-    const parsed = readSchema.safeParse(raw);
+    const parsed = (write ? readSchema : componentReadSchema).safeParse(raw);
     if (!parsed.success)
       throw new ProductIntelligenceError(
         "INTERNAL_ERROR",
@@ -112,9 +117,8 @@ export function createLandingExecutor(
       const c = componentById(id),
         row = read.rows.find((r) => r.component === id);
       // La RPC anterior ya comprobó propiedad y autorización delegada. No lee una revisión histórica.
-      const accent = repository.loadPageAccent && id === "listing"
-        ? await repository.loadPageAccent(principal.userId, input.product_id, signal)
-        : undefined;
+      const accent = id === "listing" ? ("page_accent_color" in read && read.page_accent_color !== undefined ? read.page_accent_color
+        : repository.loadPageAccent ? await repository.loadPageAccent(principal.userId, input.product_id, signal) : undefined) : undefined;
       return parseToolOutput("get_landing_content", {
         ok: true,
         product_id: input.product_id,
@@ -205,6 +209,7 @@ export function createLandingExecutor(
         },
       });
     }
+    if (!("stamp" in read)) throw new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos leer el contenido de la página.");
     validateLandingProposal(
       principal.userId,
       read,

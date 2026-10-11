@@ -9,14 +9,17 @@ import { parseKnowledgeRead, graphRecords, strategyResponse } from "./knowledge"
 import type { Principal } from "./policy";
 import { persuasionRecordSchema, experienceRecordSchema } from "./persuasion-schemas";
 import { visualReadSchema, vHash, targetKey, type VisualState } from "./visual-domain";
-import { downloadVisual, visualStoredBytes, visualByteHash, visualSignedUrl } from "./visual-media";
+import { downloadVisual, visualStoredBytes, visualByteHash } from "./visual-media";
+import { createVisualUrlSigner, stateVisualSigner } from "./visual-url-signer";
 import { VISUAL_LIMITS, type VisualTarget } from "./visual-schemas";
 
 const row = z.record(z.string(), z.unknown());
 const sourceSchema = z.object({ references: z.array(z.object({ id: z.string(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable().optional(),
   is_base: z.boolean(), is_cover: z.boolean(), excluded: z.boolean() })), gallery: z.array(row), gallery_shots: z.array(row), creative_concepts: z.array(row), scripts: z.array(row), video_shots: z.array(row),
   pdp: z.object({ plans: z.array(persuasionRecordSchema), experiences: z.array(experienceRecordSchema), landing: z.object({ rows: z.array(z.object({ component: z.string(), proposal: z.unknown(), content: z.unknown(), images: z.array(z.unknown()).optional() })), review_count: z.number() }) }) });
-const sourceRead = z.object({ source: sourceSchema, knowledge: z.unknown() });
+const sourceRead = z.object({ source: sourceSchema, knowledge: z.unknown().optional(), knowledge_projection: z.object({
+  snapshot: row, stamp: z.string(), effective_scopes: z.unknown(), grant_expires_at: z.unknown(),
+}).optional(), revision: z.number().optional() });
 // Conserva únicamente en esta lectura los mismos bytes cuyo hash validó la identidad.
 export const visualReferenceBytes = new WeakMap<VisualState, Buffer>();
 function semantic(value: unknown): unknown {
@@ -25,13 +28,17 @@ function semantic(value: unknown): unknown {
   return value;
 }
 export async function hydrateVisualState(raw: unknown, principal: Principal, productId: string): Promise<VisualState> {
-  const parsed = sourceRead.parse(raw), src = parsed.source, read = parseKnowledgeRead(parsed.knowledge, principal, productId);
+  const parsed = sourceRead.parse(raw), src = parsed.source, projection = parsed.knowledge_projection;
+  const read = parseKnowledgeRead(projection ? { ...projection, revision: parsed.revision, current_revision: parsed.revision,
+    current_snapshot: projection.snapshot, current_knowledge: projection.snapshot.knowledge,
+    internal_references: [], requested_strategy: null } : parsed.knowledge, principal, productId);
+  const sign = createVisualUrlSigner();
   const live: VisualState["live"] = {}, targets: VisualState["targets"] = [];
   const add = (kind: string, key: string, value: unknown, blocked = false) => { live[`${kind}:${key}`] = { hash: vHash(semantic(value)), value, blocked }; };
   const refs = imagesForGeneration(src.references);
   let referenceBytes: Buffer | undefined;
   const references = await Promise.all(refs.map(async (r, i) => ({ id: r.id, storage_path: r.storage_path, mime_type: r.mime_type ?? null,
-    is_base: i === 0, expires_at: new Date(Date.now() + VISUAL_LIMITS.snapshotSeconds * 1000).toISOString(), url: r.storage_path ? await visualSignedUrl("product-references", r.storage_path) : r.url })));
+    is_base: i === 0, expires_at: new Date(Date.now() + VISUAL_LIMITS.snapshotSeconds * 1000).toISOString(), url: r.storage_path ? await sign("product-references", r.storage_path) : r.url })));
   if (refs[0]) {
     const r = refs[0];
     try {
@@ -58,6 +65,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   add("pricing", "current", read.currentSnapshot.pricing, !read.currentSnapshot.pricing);
   add("policy", "current", read.currentSnapshot.settings, !read.currentSnapshot.settings);
   const state = visualReadSchema.parse({ ...raw as object, live, references, targets });
+  stateVisualSigner(state, sign);
   if (referenceBytes) visualReferenceBytes.set(state, referenceBytes);
   for (const r of state.records.filter(r => r.kind === "identity")) add("identity", r.id, { identity_hash: r.payload.identity_hash }, ["archived", "rejected"].includes(r.status));
   for (const p of src.pdp.plans) {

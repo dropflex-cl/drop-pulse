@@ -1,0 +1,378 @@
+{
+  "mode": "legacy",
+  "runtime": "v24.19.0",
+  "rounds": 25,
+  "scope": "local RPC + HTTP + JSON, sin proveedores; signing Storage local; helpers SQL compartidos en ambos modos",
+  "results": {
+    "empty": {
+      "visual_current": {
+        "median_ms": 5.335625000000164,
+        "p95_ms": 11.587791999999808,
+        "transform": {
+          "median_ms": 0.1350830000001224,
+          "p95_ms": 0.14687499999990905
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 6405,
+        "materialized_bytes": 5899,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 6405,
+        "snapshot_stored_bytes_written": 2010.96
+      },
+      "ingestion_status": {
+        "median_ms": 7.745499999999993,
+        "p95_ms": 9.261875000000146,
+        "transform": {
+          "median_ms": 0.15120900000010806,
+          "p95_ms": 0.17987499999981083
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 7191.92,
+        "materialized_bytes": 6658,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 6404.92,
+        "snapshot_stored_bytes_written": 2013.24
+      },
+      "landing_component": {
+        "median_ms": 3.6742079999999078,
+        "p95_ms": 4.392291999999998,
+        "transform": {
+          "median_ms": 0.026957999999922322,
+          "p95_ms": 0.03445899999996982
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 1358,
+        "materialized_bytes": 1250,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 6.748458000000028,
+        "p95_ms": 8.480332999999973,
+        "transform": {
+          "median_ms": 0.03687499999978172,
+          "p95_ms": 0.04195900000013353
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 1386,
+        "materialized_bytes": 1275,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "complete": {
+      "visual_current": {
+        "median_ms": 7.374749999999949,
+        "p95_ms": 8.728084000000308,
+        "transform": {
+          "median_ms": 0.7091659999996409,
+          "p95_ms": 1.0851670000001832
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 70898.84,
+        "materialized_bytes": 68016,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 70898.84,
+        "snapshot_stored_bytes_written": 16704.28
+      },
+      "ingestion_status": {
+        "median_ms": 8.033708000000388,
+        "p95_ms": 8.838999999999942,
+        "transform": {
+          "median_ms": 0.9596659999997428,
+          "p95_ms": 1.161167000000205
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 71685.8,
+        "materialized_bytes": 68776,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 70898.8,
+        "snapshot_stored_bytes_written": 16704.32
+      },
+      "landing_component": {
+        "median_ms": 2.4850830000000315,
+        "p95_ms": 3.532208999999966,
+        "transform": {
+          "median_ms": 0.19183300000031522,
+          "p95_ms": 0.24570799999992232
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 29070,
+        "materialized_bytes": 27391,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 4.0862499999993815,
+        "p95_ms": 6.1118749999996,
+        "transform": {
+          "median_ms": 0.2763749999994616,
+          "p95_ms": 0.4289580000004207
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 29098,
+        "materialized_bytes": 27416,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 2.4040830000003552,
+        "p95_ms": 7.218417000000045,
+        "transform": {
+          "median_ms": 0.009000000000014552,
+          "p95_ms": 0.011792000000241387
+        },
+        "queries": 0,
+        "storage_calls": 3,
+        "transferred_bytes": 1320,
+        "materialized_bytes": 1423,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "many_images": {
+      "visual_current": {
+        "median_ms": 8.073416999999608,
+        "p95_ms": 11.076292000000649,
+        "transform": {
+          "median_ms": 1.0974999999998545,
+          "p95_ms": 1.357082999999875
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 167740.96,
+        "materialized_bytes": 158160,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 167740.96,
+        "snapshot_stored_bytes_written": 48570.44
+      },
+      "ingestion_status": {
+        "median_ms": 9.648041000000376,
+        "p95_ms": 11.18658300000061,
+        "transform": {
+          "median_ms": 1.10358400000041,
+          "p95_ms": 1.3834170000000086
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 168527.8,
+        "materialized_bytes": 158919,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 167740.8,
+        "snapshot_stored_bytes_written": 48570.88
+      },
+      "landing_component": {
+        "median_ms": 3.0090409999993426,
+        "p95_ms": 3.721125000000029,
+        "transform": {
+          "median_ms": 0.2754580000000715,
+          "p95_ms": 0.3743749999994179
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 43773,
+        "materialized_bytes": 41016,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 4.1527500000001965,
+        "p95_ms": 5.0561250000000655,
+        "transform": {
+          "median_ms": 0.4355829999994967,
+          "p95_ms": 0.7375419999998485
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 43801,
+        "materialized_bytes": 41041,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 27.07091700000001,
+        "p95_ms": 42.379541999999674,
+        "transform": {
+          "median_ms": 0.07604199999968841,
+          "p95_ms": 0.12512499999957072
+        },
+        "queries": 0,
+        "storage_calls": 80,
+        "transferred_bytes": 35340,
+        "materialized_bytes": 38061,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "wide_history": {
+      "visual_current": {
+        "median_ms": 41.304417000000285,
+        "p95_ms": 68.16279200000008,
+        "transform": {
+          "median_ms": 5.8174159999998665,
+          "p95_ms": 10.040624999999636
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 4452815.8,
+        "materialized_bytes": 4445461,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 4452815.8,
+        "snapshot_stored_bytes_written": 140053.08
+      },
+      "ingestion_status": {
+        "median_ms": 38.646584000000075,
+        "p95_ms": 49.46349999999984,
+        "transform": {
+          "median_ms": 5.373458000000028,
+          "p95_ms": 6.5303749999984575
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 4453602.88,
+        "materialized_bytes": 4446220,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 4452815.88,
+        "snapshot_stored_bytes_written": 140052.76
+      },
+      "landing_component": {
+        "median_ms": 3.1906249999992724,
+        "p95_ms": 3.975125000000844,
+        "transform": {
+          "median_ms": 0.18283400000109395,
+          "p95_ms": 0.20650000000023283
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 29020,
+        "materialized_bytes": 27341,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 3.862749999998414,
+        "p95_ms": 6.860708000000159,
+        "transform": {
+          "median_ms": 0.19179200000144192,
+          "p95_ms": 0.2512079999996786
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 29048,
+        "materialized_bytes": 27366,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 3.5862080000006245,
+        "p95_ms": 9.741541999999754,
+        "transform": {
+          "median_ms": 0.01670900000135589,
+          "p95_ms": 0.024957999999969616
+        },
+        "queries": 0,
+        "storage_calls": 3,
+        "transferred_bytes": 1320,
+        "materialized_bytes": 1423,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    },
+    "changed": {
+      "visual_current": {
+        "median_ms": 7.326458000001367,
+        "p95_ms": 9.17583299999933,
+        "transform": {
+          "median_ms": 0.7953330000000278,
+          "p95_ms": 1.1281250000010914
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 308933.8,
+        "materialized_bytes": 305808,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 308933.8,
+        "snapshot_stored_bytes_written": 23446.16
+      },
+      "ingestion_status": {
+        "median_ms": 8.549082999999882,
+        "p95_ms": 18.617458000000624,
+        "transform": {
+          "median_ms": 0.9621669999996811,
+          "p95_ms": 1.2139999999999418
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 309720.92,
+        "materialized_bytes": 306567,
+        "snapshots_written": 1,
+        "snapshot_bytes_written": 308933.92,
+        "snapshot_stored_bytes_written": 23445.92
+      },
+      "landing_component": {
+        "median_ms": 2.6179580000007263,
+        "p95_ms": 6.690249999999651,
+        "transform": {
+          "median_ms": 0.18699999999989814,
+          "p95_ms": 0.22400000000016007
+        },
+        "queries": 1,
+        "storage_calls": 0,
+        "transferred_bytes": 29084,
+        "materialized_bytes": 27404,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "landing_listing": {
+        "median_ms": 5.854208999999173,
+        "p95_ms": 11.805374999999913,
+        "transform": {
+          "median_ms": 0.19554099999913888,
+          "p95_ms": 0.2686250000006112
+        },
+        "queries": 2,
+        "storage_calls": 0,
+        "transferred_bytes": 29112,
+        "materialized_bytes": 27429,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      },
+      "signing": {
+        "median_ms": 2.5092919999988226,
+        "p95_ms": 4.657750000000306,
+        "transform": {
+          "median_ms": 0.008959000000686501,
+          "p95_ms": 0.01674999999886495
+        },
+        "queries": 0,
+        "storage_calls": 3,
+        "transferred_bytes": 1320,
+        "materialized_bytes": 1423,
+        "snapshots_written": 0,
+        "snapshot_bytes_written": 0,
+        "snapshot_stored_bytes_written": 0
+      }
+    }
+  }
+}

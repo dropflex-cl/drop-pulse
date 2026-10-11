@@ -21,7 +21,7 @@ export async function setProductImageSelection(userId: string, productId: string
   const input = imageSelectionInput.parse(raw), repo = createContextRepository(), signal = AbortSignal.timeout(25000);
   const access = contextAccess({ userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES });
   const hash = vHash({ action: "product_image_selection", input });
-  const loaded = await repo.loadVisual({ p_access: access, p_product_id: productId, p_tool: "review_visual_record", p_key: input.idempotency_key, p_hash: hash }, signal);
+  const loaded = await repo.readVisual({ p_access: access, p_product_id: productId, p_tool: "review_visual_record", p_key: input.idempotency_key, p_hash: hash }, signal);
   if ((loaded as { replay?: unknown }).replay) return (loaded as { replay: unknown }).replay;
   const state = await hydrateVisualState(loaded, { userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES }, productId);
   checkVisualPreconditions(state, input);
