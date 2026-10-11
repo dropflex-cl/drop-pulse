@@ -1,3 +1,4 @@
+import { serverRevision } from "./current-content";
 import { shopifyAutomationTools } from "./shopify-automation-schemas";
 import { createShopifyAutomationExecutor } from "./shopify-automation";
 import { reviewVisualRecord } from "./visual-service";
@@ -43,6 +44,7 @@ export const PERSISTED_INTELLIGENCE_TOOLS = [...shopifyAutomationTools, "list_pr
 export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository & VisualRepository & ShopifyAutomationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void, wakeVisual?: (id: string) => void, wakePublish?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
+    command = { ...command, input: parseToolInput(command.tool, command.input) } as typeof command;
     requireScopes(principal, toolScopes[command.tool]);
     if (command.tool === "review_visual_record") {
       if (!repository.loadVisual || !repository.commitVisual || !repository.visualOperation) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración visual.");
@@ -119,7 +121,7 @@ export function createProductIntelligenceExecutor(repository: KnowledgeRepositor
       ...(tool === "set_product_strategy" && "strategy_id" in input ? { p_strategy_id: input.strategy_id } : {}) }, signal);
     if (raw && typeof raw === "object" && "replay" in raw) return parseToolOutput(tool, raw.replay);
     const read = parseKnowledgeRead(raw, principal, input.product_id), requestId = randomUUID();
-    const common = { p_access: access, p_product_id: input.product_id, p_expected_revision: input.expected_revision,
+    const common = { p_access: access, p_product_id: input.product_id, p_expected_revision: serverRevision(input.expected_revision, read.current_revision),
       p_stamp: read.stamp, p_tool: tool, p_key: input.idempotency_key, p_hash: hash, p_dry_run: input.dry_run };
     if (tool === "set_product_strategy") {
       const prepared = prepareStrategy(read, parseToolInput(tool, command.input), principal, requestId, randomUUID());

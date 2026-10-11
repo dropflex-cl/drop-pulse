@@ -1,3 +1,4 @@
+import { selectedUse } from "./current-content";
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
 import { PI_SCOPES } from "./policy";
@@ -13,8 +14,11 @@ export async function assertVisualBindingsPublishable(userId: string, productId:
   const state = await hydrateVisualState(await repo.loadVisual({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(20000)), principal, productId);
   for (const id of new Set(ids)) {
     const binding = findVisual(state, id, "binding"), asset = findVisual(state, String(binding.payload.asset_id), "asset");
-    if (binding.status !== "selected" || asset.status !== "approved" || asset.payload.archived_at) throw new ProductIntelligenceError("VALIDATION_ERROR", "Revisa y selecciona las piezas visuales antes de publicar.");
+    if (!selectedUse(binding)) throw new ProductIntelligenceError("VALIDATION_ERROR", "Elige una imagen para ese espacio antes de publicar.");
     assertCurrent(binding, state); assertCurrent(asset, state);
+    const file = state.files.find(f => f.id === asset.payload.file_id)!;
+    const { data: exists, error } = await adminClient().storage.from(file.bucket).exists(file.storage_path);
+    if (error || !exists) throw new ProductIntelligenceError("VALIDATION_ERROR", "El archivo de una imagen elegida no está disponible. Sube el archivo o elige otra imagen.");
   }
 }
 export async function assertVisualMediaPublishable(userId: string, productId: string, mediaIds: string[]) {

@@ -1,8 +1,10 @@
 # Product Intelligence MCP
 
-El chat escribe investigación, hipótesis, estrategia y contenido. DropFlex valida y persiste el contenido guardado desde MCP con aprobación automática; la UI conserva las decisiones manuales y la generación usa los proveedores del comerciante. UI y MCP comparten dominio, precios y permisos. Seleccionar una estrategia no demuestra que sea ganadora.
+El chat escribe investigación, hipótesis, estrategia y contenido. DropFlex valida y persiste el contenido guardado desde MCP sin aprobación adicional; la UI conserva las decisiones manuales y la generación usa los proveedores del comerciante. UI y MCP comparten dominio, precios y permisos. Seleccionar una estrategia no demuestra que sea ganadora.
 
-La migración `20261208000000_mcp_content_approval.sql` separa aprobación de contenido y autorización para publicar. Los saves del MCP aprueban textos, secciones, etiquetas de packs, guiones y planes válidos; la ingestión aprueba imágenes y los bindings válidos quedan seleccionados. Las imágenes del MCP conservan su aprobación al cambiar el contexto; eliminar o revocar una dependencia sigue bloqueando su uso. Publicar en Shopify conserva su consentimiento propio. La migración aprueba las secciones, textos de eventos, consejos y guiones MCP pendientes anteriores y crea versiones auditadas de sus imágenes y usos elegidos; está aplicada y comprobada únicamente en la base local.
+El contenido vigente y sus decisiones explícitas son la fuente de verdad. Guardar lo deja disponible; asignar una imagen selecciona su uso; editar contexto o estrategia conserva textos, archivos y selecciones. Las aprobaciones, revisiones de negocio y dependencias de origen no determinan disponibilidad. UI y MCP editan los mismos registros. Publicar conserva su consentimiento propio y verifica contenido, archivos, destinos y permisos.
+
+La migración `20261211000000_current_product_content.sql` mantiene compatibilidad con contratos y estados anteriores, conserva descartes/visibilidad/ediciones y retira los bloqueos históricos. Está aplicada y comprobada **solo en Supabase local**. [Mapa de bloqueos, reglas y verificación](current-content.md).
 
 Flujo: **Research → Strategy → Execution → Performance → Learning → Strategy**.
 

@@ -1,3 +1,4 @@
+import { contentAvailable } from "@/lib/product-intelligence/current-content";
 import "server-only";
 import { type BriefStampEntry } from "@/lib/angles/stamps";
 import { fail } from "@/lib/products/database";
@@ -143,7 +144,7 @@ export async function getComponentRow(userId: string, productId: string, compone
   return (data as PageComponentRow | null) ?? null;
 }
 
-/** La versión vigente de un componente: la del comerciante si la editó, si no la propuesta. */
+/** Contenido vigente compartido por UI y MCP; proposal permite leer registros anteriores. */
 export const currentContent = (r: Pick<PageComponentRow, "content" | "proposal">): unknown => r.content ?? r.proposal;
 
 export function toComponentViews(rows: PageComponentRow[]): PageComponentView[] {
@@ -153,9 +154,9 @@ export function toComponentViews(rows: PageComponentRow[]): PageComponentView[] 
     component: r.component,
     content: currentContent(r),
     chatContent: r.proposal,
-    edited: r.content != null,
+    edited: r.content != null && JSON.stringify(r.content) !== JSON.stringify(r.proposal),
     enabled: r.enabled,
-    status: toUiStatus(r.status),
+    status: toUiStatus(contentAvailable(r) ? "approved" : r.status),
     images: r.images ?? [],
   }));
 }

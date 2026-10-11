@@ -70,7 +70,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
   it("CAS concurrente: una escritura con claves distintas; misma clave un resultado", async () => {
     await price(); const a = await input(), b = { ...a, idempotency_key: randomUUID(), labels: labels.map((l) => ({ ...l, label: "Para regalar" })) };
     const results = await Promise.allSettled([call("save_pack_labels", a), call("save_pack_labels", b)]);
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1); expect((results.find((r) => r.status === "rejected") as PromiseRejectedResult).reason.code).toBe("REVISION_CONFLICT");
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1); expect((results.find((r) => r.status === "rejected") as PromiseRejectedResult).reason.code).toBe("ARTIFACT_CONFLICT");
     const i = await input(), same = await Promise.all([call("save_pack_labels", i), call("save_pack_labels", i)]); expect(same[0]).toEqual(same[1]);
   });
   it("aislamiento, scopes y ACL también en replay; delegado no puede aprobar", async () => {
@@ -89,17 +89,17 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     const before = await call("get_product_context", { product_id: product }); expect(JSON.stringify(before)).toContain("Uno para ti");
     await approve(); expect(await current()).toMatchObject({ status: "approved" });
     const after = await call("get_product_context", { product_id: product }); expect(JSON.stringify(after)).toContain("Uno para ti");
-    await approve("reopen"); expect(await current()).toMatchObject({ status: "in_review" }); expect(await count("ai_generations")).toBe(0);
+    await approve("reopen"); expect(await current()).toMatchObject({ status: "approved" }); expect(await count("ai_generations")).toBe(0);
   });
   it("una pantalla vieja no aprueba nueva propuesta ni precio cambiado", async () => {
     await price(); await call("save_pack_labels", await input()); const old = (await read()).data.pack_labels_etag, id = (await current()).id;
     await call("save_pack_labels", { ...await input(), labels: labels.map((l) => ({ ...l, label: "Para regalar" })) });
     await expect(approve("approve", old)).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
     expect(await current()).toMatchObject({ status: "approved" });
-    const historical = (await checked(db.from("pack_labels").select("superseded_at").eq("id", id).single())).data!; expect(historical.superseded_at).toBeTruthy();
+    const historical = (await checked(db.from("pack_labels").select("superseded_at").eq("id", id).single())).data!; expect(historical.superseded_at).toBeNull(); expect((await current()).id).toBe(id);
     const etag = (await read()).data.pack_labels_etag; await price(5000);
-    await expect(approve("approve", etag)).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
-    expect((await read()).data.pricing_stale).toBe(true);
+    await expect(approve("approve", etag)).resolves.toMatchObject({ ok: true });
+    expect((await read()).data.pricing_stale).toBe(false);
   });
   it("cambiar la moneda del catálogo exige recalcular antes de proponer o aprobar", async () => {
     await price(); await call("save_pack_labels", await input());
@@ -112,7 +112,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     await price(); await call("save_pack_labels", await input()); const stale = await input(), etag = (await read()).data.pack_labels_etag;
     await decidePackLabels(createContextRepository(db), owner, product, { action: "edit", expected_etag: etag, approve: true, labels: labels.map((l) => ({ ...l, label: "Un regalo útil" })) }, signal());
     expect(await current()).toMatchObject({ status: "approved", payload: [{ label: "Un regalo útil" }, { label: "Un regalo útil" }, { label: "Un regalo útil" }] });
-    await expect(call("save_pack_labels", stale)).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
+    await expect(call("save_pack_labels", stale)).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
   });
   it("evidencia revisada/revocada exige otra revisión y no se consume como aprobada", async () => {
     await price(); let r = await read();
@@ -129,8 +129,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     r = await read(); await call("save_research", { product_id: product, schema_version: "1.0", expected_revision: r.revision, idempotency_key: randomUUID(), facts: [{ id: factId, usage_status: "prohibited", reason: "El dato no puede usarse." }] });
     expect((await current()).evidence_stale).toBe(true);
     await expect(approve()).rejects.toMatchObject({ code: "INVALID_REFERENCE" });
-    await approve("reopen"); expect(await current()).toMatchObject({ status: "in_review" });
-    const context = await call("get_product_context", { product_id: product }); if (!context.ok) throw new Error("context"); expect(JSON.stringify(context.data.product.pricing)).not.toContain("mes de uso");
+    await approve("reopen"); expect(await current()).toMatchObject({ status: "approved" });
+    const context = await call("get_product_context", { product_id: product }); if (!context.ok) throw new Error("context"); expect(JSON.stringify(context.data.product.pricing)).toContain("mes de uso");
   });
   it("RPC inválida revierte todo y writers legacy en vuelo no reemplazan MCP", async () => {
     await price(); const before = await counts(), read = (await checked(db.rpc("pi_load_pack_labels", { p_access: contextAccess(owner), p_product_id: product }))).data;

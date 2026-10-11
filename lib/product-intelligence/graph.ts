@@ -1,4 +1,4 @@
-import { invalidField, invalidReference, ProductIntelligenceError } from "./errors";
+import { invalidField, invalidReference } from "./errors";
 import { requireScopes, type Principal } from "./policy";
 import { entityRecordSchemas, type EntityName, type EntityRecords, type Ref, type ToolInputs } from "./schemas";
 import { jsonBytes, PI_LIMITS, validateFactValues } from "./validation";
@@ -24,7 +24,8 @@ export function validateGraph(graph: IntelligenceGraph, userId: string, productI
   }
   function get<K extends RecordKind>(kind: K, id: string, active: boolean): EntityRecords[K] {
     const row = graph[kind].find((item) => item.value.id === id)?.value;
-    if (!row || (active && "lifecycle" in row && row.lifecycle !== "active")) invalidReference();
+    void active; // Archivar conserva relaciones y procedencia; no invalida el contenido elegido.
+    if (!row) invalidReference();
     return row;
   }
   function samePersona(kind: "jtbd" | "pain" | "desire" | "objection", ids: readonly string[], personaId: string, active: boolean) {
@@ -165,12 +166,6 @@ export function validateStrategyChoice(graph: IntelligenceGraph, input: Exclude<
   if (input.secondary_angle_ids.includes(angle.id)) invalidField("secondary_angle_ids", "El ángulo principal no se repite como secundario.");
   input.secondary_angle_ids.forEach((id) => { if (get("angle", id).persona_id !== persona.id) invalidReference(); });
   if (input.offer_id) get("offer", input.offer_id);
-}
-
-/** Dependencias usadas por una selección: no confundirlas con todos los registros del producto. */
-export function assertNoArchivedSelectionDependencies(graph: IntelligenceGraph, selectedIds: readonly string[]): void {
-  const selected = new Set(selectedIds);
-  for (const kind of Object.keys(graph) as RecordKind[]) for (const { value } of graph[kind]) if (selected.has(value.id) && "lifecycle" in value && value.lifecycle === "archived") throw new ProductIntelligenceError("DEPENDENCY_IN_USE", "Esta entidad pertenece a la estrategia seleccionada. Sustituye o archiva la selección primero.");
 }
 
 export class ReferenceResolver {

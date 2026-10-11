@@ -13,8 +13,8 @@ export const chatPackLabelsSchema = z.array(chatPackLabelSchema).min(1).max(3)
   .refine((ls) => ls.filter((l) => l.badge).length <= 1, "Usa un distintivo en un solo pack.");
 export const getPackLabelsInput = z.strictObject({ product_id: uuid });
 export const savePackLabelsInput = z.strictObject({ product_id: uuid, schema_version: z.literal("1.0"),
-  expected_revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), expected_pack_labels_etag: etag,
-  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false),
+  expected_revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional().default(Number.MAX_SAFE_INTEGER), expected_pack_labels_etag: etag.or(z.literal("")).optional().default(""),
+  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()), dry_run: z.boolean().default(false),
   labels: chatPackLabelsSchema, duration_fact_ids: z.array(uuid).max(20).default([]).refine((ids) => new Set(ids).size === ids.length),
 });
 export function packLabelsOutputs<E extends z.ZodType>(error: E) {

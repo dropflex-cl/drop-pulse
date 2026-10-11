@@ -17,7 +17,9 @@ export async function getVisualWorkbench(userId: string, productId: string, offs
   const operations = await adminClient().from("pi_visual_operations").select("id,iteration_id,status").eq("user_id", userId).eq("product_id", productId).eq("kind", "ingest").in("status", ["pending", "processing"]).order("created_at").limit(8);
   if (operations.error) throw new Error("No pudimos recuperar las subidas pendientes. Actualiza la página.");
   const visible = new Set(assets.slice(offset, offset + VISUAL_LIMITS.pageSize).map(r => r.id));
-  return { product_id: productId, revision: state.revision, etag: state.etag, dependency_stamp: state.dependency_stamp,
+  const gallery = await adminClient().rpc("pi_product_gallery_etag", { p_product_id: productId, p_owner_id: userId });
+  if (gallery.error) throw new Error("No pudimos leer las imágenes elegidas.");
+  return { gallery_etag: gallery.data as string, product_id: productId, revision: state.revision, etag: state.etag, dependency_stamp: state.dependency_stamp,
     canonical_reference: canonical ? { id: canonical.id, url: canonical.url, content_hash: value?.content_hash ?? null } : null,
     records: await Promise.all(state.records.filter(r => r.kind !== "asset" || visible.has(r.id)).map(r => visualRecordView(r, state))),
     targets: state.targets.map(t => ({ key: t.key, etag: t.etag, target: visualTargetSchema.parse((t.value as { target: unknown }).target) })),

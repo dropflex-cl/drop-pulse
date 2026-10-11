@@ -155,21 +155,21 @@ describe.runIf(enabled)("PI · conocimiento y estrategia transaccionales en Supa
     expect(r.data.strategy!.snapshot.persona.epistemic_status).toBe("hypothesis");
     const get = await call("get_product_strategy", { product_id: product, include: "execution" }); if (!get.ok) throw new Error("get"); expect(get.data).toEqual(r.data.strategy);
   });
-  it("selección idéntica es no-op; draft no sustituye selección", async () => {
+  it("selección idéntica es no-op; guardar un borrador mantiene la decisión seleccionada", async () => {
     expect(await call("set_product_strategy", selection(6))).toMatchObject({ revision: 6, data: { no_op: true } });
     const draft = await call("set_product_strategy", selection(6, "create_draft"));
-    expect(draft).toMatchObject({ revision: 7, data: { active_strategy_id: selectedId, strategy: { state: "draft", readiness: { stale: false, ready_for_execution: false } } } });
+    expect(draft).toMatchObject({ revision: 7, data: { active_strategy_id: selectedId, strategy: { state: "selected", readiness: { stale: false, ready_for_execution: true } } } });
     expect((await rawRead()).activeStrategyId).toBe(selectedId);
   });
-  it("archivar dependencia seleccionada se rechaza sin efectos parciales", async () => {
+  it("archivar contexto seleccionado no invalida ni exige conciliar contenido", async () => {
     const before = await counts();
-    await expect(call("patch_product_analysis", { ...envelope(7), operations: [{ op: "archive", entity: "angle", id: mapping.angle_1_1, reason: "Cambio" }] })).rejects.toMatchObject({ code: "DEPENDENCY_IN_USE" });
+    expect(await call("patch_product_analysis", { ...envelope(7), dry_run: true, operations: [{ op: "archive", entity: "angle", id: mapping.angle_1_1, reason: "Cambio" }] })).toMatchObject({ ok: true });
     expect(await counts()).toEqual(before);
   });
   it("contradicción nueva se admite con write y restringe hoy una lectura histórica aprobada", async () => {
     const r = await call("save_research", { ...envelope(7), evidence_links: [{ client_ref: "contradiction", fact_ref: { id: mapping.compartments_fact }, source_ref: { id: mapping.supplier_source }, relation: "contradicts", fragment: "tres compartimentos" }] }, { ...owner, scopes: ["product_intelligence:write"] });
     expect(r).toMatchObject({ revision: 8 });
-    const get = await call("get_product_strategy", { product_id: product }); expect(get).toMatchObject({ data: { readiness: { needs_review: true } } });
+    const get = await call("get_product_strategy", { product_id: product }); expect(get).toMatchObject({ data: { readiness: { needs_review: false } } });
     const history = await call("get_product_context", { product_id: product, at_revision: 6, include: ["facts"], view: "full" });
     if (!history.ok) throw new Error("history"); expect(history.data.current_usage_restrictions[0].fact_id).toBe(mapping.compartments_fact);
     expect(history.data.blocks[0].items[0]).toMatchObject({ verification_status: "verified", usage_status: "approved" });

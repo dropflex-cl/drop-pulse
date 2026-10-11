@@ -7,7 +7,7 @@ export const VISUAL_LIMITS = { plans: 20, shots: 30, assets: 200, records: 1000,
 export const visualUuid = z.string().uuid(), visualHash = z.string().regex(/^[a-f0-9]{64}$/);
 const key = z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/), text = z.string().trim().min(1).max(2000);
 const strings = z.array(text).max(30), ids = z.array(visualUuid).max(50).refine(v => new Set(v).size === v.length);
-export const visualRefSchema = z.strictObject({ id: visualUuid, version: z.number().int().positive().safe(), etag: visualHash });
+export const visualRefSchema = z.strictObject({ id: visualUuid, version: z.number().int().positive().safe().optional().default(1), etag: visualHash.optional().default("0".repeat(64)) });
 export const visualDependencySchema = z.strictObject({ kind: z.enum(["reference", "identity", "strategy", "angle", "persuasion_plan", "persuasion_section", "fact", "evidence", "pricing", "policy", "content_variant", "landing_experience"]),
   key: z.string().min(1).max(200), content_hash: visualHash, usage: z.enum(["identity", "message", "visual_result", "overlay", "binding"]) });
 export const visualValiditySchema = z.strictObject({ state: z.enum(["current", "needs_review", "blocked"]),
@@ -40,8 +40,8 @@ export const visualTargetSchema = z.discriminatedUnion("type", [
 ]);
 const read = { product_id: visualUuid };
 const cursor = z.string().min(1).max(1000).optional();
-export const visualWriteSchema = z.strictObject({ ...read, schema_version: z.literal("1.0"), expected_revision: z.number().int().nonnegative().safe(),
-  expected_etag: visualHash, expected_dependency_stamp: visualHash, idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false) });
+export const visualWriteSchema = z.strictObject({ ...read, schema_version: z.literal("1.0"), expected_revision: z.number().int().nonnegative().safe().optional().default(Number.MAX_SAFE_INTEGER),
+  expected_etag: visualHash.or(z.literal("")).optional().default(""), expected_dependency_stamp: visualHash.or(z.literal("")).optional().default(""), idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()), dry_run: z.boolean().default(false) });
 const write = visualWriteSchema.shape;
 // Contrato del host: ID opaco y MIME informativo; la URL y los bytes se validan al ingerir.
 // https://developers.openai.com/plugins/reference#define-file-inputs
@@ -72,13 +72,13 @@ export const visualInputSchemas = {
   ]), generated_at: z.string().datetime().nullable().default(null) }),
   ingest_chatgpt_visual_asset: z.strictObject({ ...write, iteration_id: visualUuid, file: chatgptVisualFileSchema, generated_at: z.string().datetime().nullable().default(null) }),
   get_visual_ingestion_status: z.strictObject({ ...read, operation_id: visualUuid }),
-  bind_visual_asset: z.strictObject({ ...write, asset_id: visualUuid, bindings: z.array(z.strictObject({ target: visualTargetSchema, target_etag: visualHash })).min(1).max(10) }),
+  bind_visual_asset: z.strictObject({ ...write, asset_id: visualUuid, bindings: z.array(z.strictObject({ target: visualTargetSchema, target_etag: visualHash.optional().default("0".repeat(64)) })).min(1).max(10) }),
   unbind_visual_asset: z.strictObject({ ...write, binding_ids: ids.min(1) }),
   list_visual_assets: z.strictObject({ ...read, shot_family: key.optional(), angle_id: visualUuid.optional(), review_status: z.enum(["generated", "in_review", "approved", "rejected"]).optional(), include_archived: z.boolean().default(false), cursor }),
   get_visual_reconciliation_context: z.strictObject({ ...read, plan_id: visualUuid, cursor }),
   save_visual_reconciliation: z.strictObject({ ...write, plan_id: visualUuid, plan: visualPlanSchema, resolutions: z.array(z.strictObject({ shot_key: key, action: z.enum(["retain", "replace", "remove"]), reason: text })).min(1).max(VISUAL_LIMITS.shots) }),
   get_visual_reuse_candidates: z.strictObject({ ...read, plan_ref: visualRefSchema, shot_key: key, cursor }),
-  save_visual_binding_suggestions: z.strictObject({ ...write, asset_id: visualUuid, bindings: z.array(z.strictObject({ target: visualTargetSchema, target_etag: visualHash, reason: text })).min(1).max(10) }),
+  save_visual_binding_suggestions: z.strictObject({ ...write, asset_id: visualUuid, bindings: z.array(z.strictObject({ target: visualTargetSchema, target_etag: visualHash.optional().default("0".repeat(64)), reason: text })).min(1).max(10) }),
   get_visual_iteration_history: z.strictObject({ ...read, plan_id: visualUuid.optional(), shot_key: key.optional(), shot_family: key.optional(), cursor }),
   get_visual_comparison: z.strictObject({ ...read, asset_ids: ids.min(2).max(4) }),
 } as const;

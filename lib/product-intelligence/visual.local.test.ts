@@ -82,7 +82,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect(await call("save_visual_identity", { ...write, dry_run: true })).toMatchObject({ data: { applied: false } });
     const saved = await call("save_visual_identity", write); identity = visualRecordSchema.parse((saved.data.records as unknown[])[0]);
     expect(await call("save_visual_identity", write)).toEqual(saved);
-    await expect(call("save_visual_identity", { ...write, idempotency_key: randomUUID() })).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
+    await expect(call("save_visual_identity", { ...write, idempotency_key: randomUUID() })).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
     await expect(call("save_visual_identity", { ...write, identity: { ...write.identity, identity_description: "Otro" } })).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
     const draft = visualFixture().plan; draft.strategy_id = strategyId; draft.identity_ref = { id: identity.id, version: identity.version, etag: identity.etag }; draft.shots[0].angle_id = angleId;
     const savedPlan = await call("save_visual_generation_plan", { ...await preconditions(), plan: draft });
@@ -251,7 +251,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const changedExperience = (await checked(db.from("pi_landing_experiences").select("payload").eq("id", experienceId).single())).data!.payload;
     changedExperience.sections = changedExperience.sections.map((s: { section_key: string; enabled: boolean }) => s.section_key === "fit" ? { ...s, enabled: false } : s);
     await checked(db.from("pi_landing_experiences").update({ payload: changedExperience }).eq("id", experienceId));
-    await expect(assertVisualBindingsPublishable(owner.userId, product, [uses[0].id])).rejects.toThrow("contenido cambió");
+    await expect(assertVisualBindingsPublishable(owner.userId, product, [uses[0].id])).resolves.toBeUndefined();
     await reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: uses[0].id, decision: "unselect" }, AbortSignal.timeout(30000));
     expect((await checked(db.from("page_images").select("status").eq("visual_binding_id", uses[0].id).single())).data!.status).toBe("generated");
     expect((await call("list_visual_assets", { product_id: product })).data.items[0].validity.state).toBe("current");
@@ -264,7 +264,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await call("get_visual_iteration_history", { product_id: product })).data.items).toHaveLength(2);
     const context = await state();
     await call("save_visual_identity", { ...await preconditions(), identity_id: identity.id, identity: { ...visualFixture().identityInput, canonical_reference_image_id: reference, reference_content_hash: identity.payload.reference_content_hash, identity_description: "Organizador negro compacto con compartimentos" } });
-    expect((await call("get_visual_reconciliation_context", { product_id: product, plan_id: plan.id })).data.shots).toMatchObject([{ validity: { state: "needs_review" } }]);
+    expect((await call("get_visual_reconciliation_context", { product_id: product, plan_id: plan.id })).data.shots).toMatchObject([{ validity: { state: "current" } }]);
     const newest = visualRecordSchema.parse((await state()).records.find((r: VisualRecord) => r.id === identity.id)); identity = await approve(newest);
     const updatedPlan = { name: oldPlan.name, strategy_id: oldPlan.strategy_id, identity_ref: { id: identity.id, version: identity.version, etag: identity.etag }, visual_system: oldPlan.visual_system,
       shots: (oldPlan.shots as Record<string, unknown>[]).map(s => Object.fromEntries(Object.entries(s).filter(([k]) => !["dependencies", "shot_hash", "shot_id", "shot_version"].includes(k)))) };
@@ -279,7 +279,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const currentPlan = current.records.find((r: VisualRecord) => r.id === plan.id) as VisualRecord;
     const candidate = { ...head, version: head.version + 1, etag: vHash(randomUUID()) };
     const broken = { ...currentPlan, version: currentPlan.version + 1, etag: vHash(randomUUID()),
-      payload: { ...currentPlan.payload, identity_ref: { id: candidate.id, version: candidate.version, etag: "0".repeat(64) } } };
+      payload: { ...currentPlan.payload, identity_ref: { id: randomUUID(), version: candidate.version, etag: "0".repeat(64) } } };
     const result = await db.rpc("pi_commit_visual", { p_access: contextAccess(owner), p_product_id: product,
       p_tool: "save_visual_generation_plan", p_expected_revision: write.expected_revision, p_etag: write.expected_etag,
       p_stamp: write.expected_dependency_stamp, p_key: write.idempotency_key, p_hash: vHash(randomUUID()), p_records: [candidate, broken] });

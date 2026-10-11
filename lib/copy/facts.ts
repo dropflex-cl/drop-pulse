@@ -1,6 +1,6 @@
+import { contentAvailable, imageSelected } from "@/lib/product-intelligence/current-content";
 import { verifiedPageFacts } from "./verified-facts";
 import "server-only";
-import { packLabelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { COVER, GALLERY, GIFS, slotKind } from "@/lib/page-images/catalog";
 import { pageImageRows, signedPageUrls } from "@/lib/page-images/store";
@@ -50,7 +50,7 @@ export async function storeFacts(
     verifiedPageFacts(userId, productId),
   ]);
   const cover = baseImage(images) ?? images[0];
-  const chosen = pageRows.filter((row) => row.status === "approved");
+  const chosen = pageRows.filter((row) => imageSelected(row));
   const galleryRows = [
     chosen.find((row) => row.slot === COVER),
     ...chosen
@@ -68,7 +68,7 @@ export async function storeFacts(
     .map((row) => row.storage_path!);
   // Los GIF en uso, en su orden (los mismos que publica gif-strip).
   const gifPaths = pageRows
-    .filter((r) => r.slot === GIFS && r.status === "approved" && r.storage_path)
+    .filter((r) => r.slot === GIFS && imageSelected(r) && r.storage_path)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     .map((r) => r.storage_path!);
   const [urls, photos, pageUrls] = await Promise.all([
@@ -81,7 +81,7 @@ export async function storeFacts(
   const p = settings?.policies;
   // Solo las etiquetas aprobadas llegan a la tienda (igual que a los prompts).
   const approved =
-    labels?.status === "approved" && !packLabelsStale(labels, pricing)
+    labels && contentAvailable(labels)
       ? labels.payload
       : [];
   const galleryUrls = galleryRows

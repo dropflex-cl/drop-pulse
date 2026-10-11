@@ -1003,6 +1003,22 @@
         "view": "full",
         "page_size": 20
       }
+    },
+    {
+      "name": "clip-with-server-managed-concurrency",
+      "tool": "generate_ugc",
+      "payload": {
+        "product_id": "00000000-0000-0000-0000-000000000001",
+        "schema_version": "1.0",
+        "expected_revision": 5,
+        "idempotency_key": "ugc-clips-0001",
+        "stage": "clips",
+        "script_id": "00000000-0000-0000-0000-00000000003c",
+        "shot_keys": [
+          "A1",
+          "B1"
+        ]
+      }
     }
   ],
   "responses": [
@@ -5955,22 +5971,6 @@
         "strategy_id": "00000000-0000-0000-0000-000000000032",
         "angle_id": "00000000-0000-0000-0000-0000000000dc",
         "format": "ugc"
-      }
-    },
-    {
-      "name": "clip-without-artifact-etag",
-      "tool": "generate_ugc",
-      "payload": {
-        "product_id": "00000000-0000-0000-0000-000000000001",
-        "schema_version": "1.0",
-        "expected_revision": 5,
-        "idempotency_key": "ugc-clips-0001",
-        "stage": "clips",
-        "script_id": "00000000-0000-0000-0000-00000000003c",
-        "shot_keys": [
-          "A1",
-          "B1"
-        ]
       }
     },
     {

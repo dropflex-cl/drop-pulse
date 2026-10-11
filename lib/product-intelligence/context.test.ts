@@ -71,7 +71,7 @@ describe("PI · servicio de contexto", () => {
     const historical = storedPricingPlan({ ...row, profit: 123.45, recommended_price: 29990 })!;
     expect(historical.profit).toBe(123.45); expect(historical.recommendedPrice).toBe(29990);
   });
-  it("solo incluye etiquetas aprobadas con el precio vigente", () => {
+  it("conserva las etiquetas guardadas cuando cambia el precio", () => {
     const state = read(); state.snapshot.pricing = prepareProductContext(state, input(), randomUUID()).pricing;
     const plan = storedPricingPlan(state.snapshot.pricing)!;
     state.snapshot.pack_labels = { status: "approved", payload: [{ units: 2, label: "Para compartir" }], prices: plan.packs.map(({ units, price }) => ({ units, price })) };
@@ -80,10 +80,10 @@ describe("PI · servicio de contexto", () => {
     expect(approved.ok && approved.data.product.pricing?.packs.find((pack) => pack.units === 2)?.approved_label).toBe("Para compartir");
     state.snapshot.pack_labels.status = "generated";
     const generated = productContextResponse(state, request, randomUUID());
-    expect(generated.ok && generated.data.product.pricing?.packs.find((pack) => pack.units === 2)?.approved_label).toBeNull();
+    expect(generated.ok && generated.data.product.pricing?.packs.find((pack) => pack.units === 2)?.approved_label).toBe("Para compartir");
     state.snapshot.pack_labels.status = "approved"; state.snapshot.pack_labels.prices[0].price++;
     const stale = productContextResponse(state, request, randomUUID());
-    expect(stale.ok && stale.data.product.pricing?.packs.find((pack) => pack.units === 2)?.approved_label).toBeNull();
+    expect(stale.ok && stale.data.product.pricing?.packs.find((pack) => pack.units === 2)?.approved_label).toBe("Para compartir");
   });
   it("un cambio de moneda no reutiliza costos ni supuestos monetarios anteriores", () => {
     const state = read(); state.snapshot.pricing = prepareProductContext(state, input(), randomUUID()).pricing;

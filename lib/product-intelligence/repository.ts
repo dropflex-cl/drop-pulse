@@ -65,7 +65,7 @@ const messages: Partial<Record<DomainError["code"], string>> = {
   IDEMPOTENCY_KEY_REUSED: "Esta clave ya se usó con otro contenido. Envía una clave nueva.",
   VALIDATION_ERROR: "Revisa el contexto y los números antes de guardar.",
   DEPENDENCY_IN_USE: "Esta entidad pertenece a la estrategia seleccionada. Sustituye o archiva la selección primero.",
-  ARTIFACT_CONFLICT: "La propuesta cambió desde tu lectura. Recupera su contenido y concilia los cambios.",
+  ARTIFACT_CONFLICT: "Otra edición cambió este contenido. Actualiza y guarda tu cambio.",
   GENERATION_IN_PROGRESS: "Hay una generación en curso. Espera a que termine antes de cambiar el contenido.",
   RESPONSE_TOO_LARGE: "La respuesta supera el límite. Consulta un periodo más corto.",
   RATE_LIMITED: "Llegaste al límite de generación. Espera antes de solicitar otra operación.",

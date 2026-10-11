@@ -102,11 +102,7 @@ export function ComponentCard({
               )}
             >
               <Icon name={approved ? "check" : "sparkle"} size="sm" />
-              {approved
-                ? view.edited
-                  ? "Tu versión"
-                  : "Aprobado"
-                : "Propuesta de la IA"}
+              {approved ? "Guardado" : "Disponible"}
             </span>
           ) : null}
         </div>

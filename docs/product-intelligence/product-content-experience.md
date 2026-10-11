@@ -10,7 +10,7 @@
 | Productos Avanzan/Detenidos | Guardados/Con error, sin medidores; parámetros compatibles |
 | Información base y cliente ideal como requisito | Datos canónicos y oferta; proveedor y referencias secundarios |
 | Ángulos como ranking y desbloqueo | Consulta de estrategia guardada |
-| Página con catálogo vacío y rondas de aprobación | Solo contenido persistido; edición, visibilidad, versiones y orden |
+| Página con catálogo vacío y rondas de aprobación | Solo contenido persistido; edición, visibilidad, variantes comerciales y orden |
 | Selecciones independientes en previews | Preparación compartida con publicación |
 | Imágenes bloqueadas con mínimo de galería | Portada/galería operativa; una portada basta |
 | Aprobar MCP otra vez | Retirado; guardar o ajustar, publicar aparte |
@@ -27,7 +27,7 @@
 
 `products` mantiene catálogo e inventario Shopify. `product_intelligence` y revisiones contienen contexto, grafo y estrategia. `product_pricing` y `pack_labels` contienen oferta calculada y etiquetas. El pipeline de análisis retirado no sirve de respaldo.
 
-`save_landing_content` persiste textos/variantes en `page_components` por la proyección nativa PI. `get_landing_content` y la UI leen el mismo contenido. No se crea una copia para la interfaz. `content ?? proposal` define lo efectivo: una edición manual prevalece sobre otro save del chat. «Usar el texto del chat» elimina explícitamente el override.
+`save_landing_content` persiste textos/variantes en `page_components` por la proyección nativa PI. `get_landing_content` y la UI leen el mismo contenido. No se crea una copia para la interfaz. `content ?? proposal` lee contenido antiguo sin duplicar fuentes. UI y MCP actualizan la misma fila: el último guardado explícito cambia el contenido vigente; se conservan decisiones de visibilidad, descarte e imágenes omitidas. La migración no sobrescribe ediciones anteriores.
 
 Las propuestas nuevas conservan `enabled=false` y `rejected`. No se recuperan supersedidos ni descartes como fallback. Reactivar es una decisión explícita.
 
@@ -60,3 +60,7 @@ Componentes: ID/fecha esperados, dueño y lock. Experiencias: revisión, etag, p
 La suite del dominio PI pasó con 453 pruebas en serie sobre Supabase local. Las pruebas en paralelo tuvieron respuestas intermitentes del servidor local; las mismas pruebas pasaron en serie. El árbol aislado del commit del rediseño pasó las 1.212 pruebas generales y el build con webpack, incluyendo TypeScript. El código de montaje de video que se desarrolla en paralelo queda fuera de este commit. El build por defecto encontró una limitación de puertos del entorno de Turbopack. El reporte de navegador y el resumen de la verificación inicial están en `output/product-experience/` (artefactos locales).
 
 La verificación inicial no modificó producción ni llamó a Shopify, Meta o proveedores reales. La entrega posterior fue autorizada expresamente por el comerciante: commit, push a main y aplicación de migraciones pendientes. `20261209000000_product_content_representation.sql` requiere `20261208000000_mcp_content_approval.sql`. Las migraciones deben verificarse contra el historial vinculado y respaldarse antes de aplicarse. Actualizar los temas de las tiendas y publicar productos son operaciones separadas; esta entrega no ejecuta esas acciones.
+
+## Decisiones vigentes y compatibilidad
+
+[Contenido vigente](current-content.md) reemplaza las reglas históricas de aprobación y vigencia estratégica. Los planes y la procedencia informan; no bloquean textos ni imágenes elegidas. Las variantes por ángulo/hook siguen siendo alternativas comerciales. La publicación y la vista previa comparten la resolución de contenido y comprueban archivos existentes.

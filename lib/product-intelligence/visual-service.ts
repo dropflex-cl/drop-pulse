@@ -1,3 +1,4 @@
+import { selectedUse, serverRevision, serverToken } from "./current-content";
 import { approveMcpVisual, selectMcpBindings } from "./mcp-approval";
 import { ensureVisualRenditions } from "./visual-renditions";
 import { visualTargetSchema } from "./visual-schemas";
@@ -143,7 +144,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
           selected_strategy: strategy ? { id: strategy.id, state: strategy.state, readiness: strategy.readiness, positioning: object.parse(strategy.snapshot).positioning, rationale: object.parse(strategy.snapshot).rationale } : null,
           canonical_reference: canonical ? { ...canonical, ...object.parse(referenceInfo) } : null, identity: state.records.find(r => r.kind === "identity" && r.status !== "archived") ?? null,
           context_records: contextPage, targets: state.targets.slice(0, 50).map(t => ({ key: t.key, etag: t.etag, value: { target: object.parse(t.value).target } })), capabilities: { generation: "external_only", ingestion: ["chatgpt_file", "remote_url", "upload_ticket"], approval: "automatic_on_mcp_save", reuse: true, max_upload_bytes: VISUAL_LIMITS.uploadBytes, max_pixels: VISUAL_LIMITS.maxPixels, max_plans: VISUAL_LIMITS.plans, max_shots: VISUAL_LIMITS.shots, max_assets: VISUAL_LIMITS.assets },
-          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Las imágenes de la tienda, incluida la portada, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. Si cambian la oferta o las políticas consumidas, revisa las tomas dependientes.", "Reutiliza el adjunto si coincide con producto, ID y content_hash canónicos. Solo si falta o cambió, lee get_visual_reference_image. En ChatGPT, mostrar la tarjeta sin adjunto exige terminar el turno y esperar la continuación del botón; no diagnostiques un fallo antes del clic. En el nuevo turno debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Identidad, plan e imágenes guardados desde el MCP se aprueban automáticamente. bind_visual_asset selecciona su uso al guardar. prepare_visual_iteration congela la toma y la referencia.", "Adjunta el archivo generado al parámetro nativo file de ingest_chatgpt_visual_asset; el host entrega download_url y file_id opaco y el servidor descarga los bytes. No reconstruyas el ID ni el objeto desde el nombre o enlace mostrado. Si el host no permite file params, usa una URL HTTPS descargable o un ticket firmado solo si el entorno puede hacer el PUT. Un ticket pending no inicia ingestión. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado."] });
+          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Las imágenes de la tienda pueden llevar texto y oferta. Cambiar el contexto conserva los archivos y los usos elegidos; modifícalos solo cuando el comerciante lo pida.", "Reutiliza el adjunto si coincide con producto, ID y content_hash canónicos. Solo si falta o cambió, lee get_visual_reference_image. En ChatGPT, mostrar la tarjeta sin adjunto exige terminar el turno y esperar la continuación del botón; no diagnostiques un fallo antes del clic. En el nuevo turno debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Guardar deja el contenido disponible. bind_visual_asset selecciona el uso; no requiere aprobaciones ni conciliaciones. prepare_visual_iteration congela la toma y la referencia.", "Adjunta el archivo generado al parámetro nativo file de ingest_chatgpt_visual_asset; el host entrega download_url y file_id opaco y el servidor descarga los bytes. No reconstruyas el ID ni el objeto desde el nombre o enlace mostrado. Si el host no permite file params, usa una URL HTTPS descargable o un ticket firmado solo si el entorno puede hacer el PUT. Un ticket pending no inicia ingestión. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado."] });
       }
       if (tool === "get_visual_identity" || tool === "get_visual_generation_plan") {
         const q = tool === "get_visual_identity" ? visualInputSchemas.get_visual_identity.parse(input) : visualInputSchemas.get_visual_generation_plan.parse(input);
@@ -183,11 +184,10 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       const selected = page(assets);
       return output({ ...selected, items: await Promise.all(selected.items.map(r => visualRecordView(r, state))) });
     }
-    if (input.expected_revision !== state.revision || input.expected_dependency_stamp !== state.dependency_stamp) throw new ProductIntelligenceError("REVISION_CONFLICT", "El contexto cambió. Recupéralo antes de guardar.");
     const mutation = input as Record<string, unknown>;
     const subjectId = mutation.identity_id ?? mutation.plan_id ?? mutation.asset_id ?? mutation.iteration_id ?? (tool === "save_visual_identity" ? state.records.find(r => r.kind === "identity")?.id : null) ?? (mutation.plan_ref && object.parse(mutation.plan_ref).id);
     const subject = subjectId ? state.records.find(r => r.id === subjectId) : null;
-    if (input.expected_etag !== state.etag && input.expected_etag !== subject?.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de guardar.");
+    if (input.expected_etag && input.expected_etag !== state.etag && input.expected_etag !== subject?.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de guardar.");
     let records: VisualRecord[] = [], operation: Record<string, unknown> | null = null;
     switch (tool) {
       case "save_visual_identity": { const q = visualInputSchemas[tool].parse(input); records = [prepareIdentity(state, q.identity, q.identity_id)]; break; }
@@ -212,7 +212,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         records = prepareBindings(state, q.asset_id, q.bindings).flatMap(r => {
           const old = state.records.find(old => old.kind === "binding" && old.status !== "archived" && old.payload.asset_id === r.payload.asset_id && old.payload.target_key === r.payload.target_key);
           if (!old) return [r];
-          if (old.status === "selected") { if (old.payload.target_etag !== r.payload.target_etag) invalidVisual("Quita el uso seleccionado antes de actualizar su destino.", "VALIDATION_ERROR"); return []; }
+          if (selectedUse(old)) return [makeVisualRecord(state, "binding", { ...r.payload, selected: true }, "selected", old.id)];
           return [makeVisualRecord(state, "binding", r.payload, "proposed", old.id)];
         }); break;
       }
@@ -243,7 +243,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         if (blockers.length) throw new ProductIntelligenceError("VALIDATION_ERROR", blockers[0].message,
           { missing_fields: blockers.map(reason => reason.code), next_action: readiness.next_action });
       }
-      return approveMcpVisual(record);
+      return approveMcpVisual(record, state.records.find(previous => previous.id === record.id));
     });
     if (tool === "bind_visual_asset" || tool === "save_visual_binding_suggestions") {
       records = selectMcpBindings(state, records);
@@ -251,8 +251,8 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         await ensureVisualRenditions(state, findVisual(state, String(binding.payload.asset_id), "asset"), visualTargetSchema.parse(binding.payload.target), principal.userId);
       }
     }
-    const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: persistedTool, p_expected_revision: input.expected_revision,
-      p_etag: input.expected_etag, p_stamp: input.expected_dependency_stamp, p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run, p_operation: operation }, signal));
+    const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: persistedTool, p_expected_revision: serverRevision(input.expected_revision, state.revision),
+      p_etag: serverToken(input.expected_etag, state.etag), p_stamp: serverToken(input.expected_dependency_stamp, state.dependency_stamp), p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run, p_operation: operation }, signal));
     if (result.ok && !input.dry_run && "operation_id" in result.data && typeof result.data.operation_id === "string") {
       if (tool === "prepare_visual_asset_upload") return parseToolOutput(tool, { ...result, data: { ...result.data, ...await signedUpload(operationSchema.parse(await repository.visualOperation({ p_access: access, p_product_id: input.product_id, p_operation_id: result.data.operation_id }, signal))) } });
       wake?.(result.data.operation_id);
@@ -295,11 +295,10 @@ export async function reviewVisualRecord(repository: VisualRepository, principal
   const loaded = await repository.loadVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_key: input.idempotency_key, p_hash: hash, p_dry_run: input.dry_run }, signal);
   const replay = object.parse(loaded); if (replay.replay) return replay.replay;
   const state = await hydrateVisualState(loaded, principal, input.product_id), current = findVisual(state, input.record_id);
-  if (input.expected_etag !== current.etag && input.expected_etag !== state.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de decidir.");
-  if (input.expected_revision !== state.revision || input.expected_dependency_stamp !== state.dependency_stamp) throw new ProductIntelligenceError("REVISION_CONFLICT", "El contexto cambió. Recupéralo antes de decidir.");
+  if (input.expected_etag && input.expected_etag !== current.etag && input.expected_etag !== state.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de decidir.");
   const records = prepareVisualReview(state, input).map(record =>
     fromChat && ["approve", "select"].includes(input.decision) && record.id === current.id ? approveMcpVisual(record) : record);
   if (input.decision === "select" && !input.dry_run) await ensureVisualRenditions(state, findVisual(state, String(current.payload.asset_id), "asset"), visualTargetSchema.parse(current.payload.target), principal.userId);
-  return repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_expected_revision: input.expected_revision,
-    p_etag: input.expected_etag, p_stamp: input.expected_dependency_stamp, p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run }, signal);
+  return repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_expected_revision: serverRevision(input.expected_revision, state.revision),
+    p_etag: serverToken(input.expected_etag, state.etag), p_stamp: serverToken(input.expected_dependency_stamp, state.dependency_stamp), p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run }, signal);
 }

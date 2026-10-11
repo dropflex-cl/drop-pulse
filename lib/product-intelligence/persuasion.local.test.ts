@@ -635,7 +635,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
           ...i,
           idempotency_key: randomUUID(),
         }),
-      ).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
+      ).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
       const record = (
         await call("get_landing_experience", {
           product_id: product,
@@ -662,7 +662,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
           ...(await planInput()),
           expected_etag: planEtag,
         }),
-      ).rejects.toMatchObject({ code: "DEPENDENCY_IN_USE" });
+      ).resolves.toMatchObject({ok:true});
       expect(
         (
           await db
@@ -751,7 +751,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
           agent.principal,
           agent.runner,
         ),
-      ).rejects.toMatchObject({ code: "DEPENDENCY_IN_USE" });
+      ).resolves.toMatchObject({ok:true});
       const landing = await call("get_landing_content", {
         product_id: product,
       });
@@ -777,13 +777,10 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
           agent.principal,
           agent.runner,
         ),
-      ).rejects.toMatchObject({ code: "DEPENDENCY_IN_USE" });
+      ).resolves.toMatchObject({ok:true});
       const newPlan = {
         ...(await planInput()),
         plan_id: null,
-        expected_etag: (
-          await call("get_landing_experience", { product_id: product })
-        ).data.etag,
         plan: { ...plan, status: "draft" },
       };
       const saved = await call(

@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -79,8 +80,7 @@ export function createContentExecutor(repository: ContentRepository & KnowledgeR
     if ("strategy_id" in content) {
       if (!knowledge.strategy || knowledge.strategy.id !== content.strategy_id) throw new ProductIntelligenceError("INVALID_REFERENCE", "Usa la estrategia seleccionada del producto.");
       strategy = strategyResponse(knowledge.strategy, knowledge, input.product_id, "execution");
-      if (!strategy.readiness.ready_for_execution) throw new ProductIntelligenceError("VALIDATION_ERROR", "Actualiza y revisa la estrategia antes de escribir contenido.", { missing_fields: strategy.readiness.missing_fields });
-      if (JSON.stringify(content.angle_ids) !== JSON.stringify(strategy.snapshot.angles.map((a: { id: string }) => a.id))) throw new ProductIntelligenceError("INVALID_REFERENCE", "Usa todos los ángulos seleccionados, en su orden; el render admite hasta tres.");
+      if (content.angle_ids.some(id => !knowledge.currentGraph.angle.some(({ value }) => value.id === id))) throw new ProductIntelligenceError("INVALID_REFERENCE", "El ángulo no pertenece a este producto.");
     }
     const problems: string[] = [];
     if ("concepts" in content) for (const c of content.concepts) {
@@ -103,7 +103,7 @@ export function createContentExecutor(repository: ContentRepository & KnowledgeR
     if (problems.length) throw new ProductIntelligenceError("VALIDATION_ERROR", problems.slice(0, 5).join(" "));
     const settings = state.settings ?? {};
     return parseToolOutput(tool, await repository.commitContent({ p_access: access, p_product_id: input.product_id, p_kind: kind,
-      p_expected_revision: write.expected_revision, p_etag: write.expected_content_etag, p_stamp: read.stamp, p_key: write.idempotency_key, p_hash: hash,
+      p_expected_revision: serverRevision(write.expected_revision, read.revision), p_etag: serverToken(write.expected_content_etag, read.content_etag), p_stamp: read.stamp, p_key: write.idempotency_key, p_hash: hash,
       p_content: content, p_input: { market: { countryCode: settings.country_code, currency: plan.currency, language: settings.language, timezone: settings.timezone },
         pricing: plan, verified_facts: facts.filter(({ value: f }) => content.fact_ids.includes(f.id)).map(({ value }) => value), strategy_snapshot: strategy?.snapshot ?? null, source: "mcp_chat" }, p_dry_run: write.dry_run }, signal));
   };

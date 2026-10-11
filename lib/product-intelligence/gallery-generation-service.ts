@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import "server-only";
 import { z } from "zod";
 import { pageRenderRequest } from "@/lib/page-images/render";
@@ -48,7 +49,7 @@ export function createGalleryGenerationExecutor(repository: GalleryGenerationRep
       return { shot_id: shot.id, slot: shot.slot, endpoint: input.provider === "gemini" ? GEMINI_IMAGE_MODEL : request.endpoint, input: request.input, baked_texts: (shot.payload as StoredShot).texts };
     });
     const result = parseToolOutput(command.tool, await repository.enqueueGalleryGeneration({ p_access: access, p_product_id: input.product_id,
-      p_expected_revision: input.expected_revision, p_etag: input.expected_content_etag, p_stamp: read.stamp, p_key: input.idempotency_key, p_hash: hash,
+      p_expected_revision: serverRevision(input.expected_revision, read.revision), p_etag: serverToken(input.expected_content_etag, read.content_etag), p_stamp: read.stamp, p_key: input.idempotency_key, p_hash: hash,
       p_provider: input.provider, p_jobs: jobs, p_estimated: estimated, p_qa: qa, p_dry_run: input.dry_run }, signal));
     if (result.ok && result.data.operation_id) wake?.(result.data.operation_id);
     return result;

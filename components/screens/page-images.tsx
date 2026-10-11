@@ -59,7 +59,7 @@ export function PageImagesScreen({ data, visual }: { data: ProductPageImages; vi
     const signature = JSON.stringify([workbench.dependency_stamp, nextCover, nextGallery]);
     const key = retries.current.get(signature) ?? crypto.randomUUID(); retries.current.set(signature, key);
     const response = await fetch(`/api/products/${data.product.id}/images/selection`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-      expected_revision: workbench.revision, expected_etag: workbench.etag, expected_dependency_stamp: workbench.dependency_stamp,
+      expected_revision: workbench.revision, expected_etag: workbench.etag, expected_dependency_stamp: workbench.gallery_etag ? `gallery:${workbench.gallery_etag}` : workbench.dependency_stamp,
       idempotency_key: key, cover: nextCover, gallery: nextGallery,
     }) });
     const result = await response.json();

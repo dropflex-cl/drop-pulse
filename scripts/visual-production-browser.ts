@@ -28,6 +28,7 @@ async function main() {
         // The fixture is read-only: UI actions are checked against isolated mock responses.
         for (const tab of ["Plan", "Identidad", "Piezas"]) {
           await page.getByText(tab, { exact: true }).click();
+          if (await page.getByRole("button", { name: /^Aprobar/ }).count()) throw new Error("Hay una aprobación obligatoria en la experiencia visual");
           const audit = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
           const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
           results.push({ viewport: viewport.name, theme, tab, violations: audit.violations, overflow });
@@ -37,11 +38,11 @@ async function main() {
         await page.getByRole("textbox", { name: "Describe el producto", exact: true }).fill("Nueva propuesta visual");
         let submitted = false;
         await page.route("**/api/products/*/visual", async route => {
-          if (route.request().method() === "PUT") { submitted = true; await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "El contexto cambió. Actualiza antes de guardar." }) }); }
+          if (route.request().method() === "PUT") { submitted = true; await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Otra edición cambió este contenido. Actualiza y guarda tu cambio." }) }); }
           else await route.fulfill({ status: 503, body: "" });
         });
-        await page.getByRole("button", { name: "Guardar propuesta", exact: true }).click();
-        await page.getByRole("alert").filter({ hasText: "El contexto cambió" }).waitFor();
+        await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+        await page.getByRole("alert").filter({ hasText: "Otra edición cambió" }).waitFor();
         if (!submitted) throw new Error("La edición no envió la propuesta");
         await context.close();
       }

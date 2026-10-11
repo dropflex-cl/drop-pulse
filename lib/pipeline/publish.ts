@@ -1,3 +1,4 @@
+import { contentAvailable, imageSelected } from "@/lib/product-intelligence/current-content";
 import { assertVisualBindingsPublishable } from "@/lib/product-intelligence/visual-publication";
 import { ProductIntelligenceError } from "@/lib/product-intelligence/errors";
 import { prepareExperienceManifest } from "@/lib/product-intelligence/persuasion-publication";
@@ -17,11 +18,9 @@ import { publicationSnapshot } from "@/lib/products/publication-snapshot";
 import { strictSchema, isEmptyContent } from "@/lib/copy/page-schema";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import { LISTING, type Listing } from "@/lib/copy/listing";
-import { validateLandingProposal } from "@/lib/product-intelligence/landing-service";
 import {
   contextAccess,
   contextDatabaseError,
-  createContextRepository,
 } from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { assertLandingVariantTheme } from "@/lib/shopify/publish/theme";
@@ -48,7 +47,6 @@ import {
   slotKind,
 } from "@/lib/page-images/catalog";
 import { PAGE_MEDIA_BUCKET, pageImageRows } from "@/lib/page-images/store";
-import { packLabelsStale } from "@/lib/pricing/labels";
 import { latestPackLabels } from "@/lib/pricing/labels-store";
 import { getPricingPlan } from "@/lib/pricing/store";
 import { ProductApiError } from "@/lib/products/http";
@@ -169,7 +167,7 @@ export interface Prepared {
   missing: string[];
 }
 
-/** Junta lo aprobado del producto tal como se publicaría. No toca Shopify. */
+/** Junta el contenido vigente y sus selecciones tal como se publicaría. No toca Shopify. */
 export async function preparePublish(
   userId: string,
   productId: string,
@@ -193,7 +191,7 @@ export async function preparePublish(
     missing.push("Completa los plazos de entrega y la hora de corte en Ajustes › Envíos y políticas antes de publicar.");
 
   const listingRow = rows.find(
-    (r) => r.component === LISTING && r.status === "approved" && r.enabled,
+    (r) => r.component === LISTING && contentAvailable(r) && r.enabled,
   );
   if (!listingRow || !strictSchema(LISTING)?.safeParse(currentContent(listingRow)).success) missing.push("Guarda la ficha en Página del producto.");
   const listingContent = listingRow ? currentContent(listingRow) : null;
@@ -223,7 +221,7 @@ export async function preparePublish(
         }
       : null;
   };
-  const chosen = pageRows.filter((p) => p.status === "approved" && p.render_status === "succeeded" && (p.source !== "reference" || refs.some(r => r.id === p.reference_image_id && !r.excluded)));
+  const chosen = pageRows.filter((p) => imageSelected(p) && p.render_status === "succeeded" && (p.source !== "reference" || refs.some(r => r.id === p.reference_image_id && !r.excluded)));
   const name = listing?.short_name ?? row.title;
   const cover = chosen.find((p) => p.slot === COVER);
   const gallery = chosen
@@ -245,9 +243,7 @@ export async function preparePublish(
       return ref && !ref.excluded ? refSource(ref, name) : null;
     }
     const p = pageRows.find((x) => x.id === pick.id);
-    if (p?.visual_binding_id && p.status !== "approved")
-      return null;
-    return p && p.render_status === "succeeded" && p.status !== "rejected"
+    return p && p.render_status === "succeeded" && contentAvailable(p)
       ? pageSource(p, name)
       : null;
   };
@@ -261,7 +257,7 @@ export async function preparePublish(
     .filter(
       (r) =>
         r.component !== LISTING &&
-        r.status === "approved" &&
+        contentAvailable(r) &&
         r.enabled &&
         componentById(r.component) && contentVariants(currentContent(r)).some(v => !isEmptyContent(v.content)),
     )
@@ -327,14 +323,8 @@ export async function preparePublish(
   // Packs: el plan de precios y las etiquetas aprobadas.
   if (!pricing)
     missing.push("Guarda el precio y los packs en Información base.");
-  // Las tarjetas de packs de la tienda usan las etiquetas («Uno solo para ti»): si hay una propuesta
-  // sin decidir (o quedó vieja porque cambiaron los precios), se decide antes de publicar; si no, la
-  // tienda caería en «1 unidad», «2 unidades».
-  const labelsReady =
-    labels?.status === "approved" && !packLabelsStale(labels, pricing);
-  if (pricing && pricing.packs.length > 1 && labels && !labelsReady)
-    missing.push("Actualiza las etiquetas de los packs para el precio guardado en Información base.");
-  const approvedLabels = labelsReady ? labels!.payload : [];
+  // Las etiquetas guardadas siguen disponibles al ajustar el precio. Solo se omiten descartes explícitos.
+  const approvedLabels = labels && contentAvailable(labels) ? labels.payload : [];
   const packs = (pricing?.packs ?? []).map((p) => {
     const l = approvedLabels.find((x) => x.units === p.units);
     return {
@@ -360,8 +350,7 @@ export async function preparePublish(
     .eq("user_id", userId)
     .eq("product_id", productId)
     .is("superseded_at", null)
-    .eq("final_status", "approved")
-    .not("approved_at", "is", null)
+    .in("final_status", ["generated", "in_review", "approved", "published"])
     .not("final_storage_path", "is", null);
   if (videoError)
     throw new PublishError("No pudimos leer los videos aprobados.");
@@ -452,39 +441,15 @@ export async function preparePublish(
     ) throw error;
     missing.push(`${error.message} Revisa las piezas visuales en Imágenes antes de publicar.`);
   }
-  const variantRows = rows.filter(
-    (r) =>
-      r.status === "approved" && r.enabled && isVariants(currentContent(r)),
-  );
-  if (!input.experienceManifest && variantRows.length) {
-    try {
-      const access = contextAccess({
-        userId,
-        actorId: userId,
-        actorKind: "merchant",
-        scopes: PI_SCOPES,
-      });
-      const current = await createContextRepository().loadLanding(
-        { p_access: access, p_product_id: productId },
-        AbortSignal.timeout(10000),
-      );
-      validateLandingProposal(
-        userId,
-        current,
-        variantRows.map((r) => ({
-          component: r.component,
-          content: currentContent(r),
-        })),
-        productId,
-      );
-    } catch (error) {
-      missing.push(
-        error instanceof Error
-          ? error.message
-          : "Revisa las variantes antes de publicar.",
-      );
-    }
+  for (const row of rows.filter(r => contentAvailable(r) && r.enabled)) {
+    const schema = strictSchema(row.component);
+    if (schema && contentVariants(currentContent(row)).some(v => uses(row.component, v.key) && !schema.safeParse(v.content).success)) missing.push("Corrige el contenido de un componente antes de publicar.");
   }
+  const selectedFiles = [...images, ...videos].filter(image => keys.has(image.key) && image.bucket && image.path);
+  await Promise.all(selectedFiles.map(async file => {
+    const result = await adminClient().storage.from(file.bucket!).exists(file.path!);
+    if (result.error || !result.data) missing.push("Un archivo elegido no está disponible. Sube el archivo o elige otro antes de publicar.");
+  }));
 
   return { currency: pricing?.currency ?? row.currency, input, images: images.filter(image => keys.has(image.key)), videos: videos.filter(video => keys.has(video.key)), missing };
 

@@ -38,22 +38,22 @@ describe("PI · lecturas y decisiones persistentes", () => {
   });
   it("separa divergencia de contenido y restricción de uso vigente", () => {
     const { read, version, ctx } = fixture(); read.currentGraph.angle[0].value.last_revision++;
-    expect(strategyResponse(version, read, ctx.product_id).readiness).toMatchObject({ stale: true, needs_review: false });
+    expect(strategyResponse(version, read, ctx.product_id).readiness).toMatchObject({ stale: false, needs_review: false });
     read.currentGraph.angle[0].value.last_revision--;
     read.currentGraph.EvidenceLink.push({ ...read.currentGraph.EvidenceLink[0], value: { ...read.currentGraph.EvidenceLink[0].value, id: randomUUID(), relation: "contradicts" } });
-    expect(strategyResponse(version, read, ctx.product_id).readiness).toMatchObject({ stale: false, needs_review: true, ready_for_execution: false });
+    expect(strategyResponse(version, read, ctx.product_id).readiness).toMatchObject({ stale: false, needs_review: false, ready_for_execution: true });
     expect(version.snapshot.evidence_links).toHaveLength(1);
   });
   it("un histórico seleccionado deja de habilitar ejecución al archivar hoy", () => {
     const { read, version, ctx } = fixture(); read.currentActiveStrategyId = null;
     expect(strategyResponse(version, read, ctx.product_id).readiness).toMatchObject({ ready_for_execution: false, missing_fields: ["strategy.selected"] });
   });
-  it("cambiar precio o imagen hace stale; no altera el snapshot congelado", () => {
+  it("cambiar precio o referencia conserva la selección y el historial", () => {
     const { read, version, ctx } = fixture(); read.currentSnapshot.pricing!.unit_cost = 4500;
-    expect(strategyResponse(version, read, ctx.product_id).readiness.stale).toBe(true);
+    expect(strategyResponse(version, read, ctx.product_id).readiness.stale).toBe(false);
     expect(version.snapshot.offer!.financial_snapshot!.unit_cost_minor).toBe(4000);
     read.currentSnapshot = structuredClone(read.snapshot); read.currentSnapshot.images[0].excluded = true;
-    expect(strategyResponse(version, read, ctx.product_id).readiness.stale).toBe(true);
+    expect(strategyResponse(version, read, ctx.product_id).readiness.stale).toBe(false);
   });
   it("core proyecta auxiliares; execution conserva cierre e inmutabilidad", () => {
     const { read, version, ctx } = fixture(); const core = strategyResponse(version, read, ctx.product_id, "core");

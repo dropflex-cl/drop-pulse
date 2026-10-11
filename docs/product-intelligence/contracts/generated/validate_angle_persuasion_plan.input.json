@@ -3,7 +3,6 @@
   "type": "object",
   "required": [
     "product_id",
-    "expected_revision",
     "plan"
   ],
   "additionalProperties": false,
@@ -433,6 +432,7 @@
       "$ref": "#/$defs/__schema0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991

@@ -4,11 +4,8 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "idempotency_key",
     "stage",
     "script_id",
-    "expected_artifact_etag",
     "shot_keys"
   ],
   "additionalProperties": false,
@@ -29,11 +26,13 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "idempotency_key": {
+      "default": "e91a8c48-229b-479a-ba69-31e800526bfb",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },
@@ -58,8 +57,17 @@
       "format": "uuid"
     },
     "expected_artifact_etag": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "shot_keys": {
       "minItems": 1,

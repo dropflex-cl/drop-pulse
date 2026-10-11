@@ -3,8 +3,6 @@
   "type": "object",
   "required": [
     "product_id",
-    "expected_revision",
-    "idempotency_key",
     "strategy_id",
     "confirmed_hooks",
     "auto_approve_and_publish"
@@ -40,11 +38,13 @@
       "$ref": "#/$defs/__schema0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "idempotency_key": {
+      "default": "50f62a33-bc48-4c13-988c-435dde7ba835",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

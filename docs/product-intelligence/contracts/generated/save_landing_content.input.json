@@ -4,9 +4,6 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "expected_landing_etag",
-    "idempotency_key",
     "entries"
   ],
   "additionalProperties": false,
@@ -37,6 +34,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -69,6 +69,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -101,6 +104,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -133,6 +139,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -165,6 +174,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -197,6 +209,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -229,6 +244,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -261,6 +279,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -293,6 +314,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -325,6 +349,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -357,6 +384,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -389,6 +419,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -421,6 +454,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -453,6 +489,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -485,6 +524,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -517,6 +559,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -549,6 +594,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -581,6 +629,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -613,6 +664,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -645,6 +699,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -677,6 +734,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -709,6 +769,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -741,6 +804,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -773,6 +839,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -805,6 +874,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -837,6 +909,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -869,6 +944,9 @@
             },
             "metadata": {
               "$ref": "#/$defs/__schema14"
+            },
+            "enabled": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -4133,15 +4211,26 @@
       ]
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "expected_landing_etag": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "idempotency_key": {
+      "default": "86717455-7e4e-46fe-b41d-101dd0679f57",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

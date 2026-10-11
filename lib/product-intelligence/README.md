@@ -1,5 +1,8 @@
 # Dominio Product Intelligence
 
+Las reglas operativas vigentes están en [contenido vigente](../../docs/product-intelligence/current-content.md): guardar y seleccionar permiten usar contenido; no se requieren aprobaciones, revisiones de negocio ni conciliaciones por cambios de contexto. Las secciones siguientes describen módulos y compatibilidad histórica.
+
+
 Implementación para el flujo desde chat, compartida por UI y MCP. El núcleo de dominio es puro; `repository.ts`/`service.ts`/`knowledge-service.ts` persisten contexto, precio, conocimiento y decisiones con RPC autorizada. Las tools de contenido guardan propuestas sin redacción pagada; las tools de ejecución explícita usan los renderizadores y proveedores conservados. No se reconstruye el análisis legacy. `test-fixtures.ts`, `oauth-test-fixtures.ts` y los `.test.ts` usan datos ficticios; no deben importarse desde runtime.
 
 - `schemas.ts`: contratos canónicos Zod y tipos. `lib/types.ts` reexporta los tipos públicos. Los archivos en `docs/product-intelligence/contracts/generated/` se derivan con `npm run pi:contracts`; nunca se leen para ejecutar tools.

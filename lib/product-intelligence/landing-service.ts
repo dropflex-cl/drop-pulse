@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
 import { DEFAULT_ACCENT } from "@/lib/copy/accent";
 import { pdpProofProblems } from "@/lib/copy/pdp-proof";
@@ -216,8 +217,8 @@ export function createLandingExecutor(
         {
           p_access: access,
           p_product_id: write.product_id,
-          p_expected_revision: write.expected_revision,
-          p_etag: write.expected_landing_etag,
+          p_expected_revision: serverRevision(write.expected_revision, read.revision),
+          p_etag: serverToken(write.expected_landing_etag, read.landing_etag),
           p_stamp: read.stamp,
           p_key: write.idempotency_key,
           p_hash: hash,

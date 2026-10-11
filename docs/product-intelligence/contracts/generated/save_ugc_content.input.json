@@ -4,9 +4,6 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "expected_ugc_etag",
-    "idempotency_key",
     "execution_key",
     "strategy_id",
     "angle_id",
@@ -610,15 +607,26 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "expected_ugc_etag": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "idempotency_key": {
+      "default": "2554eb96-bccf-42f6-94d4-28cd1e317534",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

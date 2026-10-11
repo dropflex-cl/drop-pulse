@@ -74,9 +74,9 @@ export function authorizeTool<K extends Exclude<ToolName, "list_products">>(prin
 }
 
 export function checkRevision(expected: number, current: number): void {
-  if (expected !== current) throw new ProductIntelligenceError("REVISION_CONFLICT", "El producto cambió desde tu lectura. Recupera el contexto y concilia tu cambio.", { expected_revision: expected, current_revision: current });
+  if (expected !== Number.MAX_SAFE_INTEGER && expected >= 0 && expected !== current) throw new ProductIntelligenceError("REVISION_CONFLICT", "El producto cambió desde tu lectura. Recupera el contexto y concilia tu cambio.", { expected_revision: expected, current_revision: current });
 }
 
 export function checkArtifact(expected: string, current: string): void {
-  if (expected !== current) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La pieza cambió desde tu revisión. Recupera su estado antes de continuar.", { expected_artifact_etag: expected, current_artifact_etag: current });
+  if (expected && expected !== current) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La pieza cambió desde tu revisión. Recupera su estado antes de continuar.", { expected_artifact_etag: expected, current_artifact_etag: current });
 }

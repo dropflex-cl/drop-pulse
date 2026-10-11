@@ -76,9 +76,9 @@ function initialFormat(cards: VideoCardView[], slot: string | undefined): VideoF
   return latest?.format ?? "ugc";
 }
 
-/** El paso en que va la tarjeta: sin guion aprobado, siempre el 1. */
+/** El material disponible determina la siguiente acción; no hay aprobación del guion. */
 function currentStep(card: VideoCardView): number {
-  if (!card.script?.payload || !card.script.approved) return 1;
+  if (!card.script?.payload) return 1;
   return STEP_N[card.step];
 }
 
@@ -275,8 +275,8 @@ function stepNotes(card: VideoCardView): (string | undefined)[] {
   const clipsDone = card.clips.filter((c) => c.render === "succeeded").length;
   const clipsTotal = p ? p.a_roll.length + p.b_roll.length : 0;
   return [
-    !s ? "Por escribir" : s.status === "queued" || s.status === "running" ? "Escribiendo…" : !p ? "No se pudo escribir" : s.approved ? `Aprobado · ${p.a_roll.length + p.b_roll.length} tomas` : "Por aprobar",
-    p && s?.approved ? `${kfOk} de ${p.keyframes.length} aprobadas` : undefined,
+    !s ? "Por escribir" : s.status === "queued" || s.status === "running" ? "Escribiendo…" : !p ? "No se pudo escribir" : `Guardado · ${p.a_roll.length + p.b_roll.length} tomas`,
+    p ? `${kfOk} de ${p.keyframes.length} disponibles` : undefined,
     card.clips.length ? `${clipsDone} de ${clipsTotal} listos${card.clips.some(busyShot) ? " · 3 a 6 min" : ""}` : undefined,
     "Paquete JSON + CapCut local",
     card.final?.src ? (card.final.status === "aprobado" ? "En Anuncios" : "Por aprobar") : "Sube el MP4 montado",
@@ -343,7 +343,7 @@ function CardStep({
   onFormat: (f: VideoFormat) => void;
 }) {
   const s = card.script;
-  // «Escribir», «Crear otra versión en el chat» y «Reintentar» van en el formato de esta tarjeta: el otro formato no se toca.
+  // «Escribir», «Crear otra variante en el chat» y «Reintentar» van en el formato de esta tarjeta: el otro formato no se toca.
   const format = card.format;
   const writeKey = (f: VideoFormat) => `write-${card.slot}-${f}`;
   const writeAs = () => onError("Crea otra versión en el chat y guárdala. Después vuelve a Videos para revisarla.");
@@ -392,7 +392,6 @@ function CardStep({
         card={card}
         script={s.payload}
         scriptId={s.id}
-        approved={s.approved}
         current={current}
         desktop={desktop}
         busy={busy}
@@ -428,7 +427,6 @@ function ScriptStep({
   card,
   script: p,
   scriptId,
-  approved,
   current,
   desktop,
   busy,
@@ -439,7 +437,6 @@ function ScriptStep({
   otherBusy,
   onAnother,
   onOther,
-  run,
   onState,
   onError,
   onView,
@@ -448,7 +445,6 @@ function ScriptStep({
   card: VideoCardView;
   script: UgcScript;
   scriptId: string;
-  approved: boolean;
   current: number;
   desktop: boolean;
   busy: string | null;
@@ -475,7 +471,6 @@ function ScriptStep({
   const [saving, setSaving] = useState(false);
   const timeline = scriptTimeline(p);
   const clipsStarted = card.clips.length > 0;
-  const action = (a: "approve" | "unapprove", done?: string) => run(`${a}-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, a, card.script?.artifactEtag), "No pudimos guardar el cambio.", done);
 
   function cancel() {
     setLines(Object.fromEntries(p.a_roll.map((a) => [a.key, a.line])));
@@ -581,20 +576,14 @@ function ScriptStep({
                 Editar
               </Button>
               <Button icon="undo" loading={writing} disabled={Boolean(busy)} onClick={onAnother}>
-                {withCost("Crear otra versión en el chat")}
+                {withCost("Crear otra variante en el chat")}
               </Button>
             </div>
-            {approved ? (
-              current > 1 ? (
-                <Button variant="primary" size="lg" iconEnd="chevron-right" onClick={() => onView(current)}>
-                  Ir al paso que toca
-                </Button>
-              ) : null
-            ) : (
-              <Button variant="primary" size="lg" icon="check" loading={busy === `approve-${card.slot}`} disabled={Boolean(busy)} onClick={() => action("approve", "Guion aprobado")}>
-                Aprobar guion
+            {current > 1 ? (
+              <Button variant="primary" size="lg" iconEnd="chevron-right" onClick={() => onView(current)}>
+                Continuar
               </Button>
-            )}
+            ) : null}
           </>
         )}
       </StepActions>
@@ -608,7 +597,7 @@ function keyframeState(s: VideoShotView | undefined): KeyframeState {
   if (!s || s.awaitingUpload) return "missing";
   if (busyShot(s)) return "generating";
   if (s.render === "failed") return "failed";
-  return s.status === "aprobado" ? "approved" : s.status === "rechazado" ? "discarded" : "review";
+  return s.status === "rechazado" ? "discarded" : "approved";
 }
 
 function KeyframesStep({
@@ -648,7 +637,7 @@ function KeyframesStep({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="flex-1 text-caption text-muted-foreground tabular-nums">{`${approvedN} ${approvedN === 1 ? "aprobada" : "aprobadas"}${missing ? ` · ${missing} ${missing === 1 ? "falta" : "faltan"}` : ""}`}</span>
+        <span className="flex-1 text-caption text-muted-foreground tabular-nums">{`${approvedN} ${approvedN === 1 ? "disponible" : "disponibles"}${missing ? ` · ${missing} ${missing === 1 ? "falta" : "faltan"}` : ""}`}</span>
         {missing && !none ? (
           <Button size="sm" icon="sparkle" loading={busy === `keyframes-${card.slot}`} disabled={Boolean(busy)} onClick={generate}>
             {`${missing === 1 ? "Generar la que falta" : `Generar las ${missing} que faltan`} · ${localCost(missing * shotCost("keyframe"))}`}
@@ -721,9 +710,9 @@ function KeyframesStep({
               icon="check"
               loading={busy === `approve_keyframes-${card.slot}`}
               disabled={Boolean(busy)}
-              onClick={() => run(`approve_keyframes-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "approve_keyframes", card.script?.artifactEtag), "No pudimos aprobarlas.", "Imágenes clave aprobadas")}
+              onClick={() => run(`approve_keyframes-${card.slot}`, () => productsApi.scriptAction(productId, scriptId, "approve_keyframes", card.script?.artifactEtag), "No pudimos guardar la selección.", "Imágenes clave disponibles")}
             >
-              {`Aprobar todas (${pending.length})`}
+              {`Usar todas (${pending.length})`}
             </Button>
           )}
         </StepActions>

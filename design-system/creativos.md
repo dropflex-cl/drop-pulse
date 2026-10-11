@@ -1,5 +1,8 @@
 # Etapa Creativos
 
+**Flujo vigente:** guardar un guion lo deja disponible. Las imágenes y videos existentes no requieren aprobación de guion, plan o contexto. Los controles «Usar» guardan decisiones de uso; «Descartar» conserva una decisión explícita. Cambiar contexto no invalida medios ni inicia renders. Los nombres internos de props/estados anteriores se mantienen por compatibilidad. Ver `docs/product-intelligence/current-content.md`.
+
+
 Los anuncios para Meta de un producto: **Imágenes** (anuncios estáticos y chat de WhatsApp) y **Videos** (un UGC de ~30 s por ángulo). La etapa es opcional, se habilita al aprobar los ángulos y todo lo aprobado pasa a **Anuncios**, en el conjunto de su ángulo.
 
 Pantallas: `PantallasCreativos1`–`8` (móvil) y `PantallasCreativosEscritorio1`–`2`. Cada pantalla lleva en su título los casos que cubre.

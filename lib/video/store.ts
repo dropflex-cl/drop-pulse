@@ -205,8 +205,8 @@ const keyOrder = (a: string, b: string) => a[0].localeCompare(b[0]) || Number(a.
 /** En qué paso está: lo que falta decide qué muestra la tarjeta. */
 export function videoStep(script: ScriptRow | undefined, keyframes: ShotRow[], clips: ShotRow[]): VideoStep {
   const p = script?.payload;
-  if (!script || !p || script.status !== "succeeded" || !script.approved_at) return "script";
-  const kfDone = p.keyframes.every((k) => keyframes.some((s) => s.key === k.key && s.render_status === "succeeded" && s.status === "approved"));
+  if (!script || !p || script.status !== "succeeded") return "script";
+  const kfDone = p.keyframes.every((k) => keyframes.some((s) => s.key === k.key && s.render_status === "succeeded" && s.status !== "rejected"));
   if (!kfDone) return "keyframes";
   const needed = [...p.a_roll.map((a) => a.key), ...p.b_roll.map((b) => b.key)];
   if (!needed.every((k) => clips.some((s) => s.key === k && s.render_status === "succeeded"))) return "clips";
@@ -235,7 +235,7 @@ export async function toCardView(slot: AngleSlot, angleName: string, format: Vid
           status: script.status,
           error: script.error_message ?? undefined,
           payload: script.payload ?? undefined,
-          approved: script.approved_at != null,
+          approved: script.status === "succeeded",
           edited: script.edited_at != null,
           createdAt: script.created_at,
         }

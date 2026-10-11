@@ -39,14 +39,14 @@ export function PersuasionWorkbench({ initial, data }: { initial: PdpWorkbench; 
       } }) });
       const result = await response.json();
       if (!response.ok || result.ok === false) throw new Error(result.error?.message ?? result.error ?? "No pudimos guardar. Actualiza e intenta de nuevo.");
-      retries.current.delete(signature); setDraft(snapshot.saved.payload); notify("Versión de página guardada"); router.refresh();
+      retries.current.delete(signature); setDraft(snapshot.saved.payload); notify("Variante de página guardada"); router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "No pudimos guardar. Intenta de nuevo."); }
     finally { setBusy(false); }
   }
   if (!draft) return null;
   return <div className="flex flex-col gap-3 pt-3">
-    <label className="text-label">Versión de página<select className="mt-2 min-h-touch w-full rounded-md border border-input bg-background px-3 text-body" value={id} disabled={busy} onChange={e => { const next = initial.experiences.find(x => x.id === e.target.value); baseline.current = { saved: next, revision: initial.revision, planningStamp: initial.planning_stamp }; setId(e.target.value); setDraft(next?.payload ?? null); }}>
-      {initial.experiences.map((e, index) => <option key={e.id} value={e.id}>{e.payload.is_default ? "Página principal" : `Versión ${index + 1}`}</option>)}
+    <label className="text-label">Variante de página<select className="mt-2 min-h-touch w-full rounded-md border border-input bg-background px-3 text-body" value={id} disabled={busy} onChange={e => { const next = initial.experiences.find(x => x.id === e.target.value); baseline.current = { saved: next, revision: initial.revision, planningStamp: initial.planning_stamp }; setId(e.target.value); setDraft(next?.payload ?? null); }}>
+      {initial.experiences.map((e, index) => <option key={e.id} value={e.id}>{e.payload.is_default ? "Página principal" : `Variante ${index + 1}`}</option>)}
     </select></label>
     <Switch label="Usar como página principal" checked={draft.is_default} disabled={busy} onChange={is_default => setDraft({ ...draft, is_default })} />
     <ol className="flex flex-col gap-2">{draft.sections.map((section, index) => <li key={section.section_key} className="rounded-md border p-3">
@@ -54,10 +54,10 @@ export function PersuasionWorkbench({ initial, data }: { initial: PdpWorkbench; 
         <IconButton icon="arrow-up" label={`Subir ${componentName(section.component)}`} disabled={busy || index < 2} onClick={() => move(index, -1)} />
         <IconButton icon="arrow-down" label={`Bajar ${componentName(section.component)}`} disabled={busy || index === 0 || index === draft.sections.length - 1} onClick={() => move(index, 1)} />
       </div>
-      {section.component !== "listing" ? <Switch label="Mostrar en esta versión" checked={section.enabled} disabled={busy} onChange={enabled => setDraft({ ...draft, sections: draft.sections.map((s, i) => i === index ? { ...s, enabled, manual_overrides: [...new Set([...s.manual_overrides, "enabled" as const])] } : s) })} /> : null}
+      {section.component !== "listing" ? <Switch label="Mostrar en esta variante" checked={section.enabled} disabled={busy} onChange={enabled => setDraft({ ...draft, sections: draft.sections.map((s, i) => i === index ? { ...s, enabled, manual_overrides: [...new Set([...s.manual_overrides, "enabled" as const])] } : s) })} /> : null}
     </li>)}</ol>
-    <p className="text-caption text-muted-foreground">Guardar conserva esta versión. Publica para mostrar sus cambios en la tienda.</p>
-    <Button onClick={save} loading={busy}>Guardar versión</Button>
+    <p className="text-caption text-muted-foreground">Guardar conserva esta variante. Publica para mostrar sus cambios en la tienda.</p>
+    <Button onClick={save} loading={busy}>Guardar cambios</Button>
     {error ? <p role="alert" className="text-body text-destructive">{error}</p> : null}
   </div>;
 }

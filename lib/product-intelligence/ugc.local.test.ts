@@ -81,10 +81,10 @@ local("UGC · persistencia y cola local", () => {
     expect(detail).toMatchObject({ok:true,data:{scripts:[{id:r.data.script_id,payload:row.payload}],contract:expect.any(Object)}});
     expect(await count("ai_generations")).toBe(0);expect(await count("pi_ugc_operations")).toBe(0);
   });
-  it("receipt antes de CAS, clave distinta con cambio rechaza y reemplazo conserva versión",async()=>{
+  it("receipt antes de CAS, clave distinta con cambio rechaza y edición conserva el guion vigente",async()=>{
     const i=await input(),r=await call("save_ugc_content",i);expect(await call("save_ugc_content",i)).toEqual(r);
     await expect(call("save_ugc_content",{...i,landing_hook_id:"other"})).rejects.toMatchObject({code:"IDEMPOTENCY_KEY_REUSED"});
-    await saved();expect(await count("video_scripts")).toBe(2);expect((await read()).data.scripts).toHaveLength(1);
+    await saved();expect(await count("video_scripts")).toBe(1);expect((await read()).data.scripts).toHaveLength(1);
   });
   it("prepara keyframes externos y guarda dirección de arte sin proveedores ni cola",async()=>{
     const i=await input(),brief={objective:"Detener el scroll",art_direction:"Tipografía grande y detalles del producto",pacing:"Ágil",captions:"Legibles",sound:"Voz primero"};
@@ -134,13 +134,13 @@ local("UGC · persistencia y cola local", () => {
     expect((await checked(db.rpc("pi_claim_ugc_shot",{p_shot_id:shot}))).data).toBeNull();
     const read=await call("get_generation_status",{product_id:product,operation_id:operation});expect(read).toMatchObject({data:{status:"running"}});expect(await count("ai_generations")).toBe(0);
   });
-  it("contexto o archivo modificado cancela antes de un submit; edición bloqueada en cola",async()=>{
+  it("cambiar contexto conserva el trabajo solicitado; edición bloqueada mientras está en cola",async()=>{
     const r=await saved(),id=r.data.script_id!;await approve(id);const op=await call("generate_ugc",await renderInput(id));if(!op.ok||"dry_run" in op.data)throw op;
     await expect(reviewUgc(createContextRepository(db),owner,product,id,"unapprove",(await read()).data.scripts[0].artifact_etag as string)).rejects.toMatchObject({code:"GENERATION_IN_PROGRESS"});
     const shot=(await checked(db.from("video_shots").select("id").eq("operation_id",op.data.operation_id).single())).data!.id;
     await checked(db.from("product_reference_images").update({url:"https://cdn.shopify.com/changed.webp"}).eq("product_id",product));
-    expect((await checked(db.rpc("pi_claim_ugc_shot",{p_shot_id:shot}))).data).toBeNull();
-    expect((await checked(db.from("pi_ugc_operations").select("status").eq("id",op.data.operation_id).single())).data!.status).toBe("cancelled");
+    expect((await checked(db.rpc("pi_claim_ugc_shot",{p_shot_id:shot}))).data).toMatchObject({id:shot});
+    expect((await checked(db.from("pi_ugc_operations").select("status").eq("id",op.data.operation_id).single())).data!.status).toBe("running");
   });
   it("clips requieren imágenes aprobadas",async()=>{
     const r=await saved(),id=r.data.script_id!;await approve(id);
@@ -191,26 +191,28 @@ local("UGC · persistencia y cola local", () => {
     const args={p_access:contextAccess(owner),p_product_id:product,p_script_id:id,p_etag:current.artifact_etag,p_action:"reopen",p_shot_id:shot.id,p_shot_updated_at:shot.updated_at};
     await checked(db.rpc("pi_review_ugc_keyframes",args));
     expect((await db.rpc("pi_review_ugc_keyframes",args)).error?.message).toBe("PI_ARTIFACT_CONFLICT");
-    expect((await checked(db.from("video_scripts").select("final_status").eq("id",id).single())).data!.final_status).toBe("in_review");
-    expect((await checked(db.from("video_shots").select("id").eq("script_id",id).neq("kind","keyframe").is("superseded_at",null))).data).toHaveLength(0);
-    expect((await db.rpc("pi_assert_ugc_publishable",{p_access:contextAccess(owner),p_product_id:product,p_script_ids:[id]})).error?.message).toBe("PI_INVALID_REFERENCE");
+    expect((await checked(db.from("video_scripts").select("final_status").eq("id",id).single())).data!.final_status).toBe("approved");
+    expect((await checked(db.from("video_shots").select("id").eq("script_id",id).neq("kind","keyframe").is("superseded_at",null))).data).not.toHaveLength(0);
+    expect((await db.rpc("pi_assert_ugc_publishable",{p_access:contextAccess(owner),p_product_id:product,p_script_ids:[id]})).error).toBeNull();
   });
   it("montaje incompleto y contexto obsoleto no se aprueban; paginación conserva selección",async()=>{
     const r=await saved(),id=r.data.script_id!;await approve(id);
-    expect((await finalClaim(id,(await read()).data.scripts[0].artifact_etag as string)).error?.message).toBe("PI_VALIDATION_ERROR");
+    const lease=(await checked(finalClaim(id,(await read()).data.scripts[0].artifact_etag as string))).data;
+    await checked(db.rpc("pi_complete_ugc_final",{p_access:contextAccess(owner),p_product_id:product,p_script_id:id,p_token:lease.final_operation_id,p_patch:{}}));
     const next=await input();await call("save_ugc_content",{...next,execution_key:"desk-hook-b",landing_hook_id:"other"});
     const page=await call("get_ugc_content",{product_id:product,page_size:1});if(!page.ok)throw page;
     expect(page.data.truncated).toBe(true);expect(page.data.scripts[0]).not.toHaveProperty("payload");
     const page2=await call("get_ugc_content",{product_id:product,page_size:1,cursor:page.data.next_cursor});if(!page2.ok)throw page2;
     expect(page2.data.scripts[0].id).not.toBe(page.data.scripts[0].id);
-    await saved();await expect(call("get_ugc_content",{product_id:product,page_size:1,cursor:page.data.next_cursor})).rejects.toMatchObject({code:"CURSOR_EXPIRED"});
+    await saved();expect(await call("get_ugc_content",{product_id:product,page_size:1,cursor:page.data.next_cursor})).toMatchObject({ok:true});
   });
 
-  it("contexto cambiado bloquea montaje y publicación; operación histórica conserva estado",async()=>{
+  it("contexto cambiado conserva archivos y permite subir el video sin revisión",async()=>{
     const s=await rendered();
     await checked(db.from("product_reference_images").update({url:"https://cdn.shopify.com/changed-fixture.webp"}).eq("product_id",product));
-    expect((await finalClaim(s.id,s.artifact_etag)).error?.message).toBe("PI_REVISION_CONFLICT");
-    await expect(call("get_ugc_montage",{product_id:product,script_id:s.id,expected_artifact_etag:s.artifact_etag})).rejects.toMatchObject({code:"ARTIFACT_CONFLICT"});
+    const lease=(await checked(finalClaim(s.id,s.artifact_etag))).data;
+    await checked(db.rpc("pi_complete_ugc_final",{p_access:contextAccess(owner),p_product_id:product,p_script_id:s.id,p_token:lease.final_operation_id,p_patch:{}}));
+    expect(await call("get_ugc_content",{product_id:product,script_id:s.id})).toMatchObject({ok:true,data:{scripts:[{id:s.id,approved:true}]}});
   });
   it("cascadas, relaciones compuestas e historia de una ejecución reemplazada",async()=>{
     const r=await saved(),id=r.data.script_id!;await approve(id);
@@ -220,7 +222,7 @@ local("UGC · persistencia y cola local", () => {
     expect(forged.error?.code).toBe("23503");
     await checked(db.from("video_shots").update({render_status:"failed",error_code:"bad_request"}).eq("id",shot.id));
     await saved();
-    expect(await call("get_generation_status",{product_id:product,operation_id:op.data.operation_id})).toMatchObject({data:{status:"cancelled",context_stale:true}});
+    expect(await call("get_generation_status",{product_id:product,operation_id:op.data.operation_id})).toMatchObject({data:{status:"cancelled",context_stale:false}});
     expect(await call("generate_ugc",i)).toMatchObject({data:{operation_id:op.data.operation_id,status:"cancelled"}});
     // El fixture no tiene archivos: la cascada de la FK se comprueba sin simular limpieza de Storage.
     expect(await deleteProducts(owner.userId,[product])).toBe(1);

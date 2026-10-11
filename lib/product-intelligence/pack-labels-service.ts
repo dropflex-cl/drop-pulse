@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -56,8 +57,8 @@ export function createPackLabelsExecutor(repository: PackLabelsRepository, ident
     } });
     if (!plan || read.snapshot.catalog && read.snapshot.catalog.currency !== plan.currency) throw new ProductIntelligenceError("VALIDATION_ERROR", "Guarda Precio y packs antes de escribir sus etiquetas.", { missing_fields: ["pricing"] });
     const labels = validateChatPackLabels(write.labels, plan, write.duration_fact_ids, read.snapshot.knowledge.graph, principal.userId, input.product_id);
-    return parseToolOutput("save_pack_labels", await repository.commitPackLabels({ p_access: access, p_product_id: input.product_id, p_expected_revision: write.expected_revision,
-      p_etag: write.expected_pack_labels_etag, p_stamp: read.stamp, p_key: write.idempotency_key, p_hash: hash, p_action: "propose",
+    return parseToolOutput("save_pack_labels", await repository.commitPackLabels({ p_access: access, p_product_id: input.product_id, p_expected_revision: serverRevision(write.expected_revision, read.revision),
+      p_etag: serverToken(write.expected_pack_labels_etag, read.pack_labels_etag), p_stamp: read.stamp, p_key: write.idempotency_key, p_hash: hash, p_action: "propose",
       p_labels: labels, p_fact_ids: [...write.duration_fact_ids].sort(), p_dry_run: write.dry_run }, signal));
   };
 }

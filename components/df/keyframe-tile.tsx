@@ -19,7 +19,7 @@ export interface KeyframeTileProps {
   footer?: React.ReactNode;
 }
 
-const NOTE: Partial<Record<KeyframeState, string>> = { missing: "Falta", generating: "Generando…", approved: "Aprobada", discarded: "Descartada" };
+const NOTE: Partial<Record<KeyframeState, string>> = { missing: "Falta", generating: "Generando…", approved: "Disponible", discarded: "Descartada" };
 
 /** Imagen clave 9:16 de una toma, con el QA de manos, cara y producto en una línea (.df-kf). */
 export function KeyframeTile({ label, state, src, qa = [], error, busy, onApprove, onDiscard, footer }: KeyframeTileProps) {
@@ -60,7 +60,7 @@ export function KeyframeTile({ label, state, src, qa = [], error, busy, onApprov
       {state === "review" ? (
         <div className="flex gap-1 [&>*]:flex-1 [&>*]:border">
           <IconButton icon="x" label={`Descartar ${label}`} disabled={busy} onClick={onDiscard} />
-          <IconButton icon="check" label={`Aprobar ${label}`} variant="primary" disabled={busy} onClick={onApprove} />
+          <IconButton icon="check" label={`Usar ${label}`} variant="primary" disabled={busy} onClick={onApprove} />
         </div>
       ) : null}
       {footer}

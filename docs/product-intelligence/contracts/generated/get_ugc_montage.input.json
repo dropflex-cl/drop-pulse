@@ -3,8 +3,7 @@
   "type": "object",
   "required": [
     "product_id",
-    "script_id",
-    "expected_artifact_etag"
+    "script_id"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -22,8 +21,17 @@
       "$ref": "#/$defs/__schema0"
     },
     "expected_artifact_etag": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     }
   }
 }

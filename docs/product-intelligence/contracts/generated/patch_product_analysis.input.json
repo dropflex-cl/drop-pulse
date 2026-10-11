@@ -4,8 +4,6 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "idempotency_key",
     "operations"
   ],
   "additionalProperties": false,
@@ -3203,11 +3201,13 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "idempotency_key": {
+      "default": "64131a15-9c93-4b58-b1fb-c489cfd76083",
       "type": "string",
       "minLength": 8,
       "maxLength": 128,

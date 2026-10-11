@@ -214,7 +214,7 @@ export const landingExperienceSchema = z.strictObject({
   strategy_id: uuid,
   angle_id: uuid,
   persuasion_plan_id: uuid,
-  plan_revision: z.number().int().positive().safe(),
+  plan_revision: z.number().int().positive().safe().optional().default(1),
   landing_angle_id: selectorSchema,
   landing_hook_id: selectorSchema.nullable().default(null),
   experience_key: selectorSchema,
@@ -255,10 +255,10 @@ const selection = { strategy_id: uuid, angle_id: uuid };
 const write = {
   ...read,
   schema_version: z.literal("1.0"),
-  expected_revision: z.number().int().nonnegative().safe(),
-  expected_planning_stamp: z.string().regex(/^[a-f0-9]{64}$/),
-  expected_etag: z.string().regex(/^[a-f0-9]{64}$/),
-  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/),
+  expected_revision: z.number().int().nonnegative().safe().optional().default(Number.MAX_SAFE_INTEGER),
+  expected_planning_stamp: z.string().regex(/^[a-f0-9]{64}$/).or(z.literal("")).optional().default(""),
+  expected_etag: z.string().regex(/^[a-f0-9]{64}$/).or(z.literal("")).optional().default(""),
+  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()),
   dry_run: z.boolean().default(false),
 };
 export const persuasionInputSchemas = {
@@ -271,7 +271,7 @@ export const persuasionInputSchemas = {
   }),
   validate_angle_persuasion_plan: z.strictObject({
     ...read,
-    expected_revision: z.number().int().nonnegative().safe(),
+    expected_revision: z.number().int().nonnegative().safe().optional().default(Number.MAX_SAFE_INTEGER),
     plan: persuasionPlanSchema,
   }),
   save_angle_persuasion_plan: z.strictObject({

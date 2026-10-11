@@ -4,10 +4,6 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "expected_etag",
-    "expected_dependency_stamp",
-    "idempotency_key",
     "asset_id",
     "bindings"
   ],
@@ -157,6 +153,7 @@
           ]
         },
         "target_etag": {
+          "default": "0000000000000000000000000000000000000000000000000000000000000000",
           "$ref": "#/$defs/__schema1"
         },
         "reason": {
@@ -167,7 +164,6 @@
       },
       "required": [
         "target",
-        "target_etag",
         "reason"
       ],
       "additionalProperties": false
@@ -186,17 +182,37 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "expected_etag": {
-      "$ref": "#/$defs/__schema1"
+      "default": "",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema1"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "expected_dependency_stamp": {
-      "$ref": "#/$defs/__schema1"
+      "default": "",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema1"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "idempotency_key": {
+      "default": "c45ecfc9-863e-450f-bad8-6a40173e5bbb",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

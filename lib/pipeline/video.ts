@@ -158,7 +158,6 @@ export async function startKeyframes(userId: string, productId: string, scriptId
   await requireHiggsfield(userId);
   const s = await readyScript(userId, productId, scriptId);
   if (s.source === "mcp_chat") throw new OptimizeError("Genera este video con el servicio compartido de UGC.", 409);
-  if (!s.approved_at) throw new OptimizeError("Aprueba el guion antes de generar las imágenes.", 409);
   const keys = missingKeys(s.payload.keyframes.map((k) => k.key), await shotsFor(userId, [s.id]));
   if (!keys.length) return [];
   if ((await dailyShots(userId, ["keyframe"])) + keys.length > DAILY_KEYFRAMES) throw new OptimizeError(`Llegaste al máximo de ${DAILY_KEYFRAMES} imágenes clave en 24 horas. Vuelve mañana.`, 429);
@@ -251,7 +250,7 @@ async function storedBytes(path: string): Promise<Buffer> {
 async function keyframeShot(scriptId: string, userId: string, key: string, approvedOnly: boolean): Promise<ShotRow | null> {
   const s = latestByKey(await shotsFor(userId, [scriptId])).get(key);
   if (!s || s.render_status !== "succeeded" || !s.storage_path) return null;
-  if (approvedOnly && s.status !== "approved") return null;
+  if (approvedOnly && s.status === "rejected") return null;
   return s;
 }
 
@@ -587,7 +586,6 @@ export async function montagePackage(userId: string, productId: string, scriptId
 
 export async function prepareFinalUpload(userId: string, productId: string, scriptId: string, file: { type?: string; size?: number }) {
   const s = await readyScript(userId, productId, scriptId);
-  if (!s.approved_at) throw new OptimizeError("Aprueba el guion antes de subir el video.", 409);
   if (file.type !== "video/mp4") throw new OptimizeError("Sube el video en MP4.", 415);
   if (!file.size || file.size > FINAL_MAX_BYTES) throw new OptimizeError("El video pesa más de 100 MB. Exporta una versión más liviana.", 413);
   const path = `${userId}/${productId}/video-final-${s.id}-${randomUUID().slice(0, 8)}.mp4`;

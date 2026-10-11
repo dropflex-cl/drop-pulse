@@ -26,7 +26,7 @@ Implementación en código y Supabase local. Por autorización posterior, el com
 | `get_generation_status` | read | Estado y costo estimado, cursor ligado al estado; sin polling externo. |
 | `get_ugc_montage` | read | Paquete del guion vigente, aprobado y con clips completos. |
 
-Un [ejemplo completo de guion y plan](contracts/ugc.example.json) contiene datos ficticios y requiere sustituir IDs/revisión/etags por los leídos de las tools.
+Un [ejemplo completo de guion y plan](contracts/ugc.example.json) contiene datos ficticios y requiere sustituir los IDs por los del producto; los parámetros técnicos son opcionales.
 
 Los schemas publicados salen de `lib/product-intelligence/ugc-schemas.ts` y `schemas.ts`. El runtime y catálogo derivado publican las tools vigentes; el contrato retirado ya no existe. `contracts/tools.json` conserva el subconjunto histórico de nueve tools aún vigentes, no discovery del host.
 
@@ -36,19 +36,21 @@ Un guion/plan del chat admite hasta 20 KiB. La lectura resumida pagina 12 ejecuc
 
 Se reutilizan `video_scripts`, `video_shots`, `creative-media`, `ad_media`, `ad-media`, `page_components`, `shopify_files` y el publicador existente. `pi_ugc_operations` agrega la cola durable, con RLS de dueño y relaciones compuestas entre operación, guion, producto y usuario. Todas las nuevas filas hacen cascade hacia el producto; los archivos usan sus prefijos existentes y `deleteProducts` los limpia con Storage primero.
 
-La escritura congela estrategia, revisión de análisis, mercado, precio, etiquetas aprobadas e ID de imagen base. Su stamp incorpora contexto, referencias y opción de QA. El worker revalida autorización, stamp y versión antes del submit. Un marcador persistido `dispatching` impide dos submits concurrentes; cron recupera trabajo interrumpido cada cinco minutos. Estado MCP no despierta renders.
 
 Si un submit pierde su respuesta, la toma queda `dispatch_unknown`, sin reintento ciego. La UI permite pegar un identificador de trabajo existente: el servidor consulta Higgsfield con la clave del comerciante y continúa polling sin nueva generación. Alternativamente, el comerciante puede marcar **Ya revisé Higgsfield y este trabajo no existe** y **Habilitar otro intento**; esto solo libera el bloqueo. Generar de nuevo sigue siendo una acción aparte y pagada. Antes de escribir los captions y el título, confirma que describen una demostración y no presentan al actor generado como comprador. Una caída entre aceptación externa y persistencia no ofrece exactly-once del proveedor: exige esta conciliación explícita.
 
-Guion, decisiones de imágenes y montaje tienen CAS. No se cambia contenido mientras se generan tomas. Editar guion invalida clips y final; retirar/reabrir una imagen aprobada invalida sus clips y montaje. Subir/aprobar el final usa un lease y hashes de guion/tomas. Un archivo anterior no vuelve a aprobarse tras una edición sin montar y subir de nuevo. Cambios del contexto requieren una propuesta nueva desde el chat. Reemplazar una ejecución conserva la versión anterior; el estado de sus operaciones sigue consultable.
 
 ## Despliegue y rollback
 
 1. Aplicar la migración UGC después de las migraciones PI anteriores (incluida `20261107000000`). Verificar ACLs: RPCs solamente service_role, lectura de dueño en cola, FK compuestas y cascadas. El código de UI también usa columnas/RPCs nuevas: la migración precede a la app aunque MCP esté apagado.
 2. Desplegar la app en `gru1`, con el mismo Supabase, claves de cada comerciante y `CRON_SECRET`. La migración `20261119000000_media_recovery_crons.sql` programa `/api/cron/ugc` y `/api/cron/gallery` cada cinco minutos en Supabase, reutilizando `app_base_url` y `cron_secret` de Vault. `vercel.json` conserva solo el cron diario de conexiones, compatible con Hobby. [Activación y comprobación](oauth-runbook.md#recuperación-de-videos-y-galería). No poner claves de proveedores del servidor como fallback.
 3. Actualizar el kit/tema Shopify desde las fuentes generadas y verificar el tema publicado. Probar un producto de tienda de ensayo: default, ángulo, hook, vacío, orden, captions, reproducción y checkout.
-4. Verificar OAuth/MCP hosted con un cliente real. Para un smoke test pagado, el comerciante aprueba un guion y solicita explícitamente una sola imagen; después comprobar cola, revisión, paquete, subida, aprobación y publicación en tienda de ensayo. Este smoke test no se ejecutó aquí.
+4. Verificar OAuth/MCP hosted con un cliente real. Para un smoke test pagado, el comerciante guarda un guion y solicita explícitamente una sola imagen; después comprobar cola, revisión, paquete, subida, aprobación y publicación en tienda de ensayo. Este smoke test no se ejecutó aquí.
 
 Rollback funcional: deshabilitar `generate_ugc`, detener el cron y esperar/conciliar trabajos ya enviados antes de retirar workers. Conservar esquema, receipts, versiones, medios y funciones de revisión compatibles; no volver al índice que permitía un solo video por ángulo/formato ni eliminar historia. Si se vuelve al tema anterior, republicar contenido compatible antes de retirar pools por variante. No reactivar writers de texto como fallback. No hacer DROP de datos como rollback ordinario.
 
 La instalación completa se comprobó en una transacción local que terminó en ROLLBACK. Las pruebas locales usan usuarios ficticios y URL exacta `http://127.0.0.1:55321`; no reinician la base. Las pruebas cubren permisos, aislamiento, guardado/replay/CAS, cola, submit simulado, conciliación, lease del final, referencias y invalidación. Chromium renderiza los Liquid reales para verificar selección y orden. Los adapters de filtros exclusivos de Shopify no sustituyen la verificación remota.
+
+## Contenido vigente
+
+Guardar deja el guion disponible. Editarlo conserva el mismo ID y sus medios; los cambios de estrategia, contexto, precios o políticas no exigen aprobación ni invalidan un video existente. Las variantes de ejecución siguen siendo alternativas comerciales. Las decisiones de descarte se conservan. El servidor mantiene CAS, idempotencia y leases para los trabajos reales y valida permisos y archivos. La nueva dirección no inicia generaciones automáticamente. Los keyframes externos crean destinos nuevos sin reemplazar tomas existentes; el paquete de CapCut sigue usando el contenido y medios guardados. Ver [contenido vigente](current-content.md) y las migraciones `20261211`/`20261214`.

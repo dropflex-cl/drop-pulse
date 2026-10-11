@@ -22,6 +22,7 @@ const entries = [
       id === "listing" ? schema : withEmptyContent(schema),
     ),
     metadata: pdpBindingSchema.optional(),
+    enabled: z.boolean().optional(),
   }),
 );
 export const landingEntrySchema = z.union(
@@ -45,9 +46,10 @@ export const saveLandingInput = z.strictObject({
     .number()
     .int()
     .nonnegative()
-    .max(Number.MAX_SAFE_INTEGER),
-  expected_landing_etag: etag,
-  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/),
+    .max(Number.MAX_SAFE_INTEGER)
+    .optional().default(Number.MAX_SAFE_INTEGER),
+  expected_landing_etag: etag.or(z.literal("")).optional().default(""),
+  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()),
   dry_run: z.boolean().default(false),
   entries: z
     .array(landingEntrySchema)

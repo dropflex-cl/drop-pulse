@@ -25,19 +25,19 @@
           "$ref": "#/$defs/__schema0"
         },
         "version": {
+          "default": 1,
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
         },
         "etag": {
+          "default": "0000000000000000000000000000000000000000000000000000000000000000",
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         }
       },
       "required": [
-        "id",
-        "version",
-        "etag"
+        "id"
       ],
       "additionalProperties": false
     },

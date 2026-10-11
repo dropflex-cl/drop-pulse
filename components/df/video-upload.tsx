@@ -112,7 +112,7 @@ export function VideoUpload(p: VideoUploadProps) {
                 Descartar
               </Button>
               <Button variant="primary" icon="check" loading={p.busy === "approve"} disabled={any} onClick={p.onApprove} className="flex-1">
-                Aprobar
+                Usar video
               </Button>
             </>
           ) : (
@@ -122,7 +122,7 @@ export function VideoUpload(p: VideoUploadProps) {
           )}
           {p.state !== "approved" ? (
             <Button variant="ghost" icon="upload" disabled={any} onClick={() => input.current?.click()}>
-              Subir otra versión
+              Subir otro video
             </Button>
           ) : null}
         </div>

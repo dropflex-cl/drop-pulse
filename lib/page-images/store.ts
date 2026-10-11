@@ -1,3 +1,4 @@
+import { contentAvailable, imageSelected } from "@/lib/product-intelligence/current-content";
 import "server-only";
 import { fail } from "@/lib/products/database";
 import type { ImageProvider } from "@/lib/image-provider";
@@ -49,6 +50,8 @@ export interface ShotRow {
 }
 
 export interface PageImageRow {
+  is_selected?: boolean;
+  discarded_at?: string | null;
   visual_binding_id?: string | null;
   id: string;
   product_id: string;
@@ -201,21 +204,21 @@ export async function pageImageCounts(userId: string, productIds: string[]) {
   const db = adminClient();
   const [runRes, rowRes] = await Promise.all([
     db.from("page_image_runs").select("product_id, status").eq("user_id", userId).in("product_id", productIds).order("created_at", { ascending: false }),
-    db.from("page_images").select("product_id, slot, status, render_status").eq("user_id", userId).in("product_id", productIds),
+    db.from("page_images").select("product_id, slot, status, render_status, is_selected, discarded_at").eq("user_id", userId).in("product_id", productIds),
   ]);
   fail("Leer las corridas de Imágenes", runRes.error);
   fail("Leer las imágenes de la página", rowRes.error);
   const runs = new Map<string, Pick<PageImageRunRow, "status">>();
   for (const r of (runRes.data ?? []) as Pick<PageImageRunRow, "product_id" | "status">[]) if (!runs.has(r.product_id)) runs.set(r.product_id, r);
-  const rows = (rowRes.data ?? []) as Pick<PageImageRow, "product_id" | "slot" | "status" | "render_status">[];
+  const rows = (rowRes.data ?? []) as Pick<PageImageRow, "product_id" | "slot" | "status" | "render_status" | "is_selected" | "discarded_at">[];
   return (productId: string) => {
     const mine = rows.filter((r) => r.product_id === productId);
     const run = runs.get(productId);
-    const chosen = mine.filter((r) => r.status === "approved");
+    const chosen = mine.filter((r) => imageSelected(r));
     return {
       running: run?.status === "queued" || run?.status === "running",
       rendering: mine.filter((r) => r.render_status === "queued" || r.render_status === "running").length,
-      options: mine.filter((r) => r.render_status === "succeeded" && r.status !== "rejected").length,
+      options: mine.filter((r) => r.render_status === "succeeded" && contentAvailable(r)).length,
       cover: chosen.some((r) => r.slot === COVER),
       gallery: chosen.filter((r) => r.slot === GALLERY).length,
     };
@@ -255,9 +258,9 @@ export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow
     width: r.width ?? undefined,
     height: r.height ?? undefined,
     qa: r.qa ? { pass: r.qa.pass, issues: r.qa.issues } : undefined,
-    chosen: r.status === "approved",
+    chosen: imageSelected(r),
     discarded: r.status === "rejected",
-    order: r.status === "approved" && ORDERED.has(slotKind(r.slot)!) ? (r.position ?? undefined) : undefined,
+    order: imageSelected(r) && ORDERED.has(slotKind(r.slot)!) ? (r.position ?? undefined) : undefined,
     cover:
       (r.slot === GALLERY && cover && (cover.input?.copied_from === r.id || (r.reference_image_id !== null && cover.reference_image_id === r.reference_image_id))) || undefined,
     recoverable: isRecoverable(r) || undefined,
@@ -275,7 +278,7 @@ export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<st
   // Una falla deja de mostrarse cuando su toma ya tiene otra imagen más nueva (se ve solo la última).
   const superseded = (r: PageImageRow) => r.render_status === "failed" && rows.some((o) => o.shot_id && o.shot_id === r.shot_id && o.created_at > r.created_at);
   const rank = (r: PageImageRow) => (r.render_status === "failed" ? 1 : 0);
-  const cover = rows.find((r) => r.slot === COVER && r.status === "approved");
+  const cover = rows.find((r) => r.slot === COVER && imageSelected(r));
   const optionsOf = (slot: string) =>
     rows
       .filter((r) => r.slot === slot && !replaced.has(r.id) && !superseded(r))

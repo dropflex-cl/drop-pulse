@@ -63,6 +63,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.visual.mockReset().mockResolvedValue(undefined);
   mocks.admin.mockImplementation(() => ({
+    storage: { from: () => ({ exists: async () => ({ data: true, error: null }) }) },
     from: (table: string) => {
       if (!["video_scripts", "product_publications"].includes(table)) throw new Error(`Escritura o lectura inesperada: ${table}`);
       const chain = {
@@ -77,7 +78,7 @@ beforeEach(() => {
   }));
 });
 
-describe("Publicar con imágenes que necesitan revisión", () => {
+describe("Publicar con contenido vigente y archivos elegidos", () => {
   it("conserva la ficha y la galería cuando cambian las políticas usadas por una imagen", async () => {
     const policies = { free_shipping: true, handling_days: null, cutoff_hour: null };
     const state: VisualState = {
@@ -93,22 +94,21 @@ describe("Publicar con imágenes que necesitan revisión", () => {
     const prepared = await preparePublish("owner", "product");
     expect(prepared.input.listing.title).toBe("Ficha aprobada");
     expect(prepared.input.gallery).toHaveLength(5);
-    expect(prepared.missing).toEqual([expect.stringContaining("El contenido cambió")]);
-    expect(prepared.missing[0]).toContain("Imágenes");
+    expect(prepared.missing).toEqual([]);
     expect(mocks.visual).toHaveBeenCalledWith("owner", "product", ["binding-0", "binding-1", "binding-2", "binding-3", "binding-4"]);
     expect(mocks.mutation).not.toHaveBeenCalled();
   });
 
-  it("rechaza publicar sin guardar ni programar trabajo cuando una imagen necesita revisión", async () => {
-    mocks.visual.mockRejectedValue(new ProductIntelligenceError("VALIDATION_ERROR", "El contenido cambió o necesita revisión antes de usarlo."));
+  it("rechaza publicar sin guardar ni programar trabajo cuando falta un archivo elegido", async () => {
+    mocks.visual.mockRejectedValue(new ProductIntelligenceError("VALIDATION_ERROR", "El archivo de una imagen elegida no está disponible."));
     await expect(startPublish("owner", "product")).rejects.toMatchObject({ status: 409, message: expect.stringContaining("Imágenes") });
-    expect(mocks.admin).toHaveBeenCalledTimes(1);
+    expect(mocks.admin).toHaveBeenCalled();
     expect(mocks.after).not.toHaveBeenCalled();
     expect(mocks.mutation).not.toHaveBeenCalled();
   });
 
   it("abre el estado de Publicar y conserva la publicación anterior con el aviso pendiente", async () => {
-    mocks.visual.mockRejectedValueOnce(new ProductIntelligenceError("VALIDATION_ERROR", "El contenido cambió o necesita revisión antes de usarlo."));
+    mocks.visual.mockRejectedValueOnce(new ProductIntelligenceError("VALIDATION_ERROR", "El archivo de una imagen elegida no está disponible."));
     const state = await publishState("owner", "product");
     expect(state.plan.title).toBe("Ficha aprobada");
     expect(state.plan.images).toBe(5);

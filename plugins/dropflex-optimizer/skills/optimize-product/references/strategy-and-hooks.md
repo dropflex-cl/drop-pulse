@@ -7,7 +7,7 @@ Consulta los schemas descubiertos del MCP antes de escribir. Usa el modelo exist
 - Los números de la lista son etiquetas de conversación, no IDs. En otro chat, recupera las alternativas persistidas y muestra sus textos; no supongas qué significaba «el 2» sin la lista original.
 - Al elegir, guarda el texto exacto en `Angle.hook` con `patch_product_analysis` o merge de `save_product_analysis`. Para video, guarda texto hablado/pantalla y dirección de apertura en campos admitidos de `generation_guidance` cuando sean parte del pedido.
 - `set_product_strategy` selecciona persona, JTBD, pain, ángulo principal, secundarios y oferta; no recibe `primary_hook_id`. Selecciona después de una elección explícita. Si el permiso solo permite draft, guarda draft y explica qué decisión falta.
-- La estrategia conserva un snapshot. Si editas el hook de un ángulo seleccionado, revisa `get_product_strategy` y versiona la selección con el contexto actual cuando corresponda. No ejecutes contra una selección stale.
+- La estrategia seleccionada es editable. Si cambias su hook, `get_product_strategy` lee el contenido vigente; guardar la selección actualiza el mismo ID. Cambiar estrategia o contexto conserva archivos, textos y usos existentes. No exige versiones, reconciliación ni aprobación nueva.
 - `landing_hook_id` identifica una ejecución/variante; no es el texto ni una FK a una entidad Hook. Conserva el selector para la misma ejecución; usa otro al conservar una variante distinta para comparar. Respeta los selectores admitidos por el contrato.
 
 | Pedido | Acción |

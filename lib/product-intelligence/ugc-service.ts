@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -19,7 +20,7 @@ import { ProductIntelligenceError } from "./errors";
 import { parseKnowledgeRead, strategyResponse } from "./knowledge";
 import type { DomainExecutor } from "./mcp";
 import type { DelegatedIdentity } from "./oauth";
-import { checkArtifact, checkRevision, requireScopes, toolScopes, type Principal } from "./policy";
+import { checkArtifact, requireScopes, toolScopes, type Principal } from "./policy";
 import { contextAccess, type KnowledgeRepository, type UgcRepository } from "./repository";
 import { chatUgcContent } from "./ugc-schemas";
 import { parseToolInput, parseToolOutput } from "./validation";
@@ -30,10 +31,10 @@ export const UGC_RULES = [
   "Los hechos aprobados, las hipótesis y la estrategia seleccionada siguen separados. Seleccionar no demuestra un ganador.",
   "Usa solo pruebas y precios vigentes. Sin testimonios inventados, experto ficticio, edad dicha ni resultados propios de la persona de IA.",
   "hook es la entrada de este video, una hipótesis vinculada al ángulo. landing_angle_id y landing_hook_id son los selectores URL df_angle/df_hook: usa los mismos en save_landing_content.",
-  "Guardar desde el MCP aprueba el guion automáticamente; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
+  "Guardar desde el MCP deja el guion disponible; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
   "Con content.keyframe_source=external, guardar crea destinos K para subir y asignar imágenes por las herramientas visuales MCP, sin render. content.editing_brief guarda dirección de arte abierta para CapCut local.",
-  "Para generar otras escenas con personaje pide K1 primero, o inclúyelo en el mismo lote. Los clips requieren todas las imágenes clave aprobadas.",
-  "get_ugc_montage devuelve el material de origen y la dirección de arte guardada. La skill local dropflex-capcut prepara y edita en CapCut; exporta y sube el MP4 a DropFlex, y apruébalo antes de publicar o usarlo en Meta.",
+  "Para generar otras escenas con personaje pide K1 primero, o inclúyelo en el mismo lote. Los clips requieren las imágenes clave utilizadas, disponibles y sin descarte.",
+  "get_ugc_montage devuelve el material de origen y la dirección de arte guardada. La skill local dropflex-capcut prepara y edita en CapCut; exporta y sube el MP4 a DropFlex, para usarlo o publicarlo con autorización propia.",
 ];
 type Read = { revision: number; stamp: string; ugc_etag: string; scripts: ScriptRow[]; shots: ShotRow[]; operation: Operation | null; operation_script?: ScriptRow | null };
 type Operation = { id: string; script_id: string; stage: "keyframes" | "clips"; status: "queued" | "running" | "succeeded" | "failed" | "reconciling" | "cancelled";
@@ -91,7 +92,7 @@ export function ugcOperationStatus(read: Read, principal: Principal, input: { pr
   if (!op || op.id !== input.operation_id) throw new ProductIntelligenceError("NOT_FOUND", "No encontramos esa generación.");
   const script = read.scripts.find((s) => s.id === op.script_id) ?? read.operation_script;
   if (!script) throw new ProductIntelligenceError("NOT_FOUND", "La versión de ese guion ya fue reemplazada.");
-  const shots = op.shots ?? [], stale = read.stamp !== op.context_stamp || Boolean(script.superseded_at);
+  const shots = op.shots ?? [], stale = false;
   const unknown = shots.some((s) => s.error_code === "dispatch_unknown" || s.error_code === "dispatching");
   const working = shots.some((s) => s.render_status === "queued" || s.render_status === "running");
   const latest = new Map<string, ShotRow>(); for (const shot of shots) latest.set(shot.key, shot);
@@ -114,8 +115,8 @@ export function ugcOperationStatus(read: Read, principal: Principal, input: { pr
       artifact_etag: canonicalHash({ id: s.id, updated_at: s.updated_at, status: s.status, render_status: s.render_status }),
       review_path: productHref(input.product_id, "creativos"), strategy_id: strategyId, analysis_revision: Number(op.analysis_revision), angle_id: script.provenance?.angle_id as string })),
     cost: { recorded_usd: null, estimated_usd: Number(op.estimated_usd), is_estimate: true, as_of: iso(op.updated_at) },
-    requires_review: true, context_stale: stale, needs_review: stale || failed,
-    next_actions: status === "reconciling" ? ["reconcile_provider"] : status === "failed" ? [...latest.values()].some(isShotRecoverable) ? ["reconcile_provider"] : ["retry_explicitly"] : status === "succeeded" ? op.stage === "keyframes" ? ["review_keyframes", "generate_clips"] : ["download_montage_package", "upload_final_video"] : [],
+    requires_review: false, context_stale: stale, needs_review: stale || failed,
+    next_actions: status === "reconciling" ? ["reconcile_provider"] : status === "failed" ? [...latest.values()].some(isShotRecoverable) ? ["reconcile_provider"] : ["retry_explicitly"] : status === "succeeded" ? op.stage === "keyframes" ? ["generate_clips"] : ["download_montage_package", "upload_final_video"] : [],
     failure: null, next_cursor: offset + page.length < shots.length ? `ugc:${op.id}:${op.status_revision}:${offset + page.length}` : null, truncated: offset + page.length < shots.length,
   } };
   void principal;
@@ -158,19 +159,17 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       const detailed = Boolean(query.script_id), urls = detailed ? await signedUrls(read.shots.filter((s) => selected.some((v) => v.id === s.script_id)).map((s) => s.storage_path).filter((p): p is string => !!p)) : new Map<string, string>();
       // Zod añade ~standard no enumerable; el contrato enviado debe ser JSON puro.
       return parseToolOutput(tool, { ...base, data: { ugc_etag: read.ugc_etag, next_cursor: more ? `ugc-scripts:${input.product_id}:${pageStamp}:${offset + page.length}` : null, truncated: more, scripts: page.map((s) => ({ id: s.id, execution_key: s.execution_key, format: s.format, source: s.source,
-        artifact_etag: s.artifact_etag, final_status: s.final_status, has_final_video: Boolean(s.final_storage_path), approved: !!s.approved_at, status: s.status, provenance: s.provenance,
+        artifact_etag: s.artifact_etag, final_status: s.final_status, has_final_video: Boolean(s.final_storage_path), approved: s.status === "succeeded", status: s.status, provenance: s.provenance,
         cost_estimate_usd: s.payload ? scriptCost(s.payload) : null,
         ...(detailed ? { payload: s.payload, editing_brief: s.input.editing_brief ?? null, keyframe_source: s.input.keyframe_source ?? "higgsfield", shots: read.shots.filter((x) => x.script_id === s.id).map((x) => ({ id: x.id, key: x.key, kind: x.kind, render_status: x.render_status, status: x.status, error: x.error_message, url: x.storage_path ? urls.get(x.storage_path) ?? null : null })) } : {}),
-        review_path: productHref(input.product_id, "creativos") })), contract: query.include_contract ? JSON.parse(JSON.stringify(z.toJSONSchema(chatUgcContent))) : null, rules: UGC_RULES, next_action: "Escribe guion y plan, valida con dry_run y guarda con save_ugc_content; queda aprobado automáticamente." } });
+        review_path: productHref(input.product_id, "creativos") })), contract: query.include_contract ? JSON.parse(JSON.stringify(z.toJSONSchema(chatUgcContent))) : null, rules: UGC_RULES, next_action: "Escribe guion y plan, valida con dry_run y guarda con save_ugc_content; queda disponible." } });
     }
     if (tool === "get_ugc_montage") {
       const query = parseToolInput(tool, command.input), script = scriptIn(read, query.script_id);
       checkArtifact(query.expected_artifact_etag, script.artifact_etag);
-      checkArtifact(script.provenance?.context_stamp as string, read.stamp);
-      return parseToolOutput(tool, { ...base, data: { package: await montagePackage(principal.userId, input.product_id, script.id), next_action: "Guarda el paquete JSON y ábrelo con la skill local dropflex-capcut. Edita en CapCut, exporta el MP4 y súbelo en Creativos > Videos > Video final; apruébalo antes de usarlo en Anuncios." } });
+      return parseToolOutput(tool, { ...base, data: { package: await montagePackage(principal.userId, input.product_id, script.id), next_action: "Guarda el paquete JSON y ábrelo con la skill local dropflex-capcut. Edita en CapCut, exporta el MP4 y súbelo en Creativos > Videos > Video final; elige su uso en Anuncios." } });
     }
     const query = tool === "save_ugc_content" ? parseToolInput(tool, command.input) : parseToolInput("generate_ugc", command.input);
-    checkRevision(query.expected_revision, read.revision);
     let prepared: Record<string, unknown>;
     if ("content" in query) {
       checkArtifact(query.expected_ugc_etag, read.ugc_etag);
@@ -178,7 +177,7 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       const version = knowledge.strategy;
       if (!version || version.id !== query.strategy_id) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Selecciona la estrategia de este video primero.");
       const strategy = strategyResponse(version, knowledge, input.product_id), plan = storedPricingPlan(knowledge.currentSnapshot.pricing);
-      if (!strategy.readiness.ready_for_execution || !plan) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Revisa la estrategia, sus pruebas y Precio y packs antes de guardar el guion.", { missing_fields: strategy.readiness.missing_fields });
+      if (!plan) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Revisa la estrategia, sus pruebas y Precio y packs antes de guardar el guion.", { missing_fields: strategy.readiness.missing_fields });
       const angle = strategy.snapshot.angles.find((a) => a.id === query.angle_id);
       if (strategy.snapshot.angles.findIndex((a) => a.id === query.angle_id) + 1 !== query.angle_slot) throw new ProductIntelligenceError("INVALID_REFERENCE", "angle_slot debe coincidir con el orden del ángulo seleccionado en la estrategia.");
       if (!angle || angle.generation_guidance?.opening_shot === "real_footage") throw new ProductIntelligenceError("INVALID_REFERENCE", "Ese ángulo no está seleccionado o necesita material real.");
@@ -192,7 +191,6 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
     } else {
       const script = scriptIn(read, query.script_id); checkArtifact(query.expected_artifact_etag, script.artifact_etag);
       if (script.source !== "mcp_chat") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Guarda una versión desde el chat antes de generar por MCP.");
-      if (!script.approved_at) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Aprueba este guion en Creativos > Videos antes de generar.");
       if (read.shots.some((s) => s.script_id === script.id && query.shot_keys.includes(s.key) && isShotRecoverable(s))) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "Recupera la toma existente en Videos antes de solicitar una nueva generación.");
       prepared = prepareUgcShots(script, query.stage, query.shot_keys);
       const existingK1 = read.shots.some((s) => s.script_id === script.id && s.key === "K1" && s.render_status === "succeeded");
@@ -207,7 +205,7 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       }
       prepared.preview = preview;
     }
-    const result = await repository.commitUgc({ p_access: access, p_product_id: input.product_id, p_command: { tool, input: query }, p_prepared: prepared, p_stamp: read.stamp, p_hash: hash }, signal);
+    const result = await repository.commitUgc({ p_access: access, p_product_id: input.product_id, p_command: { tool, input: { ...query, expected_revision: serverRevision(query.expected_revision, read.revision), ...("expected_ugc_etag" in query ? { expected_ugc_etag: serverToken(query.expected_ugc_etag, read.ugc_etag) } : { expected_artifact_etag: serverToken(query.expected_artifact_etag, scriptIn(read, query.script_id).artifact_etag) }) } }, p_prepared: prepared, p_stamp: read.stamp, p_hash: hash }, signal);
     if (tool === "generate_ugc" && !query.dry_run) {
       const { operation_id } = result as { operation_id: string }; wake?.(operation_id); return parseToolOutput(tool, await status(operation_id));
     }

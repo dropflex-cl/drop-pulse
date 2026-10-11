@@ -180,9 +180,9 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Shopify automático · consen
   expect((await chatCall("get_landing_experience",{product_id:product,experience_id:activated.data.id})).data.current!.payload).toMatchObject({status:"active"});expect((await policy()).active).toBe(true);
   const readiness=await chatCall("get_shopify_automation",{product_id:product});expect(readiness.data).toMatchObject({active:true,publish_ready:false});expect(readiness.data.fingerprint).toHaveLength(32);expect(readiness.data.missing.length).toBeGreaterThan(0);
  });
- it("precio/mercado cambiado invalida la autorización; read-only no concede decisiones",async()=>{
+ it("precio/mercado cambiado conserva la autorización; read-only no concede decisiones",async()=>{
   expect((await policy({...contextAccess(chat.principal,chat.identity),scopes:["product_intelligence:read"]})).active).toBe(false);
-  await checked(db.from("products").update({currency:"USD"}).eq("id",product));expect((await policy()).active).toBe(false);
+  await checked(db.from("products").update({currency:"USD"}).eq("id",product));expect((await policy()).active).toBe(true);
   expect(await chatCall("review_visual_record",{...await visualWrite(),record_id:asset.id,decision:"approve"})).toMatchObject({ok:true});
   await expect(call("review_visual_record",{...await visualWrite(),record_id:asset.id,decision:"approve"},{...chat.principal,scopes:["product_intelligence:read"]},chat.runner)).rejects.toMatchObject({code:"FORBIDDEN"});
   await checked(db.from("products").update({currency:"CLP"}).eq("id",product));expect((await policy()).active).toBe(true);

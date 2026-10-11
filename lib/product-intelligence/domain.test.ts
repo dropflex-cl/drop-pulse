@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authorizeResearchChanges, ReferenceResolver, usageRestrictions, validateGraph, validateStrategyChoice, assertNoArchivedSelectionDependencies } from "./graph";
+import { authorizeResearchChanges, ReferenceResolver, usageRestrictions, validateGraph, validateStrategyChoice } from "./graph";
 import { authorizeTool, checkArtifact, checkRevision, type DelegatedGrant } from "./policy";
 import { commandHash, replayReceipt, canonicalHash } from "./concurrency";
 import { calculateProductPricing, currencyScale, toMajor, toMinor, pricingSnapshot } from "./pricing";
@@ -75,7 +75,7 @@ describe("PI · pertenencia, evidencia y selección", () => {
   });
   it("protege archivos de selección y prioridades sin huecos", () => {
     const graph = graphFixture(); graph.angle[0].value.lifecycle = "archived";
-    expect(() => assertNoArchivedSelectionDependencies(graph, [graph.angle[0].value.id])).toThrow("estrategia seleccionada");
+    expect(() => validateGraph(graph, "merchant-a", contextFixture().product_id)).not.toThrow();
     graph.angle[0].value.lifecycle = "active"; graph.persona[0].value.priority = 3;
     expect(() => validateGraph(graph, "merchant-a", contextFixture().product_id)).toThrow("contiguas");
   });

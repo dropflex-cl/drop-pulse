@@ -81,7 +81,7 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     expect(await call("save_creative_content",i)).toEqual(r);
     await expect(call("save_creative_content",{...i,content:{...creative(),product_look:"Different"}})).rejects.toMatchObject({code:"IDEMPOTENCY_KEY_REUSED"});
     await call("save_creative_content",{...await input("get_creative_content"),content:creative()});
-    expect(await count("creative_concepts")).toBe(2); expect(await count("ai_generations")).toBe(0); expect(await count("creative_assets")).toBe(0);
+    expect(await count("creative_concepts")).toBe(1); expect(await count("ai_generations")).toBe(0); expect(await count("creative_assets")).toBe(0);
   });
   it("render de estáticos de UI revalida el contexto del chat antes de llamar al proveedor", async()=>{
     const content=await call("save_creative_content",{...await input("get_creative_content"),content:creative()});if(!content.ok)throw content;
@@ -128,7 +128,7 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     const saved=await saveBasicContext(owner.userId,product,{description:"Organizador con compartimentos."},2);
     expect(saved).toMatchObject({expected_revision:5,expected_context_revision:2});
   });
-  it("consejo MCP se aprueba al guardar y deja de usarse si se revoca su evidencia",async()=>{
+  it("consejo MCP guardado conserva su uso al editar el contexto",async()=>{
     await call("save_usage_tip",{...await input("get_usage_tip"),content:{text:"Separa tus útiles en los compartimentos del organizador.",basis:"Compartimentos comprobados",fact_ids:[fact]}});
     const repo=createContextRepository(db),args={p_access:contextAccess(owner),p_product_id:product};
     const r=await repo.loadTipReview!(args,signal()) as {usable:boolean;content_etag:string};expect(r.usable).toBe(true);
@@ -136,7 +136,7 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     await reviewUsageTip(repo,owner,product,"approve",r.content_etag);expect(await repo.loadTipReview!(args,signal())).toMatchObject({usable:true});
     const context=await call("get_product_context",{product_id:product});if(!context.ok)throw context;
     await call("save_research",{product_id:product,schema_version:"1.0",expected_revision:context.revision,idempotency_key:randomUUID(),facts:[{id:fact,usage_status:"prohibited",reason:"Nueva revisión"}]});
-    expect(await repo.loadTipReview!(args,signal())).toMatchObject({usable:false});
+    expect(await repo.loadTipReview!(args,signal())).toMatchObject({usable:true});
   });
   it("evento existente queda aprobado al guardar sin publicar, y rechaza evento ajeno al calendario",async()=>{
     const event=(await checked(db.from("events").select("id").eq("status","published").limit(1).single())).data!;

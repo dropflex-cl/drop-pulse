@@ -4,10 +4,6 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "expected_etag",
-    "expected_dependency_stamp",
-    "idempotency_key",
     "iteration_id",
     "source"
   ],
@@ -32,17 +28,37 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "expected_etag": {
-      "$ref": "#/$defs/__schema1"
+      "default": "",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema1"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "expected_dependency_stamp": {
-      "$ref": "#/$defs/__schema1"
+      "default": "",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema1"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "idempotency_key": {
+      "default": "2f521609-a624-436d-bcb9-e9ccab0039a3",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

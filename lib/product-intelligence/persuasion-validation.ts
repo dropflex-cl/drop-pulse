@@ -419,31 +419,15 @@ export function validatePersuasionPlan(
 
 export function validateLandingExperience(
   experience: LandingExperience,
-  plan: AnglePersuasionPlan,
+  plan: AnglePersuasionPlan | { sections: [] },
   planRevision: number,
-  context: PersuasionValidationContext,
+  context: Pick<PersuasionValidationContext, "rows" | "assets" | "review_ids" | "review_count"> & Partial<PersuasionValidationContext>,
   operational = false,
 ): PersuasionIssue[] {
-  const issues = operational ? [] : validatePersuasionPlan(plan, context);
+  const issues = operational ? [] : validatePersuasionPlan(plan as AnglePersuasionPlan, context as PersuasionValidationContext);
   const add = (code: string, field: string, message: string) =>
     issues.push({ code, field, message, severity: "error" });
-  if (
-    experience.strategy_id !== plan.strategy_id ||
-    experience.angle_id !== plan.angle_id ||
-    experience.landing_angle_id !== plan.landing_angle_id ||
-    experience.plan_revision !== planRevision
-  )
-    add(
-      "plan_binding",
-      "persuasion_plan_id",
-      "La experiencia debe usar la identidad y revisión exactas del plan.",
-    );
-  if (!operational && experience.status === "active" && plan.status !== "approved")
-    add(
-      "plan_approval",
-      "status",
-      "Aprueba el plan antes de activar la experiencia.",
-    );
+  void planRevision; // Revisión técnica para CAS; no forma parte de la elegibilidad de la página.
   const enabled = experience.sections.filter((s) => s.enabled);
   if (enabled[0]?.component !== "listing")
     add(
@@ -476,10 +460,10 @@ export function validateLandingExperience(
         "Mantén los apoyos comerciales junto al hero.",
       );
     if (
-      !planned ||
+      !operational && (!planned ||
       section.persuasion_job !== planned.primary_job ||
       !capability?.supported_jobs.includes(section.persuasion_job) ||
-      section.belief_keys.some((k) => !planned.belief_keys.includes(k))
+      section.belief_keys.some((k) => !planned.belief_keys.includes(k)))
     )
       add(
         "section_binding",
@@ -512,12 +496,12 @@ export function validateLandingExperience(
       );
     if (
       experience.status === "active" &&
-      (!row?.enabled || !["approved", "published"].includes(row.status))
+      (!row?.enabled || row.status === "rejected")
     )
       add(
-        "content_approval",
+        "content_enabled",
         section.section_key,
-        "Guarda contenido válido y habilitado para esta versión de la página.",
+        "Guarda y muestra el contenido que quieres usar en esta página.",
       );
     for (const pick of section.images)
       if (
@@ -606,11 +590,11 @@ export function validateLandingExperience(
           section.section_key,
           section.component,
           variant.content,
-          plan.attention_budget,
+          (plan as AnglePersuasionPlan).attention_budget,
         ),
       );
   }
-  for (const belief of (operational ? [] : plan.beliefs.filter((b) => b.mandatory)))
+  for (const belief of (operational ? [] : (plan as AnglePersuasionPlan).beliefs.filter((b) => b.mandatory)))
     if (
       !enabled.some(
         (s) =>
@@ -630,8 +614,8 @@ export function validateLandingExperience(
   ).length;
   const supportCount = enabled.length - primaryCount;
   if (
-    !operational && (primaryCount > plan.attention_budget.max_primary_sections ||
-    supportCount > plan.attention_budget.max_support_sections)
+    !operational && (primaryCount > (plan as AnglePersuasionPlan).attention_budget.max_primary_sections ||
+    supportCount > (plan as AnglePersuasionPlan).attention_budget.max_support_sections)
   )
     add(
       "attention_budget",

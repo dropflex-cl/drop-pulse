@@ -2,7 +2,7 @@ import { z } from "zod";
 import { canonicalHash } from "./concurrency";
 import { contextPricing, parseContextRead, type ContextRead } from "./context";
 import { ProductIntelligenceError } from "./errors";
-import { emptyGraph, usageRestrictions, validateGraph, type IntelligenceGraph, type RecordKind } from "./graph";
+import { emptyGraph, validateGraph, type IntelligenceGraph, type RecordKind } from "./graph";
 import type { PreparedGraphMutation, MutationContext } from "./mutations";
 import { checkRevision, PI_SCOPES, type Principal } from "./policy";
 import { buildStrategySnapshot, validateSnapshotClosure } from "./strategy";
@@ -82,20 +82,23 @@ export function strategyResponse(version: StoredStrategy, read: KnowledgeRead, p
   validateSnapshotClosure(version.snapshot);
   const snapshot = structuredClone(version.snapshot);
   const current = new Map(Object.values(read.currentGraph).flatMap((rows) => rows.map(({ value }) => [value.id, value] as const)));
-  const stale = version.operational_hash !== operationalHash({ ...read, snapshot: read.currentSnapshot }) || strategyDependencies(snapshot).some((id) => {
-    const frozen = (Object.values(snapshot) as unknown[]).flatMap((v): unknown[] => Array.isArray(v) ? v : typeof v === "object" && v ? [v] : []).find((v) => typeof v === "object" && v && "id" in v && v.id === id) as { last_revision?: number } | undefined;
-    return !current.has(id) || current.get(id)!.last_revision !== frozen?.last_revision;
-  });
-  const restrictions = usageRestrictions(read.currentGraph).filter((r) => snapshot.facts.some((f) => f.id === r.fact_id));
-  const needsReview = restrictions.length > 0 || strategyDependencies(snapshot).some((id) => { const v = current.get(id); return !!v && "lifecycle" in v && v.lifecycle !== "active"; });
+  // La selección conserva sus IDs; cada lectura usa los datos editables actuales.
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (Array.isArray(value)) (snapshot as unknown as Record<string, unknown>)[key] = value.map(row => row && typeof row === "object" && "id" in row ? structuredClone(current.get(String(row.id)) ?? row) : row);
+    else if (value && typeof value === "object" && "id" in value) (snapshot as unknown as Record<string, unknown>)[key] = structuredClone(current.get(String(value.id)) ?? value);
+  }
+  const stale = false, needsReview = false;
   const state = read.currentSnapshot, pricing = contextPricing(state), offer = snapshot.offer;
+  if (offer && pricing) {
+    offer.financial_snapshot = pricing; offer.pricing_stamp = pricing.pricing_stamp; offer.policies_stamp = canonicalHash(state.settings as JsonValue);
+    offer.items = offer.items.map(item => { const pack = pricing.packs.find(p => p.units === item.units); return pack ? { ...item, price_minor: pack.price_minor, approved_label: pack.approved_label } : item; });
+  }
   const missing = [
     ...(version.state !== "selected" || read.currentActiveStrategyId !== version.id ? ["strategy.selected"] : []), ...(!state.context ? ["context"] : []),
     ...(state.catalog.is_upsell ? ["product.optimizable"] : []),
     ...(!state.settings?.market_confirmed_at ? ["market.confirmed"] : []), ...(!pricing || pricing.currency !== state.catalog.currency ? ["pricing.unit_cost_minor"] : []),
     ...(!state.context?.base_reference_image_id ? ["images.base"] : []),
-    ...(!offer || !offer.financial_snapshot || offer.pricing_stamp !== pricing?.pricing_stamp || offer.policies_stamp !== canonicalHash(state.settings as JsonValue) ? ["offer.current_pricing_and_policies"] : []),
-    ...(restrictions.length ? ["facts.verified_and_approved"] : []), ...(stale ? ["strategy.current_snapshot"] : []),
+    ...(!offer ? ["offer"] : []),
   ];
   if (include === "core") { snapshot.objections = []; snapshot.customer_language = []; snapshot.angles.forEach((angle) => { angle.generation_guidance = null; }); }
   return { id: version.id, state: version.state, analysis_revision: version.analysis_revision, selection_revision: version.selection_revision,
@@ -117,8 +120,8 @@ export function prepareStrategy(read: KnowledgeRead, input: ToolInputs["set_prod
     const snapshot = buildStrategySnapshot(read.graph, principal.userId, input.product_id, input);
     const hash = operationalHash(read);
     noOp = input.action === "select" && !!selected && selected.state === "selected" && canonicalHash(selected.snapshot) === canonicalHash(snapshot) && selected.operational_hash === hash;
-    version = noOp ? selected : { id, state: input.action === "select" ? "selected" : "draft", snapshot,
-      analysis_revision: read.current_revision, selection_revision: input.action === "select" ? read.current_revision + 1 : null, operational_hash: hash };
+    version = noOp ? selected : { id: selected?.id ?? id, state: input.action === "select" || selected?.state === "selected" ? "selected" : "draft", snapshot,
+      analysis_revision: read.current_revision, selection_revision: input.action === "select" || selected?.state === "selected" ? read.current_revision + 1 : null, operational_hash: hash };
     if (input.action === "select") activeId = version!.id;
   }
   const revision = read.current_revision + (!noOp && !input.dry_run ? 1 : 0);

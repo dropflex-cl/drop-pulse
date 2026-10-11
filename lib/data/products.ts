@@ -280,7 +280,7 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
   const reasons: import("@/lib/copy/stale").CopyStaleReason[] = [];
   if (run?.input.source === "mcp_chat" && await getLandingContextStale(uid, productId)) reasons.push("product_context");
   const videoRows = await activeScripts(uid, productId);
-  const videos = videoRows.filter((s) => s.final_status === "approved" && s.approved_at && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
+  const videos = videoRows.filter((s) => !["rejected", "archived"].includes(s.final_status ?? "") && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
   return {
     videos,
     locked: null,

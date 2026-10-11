@@ -17,8 +17,8 @@ export const chatUgcContent = z.discriminatedUnion("format", [
   z.strictObject({ format: z.literal("mascot"), lines: scriptLinesSchema.strict(), plan: mascotPlanSchema.strict(), editing_brief: ugcEditingBriefSchema.optional(), keyframe_source: z.enum(["higgsfield", "external"]).optional() }),
 ]);
 export const saveUgcInput = z.strictObject({ product_id: uuid, schema_version: z.literal("1.0"),
-  expected_revision: z.number().int().nonnegative().safe(), expected_ugc_etag: etag,
-  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false),
+  expected_revision: z.number().int().nonnegative().safe().optional().default(Number.MAX_SAFE_INTEGER), expected_ugc_etag: etag.or(z.literal("")).optional().default(""),
+  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()), dry_run: z.boolean().default(false),
   execution_key: selector, strategy_id: uuid, angle_id: uuid, angle_slot: z.number().int().min(1).max(3),
   landing_angle_id: selector, landing_hook_id: selector,
   hook: z.strictObject({ spoken: z.string().trim().min(1).max(256), screen: z.string().trim().min(1).max(160),
@@ -27,7 +27,7 @@ export const saveUgcInput = z.strictObject({ product_id: uuid, schema_version: z
     first_motion: z.string().trim().min(1).max(1000) }),
   content: chatUgcContent.refine((v) => new TextEncoder().encode(JSON.stringify(v)).length <= 20 * 1024, "El guion y plan superan 20 KiB; acórtalos para poder recuperarlos completos desde el chat."),
 });
-export const getUgcMontageInput = z.strictObject({ product_id: uuid, script_id: uuid, expected_artifact_etag: etag });
+export const getUgcMontageInput = z.strictObject({ product_id: uuid, script_id: uuid, expected_artifact_etag: etag.or(z.literal("")).optional().default("") });
 export function ugcOutputs<E extends z.ZodType>(error: E) {
   const fail = z.strictObject({ ok: z.literal(false), request_id: uuid, error });
   const base = { ok: z.literal(true), product_id: uuid, revision: z.number().int().nonnegative(), request_id: uuid };

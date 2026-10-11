@@ -65,7 +65,7 @@ describe("PDP · argumento mínimo y contratos reales", () => {
   it("una experiencia no activa contenido sin aprobación ni cubre beliefs con secciones apagadas", () => {
     const p = persuasionPlanFixture(), c = persuasionContextFixture(), e = experience();
     e.status = "active"; e.sections[1].enabled = false;
-    expect(validateLandingExperience(e, p, 2, c).map(i => i.code)).toEqual(expect.arrayContaining(["plan_binding", "plan_approval", "belief_coverage", "content_approval"]));
+    expect(validateLandingExperience(e, p, 2, c).map(i => i.code)).toEqual(expect.arrayContaining(["belief_coverage", "content_enabled"]));
   });
   it("metadata opt-in exige versión nueva y rechaza campos inventados", () => {
     const request = { product_id: uuid, schema_version: "1.0", expected_revision: 0, expected_planning_stamp: "b".repeat(64), expected_etag: "a".repeat(64), idempotency_key: "fixture-key", plan: persuasionPlanFixture() };

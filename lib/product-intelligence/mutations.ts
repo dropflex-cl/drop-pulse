@@ -1,6 +1,6 @@
 import { canonicalHash } from "./concurrency";
 import { invalidField, invalidReference } from "./errors";
-import { assertNoArchivedSelectionDependencies, authorizeResearchChanges, ReferenceResolver, validateGraph, type IntelligenceGraph, type OwnedRecord, type RecordKind } from "./graph";
+import { authorizeResearchChanges, ReferenceResolver, validateGraph, type IntelligenceGraph, type OwnedRecord, type RecordKind } from "./graph";
 import { authorizeTool, checkRevision, type DelegatedGrant, type Principal, type ProductAccess } from "./policy";
 import { entityRecordSchemas, type EntityRecords, type FinancialSnapshot, type JsonValue, type Ref, type ToolInputs } from "./schemas";
 
@@ -154,7 +154,6 @@ function mergeChanges(context: MutationContext, changes: Change[], dryRun: boole
   for (const { value: source } of graph.Source) if (source.internal_ref && !context.authorizedInternalReferences.has(`${source.internal_ref.kind}:${source.internal_ref.id}`)) invalidReference();
   authorizeResearchChanges(principal, context.graph, graph);
   requireExplicitResearchReview(context.graph, graph, changes);
-  assertNoArchivedSelectionDependencies(graph, context.selectedDependencyIds);
   validateGraph(graph, principal.userId, context.product.id);
   return { graph, idMap: dryRun ? {} : resolver.idMap(), baseRevision: context.revision, resultingRevision: noOp || dryRun ? context.revision : context.revision + 1, noOp, dryRun, methodologicalNotes };
 }

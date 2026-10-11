@@ -1313,8 +1313,8 @@ export const get_product_contextOutputSchema = z.union([z.strictObject({
 export const save_product_contextInputSchema = z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "context": basicInputSchema.optional(),
   "pricing": pricingInputSchema.optional()
@@ -1336,8 +1336,8 @@ export const save_product_contextOutputSchema = z.union([z.strictObject({
 export const save_product_analysisInputSchema = z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "analysis": z.strictObject({
   "personas": z.array(personaUpsertSchema).min(0).max(100).optional(),
@@ -1368,8 +1368,8 @@ export const save_product_analysisOutputSchema = z.union([z.strictObject({
 export const patch_product_analysisInputSchema = z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "operations": z.array(patchOperationSchema).min(1).max(50)
 });
@@ -1390,8 +1390,8 @@ export const patch_product_analysisOutputSchema = z.union([z.strictObject({
 export const save_researchInputSchema = z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "sources": z.array(sourceUpsertSchema).min(0).max(100).optional(),
   "facts": z.array(factUpsertSchema).min(0).max(100).optional(),
@@ -1453,8 +1453,8 @@ export const get_generation_statusOutputSchema = z.union([z.strictObject({
 export const set_product_strategyInputSchema = z.union([z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "action": z.literal("create_draft"),
   "primary_persona_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
@@ -1465,12 +1465,12 @@ export const set_product_strategyInputSchema = z.union([z.strictObject({
   "positioning": z.string().min(1).max(8192),
   "offer_id": z.union([z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }), z.null()]),
   "rationale": z.string().min(1).max(8192),
-  "based_on_revision": z.number().int().min(0).max(9007199254740991)
+  "based_on_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER)
 }), z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "action": z.literal("select"),
   "primary_persona_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
@@ -1481,12 +1481,12 @@ export const set_product_strategyInputSchema = z.union([z.strictObject({
   "positioning": z.string().min(1).max(8192),
   "offer_id": z.union([z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }), z.null()]),
   "rationale": z.string().min(1).max(8192),
-  "based_on_revision": z.number().int().min(0).max(9007199254740991)
+  "based_on_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER)
 }), z.strictObject({
   "product_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "schema_version": z.literal("1.0"),
-  "expected_revision": z.number().int().min(0).max(9007199254740991),
-  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")),
+  "expected_revision": z.number().int().min(0).max(9007199254740991).optional().default(Number.MAX_SAFE_INTEGER),
+  "idempotency_key": z.string().min(8).max(128).regex(new RegExp("^[A-Za-z0-9._:-]+$")).optional().default(() => crypto.randomUUID()),
   "dry_run": z.boolean().default(false),
   "action": z.literal("archive"),
   "strategy_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
@@ -1508,11 +1508,11 @@ export const set_product_strategyOutputSchema = z.union([z.strictObject({
 
 export const generate_ugcInputSchema = z.strictObject({
   product_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }), schema_version: z.literal("1.0"),
-  expected_revision: z.number().int().nonnegative().safe(),
-  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false),
+  expected_revision: z.number().int().nonnegative().safe().optional().default(Number.MAX_SAFE_INTEGER),
+  idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()), dry_run: z.boolean().default(false),
   replace_existing: z.boolean().default(false),
   stage: z.enum(["keyframes", "clips"]), script_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }),
-  expected_artifact_etag: z.string().regex(/^[0-9a-f]{64}$/),
+  expected_artifact_etag: z.string().regex(/^[0-9a-f]{64}$/).or(z.literal("")).optional().default(""),
   shot_keys: z.array(z.string().regex(/^[KAB][1-9][0-9]?$/)).min(1).max(20).refine(uniqueItems, "No repitas tomas."),
 });
 

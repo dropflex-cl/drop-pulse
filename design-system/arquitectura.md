@@ -1,5 +1,8 @@
 # Arquitectura y navegación
 
+El contenido guardado desde MCP está disponible sin aprobaciones separadas. UI y MCP editan el mismo contenido vigente; cambiar estrategia o contexto conserva textos, medios y usos. Mostrar/ocultar, selección, destino y orden son decisiones explícitas. Los planes e historial son información secundaria. Variantes por ángulo/hook son alternativas comerciales, no revisiones a administrar. Vista previa y publicación usan `effectivePage`/`preparePublish` y solo presentan impedimentos concretos. Ver `docs/product-intelligence/current-content.md` para las reglas operativas vigentes.
+
+
 La app representa el contenido guardado desde el chat y permite operar la tienda. El producto abre siempre en su ficha, incluso si todavía no tiene página. Generar y aprobar etapas ya no organiza la navegación.
 
 ## Mapa implementado

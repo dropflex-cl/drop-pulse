@@ -14,11 +14,13 @@
           "const": "1.0"
         },
         "expected_revision": {
+          "default": 9007199254740991,
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
         },
         "idempotency_key": {
+          "default": "82a54685-50ed-4d11-87a5-691c7cabcedd",
           "type": "string",
           "minLength": 8,
           "maxLength": 128,
@@ -84,6 +86,7 @@
           "maxLength": 8192
         },
         "based_on_revision": {
+          "default": 9007199254740991,
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -92,8 +95,6 @@
       "required": [
         "product_id",
         "schema_version",
-        "expected_revision",
-        "idempotency_key",
         "action",
         "primary_persona_id",
         "primary_jtbd_id",
@@ -102,8 +103,7 @@
         "secondary_angle_ids",
         "positioning",
         "offer_id",
-        "rationale",
-        "based_on_revision"
+        "rationale"
       ],
       "additionalProperties": false
     },
@@ -120,11 +120,13 @@
           "const": "1.0"
         },
         "expected_revision": {
+          "default": 9007199254740991,
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
         },
         "idempotency_key": {
+          "default": "c3377de3-d3d6-443d-8ecd-91f92a967990",
           "type": "string",
           "minLength": 8,
           "maxLength": 128,
@@ -190,6 +192,7 @@
           "maxLength": 8192
         },
         "based_on_revision": {
+          "default": 9007199254740991,
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -198,8 +201,6 @@
       "required": [
         "product_id",
         "schema_version",
-        "expected_revision",
-        "idempotency_key",
         "action",
         "primary_persona_id",
         "primary_jtbd_id",
@@ -208,8 +209,7 @@
         "secondary_angle_ids",
         "positioning",
         "offer_id",
-        "rationale",
-        "based_on_revision"
+        "rationale"
       ],
       "additionalProperties": false
     },
@@ -226,11 +226,13 @@
           "const": "1.0"
         },
         "expected_revision": {
+          "default": 9007199254740991,
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
         },
         "idempotency_key": {
+          "default": "ecf7f7e1-0648-4462-9d24-1fdc68ee30a8",
           "type": "string",
           "minLength": 8,
           "maxLength": 128,
@@ -258,8 +260,6 @@
       "required": [
         "product_id",
         "schema_version",
-        "expected_revision",
-        "idempotency_key",
         "action",
         "strategy_id",
         "reason"

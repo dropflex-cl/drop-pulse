@@ -76,7 +76,7 @@ describe("PI · preparación de mutaciones sin I/O", () => {
     const context = base(); const angleId = context.graph.angle[0].value.id;
     const command = (op: "archive" | "restore", revision: number) => parseToolInput("patch_product_analysis", { product_id: context.product.id, schema_version: "1.0", expected_revision: revision, idempotency_key: "archive-angle-001", operations: [{ op, entity: "angle", id: angleId, reason: "Revisión de enfoque" }, ...context.graph.customer_language.map(({ value }) => ({ op, entity: "customer_language", id: value.id, reason: "Revisión de enfoque" }))] });
     context.selectedDependencyIds = [angleId];
-    expect(() => preparePatchMutation(context, command("archive", 5))).toThrow("seleccionada");
+    expect(() => preparePatchMutation(context, command("archive", 5))).not.toThrow();
     context.selectedDependencyIds = [];
     const archived = preparePatchMutation(context, command("archive", 5));
     expect(archived.graph.angle[0].value.lifecycle).toBe("archived");
@@ -96,10 +96,11 @@ describe("PI · preparación de mutaciones sin I/O", () => {
     reorder.ordered_ids.pop();
     expect(() => preparePatchMutation(context, input)).toThrow("todos");
   });
-  it("no permite archivar una persona mientras sus entidades siguen activas", () => {
+  it("archivar una persona conserva sus relaciones y el contenido elegido", () => {
     const context = base();
     const input = parseToolInput("patch_product_analysis", { product_id: context.product.id, schema_version: "1.0", expected_revision: 5, idempotency_key: "archive-persona-001", operations: [{ op: "archive", entity: "persona", id: context.graph.persona[0].value.id, reason: "Descartar" }] });
-    expect(() => preparePatchMutation(context, input)).toThrow();
+    const changed = preparePatchMutation(context, input);
+    expect(changed.graph.persona[0].value.lifecycle).toBe("archived");
     expect(context.graph.persona[0].value.lifecycle).toBe("active");
   });
   it("rechaza un ID repetido entre update y reprioritize sin regla de último gana", () => {

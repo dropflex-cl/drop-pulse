@@ -4,10 +4,6 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "expected_planning_stamp",
-    "expected_etag",
-    "idempotency_key",
     "experience"
   ],
   "additionalProperties": false,
@@ -220,19 +216,39 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "expected_planning_stamp": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "expected_etag": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "idempotency_key": {
+      "default": "3249aa3b-373e-439a-a24b-dc24b8e4e274",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },
@@ -268,6 +284,7 @@
           "$ref": "#/$defs/__schema0"
         },
         "plan_revision": {
+          "default": 1,
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
@@ -319,7 +336,6 @@
         "strategy_id",
         "angle_id",
         "persuasion_plan_id",
-        "plan_revision",
         "landing_angle_id",
         "experience_key",
         "architecture_variant",

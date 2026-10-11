@@ -2,10 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "required": [
-    "product_id",
-    "expected_revision",
-    "idempotency_key",
-    "expected_fingerprint"
+    "product_id"
   ],
   "additionalProperties": false,
   "properties": {
@@ -15,11 +12,13 @@
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "idempotency_key": {
+      "default": "db54b15e-3313-404e-9c13-13b395147af1",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },
@@ -28,8 +27,17 @@
       "type": "boolean"
     },
     "expected_fingerprint": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{32}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     }
   }
 }

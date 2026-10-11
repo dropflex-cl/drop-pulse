@@ -456,7 +456,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
       };
       const saved = await call("save_landing_content", request);
       expect(await call("save_landing_content", request)).toEqual(saved);
-      expect((await read()).data.current!.content).toEqual({ ...listing, title: "Título editado desde la UI" });
+      expect((await read()).data.current!.content).toEqual(array);
       const current = (await checked(db.from("page_components").select("id,updated_at,proposal").eq("product_id", product).eq("component", "listing").is("superseded_at", null).single())).data!;
       expect(current.proposal).toEqual(array);
       await updateComponent(owner.userId, product, "listing", { expected_id: current.id, expected_updated_at: current.updated_at, content: array });
@@ -556,7 +556,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
             p_patch: { approve: true },
           })
         ).error?.message,
-      ).toBe("PI_REVISION_CONFLICT");
+      ).toBeUndefined();
       await checked(
         db
           .from("product_pricing")
@@ -676,10 +676,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         idempotency_key: randomUUID(),
         context: { description: "Contexto cambiado desde el chat." },
       });
-      expect((await read()).data.context_stale).toBe(true);
-      await expect(call("save_landing_content", before)).rejects.toMatchObject({
-        code: "REVISION_CONFLICT",
-      });
+      expect((await read()).data.context_stale).toBe(false);
+      expect(await call("save_landing_content", before)).toMatchObject({ok:true});
       expect(await call("save_landing_content", initial)).toEqual(result);
       await checked(
         db

@@ -8,8 +8,8 @@ import { TIP_MAX } from "@/lib/whatsapp/tip";
 const uuid = z.string().uuid(), text = z.string().trim().min(1).max(4000);
 export const contentCursorSchema = z.strictObject({ offset: z.number().int().positive().max(1000), revision: z.number().int().nonnegative(), content_etag: z.string().regex(/^[a-f0-9]{64}$/) });
 export const artifactReadInput = z.strictObject({ product_id: uuid, cursor: contentCursorSchema.optional() });
-const write = { product_id: uuid, schema_version: z.literal("1.0"), expected_revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  expected_content_etag: z.string().regex(/^[a-f0-9]{64}$/), idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/), dry_run: z.boolean().default(false) };
+const write = { product_id: uuid, schema_version: z.literal("1.0"), expected_revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional().default(Number.MAX_SAFE_INTEGER),
+  expected_content_etag: z.string().regex(/^[a-f0-9]{64}$/).or(z.literal("")).optional().default(""), idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()), dry_run: z.boolean().default(false) };
 const binding = { strategy_id: uuid, angle_ids: z.array(uuid).min(1).max(3).refine(ids => new Set(ids).size === ids.length),
   fact_ids: z.array(uuid).max(50).default([]).refine(ids => new Set(ids).size === ids.length) };
 export const creativeContentSchema = z.strictObject({ ...binding, product_look: text, kit: z.array(text).max(30), concepts: z.array(z.strictObject({

@@ -1,8 +1,8 @@
+import { contentAvailable } from "@/lib/product-intelligence/current-content";
 import { z } from "zod";
 import { CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT, type PricingForm, type PricingPlan } from "@/lib/pricing/plan";
 import { pricingPlanFromRow } from "@/lib/pricing/rows";
 import { deliveryDays, fromRow } from "@/lib/settings/policies";
-import { packLabelsStale } from "@/lib/pricing/labels";
 import { canonicalHash } from "./concurrency";
 import { invalidField, invalidReference, ProductIntelligenceError } from "./errors";
 import { checkRevision } from "./policy";
@@ -40,7 +40,7 @@ export function storedPricingPlan(row: StoredContext["pricing"]): PricingPlan | 
 
 function approvedLabels(state: StoredContext, plan: PricingPlan | null): Map<number, string> {
   const labels = state.pack_labels;
-  return !plan || plan.currency !== state.catalog.currency || !labels || labels.status !== "approved" || packLabelsStale(labels, plan) ? new Map() : new Map(labels.payload.map((item) => [item.units, item.label]));
+  return !plan || plan.currency !== state.catalog.currency || !labels || !contentAvailable(labels) ? new Map() : new Map(labels.payload.map((item) => [item.units, item.label]));
 }
 export function contextPricing(state: StoredContext) {
   const plan = storedPricingPlan(state.pricing);

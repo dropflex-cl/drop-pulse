@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -7,7 +8,7 @@ import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { adminClient } from "@/lib/integrations/admin";
 import { commandHash } from "./concurrency";
 import { shopifyStrategyRead } from "./automation-active";
-import { parseKnowledgeRead, strategyResponse } from "./knowledge";
+import { parseKnowledgeRead } from "./knowledge";
 import { ProductIntelligenceError } from "./errors";
 import type { DomainExecutor } from "./mcp";
 import type { DelegatedIdentity } from "./oauth";
@@ -40,11 +41,11 @@ export function createShopifyAutomationExecutor(repository: ShopifyAutomationRep
       if (problem || !conn) throw new ProductIntelligenceError("VALIDATION_ERROR", problem ?? "Conecta tu tienda Shopify.");
       const prepared = await preparePublish(principal.userId, q.product_id);
       if (prepared.missing.length) throw new ProductIntelligenceError("VALIDATION_ERROR", prepared.missing[0]);
-      if (fingerprint(prepared.input) !== q.expected_fingerprint) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La página cambió. Recupera su estado antes de publicar.");
+      if (q.expected_fingerprint && fingerprint(prepared.input) !== q.expected_fingerprint) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La página cambió. Recupera su estado antes de publicar.");
       const data = z.object({ applied: z.boolean(), dry_run: z.boolean(), operation_id: z.string().uuid().nullable(), status: z.string() }).parse(
-        await repository.shopifyAutomation({ p_access: access, p_product_id: q.product_id, p_action: "publish", p_expected_revision: q.expected_revision,
+        await repository.shopifyAutomation({ p_access: access, p_product_id: q.product_id, p_action: "publish", p_expected_revision: serverRevision(q.expected_revision, state.revision),
           p_key: q.idempotency_key, p_hash: commandHash(tool, q), p_dry_run: q.dry_run,
-          p_payload: { fingerprint: q.expected_fingerprint, shop_domain: conn.shop_domain, authorization_id: state.authorization_id } }, signal));
+          p_payload: { fingerprint: serverToken(q.expected_fingerprint, fingerprint(prepared.input)), shop_domain: conn.shop_domain, authorization_id: state.authorization_id } }, signal));
       if (data.operation_id && !q.dry_run && data.status === "queued") wake?.(data.operation_id);
       return parseToolOutput(tool, { ...base, revision: state.revision, data });
     }
@@ -61,12 +62,13 @@ export function createShopifyAutomationExecutor(repository: ShopifyAutomationRep
       const read = await shopifyStrategyRead(repository, parseKnowledgeRead(await repository.loadKnowledge({ p_access: access,
         p_product_id: input.product_id }, signal), principal, input.product_id), principal, input.product_id, identity, signal);
       checkRevision(request.expected_revision, read.current_revision);
-      if (!read.strategy || read.strategy.id !== request.strategy_id || !strategyResponse(read.strategy, read, input.product_id).readiness.ready_for_execution)
-        throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Revisa la estrategia y sus datos antes de autorizar la publicación automática.");
+      if (!read.strategy || read.strategy.id !== request.strategy_id || read.strategy.state !== "selected")
+        throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Elige la dirección del producto antes de autorizar su publicación automática.");
     }
+    const currentState = automationStateSchema.parse(await repository.shopifyAutomation({ p_access: access, p_product_id: input.product_id, p_action: "read" }, signal));
     const state = automationStateSchema.parse(await repository.shopifyAutomation({ p_access: access, p_product_id: input.product_id,
       p_action: tool === "get_shopify_automation" ? "read" : tool === "disable_shopify_automation" ? "disable" : "authorize",
-      ...(q ? { p_expected_revision: q.expected_revision, p_key: q.idempotency_key, p_hash: commandHash(tool, q), p_dry_run: q.dry_run } : {}),
+      ...(q ? { p_expected_revision: serverRevision(q.expected_revision, currentState.revision), p_key: q.idempotency_key, p_hash: commandHash(tool, q), p_dry_run: q.dry_run } : {}),
       ...(tool === "authorize_shopify_automation" ? { p_payload: parseToolInput("authorize_shopify_automation", command.input) } : {}),
     }, signal));
     if (tool !== "get_shopify_automation") return parseToolOutput(tool, { ...base, revision: state.revision, data: state });

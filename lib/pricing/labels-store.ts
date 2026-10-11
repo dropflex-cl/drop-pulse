@@ -1,3 +1,4 @@
+import { contentAvailable } from "@/lib/product-intelligence/current-content";
 import "server-only";
 import { createContextRepository, contextAccess } from "@/lib/product-intelligence/repository";
 import { parsePackLabelsRead } from "@/lib/product-intelligence/pack-labels-service";
@@ -5,7 +6,6 @@ import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { PackLabelsProposal } from "@/lib/types";
-import { packLabelsStale } from "./labels";
 import type { PricingPlan } from "./plan";
 
 // pack_labels: el chat propone (`generated`) y el comerciante decide.
@@ -33,13 +33,14 @@ export async function latestPackLabels(userId: string, productId: string): Promi
 }
 
 export function toPackLabelsProposal(r: PackLabelsRow, plan: Pick<PricingPlan, "packs"> & Partial<Pick<PricingPlan, "currency">> | null | undefined): PackLabelsProposal {
+  void plan;
   return {
     id: r.id,
     source: r.source,
     etag: r.etag,
-    status: toUiStatus(r.status),
+    status: toUiStatus(contentAvailable(r) ? "approved" : r.status),
     labels: r.payload,
-    stale: packLabelsStale(r, plan),
+    stale: false,
     prices: r.prices,
     createdAt: r.created_at,
     editedAt: r.edited_at ?? undefined,

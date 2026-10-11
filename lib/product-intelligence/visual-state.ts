@@ -70,7 +70,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   for (const shot of src.gallery_shots.filter(s => slotKind(String(s.slot)) === "benefit")) addTarget({ type: "gallery_shot", slot: String(shot.slot), shot_key: "general", position: null }, { slot: shot.slot, ratio: "3:4", shot: shot.payload });
   for (const exp of src.pdp.experiences.filter(e => e.payload.status !== "archived")) {
     add("landing_experience", exp.id, exp.payload);
-    for (const section of exp.payload.sections.filter(s => s.enabled)) {
+    for (const section of exp.payload.sections) {
       const native = componentCapabilityCatalog(src.pdp.landing.review_count).find(c => c.component === section.component);
       const content = src.pdp.landing.rows.find(r => r.component === section.component);
       const variant = content && contentVariants(content.content ?? content.proposal).find(v => v.key === section.content_variant_key);
@@ -82,7 +82,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   for (const c of src.creative_concepts) for (const ratio of ["1:1", "9:16"] as const) addTarget({ type: "creative_concept", concept_id: String(c.id), ratio, slot: "image" }, { concept: c.payload, input: c.input, ratio });
   for (const s of src.video_shots.filter(s => !s.superseded_at && ["keyframe", "b_roll"].includes(String(s.kind)))) {
     const script = src.scripts.find(r => r.id === s.script_id);
-    if (script?.approved_at) addTarget({ type: "ugc_shot", script_id: String(s.script_id), video_shot_id: String(s.id), slot: s.kind === "keyframe" ? "keyframe" : "b_roll" }, { script: script.payload, approved_at: script.approved_at, key: s.key, kind: s.kind });
+    if (script) addTarget({ type: "ugc_shot", script_id: String(s.script_id), video_shot_id: String(s.id), slot: s.kind === "keyframe" ? "keyframe" : "b_roll" }, { script: script.payload, approved_at: script.approved_at, key: s.key, kind: s.kind });
   }
   // Maps/arrays in state were cloned by Zod; use the populated instances.
   state.live = live; state.targets = targets;

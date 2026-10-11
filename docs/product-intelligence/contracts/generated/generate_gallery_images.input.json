@@ -4,12 +4,9 @@
   "required": [
     "product_id",
     "schema_version",
-    "expected_revision",
-    "expected_content_etag",
     "provider",
     "shot_ids",
-    "max_estimated_usd",
-    "idempotency_key"
+    "max_estimated_usd"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -28,13 +25,23 @@
       "const": "1.0"
     },
     "expected_revision": {
+      "default": 9007199254740991,
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
     },
     "expected_content_etag": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "default": "",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "string",
+          "const": ""
+        }
+      ]
     },
     "provider": {
       "type": "string",
@@ -57,6 +64,7 @@
       "maximum": 100
     },
     "idempotency_key": {
+      "default": "c27188aa-e1f9-4071-aca0-7cba80376392",
       "type": "string",
       "pattern": "^[A-Za-z0-9._:-]{8,128}$"
     },

@@ -1,3 +1,4 @@
+import { serverRevision } from "./current-content";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { commandHash } from "./concurrency";
@@ -33,7 +34,7 @@ export function createContextExecutor(repository: ContextRepository, identity?: 
     const result = parseToolOutput(command.tool, prepared.result);
     // Commit puede haber ocurrido cuando llega un timeout. Receipt exacto hace seguro reintentar.
     return parseToolOutput(command.tool, await repository.commit({ p_access: access, p_product_id: input.product_id,
-      p_expected_revision: input.expected_revision, p_stamp: read.stamp, p_key: input.idempotency_key, p_hash: hash,
+      p_expected_revision: serverRevision(input.expected_revision, read.current_revision), p_stamp: read.stamp, p_key: input.idempotency_key, p_hash: hash,
       p_context: prepared.context, p_pricing: prepared.pricing, p_base_image: prepared.baseImage === undefined ? null : { id: prepared.baseImage },
       p_result: result, p_dry_run: input.dry_run }, signal));
   };

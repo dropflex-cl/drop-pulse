@@ -8666,9 +8666,7 @@
       },
       "required": [
         "product_id",
-        "schema_version",
-        "expected_revision",
-        "idempotency_key"
+        "schema_version"
       ],
       "additionalProperties": false,
       "anyOf": [
@@ -8863,8 +8861,6 @@
       "required": [
         "product_id",
         "schema_version",
-        "expected_revision",
-        "idempotency_key",
         "analysis"
       ],
       "additionalProperties": false
@@ -8977,8 +8973,6 @@
       "required": [
         "product_id",
         "schema_version",
-        "expected_revision",
-        "idempotency_key",
         "operations"
       ],
       "additionalProperties": false
@@ -9106,9 +9100,7 @@
       },
       "required": [
         "product_id",
-        "schema_version",
-        "expected_revision",
-        "idempotency_key"
+        "schema_version"
       ],
       "additionalProperties": false,
       "anyOf": [
@@ -9497,8 +9489,6 @@
           "required": [
             "product_id",
             "schema_version",
-            "expected_revision",
-            "idempotency_key",
             "action",
             "primary_persona_id",
             "primary_jtbd_id",
@@ -9507,8 +9497,7 @@
             "secondary_angle_ids",
             "positioning",
             "offer_id",
-            "rationale",
-            "based_on_revision"
+            "rationale"
           ],
           "additionalProperties": false
         },
@@ -9603,8 +9592,6 @@
           "required": [
             "product_id",
             "schema_version",
-            "expected_revision",
-            "idempotency_key",
             "action",
             "primary_persona_id",
             "primary_jtbd_id",
@@ -9613,8 +9600,7 @@
             "secondary_angle_ids",
             "positioning",
             "offer_id",
-            "rationale",
-            "based_on_revision"
+            "rationale"
           ],
           "additionalProperties": false
         },
@@ -9661,8 +9647,6 @@
           "required": [
             "product_id",
             "schema_version",
-            "expected_revision",
-            "idempotency_key",
             "action",
             "strategy_id",
             "reason"
@@ -9795,8 +9779,6 @@
           "required": [
             "product_id",
             "schema_version",
-            "expected_revision",
-            "idempotency_key",
             "stage",
             "strategy_id",
             "angle_id",
@@ -9857,11 +9839,8 @@
           "required": [
             "product_id",
             "schema_version",
-            "expected_revision",
-            "idempotency_key",
             "stage",
             "script_id",
-            "expected_artifact_etag",
             "shot_keys"
           ],
           "additionalProperties": false
@@ -9919,11 +9898,8 @@
           "required": [
             "product_id",
             "schema_version",
-            "expected_revision",
-            "idempotency_key",
             "stage",
             "script_id",
-            "expected_artifact_etag",
             "shot_keys"
           ],
           "additionalProperties": false

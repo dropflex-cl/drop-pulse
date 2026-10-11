@@ -938,6 +938,7 @@ export interface PdpWorkbench {
   experiences: { id: string; revision: number; etag: string; payload: LandingExperience }[];
 }
 export interface VisualWorkbench {
+  gallery_etag?: string;
   product_id: string;
   revision: number;
   etag: string;

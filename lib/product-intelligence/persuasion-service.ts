@@ -1,3 +1,4 @@
+import { serverRevision, serverToken } from "./current-content";
 import { shopifyStrategyRead } from "./automation-active";
 import { imagePickSchema } from "@/lib/copy/variants";
 import { contentVariants } from "@/lib/copy/variants";
@@ -98,44 +99,27 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
       return parseToolOutput(tool, { ...base, data: { valid: !issues.some(i => i.severity === "error"), issues } });
     }
     if (tool !== "save_angle_persuasion_plan" && tool !== "save_landing_experience") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación no está disponible.");
-    const write = parseToolInput(tool, command.input); checkRevision(write.expected_revision, read.current_revision);
-    if (write.expected_planning_stamp !== state.planning_stamp) throw new ProductIntelligenceError("REVISION_CONFLICT", "El contexto de la página cambió. Recupera el recorrido y concilia tu decisión.");
+    const write = parseToolInput(tool, command.input);
     let issues: ReturnType<typeof validatePersuasionPlan>, id: string | null, payload: AnglePersuasionPlan | typeof state.experiences[number]["payload"];
     if (tool === "save_angle_persuasion_plan") {
-      const request = parseToolInput(tool, command.input); id = request.plan_id;
+      const request = parseToolInput(tool, command.input); id = request.plan_id ?? state.plans.find(p => p.payload.strategy_id === request.plan.strategy_id && p.payload.angle_id === request.plan.angle_id && p.payload.status !== "archived")?.id ?? null;
       request.plan.status = request.plan.status === "archived" ? "archived" : "approved"; payload = request.plan;
       issues = validatePersuasionPlan(request.plan, persuasionValidationContext(state, principal, input.product_id, request.plan.strategy_id, read));
       blockIssues(issues, ["review", "approved"].includes(request.plan.status));
-      // Un plan consumido es inmutable: se crea otra variante sin cambiar experiencias activas.
-      if (id && state.experiences.some(e => e.payload.persuasion_plan_id === id && e.payload.status === "active")) throw new ProductIntelligenceError("DEPENDENCY_IN_USE", "Crea otro plan o archiva las experiencias activas antes de cambiarlo.");
+
     } else {
-      const request = parseToolInput(tool, command.input); id = request.experience_id;
+      const request = parseToolInput(tool, command.input); id = request.experience_id ?? state.experiences.find(e => e.payload.experience_key === request.experience.experience_key && e.payload.status !== "archived")?.id ?? null;
       request.experience.status = request.experience.status === "archived" ? "archived" : "active"; payload = request.experience;
       const plan = state.plans.find(p => p.id === request.experience.persuasion_plan_id);
       if (!plan) throw new ProductIntelligenceError("INVALID_REFERENCE", "El plan no pertenece a este producto.");
       issues = validateLandingExperience(request.experience, plan.payload, plan.revision,
         persuasionValidationContext(state, principal, input.product_id, plan.payload.strategy_id, read),
-        principal.actorKind === "merchant" && Boolean(state.experiences.find(e => e.id === id)));
+        true);
       blockIssues(issues, ["review", "active"].includes(request.experience.status));
-      const old = state.experiences.find(e => e.id === id);
-      if (principal.actorKind !== "merchant") {
-        for (const section of request.experience.sections) {
-          const prior = old?.payload.sections.find(s => s.section_key === section.section_key);
-          if (section.manual_overrides.some(field => !prior?.manual_overrides.includes(field))) throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede establecer overrides manuales.");
-        }
-      }
-      if (old && principal.actorKind !== "merchant") for (const section of old.payload.sections.filter(s => s.manual_overrides.length)) {
-        const next = request.experience.sections.find(s => s.section_key === section.section_key);
-        if (!next || section.manual_overrides.some(field => {
-          if (field === "order") return old.payload.sections.indexOf(section) !== request.experience.sections.indexOf(next);
-          if (field === "content") return section.content_variant_key !== next.content_variant_key;
-          if (field === "assets") return JSON.stringify([section.images, section.asset_refs]) !== JSON.stringify([next.images, next.asset_refs]);
-          return section[field] !== next[field];
-        }) || section.manual_overrides.some(field => !next.manual_overrides.includes(field))) throw new ProductIntelligenceError("DEPENDENCY_IN_USE", "Conserva los cambios manuales del comerciante o crea otra variante.");
-      }
+
     }
     return parseToolOutput(tool, await repository.commitPersuasion({ p_access: access, p_product_id: write.product_id, p_tool: tool,
-      p_id: id, p_expected_revision: write.expected_revision, p_etag: write.expected_etag, p_stamp: state.planning_stamp,
+      p_id: id, p_expected_revision: serverRevision(write.expected_revision, read.current_revision), p_etag: serverToken(write.expected_etag, (tool === "save_angle_persuasion_plan" ? state.plans : state.experiences).find(r => r.id === id)?.etag ?? state.empty_etag), p_stamp: state.planning_stamp,
       p_key: write.idempotency_key, p_hash: hash, p_payload: payload, p_issues: issues, p_dry_run: write.dry_run }, signal));
   };
 }
