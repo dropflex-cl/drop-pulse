@@ -1,5 +1,7 @@
 # Spec: Video UGC en Creativos
 
+> Montaje vigente: [Edición local en CapCut](spec-video-capcut.md). DropFlex guarda material y dirección de arte; la skill local prepara los clips y edita en CapCut. Remotion y su worker se retiraron. Las secciones de Python describen el flujo histórico.
+
 > Estado: **implementado** (2026-09-26, rama `feat/video-ugc`), fases V1 a V4, más el formato mascota (§11). Verificado: tests puros (`lib/video/video.test.ts`), el guionista real con los datos de Deep Collagen (prompt v2: pasa al primer intento, US$0,25), las imágenes clave reales con `keyframeRequest` (cara, etiqueta y manos correctas) y `scripts/ugc-montage.py` con los clips de la POC (31 s, 7,4 MB). Pendiente: una corrida completa desde la pantalla con un producto real (la base local no tiene uno con ángulos aprobados) y aplicar la migración en producción.
 > Reemplaza las fases F2–F4 de `docs/spec-creativos.md` §7 para el video hablado.
 > Origen: POC del 2026-09-25/26 sobre Deep Collagen (`ea36e7bc…`, ángulo 3 «Cuando la base se mete en las líneas»), cinco rondas (B → E) hasta un resultado que el usuario aprobó. Sesión de mentoría del 2026-09-25: probar 3 ángulos con **formatos distintos** (UGC con IA, imagen, video real) y que el video sea 100 % específico a su ángulo.

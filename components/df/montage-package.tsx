@@ -10,7 +10,7 @@ export interface MontagePackageProps {
   disabled?: boolean;
 }
 
-/** El paquete JSON para montar el video en el computador con scripts/ugc-montage.py (.df-montage). */
+/** Material para la skill local de edición en CapCut (.df-montage). */
 export function MontagePackage({ clips, href, file, disabled }: MontagePackageProps) {
   return (
     <section aria-label="Paquete de montaje" className="flex flex-col gap-3 rounded-lg border bg-card p-3.5">
@@ -36,8 +36,8 @@ export function MontagePackage({ clips, href, file, disabled }: MontagePackagePr
       )}
       <div className="flex flex-col gap-1">
         <span className="text-label">En tu computador</span>
-        <pre className="m-0 overflow-auto rounded-md bg-muted px-3 py-2.5 font-mono text-label font-normal whitespace-pre text-foreground">{`python3 scripts/ugc-montage.py \\\n  ~/Downloads/${file} \\\n  --music musica.mp3`}</pre>
-        <span className="text-caption text-muted-foreground">--music es opcional; usa una pista con licencia comercial. Sale un MP4 9:16 de ~30 s.</span>
+        <p className="text-caption text-muted-foreground">Abre el JSON en una tarea local de ChatGPT Work con la skill dropflex-capcut. La skill prepara los clips y guía la edición en CapCut: cortes, títulos, subtítulos y sonido.</p>
+        <span className="text-caption text-muted-foreground">Exporta el MP4 vertical y súbelo aquí para revisarlo. Usa música y efectos con licencia para anuncios.</span>
       </div>
     </section>
   );

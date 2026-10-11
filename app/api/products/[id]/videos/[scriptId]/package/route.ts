@@ -4,7 +4,7 @@ import { errorResponse, ownedProduct } from "@/lib/products/http";
 
 /**
  * El paquete de montaje (docs/spec-video-ugc.md §5.1): un JSON con los clips firmados por 24 h que
- * lee scripts/ugc-montage.py. Se descarga como archivo.
+ * interpreta la skill local dropflex-capcut. Se descarga como archivo.
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string; scriptId: string }> }) {
   try {

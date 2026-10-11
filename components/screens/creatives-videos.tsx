@@ -36,7 +36,7 @@ import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
 // Pestaña Videos de Creativos (design-system/creativos.md › 3, docs/spec-video-ugc.md §2): por ángulo, un
 // video con persona (UGC de ~30 s) y otro con mascota animada (~25 s), cada uno con su propio avance en 5
 // pasos. Guion (centavos) → imágenes clave (se aprueban una a una) → clips (lo caro) → montaje en el
-// equipo del comerciante con el script → video final, que al aprobarlo pasa a Anuncios. Arriba, el
+// equipo del comerciante con CapCut → video final, que al aprobarlo pasa a Anuncios. Arriba, el
 // ángulo, el formato y los pasos; abajo, el paso que toca. En escritorio: los pasos a la izquierda, el
 // trabajo al centro y el paso siguiente a la derecha.
 
@@ -278,7 +278,7 @@ function stepNotes(card: VideoCardView): (string | undefined)[] {
     !s ? "Por escribir" : s.status === "queued" || s.status === "running" ? "Escribiendo…" : !p ? "No se pudo escribir" : s.approved ? `Aprobado · ${p.a_roll.length + p.b_roll.length} tomas` : "Por aprobar",
     p && s?.approved ? `${kfOk} de ${p.keyframes.length} aprobadas` : undefined,
     card.clips.length ? `${clipsDone} de ${clipsTotal} listos${card.clips.some(busyShot) ? " · 3 a 6 min" : ""}` : undefined,
-    "Paquete JSON + script local",
+    "Paquete JSON + CapCut local",
     card.final?.src ? (card.final.status === "aprobado" ? "En Anuncios" : "Por aprobar") : "Sube el MP4 montado",
   ];
 }
@@ -303,7 +303,7 @@ function NextStep({ card, current, file }: { card: VideoCardView; current: numbe
         <MontagePackage clips={total} file={file} disabled />
       </>
     );
-  if (current === 4) return head("Siguiente: video final", "Sube el MP4 que deja el script. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.");
+  if (current === 4) return head("Siguiente: video final", "Exporta el MP4 desde CapCut y súbelo. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.");
   return card.final?.status === "aprobado"
     ? head("Listo", `El video está en Anuncios, en el conjunto del ángulo ${card.slot}.`)
     : head("Último paso", "Aprueba el video para mandarlo a Anuncios.");
@@ -605,7 +605,7 @@ function ScriptStep({
 // ---------------------------------------------------------------- 2. Imágenes clave
 
 function keyframeState(s: VideoShotView | undefined): KeyframeState {
-  if (!s) return "missing";
+  if (!s || s.awaitingUpload) return "missing";
   if (busyShot(s)) return "generating";
   if (s.render === "failed") return "failed";
   return s.status === "aprobado" ? "approved" : s.status === "rechazado" ? "discarded" : "review";
@@ -643,6 +643,7 @@ function KeyframesStep({
     run(`shot-${s.id}`, () => productsApi.shotAction(productId, s.id, a, card.script?.artifactEtag, s.updatedAt), "No pudimos guardar el cambio.", done);
   const each = localCost(shotCost("keyframe"));
   const none = card.keyframes.length === 0;
+  const awaitingUpload = card.keyframes.some((k) => k.awaitingUpload);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -655,6 +656,7 @@ function KeyframesStep({
         ) : null}
       </div>
       <Reconciliation productId={productId} card={card} shots={card.keyframes} busy={busy} run={run} />
+      {awaitingUpload ? <Notice tone="info" icon="image" title="Sube las imágenes desde el chat" body="Asigna cada imagen a su toma. Cuando estén listas, podrás generar los clips. También puedes pedir las imágenes a Higgsfield." /> : null}
       {none ? (
         <div className="flex flex-col gap-2 rounded-lg border bg-card p-4">
           <b className="text-body font-semibold">{`${expected.length} imágenes clave`}</b>
@@ -676,7 +678,7 @@ function KeyframesStep({
                 state={st}
                 src={s?.src}
                 qa={s?.qa?.issues}
-                error={s?.error}
+                error={s?.awaitingUpload ? undefined : s?.error}
                 busy={loading || Boolean(busy)}
                 onApprove={() => s && shot(s, "approve")}
                 onDiscard={() => s && shot(s, "reject")}

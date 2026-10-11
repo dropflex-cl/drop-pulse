@@ -144,3 +144,13 @@ Varias ejecuciones del mismo ángulo se revisan con «Ver otro video»; persona 
 Un envío ambiguo muestra «Revisa el envío de [toma]», «Se perdió la respuesta de Higgsfield. Si el trabajo existe, pega su identificador para recuperarlo sin generar otra vez.», el Field «Identificador del trabajo» y **Recuperar trabajo**. La alternativa tiene una casilla «Ya revisé Higgsfield y este trabajo no existe» y **Habilitar otro intento**. Sin conciliar, no se permite repetir esa generación. Descartar el montaje conserva el archivo para Deshacer.
 
 En el editor de la landing, «Videos aprobados» permite marcar videos por nombre y orden; «Video retirado: quítalo antes de publicar» identifica una selección que dejó de estar disponible. Los captions se revisan en el mismo orden.
+
+## Actualización: edición local en CapCut
+
+El paso Montaje muestra el componente `MontagePackage`: **Paquete de montaje**, clips, textos y cierre; **Descargar paquete JSON** es la acción principal. Los enlaces duran 24 h. En **En tu computador**, el texto es «Abre el JSON en una tarea local de ChatGPT Work con la skill dropflex-capcut. La skill prepara los clips y guía la edición en CapCut: cortes, títulos, subtítulos y sonido.» y «Exporta el MP4 vertical y súbelo aquí para revisarlo. Usa música y efectos con licencia para anuncios.»
+
+El avance dice «Paquete JSON + CapCut local». El siguiente paso dice «Exporta el MP4 desde CapCut y súbelo. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.» Se conserva **Ya lo monté: subir el video**, y la revisión del final. La pantalla no inicia un worker de edición, ni exige Anthropic para descargar o montar.
+
+Remotion está retirado: no hay Player ni controles para proponer o exportar en el servidor. Higgsfield continúa generando los clips pedidos explícitamente y DropFlex conserva su estado. Con keyframes externos, el chat guarda los destinos de toma y asigna imágenes subidas antes de generar clips.
+
+Los destinos externos preparados se muestran como imágenes faltantes, sin estado de error. El aviso dice **Sube las imágenes desde el chat** y «Asigna cada imagen a su toma. Cuando estén listas, podrás generar los clips. También puedes pedir las imágenes a Higgsfield.»

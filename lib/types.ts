@@ -610,6 +610,8 @@ export interface VideoShotView {
   kind: "keyframe" | "a_roll" | "b_roll";
   attempt: number;
   render: "queued" | "running" | "succeeded" | "failed";
+  /** Destino externo preparado desde el chat; todavía no es un intento fallido de generación. */
+  awaitingUpload?: boolean;
   error?: string;
   /** URL firmada (1 h): imagen en las imágenes clave, MP4 en los clips. */
   src?: string;

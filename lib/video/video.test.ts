@@ -486,6 +486,12 @@ describe("paquete de montaje", () => {
     expect(p).not.toHaveProperty("label");
     expect(p.accent_color).toBe(DEFAULT_ACCENT);
   });
+  it("lleva referencias del guion y dirección de arte sin fijar una timeline de Remotion", () => {
+    const source={script_id:"script-fixture",artifact_etag:"a".repeat(64)},editingBrief={objective:"Mostrar orden",art_direction:"Macro y tipografía",pacing:"Ágil",captions:"Legibles",sound:"Voz primero"};
+    const p=buildPackage({...base,script:script(),clipUrls:urls,source,editingBrief});
+    expect(p.source).toEqual(source);expect(p.editing_brief).toEqual(editingBrief);
+    expect(p).not.toHaveProperty("scenes");expect(p.a_roll[0].line).toBe(script().a_roll[0].line);
+  });
 
   it("lleva la apertura: el inserto del gancho si abre con uno, y el aspecto por formato", () => {
     const s = script();

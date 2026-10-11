@@ -2,11 +2,19 @@ import { z } from "zod";
 import { scriptLinesSchema, ugcPlanSchema, mascotPlanSchema } from "@/lib/video/schemas";
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }), etag = z.string().regex(/^[a-f0-9]{64}$/);
 const selector = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/);
+/** Dirección de arte abierta; los tiempos y efectos se resuelven con los clips reales en el Mac. */
+export const ugcEditingBriefSchema = z.strictObject({
+  objective: z.string().trim().min(1).max(1000),
+  art_direction: z.string().trim().min(1).max(2000),
+  pacing: z.string().trim().min(1).max(1000),
+  captions: z.string().trim().min(1).max(1000),
+  sound: z.string().trim().min(1).max(1000),
+});
 export const getUgcInput = z.strictObject({ product_id: uuid, script_id: uuid.optional(), execution_key: selector.optional(), include_contract: z.boolean().default(false), page_size: z.number().int().min(1).max(24).default(12), cursor: z.string().max(200).optional() });
 /** K1, A1… y B1… se construyen en código. El chat aporta redacción y planificación. */
 export const chatUgcContent = z.discriminatedUnion("format", [
-  z.strictObject({ format: z.literal("ugc"), lines: scriptLinesSchema.strict(), plan: ugcPlanSchema.strict() }),
-  z.strictObject({ format: z.literal("mascot"), lines: scriptLinesSchema.strict(), plan: mascotPlanSchema.strict() }),
+  z.strictObject({ format: z.literal("ugc"), lines: scriptLinesSchema.strict(), plan: ugcPlanSchema.strict(), editing_brief: ugcEditingBriefSchema.optional(), keyframe_source: z.enum(["higgsfield", "external"]).optional() }),
+  z.strictObject({ format: z.literal("mascot"), lines: scriptLinesSchema.strict(), plan: mascotPlanSchema.strict(), editing_brief: ugcEditingBriefSchema.optional(), keyframe_source: z.enum(["higgsfield", "external"]).optional() }),
 ]);
 export const saveUgcInput = z.strictObject({ product_id: uuid, schema_version: z.literal("1.0"),
   expected_revision: z.number().int().nonnegative().safe(), expected_ugc_etag: etag,

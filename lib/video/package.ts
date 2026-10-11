@@ -1,8 +1,11 @@
-// El paquete de montaje (docs/spec-video-ugc.md §5.1): todo lo que scripts/ugc-montage.py necesita
-// para armar el video en el equipo del comerciante. Puro.
+// Material para la edición local en CapCut; v2 conserva los lectores históricos. Puro.
 
 import { PACKAGE_VERSION, montageName, opensWithInsert, type VideoFormat, type VideoOpeningShot } from "./catalog";
 import type { UgcScript } from "./schemas";
+import type { z } from "zod";
+import type { ugcEditingBriefSchema } from "@/lib/product-intelligence/ugc-schemas";
+
+export type UgcEditingBrief = z.infer<typeof ugcEditingBriefSchema>;
 
 export interface MontagePackage {
   version: number;
@@ -33,6 +36,10 @@ export interface MontagePackage {
   text_beats: { anchor: string; until: string | null; text: string }[];
   end_card: { image_url: string; title: string; subtitle: string; cta: string; small_print: string[] };
   expires_at: string;
+  /** IDs duraderos para recuperar enlaces y subir el final al mismo guion. */
+  source?: { script_id: string; artifact_etag: string };
+  /** Sugerencias abiertas; no restringen la edición a un catálogo de composiciones. */
+  editing_brief?: UgcEditingBrief | null;
 }
 
 export interface PackageInput {
@@ -48,6 +55,8 @@ export interface PackageInput {
   clipUrls: Map<string, string>;
   endCardImageUrl: string;
   expiresAt: string;
+  source?: MontagePackage["source"];
+  editingBrief?: UgcEditingBrief | null;
 }
 
 /** Amarillo de la POC: se ve sobre piel y fondos claros con borde negro. */
@@ -110,5 +119,7 @@ export function buildPackage(p: PackageInput): MontagePackage {
     text_beats: p.script.text_beats.map((t) => ({ anchor: t.anchor, until: t.until, text: t.text })),
     end_card: { image_url: p.endCardImageUrl, ...p.script.end_card },
     expires_at: p.expiresAt,
+    ...(p.source ? { source: p.source } : {}),
+    ...(p.editingBrief !== undefined ? { editing_brief: p.editingBrief } : {}),
   };
 }

@@ -574,6 +574,8 @@ export async function montagePackage(userId: string, productId: string, scriptId
       clipUrls,
       endCardImageUrl,
       expiresAt: new Date(Date.now() + PACKAGE_TTL_S * 1000).toISOString(),
+      source: { script_id: s.id, artifact_etag: s.artifact_etag },
+      editingBrief: s.input.editing_brief as import("@/lib/video/package").UgcEditingBrief | null | undefined,
     });
   } catch (e) {
     if (e instanceof PackageNotReady) throw new OptimizeError(e.message, 409);
@@ -587,7 +589,7 @@ export async function prepareFinalUpload(userId: string, productId: string, scri
   const s = await readyScript(userId, productId, scriptId);
   if (!s.approved_at) throw new OptimizeError("Aprueba el guion antes de subir el video.", 409);
   if (file.type !== "video/mp4") throw new OptimizeError("Sube el video en MP4.", 415);
-  if (!file.size || file.size > FINAL_MAX_BYTES) throw new OptimizeError("El video pesa más de 100 MB. Usa la salida del script de montaje.", 413);
+  if (!file.size || file.size > FINAL_MAX_BYTES) throw new OptimizeError("El video pesa más de 100 MB. Exporta una versión más liviana.", 413);
   const path = `${userId}/${productId}/video-final-${s.id}-${randomUUID().slice(0, 8)}.mp4`;
   const { data, error } = await adminClient().storage.from(CREATIVES_BUCKET).createSignedUploadUrl(path);
   if (error || !data) throw new Error(`Preparar la subida: ${error?.message ?? "sin URL"}`);

@@ -48,3 +48,6 @@ next-env.d.ts
 # Python (scripts/ugc-montage.py)
 __pycache__/
 *.pyc
+
+# Material temporal de las pruebas locales de video
+/.cache/video-montage/

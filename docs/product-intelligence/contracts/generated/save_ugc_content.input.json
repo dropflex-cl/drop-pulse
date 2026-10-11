@@ -125,6 +125,16 @@
             "text_beats"
           ],
           "additionalProperties": false
+        },
+        "editing_brief": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "keyframe_source": {
+          "type": "string",
+          "enum": [
+            "higgsfield",
+            "external"
+          ]
         }
       },
       "required": [
@@ -428,6 +438,44 @@
     "__schema24": {
       "type": "object",
       "properties": {
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "art_direction": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "pacing": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "captions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "sound": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "objective",
+        "art_direction",
+        "pacing",
+        "captions",
+        "sound"
+      ],
+      "additionalProperties": false
+    },
+    "__schema25": {
+      "type": "object",
+      "properties": {
         "format": {
           "type": "string",
           "const": "mascot"
@@ -533,6 +581,16 @@
             "text_beats"
           ],
           "additionalProperties": false
+        },
+        "editing_brief": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "keyframe_source": {
+          "type": "string",
+          "enum": [
+            "higgsfield",
+            "external"
+          ]
         }
       },
       "required": [
@@ -644,7 +702,7 @@
           "$ref": "#/$defs/__schema2"
         },
         {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema25"
         }
       ]
     }

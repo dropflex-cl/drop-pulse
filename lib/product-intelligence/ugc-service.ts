@@ -31,8 +31,9 @@ export const UGC_RULES = [
   "Usa solo pruebas y precios vigentes. Sin testimonios inventados, experto ficticio, edad dicha ni resultados propios de la persona de IA.",
   "hook es la entrada de este video, una hipótesis vinculada al ángulo. landing_angle_id y landing_hook_id son los selectores URL df_angle/df_hook: usa los mismos en save_landing_content.",
   "Guardar desde el MCP aprueba el guion automáticamente; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
+  "Con content.keyframe_source=external, guardar crea destinos K para subir y asignar imágenes por las herramientas visuales MCP, sin render. content.editing_brief guarda dirección de arte abierta para CapCut local.",
   "Para generar otras escenas con personaje pide K1 primero, o inclúyelo en el mismo lote. Los clips requieren todas las imágenes clave aprobadas.",
-  "El montaje sigue siendo local: get_ugc_montage devuelve el paquete; sube el MP4 desde la UI y apruébalo antes de publicar o usarlo en Meta.",
+  "get_ugc_montage devuelve el material de origen y la dirección de arte guardada. La skill local dropflex-capcut prepara y edita en CapCut; exporta y sube el MP4 a DropFlex, y apruébalo antes de publicar o usarlo en Meta.",
 ];
 type Read = { revision: number; stamp: string; ugc_etag: string; scripts: ScriptRow[]; shots: ShotRow[]; operation: Operation | null; operation_script?: ScriptRow | null };
 type Operation = { id: string; script_id: string; stage: "keyframes" | "clips"; status: "queued" | "running" | "succeeded" | "failed" | "reconciling" | "cancelled";
@@ -159,14 +160,14 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       return parseToolOutput(tool, { ...base, data: { ugc_etag: read.ugc_etag, next_cursor: more ? `ugc-scripts:${input.product_id}:${pageStamp}:${offset + page.length}` : null, truncated: more, scripts: page.map((s) => ({ id: s.id, execution_key: s.execution_key, format: s.format, source: s.source,
         artifact_etag: s.artifact_etag, final_status: s.final_status, has_final_video: Boolean(s.final_storage_path), approved: !!s.approved_at, status: s.status, provenance: s.provenance,
         cost_estimate_usd: s.payload ? scriptCost(s.payload) : null,
-        ...(detailed ? { payload: s.payload, shots: read.shots.filter((x) => x.script_id === s.id).map((x) => ({ id: x.id, key: x.key, kind: x.kind, render_status: x.render_status, status: x.status, error: x.error_message, url: x.storage_path ? urls.get(x.storage_path) ?? null : null })) } : {}),
+        ...(detailed ? { payload: s.payload, editing_brief: s.input.editing_brief ?? null, keyframe_source: s.input.keyframe_source ?? "higgsfield", shots: read.shots.filter((x) => x.script_id === s.id).map((x) => ({ id: x.id, key: x.key, kind: x.kind, render_status: x.render_status, status: x.status, error: x.error_message, url: x.storage_path ? urls.get(x.storage_path) ?? null : null })) } : {}),
         review_path: productHref(input.product_id, "creativos") })), contract: query.include_contract ? JSON.parse(JSON.stringify(z.toJSONSchema(chatUgcContent))) : null, rules: UGC_RULES, next_action: "Escribe guion y plan, valida con dry_run y guarda con save_ugc_content; queda aprobado automáticamente." } });
     }
     if (tool === "get_ugc_montage") {
       const query = parseToolInput(tool, command.input), script = scriptIn(read, query.script_id);
       checkArtifact(query.expected_artifact_etag, script.artifact_etag);
       checkArtifact(script.provenance?.context_stamp as string, read.stamp);
-      return parseToolOutput(tool, { ...base, data: { package: await montagePackage(principal.userId, input.product_id, script.id), next_action: "Monta en local con scripts/ugc-montage.py, sube el MP4 y revisa el video en Creativos > Videos." } });
+      return parseToolOutput(tool, { ...base, data: { package: await montagePackage(principal.userId, input.product_id, script.id), next_action: "Guarda el paquete JSON y ábrelo con la skill local dropflex-capcut. Edita en CapCut, exporta el MP4 y súbelo en Creativos > Videos > Video final; apruébalo antes de usarlo en Anuncios." } });
     }
     const query = tool === "save_ugc_content" ? parseToolInput(tool, command.input) : parseToolInput("generate_ugc", command.input);
     checkRevision(query.expected_revision, read.revision);
@@ -187,7 +188,7 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       if (!references[0]) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Elige una imagen base del producto.");
       prepared = { payload: buildChatUgc(query, plan), input: { market: product.data.product.market, pricing: plan, labels: knowledge.currentSnapshot.pack_labels?.status === "approved" ? knowledge.currentSnapshot.pack_labels.payload : null,
         angle_name: `${angle.name} · ${query.hook.spoken}`, appearance: isAppearanceCategory(knowledge.currentSnapshot.context?.category ?? ""), base_reference_image_id: references[0].id,
-        strategy_snapshot: strategy.snapshot } };
+        strategy_snapshot: strategy.snapshot, editing_brief: query.content.editing_brief ?? null, keyframe_source: query.content.keyframe_source ?? "higgsfield" } };
     } else {
       const script = scriptIn(read, query.script_id); checkArtifact(query.expected_artifact_etag, script.artifact_etag);
       if (script.source !== "mcp_chat") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Guarda una versión desde el chat antes de generar por MCP.");

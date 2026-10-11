@@ -190,6 +190,7 @@ export function toShotView(s: ShotRow, src?: string): VideoShotView {
     kind: s.kind,
     attempt: s.attempt,
     render: s.render_status,
+    awaitingUpload: s.error_code === "awaiting_upload" || undefined,
     error: s.render_status === "failed" || waiting ? (s.error_message ?? undefined) : undefined,
     src,
     qa: s.qa ? { pass: s.qa.pass, issues: s.qa.issues } : undefined,

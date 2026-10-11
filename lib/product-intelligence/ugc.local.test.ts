@@ -86,6 +86,25 @@ local("UGC · persistencia y cola local", () => {
     await expect(call("save_ugc_content",{...i,landing_hook_id:"other"})).rejects.toMatchObject({code:"IDEMPOTENCY_KEY_REUSED"});
     await saved();expect(await count("video_scripts")).toBe(2);expect((await read()).data.scripts).toHaveLength(1);
   });
+  it("prepara keyframes externos y guarda dirección de arte sin proveedores ni cola",async()=>{
+    const i=await input(),brief={objective:"Detener el scroll",art_direction:"Tipografía grande y detalles del producto",pacing:"Ágil",captions:"Legibles",sound:"Voz primero"};
+    const command={...i,content:{...i.content,keyframe_source:"external",editing_brief:brief}};
+    await call("save_ugc_content",{...command,dry_run:true});
+    expect(await count("video_shots")).toBe(0);
+    const r=await call("save_ugc_content",command);if(!r.ok||!r.data.script_id)throw r;
+    const detail=await call("get_ugc_content",{product_id:product,script_id:r.data.script_id});
+    expect(detail).toMatchObject({data:{scripts:[{editing_brief:brief,keyframe_source:"external",shots:expect.arrayContaining([expect.objectContaining({key:"K1",kind:"keyframe",render_status:"failed"})])}]}});
+    const visual=await call("get_visual_generation_context",{product_id:product});if(!visual.ok)throw visual;
+    const targets=visual.data.targets as {value:{target:{type:string;script_id?:string}}}[];
+    expect(targets.filter(t=>t.value.target.type==="ugc_shot"&&t.value.target.script_id===r.data.script_id)).toHaveLength(i.content.plan.keyframes.length+1);
+    expect(await count("pi_ugc_operations")).toBe(0);expect(await count("ai_generations")).toBe(0);
+    await expect(call("generate_ugc",{...await renderInput(r.data.script_id,"clips",["A1"]),dry_run:true})).rejects.toMatchObject({code:"VALIDATION_ERROR"});
+  });
+  it("el render Remotion retirado no admite nuevas solicitudes",async()=>{
+    const r=await saved();
+    const denied=await db.rpc("video_montage_action",{p_user_id:owner.userId,p_product_id:product,p_script_id:r.data.script_id,p_action:"create",p_etag:r.data.artifact_etag,p_key:randomUUID()});
+    expect(denied.error?.code).toBe("42501");
+  });
   it("CAS concurrente da una propuesta y una revisión, misma clave un resultado",async()=>{
     const i=await input(),results=await Promise.allSettled([call("save_ugc_content",i),call("save_ugc_content",{...i,idempotency_key:randomUUID()})]);
     expect(results.filter((r)=>r.status==="fulfilled")).toHaveLength(1);expect(await count("video_scripts")).toBe(1);

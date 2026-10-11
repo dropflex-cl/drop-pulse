@@ -96,7 +96,7 @@ const descriptions: Record<ToolName, string> = {
   save_ugc_content:
     "Guarda y aprueba automáticamente guion y plan del chat, con estrategia, ángulo y hook. No inicia generación de pago ni publica.",
   get_ugc_montage:
-    "Recupera el paquete de clips aprobado para el montaje local existente, con URLs que vencen en 24 horas.",
+    "Recupera clips, voz, cierre, dirección de arte y referencias del guion para editar con la skill local dropflex-capcut. URLs válidas 24 horas; no renderiza ni llama a proveedores.",
   get_pack_labels:
     "Consulta precio, propuesta y contrato de las etiquetas de packs para escribirlas en chat.",
   save_pack_labels:
