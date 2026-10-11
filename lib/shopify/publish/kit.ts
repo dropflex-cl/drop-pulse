@@ -37,7 +37,7 @@ export interface KitFile {
 
 export interface Kit {
   files: KitFile[];
-  /** Huella del código del tema (los archivos que se actualizan): cambia con cada cambio del kit. */
+  /** Huella del código y las transiciones de plantilla que aplica Actualizar tema. */
   version: string;
 }
 
@@ -84,7 +84,11 @@ export function readKit(dir = KIT_DIR): Kit {
     .filter((f) => !isProtected(f.path))
     .map((f) => `${f.path}:${f.md5}`)
     .join("\n");
-  const kit = { files, version: md5(Buffer.from(code)).slice(0, 10) };
+  // Esta transición también debe ofrecer Actualizar tema cuando el código ya está al día.
+  const kit = {
+    files,
+    version: md5(Buffer.from(`${code}\npdp-intro:1`)).slice(0, 10),
+  };
   if (dir === KIT_DIR) memo = kit;
   return kit;
 }
@@ -240,6 +244,173 @@ export function missingFromTheme(
   remote: Set<string>,
 ): string[] {
   return kitPaths.filter((p) => !remote.has(p));
+}
+
+interface ProductBlock {
+  type: string;
+  disabled?: boolean;
+  settings?: Record<string, unknown>;
+  blocks?: Record<string, ProductBlock>;
+  block_order?: string[];
+}
+
+/** Migra una vez la ficha DropFlex anterior; conserva ajustes, bloques ajenos y apagados. */
+export function withPdpIntro(
+  remote: string,
+  kitTemplate: string,
+): string | null {
+  try {
+    const data = parseThemeJson(remote),
+      kit = parseThemeJson(kitTemplate);
+    if (!data?.sections || !kit?.sections) return null;
+    const findDetails = (sections: Record<string, ProductBlock> = {}) => {
+      const mains = Object.values(sections).filter(
+        (s) => s.type === "product-information",
+      );
+      if (mains.length !== 1) return undefined;
+      const details = Object.values(mains[0].blocks ?? {}).filter(
+        (b) => b.type === "_product-details",
+      );
+      return details.length === 1 ? details[0] : undefined;
+    };
+    const details = findDetails(data.sections),
+      defaults = findDetails(kit.sections);
+    if (
+      !details?.blocks ||
+      !Array.isArray(details.block_order) ||
+      !defaults?.blocks ||
+      !defaults.blocks.google_rating ||
+      !defaults.blocks.gallery_benefits ||
+      !defaults.blocks.review_stars ||
+      !defaults.blocks.stars_row?.blocks?.event_badges
+    )
+      return null;
+    const blocks = details.blocks;
+    const idOf = (type: string) => {
+      const ids = Object.keys(blocks).filter((id) => blocks[id].type === type);
+      return ids.length === 1 ? ids[0] : undefined;
+    };
+    // La presencia de los dos bloques nuevos marca la transición. Un orden editado después se conserva.
+    if (
+      Object.values(blocks).some((b) =>
+        ["df-google-rating", "df-gallery-benefits"].includes(b.type),
+      )
+    )
+      return null;
+    const title = idOf("df-title"),
+      subtitle = idOf("df-subtitle"),
+      packs = idOf("df-pack-offers");
+    if (!title || !subtitle || !packs || !idOf("buy-buttons")) return null;
+    // Solo reconocemos el group del kit anterior, no grupos personalizados con contenido ajeno.
+    const groups = Object.entries(blocks).filter(
+      ([, b]) =>
+        b.type === "group" &&
+        Object.values(b.blocks ?? {}).some(
+          (child) => child.type === "df-review-stars",
+        ) &&
+        Object.values(b.blocks ?? {}).every((child) =>
+          [
+            "df-review-stars",
+            "df-hype-badge",
+            "df-social-badge",
+            "df-event-badges",
+          ].includes(child.type),
+        ),
+    );
+    if (
+      groups.length !== 1 ||
+      Object.values(blocks).some((b) => b.type === "df-review-stars")
+    )
+      return null;
+    const [badgesId, badges] = groups[0];
+    if (
+      [title, subtitle, packs, badgesId].some(
+        (id) => !details.block_order!.includes(id),
+      )
+    )
+      return null;
+    const reviewIds = Object.keys(badges.blocks!).filter(
+      (id) => badges.blocks![id].type === "df-review-stars",
+    );
+    if (reviewIds.length !== 1 || !badges.block_order?.includes(reviewIds[0]))
+      return null;
+    const freshId = (base: string, siblings: Record<string, ProductBlock>) => {
+      let id = base;
+      while (Object.hasOwn(siblings, id)) id += "_df";
+      return id;
+    };
+    const reviewId = freshId(reviewIds[0], blocks);
+    const review = badges.blocks![reviewIds[0]];
+    blocks[reviewId] = {
+      ...review,
+      ...(badges.disabled === true ? { disabled: true } : {}),
+      settings: {
+        ...review.settings,
+        ...defaults.blocks.review_stars.settings,
+      },
+    };
+    delete badges.blocks![reviewIds[0]];
+    badges.block_order = (badges.block_order ?? []).filter(
+      (id) => id !== reviewIds[0],
+    );
+    const socialId = idOf("df-social-badge");
+    if (
+      socialId &&
+      details.block_order.includes(socialId) &&
+      !Object.values(badges.blocks!).some((b) => b.type === "df-social-badge")
+    ) {
+      const nestedId = freshId(socialId, badges.blocks!);
+      badges.blocks![nestedId] = blocks[socialId];
+      badges.block_order.push(nestedId);
+      delete blocks[socialId];
+    }
+    if (
+      !Object.values(badges.blocks!).some((b) => b.type === "df-event-badges")
+    ) {
+      const eventId = freshId("event_badges", badges.blocks!);
+      badges.blocks![eventId] = structuredClone(
+        defaults.blocks.stars_row.blocks!.event_badges,
+      );
+      badges.block_order.unshift(eventId);
+    }
+    badges.settings = {
+      ...badges.settings,
+      gap: defaults.blocks.stars_row.settings!.gap,
+      vertical_on_mobile:
+        defaults.blocks.stars_row.settings!.vertical_on_mobile,
+    };
+    const googleId = freshId("google_rating", blocks),
+      benefitsId = freshId("gallery_benefits", blocks);
+    blocks[googleId] = structuredClone(defaults.blocks.google_rating);
+    blocks[benefitsId] = structuredClone(defaults.blocks.gallery_benefits);
+    const intro = [
+      googleId,
+      reviewId,
+      badgesId,
+      title,
+      subtitle,
+      benefitsId,
+      packs,
+    ];
+    const candidateProof = idOf("df-social-proof");
+    const proofId =
+      candidateProof && details.block_order.includes(candidateProof)
+        ? candidateProof
+        : undefined;
+    const remaining = details.block_order.filter(
+      (id) => blocks[id] && !intro.includes(id) && id !== proofId,
+    );
+    if (proofId) {
+      const ugc = idOf("df-ugc-slider");
+      const index = ugc ? remaining.indexOf(ugc) : -1;
+      remaining.splice(index >= 0 ? index + 1 : remaining.length, 0, proofId);
+    }
+    details.block_order = [...intro, ...remaining];
+    return JSON.stringify(data);
+  } catch (error) {
+    if (error instanceof SyntaxError) return null;
+    throw error;
+  }
 }
 
 /** Agrega las nuevas secciones a plantillas DropFlex personalizadas sin cambiar sus ajustes. */

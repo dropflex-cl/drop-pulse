@@ -10,6 +10,7 @@ import {
   planUpdate,
   readKit,
   withEasySellOn,
+  withPdpIntro,
 } from "./kit";
 
 describe("kit del tema", () => {
@@ -186,6 +187,146 @@ describe("app embeds", () => {
 });
 
 describe("actualizar una PDP personalizada", () => {
+  const kit = readFileSync(join(KIT_DIR, "templates/product.json"), "utf8");
+  function legacyIntro() {
+    const remote = JSON.parse(kit);
+    const details = remote.sections.main.blocks["product-details"];
+    const blocks = details.blocks;
+    delete blocks.google_rating;
+    delete blocks.gallery_benefits;
+    const badges = blocks.stars_row;
+    delete badges.blocks.event_badges;
+    badges.blocks.review_stars = {
+      ...blocks.review_stars,
+      disabled: true,
+      settings: {
+        star_size: 20,
+        text_size: 14,
+        margin_top: 8,
+        margin_bottom: -8,
+        anchor: "opiniones",
+      },
+    };
+    badges.block_order = ["review_stars", "hype_badge"];
+    blocks.social_badge = badges.blocks.social_badge;
+    delete badges.blocks.social_badge;
+    delete blocks.review_stars;
+    blocks.merchant_note = {
+      type: "text",
+      settings: { text: "Texto del comerciante" },
+    };
+    blocks.pack_offers.settings.heading = "Mis packs";
+    blocks.buy_buttons.settings.show_dynamic_checkout = false;
+    details.settings.gap = 32;
+    details.block_order = [
+      "social_proof",
+      "stars_row",
+      "title",
+      "subtitle",
+      "divider",
+      "price",
+      "social_badge",
+      "benefit_usps",
+      "pack_offers",
+      "merchant_note",
+      "buy_buttons",
+      "ugc_slider",
+      "details_accordion",
+    ];
+    return remote;
+  }
+  it("migra la ficha anterior con Google y beneficios sin reemplazar ajustes o bloques del comerciante", () => {
+    const remote = legacyIntro();
+    const before = remote.sections.main.blocks["product-details"];
+    const result = JSON.parse(
+      withPdpIntro(
+        `/* Guardado por Shopify */\n${JSON.stringify(remote)}`,
+        kit,
+      )!,
+    );
+    const details = result.sections.main.blocks["product-details"];
+    expect(
+      details.block_order
+        .slice(0, 7)
+        .map((id: string) => details.blocks[id].type),
+    ).toEqual([
+      "df-google-rating",
+      "df-review-stars",
+      "group",
+      "df-title",
+      "df-subtitle",
+      "df-gallery-benefits",
+      "df-pack-offers",
+    ]);
+    expect(details.blocks.review_stars.disabled).toBe(true);
+    expect(details.blocks.review_stars.settings).toMatchObject({
+      compact: true,
+      star_size: 16,
+      text_size: 12,
+      margin_top: 0,
+      margin_bottom: 0,
+      anchor: "opiniones",
+    });
+    for (const id of [
+      "merchant_note",
+      "pack_offers",
+      "buy_buttons",
+      "title",
+      "subtitle",
+      "social_proof",
+    ])
+      expect(details.blocks[id]).toEqual(before.blocks[id]);
+    expect(details.settings).toEqual(before.settings);
+    expect(
+      details.blocks.stars_row.block_order.map(
+        (id: string) => details.blocks.stars_row.blocks[id].type,
+      ),
+    ).toEqual(["df-event-badges", "df-hype-badge", "df-social-badge"]);
+    expect(details.block_order.indexOf("social_proof")).toBe(
+      details.block_order.indexOf("ugc_slider") + 1,
+    );
+    expect(result.order).toEqual(remote.order);
+    expect(withPdpIntro(JSON.stringify(result), kit)).toBeNull();
+  });
+  it("no recupera un bloque descartado ni reordena una ficha ya migrada", () => {
+    const remote = JSON.parse(kit);
+    const details = remote.sections.main.blocks["product-details"];
+    delete details.blocks.gallery_benefits;
+    details.block_order = details.block_order
+      .filter((id: string) => id !== "gallery_benefits")
+      .reverse();
+    expect(withPdpIntro(JSON.stringify(remote), kit)).toBeNull();
+  });
+  it("conserva reseñas apagadas desde su grupo y no recupera prueba social fuera del orden", () => {
+    const remote = legacyIntro();
+    const before = remote.sections.main.blocks["product-details"];
+    before.blocks.stars_row.disabled = true;
+    delete before.blocks.stars_row.blocks.review_stars.disabled;
+    before.block_order = before.block_order.filter(
+      (id: string) => id !== "social_proof",
+    );
+    const result = JSON.parse(withPdpIntro(JSON.stringify(remote), kit)!);
+    const details = result.sections.main.blocks["product-details"];
+    expect(details.blocks.stars_row.disabled).toBe(true);
+    expect(details.blocks.review_stars.disabled).toBe(true);
+    expect(details.block_order).not.toContain("social_proof");
+  });
+  it("conserva grupos personalizados y falla sin mutar si falta la estructura conocida", () => {
+    const custom = legacyIntro();
+    custom.sections.main.blocks[
+      "product-details"
+    ].blocks.stars_row.blocks.custom = {
+      type: "text",
+      settings: { text: "Propio" },
+    };
+    expect(withPdpIntro(JSON.stringify(custom), kit)).toBeNull();
+    const incomplete = legacyIntro();
+    delete incomplete.sections.main.blocks["product-details"].blocks
+      .pack_offers;
+    expect(withPdpIntro(JSON.stringify(incomplete), kit)).toBeNull();
+    expect(withPdpIntro("no es json", kit)).toBeNull();
+    expect(withPdpIntro("null", kit)).toBeNull();
+  });
   it("agrega las secciones nuevas, conserva ajustes y respeta apagadas", async () => {
     const { withPdpSections } = await import("./kit");
     const kit = readFileSync(join(KIT_DIR, "templates/product.json"), "utf8");

@@ -17,6 +17,7 @@ import {
   planUpdate,
   readKit,
   withEasySellOn,
+  withPdpIntro,
   withPdpSections,
   type Kit,
   type RemoteFile,
@@ -512,12 +513,10 @@ export async function updateTheme(
     byPath.has(productTemplate)
   ) {
     const remote = await readThemeFile(conn, inst.theme_gid, productTemplate);
-    const merged = remote
-      ? withPdpSections(
-          remote,
-          byPath.get(productTemplate)!.data.toString("utf8"),
-        )
-      : null;
+    const kitTemplate = byPath.get(productTemplate)!.data.toString("utf8");
+    const intro = remote ? withPdpIntro(remote, kitTemplate) : null;
+    const sections = remote ? withPdpSections(intro ?? remote, kitTemplate) : null;
+    const merged = sections ?? intro;
     if (merged) {
       byPath.set(productTemplate, {
         ...byPath.get(productTemplate)!,

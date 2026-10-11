@@ -56,7 +56,7 @@ export interface ThemeView {
   name?: string;
   error?: string;
   previewUrl?: string;
-  /** El código del tema en la tienda es más viejo que el de DropFlex. */
+  /** El tema necesita código nuevo o una transición de la plantilla de DropFlex. */
   outdated: boolean;
 }
 
