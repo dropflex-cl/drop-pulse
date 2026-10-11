@@ -6,7 +6,7 @@ import { contextAccess, createContextRepository } from "./repository";
 import { hydrateVisualState } from "./visual-state";
 import { checkVisualPreconditions, findVisual, prepareBindings, prepareVisualReview, vHash } from "./visual-domain";
 import { visualTargetSchema } from "./visual-schemas";
-import { selectMcpBindings } from "./mcp-approval";
+import { selectMcpBindings } from "./content-decisions";
 import { ensureVisualRenditions } from "./visual-renditions";
 import { ProductApiError } from "@/lib/products/http";
 import { pageImageRows } from "@/lib/page-images/store";

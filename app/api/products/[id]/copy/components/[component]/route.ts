@@ -3,12 +3,9 @@ import { copyState } from "@/lib/data/products";
 import { updateComponent, type ComponentPatch } from "@/lib/pipeline/copy";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 import type { ImagePick } from "@/lib/types";
+import { getComponentRow } from "@/lib/copy/store";
 
-// La ficha o un componente de la página (la IA propone, tú decides):
-// PATCH { content, images? } → guardar la hoja de edición (aprueba y lo usa en la página)
-// PATCH { enabled }          → «Usar en la página» (activar aprueba; desactivar conserva el contenido)
-// PATCH { approve: true }    → aprobar sin cambios («Aprobar ficha»)
-// PATCH { restore: true }    → «Deshacer» después de «Volver a escribir con IA»: vuelve la versión anterior
+// Edita contenido vigente, imágenes o visibilidad. approve es un alias antiguo sin efecto.
 
 type Params = { params: Promise<{ id: string; component: string }> };
 
@@ -43,7 +40,10 @@ export async function PATCH(req: Request, { params }: Params) {
       if (!Array.isArray(body.images) || !body.images.every(isPick)) throw new ProductApiError("Las imágenes no son válidas.", 400, "images");
       patch.images = body.images;
     }
-    if (body.approve === true) patch.approve = true;
+    if (body.approve === true && !Object.keys(patch).some(key => !key.startsWith("expected_"))) {
+      if (!await getComponentRow(userId, id, decodeURIComponent(component))) throw new ProductApiError("Ese componente ya no existe. Actualiza la página.", 404);
+      return NextResponse.json(await copyState(userId, id), { headers: { "X-DropFlex-Deprecated-Field": "approve" } });
+    }
     if (!Object.keys(patch).some((key) => !key.startsWith("expected_"))) throw new ProductApiError("No hay nada que guardar.", 400);
     await updateComponent(userId, id, decodeURIComponent(component), patch);
     return NextResponse.json(await copyState(userId, id));

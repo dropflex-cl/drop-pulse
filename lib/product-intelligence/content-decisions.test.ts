@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { approveMcpVisual, selectMcpBindings } from "./mcp-approval";
+import { availableVisualRecord, selectMcpBindings } from "./content-decisions";
 import { makeVisualRecord, prepareBindings, recordValidity, targetKey, vHash } from "./visual-domain";
 import { visualFixture } from "./visual-fixtures";
 
 function fixture() {
   const { state, hash } = visualFixture();
-  const asset = approveMcpVisual(makeVisualRecord(state, "asset", { file_id: "file", dependencies: [{ kind: "policy", key: "current", content_hash: hash, usage: "overlay" }] }, "generated"));
+  const asset = availableVisualRecord(makeVisualRecord(state, "asset", { file_id: "file", dependencies: [{ kind: "policy", key: "current", content_hash: hash, usage: "overlay" }] }, "generated"));
   state.records.push(asset);
   state.files.push({ id: "file", bucket: "page-media", storage_path: "file.webp", width: 600, height: 600, mime_type: "image/webp", size_bytes: 100, sha256: hash });
   const target = { type: "gallery_shot" as const, shot_key: "hero", slot: "cover", position: null };
@@ -20,7 +20,7 @@ describe("Disponibilidad y decisiones del contenido guardado desde MCP", () => {
   it.each(["rejected", "archived"])("guardar una edición conserva el descarte %s", status => {
     const { state, asset } = fixture();
     const discarded = { ...asset, status, payload: { ...asset.payload, archived_at: "2026-10-11T00:00:00Z" } };
-    const edited = approveMcpVisual({ ...asset, version: asset.version + 1 }, discarded);
+    const edited = availableVisualRecord({ ...asset, version: asset.version + 1 }, discarded);
     expect(edited).toMatchObject({ status, payload: { archived_at: discarded.payload.archived_at } });
     expect(recordValidity(edited, state).state).toBe("blocked");
   });

@@ -1,28 +1,25 @@
 // Datos de ejemplo de la etapa WhatsApp (/dev/screens/whatsapp).
 import { productImage } from "@/lib/mock/images";
-import { productPosition } from "@/lib/products/stages";
+import { productPresentation } from "@/lib/products/presentation";
 import type { Product, ProductMessages } from "@/lib/types";
 
 const NOW = "2026-09-26T10:00:00Z";
 
 /** `full`: Ajustes completos, packs y consejo de uso. `bare`: sin políticas, sin packs y sin ficha para el consejo. */
 export function fixture(state: string): ProductMessages {
-  const pos = productPosition({ price: 24990, currency: "CLP", base: { described: true, priced: true } });
+  const pos = productPresentation({});
   const product: Product = {
     id: "00000000-0000-0000-0000-000000000000",
     name: "Corrector de postura",
     image: productImage(1, 1),
     sku: "",
     filter: pos.filter,
-    meter: pos.meter,
     reason: pos.reason,
     tone: pos.tone,
-    nextStage: pos.nextStage,
-    stages: pos.stages,
+    sections: pos.sections,
+      publicationReady: pos.publicationReady,
     summary: pos.summary,
     status: pos.status,
-    anglesPhase: pos.anglesPhase,
-    copyPhase: pos.copyPhase,
     supplierCost: 6900,
     price: 24990,
     currency: "CLP",

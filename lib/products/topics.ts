@@ -19,6 +19,3 @@ export function detectTopics(text: string): Topic[] {
   const t = text.normalize("NFC");
   return TOPICS.filter((topic) => PATTERNS[topic].some((re) => re.test(t)));
 }
-
-/** "Suficiente para empezar" desde 3 temas; nunca bloquea (design-system › ProductInfoInput). */
-export const ENOUGH_TOPICS = 3;

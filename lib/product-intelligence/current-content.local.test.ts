@@ -14,6 +14,8 @@ import { preparePublish } from "@/lib/pipeline/publish";
 import { getEffectiveProductContent } from "@/lib/data/product-content";
 import { requestFixture } from "./test-fixtures";
 import { CATALOG } from "@/lib/shopify/components/catalog";
+import { decideOption, reorderSlot } from "@/lib/pipeline/page-images";
+import { getCanonicalProductNames } from "@/lib/data/product-intelligence";
 
 const listing = { title: "Organizador de escritorio", short_name: "Organizador", short_description: "Mantén tus útiles juntos y encuentra lo que necesitas en tu escritorio.", offer_line: "Organiza tu escritorio · Paga al recibir", seo_title: "Organizador para escritorio", seo_description: "Ordena tus útiles en el escritorio y encuentra lo que necesitas. Paga al recibir en tu casa." };
 describe.runIf(process.env.PI_LOCAL_TEST === "1")("Contenido vigente · Supabase y Storage locales", () => {
@@ -73,6 +75,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Contenido vigente · Supabase
     const after = await preparePublish(owner.userId, product);
     expect(after.missing).toEqual([]); expect(after.input.gallery).toEqual(before.input.gallery); expect(after.input.listing).toEqual(before.input.listing);
     expect((await checked(db.from("pi_visual_records").select("status,payload").eq("product_id", product).eq("kind", "binding").single())).data).toMatchObject({ status: "selected", payload: { selected: true } });
+    expect((await getCanonicalProductNames(owner.userId, [product])).get(product)).toMatchObject({ hasContext: true, name: "Organizador" });
+    await expect(getCanonicalProductNames(randomUUID(), [product])).rejects.toThrow();
   });
   it("UI y MCP actualizan la misma fila vigente; el siguiente guardado explícito usa su contenido", async () => {
     const old = await row("listing"), manual = { ...listing, title: "Editado en DropFlex" };
@@ -113,6 +117,21 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Contenido vigente · Supabase
     const prepared = await preparePublish(owner.userId, product), page = await getEffectiveProductContent(owner.userId, product);
     expect(page.input).toEqual(prepared.input); expect(page.missing).toEqual(prepared.missing);
     expect(page.input.components).toEqual([]); expect(page.urls[`page-media/${path}`]).toContain("/object/sign/");
+  });
+  it("seleccionar, ordenar y descartar imágenes mantiene decisiones explícitas", async () => {
+    const ids = [randomUUID(), randomUUID()];
+    await checked(db.from("page_images").insert(ids.map(id => ({ id, product_id: product, user_id: owner.userId, source: "upload", slot: "gallery", render_status: "succeeded", storage_path: path, width: 600, height: 600 }))));
+    const chosen = async () => (await checked(db.from("page_images").select("id,is_selected,discarded_at,position").in("id", ids).order("position"))).data!;
+    await decideOption(owner.userId, product, ids[0], "choose");
+    await decideOption(owner.userId, product, ids[1], "choose");
+    await reorderSlot(owner.userId, product, [...ids].reverse());
+    expect(await chosen()).toMatchObject([{ id: ids[1], is_selected: true, position: 1 }, { id: ids[0], is_selected: true, position: 2 }]);
+    await decideOption(owner.userId, product, ids[1], "discard");
+    await expect(decideOption(owner.userId, product, ids[1], "choose")).rejects.toThrow();
+    expect(await chosen()).toMatchObject([{ id: ids[0], is_selected: true, position: 1 }, { id: ids[1], is_selected: false, discarded_at: expect.any(String) }]);
+    await decideOption(owner.userId, product, ids[1], "reopen");
+    expect((await chosen()).find(row => row.id === ids[1])).toMatchObject({ is_selected: false, discarded_at: null });
+    await checked(db.from("page_images").delete().in("id", ids));
   });
   it("rechaza permisos insuficientes y muestra un archivo ausente como impedimento concreto", async () => {
     await expect(call("bind_visual_asset", { schema_version: "1.0", asset_id: asset, bindings: [{ target: { type: "gallery_shot", shot_key: "hero", slot: "cover", position: null } }] }, { ...owner, scopes: ["product_intelligence:read"] })).rejects.toMatchObject({ code: "FORBIDDEN" });

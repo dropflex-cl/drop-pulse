@@ -25,7 +25,7 @@ async function Screen({ searchParams }: { searchParams: Promise<{ state?: string
       </header>
       <div className="lg:flex">
         <nav aria-label="Ruta del producto" className="sticky top-0 hidden max-h-svh w-66 shrink-0 self-start overflow-auto border-r pt-3 lg:block">
-          <StageList stages={product.stages.map(({ title, state: s, desc, optional }) => ({ title, state: s, desc, optional }))} />
+          <StageList stages={product.sections.map(({ title, state: s, desc, optional }) => ({ title, state: s, desc, optional }))} />
         </nav>
         <div className="min-w-0 flex-1">
           <CopyScreen key={state} data={data} />

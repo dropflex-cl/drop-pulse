@@ -2,9 +2,8 @@
 // con el primer ejemplo de su content.ts, y una tienda con reseñas aprobadas (lib/store-preview/fixture.ts).
 import { ACCENT_PALETTE } from "@/lib/copy/accent";
 import { LISTING, type Listing } from "@/lib/copy/listing";
-import { copyProgress } from "@/lib/copy/progress";
 import { productImage } from "@/lib/mock/images";
-import { productPosition } from "@/lib/products/stages";
+import { productPresentation } from "@/lib/products/presentation";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import { FIXTURE_FACTS } from "@/lib/store-preview/fixture";
 import type { CatalogImage, ContentStatus, PageComponentView, ProductCopy } from "@/lib/types";
@@ -60,17 +59,7 @@ export function fixture(requested: string): ProductCopy {
         : withPage
           ? { id: "r1", status: "succeeded", createdAt: NOW }
           : undefined;
-  const locked = state === "locked";
-  const pos = productPosition({
-    price: 24990,
-    currency: "CLP",
-    base: { described: true, priced: true },
-    reviews: { pending: 0, approved: 6, total: 6 },
-    intelligence: { selected: !locked, ready: !locked },
-    copy: run ? { run: { status: run.status, error: run.error }, progress: copyProgress(list) } : null,
-    // Imágenes va antes de la página: con los ángulos listos, la galería ya está elegida.
-    images: locked ? null : { running: false, rendering: 0, options: 8, cover: true, gallery: 5 },
-  });
+  const pos = productPresentation({ content: { hasContent: list.length > 0, missing: list.some(c => c.component === "listing") ? [] : ["Guarda la ficha del producto"], stale: false } });
   return {
     product: {
       id: "00000000-0000-0000-0000-000000000000",
@@ -78,22 +67,18 @@ export function fixture(requested: string): ProductCopy {
       image: productImage(1, 1),
       sku: "",
       filter: pos.filter,
-      meter: pos.meter,
       reason: pos.reason,
       tone: pos.tone,
-      nextStage: pos.nextStage,
-      stages: pos.stages,
+      sections: pos.sections,
+      publicationReady: pos.publicationReady,
       summary: pos.summary,
       status: pos.status,
-      anglesPhase: pos.anglesPhase,
-      copyPhase: pos.copyPhase,
       supplierCost: 6900,
       price: 24990,
       currency: "CLP",
     },
     // Con la página lista, un color ya elegido (Esmeralda); en los demás, sin elegir.
     accent: state === "done" ? ACCENT_PALETTE[4].hex : null,
-    locked: locked ? "angles" : null,
     run,
     components: list,
     images: IMAGES,
@@ -103,7 +88,5 @@ export function fixture(requested: string): ProductCopy {
       // Fotos de comprador de ejemplo (1, 2 o 3 por reseña, una sin fotos) para el muro de testimonios.
       reviews: FIXTURE_FACTS.reviews.map((r, i) => ({ ...r, photos: Array.from({ length: [1, 3, 2, 1, 0, 1][i] ?? 1 }, (_, k) => productImage(i + k, (i + k) % 4)) })),
     },
-    stale: state === "stale" || requested === "context",
-    staleReasons: state === "stale" ? ["product_context"] : requested === "context" ? ["product_context"] : [],
   };
 }

@@ -63,3 +63,7 @@ Publicación presenta resultado y requisitos antes del tema. Instalar/publicar e
 Precio conserva `PriceBreakdown`, costo, precio, tachado, supuestos y packs. Métricas e inventario vienen de sus sistemas operativos. No se fabrican reseñas de Google, regalos o escasez para llenar el preview.
 
 Se mantienen tokens de `tokens.json`, contraste en claro y oscuro, foco, áreas táctiles, movimiento reducido y `pb-safe`. Detalles técnicos y trazas no ocupan la experiencia principal.
+
+### Lectores sin progreso de etapas
+
+`Product.sections` identifica accesos y categorías de costos; no representa un recorrido obligatorio. `publicationReady` se calcula con el contenido efectivo y los impedimentos reales de `preparePublish`. Se retiraron `meter`, `nextStage`, `anglesPhase`, `copyPhase` y la vigencia por cambios de contexto. Las pantallas de ejemplo usan situaciones reales sin aprobaciones pendientes.

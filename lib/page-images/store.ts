@@ -197,7 +197,7 @@ export async function getPageImageRow(userId: string, imageId: string): Promise<
   return (data as PageImageRow | null) ?? null;
 }
 
-/** Lo que necesita la ruta del producto (lib/products/stages.ts › ImageFacts). */
+/** Conteos operativos de imágenes disponibles y seleccionadas. */
 export async function pageImageCounts(userId: string, productIds: string[]) {
   if (!productIds.length) return () => ({ running: false, rendering: 0, options: 0, cover: false, gallery: 0 });
   // Solo las columnas que cuentan (sin input, textos ni QA de cada imagen).
@@ -259,7 +259,7 @@ export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow
     height: r.height ?? undefined,
     qa: r.qa ? { pass: r.qa.pass, issues: r.qa.issues } : undefined,
     chosen: imageSelected(r),
-    discarded: r.status === "rejected",
+    discarded: !contentAvailable(r),
     order: imageSelected(r) && ORDERED.has(slotKind(r.slot)!) ? (r.position ?? undefined) : undefined,
     cover:
       (r.slot === GALLERY && cover && (cover.input?.copied_from === r.id || (r.reference_image_id !== null && cover.reference_image_id === r.reference_image_id))) || undefined,

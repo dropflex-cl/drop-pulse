@@ -12,7 +12,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     const { userId } = await ownedProduct(id);
     const view = await getProduct(id);
-    if (view?.copyPhase !== "done") throw new ProductApiError("Termina la página del producto antes de lanzar anuncios.", 409);
+    if (!view?.publicationReady) throw new ProductApiError("Completa el contenido y las imágenes necesarios para anunciar el producto.", 409);
     const from = new URL(req.url).searchParams.get("from");
     const campaign = await startLaunch(userId, id, from && /^[0-9a-f-]{36}$/.test(from) ? from : null);
     after(() => runLaunch(campaign.id));

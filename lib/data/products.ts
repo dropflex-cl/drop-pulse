@@ -17,10 +17,10 @@ import { activeShots, latestPageImageRuns, pageImageRows, signedPageUrls, toSlot
 import { generationBlocker } from "@/lib/pipeline/page-images";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
-import { getPricingPlan, pricedProducts, pricingDefaults } from "@/lib/pricing/store";
+import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
 import { getDifferentiator } from "@/lib/products/differentiator";
 import { scheduleHousekeeping } from "@/lib/products/housekeeping";
-import { productPosition, type PublishFacts } from "@/lib/products/stages";
+import { productPresentation, type PublicationFacts } from "@/lib/products/presentation";
 import { baseImage, getProductRow, listImageRows, listProductRows, toReferenceImage, withDisplayUrls, type ImageRow, type ProductRow, } from "@/lib/products/store";
 import { customerReviews, latestImport, latestSource, toReviewImport } from "@/lib/reviews/store";
 import type { CopyState, CreativesState, PageImagesState, Product, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductPageImages, ProductReviews, ProductStrategy, StrategyState, UpsellProduct, VideosState } from "@/lib/types";
@@ -29,7 +29,7 @@ import { messagesState } from "@/lib/whatsapp/store";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import "server-only";
-import { getCanonicalProductData, getCanonicalProductStates, getLandingContextStale, getSelectedProductStrategy } from "./product-intelligence";
+import { getCanonicalProductData, getCanonicalProductNames, getSelectedProductStrategy } from "./product-intelligence";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -49,43 +49,31 @@ function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-function publicationFacts(p: PublicationRow | undefined): PublishFacts | null {
+function publicationFacts(p: PublicationRow | undefined): PublicationFacts | null {
   return p ? { status: p.status, error: p.error_message } : null;
 }
 
 function toProduct(
   row: ProductRow,
   image: string,
-  priced: boolean,
-  publish?: PublishFacts | null,
+  publish?: PublicationFacts | null,
   ai = true,
-  intelligence?: { hasContext: boolean; described: boolean; selected: boolean; ready: boolean; name: string; description: string },
+  intelligence?: { hasContext: boolean; name: string },
   content?: { hasContent: boolean; missing: string[]; stale: boolean; changes: string[] },
 ): Product {
-  const position = productPosition({
-    price: Number(row.price),
-    currency: row.currency,
-    base: { described: intelligence?.described ?? false, priced },
-    intelligence: { selected: intelligence?.selected ?? false, ready: intelligence?.ready ?? false },
-    publish,
-    ai,
-    content,
-  });
+  const position = productPresentation({ publish, content });
   return {
     id: row.id,
     name: intelligence?.hasContext ? intelligence.name : row.title,
     image,
     sku: "",
     filter: position.filter,
-    meter: position.meter,
     reason: position.reason,
     tone: position.tone,
-    nextStage: position.nextStage,
-    stages: position.stages,
+    sections: position.sections,
+    publicationReady: position.publicationReady,
     summary: position.summary,
     status: position.status,
-    anglesPhase: position.anglesPhase,
-    copyPhase: position.copyPhase,
     aiConnected: ai,
     contentState: position.contentState,
     hasContent: content?.hasContent,
@@ -105,12 +93,11 @@ function toProduct(
 export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [imageRows, priced, publications, anthropic, intelligence, prepared] = await Promise.all([
+  const [imageRows, publications, anthropic, intelligence, prepared] = await Promise.all([
     images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
-    pricedProducts(uid, ids),
     getPublications(uid, ids),
     getAnthropicConnection(uid),
-    getCanonicalProductStates(uid, ids),
+    getCanonicalProductNames(uid, ids),
     (async () => {
       const results: Awaited<ReturnType<typeof getPreparedProduct>>[] = new Array(ids.length);
       let next = 0;
@@ -125,7 +112,7 @@ export async function productsWithPositions(uid: string, rows: ProductRow[], { i
   const urls = await withDisplayUrls(covers);
   return rows.map((r, index) => {
     const c = covers.find((i) => i.product_id === r.id);
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id), {
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id), {
       hasContent: Boolean(prepared[index].input.listing.short_description || prepared[index].input.components.length || prepared[index].input.gallery.length),
       missing: prepared[index].missing,
       stale: Boolean(publications.get(r.id)?.fingerprint !== fingerprint(prepared[index].input)),
@@ -277,20 +264,15 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
     latestCopyRuns(uid, [productId]), activeComponents(uid, [productId]), catalogImages(uid, productId), getEffectiveProductContent(uid, productId),
   ]);
   const run = runs.get(productId);
-  const reasons: import("@/lib/copy/stale").CopyStaleReason[] = [];
-  if (run?.input.source === "mcp_chat" && await getLandingContextStale(uid, productId)) reasons.push("product_context");
   const videoRows = await activeScripts(uid, productId);
   const videos = videoRows.filter((s) => !["rejected", "archived"].includes(s.final_status ?? "") && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
   return {
     videos,
-    locked: null,
     fromChat: run?.input.source === "mcp_chat",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
     images,
     facts: page.facts,
-    stale: reasons.length > 0,
-    staleReasons: reasons,
   };
 }
 
@@ -361,13 +343,9 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   const run = runs.get(productId);
   const connected = choice.value !== null;
   const noProvider = noProviderReason(choice, "imágenes");
-  // La galería del chat conserva la identidad de la estrategia seleccionada.
-  const canonicalSelection = run?.input.source === "mcp_chat" ? await getSelectedProductStrategy(uid, productId) : null;
   const chatPlan = run?.input.source === "mcp_chat" ? (run.input.content as { plan?: { visual_world?: string; visual_world_why?: string } } | undefined)?.plan : null;
   const world = chatPlan?.visual_world ?? run?.world, worldWhy = chatPlan?.visual_world_why ?? run?.world_why;
-  const canonicalStale = run?.input.source === "mcp_chat" && (!canonicalSelection?.readiness.ready_for_execution || canonicalSelection.id !== (run.input.content as { strategy_id?: string } | undefined)?.strategy_id);
   return {
-    locked: null,
     connected,
     aiConnected,
     imageProvider: choice,
@@ -377,7 +355,6 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
     slots: toSlotViews(shots, rows, urls),
     references: inUse.map((r) => ({ id: r.id, src: refUrls.get(r.id) ?? "", alt: r.alt ?? "" })).filter((r) => r.src),
     imageCostUsd: IMAGE_COST_BY_PROVIDER[choice.value ?? "higgsfield"],
-    stale: Boolean(canonicalStale),
   };
 }
 

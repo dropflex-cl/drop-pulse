@@ -65,7 +65,6 @@ export function fixture(state: string) {
   ];
 
   const data: PageImagesState = {
-    locked: null,
     connected: true,
     imageProvider: { value: "higgsfield", saved: "higgsfield", options: [{ id: "higgsfield", name: "Higgsfield", available: true }] },
     cannotGenerate: null,
@@ -74,7 +73,6 @@ export function fixture(state: string) {
     slots,
     references: [1, 2].map((i) => ({ id: `ref-${i}`, src: productImage(i + 2, 0), alt: "" })),
     imageCostUsd: IMAGE_COST_BY_PROVIDER.higgsfield,
-    stale: false,
   };
   return { product, data };
 }

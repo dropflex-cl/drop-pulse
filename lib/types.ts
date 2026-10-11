@@ -1,11 +1,10 @@
-// Tipos de dominio de DropFlex. Hoy los llenan los mocks de lib/mock/; mañana, Supabase
-// (ver docs/esquema-supabase.md). La UI solo los recibe a través de lib/data/*.
+// Tipos de dominio y vistas de los datos persistidos de DropFlex.
+// La UI solo los recibe a través de lib/data/*.
 
 import type { AttentionKind } from "@/components/df/attention-item";
 import type { Verdict } from "@/components/df/campaign-card";
 import type { MetricProps } from "@/components/df/metric";
 import type { StageState } from "@/components/df/stage-list";
-import type { MeterStage } from "@/components/df/stage-meter";
 import type { ContentStatus } from "@/components/df/status-badge";
 import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import type { AngleSlot } from "@/lib/angles/catalog";
@@ -44,22 +43,15 @@ export interface Product {
   image: string;
   sku: string;
   filter: ProductFilter;
-  /** Una rayita por etapa (StageMeter). */
-  meter: MeterStage[];
-  /** Por qué está donde está: “Detenido: falta el precio · 3 días”. */
+  /** Situación del contenido y publicación. */
   reason: string;
   tone: "warning" | "danger" | "success" | "primary" | "muted";
-  /** Etapa a la que lleva la fila y “Continuar”. */
-  nextStage: StageKey;
-  stages: Stage[];
-  /** “2 de 5 etapas · editado hace 2 h”. */
+  sections: Stage[];
+  publicationReady: boolean;
+  /** Resumen de la situación actual. */
   summary: string;
   /** Estado del contenido en el encabezado; un producto sin optimizar no tiene. */
   status?: ContentStatus;
-  /** Fase de la etapa Ángulos (lib/products/stages.ts › anglesPhase). */
-  anglesPhase?: "locked" | "new" | "evaluating" | "failed" | "choose" | "done";
-  /** Fase de la etapa Textos, la página del producto (lib/products/stages.ts › copyPhase). */
-  copyPhase?: "locked" | "new" | "writing" | "failed" | "review" | "done";
   /**
    * La clave de Anthropic del comerciante está conectada para la revisión opcional de imágenes.
    * Los textos del chat y el render sin QA no requieren esta conexión.
@@ -209,8 +201,6 @@ export interface PageComponentView {
 export interface CopyState {
   videos?: { id: string; name: string }[];
   fromChat?: boolean;
-  /** Qué falta para habilitarla: los 2 desarrollos de Ángulos, o las imágenes (Imágenes va antes). null si está habilitada. */
-  locked: "angles" | "images" | null;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
   /** La ficha y los componentes escritos, en el orden de la página. */
   components: PageComponentView[];
@@ -218,10 +208,7 @@ export interface CopyState {
   images: CatalogImage[];
   /** Los datos reales que llenan los componentes en la tienda (y en la vista previa). */
   facts: StoreFacts;
-  /** El contexto del producto cambió después de escribir la página. */
-  stale: boolean;
-  /** Qué cambió (lib/copy/stale.ts), en el orden en que se muestra. */
-  staleReasons: import("@/lib/copy/stale").CopyStaleReason[];
+
 }
 
 export interface ProductCopy extends CopyState {
@@ -712,15 +699,13 @@ export interface PageImageSlotView {
 }
 
 export interface PageImagesState {
-  /** Por qué la etapa no se puede usar todavía (la página del producto sin aprobar). */
-  locked: string | null;
   /** Hay un proveedor de imágenes: sin él se puede elegir y subir, pero no generar. */
   connected: boolean;
   /** La clave de Anthropic está conectada para el QA visual opcional. */
   aiConnected?: boolean;
   /** Con qué se genera y qué más se puede elegir (la elección queda guardada). */
   imageProvider: ImageProviderChoice;
-  /** Por qué no se puede generar (sin proveedor, sin ángulos aprobados). */
+  /** Requisito real que falta para generar, como proveedor, referencia o datos. */
   cannotGenerate: string | null;
   run?: { id: string; status: RunStatus; error?: string; createdAt: string };
   /** El estilo visual que eligió la IA para la galería vigente y por qué. */
@@ -730,8 +715,6 @@ export interface PageImagesState {
   references: { id: string; src: string; alt: string }[];
   /** Cota de USD por imagen del proveedor elegido, para mostrar antes de generar. */
   imageCostUsd: number;
-  /** Los beneficios aprobados cambiaron después de proponer la galería. */
-  stale: boolean;
 }
 
 export interface ProductPageImages extends PageImagesState {

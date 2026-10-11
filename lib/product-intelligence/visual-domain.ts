@@ -4,7 +4,7 @@ import { z } from "zod";
 import { SLOT_RATIO, slotKind } from "@/lib/page-images/catalog";
 import { canonicalHash } from "./concurrency";
 import { ProductIntelligenceError } from "./errors";
-import { visualIdentitySchema, visualPlanSchema, visualRecordSchema, visualRefSchema, VISUAL_LIMITS,
+import { visualIdentitySchema, visualPlanSchema, visualRecordSchema, VISUAL_LIMITS,
   type VisualDependency, type VisualPlan, type VisualRecord, type VisualRef, type VisualShot, type VisualTarget, type VisualValidity } from "./visual-schemas";
 import type { JsonValue } from "./schemas";
 
@@ -39,11 +39,6 @@ function dep(state: VisualState, kind: VisualDependency["kind"], key: string, us
   if (!entry || entry.blocked) invalidVisual("Una dependencia falta o no tiene permiso de uso: " + kind + ":" + key);
   return { kind, key, usage, content_hash: entry.hash };
 }
-/** Las dependencias describen procedencia; cambiar contexto no revoca una elección. */
-export function visualValidity(_dependencies: readonly VisualDependency[], _state: VisualState): VisualValidity {
-  void _dependencies; void _state;
-  return { state: "current", reasons: [] };
-}
 export function recordValidity(r: VisualRecord, state: VisualState): VisualValidity {
   if (!contentAvailable(r)) return { state: "blocked", reasons: [{ code: "discarded", dependency_key: r.id, message: "Esta pieza fue descartada. Recupérala explícitamente para usarla." }] };
   if (r.kind === "asset" && !state.files.some(f => f.id === r.payload.file_id)) return { state: "blocked", reasons: [{ code: "file_missing", dependency_key: r.id, message: "El archivo de esta imagen no está disponible. Sube otra imagen." }] };
@@ -58,9 +53,8 @@ function currentPlanIdentity(ref: VisualRef, state: VisualState): VisualRef {
   assertCurrent(head, state);
   return recordRef(head);
 }
-export function visualPlanReadiness(record: VisualRecord, state: VisualState, _shotKey?: string) {
+export function visualPlanReadiness(record: VisualRecord, state: VisualState) {
   const ref = record.payload.identity_ref as VisualRef;
-  void _shotKey;
   const head = state.records.find(r => r.id === ref.id && r.kind === "identity");
   const reasons: { code: string; message: string }[] = [];
   if (!contentAvailable(record)) reasons.push({ code: "plan_discarded", message: "Este plan fue descartado. Recupéralo o guarda otro." });
@@ -133,7 +127,7 @@ export function planShot(state: VisualState, ref: VisualRef, key: string) {
 }
 export function prepareIteration(state: VisualState, input: { plan_ref: VisualRef; shot_key: string; parent_asset_id: string | null; reference_asset_ids: string[]; based_on_review_ids: string[]; resolved_instruction: string | null; source_system: string; model: string | null }): VisualRecord {
   const { record, plan, shot } = planShot(state, input.plan_ref, input.shot_key), identity = findVisual(state, plan.identity_ref.id, "identity", plan.identity_ref);
-  const readiness = visualPlanReadiness(record, state, input.shot_key);
+  const readiness = visualPlanReadiness(record, state);
   if (!readiness.ready) throw new ProductIntelligenceError("VALIDATION_ERROR", readiness.reasons[0].message, { missing_fields: readiness.reasons.map(r => r.code), next_action: readiness.next_action });
   if (shot.representation === "real_evidence" && input.source_system !== "manual") invalidVisual("Una imagen sintética no acredita resultados reales. Sube material real para esta toma.", "VALIDATION_ERROR");
   for (const id of input.reference_asset_ids) findVisual(state, id, "asset");
@@ -222,4 +216,3 @@ export function prepareVisualReview(state: VisualState, input: { record_id: stri
 export function checkVisualPreconditions(state: VisualState, input: { expected_revision: number; expected_etag: string; expected_dependency_stamp: string }, current?: VisualRecord) {
   if (input.expected_etag && input.expected_etag !== (current?.etag ?? state.etag)) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "Otra edición cambió este contenido. Actualiza y guarda tu cambio.");
 }
-export const isVisualRef = (value: unknown): value is VisualRef => visualRefSchema.safeParse(value).success;

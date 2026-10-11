@@ -1,23 +1,14 @@
 import { contentAvailable } from "@/lib/product-intelligence/current-content";
 import "server-only";
-import { type BriefStampEntry } from "@/lib/angles/stamps";
 import { fail } from "@/lib/products/database";
 import { adminClient } from "@/lib/integrations/admin";
 import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { ImagePick, PageComponentView, RunStatus } from "@/lib/types";
 
-// copy_runs y page_components: lecturas y escrituras de la etapa Página del producto
-// (docs/spec-pagina-componentes.md). Siempre con service_role filtrando por el dueño (como
-// lib/angles/store.ts).
+// Contenido vigente y trabajos de página. Las lecturas filtran por propietario.
 
 const RUNNING_STALE_MS = 10 * 60 * 1000;
 const QUEUED_STALE_MS = 3 * 60 * 1000;
-
-/**
- * Qué desarrollos se usaron (en orden de slot, y cuándo se editó cada uno por última vez). Las
- * escrituras de antes guardaban { primary, secondary }: lib/angles/stamps.ts › stampEntries lee las dos.
- */
-export type BriefStamp = BriefStampEntry[] | Record<string, BriefStampEntry>;
 
 export interface CopyRunRow {
   id: string;
@@ -26,7 +17,7 @@ export interface CopyRunRow {
   status: RunStatus;
   error_code: string | null;
   error_message: string | null;
-  input: Record<string, unknown> & { briefs?: BriefStamp };
+  input: Record<string, unknown>;
   payload: unknown;
   created_at: string;
 }
@@ -75,43 +66,6 @@ export async function latestCopyRuns(userId: string, productIds: string[]): Prom
   fail("Leer las escrituras", error);
   const map = new Map<string, CopyRunRow>();
   for (const r of (data ?? []) as CopyRunRow[]) if (!map.has(r.product_id)) map.set(r.product_id, { ...r, payload: null });
-  return map;
-}
-
-/** Lo que la ruta de etapas mira de una escritura y de un componente (sin el texto). */
-export type CopyRunState = Pick<CopyRunRow, "product_id" | "status" | "error_message" | "input">;
-export type ComponentState = Pick<PageComponentRow, "product_id" | "component" | "status" | "enabled">;
-
-/** Como latestCopyRuns, con solo los desarrollos usados de `input`: para la posición en la ruta. */
-export async function latestCopyRunStates(userId: string, productIds: string[]): Promise<Map<string, CopyRunState>> {
-  if (!productIds.length) return new Map();
-  const { data, error } = await adminClient()
-    .from("copy_runs")
-    .select("product_id, status, error_message, briefs:input->briefs, source:input->>source")
-    .eq("user_id", userId)
-    .in("product_id", productIds)
-    .order("created_at", { ascending: false });
-  fail("Leer las escrituras", error);
-  const map = new Map<string, CopyRunState>();
-  for (const r of (data ?? []) as (Omit<CopyRunState, "input"> & { briefs: BriefStamp | null; source: string | null })[]) {
-    if (!map.has(r.product_id)) map.set(r.product_id, { product_id: r.product_id, status: r.status, error_message: r.error_message, input: { ...(r.briefs ? { briefs: r.briefs } : {}), source: r.source } });
-  }
-  return map;
-}
-
-/** Como activeComponents, sin el texto: para la posición en la ruta. */
-export async function activeComponentStates(userId: string, productIds: string[]): Promise<Map<string, ComponentState[]>> {
-  if (!productIds.length) return new Map();
-  const { data, error } = await adminClient()
-    .from("page_components")
-    .select("product_id, component, status, enabled")
-    .eq("user_id", userId)
-    .in("product_id", productIds)
-    .is("superseded_at", null)
-    .order("position", { ascending: true });
-  fail("Leer la página", error);
-  const map = new Map<string, ComponentState[]>();
-  for (const r of (data ?? []) as ComponentState[]) map.set(r.product_id, [...(map.get(r.product_id) ?? []), r]);
   return map;
 }
 

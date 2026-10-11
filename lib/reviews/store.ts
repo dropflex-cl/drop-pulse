@@ -5,7 +5,6 @@ import { optimizeImage } from "@/lib/media/optimize";
 import { sniffImage } from "@/lib/products/images";
 import { ProductApiError } from "@/lib/products/http";
 import { REFERENCES_BUCKET, type DbContentStatus } from "@/lib/products/store";
-import type { ReviewFacts } from "@/lib/products/stages";
 import type { CustomerReview, CustomerReviewState, ReviewImport, RunStatus } from "@/lib/types";
 import {
   REVIEW_BODY_MAX,
@@ -174,29 +173,6 @@ export async function expireStaleImports(userId: string): Promise<void> {
     .in("status", ["queued", "running"])
     .lt("updated_at", new Date(Date.now() - IMPORT_STALE_MS).toISOString());
   fail("Cerrar importaciones colgadas", error);
-}
-
-/** Cuántas reseñas tiene cada producto y en qué estado (para la ruta y la lista). */
-export async function reviewFacts(userId: string, productIds: string[]): Promise<Map<string, ReviewFacts>> {
-  const facts = new Map<string, ReviewFacts>();
-  if (!productIds.length) return facts;
-  const db = adminClient();
-  const [reviews, imports] = await Promise.all([
-    db.from("product_reviews").select("product_id, status").eq("user_id", userId).in("product_id", productIds),
-    db.from("review_imports").select("product_id").eq("user_id", userId).in("product_id", productIds).in("status", ["queued", "running"]),
-  ]);
-  fail("Contar las reseñas", reviews.error);
-  fail("Leer las importaciones", imports.error);
-  const get = (id: string) => facts.get(id) ?? (facts.set(id, { pending: 0, approved: 0, total: 0 }), facts.get(id)!);
-  for (const r of (reviews.data ?? []) as { product_id: string; status: DbContentStatus }[]) {
-    const f = get(r.product_id);
-    f.total++;
-    const s = toState(r.status);
-    if (s === "pending") f.pending++;
-    else if (s === "approved" || s === "published") f.approved++;
-  }
-  for (const r of (imports.data ?? []) as { product_id: string }[]) get(r.product_id).importing = true;
-  return facts;
 }
 
 // ---------------------------------------------------------------- Importar

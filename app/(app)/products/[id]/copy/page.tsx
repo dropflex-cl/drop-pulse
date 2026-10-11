@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CopyScreen } from "@/components/screens/copy";
 import { getProductCopy } from "@/lib/data/products";
-import { COPY_STAGE_TITLE } from "@/lib/products/stages";
+import { COPY_STAGE_TITLE } from "@/lib/products/presentation";
 
 export const metadata: Metadata = { title: COPY_STAGE_TITLE };
 

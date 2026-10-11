@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { productPosition } from "./stages";
+import { productPresentation } from "./presentation";
 import { contentSituation } from "./content-state";
-const facts = { price: 24990, currency: "CLP" };
 describe("Contenido guardado y operación", () => {
   it.each([
     [false, [], undefined, "empty"],
@@ -15,13 +14,22 @@ describe("Contenido guardado y operación", () => {
     expect(contentSituation({hasContent,missing:[...missing],publication}).state).toBe(expected);
   });
   it("no convierte contexto, estrategia, clave, reseñas ni secciones vacías en tareas obligatorias", () => {
-    const position=productPosition({...facts,ai:false,base:{described:false,priced:false},intelligence:{selected:false,ready:false},reviews:{pending:12,approved:0,total:12},content:{hasContent:true,missing:[],stale:false}});
+    const position = productPresentation({ content: { hasContent: true, missing: [], stale: false } });
     expect(position.contentState).toBe("ready");
-    expect(position.meter).toEqual([]);
-    expect(position.stages.every(s=>s.state==="available")).toBe(true);
+    expect(position.publicationReady).toBe(true);
+    expect(position.sections.every(s => s.state === "available")).toBe(true);
+
   });
   it("conserva la clasificación publicado aunque haya cambios sin publicar", () => {
-    expect(productPosition({...facts,publish:{status:"published"},content:{hasContent:true,missing:["Falta imagen"],stale:true}})).toMatchObject({filter:"publicados",contentState:"updated",status:"publicado"});
-    expect(productPosition({...facts,publish:{status:"error",error:"Intenta de nuevo"}})).toMatchObject({filter:"detenidos",contentState:"error"});
+    expect(productPresentation({publish:{status:"published"},content:{hasContent:true,missing:["Falta imagen"],stale:true}})).toMatchObject({filter:"publicados",contentState:"updated",status:"publicado"});
+    expect(productPresentation({publish:{status:"error",error:"Intenta de nuevo"}})).toMatchObject({filter:"detenidos",contentState:"error"});
+  });
+  it.each([
+    [false, [], false],
+    [true, ["El archivo no está disponible"], false],
+    [true, ["Conecta Shopify"], false],
+    [true, [], true],
+  ] as const)("deriva disponibilidad de contenido e impedimentos reales", (hasContent, missing, ready) => {
+    expect(productPresentation({ content: { hasContent, missing: [...missing], stale: false } }).publicationReady).toBe(ready);
   });
 });

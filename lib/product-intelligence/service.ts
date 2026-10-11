@@ -10,8 +10,6 @@ import { requireScopes, toolScopes } from "./policy";
 import { contextAccess, type ContextRepository } from "./repository";
 import { parseToolInput, parseToolOutput } from "./validation";
 
-export const PERSISTED_CONTEXT_TOOLS = ["get_product_context", "save_product_context"] as const;
-
 /** La UI y el transporte MCP usan el mismo comando y las mismas transacciones. */
 export function createContextExecutor(repository: ContextRepository, identity?: DelegatedIdentity): DomainExecutor {
   return async (principal, command, signal) => {

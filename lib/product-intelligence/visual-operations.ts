@@ -4,7 +4,7 @@ import { z } from "zod";
 import { adminClient } from "@/lib/integrations/admin";
 import { makeVisualRecord, vHash, type VisualState } from "./visual-domain";
 import { visualRecordSchema, VISUAL_LIMITS } from "./visual-schemas";
-import { approveMcpVisual } from "./mcp-approval";
+import { availableVisualRecord } from "./content-decisions";
 import { createContextRepository } from "./repository";
 import { recordServerVisualEvent } from "./visual-transfer";
 import { downloadVisual, optimizeVisual, visualByteHash, visualStoredBytes } from "./visual-media";
@@ -59,7 +59,7 @@ export async function runVisualIngestion(id: string) {
       source_reference_asset_ids: it.payload.reference_asset_ids, source_reference_image_ids: it.payload.reference_image_ids, generated_at: op.source.generated_at ?? null,
       semantic_hash: vHash({ file_sha256: hash, shot_hash: frozen.shot_hash, identity_ref: it.payload.identity_ref, instruction_hash: it.payload.instruction_hash,
         source_system: it.payload.source_system, parent_asset_id: it.payload.parent_asset_id, reference_asset_ids: it.payload.reference_asset_ids, based_on_review_ids: it.payload.based_on_review_ids }) };
-    const asset = approveMcpVisual(makeVisualRecord({ records: [] } as unknown as VisualState, "asset", payload, "generated"));
+    const asset = availableVisualRecord(makeVisualRecord({ records: [] } as unknown as VisualState, "asset", payload, "generated"));
     failureCode = "DATABASE_COMMIT_FAILED";
     const saved = await db.rpc("pi_complete_visual_ingestion", { p_operation_id: op.id, p_token: op.lease_token, p_file: file, p_asset: asset });
     if (saved.error) { console.error("[visual-ingestion/database]", saved.error.code, saved.error.message); throw new Error("El permiso o el producto cambió durante la subida. Recupera el contexto antes de reintentar."); }

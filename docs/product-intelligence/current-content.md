@@ -78,3 +78,17 @@ Los schemas públicos no exportan una clave idempotente fija como valor por defe
 Se retiraron `StageNav`, `showsBaseScreen` y la fábrica aislada `freezeGenerationContext` con sus pruebas del modelo anterior. No tenían consumidores operativos. `ReviewFlow` conserva su demo; `StageMeter` sigue utilizado por onboarding. El schema histórico de generación y su exportador permanecen por los contratos publicados. Esta limpieza no elimina campos de base de datos, autenticidad de evidencias, permisos, auditoría ni concurrencia.
 
 Verificación de esta limpieza: 1.197 pruebas generales aprobadas; TypeScript, lint de los archivos modificados y validación de los 65 pares de contratos correctos. Inicialización y discovery MCP comprobados localmente. No se añadieron migraciones ni se ejecutaron acciones en producción.
+
+## Retirada de consumidores redundantes
+
+La situación del producto vive en `lib/products/presentation.ts`. Los lectores ya no calculan fases, medidores ni siguiente etapa. `Product.sections` conserva accesos y categorías de costos; `publicationReady` deriva de contenido efectivo e impedimentos reales. Anuncios consulta esa disponibilidad en UI y servidor; los controles de Meta y presupuesto se conservan.
+
+Se retiraron el progreso de aprobación de copy, su consulta de vigencia contextual, los lectores abreviados antiguos, `storeFacts` (copia paralela sin consumidores), el wrapper identidad `shopifyStrategyRead`, el lector redundante de autorización, el helper de replay sin consumidores y utilidades sin llamadas. La idempotencia real sigue en RPC/receipts y las pruebas locales. `content-decisions.ts` normaliza estados anteriores a disponibilidad y selección conservando descartes.
+
+Las decisiones actuales de imágenes leen `is_selected` y `discarded_at`; el trigger conserva la traducción de `status` para clientes anteriores. Seleccionar no recupera descartes; recuperarlos es explícito y no los selecciona automáticamente. Se mantienen archivo, destino, formato, orden y propietario.
+
+Discovery marca las dos tools de reconciliación con `dropflex/deprecated` y su reemplazo. Se conservan invocables porque todavía forman parte del contrato público. El antiguo PATCH `approve` devuelve el contenido actual sin aprobar, activar ni recuperar nada; los writers internos ya no aceptan esa bandera. No se eliminan campos ni tablas de auditoría o concurrencia aún usados por RPC, contratos o datos persistidos. No se requieren migraciones adicionales por esta limpieza.
+
+Los nombres de las listas se leen desde contexto autorizado sin calcular readiness de estrategia. Imágenes ya no consulta vigencia estratégica ni expone candados o stale de etapas; los requisitos de una generación explícita permanecen en `cannotGenerate`.
+
+Verificación de la retirada: 1.199 pruebas generales aprobadas, 126 de integración local (10 suites), compilación aislada correcta, TypeScript y lint de los archivos modificados correctos, 65 pares de contratos validados. El navegador comprobó 24 combinaciones de móvil/escritorio y claro/oscuro en producción visual, página, publicación y anuncios: sin desbordamiento ni incidencias WCAG AA detectadas. Los primeros fallos transitorios del gateway local desaparecieron al ejecutar las integraciones secuencialmente; las selecciones y la lectura aislada de nombres pasaron con Supabase real local. Producción no recibió migraciones, publicaciones de productos ni generaciones.

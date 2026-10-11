@@ -46,10 +46,3 @@ export function landingSelections(contents: unknown[]): LandingVariant[] {
   for (const value of contents) for (const v of contentVariants(value)) found.set(JSON.stringify([v.angle_id, v.hook_id]), v);
   return [...found.values()].sort((a, b) => Number(b.key === "default") - Number(a.key === "default"));
 }
-export function variantLabel(v: LandingVariant): string { return v.key === "default" ? "Sin parámetros" : `${v.key} · ${v.hook_id ? "Ángulo y hook" : "Ángulo"}`; }
-export function landingQuery(v: LandingSelection): string {
-  const params = new URLSearchParams();
-  if (v.angle_id) params.set("df_angle", v.angle_id);
-  if (v.angle_id && v.hook_id) params.set("df_hook", v.hook_id);
-  return params.toString();
-}

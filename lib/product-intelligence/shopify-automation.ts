@@ -7,7 +7,6 @@ import { connectionProblem, getPublications, preparePublish, runPublish } from "
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { adminClient } from "@/lib/integrations/admin";
 import { commandHash } from "./concurrency";
-import { shopifyStrategyRead } from "./automation-active";
 import { parseKnowledgeRead } from "./knowledge";
 import { ProductIntelligenceError } from "./errors";
 import type { DomainExecutor } from "./mcp";
@@ -59,8 +58,8 @@ export function createShopifyAutomationExecutor(repository: ShopifyAutomationRep
         return parseToolOutput(tool, { ...base, revision: data.revision, data });
       }
       if (!repository.loadKnowledge) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta el contexto de la estrategia.");
-      const read = await shopifyStrategyRead(repository, parseKnowledgeRead(await repository.loadKnowledge({ p_access: access,
-        p_product_id: input.product_id }, signal), principal, input.product_id), principal, input.product_id, identity, signal);
+      const read = parseKnowledgeRead(await repository.loadKnowledge({ p_access: access,
+        p_product_id: input.product_id }, signal), principal, input.product_id);
       checkRevision(request.expected_revision, read.current_revision);
       if (!read.strategy || read.strategy.id !== request.strategy_id || read.strategy.state !== "selected")
         throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Elige la dirección del producto antes de autorizar su publicación automática.");

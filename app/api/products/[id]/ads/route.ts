@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     await expireStaleLaunches(userId);
     const view = await getProduct(id);
     const from = new URL(req.url).searchParams.get("from");
-    return NextResponse.json(await adsState(userId, product, view?.copyPhase === "done", from && /^[0-9a-f-]{36}$/.test(from) ? from : null));
+    return NextResponse.json(await adsState(userId, product, view?.publicationReady === true, from && /^[0-9a-f-]{36}$/.test(from) ? from : null));
   } catch (e) {
     return errorResponse(e, "No pudimos leer los anuncios. Intenta de nuevo.");
   }

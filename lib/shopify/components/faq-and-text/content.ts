@@ -20,7 +20,7 @@ const noHealthClaims = (field: string) =>
 /**
  * Temas, en el orden de la lista. `duracion` («¿Cuánto me dura?») es el único que puede llevar
  * dígitos: el rendimiento que dio el comerciante (la app valida aparte que esos números estén en
- * los datos del producto, lib/copy/facts.ts). Los demás siguen sin números.
+ * los datos del producto, lib/pipeline/publish.ts). Los demás siguen sin números.
  */
 export const FAQ_TOPICS = ["pago_cod", "envio", "uso", "duracion", "talla_compat", "cuidado", "diferencial", "resultados", "garantia", "otro"] as const;
 /** El tema que puede escribir cifras (rendimiento y meses de uso). */

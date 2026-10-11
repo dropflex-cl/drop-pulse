@@ -1,3 +1,4 @@
+import { contentAvailable, imageSelected } from "@/lib/product-intelligence/current-content";
 import { contextDatabaseError } from "@/lib/product-intelligence/repository";
 import { renderBaseId } from "@/lib/products/render-context";
 import { afterCacheWarm } from "@/lib/ai/cache-gate";
@@ -449,14 +450,14 @@ async function assertSlot(userId: string, productId: string, slot: string) {
 
 /** Las elegidas de la galería (o de los GIF) quedan numeradas 1…n, sin huecos, en el orden que tenían. */
 async function assertVisualSlotEditable(userId: string, productId: string, slot: string) {
-  const { data, error } = await adminClient().from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved").not("visual_binding_id", "is", null).limit(1);
+  const { data, error } = await adminClient().from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("is_selected", true).is("discarded_at", null).not("visual_binding_id", "is", null).limit(1);
   fail("Comprobar los usos visuales", error);
   if (data?.length) throw new OptimizeError("Cambia los usos y posiciones en Producción visual antes de editar este espacio.", 409);
 }
 async function compactSlot(userId: string, productId: string, slot: string) {
   await assertVisualSlotEditable(userId, productId, slot);
   const db = adminClient();
-  const { data, error } = await db.from("page_images").select("id, position, created_at").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
+  const { data, error } = await db.from("page_images").select("id, position, created_at").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("is_selected", true).is("discarded_at", null);
   fail("Leer las elegidas", error);
   const sorted = ((data ?? []) as { id: string; position: number | null; created_at: string }[]).sort((x, y) => (x.position ?? 99) - (y.position ?? 99) || x.created_at.localeCompare(y.created_at));
   await Promise.all(sorted.map((r, i) => (r.position === i + 1 ? null : db.from("page_images").update({ position: i + 1, updated_at: stamp() }).eq("id", r.id))));
@@ -467,23 +468,23 @@ const ordered = (slot: string) => ORDERED.has(slotKind(slot)!);
 
 async function choose(a: PageImageRow) {
   await assertVisualSlotEditable(a.user_id, a.product_id, a.slot);
-  if (a.render_status !== "succeeded") throw new OptimizeError("Esa imagen todavía no está lista.", 409);
+  if (a.render_status !== "succeeded" || !contentAvailable(a)) throw new OptimizeError("Esa imagen todavía no está lista.", 409);
   const db = adminClient();
   const now = stamp();
   if (ordered(a.slot)) {
-    if (a.status === "approved") return;
+    if (imageSelected(a)) return;
     const max = a.slot === GIFS ? GIF_MAX : GALLERY_MAX;
-    const { count, error } = await db.from("page_images").select("id", { count: "exact", head: true }).eq("product_id", a.product_id).eq("slot", a.slot).eq("status", "approved");
+    const { count, error } = await db.from("page_images").select("id", { count: "exact", head: true }).eq("product_id", a.product_id).eq("slot", a.slot).eq("is_selected", true).is("discarded_at", null);
     fail("Contar las elegidas", error);
     if ((count ?? 0) >= max) {
       throw new OptimizeError(a.slot === GIFS ? `Ya usas ${GIF_MAX} GIF. Quita uno para agregar otro.` : `La galería ya tiene ${GALLERY_MAX} imágenes. Quita una para agregar otra.`, 409);
     }
-    fail("Elegir la imagen", (await db.from("page_images").update({ status: "approved", position: (count ?? 0) + 1, decided_at: now, updated_at: now }).eq("id", a.id)).error);
+    fail("Elegir la imagen", (await db.from("page_images").update({ is_selected: true, discarded_at: null, position: (count ?? 0) + 1, decided_at: now, updated_at: now }).eq("id", a.id)).error);
     return;
   }
   // Portada y beneficios llevan una sola: la anterior vuelve a ser opción.
-  fail("Cambiar la elegida", (await db.from("page_images").update({ status: "generated", position: null, decided_at: null, updated_at: now }).eq("product_id", a.product_id).eq("slot", a.slot).eq("status", "approved").neq("id", a.id)).error);
-  fail("Elegir la imagen", (await db.from("page_images").update({ status: "approved", position: 1, decided_at: now, updated_at: now }).eq("id", a.id)).error);
+  fail("Cambiar la elegida", (await db.from("page_images").update({ is_selected: false, position: null, decided_at: null, updated_at: now }).eq("product_id", a.product_id).eq("slot", a.slot).eq("is_selected", true).is("discarded_at", null).neq("id", a.id)).error);
+  fail("Elegir la imagen", (await db.from("page_images").update({ is_selected: true, discarded_at: null, position: 1, decided_at: now, updated_at: now }).eq("id", a.id)).error);
 }
 
 export async function decideOption(userId: string, productId: string, imageId: string, action: OptionAction): Promise<void> {
@@ -496,7 +497,7 @@ export async function decideOption(userId: string, productId: string, imageId: s
     case "choose":
       return choose(a);
     case "unchoose":
-      fail("Quitar la imagen", (await db.from("page_images").update({ status: "generated", position: null, decided_at: null, updated_at: now }).eq("id", a.id)).error);
+      fail("Quitar la imagen", (await db.from("page_images").update({ is_selected: false, position: null, decided_at: null, updated_at: now }).eq("id", a.id)).error);
       if (ordered(a.slot)) await compactSlot(userId, productId, a.slot);
       return;
     case "discard":
@@ -505,12 +506,12 @@ export async function decideOption(userId: string, productId: string, imageId: s
         fail("Quitar la imagen", (await db.from("page_images").delete().eq("id", a.id)).error);
       } else {
         if (a.render_status === "queued" || a.render_status === "running") throw new OptimizeError("Espera a que termine de generarse.", 409);
-        fail("Descartar la imagen", (await db.from("page_images").update({ status: "rejected", position: null, decided_at: now, updated_at: now }).eq("id", a.id)).error);
+        fail("Descartar la imagen", (await db.from("page_images").update({ is_selected: false, discarded_at: now, status: "rejected", position: null, decided_at: now, updated_at: now }).eq("id", a.id)).error);
       }
-      if (ordered(a.slot) && a.status === "approved") await compactSlot(userId, productId, a.slot);
+      if (ordered(a.slot) && imageSelected(a)) await compactSlot(userId, productId, a.slot);
       return;
     case "reopen":
-      fail("Deshacer", (await db.from("page_images").update({ status: "generated", decided_at: null, updated_at: now }).eq("id", a.id).eq("status", "rejected")).error);
+      fail("Deshacer", (await db.from("page_images").update({ discarded_at: null, status: "generated", decided_at: null, updated_at: now }).eq("id", a.id).eq("status", "rejected")).error);
       return;
     case "recover":
       return recoverImage(a);
@@ -527,7 +528,7 @@ export async function decideOption(userId: string, productId: string, imageId: s
  */
 async function coverFrom(a: PageImageRow) {
   if (a.slot !== GALLERY) throw new OptimizeError("Solo una imagen de la galería puede pasar a ser la portada.", 400);
-  if (a.render_status !== "succeeded" || a.status === "rejected") throw new OptimizeError("Esa imagen todavía no está lista.", 409);
+  if (a.render_status !== "succeeded" || !contentAvailable(a)) throw new OptimizeError("Esa imagen todavía no está lista.", 409);
   if (a.source === "reference") {
     await chooseReference(a.user_id, a.product_id, COVER, a.reference_image_id!);
   } else {
@@ -566,8 +567,8 @@ async function coverFrom(a: PageImageRow) {
     }
     await choose(row);
   }
-  if (a.status === "approved") {
-    fail("Quitar de la galería", (await adminClient().from("page_images").update({ status: "generated", position: null, decided_at: null, updated_at: stamp() }).eq("id", a.id)).error);
+  if (imageSelected(a)) {
+    fail("Quitar de la galería", (await adminClient().from("page_images").update({ is_selected: false, position: null, decided_at: null, updated_at: stamp() }).eq("id", a.id)).error);
     await compactSlot(a.user_id, a.product_id, GALLERY);
   }
 }
@@ -600,7 +601,7 @@ export async function reorderSlot(userId: string, productId: string, ids: string
   await assertVisualSlotEditable(userId, productId, slot);
   if (!ordered(slot)) throw new ProductApiError("Ese espacio no se ordena.", 400, "slot");
   const db = adminClient();
-  const { data, error } = await db.from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
+  const { data, error } = await db.from("page_images").select("id").eq("user_id", userId).eq("product_id", productId).eq("slot", slot).eq("is_selected", true).is("discarded_at", null);
   fail("Leer las elegidas", error);
   const current = new Set((data ?? []).map((r) => r.id as string));
   if (ids.length !== current.size || ids.some((id) => !current.has(id))) throw new ProductApiError(slot === GIFS ? "Tus GIF cambiaron. Actualiza la página." : "La galería cambió. Actualiza la página.", 409);
@@ -631,7 +632,7 @@ export async function preparePageUpload(userId: string, productId: string, file:
 }
 
 async function chosenCount(productId: string, slot: string): Promise<number> {
-  const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("product_id", productId).eq("slot", slot).eq("status", "approved");
+  const { count, error } = await adminClient().from("page_images").select("id", { count: "exact", head: true }).eq("product_id", productId).eq("slot", slot).eq("is_selected", true).is("discarded_at", null);
   fail("Contar las elegidas", error);
   return count ?? 0;
 }
@@ -746,7 +747,8 @@ async function storeGif(userId: string, productId: string, bytes: Buffer, input:
     width: saved.width,
     height: saved.pageHeight ?? saved.height,
     size_bytes: out.byteLength,
-    status: "approved",
+    is_selected: true,
+    status: "approved", // Traducción para clientes anteriores al insertar.
     position: count + 1,
     decided_at: now,
     finished_at: now,

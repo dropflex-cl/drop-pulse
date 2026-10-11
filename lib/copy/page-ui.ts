@@ -28,19 +28,6 @@ export const LISTING_SLOTS: Record<string, ListingSlot> = {
   "ugc-slider": "afterButton",
 };
 
-export const PAGE_GROUPS = [
-  {
-    kind: "block",
-    title: "Junto al botón de compra",
-    hint: "En la columna del producto, cerca del precio y del botón.",
-  },
-  {
-    kind: "section",
-    title: "Cuerpo de la página",
-    hint: "Secciones bajo la ficha, en este orden.",
-  },
-] as const;
-
 /** «DropFlex · Disponibilidad» → «Disponibilidad». */
 export function componentName(id: string): string {
   if (id === LISTING) return LISTING_INFO.name;

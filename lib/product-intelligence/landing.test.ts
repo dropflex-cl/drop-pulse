@@ -5,7 +5,7 @@ import { publishedSchemas } from "./mcp";
 import { PI_SCOPES, type Principal } from "./policy";
 import { parseToolInput, parseToolOutput } from "./validation";
 import { createLandingExecutor } from "./landing-service";
-import { copyPhase } from "@/lib/products/stages";
+import { productPresentation } from "@/lib/products/presentation";
 import { contextFixture } from "./test-fixtures";
 import { DEFAULT_ACCENT } from "@/lib/copy/accent";
 
@@ -381,21 +381,7 @@ describe("PI · contenido de Shopify desde chat", () => {
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
     expect(repository.commitLanding).not.toHaveBeenCalled();
   });
-  it("contenido de chat permite revisión sin depender del pipeline viejo", () => {
-    const facts = {
-      price: 19990,
-      currency: "CLP",
-      copy: {
-        fromChat: true,
-        run: null,
-        progress: {
-          total: 1,
-          enabled: 0,
-          listing: "pending" as const,
-          complete: false,
-        },
-      },
-    };
-    expect(copyPhase(facts)).toBe("review");
+  it("contenido de chat queda disponible sin una fase de revisión", () => {
+    expect(productPresentation({ content: { hasContent: true, missing: [], stale: false } })).toMatchObject({ contentState: "ready", publicationReady: true });
   });
 });

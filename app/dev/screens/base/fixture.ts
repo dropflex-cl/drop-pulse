@@ -1,7 +1,7 @@
 // Datos de ejemplo para /dev/screens/base (textos e imágenes de design-system/reference/bundle.js:
 // PP_TEXT, ppRefs). No se usan fuera de desarrollo.
 import { productImage } from "@/lib/mock/images";
-import { productPosition } from "@/lib/products/stages";
+import { productPresentation } from "@/lib/products/presentation";
 import { buildPricingPlan } from "@/lib/pricing/plan";
 import type { ProductData } from "@/lib/products/product-data";
 import type { ProductBase, SavedPricingDto } from "@/lib/types";
@@ -29,13 +29,7 @@ export function fixture(state: string): ProductBase {
   const productData = state === "identified" || state === "strategy" || state === "nopricing" ? PRODUCT_DATA : state === "edited" ? { ...PRODUCT_DATA, source: "merchant" as const } : undefined;
   const priced = state !== "nopricing";
   const hasBrief = state === "strategy";
-  const pos = productPosition({
-    price: 24990,
-    currency: "CLP",
-    base: { described: Boolean(productData), priced },
-    // ?state=ai: sin la clave de Anthropic.
-    ai: state !== "ai",
-  });
+  const pos = productPresentation({});
   return {
     product: {
       id: "00000000-0000-0000-0000-000000000000",
@@ -43,11 +37,10 @@ export function fixture(state: string): ProductBase {
       image: productImage(1, 1),
       sku: "",
       filter: pos.filter,
-      meter: pos.meter,
       reason: pos.reason,
       tone: pos.tone,
-      nextStage: pos.nextStage,
-      stages: pos.stages,
+      sections: pos.sections,
+      publicationReady: pos.publicationReady,
       summary: pos.summary,
       status: pos.status,
       aiConnected: state !== "ai",

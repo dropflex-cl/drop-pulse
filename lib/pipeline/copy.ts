@@ -20,14 +20,12 @@ import { OptimizeError } from "./errors";
 export interface ComponentPatch {
   expected_id?: string;
   expected_updated_at?: string;
-  /** Tu versión (valida con el esquema del componente). */
+  /** Contenido vigente (valida con el esquema del componente). */
   content?: unknown;
-  /** «Usar en la página». Activar aprueba. */
+  /** Decisión explícita de mostrar u ocultar. */
   enabled?: boolean;
   /** Las fotos elegidas para sus espacios de imagen. */
   images?: ImagePick[];
-  /** Aprobar sin cambios (la ficha: «Aprobar ficha»). */
-  approve?: boolean;
 }
 
 /** Por qué no se pueden guardar esas imágenes: espacio que no existe, de más, o que no es del producto. */

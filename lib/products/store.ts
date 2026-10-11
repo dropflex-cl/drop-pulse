@@ -190,10 +190,3 @@ export function imagesForGeneration<T extends Pick<ImageRow, "is_base" | "is_cov
 export function toReferenceImage(r: ImageRow, src: string): ReferenceImage {
   return { id: r.id, src, alt: r.alt ?? "", source: r.source, excluded: r.excluded, cover: r.is_cover, base: r.is_base };
 }
-
-/** La fila más reciente de cada producto (las filas vienen ordenadas de la más nueva a la más vieja). */
-export function newestByProduct<T extends { product_id: string }>(rows: T[]): Map<string, T> {
-  const map = new Map<string, T>();
-  for (const r of rows) if (!map.has(r.product_id)) map.set(r.product_id, r);
-  return map;
-}

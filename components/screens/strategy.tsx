@@ -4,7 +4,7 @@ import { Button, EmptyState, Notice, TopBar } from "@/components/df";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
-import { STRATEGY_STAGE_TITLE } from "@/lib/products/stages";
+import { STRATEGY_STAGE_TITLE } from "@/lib/products/presentation";
 import { productHref } from "@/lib/routes";
 import type { ProductStrategy } from "@/lib/types";
 import { useRouter } from "next/navigation";

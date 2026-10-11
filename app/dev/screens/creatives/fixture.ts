@@ -2,7 +2,7 @@
 // ilustraciones genéricas de lib/mock/images.ts: aquí solo importa cómo se ve la pantalla.
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { productImage } from "@/lib/mock/images";
-import { productPosition } from "@/lib/products/stages";
+import { productPresentation } from "@/lib/products/presentation";
 import type { CreativeAssetView, CreativeConceptView, ProductCreatives } from "@/lib/types";
 import { videosFixture } from "./videos-fixture";
 
@@ -154,7 +154,6 @@ function concepts(state: string): CreativeConceptView[] {
 export function fixture(state: string, video = "none"): ProductCreatives {
   const withConcepts = ["concepts", "rendering", "review", "done"].includes(state);
   const list = withConcepts ? concepts(state) : [];
-  const assets = list.flatMap((c) => c.assets);
   const run: ProductCreatives["run"] =
     state === "proposing"
       ? { id: "r1", status: "running", createdAt: NOW }
@@ -163,22 +162,7 @@ export function fixture(state: string, video = "none"): ProductCreatives {
         : withConcepts
           ? { id: "r1", status: "succeeded", createdAt: NOW }
           : undefined;
-  const pos = productPosition({
-    price: 24990,
-    currency: "CLP",
-    base: { described: true, priced: true },
-    intelligence: { selected: state !== "locked", ready: state !== "locked" },
-    creatives: {
-      connected: state !== "key",
-      running: state === "proposing",
-      concepts: list.length,
-      rendering: assets.filter((a) => a.render === "queued" || a.render === "running").length,
-      pending: assets.filter((a) => a.render === "succeeded" && a.status === "generado").length,
-      approved: assets.filter((a) => a.status === "aprobado").length,
-    },
-     // ?state=ai: sin la clave de Anthropic.
-    ai: state !== "ai",
-  });
+  const pos = productPresentation({});
   return {
     product: {
       id: "00000000-0000-0000-0000-000000000000",
@@ -186,11 +170,10 @@ export function fixture(state: string, video = "none"): ProductCreatives {
       image: productImage(2, 1),
       sku: "",
       filter: pos.filter,
-      meter: pos.meter,
       reason: pos.reason,
       tone: pos.tone,
-      nextStage: pos.nextStage,
-      stages: pos.stages,
+      sections: pos.sections,
+      publicationReady: pos.publicationReady,
       summary: pos.summary,
       status: pos.status,
       aiConnected: state !== "ai",

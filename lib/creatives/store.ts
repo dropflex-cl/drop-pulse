@@ -275,7 +275,7 @@ export async function getAssetRow(userId: string, assetId: string): Promise<Asse
   return (data as AssetRow | null) ?? null;
 }
 
-/** Lo que necesita la ruta del producto (lib/products/stages.ts › CreativeFacts). Solo las columnas que cuentan. */
+/** Conteos operativos de creativos. Solo las columnas que cuentan. */
 export async function creativeCounts(userId: string, productIds: string[]) {
   if (!productIds.length) return () => ({ running: false, concepts: 0, rendering: 0, pending: 0, approved: 0 });
   const db = adminClient();

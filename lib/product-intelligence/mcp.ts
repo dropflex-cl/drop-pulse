@@ -206,6 +206,9 @@ export function createProductIntelligenceServer(
     description: descriptions[name],
     inputSchema: schemas[name].input,
     outputSchema: schemas[name].output,
+    ...(["get_visual_reconciliation_context", "save_visual_reconciliation"].includes(name)
+      ? { _meta: { "dropflex/deprecated": true, "dropflex/replacedBy": name === "get_visual_reconciliation_context" ? "get_visual_generation_plan" : "save_visual_generation_plan" } }
+      : {}),
     ...(name === "get_visual_reference_image"
       ? {
           _meta: {

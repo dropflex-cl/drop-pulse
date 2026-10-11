@@ -1,7 +1,7 @@
 // Datos de ejemplo de la etapa Publicar (/dev/screens/publish).
 import { ACCENT_PALETTE } from "@/lib/copy/accent";
 import { productImage } from "@/lib/mock/images";
-import { productPosition, type PublishFacts } from "@/lib/products/stages";
+import { productPresentation, type PublicationFacts } from "@/lib/products/presentation";
 import type { Product, PublishState } from "@/lib/types";
 
 const NOW = "2026-09-24T10:00:00Z";
@@ -47,32 +47,20 @@ export function fixture(state: string): { product: Product; data: PublishState }
     currency: "CLP",
     publication,
   };
-  const publish: PublishFacts | null = publication ? { status: publication.status, error: publication.error } : null;
-  const pos = productPosition({
-    price: 24990,
-    currency: "CLP",
-    base: { described: true, priced: true },
-    reviews: { pending: 0, approved: 12, total: 12 },
-    intelligence: { selected: true, ready: true },
-    copy: { run: { status: "succeeded" }, progress: { total: 13, enabled: 6, listing: "approved", complete: true } },
-    images: state === "locked" ? { running: false, rendering: 0, options: 6, cover: false, gallery: 2 } : { running: false, rendering: 0, options: 8, cover: true, gallery: 5 },
-    publish,
-  });
+  const publish: PublicationFacts | null = publication ? { status: publication.status, error: publication.error } : null;
+  const pos = productPresentation({ publish, content: { hasContent: true, missing: state === "locked" ? ["Elige una portada"] : [], stale: state === "stale" } });
   const product: Product = {
     id: "00000000-0000-0000-0000-000000000000",
     name: "Corrector de postura",
     image: productImage(1, 1),
     sku: "",
     filter: pos.filter,
-    meter: pos.meter,
     reason: pos.reason,
     tone: pos.tone,
-    nextStage: pos.nextStage,
-    stages: pos.stages,
+    sections: pos.sections,
+      publicationReady: pos.publicationReady,
     summary: pos.summary,
     status: pos.status,
-    anglesPhase: pos.anglesPhase,
-    copyPhase: pos.copyPhase,
     supplierCost: 6900,
     price: 24990,
     currency: "CLP",

@@ -47,7 +47,7 @@ export const getProductAiCost = cache(async (productId: string): Promise<Product
     currency,
     usdRate: await usdRate(currency),
     stages: AI_STAGES.map((key) => {
-      const stage = product.stages.find((st) => st.key === key);
+      const stage = product.sections.find((st) => st.key === key);
       return { key, title: stage?.title ?? key, note: stage?.state === "locked" ? stage.desc : undefined };
     }),
     cap: s?.ai_cost_cap == null ? null : Number(s.ai_cost_cap),

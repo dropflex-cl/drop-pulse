@@ -10,8 +10,8 @@ import { type ProductRow } from "@/lib/products/store";
 import type { AdCampaignSummary, AdDraft, ProductAds } from "@/lib/types";
 import { getProduct, productRow } from "./products";
 
-function lockReason(copyDone: boolean, ctx: AdsContext): string | null {
-  if (!copyDone) return "Termina la página del producto para lanzar anuncios.";
+function lockReason(publicationReady: boolean, ctx: AdsContext): string | null {
+  if (!publicationReady) return "Completa el contenido y las imágenes necesarios para anunciar el producto.";
   if (!ctx.metaReady) return "Conecta Meta Ads y elige cuenta, página y píxel en Ajustes.";
   return null;
 }
@@ -53,7 +53,7 @@ const toSummary = (r: CampaignRow): AdCampaignSummary => ({ id: r.id, name: r.na
  * Todo lo de la etapa sin el producto: lo que devuelve GET /api/products/[id]/ads. Los lanzamientos
  * colgados los cierra el sondeo antes de llamar aquí (y el mantenimiento, lib/products/housekeeping.ts).
  */
-export async function adsState(uid: string, row: ProductRow, copyDone: boolean | Promise<boolean>, sourceCampaignId: string | null = null): Promise<Omit<ProductAds, "product">> {
+export async function adsState(uid: string, row: ProductRow, publicationReady: boolean | Promise<boolean>, sourceCampaignId: string | null = null): Promise<Omit<ProductAds, "product">> {
   const [ctx, draft, media, templates, campaigns] = await Promise.all([
     adsContext(uid, row),
     getDraft(uid, row.id, sourceCampaignId),
@@ -62,7 +62,7 @@ export async function adsState(uid: string, row: ProductRow, copyDone: boolean |
     listCampaignRows(uid, row.id),
   ]);
   return {
-    locked: lockReason(await copyDone, ctx),
+    locked: lockReason(await publicationReady, ctx),
     meta: { ready: ctx.metaReady, account: ctx.meta?.ad_account_name ?? null, page: ctx.meta?.page_name ?? null, pixel: ctx.meta?.pixel_name ?? null },
     currency: ctx.currency,
     timezone: ctx.timezone,
@@ -95,7 +95,7 @@ export const getProductAds = cache(async (id: string, from: string | null = null
   const product$ = getProduct(id);
   const row = await productRow(user.id, id);
   if (!row) return null;
-  const [product, state] = await Promise.all([product$, adsState(user.id, row, product$.then((p) => p?.copyPhase === "done"), from)]);
+  const [product, state] = await Promise.all([product$, adsState(user.id, row, product$.then((p) => p?.publicationReady === true), from)]);
   if (!product) return null;
   return { product, ...state };
 });

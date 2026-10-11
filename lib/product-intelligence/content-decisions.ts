@@ -1,8 +1,8 @@
 import { prepareVisualReview, vHash, type VisualState } from "./visual-domain";
 import type { VisualRecord } from "./visual-schemas";
 
-/** Alias compatible: guardar deja disponible; publicar es otra acción. Conserva descartes anteriores. */
-export function approveMcpVisual(record: VisualRecord, previous?: VisualRecord): VisualRecord {
+/** Traduce estados anteriores a disponibilidad. Conserva descartes; guardar no publica. */
+export function availableVisualRecord(record: VisualRecord, previous?: VisualRecord): VisualRecord {
   if (previous && ["rejected", "archived"].includes(previous.status)) {
     const payload = { ...record.payload, ...(previous.payload.archived_at ? { archived_at: previous.payload.archived_at } : {}) };
     return { ...record, status: previous.status, payload, etag: vHash({ kind: record.kind, status: previous.status, payload, version: record.version }) };
@@ -20,7 +20,7 @@ export function selectMcpBindings(state: VisualState, bindings: VisualRecord[]):
     staged.records = [...staged.records.filter(r => r.id !== binding.id), binding];
     const reviewed = prepareVisualReview(staged, { record_id: binding.id, decision: "select", reason: "Guardado desde el MCP", tags: [] });
     for (const record of reviewed.filter(r => r.kind === "binding")) {
-      const next = record.id === binding.id ? approveMcpVisual({ ...record, version: binding.version }) : record;
+      const next = record.id === binding.id ? availableVisualRecord({ ...record, version: binding.version }) : record;
       changes.set(next.id, next);
       staged.records = [...staged.records.filter(r => r.id !== next.id), next];
     }

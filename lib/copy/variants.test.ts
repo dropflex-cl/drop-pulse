@@ -3,7 +3,7 @@ import { CATALOG } from "@/lib/shopify/components/catalog";
 import { productMetafields, productKeys, type PublishInput } from "@/lib/shopify/publish/mapping";
 import { listingSchema } from "./listing";
 import { pageProblems, schemaProblems } from "./page-schema";
-import { contentVariants, landingQuery, selectVariant, variantsSchema } from "./variants";
+import { contentVariants, selectVariant, variantsSchema } from "./variants";
 import { parseToolInput } from "@/lib/product-intelligence/validation";
 
 const listing = { title: "Organizador para tu escritorio", short_name: "Organizador", short_description: "Mantén tus útiles juntos y encuentra lo que necesitas en tu escritorio.",
@@ -22,7 +22,6 @@ describe("Landing · contenido condicionado por URL", () => {
     expect(selectVariant(variants, { hook_id: "hook_2" }).key).toBe("default");
     expect(selectVariant([...variants].reverse()).key).toBe("default");
     expect(selectVariant(listing).content).toEqual(listing);
-    expect(landingQuery(variants[2])).toBe("df_angle=angle_1&df_hook=hook_2");
   });
   it("exige default, selectores únicos y hook ligado a un ángulo", () => {
     const schema = variantsSchema(listingSchema);

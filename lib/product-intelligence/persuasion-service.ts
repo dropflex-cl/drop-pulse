@@ -1,5 +1,4 @@
 import { serverRevision, serverToken } from "./current-content";
-import { shopifyStrategyRead } from "./automation-active";
 import { imagePickSchema } from "@/lib/copy/variants";
 import { contentVariants } from "@/lib/copy/variants";
 import "server-only";
@@ -62,7 +61,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     const state = persuasionReadSchema.parse(raw);
     if (!state.enabled && !state.experiences.some(e => e.payload.status === "active")) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
     const currentRead = parseKnowledgeRead(state.knowledge, principal, input.product_id);
-    const read = await shopifyStrategyRead(repository, currentRead, principal, input.product_id, identity, signal);
+    const read = currentRead;
     const base = { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID() };
     if (tool === "get_component_catalog") return parseToolOutput(tool, { ...base, data: { catalog: componentCapabilityCatalog(state.landing.review_count) } });
     if (tool === "get_landing_experience") {

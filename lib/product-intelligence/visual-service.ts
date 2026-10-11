@@ -1,5 +1,5 @@
 import { selectedUse, serverRevision, serverToken } from "./current-content";
-import { approveMcpVisual, selectMcpBindings } from "./mcp-approval";
+import { availableVisualRecord, selectMcpBindings } from "./content-decisions";
 import { ensureVisualRenditions } from "./visual-renditions";
 import { visualTargetSchema } from "./visual-schemas";
 import "server-only";
@@ -16,7 +16,7 @@ import { contextAccess, type VisualRepository } from "./repository";
 import { parseToolOutput, PI_LIMITS } from "./validation";
 import { visualInputSchemas, visualReviewInput, VISUAL_LIMITS, type VisualRecord, type VisualTool, type VisualDependency } from "./visual-schemas";
 import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration, visualPlanReadiness,
-  prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, visualValidity, vHash, type VisualState } from "./visual-domain";
+  prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, vHash, type VisualState } from "./visual-domain";
 import { hydrateVisualState, visualReferenceBytes } from "./visual-state";
 import { visualSignedUrl } from "./visual-media";
 import { attachToolImage } from "./tool-media";
@@ -39,7 +39,7 @@ async function signedUpload(op: Operation) {
 }
 export async function visualRecordView(r: VisualRecord, state: VisualState) {
   const file = r.kind === "asset" ? state.files.find(f => f.id === r.payload.file_id) : undefined;
-  return { ...r, validity: recordValidity(r, state), ...(r.kind === "plan" ? { readiness: visualPlanReadiness(r, state), shot_validity: Object.fromEntries((r.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).map(s => [s.shot_key, visualValidity(s.dependencies, state)])) } : {}), ...(file ? { file: { ...file, url: await visualSignedUrl(file.bucket, file.storage_path) } } : {}),
+  return { ...r, validity: recordValidity(r, state), ...(r.kind === "plan" ? { readiness: visualPlanReadiness(r, state), shot_validity: Object.fromEntries((r.payload.shots as { shot_key: string; dependencies: VisualDependency[] }[]).map(s => [s.shot_key, { state: "current" as const, reasons: [] }])) } : {}), ...(file ? { file: { ...file, url: await visualSignedUrl(file.bucket, file.storage_path) } } : {}),
     reviews: state.records.filter(f => f.kind === "review" && f.payload.subject_id === r.id).slice(-10) };
 }
 export function createVisualExecutor(repository: VisualRepository, identity?: DelegatedIdentity, wake?: (id: string) => void, secret = process.env.OAUTH_STATE_SECRET ?? ""): DomainExecutor {
@@ -153,7 +153,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         if (id && !current) invalidVisual("No encontramos esa versión en este producto.");
         const shots = current?.kind === "plan" ? current.payload.shots as Record<string, unknown>[] : [];
         const shotKey = "shot_key" in q ? q.shot_key : null;
-        const currentShots = shots.filter(s => !shotKey || s.shot_key === shotKey).map(s => ({ ...s, validity: visualValidity(s.dependencies as VisualDependency[], state) }));
+        const currentShots = shots.filter(s => !shotKey || s.shot_key === shotKey).map(s => ({ ...s, validity: { state: "current" as const, reasons: [] } }));
         const refs = current?.payload.identity_ref;
         return output({ current: current ? { ...await visualRecordView(current, state), payload: current.kind === "plan" ? Object.fromEntries(Object.entries(current.payload).filter(([k]) => k !== "shots")) : current.payload } : null, etag: current?.etag ?? state.etag, shots: page(currentShots),
           identity: refs ? findVisual(state, object.parse(refs).id as string, "identity", refs as { id: string; version: number; etag: string }) : null,
@@ -161,7 +161,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       }
       if (tool === "get_visual_reconciliation_context") {
         const q = visualInputSchemas[tool].parse(input), plan = findVisual(state, q.plan_id, "plan");
-        return output({ plan, readiness: visualPlanReadiness(plan, state), shots: (plan.payload.shots as Record<string, unknown>[]).map(s => ({ shot_key: s.shot_key, validity: visualValidity(s.dependencies as VisualDependency[], state) })),
+        return output({ plan, readiness: visualPlanReadiness(plan, state), shots: (plan.payload.shots as Record<string, unknown>[]).map(s => ({ shot_key: s.shot_key, validity: { state: "current" as const, reasons: [] } })),
           bindings: page(state.records.filter(r => r.kind === "binding").map(r => ({ ...r, validity: recordValidity(r, state) }))), identity: state.records.filter(r => r.kind === "identity") });
       }
       if (tool === "get_visual_comparison") {
@@ -197,7 +197,6 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         if (new Set(q.resolutions.map(r => r.shot_key)).size !== q.resolutions.length) invalidVisual("No repitas tomas al reconciliar.", "VALIDATION_ERROR");
         for (const s of prior) {
           const resolution = q.resolutions.find(r => r.shot_key === s.shot_key), next = q.plan.shots.find(n => n.shot_key === s.shot_key);
-          if (visualValidity(s.dependencies as VisualDependency[], state).state !== "current" && !resolution) invalidVisual("Explica cómo resolver cada toma que cambió.", "VALIDATION_ERROR");
           if (!next && resolution?.action !== "remove" || next && resolution?.action === "remove") invalidVisual("La resolución y las tomas del plan no coinciden.", "VALIDATION_ERROR");
           if (resolution?.action === "retain" && next && vHash(next) !== vHash(Object.fromEntries(Object.entries(s).filter(([k]) => !["dependencies", "shot_id", "shot_version", "shot_hash"].includes(k))))) invalidVisual("Una toma retenida conserva su intención; usa replace para cambiarla.", "VALIDATION_ERROR");
         }
@@ -239,11 +238,11 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       if (!["identity", "plan"].includes(record.kind)) return record;
       if (record.kind === "plan") {
         const readiness = visualPlanReadiness(record, state);
-        const blockers = readiness.reasons.filter(reason => reason.code !== "plan_not_approved");
+        const blockers = readiness.reasons;
         if (blockers.length) throw new ProductIntelligenceError("VALIDATION_ERROR", blockers[0].message,
           { missing_fields: blockers.map(reason => reason.code), next_action: readiness.next_action });
       }
-      return approveMcpVisual(record, state.records.find(previous => previous.id === record.id));
+      return availableVisualRecord(record, state.records.find(previous => previous.id === record.id));
     });
     if (tool === "bind_visual_asset" || tool === "save_visual_binding_suggestions") {
       records = selectMcpBindings(state, records);
@@ -297,7 +296,7 @@ export async function reviewVisualRecord(repository: VisualRepository, principal
   const state = await hydrateVisualState(loaded, principal, input.product_id), current = findVisual(state, input.record_id);
   if (input.expected_etag && input.expected_etag !== current.etag && input.expected_etag !== state.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de decidir.");
   const records = prepareVisualReview(state, input).map(record =>
-    fromChat && ["approve", "select"].includes(input.decision) && record.id === current.id ? approveMcpVisual(record) : record);
+    fromChat && ["approve", "select"].includes(input.decision) && record.id === current.id ? availableVisualRecord(record) : record);
   if (input.decision === "select" && !input.dry_run) await ensureVisualRenditions(state, findVisual(state, String(current.payload.asset_id), "asset"), visualTargetSchema.parse(current.payload.target), principal.userId);
   return repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_expected_revision: serverRevision(input.expected_revision, state.revision),
     p_etag: serverToken(input.expected_etag, state.etag), p_stamp: serverToken(input.expected_dependency_stamp, state.dependency_stamp), p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run }, signal);

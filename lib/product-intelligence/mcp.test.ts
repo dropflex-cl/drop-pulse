@@ -113,6 +113,7 @@ describe("PI · protocolo MCP oficial", () => {
       expect(file.properties.mime_type).not.toHaveProperty("enum");
       expect(tools.find(tool => tool.name === "get_visual_reference_image")?._meta).toMatchObject({ "openai/widgetAccessible": true, ui: { visibility: ["model", "app"] } });
       expect(tools.find(tool => tool.name === "list_products")).toMatchObject({ annotations: { readOnlyHint: true, destructiveHint: false } });
+      expect(tools.find(tool => tool.name === "save_visual_reconciliation")?._meta).toMatchObject({ "dropflex/deprecated": true, "dropflex/replacedBy": "save_visual_generation_plan" });
       expect(tools.map(tool => tool.name)).not.toContain("generate_landing");
       await expect(session.client.callTool({ name: "generate_landing", arguments: {} })).rejects.toThrow("no existe");
       expect(pages).toBeGreaterThan(1);

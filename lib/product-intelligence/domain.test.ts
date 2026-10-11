@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { authorizeResearchChanges, ReferenceResolver, usageRestrictions, validateGraph, validateStrategyChoice } from "./graph";
 import { authorizeTool, checkArtifact, checkRevision, type DelegatedGrant } from "./policy";
-import { commandHash, replayReceipt, canonicalHash } from "./concurrency";
+import { canonicalHash } from "./concurrency";
 import { calculateProductPricing, currencyScale, toMajor, toMinor, pricingSnapshot } from "./pricing";
 import { buildPricingPlan, CLP_DEFAULTS, DEFAULT_EXTRA_UNIT_DISCOUNT } from "@/lib/pricing/plan";
 import { contextFixture, graphFixture, principalFixture, requestFixture, strategyFixture } from "./test-fixtures";
@@ -109,14 +109,6 @@ describe("PI · permisos, revisión y replay", () => {
     expect(() => checkRevision(5, 6)).toThrow("cambió");
     expect(() => checkArtifact("a".repeat(64), "b".repeat(64))).toThrow("pieza cambió");
     expect(() => checkRevision(5, 5)).not.toThrow();
-  });
-  it("replay devuelve recibo original; otra intención/key no se acepta", () => {
-    const result = { ok: false as const, request_id: contextFixture().product_id, error: { code: "INTERNAL_ERROR" as const, message: "Fixture", retryable: true, details: {} } };
-    const receipt = { tool: "save_product_analysis" as const, userId: "merchant-a", productId: product.id, key: input.idempotency_key, payloadHash: commandHash("save_product_analysis", input), requiredScopes: ["product_intelligence:write" as const], expiresAt: "2026-10-07T00:00:00Z", result };
-    expect(replayReceipt(receipt, principalFixture(), "save_product_analysis", input, now)).toEqual(result);
-    expect(() => replayReceipt(receipt, principalFixture(), "save_product_analysis", { ...input, expected_revision: 3 }, now)).toThrow("otro contenido");
-    expect(replayReceipt(receipt, principalFixture(), "save_product_analysis", { ...input, dry_run: true }, now)).toBeNull();
-    expect(replayReceipt({ ...receipt, expiresAt: "invalid" }, principalFixture(), "save_product_analysis", input, now)).toBeNull();
   });
   it("el hash normaliza sets/keys pero conserva orden significativo y null", () => {
     expect(canonicalHash({ fact_ids: ["b", "a"], name: "x" })).toBe(canonicalHash({ name: "x", fact_ids: ["a", "b"] }));
