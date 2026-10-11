@@ -2,6 +2,18 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
+## Motivaciones de compra y evaluación de hooks · 1.6.2
+
+La skill diagnostica situaciones concretas de compra antes de redactar: experiencia, dolor o deseo, alternativa actual y resultado buscado. No define al comprador solo por querer usar la categoría ni espera que el comerciante le recuerde investigar el dolor. Sin investigación de clientes, desarrolla hipótesis explícitas sin inventar frecuencia, validación o expresiones observadas.
+
+Los ángulos representan razones de compra diferenciadas. Un producto protagonista o bundle no fija un único dolor; ingredientes y condiciones comerciales necesitan una motivación que justifique su protagonismo. La preocupación del comprador se evalúa por separado de la promesa sostenible del producto. Antes de mostrar propuestas, la skill revisa identificación, motivo para seguir, tensión o curiosidad, claridad del formato y conexión con la oferta. Añadir mayúsculas o una orden de atención no sustituye ese trabajo. La recomendación es una hipótesis comercial, no un ganador medido.
+
+El feedback que cuestiona dolor, motivación, persuasión o scroll permite revisar diagnóstico y ángulo. Pedir nuevas entradas del mismo argumento conserva la dirección. Se mantiene la elección explícita del comerciante, el contenido vigente y la autorización independiente para publicar; no se agregan aprobaciones ni generaciones pagadas a la revisión editorial.
+
+Actualización privada confirmada en el plugin existente, versión 1.6.2 y release `pluginrel_6acc1b358be48191a2b6be5ac2450a3c`. El readback verifica los once archivos contra el paquete publicado: cambian ambos manifiestos, la skill y su referencia de hooks; los otros siete archivos permanecen exactos, incluida la conexión y el ebook. La presentación, los prompts del plugin, su identidad y el ámbito personal privado se conservan. [Evidencia del release](plugin-release-1.6.2.json).
+
+Validación: validador de skill, 31 pruebas MCP/HTTP/entrega de skills, integridad del paquete completo y overlay de cuatro archivos. No se realizó un ensayo conversacional de ChatGPT; estas verificaciones comprueban distribución y contratos. Las ediciones simultáneas ajenas al cambio se conservan fuera de este commit y del paquete publicado. Un chat abierto puede conservar el snapshot anterior; refresca el plugin y abre una conversación nueva para cargar la versión vigente.
+
 ## Flujo vigente y adaptación 1.6.1
 
 Esta sección y [contenido vigente](current-content.md) prevalecen sobre los registros históricos de este documento. La versión 1.6.0 publicada tenía instrucciones de aprobación, reconciliación y snapshots que ya no correspondían al servidor. Parte de los archivos del repositorio había cambiado sin una nueva publicación; desplegar el servidor no actualizó el snapshot distribuido del plugin.
@@ -69,7 +81,7 @@ Para empaquetar los archivos:
 python3 scripts/package-dropflex-plugin.py
 ```
 
-Produce `output/plugins/dropflex-optimizer-1.6.1.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.6.1, declarada en `metadata.version` de su frontmatter, y conserva `create-gift-ebook` 3.0.0. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
+Produce `output/plugins/dropflex-optimizer-1.6.2.zip` sin archivos ajenos. Incluye la skill `optimize-product` 1.6.2, declarada en `metadata.version` de su frontmatter, y conserva `create-gift-ebook` 3.0.0. El servidor MCP toma su versión del manifiesto del plugin; `skills/list`, `skills/get` y el recurso `SKILL.md` permiten verificar por separado la versión de la skill. Estas versiones no certifican qué snapshot está instalado en otro cliente. El paquete con `.app.json` sirve para instalación privada/local; la publicación pública requiere una copia con `mcp.json` y sin referencias App.
 
 ## Registro histórico: referencia visual obligatoria (1.0.1)
 

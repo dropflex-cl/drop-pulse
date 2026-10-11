@@ -1,0 +1,111 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.6.2",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acc1b358be48191a2b6be5ac2450a3c",
+  "previous_release_id": "pluginrel_6acb9a62a038819180b2f09574a4218c",
+  "files_before": [
+    ".app.json",
+    ".codex-plugin/plugin.json",
+    "plugin.json",
+    "skills/create-gift-ebook/SKILL.md",
+    "skills/create-gift-ebook/agents/openai.yaml",
+    "skills/create-gift-ebook/references/pdf-production.md",
+    "skills/create-gift-ebook/scripts/build_ebook.py",
+    "skills/optimize-product/SKILL.md",
+    "skills/optimize-product/agents/openai.yaml",
+    "skills/optimize-product/references/production.md",
+    "skills/optimize-product/references/strategy-and-hooks.md"
+  ],
+  "files_after": [
+    ".app.json",
+    ".codex-plugin/plugin.json",
+    "plugin.json",
+    "skills/create-gift-ebook/SKILL.md",
+    "skills/create-gift-ebook/agents/openai.yaml",
+    "skills/create-gift-ebook/references/pdf-production.md",
+    "skills/create-gift-ebook/scripts/build_ebook.py",
+    "skills/optimize-product/SKILL.md",
+    "skills/optimize-product/agents/openai.yaml",
+    "skills/optimize-product/references/production.md",
+    "skills/optimize-product/references/strategy-and-hooks.md"
+  ],
+  "checks": [
+    {
+      "path": ".app.json",
+      "updated": false,
+      "matches": true,
+      "comparison": "equivalent_json"
+    },
+    {
+      "path": ".codex-plugin/plugin.json",
+      "updated": true,
+      "matches": true,
+      "comparison": "equivalent_json"
+    },
+    {
+      "path": "plugin.json",
+      "updated": true,
+      "matches": true,
+      "comparison": "equivalent_json"
+    },
+    {
+      "path": "skills/create-gift-ebook/SKILL.md",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/agents/openai.yaml",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/references/pdf-production.md",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/create-gift-ebook/scripts/build_ebook.py",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/SKILL.md",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/agents/openai.yaml",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/references/production.md",
+      "updated": false,
+      "matches": true,
+      "comparison": "exact_bytes"
+    },
+    {
+      "path": "skills/optimize-product/references/strategy-and-hooks.md",
+      "updated": true,
+      "matches": true,
+      "comparison": "exact_bytes"
+    }
+  ],
+  "validation": {
+    "skill_validator": "passed",
+    "mcp_http_skill_tests": 31,
+    "package_files": 11,
+    "overlay_files": 4,
+    "conversational_host_test": "not_run"
+  },
+  "comparison_source": "output/plugins/dropflex-optimizer-1.6.2.zip"
+}

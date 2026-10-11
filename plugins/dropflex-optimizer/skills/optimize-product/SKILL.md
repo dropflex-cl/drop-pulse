@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.6.1"}
+metadata: {"version": "1.6.2"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -40,11 +40,19 @@ Recupera los datos necesarios para el pedido: mercado y oferta para estrategia/p
 
 ## Diagnóstico y elección del hook
 
-Explica brevemente quién compra, qué quiere resolver, qué usa hoy, qué diferencia podemos sostener, qué objeción frena la compra y qué pruebas hay. Usa la oferta calculada y el pack recomendado. Guarda el análisis solicitado con `save_product_analysis`/`patch_product_analysis`; fuentes y evidencia con `save_research`, conservando su estado real.
+Antes de redactar, identifica situaciones concretas que podrían provocar la compra: qué experimenta la persona, qué le molesta o desea, qué intenta hoy y por qué eso no le basta. Distingue la motivación de compra de la función del producto y de la acción de incorporarlo a una rutina. «Quiere usar esta categoría» o «le falta este producto» no bastan como diagnóstico del comprador. Desarrolla las motivaciones desde el primer pedido de optimización; no esperes a que el comerciante te recuerde investigar el dolor o detener el scroll. Sin investigación de clientes, formula hipótesis explícitas con el contexto disponible, sin atribuirles frecuencia, validación ni frases observadas. Pregunta solo por datos imprescindibles, no para delegar este diagnóstico al comerciante.
 
-El ángulo es el argumento de venta; el hook es su entrada. Sin dirección elegida, presenta hasta cinco ángulos distintos con un hook cada uno. Con un ángulo elegido, ofrece tres hooks de ese ángulo. Ajusta el número si el usuario lo indica. Para cada opción muestra texto exacto, idea, a quién habla y por qué podría convertir. Menciona una prueba o limitación solo si cambia la elección o ejecución. Recomienda uno con criterio comercial, sin declararlo ganador.
+Explica brevemente quién compra, qué situación motiva la compra, qué quiere resolver, qué usa hoy, qué diferencia podemos sostener, qué objeción frena la compra y qué pruebas hay. Usa la oferta calculada y el pack recomendado. Guarda el análisis solicitado con `save_product_analysis`/`patch_product_analysis`; fuentes y evidencia con `save_research`, conservando su estado real.
 
-Pide una elección concreta y espera antes de escribir contenido dependiente. Acepta número, edición, combinación compatible o petición de otras opciones. Si ya eligió un hook en esta conversación, utiliza esa decisión sin volver a preguntarla. «Otros hooks» conserva el ángulo salvo que pida cambiarlo.
+El ángulo es el argumento de venta; el hook es su entrada. Cada ángulo debe representar una razón de compra diferenciada. Explora motivaciones funcionales, emocionales y de valor cuando sean pertinentes; no fuerces todos los hooks a dolor, miedo o negatividad. Ingredientes, mecanismo, facilidad, ahorro y pago contra entrega pueden sostener el argumento o protagonizarlo si hay una motivación concreta que lo justifica. Variar palabras o enumerar atributos y condiciones no demuestra diversidad estratégica. Mantener un producto protagonista, incluso dentro de un bundle, no obliga a conservar un único dolor o ángulo.
+
+Evalúa por separado la relevancia de la preocupación y la evidencia que permite vincular el producto con ella. Explorar una preocupación como hipótesis no prueba que el producto la resuelva: la promesa y su explicación deben respetar las capacidades documentadas. Si el argumento necesita un beneficio sin sustento, reformúlalo o descártalo; no sustituyas automáticamente todas las motivaciones emocionales por cuidado genérico o rutina incompleta. Tampoco uses una preocupación intensa como señuelo si el producto no ofrece una respuesta pertinente y sostenible.
+
+Antes de mostrar opciones, revisa y reescribe los hooks débiles: deben activar una situación, deseo o preocupación reconocible, dar una razón concreta para seguir, introducir tensión, contraste, curiosidad o una demostración relevante y abrir un argumento sostenible. Comprueba que se entienden rápidamente en el formato solicitado. Revisa las entradas que solo anuncian el producto, enumeran ingredientes o preguntan si falta en la rutina; consérvalas solo con una justificación comercial concreta. Añadir mayúsculas, exclamaciones o «¡ALTO!» no corrige un argumento débil. Esta revisión editorial forma parte de redactar: no requiere otra aprobación, generación pagada ni informe extenso.
+
+Sin dirección elegida, presenta hasta cinco ángulos distintos con un hook cada uno. Con un ángulo elegido, ofrece tres hooks de ese ángulo, salvo que el pedido cuestione su fundamento. Ajusta el número si el usuario lo indica. Para cada opción muestra texto exacto, motivación de compra, a quién habla y por qué podría convertir. Distingue la apertura de anuncio, que se gana la atención, del titular de PDP, que también aclara la propuesta; pueden compartir argumento sin compartir frase. No añadas un guion o producción audiovisual si solo pidió hooks. Menciona una prueba o limitación solo si cambia la elección o ejecución. Recomienda por relevancia para el comprador, capacidad plausible de captar atención y conexión sostenible con la oferta; facilidad de diseño y ausencia de afirmaciones extraordinarias no bastan. La recomendación es una hipótesis para probar, no un ganador demostrado.
+
+Pide una elección concreta y espera antes de escribir contenido dependiente. Acepta número, edición, combinación compatible o petición de otras opciones. Si ya eligió un hook en esta conversación, utiliza esa decisión sin volver a preguntarla. «Otros hooks» conserva el ángulo cuando pide nuevas entradas del mismo argumento; si cuestiona dolor, motivación, persuasión o capacidad de captar atención, revisa también el diagnóstico y el ángulo, sin seleccionar una nueva dirección por tu cuenta.
 
 Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. Persiste la elección siguiendo [el contrato de hooks](references/strategy-and-hooks.md). No existe una entidad independiente `primary_hook_id`; no inventes campos ni tools.
 
@@ -62,7 +70,7 @@ En producción visual, exige `get_visual_generation_context` y `get_visual_refer
 
 ## Iteración y decisiones humanas
 
-Interpreta feedback como cambios al trabajo actual. «Más directo» cambia lenguaje; «otros hooks» cambia entradas; «otro público» revisa dependencias estratégicas; «se ve distinto» revisa identidad/referencia. Explica el alcance de cambios importantes, conserva trabajo válido y edita el contenido vigente solicitado. No regeneres ni desactives selecciones por cambios de contexto.
+Interpreta feedback como cambios al trabajo actual. «Más directo» cambia lenguaje; «otros hooks» cambia entradas del mismo argumento si no cuestiona su fundamento; «otro público» revisa dependencias estratégicas; «se ve distinto» revisa identidad/referencia. Si cuestiona dolor, motivación, persuasión o capacidad de detener el scroll, revisa el diagnóstico y el ángulo antes de redactar nuevas entradas: no lo reduzcas a lenguaje más intenso ni protejas el ángulo anterior solo por estar guardado. Propón el cambio de dirección sin seleccionarlo por el comerciante. Explica el alcance de cambios importantes, conserva trabajo válido y edita el contenido vigente solicitado. No regeneres ni desactives selecciones por cambios de contexto.
 
 Recupera contenido y usos vigentes antes de regenerar. El historial informa; no exige reconciliar ni aprobar de nuevo. Cambiar el hook dentro del mismo ángulo no implica una arquitectura nueva: revisa la entrada y dependencias que realmente cambian.
 

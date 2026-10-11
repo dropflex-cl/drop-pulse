@@ -13,7 +13,8 @@ Consulta los schemas descubiertos del MCP antes de escribir. Usa el modelo exist
 
 | Pedido | Acción |
 |---|---|
-| «Otros hooks» | Propone y guarda alternativas del ángulo sin elegir automáticamente. |
+| «Otros hooks» | Propone y guarda alternativas del ángulo sin elegir automáticamente, salvo que el pedido cuestione el fundamento del argumento. |
+| «Debe conectar con el dolor / detener el scroll» | Revisa motivación, diagnóstico y ángulo; propone alternativas desde situaciones concretas sin reducir el cambio a intensidad verbal ni seleccionar una nueva dirección automáticamente. |
 | «El 2, pero más corto» | Ajusta y persiste la elección inequívoca sin otra confirmación. |
 | «Más directo» | Ajusta el contenido señalado, conservando audiencia y oferta. |
 | «Cambia de público» | Revisa necesidades, objeciones y ángulos; ofrece una nueva elección si cambia la dirección. |
