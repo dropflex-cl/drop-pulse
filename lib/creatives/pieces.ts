@@ -4,7 +4,7 @@ import type { ImageProvider } from "@/lib/image-provider";
 type Piece = { ratio: string; provider: ImageProvider; render: "queued" | "running" | "succeeded" | "failed" };
 
 /**
- * Una pieza por proporción y proveedor: la más reciente (el reintento del QA reemplaza al primero),
+ * Una pieza por proporción y proveedor: la más reciente,
  * salvo que haya fallado y ya exista una lista del mismo proveedor. Cambiar de proveedor nunca esconde
  * lo que se generó con el otro.
  */

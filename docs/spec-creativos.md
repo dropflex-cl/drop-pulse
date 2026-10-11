@@ -1,5 +1,7 @@
 # Spec: Creativos con Higgsfield (etapa opcional)
 
+> La revisión automática de imágenes con IA y sus reintentos pagados se retiraron el 2026-10-11. Las referencias a QA visual en este documento son históricas; no describen un flujo disponible. Las imágenes se revisan y eligen por decisión del comerciante.
+
 > Estado: **F1 implementada** (estáticos), 2026-09-24. Pendiente: verificar el generador de conceptos y el QA con Claude (§7.3). F2–F4 sin empezar.
 > Fecha: 2026-09-23.
 > Fuentes:

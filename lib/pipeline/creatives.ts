@@ -1,15 +1,12 @@
 import { contextDatabaseError } from "@/lib/product-intelligence/repository";
 import { renderBaseId } from "@/lib/products/render-context";
-import { afterCacheWarm } from "@/lib/ai/cache-gate";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
 import { type PackLabel } from "@/lib/pricing/labels-schemas";
-import { failure, recordAiGeneration } from "@/lib/ai/track";
+import { recordAiGeneration } from "@/lib/ai/track";
 import { fail } from "@/lib/products/database";
 import { CHAT_FAMILY, IMAGE_COST_USD, conceptRatios, type ConceptFamily, type Ratio } from "@/lib/creatives/catalog";
-import { chatBakedTexts, normalizeChat } from "@/lib/creatives/chat";
-import { QA_SYSTEM, qaUser } from "@/lib/creatives/prompts";
+import { normalizeChat } from "@/lib/creatives/chat";
 import { chatRenderRequest, languageName, renderRequest } from "@/lib/creatives/render";
-import { TEXT_LIMIT, chatEditSchema, chatProblems, conceptEditSchema, qaSchema, qaVerdict, textProblems, type QaResult } from "@/lib/creatives/schemas";
+import { TEXT_LIMIT, chatEditSchema, chatProblems, conceptEditSchema, textProblems } from "@/lib/creatives/schemas";
 import { AD_MEDIA_BUCKET, CREATIVES_BUCKET, getAssetRow, getConceptRow, isRecoverable, removeAdCopies, type AssetRow, type ConceptRow, type StoredConcept } from "@/lib/creatives/store";
 import { IMAGE_PROVIDER_NAME, type ImageProvider, type ImageStage } from "@/lib/image-provider";
 import { adminClient } from "@/lib/integrations/admin";
@@ -23,10 +20,10 @@ import type { Market } from "@/lib/market";
 import { optimizeForAds } from "@/lib/media/optimize";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { getPricingPlan } from "@/lib/pricing/store";
-import { imageQaEnabled, imagesForGeneration, listImageRows, withDisplayUrls } from "@/lib/products/store";
+import { imagesForGeneration, listImageRows, withDisplayUrls } from "@/lib/products/store";
 import "server-only";
-import { OptimizeError, requireAiKey } from "./errors";
-import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
+import { OptimizeError } from "./errors";
+import { download, toJpeg } from "./images";
 /** Tope de imágenes por comerciante en 24 h: protege su cuenta de Higgsfield de un bucle. */
 const DAILY_IMAGES = 120;
 /** Cuánto espera el proceso en segundo plano antes de dejarle la pieza al sondeo de la pantalla. */
@@ -35,7 +32,7 @@ const POLL_BUDGET_MS = 200_000;
 const LEASE_MS = 20_000;
 
 
-/** El concepto de una pieza, aunque ya esté reemplazado (el QA y el historial lo necesitan igual). */
+/** El concepto de una pieza, aunque ya esté reemplazado (el historial lo necesita igual). */
 async function assetConcept(a: AssetRow): Promise<{ name?: string; family?: ConceptFamily }> {
   const { data } = await adminClient().from("creative_concepts").select("payload, family").eq("id", a.concept_id).maybeSingle();
   const row = data as { payload: StoredConcept; family: ConceptFamily } | null;
@@ -157,7 +154,6 @@ export async function editChat(userId: string, productId: string, conceptId: str
 
 /** Crea la pieza (queued) de un concepto en una proporción. Si ya hay una generándose, la devuelve. */
 export async function startRender(userId: string, productId: string, conceptId: string, ratio: Ratio, prefer?: ImageProvider): Promise<{ asset: AssetRow; created: boolean }> {
-  if (await imageQaEnabled(userId, productId)) await requireAiKey(userId);
   const provider = await requireProvider(userId, "creatives", "anuncios", prefer);
   const concept = await getConceptRow(userId, productId, conceptId);
   if (!concept) throw new OptimizeError("Ese concepto ya no está vigente. Actualiza la página.", 409);
@@ -172,10 +168,10 @@ export async function startRender(userId: string, productId: string, conceptId: 
   fail("Contar las piezas", countError);
   if ((count ?? 0) >= DAILY_IMAGES) throw new OptimizeError(`Llegaste al máximo de ${DAILY_IMAGES} imágenes en 24 horas. Vuelve mañana.`, 429);
 
-  return { asset: await insertAsset(concept, ratio, 1, provider), created: true };
+  return { asset: await insertAsset(concept, ratio, provider), created: true };
 }
 
-async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, provider: ImageProvider): Promise<AssetRow> {
+async function insertAsset(concept: ConceptRow, ratio: Ratio, provider: ImageProvider): Promise<AssetRow> {
   const run = await adminClient().from("creative_runs").select("input").eq("id", concept.run_id).single();
   fail("Leer la corrida", run.error);
   const market = (run.data?.input as RunInput | undefined)?.market;
@@ -184,7 +180,7 @@ async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, p
   const chat = concept.family === CHAT_FAMILY ? concept.payload.chat : undefined;
   const req = chat
     ? chatRenderRequest(chat, market?.language ?? "es", concept.payload.product_look)
-    : renderRequest({ ...payload, family: concept.family === CHAT_FAMILY ? undefined : concept.family }, ratio, languageName(market?.language ?? "es"), attempt);
+    : renderRequest({ ...payload, family: concept.family === CHAT_FAMILY ? undefined : concept.family }, ratio, languageName(market?.language ?? "es"));
   const { data, error } = await adminClient()
     .from("creative_assets")
     .insert({
@@ -192,12 +188,10 @@ async function insertAsset(concept: ConceptRow, ratio: Ratio, attempt: number, p
       user_id: concept.user_id,
       concept_id: concept.id,
       ratio,
-      attempt,
       provider,
       endpoint: provider === "gemini" ? GEMINI_IMAGE_MODEL : req.endpoint,
       preset_id: req.presetId,
       input: req.input,
-      baked_texts: chat ? chatBakedTexts(chat) : concept.payload.texts,
       render_status: "queued",
     })
     .select("*")
@@ -294,7 +288,7 @@ async function processWithGemini(lease_: AssetRow): Promise<void> {
   // Ya se cobró: se registra antes de guardar, para que un corte al guardar no esconda el costo.
   await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_render", detail, ...geminiGeneration(result) });
   try {
-    await storeAndReview(a, result.bytes, async () => {});
+    await storeImage(a, result.bytes, async () => {});
   } catch (e) {
     console.error("[creatives] guardar la imagen de Gemini", e);
     await patchAsset(a.id, { render_status: "failed", error_code: "unexpected", error_message: "No pudimos guardar la imagen. Toca Generar de nuevo.", finished_at: new Date().toISOString() });
@@ -377,73 +371,19 @@ async function finishAsset(a: AssetRow, state: RequestState, key: string, starte
     await logRender(a, false, state.status, Date.now() - started, state.error);
     return;
   }
-  await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
+  await storeImage(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
 }
 
-/**
- * La imagen lograda (de cualquier proveedor): se guarda, se registra y, si el producto tiene encendida la
- * revisión de imágenes (`products.image_qa`), pasa el QA y, si falla, un reintento.
- */
-async function storeAndReview(a: AssetRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
-  // Va a Meta Ads (copyToAds): JPEG optimizado, que /adimages acepta siempre. El QA mira el original.
+/** Guarda la imagen optimizada y registra el costo del render solicitado. */
+async function storeImage(a: AssetRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
+  // Va a Meta Ads (copyToAds): JPEG optimizado, que /adimages acepta siempre.
   const img = await optimizeForAds(bytes);
   const path = `${a.user_id}/${a.product_id}/${a.id}.${img.ext}`;
   const up = await adminClient().storage.from(CREATIVES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true });
   fail("Guardar la imagen", up.error);
   await log();
 
-  const qa = (await imageQaEnabled(a.user_id, a.product_id))
-    ? await runQa(a, bytes).catch((e) => {
-        console.error("[creatives] QA", e);
-        return null;
-      })
-    : null;
-  await patchAsset(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, finished_at: new Date().toISOString() });
-
-  // Un solo reintento automático: sin preset, que respeta mejor el texto (spec §7.2).
-  if (qa && !qa.pass && a.attempt === 1) {
-    const concept = await getConceptRow(a.user_id, a.product_id, a.concept_id);
-    if (concept) {
-      // Con el mismo proveedor que la primera, aunque la elección haya cambiado mientras.
-      const retry = await insertAsset(concept, a.ratio, 2, a.provider);
-      await processAsset(retry.id, true);
-    }
-  }
-}
-
-// ---------------------------------------------------------------- 3. QA
-
-async function runQa(a: AssetRow, generated: Buffer): Promise<QaResult> {
-  const [base] = await productImageUrls(a.user_id, a.product_id, 1);
-  if (!base) throw new Error("sin imagen base");
-  const texts = a.baked_texts;
-  const { name, family } = await assetConcept(a);
-  const detail = [name, a.ratio].filter(Boolean).join(" · ");
-  let result;
-  try {
-    result = await afterCacheWarm(`creative_qa:${a.product_id}`, async () => generateStructured({
-      userId: a.user_id,
-      system: QA_SYSTEM,
-      // La foto real se repite en cada QA del producto: con el punto de caché, desde la segunda pieza
-      // se cobra a 0,1×. Lo propio de esta pieza va después.
-      content: [
-        { type: "text", text: "Foto real del producto:" },
-        { ...(await imageBlock(base)), cache_control: { type: "ephemeral" } },
-        { type: "text", text: "Anuncio generado:" },
-        await imageBlockFromBytes(generated),
-        { type: "text", text: qaUser(texts, family === CHAT_FAMILY) },
-      ],
-      schema: qaSchema,
-      effort: "low",
-      maxTokens: 4000,
-    }));
-  } catch (e) {
-    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, ...failure(e) });
-    throw e;
-  }
-  const { data, usage } = result;
-  await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "creative_qa", detail, usage });
-  return qaVerdict(data);
+  await patchAsset(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, finished_at: new Date().toISOString() });
 }
 
 // ---------------------------------------------------------------- Decidir

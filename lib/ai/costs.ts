@@ -24,6 +24,7 @@ export const AI_STEPS = {
   event_copy: { stage: "textos", label: "Textos del evento" },
   page_plan: { stage: "imagenes", label: "Ideas de imágenes" },
   page_render: { stage: "imagenes", label: "Imagen de la página" },
+  // Revisiones visuales retiradas: se conservan solo para interpretar costos históricos.
   page_qa: { stage: "imagenes", label: "Revisión de imagen" },
   creative_concepts: { stage: "creativos", label: "Ideas de anuncios" },
   creative_art: { stage: "creativos", label: "Dirección de arte" },
@@ -64,12 +65,6 @@ const DEFAULT_STEP_USD: Partial<Record<AiStep, number>> = {
   page_plan: 0.25,
   usage_tip: 0.02,
 };
-
-/**
- * USD por imagen de la revisión con IA (page_qa, creative_qa, video_qa): promedio observado en
- * ai_generations, 24 sep–2 oct 2026 (US$0,017–0,033 por llamada), sin contar el reintento.
- */
-export const IMAGE_QA_USD = 0.03;
 
 /** Etapas que gastan IA, en el orden de la ruta. */
 export const AI_STAGES: StageKey[] = ["importado", "angulos", "textos", "imagenes", "creativos", "mensajes"];

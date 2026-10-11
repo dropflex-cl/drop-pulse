@@ -1549,14 +1549,12 @@ export const generationContextSchema = z.strictObject({
   "entity_id": z.string().regex(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).meta({ format: "uuid" }),
   "reason": z.string().min(1).max(8192)
 })).min(0).max(100),
-  "image_qa_enabled": z.boolean(),
   "prompt_versions": z.strictObject({
   "writer": z.number().int().min(1).max(9007199254740991),
   "planner": z.union([z.number().int().min(1).max(9007199254740991), z.null()])
 }),
   "cost_policy": z.strictObject({
-  "merchant_cap_usd": z.union([z.number().min(0), z.null()]),
-  "automatic_retry_limit": z.number().int().min(0).max(3)
+  "merchant_cap_usd": z.union([z.number().min(0), z.null()])
 })
 });
 

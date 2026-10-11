@@ -91,7 +91,7 @@ export function VideosPanel({
   aiConnected = true,
 }: {
   productId: string;
-  /** Compatibilidad con la pantalla contenedora; solo el QA opcional usa Anthropic. */
+  /** Compatibilidad con la pantalla contenedora. */
   aiConnected?: boolean;
   /** Para el nombre del paquete (montageName): el mismo con que lo descarga la API. */
   productName: string;
@@ -666,7 +666,6 @@ function KeyframesStep({
                 label={`Imagen ${i + 1}`}
                 state={st}
                 src={s?.src}
-                qa={s?.qa?.issues}
                 error={s?.awaitingUpload ? undefined : s?.error}
                 busy={loading || Boolean(busy)}
                 onApprove={() => s && shot(s, "approve")}

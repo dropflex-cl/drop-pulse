@@ -1,4 +1,4 @@
-// Salida estructurada del generador de estáticos y del QA de piezas (docs/spec-creativos.md §3).
+// Salida estructurada del generador de estáticos (docs/spec-creativos.md §3).
 // Una sola definición para el modelo (JSON schema), la validación y los tipos. Claves en inglés;
 // textos para el comerciante en español con tuteo; los textos horneados, en el idioma del mercado.
 
@@ -17,8 +17,6 @@ import { conceptsPerAngle, CONCEPTS_PER_RUN, FAMILIES, FAMILY_DEFS, HEADLINE_MAX
  * de arte (creative_art); el aspecto del producto y su kit se piden una vez por imagen base.
  */
 export const CREATIVES_PROMPT_VERSION = 7;
-/** Bump cuando cambie el prompt o el esquema del QA. 2: texto inventado sobre el producto y textos que la imagen contradice. */
-export const QA_PROMPT_VERSION = 2;
 
 /** Largo máximo de un texto horneado (el del titular); cada rol tiene el suyo en ROLE_LIMITS. */
 export const TEXT_LIMIT = Math.max(...Object.values(ROLE_LIMITS));
@@ -256,41 +254,4 @@ export const chatEditSchema = z.object({
 export function chatProblems(chat: WhatsappChat, pricing: PricingPlan): string[] {
   const shape = chatShapeProblem(chat);
   return [...(shape ? [shape] : []), ...[chat.contact_name, ...chat.messages.map((m) => m.text)].flatMap((t) => claimProblems(t, pricing))];
-}
-
-// ---------------------------------------------------------------- QA de la pieza (§3.3)
-
-export const qaSchema = z.object({
-  product_matches: z.boolean().describe("true si el producto es el mismo de la foto de referencia: forma, colores, logo y etiqueta."),
-  product_issue: z.string().nullable().describe("Qué cambió del producto, en una frase para el comerciante. null si nada."),
-  texts: z
-    .array(z.object({ expected: z.string(), status: z.enum(["exact", "typo", "missing"]), found: z.string().nullable() }))
-    .describe("Uno por cada texto pedido, en el mismo orden. exact: escrito igual, con tildes y signos."),
-  extra_texts: z
-    .array(z.string())
-    .describe("Textos de la imagen que no se pidieron. Lo impreso en el producto cuenta como extra si NO está en la foto real (un nombre o logo inventado en el cuerpo)."),
-  language_ok: z.boolean().describe("false si algún texto pedido quedó traducido a otro idioma."),
-  mismatches: z
-    .array(z.string())
-    .describe("Textos pedidos que la imagen contradice (nombra «parches» y se ven calcetines; «2 rodillos» y se ve uno). En español, una frase cada uno. [] si ninguno."),
-});
-export type QaOutput = z.infer<typeof qaSchema>;
-
-export interface QaResult extends QaOutput {
-  pass: boolean;
-  /** Los motivos, en español para la pantalla. */
-  issues: string[];
-}
-
-export function qaVerdict(out: QaOutput): QaResult {
-  const issues: string[] = [];
-  if (!out.product_matches) issues.push(out.product_issue?.trim() || "El producto no se ve igual a tu foto.");
-  if (!out.language_ok) issues.push("Tradujo algún texto a otro idioma.");
-  for (const t of out.texts) {
-    if (t.status === "missing") issues.push(`Falta «${t.expected}».`);
-    else if (t.status === "typo") issues.push(`«${t.expected}» quedó como «${t.found ?? "?"}».`);
-  }
-  if (out.extra_texts.length) issues.push(`Agregó ${out.extra_texts.map((t) => `«${t}»`).join(", ")}.`);
-  issues.push(...out.mismatches.map((m) => m.trim()).filter(Boolean));
-  return { ...out, pass: issues.length === 0, issues };
 }

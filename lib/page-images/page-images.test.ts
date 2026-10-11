@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AUTO_SHOTS, GALLERY_MIN, GALLERY_SHOTS, autoShotIds, benefitSlot, slotKind } from "./catalog";
 import { pageRenderRequest } from "./render";
-import { benefitAngles, normalizePlan, pageQaVerdict, planProblems, type PagePlan, type PlanShot, type StoredShot } from "./schemas";
+import { benefitAngles, normalizePlan, planProblems, type PagePlan, type PlanShot, type StoredShot } from "./schemas";
 
 const art = { palette: "saturated blush pink scene, deep berry text", typography: "heavy rounded sans headline", mood: "fresh, bold, premium" };
 
@@ -234,32 +234,5 @@ describe("pageRenderRequest", () => {
     const prompt = String(pageRenderRequest("gallery", stored(shot({ product_units: 3, kit_parts: ["white USB cable"] })), "Spanish").input.prompt);
     expect(prompt).toContain("exactly 3 identical units of it, same size");
     expect(prompt).toContain("Also show, exactly as in the reference image: white USB cable.");
-  });
-});
-
-describe("pageQaVerdict", () => {
-  const ok = { product_matches: true, product_issue: null, texts: [], extra_texts: [], language_ok: true, mismatches: [], misleading_props: [], units_consistent: true, anatomy_ok: true };
-
-  it("pasa sin problemas", () => {
-    expect(pageQaVerdict(ok)).toMatchObject({ pass: true, issues: [] });
-  });
-
-  it("junta cada motivo en español", () => {
-    const v = pageQaVerdict({
-      ...ok,
-      texts: [{ expected: "Así trabaja el rodillo", status: "typo", found: "Asi trabaja el rodilo" }],
-      extra_texts: ["ELECTRONIC PEDICURE TOOL"],
-      misleading_props: ["El power bank rosado parece incluido en el kit."],
-      units_consistent: false,
-      anatomy_ok: false,
-    });
-    expect(v.pass).toBe(false);
-    expect(v.issues).toEqual([
-      "«Así trabaja el rodillo» quedó como «Asi trabaja el rodilo».",
-      "Agregó «ELECTRONIC PEDICURE TOOL».",
-      "Prop que confunde: El power bank rosado parece incluido en el kit.",
-      "Las unidades del producto no son iguales entre sí.",
-      "Manos o pies deformes.",
-    ]);
   });
 });

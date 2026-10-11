@@ -20,7 +20,7 @@ Información base → Reseñas → Ángulos → Textos → Imágenes → Publica
 ## Principios
 
 1. **Revisar antes de pagar.** Claude propone conceptos gratis de revisar: familia, estilo, por qué, cómo se verá y los textos que irán dentro de la imagen. La imagen, que es lo que cuesta, se genera solo cuando el comerciante la pide, y cada botón que gasta muestra su costo (`· ≈ $95`).
-2. **Una pieza, un estado.** Cada formato (feed 1:1, Stories 9:16, captura del chat, imagen clave, clip) es una `CreativePiece` con el mismo ciclo: vacía → en cola → generando → por revisar (con QA) → aprobada o descartada. Si falla, se puede recuperar o generar de nuevo.
+2. **Una pieza, un estado.** Cada formato (feed 1:1, Stories 9:16, captura del chat, imagen clave, clip) es una `CreativePiece` con el mismo ciclo: vacía → en cola → generando → por revisar → aprobada o descartada. Si falla, se puede recuperar o generar de nuevo.
 3. **Deshacer en vez de confirmar.** Aprobar y descartar actúan de inmediato y muestran un toast con Deshacer. Solo se confirman las acciones que borran lo aprobado (Proponer otros).
 4. **Nada queda esperando en pantalla.** Proponer (~1 min), escribir el guion (~1 min) y los clips (3 a 6 min) corren en segundo plano. La pantalla consulta el estado y avisa con un toast. El comerciante puede salir.
 5. **Honestidad.** El chat de WhatsApp exige un aviso aceptado. El guion del UGC muestra el producto sin que la persona diga ser clienta ni cuente resultados propios.
@@ -76,8 +76,7 @@ Otros cambios:
 | 1.9 Generar 9:16 | La pieza Stories aparece `locked` («Primero la 1:1») hasta que exista la 1:1 (C7, C11) |
 | 1.10 Lote | Barra fija **Generar N · ≈ $X** (solo cuenta las que faltan) (C6) |
 | 1.11 Otro proveedor | En la pieza revisada: **Generar con Higgsfield · ≈ $95**. Si hay mezcla, cada pieza muestra su proveedor (C6, escritorio) |
-| 1.12 Progreso | Estados `queued` («En cola») y `generating`. Con `retry`: «Segundo intento, sin estilo» (C9) |
-| 1.13 QA | `QaResult`: «Texto y producto revisados» o «Revisa: N detalles» con la lista. En la fila: «Revisa: 1 detalle» (C10) |
+| 1.12 Progreso | Estados `queued` («En cola») y `generating`. |
 | 1.14 Tamaño completo | Enlace «Tamaño completo ↗» (`target="_blank"`, `rel="noopener"`) (C10) |
 | 1.15 Aprobar | La pieza pasa a «En Anuncios». Toast «Aprobada. Ya está en Anuncios.» con **Deshacer** (C11) |
 | 1.16 Descartar | La pieza queda apagada, «El archivo se borra en 2 min». Toast con **Deshacer** (C12) |
@@ -112,7 +111,6 @@ Arriba: la cabecera del ángulo (`AngleGroup headerOnly`, con «Ver secundario»
 | 3.5 Editar | `ScriptShot` por toma: hablada (lo que dice) o de apoyo (lo que se ve), el texto en pantalla y el cierre. Si ya había clips, la toma cambiada muestra «Se genera de nuevo» (V1) |
 | 3.6 Aprobar / otro | **Aprobar guion** (principal), **Editar**, **Otro guion · ≈ $25**. Desaprobar vuelve al guion editable |
 | 3.7 Imágenes clave | **Generar la que falta · ≈ $X** (o todas, la primera vez) (V2) |
-| 3.8 QA | `KeyframeTile` con el QA de manos, cara y producto en una línea |
 | 3.9 Decidir | Aprobar o descartar en cada tile, **Aprobar todas (N)**, **Volver a revisar** y **Pedir otra** (V2) |
 | 3.10 Clips | `ClipRow` por toma: las habladas en «Seedance · con voz» y las de apoyo en «Kling», «3 a 6 min». `Notice` de que puede salir (V3) |
 | 3.11 Recuperar / rehacer | En el clip fallido: **Recuperar** si el proveedor lo recibió y **Rehacer · ≈ $X** (V3) |
@@ -122,14 +120,13 @@ Arriba: la cabecera del ángulo (`AngleGroup headerOnly`, con «Ver secundario»
 
 ## Escritorio
 
-- **Imágenes:** la cabecera lleva la pestaña, el costo de IA, el asistente y **Continuar a Anuncios**. Al centro van el resumen, los ángulos como secciones (conceptos por revisar en dos columnas; aprobados plegados; chat al pie) y abajo una barra con el proveedor y **Generar N**. A la derecha, la pieza seleccionada en grande con su QA y las acciones (atajos A y D).
+- **Imágenes:** la cabecera lleva la pestaña, el costo de IA, el asistente y **Continuar a Anuncios**. Al centro van el resumen, los ángulos como secciones (conceptos por revisar en dos columnas; aprobados plegados; chat al pie) y abajo una barra con el proveedor y **Generar N**. A la derecha, la pieza seleccionada en grande con las acciones (atajos A y D).
 - **Videos:** a la izquierda, el ángulo y el stepper vertical con el estado de cada paso. Al centro, el paso actual. A la derecha, el paso siguiente deshabilitado, con el motivo.
 
 ## Accesibilidad
 
 - `ImageProviderPicker` es un `radiogroup`; un proveedor no conectado queda `disabled` y dice por qué.
 - El progreso usa `role="status"` y la carga del video `role="progressbar"` con valor. El toast es `role="status"`.
-- El QA con detalles es `role="status"` y no depende solo del color: lleva ícono y texto «Revisa: N detalles».
 - El enlace «Tamaño completo» abre una pestaña nueva y lo indica con el ícono externo.
 - **Editar** deshabilitado se relaciona con su motivo mediante `aria-describedby`.
 - Los botones que gastan dicen cuánto en el texto visible, no solo en un tooltip.
@@ -140,7 +137,7 @@ Los montos de las pantallas son de ejemplo (en la moneda de la tienda). Los real
 
 ## Actualización: guiones y planificación desde el chat
 
-Esta sección reemplaza la redacción pagada de 3.1–3.4 y 3.6. Sin guiones: «Crea el guion en el chat», «Escribe el guion y el plan de tomas en el chat conectado a DropFlex. Al guardarlos, podrás revisarlos y aprobarlos aquí.» y **Actualizar guiones**. Con propuestas, el mismo botón permite recuperar cambios del chat. No se exige Anthropic para leer, guardar ni revisar; Higgsfield se necesita al generar medios y Anthropic solo para QA opcional.
+Esta sección reemplaza la redacción pagada de 3.1–3.4 y 3.6. Sin guiones: «Crea el guion en el chat», «Escribe el guion y el plan de tomas en el chat conectado a DropFlex. Al guardarlos, podrás revisarlos y aprobarlos aquí.» y **Actualizar guiones**. Con propuestas, el mismo botón permite recuperar cambios del chat. No se exige Anthropic para leer, guardar ni revisar; Higgsfield se necesita al generar medios.
 
 Varias ejecuciones del mismo ángulo se revisan con «Ver otro video»; persona y mascota siguen separadas. **Crear el guion en el chat**, **Crear otra versión en el chat**, **Crear UGC en el chat** y **Crear mascota en el chat** orientan al comerciante; no llaman al writer. El aviso es «Crea otra versión en el chat y guárdala. Después vuelve a Videos para revisarla.».
 

@@ -77,7 +77,6 @@ export function fixture(state: string): ProductBase {
       : undefined,
     pricingDefaults: { unitCost: 3900, avgShippingCost: 8000, purchaseCostLimit: 4500, confirmationRate: 70, deliveryRate: 70, extraUnitDiscount: 50 },
     hasBrief,
-    imageQa: false,
     differentiator: { value: hasBrief ? DIFFERENTIATOR : null, confirmed: false, proposed: hasBrief ? DIFFERENTIATOR : null },
   };
 }

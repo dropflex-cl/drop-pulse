@@ -52,10 +52,6 @@ export interface Product {
   summary: string;
   /** Estado del contenido en el encabezado; un producto sin optimizar no tiene. */
   status?: ContentStatus;
-  /**
-   * La clave de Anthropic del comerciante está conectada para la revisión opcional de imágenes.
-   * Los textos del chat y el render sin QA no requieren esta conexión.
-   */
   contentState?: import("@/lib/products/content-state").ProductContentState;
   publicationChanges?: string[];
   hasContent?: boolean;
@@ -135,8 +131,6 @@ export interface ProductBase {
   hasBrief: boolean;
   /** El diferenciador confirmado o propuesto. */
   differentiator: DifferentiatorView;
-  /** «Revisar cada imagen con IA»: el QA con Claude de cada imagen generada. Apagado por defecto. */
-  imageQa: boolean;
 }
 
 /** Un gancho del agente de ganchos (lib/hooks), como lo ve el comerciante. Los de antes solo traen el texto. */
@@ -521,14 +515,12 @@ export interface CampaignDetail {
 
 // ---------------------------------------------------------------- Creativos (docs/spec-creativos.md)
 
-/** Una pieza generada con Higgsfield: su generación, el QA y la decisión del comerciante. */
+/** Una pieza generada con Higgsfield: su generación y la decisión del comerciante. */
 export interface CreativeAssetView {
   id: string;
   ratio: "1:1" | "9:16";
   /** Con qué se generó: las piezas de un proveedor no esconden las del otro. */
   provider: ImageProvider;
-  /** 1: con el preset; 2: edición directa, después de que el QA rechazó el primero. */
-  attempt: number;
   render: "queued" | "running" | "succeeded" | "failed";
   /** Por qué falló, o por qué sigue en cola. */
   error?: string;
@@ -536,7 +528,6 @@ export interface CreativeAssetView {
   src?: string;
   width?: number;
   height?: number;
-  qa?: { pass: boolean; issues: string[] };
   status: ContentStatus;
   /** Ya está en Anuncios (se copió a los creativos del producto). */
   inAds: boolean;
@@ -602,7 +593,6 @@ export interface VideoShotView {
   error?: string;
   /** URL firmada (1 h): imagen en las imágenes clave, MP4 en los clips. */
   src?: string;
-  qa?: { pass: boolean; issues: string[] };
   /** Solo las imágenes clave se aprueban una a una. */
   status: ContentStatus;
   /** Falló después de llegar a Higgsfield: se puede recuperar sin volver a cobrar. */
@@ -656,15 +646,12 @@ export interface PageImageOptionView {
   shotId?: string;
   referenceId?: string;
   render: "queued" | "running" | "succeeded" | "failed";
-  /** 2: el reintento automático después de que el QA rechazó el primero. */
-  attempt: number;
   /** Por qué falló, o por qué sigue en cola. */
   error?: string;
   /** URL firmada de la imagen (1 h). */
   src?: string;
   width?: number;
   height?: number;
-  qa?: { pass: boolean; issues: string[] };
   /** Elegida para la página. */
   chosen: boolean;
   /** Descartada: se borra pasado el plazo de Deshacer. */
@@ -701,8 +688,6 @@ export interface PageImageSlotView {
 export interface PageImagesState {
   /** Hay un proveedor de imágenes: sin él se puede elegir y subir, pero no generar. */
   connected: boolean;
-  /** La clave de Anthropic está conectada para el QA visual opcional. */
-  aiConnected?: boolean;
   /** Con qué se genera y qué más se puede elegir (la elección queda guardada). */
   imageProvider: ImageProviderChoice;
   /** Requisito real que falta para generar, como proveedor, referencia o datos. */

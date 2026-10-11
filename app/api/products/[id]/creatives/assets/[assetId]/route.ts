@@ -5,7 +5,7 @@ import { ProductApiError, errorResponse, json, ownedProduct } from "@/lib/produc
 
 const ACTIONS: (AssetDecision | "recover")[] = ["approve", "reject", "reopen", "recover"];
 
-// Recuperar descarga la imagen y corre el QA después de responder (after).
+// Recuperar descarga la imagen y guarda el archivo después de responder (after).
 export const maxDuration = 300;
 
 /**

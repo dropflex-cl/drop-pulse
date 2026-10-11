@@ -15,9 +15,7 @@ const option = (id: string, shotId: string, i: number, over: Partial<PageImageOp
   source: "ai",
   shotId,
   render: "succeeded",
-  attempt: 1,
   src: productImage(i, i % 4),
-  qa: { pass: true, issues: [] },
   chosen: false,
   discarded: false,
   createdAt: NOW,
@@ -43,7 +41,7 @@ export function fixture(state: string) {
   const galleryOptions = galleryShots
     .filter((s) => s.auto && !(state === "failed" && s.id === "g3"))
     .map((s, i) => option(`o-${s.id}`, s.id, i + 1, { chosen: state !== "failed", order: state !== "failed" ? i + 1 : undefined }));
-  if (state === "failed") galleryOptions.push(option("o-g3", "g3", 3, { render: "failed", src: undefined, qa: undefined, error: "Higgsfield no generó la imagen. Toca Generar otra." }));
+  if (state === "failed") galleryOptions.push(option("o-g3", "g3", 3, { render: "failed", src: undefined, error: "Higgsfield no generó la imagen. Toca Generar otra." }));
 
   const slots: PageImageSlotView[] = [
     slot(COVER, "Portada", {
@@ -57,7 +55,7 @@ export function fixture(state: string) {
             pairs: text,
             angle: i < 2 ? i + 1 : undefined,
             shots: [{ id: `b${i + 1}`, name: text.split(",")[0], type: "Beneficio", look: "El rodillo en primer plano sobre la piel del talón.", auto: false }],
-            options: state === "benefits" ? [option(`o-b${i + 1}`, `b${i + 1}`, i, { render: i ? "queued" : "running", src: undefined, qa: undefined })] : [],
+            options: state === "benefits" ? [option(`o-b${i + 1}`, `b${i + 1}`, i, { render: i ? "queued" : "running", src: undefined })] : [],
           }),
         )
       : []),

@@ -14,7 +14,6 @@ import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-
 import { sessionUser } from "@/lib/integrations/session";
 import { isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
 import { activeShots, latestPageImageRuns, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
-import { generationBlocker } from "@/lib/pipeline/page-images";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
@@ -215,7 +214,6 @@ export const getProductBase = cache(async (id: string): Promise<ProductBase | nu
     pricingDefaults: pricingDefaultsValue,
     hasBrief: canonical.hasContext,
     differentiator,
-    imageQa: row.image_qa === true,
   };
 });
 
@@ -326,18 +324,14 @@ export const getProductPageImages = cache(async (id: string): Promise<ProductPag
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/page-images). */
 export async function pageImagesState(uid: string, productId: string): Promise<PageImagesState> {
-  const [choice, runs, shots, rows, refs, blocker, anthropic] = await Promise.all([
+  const [choice, runs, shots, rows, refs] = await Promise.all([
     imageProviderChoice(uid, "page_images"),
     latestPageImageRuns(uid, [productId]),
     activeShots(uid, productId),
     pageImageRows(uid, [productId]),
     listImageRows(uid, [productId]),
-    generationBlocker(uid, productId),
-    getAnthropicConnection(uid),
   ]);
   const inUse = refs.filter((r) => !r.excluded);
-  // Anthropic solo participa en la revisión visual opcional; el blocker comprueba ese switch.
-  const aiConnected = anthropic?.status === "connected";
   const [urls, refUrls] = await Promise.all([signedPageUrls([...new Set(rows.map((r) => r.storage_path).filter((p): p is string => Boolean(p)))]), withDisplayUrls(inUse)]);
   for (const [id, src] of refUrls) urls.set(`ref:${id}`, src);
   const run = runs.get(productId);
@@ -347,9 +341,8 @@ export async function pageImagesState(uid: string, productId: string): Promise<P
   const world = chatPlan?.visual_world ?? run?.world, worldWhy = chatPlan?.visual_world_why ?? run?.world_why;
   return {
     connected,
-    aiConnected,
     imageProvider: choice,
-    cannotGenerate: blocker ?? (connected ? null : noProvider),
+    cannotGenerate: connected ? null : noProvider,
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     style: run?.status === "succeeded" && shots.length && isVisualWorld(world) && worldWhy ? { name: VISUAL_WORLD_NAMES[world], why: worldWhy } : undefined,
     slots: toSlotViews(shots, rows, urls),

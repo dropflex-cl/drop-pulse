@@ -1,7 +1,7 @@
 import "server-only";
 import { ApiError, GoogleGenAI, Modality, type ContentListUnion } from "@google/genai";
 import sharp from "sharp";
-import type { AiUsage } from "@/lib/ai/claude";
+import type { AiUsage } from "@/lib/ai/usage";
 import type { AiGeneration } from "@/lib/ai/track";
 import { imageCostUsd, type GeminiImageSize } from "./pricing";
 import { classifyGemini429 } from "./quota";

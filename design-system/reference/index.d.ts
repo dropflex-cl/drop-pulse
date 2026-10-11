@@ -237,10 +237,8 @@ export declare function AssistantButton(props: AssistantButtonProps): React.Reac
 export interface ImageProvider { id: 'higgsfield' | 'gemini' | string; name: string; cost: number; eta?: string; connected?: boolean }
 export interface ImageProviderPickerProps { value?: string; providers?: ImageProvider[]; compact?: boolean; inline?: boolean; label?: string }
 export declare function ImageProviderPicker(props: ImageProviderPickerProps): React.ReactElement;
-export interface QaResultProps { issues?: string[]; okLabel?: string }
-export declare function QaResult(props: QaResultProps): React.ReactElement;
 export type PieceState = 'empty' | 'locked' | 'queued' | 'generating' | 'review' | 'approved' | 'discarded' | 'failed';
-export interface CreativePieceProps { ratio?: '1:1' | '9:16'; label?: string; state?: PieceState; provider?: 'higgsfield' | 'gemini' | string; cost?: number; retry?: boolean; qa?: string[]; qaOk?: string; recoverable?: boolean; error?: string; eta?: string; imageIndex?: number; shape?: number; overlay?: React.ReactNode; variant?: 'row' | 'full' }
+export interface CreativePieceProps { ratio?: '1:1' | '9:16'; label?: string; state?: PieceState; provider?: 'higgsfield' | 'gemini' | string; cost?: number; recoverable?: boolean; error?: string; eta?: string; imageIndex?: number; shape?: number; overlay?: React.ReactNode; variant?: 'row' | 'full' }
 export declare function CreativePiece(props: CreativePieceProps): React.ReactElement;
 export interface ConceptText { role: string; value: string; limit?: number }
 export interface CreativeConceptProps { slot?: number; title: string; family: string; style?: string; styleKind?: 'preset' | 'direct'; why?: string; look?: string; texts?: ConceptText[]; pieces?: CreativePieceProps[]; editing?: boolean; locked?: boolean; compact?: boolean; emphasis?: 'review' | 'normal' | 'done'; footer?: React.ReactNode }
@@ -261,7 +259,7 @@ export interface UgcStepperProps { current?: 1 | 2 | 3 | 4 | 5; vertical?: boole
 export declare function UgcStepper(props: UgcStepperProps): React.ReactElement;
 export interface ScriptShotProps { n: number; kind?: 'talk' | 'broll'; time?: string; line: string; onscreen?: string; changed?: boolean; editing?: boolean }
 export declare function ScriptShot(props: ScriptShotProps): React.ReactElement;
-export interface KeyframeTileProps { n: number; state?: 'missing' | 'generating' | 'review' | 'approved' | 'discarded'; qa?: string[]; imageIndex?: number }
+export interface KeyframeTileProps { n: number; state?: 'missing' | 'generating' | 'review' | 'approved' | 'discarded'; imageIndex?: number }
 export declare function KeyframeTile(props: KeyframeTileProps): React.ReactElement;
 export interface ClipRowProps { n: number; kind?: 'talk' | 'broll'; state?: 'queued' | 'generating' | 'done' | 'failed'; eta?: string; cost?: number; recoverable?: boolean; duration?: string; imageIndex?: number }
 export declare function ClipRow(props: ClipRowProps): React.ReactElement;
@@ -284,7 +282,7 @@ declare global {
       Stars: typeof Stars; ReviewImporter: typeof ReviewImporter; ReviewSummary: typeof ReviewSummary; ReviewItem: typeof ReviewItem;
       ScoreBar: typeof ScoreBar; RoleChip: typeof RoleChip; AngleCard: typeof AngleCard; AngleSuggestion: typeof AngleSuggestion; IcpSummary: typeof IcpSummary; AngleDevelopment: typeof AngleDevelopment;
       StructurePicker: typeof StructurePicker; PresetSelect: typeof PresetSelect; ConfigSection: typeof ConfigSection; ChipInput: typeof ChipInput; RuleRow: typeof RuleRow; RuleGroup: typeof RuleGroup; CreativeSlot: typeof CreativeSlot; CampaignTree: typeof CampaignTree; DecisionRow: typeof DecisionRow;
-      AssistantButton: typeof AssistantButton; ImageProviderPicker: typeof ImageProviderPicker; QaResult: typeof QaResult; CreativePiece: typeof CreativePiece; CreativeConcept: typeof CreativeConcept; AngleGroup: typeof AngleGroup; ChatModule: typeof ChatModule; CreativeSummary: typeof CreativeSummary; ChatConsent: typeof ChatConsent; ChatPreview: typeof ChatPreview; UgcStepper: typeof UgcStepper; ScriptShot: typeof ScriptShot; KeyframeTile: typeof KeyframeTile; ClipRow: typeof ClipRow; MontagePackage: typeof MontagePackage; VideoUpload: typeof VideoUpload;
+      AssistantButton: typeof AssistantButton; ImageProviderPicker: typeof ImageProviderPicker; CreativePiece: typeof CreativePiece; CreativeConcept: typeof CreativeConcept; AngleGroup: typeof AngleGroup; ChatModule: typeof ChatModule; CreativeSummary: typeof CreativeSummary; ChatConsent: typeof ChatConsent; ChatPreview: typeof ChatPreview; UgcStepper: typeof UgcStepper; ScriptShot: typeof ScriptShot; KeyframeTile: typeof KeyframeTile; ClipRow: typeof ClipRow; MontagePackage: typeof MontagePackage; VideoUpload: typeof VideoUpload;
       CharCount: typeof CharCount; EmptyState: typeof EmptyState; Notice: typeof Notice; PageOutline: typeof PageOutline; CopySummary: typeof CopySummary;
       AiCostChip: typeof AiCostChip; AiCostCard: typeof AiCostCard; AiRunList: typeof AiRunList;
       MediaTile: typeof MediaTile; MediaSlot: typeof MediaSlot; GenerationComposer: typeof GenerationComposer;

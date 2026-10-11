@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { renderRequest, languageName, modeFor, type RenderableConcept } from "./render";
-import { artProblems, conceptProblems, conceptProblemsByConcept, mergeConcept, qaVerdict, textProblems, type ConceptIdea, type ConceptPayload, type CreativeConceptsOutput } from "./schemas";
+import { artProblems, conceptProblems, conceptProblemsByConcept, mergeConcept, textProblems, type ConceptIdea, type ConceptPayload, type CreativeConceptsOutput } from "./schemas";
 
 const pricing = {
   currency: "CLP",
@@ -87,19 +87,12 @@ describe("renderRequest", () => {
     expect(r.input.prompt as string).toMatch(/^Vertical 9:16 advertising image/);
   });
 
-  it("el segundo intento pasa a edición directa, sin preset (el QA rechazó el primero)", () => {
-    const r = renderRequest(concept(), "9:16", "Spanish", 2);
-    expect(r.mode).toBe("direct");
-    expect(r.presetId).toBeNull();
-    expect(r.input).toMatchObject({ enhance_prompt: false });
-    expect(r.input).not.toHaveProperty("preset_id");
-  });
 
   it("las familias de escena nunca usan preset, aunque el concepto traiga uno", () => {
-    expect(modeFor({ preset_id: preset, family: "before_after" }, 1)).toBe("direct");
-    expect(modeFor({ preset_id: preset, family: "explainer" }, 1)).toBe("direct");
-    expect(modeFor({ preset_id: null, family: "native" }, 1)).toBe("direct");
-    expect(modeFor({ preset_id: preset, family: "proof" }, 1)).toBe("preset");
+    expect(modeFor({ preset_id: preset, family: "before_after" })).toBe("direct");
+    expect(modeFor({ preset_id: preset, family: "explainer" })).toBe("direct");
+    expect(modeFor({ preset_id: null, family: "native" })).toBe("direct");
+    expect(modeFor({ preset_id: preset, family: "proof" })).toBe("preset");
   });
 
   it("un concepto v1 (sin dirección de arte) sigue con el formato anterior", () => {
@@ -236,27 +229,5 @@ describe("conceptProblems (paso de conceptos: reparto y textos)", () => {
       expect(merged.texts[1]).toMatchObject({ role: "badge", placement: "", points_to: null });
       expect(artProblems([merged], KIT, facts, [idea(concept())]).some((p) => /una por texto/.test(p))).toBe(true);
     });
-  });
-});
-
-describe("qaVerdict", () => {
-  const ok = { product_matches: true, product_issue: null, texts: [{ expected: "Hola", status: "exact" as const, found: "Hola" }], extra_texts: [], language_ok: true, mismatches: [] };
-
-  it("pasa solo con el producto igual, los textos exactos, sin textos de más y en el idioma pedido", () => {
-    expect(qaVerdict(ok).pass).toBe(true);
-    const bad = qaVerdict({
-      ...ok,
-      texts: [{ expected: "DENTRO DE CADA CÁPSULA", status: "typo", found: "INSIDE EVERY CAPSULE" }],
-      extra_texts: ["VAGINAL PROBIOTIC"],
-      language_ok: false,
-    });
-    expect(bad.pass).toBe(false);
-    expect(bad.issues).toEqual(["Tradujo algún texto a otro idioma.", "«DENTRO DE CADA CÁPSULA» quedó como «INSIDE EVERY CAPSULE».", "Agregó «VAGINAL PROBIOTIC»."]);
-  });
-
-  it("un texto que la imagen contradice no pasa", () => {
-    const v = qaVerdict({ ...ok, mismatches: ["«Crema, piedra y parches»: se ven calcetines, no parches."] });
-    expect(v.pass).toBe(false);
-    expect(v.issues).toEqual(["«Crema, piedra y parches»: se ven calcetines, no parches."]);
   });
 });

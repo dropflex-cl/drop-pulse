@@ -3,7 +3,7 @@ import { pageImagesState } from "@/lib/data/products";
 import { processImage, startShotRender } from "@/lib/pipeline/page-images";
 import { errorResponse, ownedProduct } from "@/lib/products/http";
 
-// «Generar otra»: una imagen más de la misma toma del director (~20–30 s, más el QA).
+// «Generar otra»: una imagen más de la misma toma del director (~20–30 s).
 export const maxDuration = 300;
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string; shotId: string }> }) {

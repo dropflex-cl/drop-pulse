@@ -1065,11 +1065,6 @@ body { margin: 0; font-family: var(--font-sans); background: var(--background); 
 .df-basephoto div { flex: 1; display: flex; flex-direction: column; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
 .df-basephoto b { font-size: 14px; color: var(--foreground); font-weight: 600; }
 
-.df-qa { display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 500; border-radius: var(--radius-md); padding: 8px 10px; }
-.df-qa.is-ok { color: var(--success); background: var(--success-soft); }
-.df-qa.is-warn { flex-direction: column; align-items: stretch; color: var(--foreground); background: var(--warning-soft); }
-.df-qa-h { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warning); }
-.df-qa ul { margin: 0; padding-left: 20px; font-weight: 400; display: flex; flex-direction: column; gap: 2px; }
 
 .df-piece { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
 .df-piece-m { position: relative; width: 48px; height: 48px; border-radius: var(--radius-sm); background: var(--muted); color: var(--muted-foreground); display: grid; place-items: center; overflow: hidden; justify-self: center; }
@@ -1081,9 +1076,6 @@ body { margin: 0; font-family: var(--font-sans); background: var(--background); 
 .df-piece-t { font-size: 14px; line-height: 20px; font-weight: 600; }
 .df-piece-s { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .df-piece-note { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
-.df-piece-qa { font-size: 12px; line-height: 16px; font-weight: 500; }
-.df-piece-qa.is-ok { color: var(--success); }
-.df-piece-qa.is-warn { color: var(--warning); }
 .df-piece-err { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--destructive); }
 .df-piece-a { display: flex; gap: 6px; justify-content: flex-end; }
 .df-piece-acts { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1183,7 +1175,6 @@ body { margin: 0; font-family: var(--font-sans); background: var(--background); 
 .df-kf.st-missing .df-kf-m { border-style: dashed; }
 .df-kf-a { display: flex; gap: 4px; }
 .df-kf-a .df-iconbtn { flex: 1; border: 1px solid var(--border); }
-.df-kf .df-piece-qa { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .df-clip { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); }
 .df-clip-m { position: relative; width: 40px; height: 64px; border-radius: var(--radius-sm); background: var(--muted); color: var(--muted-foreground); display: grid; place-items: center; overflow: hidden; }

@@ -25,7 +25,7 @@ import { useImageProviderPick } from "./image-provider-picker";
 
 // Etapa Creativos (design-system/creativos.md, docs/spec-creativos.md §6.6). Pestaña Imágenes: la IA
 // propone conceptos desde los ángulos aprobados; el comerciante los revisa gratis y paga solo las piezas
-// que pide (cada botón que gasta dice cuánto). Un QA revisa producto y textos. Aprobar manda la pieza a
+// que pide (cada botón que gasta dice cuánto). Aprobar manda la pieza a
 // Anuncios, con Deshacer. Por ángulo, además, un «Chat de WhatsApp» armado (lib/creatives/chat.ts).
 // Móvil: lista → concepto → pieza, como subvistas con historial. Escritorio: la lista al centro y el
 // concepto o la pieza elegida a la derecha (atajos A / D).
@@ -288,8 +288,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
           provider={IMAGE_PROVIDER_NAME[a.provider]}
           src={a.src}
           cost={costFor(a.provider)}
-          retry={a.attempt > 1}
-          qa={a.qa?.issues}
           recoverable={a.recoverable}
           error={a.error}
           eta={a.render === "queued" ? a.error : undefined}
@@ -442,7 +440,7 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
     );
   }
 
-  /** Una pieza en grande, con su QA y las acciones; y generar la misma con el otro proveedor. */
+  /** Una pieza en grande, con las acciones; y generar la misma con el otro proveedor. */
   function pieceFull(c: CreativeConceptView, a: CreativeAssetView) {
     const others = rendering(a) ? [] : state.imageProvider.options.filter((o) => o.available && o.id !== a.provider && needsRender(c.assets, a.ratio, o.id));
     return (
@@ -454,8 +452,6 @@ export function CreativesScreen({ data, initialTab = "images" }: { data: Product
         provider={IMAGE_PROVIDER_NAME[a.provider]}
         src={a.src}
         cost={costFor(a.provider)}
-        retry={a.attempt > 1}
-        qa={a.qa?.issues}
         recoverable={a.recoverable}
         error={a.error}
         eta={a.render === "queued" ? a.error : undefined}

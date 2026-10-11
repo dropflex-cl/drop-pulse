@@ -27,6 +27,15 @@ const now = new Date("2026-09-24T18:00:00Z");
 const base = { currency: "CLP", usdRate: 1000, stages, now, timeZone: "America/Santiago" };
 
 describe("summarizeAiCost", () => {
+
+  it("mantiene el costo de las revisiones visuales retiradas", () => {
+    const summary = summarizeAiCost([row({ step: "page_qa", cost_usd: 0.03 }), row({ step: "creative_qa", cost_usd: 0.02 }), row({ step: "video_qa", cost_usd: 0.01 })], base);
+    expect(summary.totalUsd).toBeCloseTo(0.06);
+    expect(summary.total).toBeCloseTo(60);
+    expect(summary.runs).toHaveLength(3);
+    expect(summary.stages.find(stage => stage.label === "Imágenes")?.cost).toBeCloseTo(30);
+    expect(summary.stages.find(stage => stage.label === "Creativos")?.cost).toBeCloseTo(30);
+  });
   it("distingue generar, fallar, reintentar y regenerar por paso y detalle", () => {
     const s = summarizeAiCost(
       [

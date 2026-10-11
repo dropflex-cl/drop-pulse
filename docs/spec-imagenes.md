@@ -1,5 +1,7 @@
 # Etapa Imágenes: las imágenes de la página del producto
 
+> La revisión automática de imágenes con IA y sus reintentos pagados se retiraron el 2026-10-11. Las referencias a QA visual en este documento son históricas; no describen un flujo disponible. Las imágenes se revisan y eligen por decisión del comerciante.
+
 La etapa Imágenes prepara lo visual de la página del producto (PDP) con nivel de agencia: una galería que se ve como la de una marca premium, generada desde la foto real del producto. Se organiza **por espacios de la página** (design-system `imagenes.md`). **Va antes de la Página del producto** (cambio del 2026-09-24): la página usa estas imágenes en la ficha y en sus componentes. Además de las imágenes, el comerciante **sube sus GIF** (§1bis); el video UGC queda para después (§7).
 
 ## 1. Espacios

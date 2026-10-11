@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { conceptRatios } from "./catalog";
-import { chatBakedTexts, chatRenderPrompt, chatShapeProblem, normalizeChat, type WhatsappChat } from "./chat";
+import { chatRenderPrompt, chatShapeProblem, normalizeChat, type WhatsappChat } from "./chat";
 import { chatRenderRequest } from "./render";
 import { chatOutputSchema, chatProblems } from "./schemas";
 
@@ -102,12 +102,6 @@ describe("render del chat", () => {
     expect(conceptRatios("hero")[0]).toBe("1:1");
   });
 
-  it("el QA busca el contacto y cada burbuja con texto", () => {
-    const texts = chatBakedTexts(chat({ messages: chat().messages.map((m) => (m.photo ? { ...m, text: "" } : m)) }));
-    expect(texts[0]).toEqual({ role: "contact", text: "Fran 💗" });
-    expect(texts).toHaveLength(5);
-    expect(texts.map((t) => t.role)).toEqual(["contact", "incoming", "outgoing", "incoming", "outgoing"]);
-  });
 });
 
 describe("chatOutputSchema", () => {

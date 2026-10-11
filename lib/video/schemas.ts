@@ -48,8 +48,6 @@ export const UGC_PROMPT_VERSION = 10;
  * 11: sin las frases del cliente ideal (spec-prompts-simples §14).
  */
 export const MASCOT_PROMPT_VERSION = 11;
-/** Bump cuando cambie el prompt o el esquema del QA de imágenes clave. 2: brand_safe (formas que se leen como algo sexual). 3: matches_hook (la apertura) y phone_look (aviso). */
-export const KEYFRAME_QA_PROMPT_VERSION = 3;
 
 // ---------------------------------------------------------------- 1. El guion (paso ugc_script)
 // Lo que dice la persona o el personaje, toma por toma, con su entrega: el trabajo creativo. Sin
@@ -488,39 +486,4 @@ export function changedLines(before: UgcScript, after: UgcScript): string[] {
     const b = before.a_roll.find((x) => x.key === a.key);
     return !b || b.line !== a.line || b.delivery !== a.delivery;
   }).map((a) => a.key);
-}
-
-// ---------------------------------------------------------------- QA de imágenes clave
-
-export const keyframeQaSchema = z.object({
-  hands_ok: z.boolean().describe("false si hay una mano de más, una mano deforme o dedos que no son cinco."),
-  product_ok: z.boolean().nullable().describe("Solo si se pidió el producto: true si es igual a la foto real (forma, colores, etiqueta legible). null si no aplica."),
-  same_person: z.boolean().nullable().describe("Solo si hay referencia del personaje: true si es la misma persona (cara, pelo). null si no aplica."),
-  no_text: z.boolean().describe("false si hay textos, subtítulos o marcas de agua que no son la etiqueta real del producto."),
-  brand_safe: z.boolean().describe("false si una forma o una pose puede leerse como genitales o algo sexual o sugerente (Meta lo rechaza por contenido adulto). Ante la duda, false."),
-  matches_hook: z.boolean().nullable().describe("Solo en la imagen de la apertura: true si muestra lo que pide la primera toma del gancho, con la acción ya en marcha. null si no es la apertura."),
-  phone_look: z.boolean().nullable().describe("Solo en el video con persona: true si parece una foto de teléfono en una casa; false si parece de estudio, de campaña o de banco de imágenes. null en la mascota."),
-  issues: z.array(z.string()).describe("Cada problema en una frase para el comerciante, en español. [] si ninguno."),
-});
-export type KeyframeQaOutput = z.infer<typeof keyframeQaSchema>;
-export interface KeyframeQa {
-  pass: boolean;
-  /** Si no pasa, por qué. Si pasa, los avisos que no bloquean (`phone_look`). */
-  issues: string[];
-}
-
-export function keyframeQaVerdict(out: KeyframeQaOutput): KeyframeQa {
-  const issues = out.issues.map((i) => i.trim()).filter(Boolean);
-  const add = (ok: boolean | null, msg: string) => ok === false && !issues.length && issues.push(msg);
-  add(out.hands_ok, "Revisa las manos: hay una de más o está deforme.");
-  add(out.product_ok, "El producto no se ve igual a tu foto.");
-  add(out.same_person, "La persona no es la misma del personaje.");
-  add(out.no_text, "Tiene textos que no pedimos.");
-  add(out.matches_hook ?? null, "No muestra la primera toma del gancho: pide otra.");
-  // Lo más grave va primero y siempre, aunque el modelo haya anotado otros problemas.
-  if (!out.brand_safe) issues.unshift("Su forma puede leerse como algo sexual y Meta rechazaría el anuncio: pide otra o escribe otro guion.");
-  const pass = out.hands_ok && out.product_ok !== false && out.same_person !== false && out.no_text && out.brand_safe && out.matches_hook !== false;
-  // phone_look no bloquea (spec-video-detener-scroll §4.5): si pasa lo demás, queda como aviso.
-  if (pass) return { pass, issues: out.phone_look === false ? ["Parece foto de estudio: si no te convence, pide otra."] : [] };
-  return { pass, issues };
 }

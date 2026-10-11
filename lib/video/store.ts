@@ -7,7 +7,7 @@ import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { RunStatus, VideoCardView, VideoShotView, VideoStep } from "@/lib/types";
 import type { ShotKind, VideoFormat } from "./catalog";
 import { scriptCost } from "./cost";
-import type { KeyframeQa, UgcScript } from "./schemas";
+import type { UgcScript } from "./schemas";
 
 // video_scripts y video_shots (docs/spec-video-ugc.md §6): lecturas de la pestaña Videos y su paso a
 // la pantalla. Siempre con service_role filtrando por el dueño (como lib/creatives/store.ts).
@@ -68,7 +68,6 @@ export interface ShotRow {
   height: number | null;
   duration_s: number | null;
   size_bytes: number | null;
-  qa: KeyframeQa | null;
   status: DbContentStatus;
   error_code: string | null;
   error_message: string | null;
@@ -193,7 +192,6 @@ export function toShotView(s: ShotRow, src?: string): VideoShotView {
     awaitingUpload: s.error_code === "awaiting_upload" || undefined,
     error: s.render_status === "failed" || waiting ? (s.error_message ?? undefined) : undefined,
     src,
-    qa: s.qa ? { pass: s.qa.pass, issues: s.qa.issues } : undefined,
     status: toUiStatus(s.status),
     recoverable: isShotRecoverable(s) || undefined,
     needsReconciliation: s.error_code === "dispatch_unknown" || undefined,

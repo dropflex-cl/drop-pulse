@@ -10,8 +10,7 @@ import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRequest } fro
 import { isShotRecoverable, type ScriptRow, type ShotRow } from "@/lib/video/store";
 import { signedUrls } from "@/lib/creatives/store";
 import { higgsfieldKey } from "@/lib/integrations/higgsfield/connection";
-import { requireAiKey } from "@/lib/pipeline/errors";
-import { imageQaEnabled, imagesForGeneration } from "@/lib/products/store";
+import { imagesForGeneration } from "@/lib/products/store";
 import { montagePackage } from "@/lib/pipeline/video";
 import { productHref } from "@/lib/routes";
 import { canonicalHash, commandHash } from "./concurrency";
@@ -195,13 +194,11 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       prepared = prepareUgcShots(script, query.stage, query.shot_keys);
       const existingK1 = read.shots.some((s) => s.script_id === script.id && s.key === "K1" && s.render_status === "succeeded");
       if (query.stage === "keyframes" && !query.shot_keys.includes("K1") && !existingK1 && query.shot_keys.some((k) => script.payload.keyframes.find((x) => x.key === k)?.uses_character)) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Incluye K1 o genéralo primero para mantener el personaje.");
-      const qa = await imageQaEnabled(principal.userId, input.product_id);
       const preview = { ...base, warnings: [], data: { dry_run: true, stage: query.stage, strategy_id: script.provenance?.strategy_id,
-        analysis_revision: script.provenance?.analysis_revision, will_call_providers: ["higgsfield", ...(qa && query.stage === "keyframes" ? ["anthropic"] : [])], max_output_items: query.shot_keys.length,
+        analysis_revision: script.provenance?.analysis_revision, will_call_providers: ["higgsfield"], max_output_items: query.shot_keys.length,
         estimated_usd: prepared.estimated_usd, missing_fields: [] } };
       if (!query.dry_run) {
         if (!await higgsfieldKey(principal.userId)) throw new ProductIntelligenceError("INTEGRATION_NOT_CONNECTED", "Conecta Higgsfield en Ajustes antes de generar.");
-        if (qa && query.stage === "keyframes") await requireAiKey(principal.userId);
       }
       prepared.preview = preview;
     }

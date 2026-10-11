@@ -75,7 +75,6 @@ export { AiRunList, type AiRunListProps } from "./ai-run-list";
 // Creativos: anuncios estáticos, chat de WhatsApp y video UGC (design-system/creativos.md)
 export { AssistantButton, type AssistantButtonProps } from "./assistant-button";
 export { ImageProviderPicker, type ImageProviderPickerProps, type ProviderOption } from "./image-provider-picker";
-export { QaResult, detailCount, type QaResultProps } from "./qa-result";
 export { CreativePiece, type CreativePieceProps, type PieceAction, type PieceState } from "./creative-piece";
 export { CreativeConcept, Tag, type ConceptText, type CreativeConceptProps } from "./creative-concept";
 export { ChatConsent, type ChatConsentProps } from "./chat-consent";

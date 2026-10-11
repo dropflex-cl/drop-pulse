@@ -1,9 +1,7 @@
 import { contentAvailable, imageSelected } from "@/lib/product-intelligence/current-content";
 import { contextDatabaseError } from "@/lib/product-intelligence/repository";
 import { renderBaseId } from "@/lib/products/render-context";
-import { afterCacheWarm } from "@/lib/ai/cache-gate";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { failure, recordAiGeneration } from "@/lib/ai/track";
+import { recordAiGeneration } from "@/lib/ai/track";
 import { fail } from "@/lib/products/database";
 import { IMAGE_COST_USD } from "@/lib/creatives/catalog";
 import { languageName } from "@/lib/creatives/render";
@@ -16,19 +14,18 @@ import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import type { Market } from "@/lib/market";
 import { optimizeImage } from "@/lib/media/optimize";
 import { COVER, DAILY_IMAGES, GALLERY, GALLERY_MAX, GIFS, GIF_MAX, GIF_MAX_UPLOAD_BYTES, GIF_MAX_WIDTH, GIF_MIN_SIDE, MAX_OPTIONS_PER_SLOT, ORDERED, autoShotIds, slotKind } from "@/lib/page-images/catalog";
-import { PAGE_QA_SYSTEM, pageQaTexts } from "@/lib/page-images/prompts";
 import { pageRenderRequest } from "@/lib/page-images/render";
-import { pageQaSchema, pageQaVerdict, type PageQaResult, type StoredShot } from "@/lib/page-images/schemas";
+import { type StoredShot } from "@/lib/page-images/schemas";
 import { PAGE_MEDIA_BUCKET, activeShots, getPageImageRow, getShotRow, isRecoverable, purgeDiscardedPageImages, type PageImageRow, type ShotRow } from "@/lib/page-images/store";
 import { ProductApiError } from "@/lib/products/http";
 import { download as downloadFromLink } from "@/lib/products/images";
-import { imageQaEnabled, listImageRows } from "@/lib/products/store";
+import { listImageRows } from "@/lib/products/store";
 import { randomUUID } from "node:crypto";
 import "server-only";
 import sharp from "sharp";
 import { onGeminiError, onHiggsfieldError, productImageUrls, renderWithGemini, requireProvider } from "./creatives";
-import { OptimizeError, requireAiKey } from "./errors";
-import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
+import { OptimizeError } from "./errors";
+import { download, toJpeg } from "./images";
 
 // Render de tomas guardadas, selección, subidas y revisión opcional de imágenes.
 // El director automático de galería se retiró; no se redactan planes en el servidor.
@@ -68,14 +65,6 @@ type RunInput = {
   provider?: ImageProvider;
 };
 
-/** Lo que el director necesita: sin esto la etapa no genera (sí deja elegir y subir). */
-export async function generationBlocker(userId: string, productId: string): Promise<string | null> {
-  if (await imageQaEnabled(userId, productId)) {
-    try { await requireAiKey(userId); } catch (error) { return error instanceof Error ? error.message : "Conecta Anthropic para revisar las imágenes."; }
-  }
-  return null;
-}
-
 // ---------------------------------------------------------------- 2. Render
 
 async function runMarket(runId: string): Promise<Market | undefined> {
@@ -84,7 +73,7 @@ async function runMarket(runId: string): Promise<Market | undefined> {
   return (data?.input as RunInput | undefined)?.market;
 }
 
-async function insertImage(shot: ShotRow, attempt: number, provider: ImageProvider, market?: Market, retryOf?: string): Promise<PageImageRow> {
+async function insertImage(shot: ShotRow, provider: ImageProvider, market?: Market): Promise<PageImageRow> {
   const m = market ?? (await runMarket(shot.run_id));
   const req = pageRenderRequest(shot.slot, shot.payload, languageName(m?.language ?? "es"));
   const { data, error } = await adminClient()
@@ -95,12 +84,9 @@ async function insertImage(shot: ShotRow, attempt: number, provider: ImageProvid
       slot: shot.slot,
       source: "ai",
       shot_id: shot.id,
-      attempt,
-      retry_of: retryOf ?? null,
       provider,
       endpoint: provider === "gemini" ? GEMINI_IMAGE_MODEL : req.endpoint,
       input: req.input,
-      baked_texts: shot.payload.texts,
       render_status: "queued",
     })
     .select("*")
@@ -119,7 +105,6 @@ async function checkDailyImages(userId: string, adding: number) {
 
 /** «Generar otra»: una imagen más de la misma toma. Devuelve la fila creada (queued). */
 export async function startShotRender(userId: string, productId: string, shotId: string): Promise<PageImageRow> {
-  if (await imageQaEnabled(userId, productId)) await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const shot = await getShotRow(userId, productId, shotId);
   if (!shot) throw new OptimizeError("Esa toma ya no está vigente. Actualiza la página.", 409);
@@ -127,7 +112,7 @@ export async function startShotRender(userId: string, productId: string, shotId:
   fail("Contar las opciones", error);
   if ((count ?? 0) >= MAX_OPTIONS_PER_SLOT) throw new OptimizeError(`Este espacio ya tiene ${MAX_OPTIONS_PER_SLOT} opciones. Descarta alguna para generar otra.`, 409);
   await checkDailyImages(userId, 1);
-  return insertImage(shot, 1, provider);
+  return insertImage(shot, provider);
 }
 
 /**
@@ -138,7 +123,6 @@ export async function startShotRender(userId: string, productId: string, shotId:
 export type FillScope = "required" | "benefits";
 
 export async function startFillEmpty(userId: string, productId: string, scope: FillScope = "required"): Promise<PageImageRow[]> {
-  if (await imageQaEnabled(userId, productId)) await requireAiKey(userId);
   const provider = await requireProvider(userId, "page_images", "imágenes");
   const db = adminClient();
   const [shots, images] = await Promise.all([
@@ -155,7 +139,7 @@ export async function startFillEmpty(userId: string, productId: string, scope: F
   if (!empty.length) return [];
   await checkDailyImages(userId, empty.length);
   const market = await runMarket(empty[0].run_id);
-  return Promise.all(empty.map((s) => insertImage(s, 1, provider, market)));
+  return Promise.all(empty.map((s) => insertImage(s, provider, market)));
 }
 
 /** Procesa varias imágenes recién creadas, de a PARALLEL. Para `after()`. */
@@ -263,7 +247,7 @@ async function processWithGemini(leased: PageImageRow): Promise<void> {
     .select("*")
     .maybeSingle();
   if (claimed.error || !claimed.data) return;
-  const a = { ...claimed.data, pi_base_reference_id: leased.pi_base_reference_id, pi_qa_enabled: leased.pi_qa_enabled } as PageImageRow;
+  const a = { ...claimed.data, pi_base_reference_id: leased.pi_base_reference_id } as PageImageRow;
   const detail = await imageDetail(a);
   let result;
   try {
@@ -279,7 +263,7 @@ async function processWithGemini(leased: PageImageRow): Promise<void> {
   // Ya se cobró: se registra antes de guardar, para que un corte al guardar no esconda el costo.
   await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_render", detail, ...geminiGeneration(result) });
   try {
-    await storeAndReview(a, result.bytes, async () => {});
+    await storeImage(a, result.bytes, async () => {});
   } catch (e) {
     console.error("[page-images] guardar la imagen de Gemini", e);
     await patchImage(a.id, { render_status: "failed", error_code: "unexpected", error_message: "No pudimos guardar la imagen. Toca Generar otra.", finished_at: stamp() });
@@ -350,88 +334,22 @@ async function finishImage(a: PageImageRow, state: RequestState, started: number
     await logRender(a, false, state.status, Date.now() - started, state.error);
     return;
   }
-  await storeAndReview(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
+  await storeImage(a, await download(state.images[0]), () => logRender(a, true, undefined, Date.now() - started));
 }
 
-/**
- * La imagen lograda (de cualquier proveedor): se guarda, se registra y, si el producto tiene encendida la
- * revisión de imágenes (`products.image_qa`), pasa el QA y, si falla, un reintento.
- */
-async function storeAndReview(a: PageImageRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
-  // Va a la landing: se guarda como WebP optimizado. El QA mira el original, sin re-comprimir.
+/** Guarda la imagen optimizada y registra el costo del render solicitado. */
+async function storeImage(a: PageImageRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
+  // Va a la landing: se guarda como WebP optimizado.
   const img = await optimizeImage(bytes);
   const path = `${a.user_id}/${a.product_id}/${a.id}.${img.ext}`;
   const up = await adminClient().storage.from(PAGE_MEDIA_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true });
   fail("Guardar la imagen", up.error);
   await log();
 
-  const qa = (a.pi_qa_enabled ?? await imageQaEnabled(a.user_id, a.product_id))
-    ? await runQa(a, bytes).catch((e) => {
-        console.error("[page-images] QA", e);
-        return null;
-      })
-    : null;
-  await patchImage(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, finished_at: stamp() });
-  // El reintento salió: el intento que el QA rechazó se descarta (se borra pasado el plazo), salvo que
-  // el comerciante ya lo haya elegido.
-  if (a.retry_of) {
-    const now = stamp();
-    fail("Descartar el primer intento", (await adminClient().from("page_images").update({ status: "rejected", decided_at: now, updated_at: now }).eq("id", a.retry_of).eq("status", "generated")).error);
-  }
-
-  // Si la toma se reemplazó mientras se generaba, la imagen ya no tiene espacio: se borra ahora.
+  await patchImage(a.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, finished_at: stamp() });
+  // Conserva la limpieza de una toma reemplazada mientras se generaba.
   const shot = a.shot_id ? await getShotRow(a.user_id, a.product_id, a.shot_id) : null;
-  if (!shot) {
-    await purgeDiscardedPageImages(a.user_id).catch((e) => console.error("[page-images] borrar lo reemplazado", e));
-    return;
-  }
-  // Un reintento automático: otra generación de la misma toma. Si sale bien, reemplaza a esta.
-  if (qa && !qa.pass && a.attempt === 1 && !a.pi_operation_id) {
-    // Con el mismo proveedor que el primero, aunque la elección haya cambiado mientras.
-    const retry = await insertImage(shot, 2, a.provider ?? "higgsfield", undefined, a.id);
-    await processImage(retry.id, true);
-  }
-}
-
-// ---------------------------------------------------------------- 3. QA
-
-async function runQa(a: PageImageRow, generated: Buffer): Promise<PageQaResult> {
-  const [[base], shot] = await Promise.all([productImageUrls(a.user_id, a.product_id, 1, a.pi_base_reference_id),
-    a.shot_id ? adminClient().from("page_image_shots").select("run_id").eq("id", a.shot_id).eq("user_id", a.user_id).maybeSingle() : Promise.resolve({ data: null, error: null })]);
-  fail("Leer la toma para QA", shot.error);
-  const run = shot.data ? await adminClient().from("page_image_runs").select("input").eq("id", shot.data.run_id).eq("user_id", a.user_id).single() : null;
-  if (run) fail("Leer los hechos para QA", run.error);
-  const input = run?.data?.input as { source?: string; verified_facts?: { statement: string; value: unknown }[] } | undefined;
-  const canonical = input?.source === "mcp_chat";
-  if (!base) throw new Error("sin imagen base");
-  const factText = canonical ? ["HECHOS VERIFICADOS", ...(input?.verified_facts ?? []).map(f => `${f.statement}: ${JSON.stringify(f.value)}`)].join("\n") : "Sin hechos verificados para esta toma histórica. Compara únicamente el producto con la foto base y los textos pedidos; no infieras funciones ni accesorios.";
-  const detail = await imageDetail(a);
-  let result;
-  try {
-    // Las revisiones de una galería salen juntas: la primera escribe la caché y las demás la leen.
-    result = await afterCacheWarm(`page_qa:${a.product_id}`, async () => generateStructured({
-      userId: a.user_id,
-      system: PAGE_QA_SYSTEM,
-      // Primero lo que se repite en cada QA del producto (foto real y ficha), con el punto de caché:
-      // desde la segunda imagen se cobra a 0,1×. Lo propio de esta imagen va después.
-      content: [
-        { type: "text", text: "Foto real del producto:" },
-        await imageBlock(base),
-        { type: "text", text: factText, cache_control: { type: "ephemeral" } },
-        { type: "text", text: "Imagen generada:" },
-        await imageBlockFromBytes(generated),
-        { type: "text", text: pageQaTexts(a.baked_texts) },
-      ],
-      schema: pageQaSchema,
-      effort: "low",
-      maxTokens: 4000,
-    }));
-  } catch (e) {
-    if (e instanceof AiStepError) await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_qa", detail, ...failure(e) });
-    throw e;
-  }
-  await recordAiGeneration({ userId: a.user_id, productId: a.product_id, step: "page_qa", detail, usage: result.usage });
-  return pageQaVerdict(result.data);
+  if (!shot) await purgeDiscardedPageImages(a.user_id).catch((error) => console.error("[page-images] borrar lo reemplazado", error));
 }
 
 // ---------------------------------------------------------------- Elegir
@@ -550,8 +468,6 @@ async function coverFrom(a: PageImageRow) {
           source: a.source,
           provider: a.provider,
           input: { copied_from: a.id },
-          baked_texts: a.baked_texts,
-          qa: a.qa,
           render_status: "succeeded",
           storage_path: path,
           width: a.width,

@@ -525,3 +525,7 @@ Verificación con `npm run pi:contracts`: exportación desde Zod y validación A
 El runtime anuncia 29 tools con 30 pares de schemas. Se añadieron get/save_creative_content, get/save_gallery_content, get/save_event_content, get/save_usage_tip, generate_gallery_images/get_gallery_generation_status y get_product_performance/get_product_learning/save_product_learning. `generate_landing` conserva únicamente el contrato histórico cerrado.
 
 Las tools de contenido incluyen contrato JSON y paginación en la lectura; mutaciones requieren revisión/etag/key y aceptan dry_run. Aprendizaje exige revisión y etag de medición. Render de galería exige permiso landing:generate, proveedor y límite de estimación. [Recorrido y límites](chat-content-and-learning.md). Fuente ejecutable: `lib/product-intelligence/*-schemas.ts`; exports de `contracts/generated/` con `npm run pi:contracts`.
+
+## Revisión automática de imágenes retirada (2026-10-11)
+
+La retirada posterior elimina los tres callers de QA, `generateStructured`, sus prompts, esquemas, puerta de caché, UI y campos SQL. Por tanto, las excepciones de QA visual, requisitos de Anthropic para renderizar y referencias al mapa de versiones de las secciones anteriores son históricas. Los costos ya cobrados siguen legibles. Ver `current-content.md` y `20261216000000_retire_image_qa.sql` para el estado operativo y las pruebas.

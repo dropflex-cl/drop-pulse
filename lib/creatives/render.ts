@@ -72,12 +72,11 @@ export interface RenderRequest {
 }
 
 /**
- * El modo del intento: el preset si el concepto trae uno y su familia lo admite; si el QA rechazó el
- * primero, edición directa (spec §7.2). Las familias de escena van siempre directas (§7.4).
+ * El modo del intento: el preset si el concepto trae uno y su familia lo admite. Las familias de escena van siempre directas (§7.4).
  */
-export function modeFor(concept: Pick<RenderableConcept, "preset_id" | "family">, attempt: number): RenderMode {
+export function modeFor(concept: Pick<RenderableConcept, "preset_id" | "family">): RenderMode {
   const allowsPreset = !concept.family || FAMILY_DEFS[concept.family].presetGroups.length > 0;
-  return concept.preset_id && allowsPreset && attempt === 1 ? "preset" : "direct";
+  return concept.preset_id && allowsPreset ? "preset" : "direct";
 }
 
 /** El prompt con dirección de arte (conceptos v2). */
@@ -100,8 +99,8 @@ function directedPrompt(c: RenderableConcept & { layout: string }, ratio: Ratio,
   ].join("\n");
 }
 
-export function renderRequest(concept: RenderableConcept, ratio: Ratio, language: string, attempt = 1): RenderRequest {
-  const mode = modeFor(concept, attempt);
+export function renderRequest(concept: RenderableConcept, ratio: Ratio, language: string): RenderRequest {
+  const mode = modeFor(concept);
   const format = ratio === "9:16" ? "Vertical 9:16" : "Square";
   const scene = concept.scene.trim().replace(/\s+/g, " ");
   const prompt = concept.layout

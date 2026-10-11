@@ -1,5 +1,7 @@
 # Spec: Video UGC en Creativos
 
+> La revisión automática de imágenes con IA y sus reintentos pagados se retiraron el 2026-10-11. Las referencias a QA visual en este documento son históricas; no describen un flujo disponible. Las imágenes se revisan y eligen por decisión del comerciante.
+
 > Montaje vigente: [Edición local en CapCut](spec-video-capcut.md). DropFlex guarda material y dirección de arte; la skill local prepara los clips y edita en CapCut. Remotion y su worker se retiraron. Las secciones de Python describen el flujo histórico.
 
 > Estado: **implementado** (2026-09-26, rama `feat/video-ugc`), fases V1 a V4, más el formato mascota (§11). Verificado: tests puros (`lib/video/video.test.ts`), el guionista real con los datos de Deep Collagen (prompt v2: pasa al primer intento, US$0,25), las imágenes clave reales con `keyframeRequest` (cara, etiqueta y manos correctas) y `scripts/ugc-montage.py` con los clips de la POC (31 s, 7,4 MB). Pendiente: una corrida completa desde la pantalla con un producto real (la base local no tiene uno con ángulos aprobados) y aplicar la migración en producción.

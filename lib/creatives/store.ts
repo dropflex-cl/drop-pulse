@@ -8,7 +8,7 @@ import { toUiStatus, type DbContentStatus } from "@/lib/products/store";
 import type { CreativeAssetView, CreativeConceptView, RunStatus } from "@/lib/types";
 import type { WhatsappChat } from "./chat";
 import { conceptFamilyName, type ConceptFamily, type Ratio } from "./catalog";
-import type { ConceptPayload, QaResult, StoredText } from "./schemas";
+import type { ConceptPayload, StoredText } from "./schemas";
 
 // creative_runs, creative_concepts y creative_assets: lecturas de la etapa Creativos y su paso a la
 // pantalla. Siempre con service_role filtrando por el dueño (como lib/copy/store.ts).
@@ -84,19 +84,15 @@ export interface AssetRow {
   user_id: string;
   concept_id: string;
   ratio: Ratio;
-  attempt: number;
   /** Con qué se generó (lib/image-provider.ts): el render, el reintento y el sondeo siguen con ese. */
   provider: ImageProvider;
   endpoint: string;
   preset_id: string | null;
   input: Record<string, unknown>;
-  /** Los textos pedidos, para el QA: los del concepto o, en un chat, el contacto y cada burbuja (chatBakedTexts). */
-  baked_texts: { role: string; text: string }[];
   render_status: "queued" | "running" | "succeeded" | "failed";
   hf_request_id: string | null;
   error_code: string | null;
   error_message: string | null;
-  qa: QaResult | null;
   storage_path: string | null;
   width: number | null;
   height: number | null;
@@ -332,13 +328,11 @@ export function toAssetView(a: AssetRow, src?: string, kept?: Set<string>): Crea
     id: a.id,
     ratio: a.ratio,
     provider: a.provider,
-    attempt: a.attempt,
     render: a.render_status,
     error: a.render_status === "failed" || waiting ? (a.error_message ?? undefined) : undefined,
     src,
     width: a.width ?? undefined,
     height: a.height ?? undefined,
-    qa: a.qa ? { pass: a.qa.pass, issues: a.qa.issues } : undefined,
     status: toUiStatus(a.status),
     inAds: Boolean(a.ad_media_id),
     ...(a.ad_media_id && kept?.has(a.ad_media_id) ? { kept: true } : {}),

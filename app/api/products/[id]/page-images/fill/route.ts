@@ -4,7 +4,7 @@ import { processImages, startFillEmpty, type FillScope } from "@/lib/pipeline/pa
 import { errorResponse, ownedProduct } from "@/lib/products/http";
 
 // «Generar los vacíos» (las tomas que van solas y quedaron sin imagen viva) y «Generar los beneficios»
-// (`{ scope: "benefits" }`). El envío, la espera y el QA siguen después de responder.
+// (`{ scope: "benefits" }`). El envío y la espera siguen después de responder.
 export const maxDuration = 300;
 
 const SCOPES: FillScope[] = ["required", "benefits"];

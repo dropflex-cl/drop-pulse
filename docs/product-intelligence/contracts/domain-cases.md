@@ -38,7 +38,7 @@ Los siguientes son escenarios de aceptación. Los de contexto/precio, autorizaci
 | Dedupe con key nueva | Trabajo equivalente activo, key diferente | GENERATION_IN_PROGRESS con operación autorizada; no segunda corrida. |
 | Status puro | Operación running consultada repetidamente | Sin provider requests, expire/sync ni nuevos jobs/cargos; status_revision no aumenta por lectura. |
 | Proveedor ambiguo | Submit timeout después de aceptación simulada | Reconciling/request_id; sin submit ciego; límite de garantía externa declarado. |
-| QA operativo | Apagar image_qa mientras imagen está generándose | Respeta imageQaEnabled al finalizar y registra valor efectivo; no QA por snapshot viejo. |
+| Revisión automática retirada | Generar una imagen desde UI o MCP | No consulta Anthropic, no ejecuta QA y no crea una segunda imagen automáticamente. |
 | Regresión Meta/Shopify | Campañas/medios/PDP antiguos + salidas nuevas | IDs/configuración preservados; históricos unknown; nuevos con canonical provenance. |
 | Borrado en carrera | Shopify elimina y worker intenta terminar | Pausa Meta, Storage primero, cascades; lease de borrado impide resurrección de fila/asset. |
 | Protocolo/host | Cliente real autentica, descubre y llama diez tools | input/outputSchema válidos, structuredContent/isError correctos, scopes y revocación efectivos. |

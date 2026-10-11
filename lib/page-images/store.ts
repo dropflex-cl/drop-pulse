@@ -6,7 +6,7 @@ import { adminClient } from "@/lib/integrations/admin";
 import type { DbContentStatus } from "@/lib/products/store";
 import type { PageImageOptionView, PageImageSlotView, RunStatus } from "@/lib/types";
 import { COVER, GALLERY, GIFS, ORDERED, SHOT_NAMES, SLOT_FORMAT, SLOT_RATIO, autoShotIds, slotKind } from "./catalog";
-import type { PageQaResult, ShotText, StoredShot } from "./schemas";
+import type { StoredShot } from "./schemas";
 
 // page_image_runs, page_image_shots y page_images: lecturas de la etapa Imágenes, limpieza de lo
 // descartado y paso a la pantalla. Siempre con service_role filtrando por el dueño.
@@ -60,21 +60,16 @@ export interface PageImageRow {
   source: "ai" | "upload" | "reference";
   shot_id: string | null;
   reference_image_id: string | null;
-  attempt: number;
-  retry_of: string | null;
   /** Con qué se generó (lib/image-provider.ts); null en subidas y fotos. */
   provider: ImageProvider | null;
   endpoint: string | null;
   input: Record<string, unknown>;
-  baked_texts: ShotText[];
   render_status: "queued" | "running" | "succeeded" | "failed";
   pi_operation_id?: string | null;
   pi_base_reference_id?: string;
-  pi_qa_enabled?: boolean;
   hf_request_id: string | null;
   error_code: string | null;
   error_message: string | null;
-  qa: PageQaResult | null;
   storage_path: string | null;
   width: number | null;
   height: number | null;
@@ -200,7 +195,7 @@ export async function getPageImageRow(userId: string, imageId: string): Promise<
 /** Conteos operativos de imágenes disponibles y seleccionadas. */
 export async function pageImageCounts(userId: string, productIds: string[]) {
   if (!productIds.length) return () => ({ running: false, rendering: 0, options: 0, cover: false, gallery: 0 });
-  // Solo las columnas que cuentan (sin input, textos ni QA de cada imagen).
+  // Solo las columnas que cuentan (sin input de cada imagen).
   const db = adminClient();
   const [runRes, rowRes] = await Promise.all([
     db.from("page_image_runs").select("product_id, status").eq("user_id", userId).in("product_id", productIds).order("created_at", { ascending: false }),
@@ -252,12 +247,10 @@ export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow
     shotId: r.shot_id ?? undefined,
     referenceId: r.reference_image_id ?? undefined,
     render: r.render_status,
-    attempt: r.attempt,
     error: r.render_status === "failed" || waiting ? (r.error_message ?? undefined) : undefined,
     src,
     width: r.width ?? undefined,
     height: r.height ?? undefined,
-    qa: r.qa ? { pass: r.qa.pass, issues: r.qa.issues } : undefined,
     chosen: imageSelected(r),
     discarded: !contentAvailable(r),
     order: imageSelected(r) && ORDERED.has(slotKind(r.slot)!) ? (r.position ?? undefined) : undefined,
@@ -270,18 +263,16 @@ export function toOptionView(r: PageImageRow, src?: string, cover?: PageImageRow
 
 /**
  * Los espacios de la página, en su orden: Portada, Galería, un Beneficio por cada beneficio que
- * propuso el director y los GIF. Un intento que el QA rechazó se esconde cuando su reintento salió
- * bien.
+ * propuso el director y los GIF.
  */
 export function toSlotViews(shots: ShotRow[], rows: PageImageRow[], urls: Map<string, string>): PageImageSlotView[] {
-  const replaced = new Set(rows.filter((r) => r.retry_of && r.render_status === "succeeded").map((r) => r.retry_of!));
   // Una falla deja de mostrarse cuando su toma ya tiene otra imagen más nueva (se ve solo la última).
   const superseded = (r: PageImageRow) => r.render_status === "failed" && rows.some((o) => o.shot_id && o.shot_id === r.shot_id && o.created_at > r.created_at);
   const rank = (r: PageImageRow) => (r.render_status === "failed" ? 1 : 0);
   const cover = rows.find((r) => r.slot === COVER && imageSelected(r));
   const optionsOf = (slot: string) =>
     rows
-      .filter((r) => r.slot === slot && !replaced.has(r.id) && !superseded(r))
+      .filter((r) => r.slot === slot && !superseded(r))
       .sort((a, b) => rank(a) - rank(b))
       .map((r) => toOptionView(r, r.storage_path ? urls.get(r.storage_path) : r.reference_image_id ? urls.get(`ref:${r.reference_image_id}`) : undefined, cover));
   const auto = autoShotIds(shots);

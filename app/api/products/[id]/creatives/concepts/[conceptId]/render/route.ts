@@ -7,7 +7,7 @@ import { ProductApiError, errorResponse, json, ownedProduct } from "@/lib/produc
 
 // Generar la imagen de un concepto ({ ratio: "1:1" | "9:16", provider? }; el chat de WhatsApp, solo 9:16). Sin
 // `provider`, con el elegido en la pantalla; con él, solo esa pieza («Generar con Higgsfield»). El envío, la espera
-// (~20–60 s), el QA y el reintento sin preset siguen después de responder.
+// (~20–60 s) siguen después de responder.
 export const maxDuration = 300;
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string; conceptId: string }> }) {

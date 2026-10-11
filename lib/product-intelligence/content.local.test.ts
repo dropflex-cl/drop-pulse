@@ -14,10 +14,12 @@ import { runGalleryOperation } from "@/lib/page-images/operations";
 import { deleteProducts } from "@/lib/products/delete";
 import { startRender, processAsset } from "@/lib/pipeline/creatives";
 import { processImage } from "@/lib/pipeline/page-images";
-import { HiggsfieldError, submit } from "@/lib/integrations/higgsfield/client";
+import sharp from "sharp";
+import { download } from "@/lib/pipeline/images";
+import { HiggsfieldError, requestStatus, submit } from "@/lib/integrations/higgsfield/client";
 vi.mock("@/lib/pipeline/creatives", async (actual) => ({ ...await actual<typeof import("@/lib/pipeline/creatives")>(), requireProvider: vi.fn(async (_user, _stage, _what, provider) => provider) }));
 vi.mock("@/lib/integrations/higgsfield/connection", () => ({ higgsfieldKey: vi.fn(async () => "fixture-no-provider-call"), getHiggsfieldConnection: vi.fn(async () => ({status:"connected"})), markHiggsfieldInvalid: vi.fn() }));
-vi.mock("@/lib/integrations/higgsfield/client", async (actual) => ({ ...await actual<typeof import("@/lib/integrations/higgsfield/client")>(), submit: vi.fn(), uploadImage: vi.fn(async () => "https://example.test/reference") }));
+vi.mock("@/lib/integrations/higgsfield/client", async (actual) => ({ ...await actual<typeof import("@/lib/integrations/higgsfield/client")>(), submit: vi.fn(), requestStatus: vi.fn(), uploadImage: vi.fn(async () => "https://example.test/reference") }));
 vi.mock("@/lib/pipeline/images", async (actual) => ({ ...await actual<typeof import("@/lib/pipeline/images")>(), download: vi.fn(async () => Buffer.from("fixture")), toJpeg: vi.fn(async bytes => bytes) }));
 const local = process.env.PI_LOCAL_TEST === "1" ? describe : describe.skip;
 local("PI · contenido y aprendizaje transaccionales", () => {
@@ -57,8 +59,10 @@ local("PI · contenido y aprendizaje transaccionales", () => {
   });
   beforeEach(async()=>{
     vi.mocked(submit).mockReset();
+    vi.mocked(requestStatus).mockReset();
+    vi.mocked(download).mockImplementation(async () => Buffer.from("fixture"));
     product=randomUUID();const image=randomUUID();
-    await checked(db.from("products").insert({id:product,user_id:owner.userId,shopify_product_id:product,title:"Organizador",currency:"CLP",image_qa:false}));
+    await checked(db.from("products").insert({id:product,user_id:owner.userId,shopify_product_id:product,title:"Organizador",currency:"CLP"}));
     await checked(db.from("product_reference_images").insert({id:image,product_id:product,user_id:owner.userId,source:"shopify",url:"https://cdn.shopify.com/local-fixture.webp",is_cover:true}));
     const env=(revision:number)=>({product_id:product,schema_version:"1.0",expected_revision:revision,idempotency_key:randomUUID()});
     const research=await call("save_research",{...requestFixture("propose-research").payload as object,...env(0)});if(!research.ok)throw research;
@@ -93,7 +97,7 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     expect(submit).not.toHaveBeenCalled();
     expect((await checked(db.from("creative_assets").select("render_status").eq("id",asset.id).single())).data).toMatchObject({render_status:"failed"});
   });
-  it("galería queda lista para el render existente y conserva slots y hechos para QA",async()=>{
+  it("galería queda lista para el render existente y conserva slots y hechos de generación",async()=>{
     const content=gallery();
     const texts=[{role:"badge",text:"Pack a $47.990\nEnvío gratis\nPaga al recibir",placement:"Bottom",points_to:null}];
     const commercial={...content,plan:{...content.plan,shots:content.plan.shots.map(s=>({...s,texts}))}};
@@ -192,9 +196,40 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     expect(submit).not.toHaveBeenCalled();
     await expect(call("get_gallery_generation_status",{product_id:product,operation_id:r.data.operation_id},other)).rejects.toMatchObject({code:"NOT_FOUND"});
     const claim=(await checked(db.rpc("pi_claim_gallery_image",{p_image_id:r.data.image_ids[0]}))).data;
-    expect(claim).toMatchObject({error_code:"dispatching",pi_qa_enabled:false,pi_base_reference_id:expect.any(String)});
+    expect(claim).toMatchObject({error_code:"dispatching",pi_base_reference_id:expect.any(String)});
     expect((await checked(db.rpc("pi_claim_gallery_image",{p_image_id:r.data.image_ids[0]}))).data).toBeNull();
   });
+
+  it("guarda una imagen solicitada de galería y un anuncio sin QA ni imágenes adicionales", async () => {
+    const bytes = await sharp({ create: { width: 32, height: 32, channels: 3, background: "white" } }).png().toBuffer();
+    vi.mocked(download).mockResolvedValue(bytes);
+    vi.mocked(submit).mockResolvedValue({ requestId: "fixture-completed" });
+    vi.mocked(requestStatus).mockResolvedValue({ status: "completed", images: ["https://example.test/generated.png"], video: null, error: null });
+    const paths: { bucket: string; path: string }[] = [];
+    try {
+      const gallery = await call("generate_gallery_images", await generation()); if (!gallery.ok) throw gallery;
+      await processImage(gallery.data.image_ids[0], true);
+      const image = (await checked(db.from("page_images").select("*").eq("id", gallery.data.image_ids[0]).single())).data;
+      expect(image).toMatchObject({ render_status: "succeeded", is_selected: false, discarded_at: null });
+      expect(image).not.toHaveProperty("qa");
+      expect(image).not.toHaveProperty("baked_texts");
+      paths.push({ bucket: "page-media", path: image.storage_path });
+      expect(await count("page_images")).toBe(2);
+      const content = await call("save_creative_content", { ...await input("get_creative_content"), content: creative() }); if (!content.ok) throw content;
+      const { asset } = await startRender(owner.userId, product, content.data.artifact_ids[0], "1:1", "higgsfield");
+      await processAsset(asset.id, true);
+      const ad = (await checked(db.from("creative_assets").select("*").eq("id", asset.id).single())).data;
+      expect(ad.render_status).toBe("succeeded");
+      expect(ad).not.toHaveProperty("qa");
+      paths.push({ bucket: "creative-media", path: ad.storage_path });
+      expect(await count("creative_assets")).toBe(1);
+      expect(submit).toHaveBeenCalledTimes(2);
+      const records = (await checked(db.from("ai_generations").select("step").eq("product_id", product))).data;
+      expect(records?.map(record => record.step).sort()).toEqual(["creative_render", "page_render"]);
+    } finally {
+      for (const file of paths) await checked(db.storage.from(file.bucket).remove([file.path]));
+    }
+  }, 15000);
   it("el borrado operacional conserva Storage primero y elimina la cola y sus filas por cascada",async()=>{
     const r=await call("generate_gallery_images",await generation());if(!r.ok)throw r;
     expect(await deleteProducts(owner.userId,[product])).toBe(1);

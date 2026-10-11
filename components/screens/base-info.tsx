@@ -2,12 +2,10 @@
 
 import type { VisualWorkbench } from "@/lib/types";
 
-import { ACCEPTED_TYPES, Button, Icon, ImageUploader, ProductInfoInput, ReferenceAddTile, ReferenceImage, Switch, notify, type UploadItem, type UploaderMode, } from "@/components/df";
-import { useLocalCost } from "@/components/shell/ai-cost-provider";
+import { ACCEPTED_TYPES, Button, Icon, ImageUploader, ProductInfoInput, ReferenceAddTile, ReferenceImage, notify, type UploadItem, type UploaderMode, } from "@/components/df";
 import { AssistantScope } from "@/components/shell/assistant-provider";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
-import { IMAGE_QA_USD } from "@/lib/ai/costs";
 import { count } from "@/lib/format";
 import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
@@ -111,39 +109,6 @@ function useAutosave(productId: string, initial: string, contextRevision: number
   }, [productId]);
 
   return { text, change, save, saving, dirty: pending.current !== null || inFlight.current, error, topics, saved: savedLabel(savedAt, now) };
-}
-
-/**
- * «Revisar cada imagen con IA»: el QA con Claude de cada imagen generada (página, creativos e imágenes
- * clave) y su reintento. Apagado por defecto; se guarda al tocarlo y vale para lo que termine después.
- */
-function ImageQaSection({ productId, initial }: { productId: string; initial: boolean }) {
-  const [enabled, setEnabled] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const localCost = useLocalCost();
-  const change = async (next: boolean) => {
-    setEnabled(next);
-    setSaving(true);
-    try {
-      await productsApi.setImageQa(productId, next);
-    } catch (e) {
-      setEnabled(!next);
-      notify(errorText(e, "No pudimos guardar el cambio. Intenta de nuevo."));
-    } finally {
-      setSaving(false);
-    }
-  };
-  return (
-    <section aria-label="Revisión de imágenes" className="rounded-lg border bg-card px-4 py-1">
-      <Switch
-        label="Revisar cada imagen con IA"
-        hint={`La compara con la foto real y la genera otra vez si falla. ${localCost(IMAGE_QA_USD)} por imagen.`}
-        checked={enabled}
-        disabled={saving}
-        onChange={change}
-      />
-    </section>
-  );
 }
 
 export function BaseInfoScreen({ base }: { base: ProductBase; visual?: VisualWorkbench | null }) {
@@ -389,7 +354,6 @@ export function BaseInfoScreen({ base }: { base: ProductBase; visual?: VisualWor
           <details className="rounded-lg border bg-card p-4"><summary className="min-h-touch cursor-pointer text-label">Texto del proveedor y detalles</summary><div className="pt-3">{infoInput(desktop ? 9 : 4)}</div></details>
           <details className="rounded-lg border p-4 lg:hidden"><summary className="min-h-touch cursor-pointer text-label">Agregar reseñas reales</summary>{reviewsCta}</details>
 
-          <details className="rounded-lg border bg-card p-4"><summary className="min-h-touch cursor-pointer text-label">Opciones de generación de imágenes</summary><ImageQaSection productId={product.id} initial={base.imageQa} /></details>
         </div>
         {/* Escritorio: referencias y carga a la derecha. */}
         <aside aria-label="Imágenes de referencia" className="hidden flex-col gap-4 lg:flex">

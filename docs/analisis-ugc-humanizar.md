@@ -1,5 +1,7 @@
 # Análisis: humanizar el video UGC
 
+> La revisión automática de imágenes con IA y sus reintentos pagados se retiraron el 2026-10-11. Las referencias a QA visual en este documento son históricas; no describen un flujo disponible. Las imágenes se revisan y eligen por decisión del comerciante.
+
 > Estado: **análisis** (2026-10-01). Nada implementado todavía.
 > Problema: el video UGC (Creativos › Videos, `docs/spec-video-ugc.md`) sale bien, pero se nota que es IA: la luz y las tomas parecen de estudio profesional, no de un UGC doméstico.
 > Toca: `lib/video/render.ts`, `lib/video/prompts.ts`, `lib/video/schemas.ts`, `lib/video/catalog.ts`, `scripts/ugc-montage.py`.

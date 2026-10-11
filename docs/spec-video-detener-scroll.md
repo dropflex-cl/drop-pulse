@@ -1,5 +1,7 @@
 # Videos que detienen el scroll: el gancho manda en la apertura y el UGC parece de teléfono
 
+> La revisión automática de imágenes con IA y sus reintentos pagados se retiraron el 2026-10-11. Las referencias a QA visual en este documento son históricas; no describen un flujo disponible. Las imágenes se revisan y eligen por decisión del comerciante.
+
 > Estado: **implementado** (2026-10-01, rama `feat/video-apertura-impl`, sobre `feat/video-apertura`, que trae el agente de ganchos). Verificado con tests puros (`lib/hooks/hooks.test.ts`, `lib/video/video.test.ts`) y el montaje con clips sintéticos (inserto, cara, mascota y un paquete versión 1). Pendiente: una corrida real con un producto (guion, imágenes clave y clips con la clave de Higgsfield).
 > Sin medición ni A/B en esta versión (decisión del comerciante, 2026-10-01): los patrones de gancho ya vienen de anuncios ganadores (`agentes-creativos/hook-cod-latam.md`).
 > Base: `docs/spec-ganchos.md` (el agente de ganchos COD LatAm), `docs/spec-video-ugc.md` y el análisis «Humanizar el video UGC» (2026-10-01). Los dos formatos de video, persona (`ugc`) y mascota (`mascot`), abren con un gancho de ese agente.

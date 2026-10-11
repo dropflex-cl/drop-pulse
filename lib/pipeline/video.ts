@@ -3,9 +3,7 @@ import { contextAccess, contextDatabaseError } from "@/lib/product-intelligence/
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { checkArtifact } from "@/lib/product-intelligence/policy";
 import { randomUUID } from "node:crypto";
-import { AiStepError, generateStructured } from "@/lib/ai/claude";
-import { afterCacheWarm } from "@/lib/ai/cache-gate";
-import { failure, recordAiGeneration } from "@/lib/ai/track";
+import { recordAiGeneration } from "@/lib/ai/track";
 import { type PackLabel } from "@/lib/pricing/labels-schemas";
 import { type AngleSlot } from "@/lib/angles/catalog";
 import { fail } from "@/lib/products/database";
@@ -21,7 +19,7 @@ import { SHOP_DOMAIN_QUERY, type ShopDomainQuery } from "@/lib/integrations/shop
 import type { Market } from "@/lib/market";
 import { optimizeForAds } from "@/lib/media/optimize";
 import type { PricingPlan } from "@/lib/pricing/plan";
-import { imageQaEnabled, imagesForGeneration, listImageRows } from "@/lib/products/store";
+import { imagesForGeneration, listImageRows } from "@/lib/products/store";
 import {
   CHARACTER_KEY,
   DAILY_CLIPS,
@@ -37,23 +35,18 @@ import {
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
 import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
-import { KEYFRAME_QA_SYSTEM, keyframeQaUser } from "@/lib/video/prompts";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
-  keyframeQaSchema,
-  firstSentence,
-  keyframeQaVerdict,
-  type KeyframeQa,
   type UgcScript,
 } from "@/lib/video/schemas";
 import { getScriptRow, getShotRow, isShotRecoverable, latestByKey, shotsFor, videoStep, type ScriptRow, type ShotRow } from "@/lib/video/store";
-import { download, imageBlock, imageBlockFromBytes, toJpeg } from "./images";
-import { OptimizeError, requireAiKey } from "./errors";
+import { download, toJpeg } from "./images";
+import { OptimizeError } from "./errors";
 
 // Video UGC en Creativos (docs/spec-video-ugc.md). Cada paso en segundo plano (after), como Creativos:
 // 1. El chat escribe guion/plan; save_ugc_content los valida y guarda. El comerciante aprueba.
-// 2. Las imágenes clave (Flare): K1 define la cara y las demás la usan de referencia; un QA con Claude
-//    revisa manos, producto, cara y textos. El comerciante aprueba cada una.
+// 2. Las imágenes clave (Flare): K1 define la cara y las demás la usan de referencia.
+//    El comerciante elige cada una.
 // 3. Los clips: tomas habladas en Seedance 2.0 (voz y labios desde el prompt) y B-roll en Kling.
 // 4. El paquete de montaje va al script local (scripts/ugc-montage.py); el video final vuelve por
 //    «Subir video montado» y, al aprobarlo, pasa a Anuncios.
@@ -154,7 +147,6 @@ function missingKeys(keys: string[], shots: ShotRow[]): string[] {
 
 /** «Generar imágenes clave»: crea las que faltan (K1 primero; las demás esperan su cara). */
 export async function startKeyframes(userId: string, productId: string, scriptId: string): Promise<string[]> {
-  if (await imageQaEnabled(userId, productId)) await requireAiKey(userId);
   await requireHiggsfield(userId);
   const s = await readyScript(userId, productId, scriptId);
   if (s.source === "mcp_chat") throw new OptimizeError("Genera este video con el servicio compartido de UGC.", 409);
@@ -404,67 +396,20 @@ async function finishShot(s: ShotRow, state: RequestState, started: number): Pro
   await patchShot(s.id, { render_status: "succeeded", storage_path: path, size_bytes: bytes.byteLength, duration_s: Number(s.input.duration ?? 0) || null, finished_at: stamp() });
 }
 
-/**
- * La imagen clave: se guarda y, si el producto tiene encendida la revisión de imágenes
- * (`products.image_qa`), pasa el QA y, si falla, un segundo intento. Al terminar K1, siguen las demás.
- */
+/** Guarda la imagen clave; al terminar K1, siguen las demás tomas solicitadas. */
 async function storeKeyframe(s: ShotRow, bytes: Buffer, log: () => Promise<void>): Promise<void> {
   const img = await optimizeForAds(bytes);
   const path = `${s.user_id}/${s.product_id}/video-${s.id}.${img.ext}`;
   fail("Guardar la imagen clave", (await adminClient().storage.from(CREATIVES_BUCKET).upload(path, img.data, { contentType: img.mime, upsert: true })).error);
   await log();
   const script = await readyScript(s.user_id, s.product_id, s.script_id).catch(() => null);
-  const qa =
-    script && (await imageQaEnabled(s.user_id, s.product_id))
-      ? await runKeyframeQa(s, script, bytes).catch((e) => {
-          console.error("[video] QA", e);
-          return null;
-        })
-      : null;
-  await patchShot(s.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, qa, status: "in_review", finished_at: stamp() });
+  await patchShot(s.id, { render_status: "succeeded", storage_path: path, width: img.width, height: img.height, size_bytes: img.data.byteLength, status: "in_review", finished_at: stamp() });
   if (!script) return;
-  if (qa && !qa.pass && s.attempt === 1 && script.source !== "mcp_chat") {
-    // Un solo reintento automático: la toma nueva reemplaza a la que falló el QA.
-    const now = stamp();
-    fail("Reemplazar la imagen", (await adminClient().from("video_shots").update({ superseded_at: now, updated_at: now }).eq("id", s.id)).error);
-    const retry = await insertShot(script, s.key, 2, s.operation_id);
-    await processShot(retry.id, true);
-    return;
-  }
   if (s.key === CHARACTER_KEY) {
     // Las demás imágenes clave esperaban la cara.
     const waiting = (await shotsFor(s.user_id, [s.script_id])).filter((x) => x.kind === "keyframe" && x.render_status === "queued").map((x) => x.id);
     await processShots(waiting);
   }
-}
-
-async function runKeyframeQa(s: ShotRow, script: ScriptRow & { payload: UgcScript }, generated: Buffer): Promise<KeyframeQa> {
-  const def = script.payload.keyframes.find((k) => k.key === s.key);
-  if (!def) throw new Error("imagen clave fuera del guion");
-  const content: Parameters<typeof generateStructured>[0]["content"] = [];
-  if (def.uses_product) {
-    const base = await baseImage(s.user_id, s.product_id, script.input.base_reference_image_id as string | undefined);
-    if (base) content.push({ type: "text", text: "Foto real del producto:" }, { ...(await imageBlock(base.url)), cache_control: { type: "ephemeral" } });
-  }
-  const refsCharacter = def.uses_character && def.key !== CHARACTER_KEY;
-  if (refsCharacter) {
-    const k1 = await keyframeShot(script.id, s.user_id, CHARACTER_KEY, false);
-    if (k1) content.push({ type: "text", text: "Personaje (referencia de la cara):" }, await imageBlockFromBytes(await storedBytes(k1.storage_path!)));
-  }
-  const o = script.payload.opening;
-  const opening = o && o.keyframe === def.key ? { first_motion: o.first_motion, hook: script.payload.a_roll[0] ? firstSentence(script.payload.a_roll[0].line) : undefined } : null;
-  content.push({ type: "text", text: "Imagen generada:" }, await imageBlockFromBytes(generated), { type: "text", text: keyframeQaUser(def, refsCharacter, scriptFormat(script), opening) });
-  let result;
-  try {
-    const qa = () => generateStructured({ userId: s.user_id, system: KEYFRAME_QA_SYSTEM, content, schema: keyframeQaSchema, effort: "low", maxTokens: 3000 });
-    // Las imágenes clave se revisan juntas (processShots): la primera con el producto escribe su caché.
-    result = def.uses_product ? await afterCacheWarm(`video_qa:${s.product_id}`, qa) : await qa();
-  } catch (e) {
-    if (e instanceof AiStepError) await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_qa", detail: s.key, ...failure(e) });
-    throw e;
-  }
-  await recordAiGeneration({ userId: s.user_id, productId: s.product_id, step: "video_qa", detail: s.key, usage: result.usage });
-  return keyframeQaVerdict(result.data);
 }
 
 /** «Recuperar»: una toma que falló después de llegar a Higgsfield se vuelve a consultar sin cobrar. */

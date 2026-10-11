@@ -9,8 +9,6 @@ export interface KeyframeTileProps {
   label: string;
   state: KeyframeState;
   src?: string;
-  /** Detalles del QA de manos, cara y producto. */
-  qa?: string[];
   error?: string;
   busy?: boolean;
   onApprove?: () => void;
@@ -19,10 +17,10 @@ export interface KeyframeTileProps {
   footer?: React.ReactNode;
 }
 
-const NOTE: Partial<Record<KeyframeState, string>> = { missing: "Falta", generating: "Generando…", approved: "Disponible", discarded: "Descartada" };
+const NOTE: Partial<Record<KeyframeState, string>> = { missing: "Falta", generating: "Generando…", approved: "Disponible", discarded: "Descartada", review: "Disponible" };
 
-/** Imagen clave 9:16 de una toma, con el QA de manos, cara y producto en una línea (.df-kf). */
-export function KeyframeTile({ label, state, src, qa = [], error, busy, onApprove, onDiscard, footer }: KeyframeTileProps) {
+/** Imagen clave 9:16 de una toma, para revisar y elegir (.df-kf). */
+export function KeyframeTile({ label, state, src, error, busy, onApprove, onDiscard, footer }: KeyframeTileProps) {
   const img = (state === "review" || state === "approved" || state === "discarded") && src;
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -46,11 +44,7 @@ export function KeyframeTile({ label, state, src, qa = [], error, busy, onApprov
           </span>
         ) : null}
       </div>
-      {state === "review" ? (
-        <span title={qa[0]} className={cn("truncate text-caption font-medium", qa.length ? "text-warning" : "text-success")}>
-          {qa.length ? qa[0] : "Manos, cara y producto OK"}
-        </span>
-      ) : state === "failed" ? (
+      {state === "failed" ? (
         <span className="line-clamp-2 text-caption text-destructive">{error ?? "No se pudo generar."}</span>
       ) : (
         <span role={state === "generating" ? "status" : undefined} className="text-caption text-muted-foreground">

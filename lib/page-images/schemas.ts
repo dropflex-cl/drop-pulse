@@ -1,4 +1,4 @@
-// Esquemas del director de galería y del QA de las imágenes de la página (docs/spec-imagenes.md).
+// Esquemas del director de galería y las imágenes de la página (docs/spec-imagenes.md).
 // Puro y testeado: la validación en código es lo que el modelo no puede saltarse.
 
 import * as z from "zod/v4";
@@ -92,7 +92,7 @@ export function benefitAngles(angles: number[], benefits: number = BENEFIT_SHOTS
 /**
  * Lo que es regla lo arregla el código: el modelo escribe a veces el salto de línea de un badge o un
  * callout como «\\n» literal (dos caracteres; caso de producción del 2026-10-03).
- * Se convierte en un salto de línea de verdad para el render y el QA.
+ * Se convierte en un salto de línea de verdad para el render.
  */
 export function normalizePlan(p: PagePlan): PagePlan {
   return { ...p, shots: p.shots.map((s) => ({ ...s, texts: s.texts.map((t) => ({ ...t, text: t.text.replace(/\\n/g, "\n") })) })) };
@@ -132,43 +132,4 @@ export function planProblems(p: PagePlan, benefits: number = BENEFIT_SHOTS, angl
     for (const k of s.kit_parts) if (!kit.has(k)) out.push(`${tag}: kit_parts «${k}» no está en kit.`);
   });
   return out;
-}
-
-// ---------------------------------------------------------------- QA
-
-export const pageQaSchema = z.object({
-  product_matches: z.boolean().describe("true si el producto es el mismo de la foto real: forma, colores, logo y etiqueta."),
-  product_issue: z.string().nullable().describe("Qué cambió del producto, en una frase para el comerciante. null si nada."),
-  texts: z
-    .array(z.object({ expected: z.string(), status: z.enum(["exact", "typo", "missing"]), found: z.string().nullable() }))
-    .describe("Uno por cada texto pedido, en el mismo orden. exact: escrito igual, con tildes y signos."),
-  extra_texts: z.array(z.string()).describe("Textos de la imagen que no se pidieron. Lo impreso en el producto cuenta como extra si NO está en la foto real."),
-  language_ok: z.boolean().describe("false si algún texto pedido quedó traducido a otro idioma."),
-  mismatches: z.array(z.string()).describe("Textos pedidos que la imagen contradice (nombra algo que no se ve o se ve otra cosa). [] si ninguno."),
-  misleading_props: z.array(z.string()).describe("Objetos que un comprador leería como ingrediente, sabor, accesorio incluido o función que la ficha no dice. [] si ninguno."),
-  units_consistent: z.boolean().describe("false si hay varias unidades del producto y no son idénticas (tamaño, forma, color)."),
-  anatomy_ok: z.boolean().describe("false si hay manos, dedos o pies deformes."),
-});
-export type PageQaOutput = z.infer<typeof pageQaSchema>;
-
-export interface PageQaResult extends PageQaOutput {
-  pass: boolean;
-  /** Los motivos, en español para la pantalla. */
-  issues: string[];
-}
-
-export function pageQaVerdict(out: PageQaOutput): PageQaResult {
-  const issues: string[] = [];
-  if (!out.product_matches) issues.push(out.product_issue?.trim() || "El producto no se ve igual a tu foto.");
-  if (!out.language_ok) issues.push("Tradujo algún texto a otro idioma.");
-  for (const t of out.texts) {
-    if (t.status === "missing") issues.push(`Falta «${t.expected}».`);
-    else if (t.status === "typo") issues.push(`«${t.expected}» quedó como «${t.found ?? "?"}».`);
-  }
-  if (out.extra_texts.length) issues.push(`Agregó ${out.extra_texts.map((t) => `«${t}»`).join(", ")}.`);
-  issues.push(...out.mismatches.map((m) => m.trim()).filter(Boolean));
-  issues.push(...out.misleading_props.map((m) => `Prop que confunde: ${m.trim()}`).filter((m) => m.length > 20));
-  if (!out.units_consistent) issues.push("Las unidades del producto no son iguales entre sí.");
-  if (!out.anatomy_ok) issues.push("Manos o pies deformes.");
-  return { ...out, pass: issues.length === 0, issues };
 }

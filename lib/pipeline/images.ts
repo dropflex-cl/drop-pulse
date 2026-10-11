@@ -1,5 +1,4 @@
 import "server-only";
-import type Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 
 // Las imágenes van al modelo como bytes (base64), no como enlaces: si el modelo descarga un enlace
@@ -38,15 +37,4 @@ export async function toJpeg(bytes: Buffer, maxSide = MAX_SIDE): Promise<Buffer>
   } catch (e) {
     throw new ImageLoadError(`no es una imagen legible (${(e as Error).message})`);
   }
-}
-
-/** Bytes de imagen → bloque para el modelo. */
-export async function imageBlockFromBytes(bytes: Buffer): Promise<Anthropic.Beta.BetaImageBlockParam> {
-  const jpeg = await toJpeg(bytes);
-  return { type: "image", source: { type: "base64", media_type: "image/jpeg", data: jpeg.toString("base64") } };
-}
-
-/** Una imagen lista para el modelo. Lanza ImageLoadError si no se puede descargar o no es una imagen. */
-export async function imageBlock(url: string): Promise<Anthropic.Beta.BetaImageBlockParam> {
-  return imageBlockFromBytes(await download(url));
 }

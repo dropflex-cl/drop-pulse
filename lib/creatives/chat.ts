@@ -39,7 +39,7 @@ export const CHAT_MIN_MESSAGES = 5;
  * Más que esto no cabe legible en la zona 4:5 del centro de un 9:16 (v1 admitía 8 en un 4:5 completo).
  */
 export const CHAT_MAX_MESSAGES = 7;
-/** Una burbuja es un mensaje, no un párrafo: ~3 líneas en el teléfono. v1 admitía 160; el QA lee letra por letra. */
+/** Una burbuja es un mensaje, no un párrafo: ~3 líneas en el teléfono. */
 export const CHAT_MESSAGE_MAX = 120;
 export const CONTACT_NAME_MAX = 24;
 /** Lo que pide el prompt (un 10 % menos, lib/ai/limits.ts); el editor y la validación usan los topes de arriba. */
@@ -101,14 +101,6 @@ export function normalizeChat(chat: WhatsappChat): WhatsappChat {
     clock: isChatTime(chat.clock) ? padTime(chat.clock) : chat.clock.trim(),
     messages: chat.messages.map((m) => ({ from: m.from, text: line(m.text), time: isChatTime(m.time) ? padTime(m.time) : m.time.trim(), photo: Boolean(m.photo) })),
   };
-}
-
-/** Los textos que el QA busca en la captura, en orden: el nombre del contacto y cada burbuja con texto. */
-export function chatBakedTexts(chat: WhatsappChat): { role: string; text: string }[] {
-  return [
-    { role: "contact", text: chat.contact_name },
-    ...chat.messages.filter((m) => m.text.trim()).map((m) => ({ role: m.photo ? "photo_caption" : m.from === "me" ? "outgoing" : "incoming", text: m.text })),
-  ];
 }
 
 // ---------------------------------------------------------------- Render

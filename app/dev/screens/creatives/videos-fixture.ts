@@ -45,7 +45,6 @@ const shot = (key: string, kind: VideoShotView["kind"], over: Partial<VideoShotV
   attempt: 1,
   render: "succeeded",
   src: kind === "keyframe" ? productImage(Number(key.slice(1)), 1) : undefined,
-  qa: kind === "keyframe" ? { pass: true, issues: [] } : undefined,
   status: "generado",
   ...over,
 });
@@ -80,7 +79,7 @@ export function videosFixture(v: string): VideosState {
     const keyframes =
       at >= 1
         ? script.keyframes.map((k, i) =>
-            shot(k.key, "keyframe", at >= 2 ? { status: "aprobado" } : i === 1 ? { qa: { pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] } } : i === 3 ? { render: "running", src: undefined } : {}),
+            shot(k.key, "keyframe", at >= 2 ? { status: "aprobado" } : i === 1 ? {  } : i === 3 ? { render: "running", src: undefined } : {}),
           )
         : [];
     const clips =

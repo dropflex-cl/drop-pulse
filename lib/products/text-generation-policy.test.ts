@@ -8,9 +8,9 @@ async function files(dir: string): Promise<string[]> {
   return (await Promise.all(rows.map((row) => row.isDirectory() ? files(path.join(dir, row.name)) : Promise.resolve([path.join(dir, row.name)])))).flat();
 }
 
-/** Evita reintroducir un writer de pago en una ruta menos visible. La excepción es el QA visual. */
+/** Evita reintroducir un writer de pago en una ruta menos visible. No hay excepciones de revisión visual. */
 describe("arquitectura · todo texto de marketing se escribe desde el chat", () => {
-  it("los únicos callers de generateStructured son las tres revisiones de imágenes", async () => {
+  it("no hay callers de generación de texto ni revisión visual pagada", async () => {
     const calls: string[] = [];
     for (const file of [...await files("lib"), ...await files("app")].filter((file) => /\.(ts|tsx)$/.test(file) && !/\.test\./.test(file))) {
       const source = ts.createSourceFile(file, await readFile(file, "utf8"), ts.ScriptTarget.Latest, true);
@@ -20,7 +20,7 @@ describe("arquitectura · todo texto de marketing se escribe desde el chat", () 
       };
       visit(source);
     }
-    expect(calls.sort()).toEqual(["lib/pipeline/creatives.ts:generateStructured", "lib/pipeline/page-images.ts:generateStructured", "lib/pipeline/video.ts:generateStructured"]);
+    expect(calls.sort()).toEqual([]);
   });
   it("el cliente UI no envía mutaciones a los writers retirados ni los dispara al continuar", async () => {
     const client = await readFile("lib/products/client.ts", "utf8");
@@ -49,6 +49,16 @@ describe("arquitectura · todo texto de marketing se escribe desde el chat", () 
     const page = await readFile("lib/copy/page-schema.ts", "utf8");
     for (const builder of ["toWrite", "loosen", "pageSchema", "failingParts", "partialOutput", "mergeOutput", "productFactText"]) {
       expect(page).not.toMatch(new RegExp(`export (?:function|const) ${builder}\\b`));
+    }
+  });
+
+  it("no quedan controles, endpoints ni clientes de revisión automática de imágenes", async () => {
+    const sourceFiles = [...await files("lib"), ...await files("app"), ...await files("components")];
+    for (const retired of ["app/api/products/[id]/image-qa/route.ts", "components/df/qa-result.tsx", "lib/ai/claude.ts", "lib/ai/cache-gate.ts", "lib/creatives/prompts.ts", "lib/page-images/prompts.ts", "lib/video/prompts.ts"]) {
+      expect(sourceFiles).not.toContain(retired);
+    }
+    for (const file of sourceFiles.filter(file => /\.(ts|tsx)$/.test(file) && !/\.test\./.test(file))) {
+      expect(await readFile(file, "utf8"), file).not.toMatch(/\b(?:imageQaEnabled|setImageQa|IMAGE_QA_USD|image_qa|pi_qa_enabled|qa_enabled|baked_texts|retry_of)\b/);
     }
   });
 

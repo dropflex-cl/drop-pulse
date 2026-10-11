@@ -1,6 +1,5 @@
 import { Button } from "./button";
 import { Icon } from "./icon";
-import { detailCount, QaResult } from "./qa-result";
 import { StateChip } from "./state-chip";
 import { StatusBadge } from "./status-badge";
 import { cn } from "@/lib/utils";
@@ -19,11 +18,6 @@ export interface CreativePieceProps {
   src?: string;
   /** Costo de generarla, ya formateado: «≈ $95». Todo botón que gasta lo muestra. */
   cost?: string;
-  /** Segundo intento, sin estilo (el QA rechazó el primero). */
-  retry?: boolean;
-  /** Detalles del QA; undefined si todavía no hay QA. */
-  qa?: string[];
-  qaOk?: string;
   /** El proveedor la recibió: se recupera sin volver a pagar. */
   recoverable?: boolean;
   error?: string;
@@ -74,7 +68,7 @@ function PieceStatus({ state, lockedLabel }: { state: PieceState; lockedLabel?: 
 
 /**
  * Una pieza generada (feed 1:1, Stories 9:16, captura del chat) en todos sus estados (.df-piece):
- * vacía → en cola → generando → por revisar (con QA) → aprobada o descartada; si falla, recuperar o
+ * vacía → en cola → generando → por revisar → aprobada o descartada; si falla, recuperar o
  * generar de nuevo. Todo botón que genera muestra su costo.
  */
 export function CreativePiece(p: CreativePieceProps) {
@@ -113,12 +107,7 @@ export function CreativePiece(p: CreativePieceProps) {
   );
 
   const note =
-    state === "generating" && p.retry ? (
-      <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
-        <Icon name="undo" size="sm" />
-        Segundo intento, sin estilo
-      </span>
-    ) : state === "queued" || state === "generating" || state === "discarded" ? (
+    state === "queued" || state === "generating" || state === "discarded" ? (
       <span className="text-caption text-muted-foreground">
         {state === "discarded" ? "El archivo se borra en 2 min" : (p.eta ?? (state === "queued" ? "Empieza en unos segundos" : "Suele tardar menos de un minuto"))}
       </span>
@@ -176,10 +165,6 @@ export function CreativePiece(p: CreativePieceProps) {
     );
   }
 
-  const qaInline = p.qa && state === "review" ? (
-    <span className={cn("text-caption font-medium", p.qa.length ? "text-warning" : "text-success")}>{p.qa.length ? `Revisa: ${detailCount(p.qa.length)}` : "QA sin detalles"}</span>
-  ) : null;
-
   if (!full) {
     const title = (
       <>
@@ -202,7 +187,6 @@ export function CreativePiece(p: CreativePieceProps) {
             <PieceStatus state={state} lockedLabel={p.lockedLabel} />
             {note}
           </div>
-          {qaInline}
           {fail}
         </div>
         {actions ? <div className={cn("flex justify-end gap-1.5", state === "failed" && "col-span-2 col-start-2 justify-start")}>{actions}</div> : null}
@@ -226,7 +210,6 @@ export function CreativePiece(p: CreativePieceProps) {
       </div>
       {note}
       {fail}
-      {p.qa && hasImg ? <QaResult issues={p.qa} okLabel={p.qaOk} /> : null}
       {actions}
       {p.extra}
     </section>

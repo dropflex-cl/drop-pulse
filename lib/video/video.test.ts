@@ -9,7 +9,6 @@ import {
   assembleScript,
   changedLines,
   characterKeyframe,
-  keyframeQaVerdict,
   lineProblems,
   linesAsScript,
   opensWithHook,
@@ -23,7 +22,6 @@ import {
   type UgcPlan,
   type UgcScript,
 } from "./schemas";
-import { keyframeQaUser } from "./prompts";
 
 // Deep Collagen (POC 2026-09-26, variante E, ángulo 3): el guion que el usuario aprobó.
 const pricing = {
@@ -535,31 +533,6 @@ describe("paquete de montaje", () => {
     expect(captionAccent("#1e3a8a")).toBe(DEFAULT_ACCENT);
     expect(captionAccent("#7dd3fc")).toBe("#7DD3FC");
     expect(captionAccent("nope")).toBe(DEFAULT_ACCENT);
-  });
-});
-
-describe("QA de imágenes clave", () => {
-  const ok = { hands_ok: true, product_ok: null, same_person: null, no_text: true, brand_safe: true, matches_hook: null, phone_look: null, issues: [] as string[] };
-  it("falla con manos de más aunque el modelo no lo explique", () => {
-    expect(keyframeQaVerdict({ ...ok, hands_ok: false, product_ok: true, same_person: true })).toEqual({ pass: false, issues: ["Revisa las manos: hay una de más o está deforme."] });
-    expect(keyframeQaVerdict(ok).pass).toBe(true);
-    // Una forma sugerente falla siempre y va primero, aunque el modelo haya anotado otra cosa.
-    const unsafe = keyframeQaVerdict({ ...ok, brand_safe: false, issues: ["Los ojos quedaron chicos."] });
-    expect(unsafe.pass).toBe(false);
-    expect(unsafe.issues[0]).toMatch(/puede leerse como algo sexual/);
-  });
-
-  it("la apertura tiene que mostrar el gancho; parecer de estudio solo avisa", () => {
-    expect(keyframeQaVerdict({ ...ok, matches_hook: false })).toEqual({ pass: false, issues: ["No muestra la primera toma del gancho: pide otra."] });
-    expect(keyframeQaVerdict({ ...ok, matches_hook: true }).pass).toBe(true);
-    expect(keyframeQaVerdict({ ...ok, phone_look: false })).toEqual({ pass: true, issues: ["Parece foto de estudio: si no te convence, pide otra."] });
-    expect(keyframeQaVerdict({ ...ok, phone_look: true })).toEqual({ pass: true, issues: [] });
-  });
-
-  it("el QA sabe si es la apertura y si es la mascota", () => {
-    const k = { key: "K5", prompt: "x", uses_product: false };
-    expect(keyframeQaUser(k, true, "ugc", { first_motion: "She leans in.", hook: "No compres otra." })).toMatch(/APERTURA[\s\S]*She leans in\.[\s\S]*«No compres otra\.»[\s\S]*revisa phone_look/);
-    expect(keyframeQaUser(k, true, "mascot")).toMatch(/matches_hook = null[\s\S]*phone_look = null/);
   });
 });
 

@@ -1,8 +1,8 @@
 import "server-only";
 import { adminClient } from "@/lib/integrations/admin";
-import { AI_MODEL, type AiStepError, type AiUsage } from "./claude";
+import { AI_MODEL } from "./model";
+import type { AiUsage } from "./usage";
 import type { AiStep } from "./costs";
-import { PROMPT_VERSIONS } from "./versions";
 
 // Registro único de cada llamada a un modelo (Claude, Higgsfield o Gemini), con su costo. De aquí salen el
 // costo de IA por producto (AiCostCard, AiRunList) y los topes diarios. Un paso nuevo que llame a la
@@ -27,12 +27,10 @@ export interface AiGeneration {
   /** El costo de `usage` es una aproximación (p. ej., un modelo de Gemini fuera de la tabla de precios). */
   costEstimated?: boolean;
   latencyMs?: number | null;
-  /** Por defecto, la vigente del paso (PROMPT_VERSIONS). El guion de mascota pasa la suya. */
+  /** Versión del prompt informada por el trabajo, si corresponde. */
   promptVersion?: number | null;
 }
 
-/** Lo que se registra de un intento que falló: su costo, su código y, si la respuesta no se pudo leer, por qué. */
-export const failure = (e: AiStepError) => ({ usage: e.usage, error: e.code, problems: e.problems });
 
 /** Fallas antes de llamar al modelo (faltan datos): no son generaciones ni cuestan. */
 const BEFORE_CALL = new Set(["not_found", "no_key", "no_image", "no_pricing", "image_unreadable"]);
@@ -59,7 +57,7 @@ export async function recordAiGeneration(g: AiGeneration): Promise<void> {
     latency_ms: u?.latencyMs ?? g.latencyMs ?? null,
   };
   const problems = g.error && g.problems?.length ? g.problems.slice(0, 20) : null;
-  const promptVersion = g.promptVersion ?? PROMPT_VERSIONS[g.step] ?? null;
+  const promptVersion = g.promptVersion ?? null;
   const table = () => adminClient().from("ai_generations");
   let { error } = await table().insert({ ...row, ...(problems ? { problems } : {}), ...(promptVersion != null ? { prompt_version: promptVersion } : {}) });
   // Sin esas columnas (las migraciones 20261025000000 y 20261031000000 aún no llegan a esta base), el costo se registra igual.

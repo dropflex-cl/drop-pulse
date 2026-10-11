@@ -12,12 +12,10 @@ const asset = (id: string, over: Partial<CreativeAssetView> = {}): CreativeAsset
   id,
   ratio: "1:1",
   provider: "higgsfield",
-  attempt: 1,
   render: "succeeded",
   src: productImage(Number(id.replace(/\D/g, "")) || 0, 1),
   width: 1024,
   height: 1024,
-  qa: { pass: true, issues: [] },
   status: "generado",
   inAds: false,
   createdAt: NOW,
@@ -48,7 +46,7 @@ function concepts(state: string): CreativeConceptView[] {
         ? [
             asset("a1", { status: state === "done" ? "aprobado" : "generado", inAds: state === "done", kept: state === "done" }),
             // La misma pieza con el otro proveedor: cada una dice con cuál se generó.
-            ...(state === "review" ? [asset("a8", { provider: "gemini", qa: { pass: false, issues: ["El sello «Pago contra entrega» tapa la etiqueta.", "El titular dice «CÁPSLA»: falta una letra."] } })] : []),
+            ...(state === "review" ? [asset("a8", { provider: "gemini",  })] : []),
           ]
         : [],
     },
@@ -69,8 +67,8 @@ function concepts(state: string): CreativeConceptView[] {
       edited: true,
       assets: generated
         ? [
-            asset("a2", { qa: { pass: false, issues: ["Agregó «VAGINAL PROBIOTIC»."] } }),
-            asset("a3", { attempt: 2, render: state === "rendering" ? "running" : "succeeded", src: state === "rendering" ? undefined : productImage(3, 1) }),
+            asset("a2", {  }),
+            asset("a3", { render: state === "rendering" ? "running" : "succeeded", src: state === "rendering" ? undefined : productImage(3, 1) }),
             asset("a4", { ratio: "9:16", width: 752, height: 1344, render: state === "rendering" ? "queued" : "succeeded", error: state === "rendering" ? "Higgsfield está procesando otras imágenes tuyas. La tuya sigue en cola." : undefined, src: state === "rendering" ? undefined : productImage(4, 1) }),
           ]
         : [],
@@ -119,8 +117,8 @@ function concepts(state: string): CreativeConceptView[] {
       edited: false,
       assets: generated
         ? [
-            asset("a5", { render: "failed", src: undefined, qa: undefined, error: "Higgsfield rechazó la imagen por sus reglas de contenido. Cambia los textos o la escena y genera de nuevo." }),
-            asset("a6", { ratio: "9:16", render: "failed", src: undefined, qa: undefined, recoverable: true, error: "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento." }),
+            asset("a5", { render: "failed", src: undefined, error: "Higgsfield rechazó la imagen por sus reglas de contenido. Cambia los textos o la escena y genera de nuevo." }),
+            asset("a6", { ratio: "9:16", render: "failed", src: undefined, recoverable: true, error: "No pudimos conectarnos con Higgsfield. Intenta de nuevo en un momento." }),
           ]
         : [],
     },
