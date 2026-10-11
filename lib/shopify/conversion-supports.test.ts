@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CONVERSION_SUPPORTS } from "./conversion-supports";
+import { conversionSupportState, DEFAULT_CONVERSION_SUPPORTS } from "./conversion-supports";
 
 // Ejecuta el script del tema: aplicar una arquitectura no debe quitar pruebas o controles
 // comerciales. DOM mínimo con marcadores para verificar también restauración al navegar.
@@ -86,6 +86,14 @@ function applyExperience(disabled: string[] = []) {
 }
 
 describe("apoyos comerciales de la PDP", () => {
+  it("mantiene la entrega visible incluso con una exclusión antigua", () => {
+    expect(conversionSupportState(["shipping-timeline", "pain-block"]).disabled_components).toEqual(["pain-block"]);
+    const { roots, window } = applyExperience(["shipping-timeline"]);
+    expect(roots.find((n) => n.dataset.dfPdpComponent === "shipping-timeline")?.hidden).toBe(false);
+    window.DropFlexPdp.restore();
+    window.DropFlexPdp.apply();
+    expect(roots.find((n) => n.dataset.dfPdpComponent === "shipping-timeline")?.hidden).toBe(false);
+  });
   it("conserva todos los componentes omitidos por el plan", () => {
     const { roots } = applyExperience();
     for (const id of DEFAULT_CONVERSION_SUPPORTS)

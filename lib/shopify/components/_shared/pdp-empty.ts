@@ -69,7 +69,7 @@ export const PDP_EMPTY_STATES: Record<
   },
   "shipping-timeline": {
     heading: "Entrega de tu pedido",
-    body: "El plazo de entrega se confirma al ingresar tu dirección.",
+    body: "Consulta el plazo de entrega antes de confirmar tu pedido.",
     icon: "truck",
   },
   "benefit-double-box": {

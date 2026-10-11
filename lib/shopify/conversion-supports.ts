@@ -5,7 +5,7 @@ export const DEFAULT_CONVERSION_SUPPORTS: readonly string[] = CATALOG.map(
 );
 /** Apoyos permanentes: ninguna variante o exclusión puede retirarlos. */
 export const ALWAYS_ON_SUPPORTS: readonly string[] = [
-  "review-stars", "review-slider", "review-wall", "inventory", "benefit-double-box",
+  "review-stars", "review-slider", "review-wall", "inventory", "benefit-double-box", "shipping-timeline",
 ];
 export function conversionSupportState(disabled: string[] = []) {
   return {

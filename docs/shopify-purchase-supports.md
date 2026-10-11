@@ -5,7 +5,7 @@ el botón de compra, la disponibilidad y el carrusel, en ese orden. Google y las
 viven en `df-purchase-supports`, renderizado directamente desde `buy-buttons`. Los bloques
 existentes de disponibilidad y carrusel se colocan en sus espacios alrededor del botón;
 si el editor los quitó, el snippet tiene respaldo. Una experiencia por ángulo no los retira.
-Los apoyos permanentes no se pueden apagar desde DropFlex.
+Los apoyos permanentes no se pueden apagar desde DropFlex. La línea de entrega también es permanente: exige preparación, tránsito mínimo y máximo y hora de corte antes de publicar. Sin texto aprobado usa el respaldo del bloque con las fechas calculadas desde la logística real.
 
 Las reseñas son las importadas y aprobadas; se publican todos sus textos, sin el antiguo
 tope de 30. Las fotos conservan el límite de 90 archivos por publicación. La nota y la cantidad

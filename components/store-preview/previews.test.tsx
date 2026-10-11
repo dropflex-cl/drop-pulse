@@ -78,7 +78,7 @@ describe("vistas previas de los componentes", () => {
         for (const example of c.examples) {
           const html = renderToStaticMarkup(
             <StoreFrame accent="#1f4bd8">
-              <Preview content={example} facts={MANY_REVIEWS} images={IMAGES} />
+              <Preview content={example} facts={c.id === "shipping-timeline" ? { ...MANY_REVIEWS, logistics: { min: 1, max: 3, handling: 0, cutoff: 9 } } : MANY_REVIEWS} images={IMAGES} />
             </StoreFrame>,
           );
           // Sin logística, mostrar disponibilidad sin fabricar ventas o plazos.

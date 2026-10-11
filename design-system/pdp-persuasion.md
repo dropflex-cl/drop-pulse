@@ -31,7 +31,11 @@ El muro selecciona hasta 12 reseñas aprobadas, con fotos primero, si no tiene u
 Los mínimos de reseñas, la aprobación del material y las políticas reales siguen siendo obligatorios.
 Packs y barra fija de compra están habilitados en el tema y conservan el pack elegido.
 La urgencia proviene del inventario de Shopify o de un evento activado con fecha de término real.
-La entrega se muestra solo con logística configurada, sin plazos de ejemplo.
+La entrega es permanente y no se puede desactivar desde DropFlex. Publicar exige preparación, tránsito mínimo y máximo y hora de corte reales en Ajustes › Envíos y políticas. Sin texto aprobado usa los textos del bloque; nunca plazos de ejemplo.
+
+Si una ficha anterior todavía no tiene logística completa, el respaldo dice «Entrega de tu pedido» y «Consulta el plazo de entrega antes de confirmar tu pedido.». No afirma que el formulario calcule un plazo por dirección.
+
+Campo de logística requerido sin completar: «Completa este dato para mostrar las fechas de entrega.». Tránsito parcial: «Completa el mínimo y el máximo de tránsito.». Publicación bloqueada: «Completa los plazos de entrega y la hora de corte en Ajustes › Envíos y políticas antes de publicar.»; «Completar» lleva a Envíos y políticas.
 
 Publicar guarda `dropflex.conversion_supports.disabled_components` con los componentes que el
 comerciante apagó o rechazó. Estos no reaparecen por usar otra arquitectura. Los autores permanecen

@@ -7,7 +7,7 @@ import type { PreviewProps } from "./types";
 // blocks/df-shipping-timeline.liquid como queda después de assets/df-shipping-timeline.js, en el
 // estado con cuenta regresiva: se simula que faltan EXAMPLE.time para el corte del próximo día
 // hábil (en la zona de la tienda) y con eso se calculan las fechas de despacho y entrega igual que
-// el JS. Los plazos salen de facts.logistics; sin ellos, de los ajustes del bloque, como la tienda.
+// el JS. Los plazos salen de facts.logistics; sin logística completa no se calculan fechas.
 
 interface Content {
   countdown_template?: string;
@@ -65,6 +65,9 @@ export function ShippingTimelinePreview({
   facts,
 }: PreviewProps<Content>) {
   const s = settingsOf("shipping-timeline");
+  if (!facts.logistics || facts.logistics.cutoff == null || facts.logistics.handling == null)
+    return <PdpEmptyPreview component="shipping-timeline" />;
+  content = content ?? {};
 
   const tOrdered = content.node_ordered_label || String(s.ordered_label ?? "");
   const tOrderedSub = content.node_ordered_sub || String(s.ordered_sub ?? "");
@@ -85,7 +88,7 @@ export function ShippingTimelinePreview({
   if (!tOrdered || !tShipped || !tDelivered)
     return <PdpEmptyPreview component="shipping-timeline" />;
 
-  // Plazos: los de Ajustes › Envíos (facts.logistics); sin ellos, los del bloque. `max` es el de
+  // Plazos de Ajustes › Envíos (facts.logistics). `max` es el de
   // regiones cuando hay plazo de regiones: la ciudad principal termina `extra` días antes.
   const L = facts.logistics;
   const handling = Math.max(0, L?.handling ?? (Number(s.handling_days) || 0));

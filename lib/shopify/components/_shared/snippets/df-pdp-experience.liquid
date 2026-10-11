@@ -20,7 +20,7 @@
     'offer-summary': 'body',
     'insta-story': 'body', 'review-wall': 'body', 'comparison-table': 'body', 'faq-and-text': 'body',
   };
-    const disabled = ({{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || []).filter(id => !['review-stars','review-slider','review-wall','inventory','benefit-double-box'].includes(id));
+    const disabled = ({{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || []).filter(id => !['review-stars','review-slider','review-wall','inventory','benefit-double-box','shipping-timeline'].includes(id));
   const valid = (v) => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v);
   const uuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v);
   const validExperience = (e) => {
@@ -128,7 +128,7 @@
 
 <script>
 (() => {
- const disabled = ({{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || []).filter(id => !['review-stars','review-slider','review-wall','inventory','benefit-double-box'].includes(id));
+ const disabled = ({{ product.metafields.dropflex.conversion_supports.value.disabled_components | json | replace: '<', '\u003c' }} || []).filter(id => !['review-stars','review-slider','review-wall','inventory','benefit-double-box','shipping-timeline'].includes(id));
  const apply = () => document.querySelectorAll('[data-df-pdp-component]').forEach(node => {
    if (disabled.includes(node.dataset.dfPdpComponent)) { node.hidden = true; const parent = node.closest('.shopify-section'); if (parent?.querySelectorAll('[data-df-pdp-component]').length === 1) parent.hidden = true; }
  });

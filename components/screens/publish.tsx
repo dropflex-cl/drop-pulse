@@ -319,7 +319,7 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
             </span>
           ))}
           action={
-            <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, missingStage(state.missing[0]))}>
+            <Button variant="primary" iconEnd="chevron-right" href={state.missing[0].includes("Envíos y políticas") ? "/settings#envios" : productHref(product.id, missingStage(state.missing[0]))}>
               Completar
             </Button>
           }

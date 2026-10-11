@@ -14,7 +14,7 @@ import {
 import { reviewDate } from "@/lib/reviews/copy";
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { signPhotos } from "@/lib/reviews/store";
-import { deliveryDays, type StorePolicies } from "@/lib/settings/policies";
+import { logisticsMetafield, deliveryDays, type StorePolicies } from "@/lib/settings/policies";
 import { getStorePolicies } from "@/lib/settings/policies-store";
 import {
   averageRating,
@@ -160,7 +160,7 @@ function logisticsFacts(
   p: StorePolicies | null | undefined,
 ): StoreFacts["logistics"] {
   const days = p ? deliveryDays(p) : null;
-  if (!p || !days) return null;
+  if (!p || !days || !logisticsMetafield(p, null)) return null;
   const extra = p.regionsExtraDays && p.mainCity ? p.regionsExtraDays : 0;
   return {
     ...days,

@@ -1,7 +1,7 @@
 // Envíos y políticas de la tienda (Ajustes › Envíos y políticas): lo que el comerciante declara y
 // cómo viaja a la tienda (shop.metafields.dropflex.policies y .logistics, contrato en
 // lib/shopify/components/define.ts › SHARED_METAFIELDS). Puro: lo usan la pantalla, el servidor y la
-// publicación. Un dato vacío es «no lo ofrezco»: el componente que lo menciona no se muestra.
+// publicación. La logística es obligatoria; el resto de las políticas admite datos vacíos.
 
 export interface StorePolicies {
   /** Envío gratis a todo el país (o desde `freeShippingThreshold`). */
@@ -65,6 +65,9 @@ const LIMITS: Partial<Record<PolicyField, [min: number, max: number]>> = {
 /** Qué está mal, por campo, en frases simples. Vacío = se puede guardar. */
 export function policyProblems(p: StorePolicies): Partial<Record<PolicyField, string>> {
   const out: Partial<Record<PolicyField, string>> = {};
+  for (const field of ["handlingDays", "transitDaysMin", "transitDaysMax", "cutoffHour"] as const) {
+    if (p[field] == null) out[field] = "Completa este dato para mostrar las fechas de entrega.";
+  }
   for (const [field, [min, max]] of Object.entries(LIMITS) as [PolicyField, [number, number]][]) {
     const v = p[field] as number | null;
     if (v == null) continue;
@@ -80,7 +83,7 @@ export function policyProblems(p: StorePolicies): Partial<Record<PolicyField, st
   if (p.regionsExtraDays != null && !p.mainCity && !out.regionsExtraDays) out.mainCity = "Escribe la ciudad donde rige ese plazo, por ejemplo Santiago.";
   if (p.mainCity != null && p.mainCity.length > 40) out.mainCity = "Usa hasta 40 caracteres.";
   const transit = [p.transitDaysMin, p.transitDaysMax].filter((v) => v != null).length;
-  if (transit === 1) out[p.transitDaysMin == null ? "transitDaysMin" : "transitDaysMax"] = "Completa el mínimo y el máximo, o deja los dos vacíos.";
+  if (transit === 1) out[p.transitDaysMin == null ? "transitDaysMin" : "transitDaysMax"] = "Completa el mínimo y el máximo de tránsito.";
   return out;
 }
 
@@ -105,7 +108,7 @@ export function policiesMetafield(p: StorePolicies, locale?: string | null) {
 }
 
 /**
- * shop.metafields.dropflex.logistics (json), o null si faltan los plazos: sin ellos los
+ * shop.metafields.dropflex.logistics (json), o null si falta la logística completa: sin ella los
  * componentes ocultan lo que dice «llega en {min} a {max} días» (nunca un plazo inventado).
  *
  * Con plazo de regiones: `transit_days_min` es el de la ciudad principal y `transit_days_max` el de
@@ -113,13 +116,15 @@ export function policiesMetafield(p: StorePolicies, locale?: string | null) {
  * La línea de tiempo los separa con `main_city`, `main_city_transit_max` y `regions_extra_days`.
  */
 export function logisticsMetafield(p: StorePolicies, timezone: string | null) {
-  if (p.transitDaysMin == null || p.transitDaysMax == null) return null;
+  if (p.handlingDays == null || p.transitDaysMin == null || p.transitDaysMax == null || p.cutoffHour == null) return null;
+  const problems = policyProblems(p);
+  if (["handlingDays", "transitDaysMin", "transitDaysMax", "cutoffHour", "mainCity", "regionsExtraDays"].some((field) => problems[field as PolicyField])) return null;
   const extra = p.regionsExtraDays && p.mainCity ? p.regionsExtraDays : 0;
   return {
-    handling_days: p.handlingDays ?? 0,
+    handling_days: p.handlingDays,
     transit_days_min: p.transitDaysMin,
     transit_days_max: p.transitDaysMax + extra,
-    ...(p.cutoffHour != null ? { cutoff_hour: p.cutoffHour } : {}),
+    cutoff_hour: p.cutoffHour,
     ...(timezone ? { timezone } : {}),
     business_days_only: p.businessDaysOnly,
     saturday_delivery: p.saturdayDelivery,

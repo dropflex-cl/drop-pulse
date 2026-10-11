@@ -167,7 +167,7 @@ export async function preparePublish(
   userId: string,
   productId: string,
 ): Promise<Prepared> {
-  const [row, rowsByProduct, refs, pageRows, reviews, pricing, labels] =
+  const [row, rowsByProduct, refs, pageRows, reviews, pricing, labels, settings] =
     await Promise.all([
       getProductRow(userId, productId),
       activeComponents(userId, [productId]),
@@ -176,10 +176,13 @@ export async function preparePublish(
       approvedReviewRows(userId, productId),
       getPricingPlan(userId, productId),
       latestPackLabels(userId, productId),
+      getStorePolicies(userId),
     ]);
   if (!row) throw new ProductApiError("No encontramos ese producto.", 404);
   const rows = rowsByProduct.get(productId) ?? [];
   const missing: string[] = [];
+  if (!settings || !logisticsMetafield(settings.policies, settings.timezone))
+    missing.push("Completa los plazos de entrega y la hora de corte en Ajustes › Envíos y políticas antes de publicar.");
 
   const listingRow = rows.find(
     (r) => r.component === LISTING && r.status === "approved",
@@ -589,7 +592,8 @@ async function publishShopFacts(
   conn: ShopifyConnection,
 ): Promise<{ policies: boolean; logistics: boolean }> {
   const settings = await getStorePolicies(conn.user_id);
-  if (!settings) return { policies: false, logistics: false };
+  if (!settings || !logisticsMetafield(settings.policies, settings.timezone ?? conn.timezone))
+    throw new PublishError("Completa los plazos de entrega y la hora de corte en Ajustes › Envíos y políticas antes de publicar.");
   const shop = await shopifyQuery<{
     shop: { id: string; metafields: { nodes: { key: string }[] } };
   }>(conn, SHOP_METAFIELDS);

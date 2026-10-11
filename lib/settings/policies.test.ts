@@ -55,8 +55,8 @@ describe("envíos y políticas", () => {
       regions_extra_days: 2,
     });
     expect(deliveryDays(stgo)).toEqual({ min: 0, max: 3 });
-    // Sin ciudad no se publica el plazo de regiones (y no se puede guardar).
-    expect(logisticsMetafield({ ...stgo, mainCity: null }, null)).not.toHaveProperty("regions_extra_days");
+    // Sin ciudad no se publica logística incompleta (y no se puede guardar).
+    expect(logisticsMetafield({ ...stgo, mainCity: null }, null)).toBeNull();
     expect(policyProblems({ ...stgo, mainCity: null }).mainCity).toBeTruthy();
     expect(policyProblems({ ...stgo, regionsExtraDays: 0 }).regionsExtraDays).toBeTruthy();
     expect(fromRow(toRow(stgo))).toEqual(stgo);
@@ -69,6 +69,18 @@ describe("envíos y políticas", () => {
     expect(policyProblems({ ...full, cutoffHour: 24 })).toHaveProperty("cutoffHour");
     expect(policyProblems({ ...full, returnDays: 1.5 })).toHaveProperty("returnDays");
     expect(policyProblems({ ...full, whatsapp: "123" })).toHaveProperty("whatsapp");
+  });
+
+  it("requiere todos los datos de entrega y acepta preparación y corte en cero", () => {
+    for (const field of ["handlingDays", "transitDaysMin", "transitDaysMax", "cutoffHour"] as const) {
+      const incomplete = { ...full, [field]: null };
+      expect(policyProblems(incomplete)).toHaveProperty(field);
+      expect(logisticsMetafield(incomplete, "America/Santiago")).toBeNull();
+    }
+    expect(logisticsMetafield({ ...full, handlingDays: 0, cutoffHour: 0 }, "America/Santiago"))
+      .toMatchObject({ handling_days: 0, cutoff_hour: 0 });
+    expect(logisticsMetafield({ ...full, cutoffHour: 24 }, null)).toBeNull();
+    expect(logisticsMetafield({ ...full, transitDaysMin: 5, transitDaysMax: 2 }, null)).toBeNull();
   });
 
   it("limpia el WhatsApp y vuelve de la fila igual", () => {
