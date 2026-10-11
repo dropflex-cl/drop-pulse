@@ -40,13 +40,17 @@ Los contratos permiten omitir revisiones, stamps, etags y claves idempotentes. E
 
 Se conservan RLS, propietario y scopes de MCP, claves del comerciante, límites de trabajos, archivos optimizados y borrado en cascada/Storage por producto. No se cambió autenticación. Un registro de archivo no prueba que existan sus bytes: la preparación de publicación verifica Storage y devuelve un impedimento concreto si faltan. La aprobación y la autorización Shopify son independientes; el consentimiento desactivado no se reactiva.
 
-## Migraciones y despliegue pendiente
+## Migraciones y despliegue
 
 `20261211000000_current_product_content.sql` agrega decisiones explícitas de imagen y actualiza lectores/RPC/guards compatibles. El backfill transforma selecciones existentes y conserva descartes, textos editados, orden, destinos y visibilidad; no recupera filas con `superseded_at`. Los nombres y campos históricos permanecen para clientes anteriores y auditoría. Reemplazar funciones mantiene los permisos existentes; los guards nuevos no son ejecutables públicamente.
 
 `20261214000000_current_ugc_keyframe_targets.sql` integra las ediciones de guiones actuales con los destinos externos de `20261212000000`. Conserva las tomas existentes y crea solo destinos ausentes; no encola renders ni consume créditos. Las migraciones `20261212` y `20261213` pertenecen al trabajo de UGC de la otra sesión y no se reemplazan aquí.
 
-Ambas migraciones de este trabajo se aplicaron únicamente en la base local. Producción permaneció en solo lectura. Aplicar las migraciones pendientes en orden antes de desplegar estos lectores; después actualizar los contratos MCP y comprobar conexión/tema Shopify con autorización operativa. No se publicó ningún producto para verificar esta implementación.
+Durante la implementación inicial se aplicaron únicamente en la base local. El 2026-10-11, con autorización explícita del comerciante, se aplicaron en producción las cuatro migraciones pendientes `20261211` a `20261214`, en orden. La comprobación posterior confirmó que no quedan migraciones pendientes. El despliegue de aplicación y las comprobaciones operativas de Shopify son independientes; no se publicó ningún producto para verificar las migraciones.
+
+Antes de aplicar se respaldaron el esquema y los datos públicos. La inspección encontró cinco imágenes proyectadas desde bindings: su guard impedía completar `is_selected` desde el valor inicial. El backfill establece `pi.visual_projection` solo dentro de su transacción y lo restablece al terminar, sin retirar el guard ni modificar archivos o usos. La prueba local reproduce ese estado inicial y comprueba que una escritura normal permanece bloqueada.
+
+Después de migrar coinciden las nueve huellas previas de componentes, imágenes (sin las columnas nuevas ni su timestamp), registros visuales (sin la nueva selección), experiencias, estrategias, etiquetas, guiones, tomas y publicaciones. Las cinco imágenes seleccionadas conservan su decisión y todos los bindings tienen selección explícita. El producto del diagnóstico conserva 27 componentes habilitados y cinco imágenes seleccionadas. RLS sigue activo, el trigger de destinos externos cubre inserción y edición, y el worker Remotion retirado no tiene permisos de ejecución. No se lanzaron generaciones, campañas ni publicaciones de productos. Verificación de la corrección: diez pruebas locales, TypeScript y lint del archivo modificado correctos.
 
 ## Verificación
 

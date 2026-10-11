@@ -4,9 +4,13 @@ begin;
 alter table public.page_images add column if not exists is_selected boolean not null default false;
 alter table public.page_images add column if not exists discarded_at timestamptz;
 -- BACKFILL CURRENT DECISIONS BEGIN
+-- Las imágenes proyectadas desde bindings mantienen su guard: solo este backfill autorizado
+-- escribe las nuevas decisiones sin modificar archivos, destinos ni selecciones anteriores.
+select set_config('pi.visual_projection','true',true);
 update public.page_images set is_selected=(status='approved'), discarded_at=case when status='rejected' then coalesce(decided_at,updated_at) end;
 update public.pi_visual_records set payload=payload||jsonb_build_object('selected',status='selected')
  where kind='binding' and not (payload ? 'selected');
+select set_config('pi.visual_projection','false',true);
 -- BACKFILL CURRENT DECISIONS END
 -- Clientes anteriores siguen escribiendo status; los nuevos usan la decisión explícita.
 create or replace function public.pi_image_use_compat() returns trigger language plpgsql set search_path='' as $$

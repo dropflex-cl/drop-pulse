@@ -97,7 +97,11 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Contenido vigente · Supabase
     await call("save_landing_content", { schema_version: "1.1", entries: [{ component: "pain-block", content: section.proposal }] });
     const before = await row("listing"), chosen = (await checked(db.from("page_images").select("*").eq("product_id", product))).data!;
     const migration = readFileSync("supabase/migrations/20261211000000_current_product_content.sql", "utf8"), backfill = migration.split("-- BACKFILL CURRENT DECISIONS BEGIN")[1].split("-- BACKFILL CURRENT DECISIONS END")[0].replace("update public.page_images set", "update public.page_images set").replace("updated_at) end;", `updated_at) end where product_id='${product}';`).replace("where kind='binding'", `where product_id='${product}' and kind='binding'`);
-    execFileSync("docker", ["exec", "-i", "supabase_db_dropflex-v2", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q"], { input: `begin;\n${backfill}\ncommit;`, stdio: ["pipe", "pipe", "pipe"] });
+    // Simula el estado al agregar las columnas: un binding aprobado todavía tiene el default false.
+    // El guard de proyección debe seguir bloqueando escrituras normales fuera del backfill.
+    const projected = `update public.page_images set is_selected=false,status='approved' where product_id='${product}' and visual_binding_id is not null;`;
+    expect(() => execFileSync("docker", ["exec", "-i", "supabase_db_dropflex-v2", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q"], { input: projected, stdio: ["pipe", "pipe", "pipe"] })).toThrow();
+    execFileSync("docker", ["exec", "-i", "supabase_db_dropflex-v2", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q"], { input: `begin;\nalter table public.page_images disable trigger pi_image_use_compat;\nselect set_config('pi.visual_projection','true',true);\n${projected}\nalter table public.page_images enable trigger pi_image_use_compat;\nselect set_config('pi.visual_projection','false',true);\n${backfill}\ncommit;`, stdio: ["pipe", "pipe", "pipe"] });
     expect(await row("listing")).toEqual(before); expect(await row("pain-block")).toMatchObject({ status: "rejected", enabled: false });
     expect((await checked(db.from("page_images").select("*").eq("product_id", product))).data).toEqual(chosen);
   });
