@@ -1,37 +1,36 @@
 // La etapa Publicar para la pantalla y su sondeo: conexión y permisos, el tema, lo que falta y lo que
 // se va a publicar. No toca Shopify salvo para corregir el estado del tema (themeView).
 import "server-only";
+import { getPreparedProduct } from "./product-content";
 import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
 import { missingPublishScopes } from "@/lib/integrations/shopify/oauth";
-import { connectionProblem, getPublications, preparePublish } from "@/lib/pipeline/publish";
+import { connectionProblem, getPublications } from "@/lib/pipeline/publish";
 import { themeView } from "@/lib/pipeline/theme";
-import { deliveryDays } from "@/lib/settings/policies";
-import { getStorePolicies } from "@/lib/settings/policies-store";
+import { previewFacts } from "@/lib/products/preview-facts";
 import { componentName } from "@/lib/copy/page-ui";
+import { effectivePage } from "@/lib/products/effective-page";
 import { fingerprint } from "@/lib/shopify/publish/mapping";
 import { money } from "@/lib/format";
 import type { PublishState } from "@/lib/types";
 
 export async function publishState(userId: string, productId: string): Promise<PublishState> {
-  const [conn, prepared, publications, settings, theme] = await Promise.all([
+  const [conn, prepared, publications, theme] = await Promise.all([
     getShopifyConnection(userId),
-    preparePublish(userId, productId),
+    getPreparedProduct(userId, productId),
     getPublications(userId, [productId]),
-    getStorePolicies(userId),
     themeView(userId),
   ]);
   const pub = publications.get(productId);
   const { input, missing } = prepared;
-  const currency = settings?.currency ?? "CLP";
-  const p = settings?.policies;
-  const days = p ? deliveryDays(p) : null;
+  const currency = prepared.currency;
+  const facts = previewFacts(input, {}, currency), p = facts.policies, days = facts.logistics;
   const policies = [
     "Pago al recibir",
-    p?.freeShipping ? (p.freeShippingThreshold ? `Envío gratis desde ${money(p.freeShippingThreshold, currency)}` : "Envío gratis") : null,
+    p.free_shipping ? (p.threshold ? `Envío gratis desde ${money(p.threshold, currency)}` : "Envío gratis") : null,
     days ? `Entrega en ${days.min} a ${days.max} días` : null,
-    p?.returnDays ? `Cambios por ${p.returnDays} días` : null,
-    p?.warrantyMonths ? `Garantía de ${p.warrantyMonths} ${p.warrantyMonths === 1 ? "mes" : "meses"}` : null,
-    p?.whatsapp ? "Atención por WhatsApp" : null,
+    p.return_days ? `Cambios por ${p.return_days} días` : null,
+    p.warranty_months ? `Garantía de ${p.warranty_months} ${p.warranty_months === 1 ? "mes" : "meses"}` : null,
+    p.whatsapp ? "Atención por WhatsApp" : null,
   ].filter((x): x is string => Boolean(x));
   return {
     shop: conn?.shop_domain ?? null,
@@ -40,8 +39,8 @@ export async function publishState(userId: string, productId: string): Promise<P
     theme,
     missing,
     plan: {
-      title: input.listing.title,
-      components: input.components.map((c) => componentName(c.id)),
+      title: effectivePage(input).listing.title,
+      components: effectivePage(input).components.map((c) => componentName(c.id)),
       images: input.gallery.length,
       packs: input.packs.length > 1 ? input.packs.map((x) => ({ units: x.units, price: x.price, label: x.label })) : [],
       reviews: input.reviews.length,
@@ -55,7 +54,7 @@ export async function publishState(userId: string, productId: string): Promise<P
           error: pub.error_message ?? undefined,
           publishedAt: pub.published_at ?? undefined,
           productUrl: pub.product_url ?? undefined,
-          stale: pub.status === "published" && !missing.length && pub.fingerprint !== fingerprint(input),
+          stale: pub.fingerprint !== fingerprint(input),
         }
       : null,
   };

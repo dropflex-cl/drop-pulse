@@ -1,6 +1,5 @@
 "use client";
 
-import { VisualProduction } from "./visual-production";
 import type { VisualWorkbench } from "@/lib/types";
 
 import { AngleGroup, Button, ChatModule, ChatPreview, CreativeConcept, CreativePiece, CreativeSummary, EmptyState, Field, Notice, ImageProviderPicker as ProviderPicker, SegmentedControl, TopBar, linkClasses, notify, notifyUndo, type ChatModuleState, type ConceptText, type PieceAction, type PieceState, type ProviderOption } from "@/components/df";
@@ -84,7 +83,7 @@ type View = { kind: "list" } | { kind: "concept" | "edit" | "chat-edit"; id: str
 type Selection = { kind: "concept" | "piece"; id: string };
 type Sheet = { kind: "provider" } | null;
 
-export function CreativesScreen({ data, visual, initialTab = "images" }: { data: ProductCreatives; visual?: VisualWorkbench | null; initialTab?: "images" | "videos" }) {
+export function CreativesScreen({ data, initialTab = "images" }: { data: ProductCreatives; visual?: VisualWorkbench | null; initialTab?: "images" | "videos" }) {
   const router = useRouter();
   const desktop = useDesktop();
   // Lista y panel derecho solo si caben (con el asistente abierto, la etapa se angosta): si no, subvistas.
@@ -224,7 +223,7 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
     const next = await run_(`${action}-${a.id}`, () => productsApi.decideCreative(product.id, a.id, action), "No pudimos guardar tu decisión.");
     if (!next) return;
     router.refresh();
-    notifyUndo(action === "approve" ? "Aprobada. Ya está en Anuncios." : "Descartada. El archivo se borra en 2 min.", () => void reopen(a));
+    notifyUndo(action === "approve" ? "Lista para usar en Anuncios." : "Descartada. El archivo se borra en 2 min.", () => void reopen(a));
   }
 
   function onPieceAction(c: CreativeConceptView, a: CreativeAssetView | null, ratio: Ratio, act: PieceAction) {
@@ -317,7 +316,7 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
   const needsKey = !concepts.length && Boolean(state.locked) && state.connected === false && !state.locked!.startsWith("Aprueba");
   const anglesLocked = !concepts.length && Boolean(state.locked) && !needsKey;
   const hasPieces = assets.length > 0;
-  const subtitle = anglesLocked ? "Bloqueada" : proposing ? "La IA está trabajando" : approved ? plural(approved, "pieza aprobada", "piezas aprobadas") : "Opcional";
+  const subtitle = anglesLocked ? "Bloqueada" : proposing ? "La IA está trabajando" : approved ? plural(approved, "pieza disponible", "piezas disponibles") : "Opcional";
 
   const skip = (
     <p className="text-center text-label font-normal text-muted-foreground">
@@ -489,7 +488,7 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
       <EmptyState
         icon="lock"
         title="Primero, los ángulos"
-        body={`${state.locked} Los anuncios se arman desde tus ángulos aprobados.`}
+        body={`${state.locked} Los anuncios usan la estrategia guardada.`}
         action={
           <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
             Ir a Ángulos
@@ -518,7 +517,7 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
     footer = <StickyActions>{skip}</StickyActions>;
     footerMobileOnly = true;
   } else if (!statics.length) {
-    body = <div className="flex flex-col gap-4"><Notice title="Prepara tus anuncios en el chat" body="Guarda los conceptos y las conversaciones con save_creative_content. Aquí podrás revisarlos y generar sus imágenes." />{state.angles.map((a) => <div key={a.slot}>{chatModule(a.slot)}</div>)}</div>;
+    body = <div className="flex flex-col gap-4"><Notice title="Prepara tus anuncios en el chat" body="Guarda tus anuncios desde el chat. Aquí puedes verlos y crear sus imágenes." />{state.angles.map((a) => <div key={a.slot}>{chatModule(a.slot)}</div>)}</div>;
     if (split && picked && selection) aside = selectionPanel(selection);
     footer = <StickyActions>{skip}</StickyActions>;
   } else {
@@ -578,7 +577,7 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
     const canContinue = approved > 0;
     const providerLine = <ProviderPicker inline value={provider} providers={providerOptions} onChangeRequest={() => setSheet({ kind: "provider" })} className="lg:justify-start" />;
     footer = (
-      <StickyActions variant="bar" stack summary={providerLine} mobileNote={!canContinue ? "Aprueba al menos una pieza para continuar a Anuncios." : undefined} className="lg:px-7">
+      <StickyActions variant="bar" stack summary={providerLine} mobileNote={!canContinue ? "Elige una pieza para tus anuncios para continuar a Anuncios." : undefined} className="lg:px-7">
         {/* Móvil: el proveedor va sobre el botón de generar, donde afecta el costo. En escritorio, a la izquierda de la barra. */}
         <div className="lg:hidden">{providerLine}</div>
         {missing.length ? (
@@ -586,14 +585,14 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
             {`Generar ${missing.length} · ${localCost(missing.length * IMAGE_COST_BY_PROVIDER[provider ?? "higgsfield"])}`}
           </Button>
         ) : null}
-        {/* En escritorio, Continuar a Anuncios va en la barra de arriba. */}
+        {/* En escritorio, Abrir anuncios va en la barra de arriba. */}
         {canContinue ? (
           <Button size="lg" variant={missing.length ? "secondary" : "primary"} iconEnd="chevron-right" href={adsHref} className="lg:hidden">
-            Continuar a Anuncios
+            Abrir anuncios
           </Button>
         ) : (
           <Button size="lg" variant={missing.length ? "secondary" : "primary"} iconEnd="chevron-right" disabled className="lg:hidden">
-            Continuar a Anuncios
+            Abrir anuncios
           </Button>
         )}
       </StickyActions>
@@ -683,20 +682,20 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
         }
         className="sticky top-0 z-sticky lg:hidden"
       />
-      {/* Escritorio: la pestaña y Continuar a Anuncios (el producto, el costo y el asistente van en el encabezado del producto). */}
+      {/* Escritorio: la pestaña y Abrir anuncios (el producto, el costo y el asistente van en el encabezado del producto). */}
       <div className="hidden items-center gap-4 border-b px-7 py-3 lg:flex">
         <p className="min-w-0 flex-1 text-body text-muted-foreground">{`Creativos · ${subtitle.toLowerCase()}`}</p>
         {showTabs ? <div className="w-60">{tabs}</div> : null}
         {tab === "images" && hasPieces ? (
           <div className="flex items-center gap-2">
-            {!approved ? <span className="text-caption text-muted-foreground">Aprueba al menos una pieza</span> : null}
+            {!approved ? <span className="text-caption text-muted-foreground">Elige una pieza para tus anuncios</span> : null}
             {approved ? (
               <Button iconEnd="chevron-right" href={adsHref}>
-                Continuar a Anuncios
+                Abrir anuncios
               </Button>
             ) : (
               <Button iconEnd="chevron-right" disabled>
-                Continuar a Anuncios
+                Abrir anuncios
               </Button>
             )}
           </div>
@@ -712,7 +711,7 @@ export function CreativesScreen({ data, visual, initialTab = "images" }: { data:
         <div className={cn("flex flex-1 flex-col", aside && "lg:grid lg:grid-cols-[minmax(0,1fr)_--spacing(100)]")}>
           <div className="@container flex min-w-0 flex-1 flex-col">
             <div className={cn("flex flex-1 flex-col px-4 pt-2 pb-4 lg:px-7 lg:pt-4", !concepts.length && "justify-center lg:mx-auto lg:w-full lg:max-w-content lg:justify-start lg:pt-8")}>
-              {visual ? <VisualProduction initial={visual} initialTab="assets" /> : null}
+
               {body}
               {!concepts.length ? errorLine : null}
             </div>
@@ -751,7 +750,7 @@ function conceptEmphasis(c: CreativeConceptView): Emphasis {
   return complete && shown.every((a) => pieceState(a) === "approved") ? "done" : "normal";
 }
 
-/** Lo que pide cada ángulo: piezas por revisar, conceptos sin su pieza principal y piezas aprobadas. */
+/** Lo que pide cada ángulo: piezas por revisar, conceptos sin su pieza principal y piezas disponibles. */
 function angleCounts(items: CreativeConceptView[]) {
   const shown = items.flatMap((c) => latestPieces(c.assets));
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Field, Notice, SegmentedControl, StageMeter, StatusBadge, TopBar, notify } from "@/components/df";
+import { Button, Field, Notice, SegmentedControl, StatusBadge, TopBar, notify } from "@/components/df";
 import { AiCostButton } from "@/components/shell/ai-cost-provider";
 import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
 import { money } from "@/lib/format";
@@ -214,7 +214,7 @@ export function MessagesScreen({ data }: { data: ProductMessages }) {
         className="sticky top-0 z-sticky lg:hidden"
       />
       <div className="px-4 pb-2 lg:hidden">
-        <StageMeter stages={product.meter} />
+
       </div>
 
       <div className="flex flex-col gap-4 px-4 pt-2 pb-6 lg:px-7 lg:pt-5">

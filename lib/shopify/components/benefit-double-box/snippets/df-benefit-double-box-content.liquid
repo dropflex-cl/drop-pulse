@@ -1,0 +1,66 @@
+{%- doc -%}
+  Tarjetas guardadas del producto. Las políticas y cifras provienen de Shopify.
+  @param {object} product
+  @param {object} section
+  @param {object} [block]
+  @param {object} [content]
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- liquid
+ assign policies = shop.metafields.dropflex.policies.value
+ assign logistics = shop.metafields.dropflex.logistics.value
+ assign return_days = policies.return_days | plus: 0
+ assign warranty_months = policies.warranty_months | plus: 0
+ assign threshold = policies.free_shipping_threshold | times: 100 | money_without_trailing_zeros
+ assign days_min = logistics.transit_days_min | plus: logistics.handling_days
+ assign days_max = logistics.transit_days_max | plus: logistics.handling_days
+-%}
+{%- capture cards -%}
+ {%- for card in content.cards -%}
+  {%- liquid
+   assign visible = true
+   case card.policy
+    when 'cod'
+     unless policies.cod == true
+      assign visible = false
+     endunless
+    when 'returns'
+     if return_days == 0
+      assign visible = false
+     endif
+    when 'warranty'
+     if warranty_months == 0
+      assign visible = false
+     endif
+    when 'free_shipping'
+     unless policies.free_shipping == true
+      assign visible = false
+     endunless
+    when 'shipping_time'
+     if logistics == blank
+      assign visible = false
+     endif
+    when 'whatsapp'
+     if policies.whatsapp == blank
+      assign visible = false
+     endif
+   endcase
+   assign text = card.title | append: card.body
+   if text contains '{min}' or text contains '{max}'
+    if logistics == blank
+     assign visible = false
+    endif
+   endif
+   if text contains '{return_days}' and return_days == 0
+    assign visible = false
+   endif
+   if text contains '{warranty_months}' and warranty_months == 0
+    assign visible = false
+   endif
+   assign title = card.title | replace: '{return_days}', return_days | replace: '{warranty_months}', warranty_months | replace: '{threshold}', threshold | replace: '{min}', days_min | replace: '{max}', days_max
+   assign body = card.body | replace: '{return_days}', return_days | replace: '{warranty_months}', warranty_months | replace: '{threshold}', threshold | replace: '{min}', days_min | replace: '{max}', days_max
+  -%}
+  {%- if visible -%}<li class="df-benefit-double-box__card">{% render 'df-icon', name: card.icon %}<strong>{{ title | escape }}</strong><span>{{ body | escape }}</span></li>{%- endif -%}
+ {%- endfor -%}
+{%- endcapture -%}
+{%- if cards != blank -%}<ul class="df df-benefit-double-box" role="list">{{ cards }}</ul>{%- endif -%}

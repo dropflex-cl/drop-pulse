@@ -5,7 +5,7 @@ import { Icon, ProductRow, rowClasses } from "@/components/df";
 import { SyncProductsButton } from "@/components/screens/actions";
 import { UrlFilter } from "@/components/screens/filters";
 import { UpsellItem } from "@/components/screens/upsell-item";
-import { EmptyState, Group, PageHeader, SectionTitle } from "@/components/shell/page-header";
+import { EmptyState, Group, PageHeader } from "@/components/shell/page-header";
 import { RowsSkeleton } from "@/components/shell/skeletons";
 import { getProductCounts, getProducts } from "@/lib/data/products";
 import { FILTER_PARAM, filterFromParam, productHref } from "@/lib/routes";
@@ -14,24 +14,16 @@ import type { ProductFilter } from "@/lib/types";
 export const metadata: Metadata = { title: "Productos" };
 
 const FILTERS: ProductFilter[] = ["avanzan", "detenidos", "publicados"];
-const LABEL: Record<ProductFilter, string> = { avanzan: "Avanzan", detenidos: "Detenidos", publicados: "Publicados" };
+const LABEL: Record<ProductFilter, string> = { avanzan: "Guardados", detenidos: "Con error", publicados: "Publicados" };
 const EMPTY: Record<ProductFilter, { title: string; text: string }> = {
-  avanzan: { title: "Nada avanzando ahora", text: "Cuando importes un producto, la IA empieza a generar su contenido y lo verás aquí." },
-  detenidos: { title: "Nada detenido", text: "Todos tus productos avanzan o ya están publicados." },
-  publicados: { title: "Aún no publicas productos", text: "Cuando apruebes textos, imágenes y precio, publícalo en tu tienda desde su ruta." },
+  avanzan: { title: "Sin productos guardados", text: "Sincroniza tu tienda para ver tus productos. El contenido que prepares desde el chat aparecerá en su ficha." },
+  detenidos: { title: "Sin errores de publicación", text: "Aquí aparecen los productos cuya publicación necesita atención." },
+  publicados: { title: "Aún no publicas productos", text: "Abre un producto para ver su página guardada y publicarla en tu tienda." },
 };
-
-// Cómo se lee el medidor (ScreenProductos → "Así se leen").
-const LEGEND = [
-  ["bg-foreground", "Lista"],
-  ["bg-primary", "En curso"],
-  ["bg-warning", "Detenida"],
-  ["bg-destructive", "Error"],
-];
 
 async function ProductList({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const { filter: param } = await searchParams;
-  const filter: ProductFilter = filterFromParam(param) ?? "detenidos";
+  const filter: ProductFilter = filterFromParam(param) ?? "avanzan";
   const [products, counts] = await Promise.all([getProducts(filter), getProductCounts()]);
 
   return (
@@ -60,10 +52,9 @@ async function ProductList({ searchParams }: { searchParams: Promise<{ filter?: 
               <ProductRow
                 name={p.name}
                 image={p.image}
-                stages={p.meter}
                 tone={p.tone}
                 reason={p.reason}
-                href={productHref(p.id, p.nextStage)}
+                href={productHref(p.id)}
                 end={<span aria-hidden className="block w-6" />}
               />
             </UpsellItem>
@@ -85,15 +76,6 @@ async function ProductList({ searchParams }: { searchParams: Promise<{ filter?: 
           </Link>
         </Group>
       ) : null}
-      <SectionTitle>Así se leen</SectionTitle>
-      <ul className="flex flex-wrap gap-3 px-4 text-caption text-muted-foreground lg:px-0">
-        {LEGEND.map(([color, label]) => (
-          <li key={label} className="inline-flex items-center gap-1.5">
-            <span aria-hidden className={`h-1.5 w-3.5 rounded-full ${color}`} />
-            {label}
-          </li>
-        ))}
-      </ul>
     </>
   );
 }

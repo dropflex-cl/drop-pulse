@@ -117,11 +117,20 @@
               "additionalProperties": false
             }
           },
-          "required": ["code", "message", "retryable", "details"],
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "details"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["ok", "request_id", "error"],
+      "required": [
+        "ok",
+        "request_id",
+        "error"
+      ],
       "additionalProperties": false
     },
     {
@@ -181,7 +190,12 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": ["draft", "review", "approved", "archived"]
+                          "enum": [
+                            "draft",
+                            "review",
+                            "approved",
+                            "archived"
+                          ]
                         },
                         "audience_state": {
                           "type": "object",
@@ -201,7 +215,12 @@
                             },
                             "sophistication": {
                               "type": "string",
-                              "enum": ["low", "medium", "high", "very_high"]
+                              "enum": [
+                                "low",
+                                "medium",
+                                "high",
+                                "very_high"
+                              ]
                             },
                             "primary_jtbd_ids": {
                               "maxItems": 3,
@@ -305,7 +324,11 @@
                             "copy_density": {
                               "default": "low",
                               "type": "string",
-                              "enum": ["very_low", "low", "medium"]
+                              "enum": [
+                                "very_low",
+                                "low",
+                                "medium"
+                              ]
                             },
                             "max_headline_chars": {
                               "default": 70,
@@ -395,7 +418,12 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": ["id", "revision", "etag", "payload"],
+                  "required": [
+                    "id",
+                    "revision",
+                    "etag",
+                    "payload"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -417,11 +445,22 @@
               }
             }
           },
-          "required": ["current", "etag", "planning_stamp", "issues"],
+          "required": [
+            "current",
+            "etag",
+            "planning_stamp",
+            "issues"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["ok", "product_id", "revision", "request_id", "data"],
+      "required": [
+        "ok",
+        "product_id",
+        "revision",
+        "request_id",
+        "data"
+      ],
       "additionalProperties": false
     }
   ],
@@ -547,7 +586,10 @@
         },
         "kind": {
           "type": "string",
-          "enum": ["primary", "support"]
+          "enum": [
+            "primary",
+            "support"
+          ]
         },
         "primary_job": {
           "$ref": "#/$defs/__schema10"
@@ -599,7 +641,10 @@
               "$ref": "#/$defs/__schema4"
             }
           },
-          "required": ["headline_intent", "takeaway"],
+          "required": [
+            "headline_intent",
+            "takeaway"
+          ],
           "additionalProperties": false
         },
         "necessity": {
@@ -639,7 +684,11 @@
             },
             "product_role": {
               "type": "string",
-              "enum": ["hero", "supporting", "absent"]
+              "enum": [
+                "hero",
+                "supporting",
+                "absent"
+              ]
             },
             "generation_required": {
               "type": "boolean"
@@ -676,7 +725,11 @@
         },
         "cta": {
           "type": "string",
-          "enum": ["none", "soft", "primary"]
+          "enum": [
+            "none",
+            "soft",
+            "primary"
+          ]
         }
       },
       "required": [
@@ -766,14 +819,24 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["reference", "page_image", "ugc"]
+          "enum": [
+            "reference",
+            "page_image",
+            "ugc"
+          ]
         },
         "id": {
           "$ref": "#/$defs/__schema0"
         },
         "role": {
           "type": "string",
-          "enum": ["hero", "proof", "demo", "explanation", "comparison"]
+          "enum": [
+            "hero",
+            "proof",
+            "demo",
+            "explanation",
+            "comparison"
+          ]
         },
         "slot": {
           "$ref": "#/$defs/__schema6"
@@ -782,7 +845,11 @@
           "type": "boolean"
         }
       },
-      "required": ["source", "id", "role"],
+      "required": [
+        "source",
+        "id",
+        "role"
+      ],
       "additionalProperties": false
     },
     "__schema14": {
@@ -856,13 +923,21 @@
         },
         "severity": {
           "type": "string",
-          "enum": ["error", "warning"]
+          "enum": [
+            "error",
+            "warning"
+          ]
         },
         "section_key": {
           "$ref": "#/$defs/__schema6"
         }
       },
-      "required": ["code", "field", "message", "severity"],
+      "required": [
+        "code",
+        "field",
+        "message",
+        "severity"
+      ],
       "additionalProperties": false
     }
   },

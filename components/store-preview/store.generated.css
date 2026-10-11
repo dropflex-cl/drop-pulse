@@ -3404,6 +3404,169 @@ df-insta-story {
 /* results-timeline/sections/df-results-timeline.liquid */
 .df-results-timeline { display: block; }
 
+/* review-slider/blocks/df-review-slider.liquid */
+.df-review-slider {
+  --df-st-circle: 56px;
+  --df-st-time: var(--df-accent-ink);
+  display: grid;
+  gap: 16px;
+}
+
+.df-review-slider--time-positive {
+  --df-st-time: var(--df-positive);
+}
+
+.df-review-slider__title {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.df-review-slider__title[data-pending] {
+  visibility: hidden;
+}
+
+.df-review-slider__title[hidden] {
+  display: none;
+}
+
+.df-review-slider__time {
+  color: var(--df-st-time);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.df-review-slider__steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Conector punteado entre el centro del primer y del último círculo, detrás de ellos. */
+.df-review-slider__steps::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--df-st-circle) / 2 - 1px);
+  left: calc(100% / 6);
+  right: calc(100% / 6);
+  height: 2px;
+  background: linear-gradient(90deg, var(--df-muted) 50%, transparent 0) 0 0 / 12px 2px repeat-x;
+  opacity: 0.6;
+}
+
+/* «Línea animada»: el tramo Pedido → Despachado va en el acento, sólido (lo que ya está en marcha)
+   y el resto punteado (lo que falta). df-review-slider.js lo dibuja una sola vez al entrar en
+   pantalla y el hito 2 hace un pequeño pop; después todo queda quieto (nunca un bucle). Sin JS o
+   con movimiento reducido se ve el estado final. */
+.df-review-slider--animate .df-review-slider__steps::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--df-st-circle) / 2 - 1px);
+  left: calc(100% / 6);
+  width: calc(100% / 3);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--df-accent);
+  transform-origin: left center;
+}
+
+.df-review-slider--animate.is-armed .df-review-slider__steps::after {
+  transform: scaleX(0);
+}
+
+.df-review-slider--animate.is-run .df-review-slider__steps::after {
+  transform: scaleX(1);
+  transition: transform 600ms var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.df-review-slider--animate.is-run .df-review-slider__step:nth-child(2) .df-review-slider__circle {
+  animation: df-review-slider-pop 240ms var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)) 560ms backwards;
+}
+
+@keyframes df-review-slider-pop {
+  from { transform: scale(0.88); }
+}
+
+.df-review-slider__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+
+.df-review-slider__circle {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--df-st-circle);
+  height: var(--df-st-circle);
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--df-surface);
+  color: var(--df-fg);
+}
+
+.df-review-slider--icons-accent .df-review-slider__circle {
+  background: var(--df-accent-soft);
+  color: var(--df-accent-ink);
+}
+
+.df-review-slider__circle .df-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.df-review-slider__img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.df-review-slider__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.df-review-slider__sub {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--df-muted);
+  text-wrap: balance;
+}
+
+.df-review-slider__suffix {
+  color: var(--df-fg);
+  font-weight: 500;
+}
+
+@container store (min-width: 750px) {
+  .df-review-slider {
+    --df-st-circle: 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-review-slider--animate.is-armed .df-review-slider__steps::after {
+    transform: none;
+  }
+
+  .df-review-slider--animate.is-run .df-review-slider__step:nth-child(2) .df-review-slider__circle {
+    animation: none;
+  }
+}
+
 /* review-stars/blocks/df-review-stars.liquid */
 .df-review-stars {
   display: flex;

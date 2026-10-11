@@ -396,6 +396,6 @@ describe("PI · contenido de Shopify desde chat", () => {
         },
       },
     };
-    expect(copyPhase(facts, "locked", false)).toBe("review");
+    expect(copyPhase(facts)).toBe("review");
   });
 });

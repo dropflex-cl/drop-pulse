@@ -1,4 +1,3 @@
-import { getProductVisualWorkbench } from "@/lib/data/visual-production";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CreativesScreen } from "@/components/screens/creatives";
@@ -14,6 +13,5 @@ export default async function CreativesPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const creatives = await getProductCreatives(id);
   if (!creatives) notFound();
-  const visual = await getProductVisualWorkbench(id);
-  return <CreativesScreen data={creatives} visual={visual} />;
+  return <CreativesScreen data={creatives} />;
 }

@@ -1,28 +1,28 @@
+import { getEffectiveProductContent, getPreparedProduct } from "./product-content";
+import { fingerprint } from "@/lib/shopify/publish/mapping";
+import { publicationChanges } from "@/lib/products/publication-snapshot";
+import type { ProductOverview } from "@/lib/types";
 import { getPdpWorkbench } from "./pdp-persuasion";
-// Catálogo, contexto y estrategia PI, contenido revisable y medios persistidos.
-import { storeFacts } from "@/lib/copy/facts";
+// Catálogo, contexto y estrategia PI, contenido efectivo y medios persistidos.
 import { catalogImages } from "@/lib/copy/images";
-import { copyProgress } from "@/lib/copy/progress";
-import { activeComponents, activeComponentStates, latestCopyRuns, latestCopyRunStates, toComponentViews, type ComponentState, type CopyRunState } from "@/lib/copy/store";
+import { activeComponents, latestCopyRuns, toComponentViews } from "@/lib/copy/store";
 import { activeConcepts, assetsFor, creativeCounts, keptAdCopies, latestCreativeRuns, signedUrls, toConceptView } from "@/lib/creatives/store";
 import { publishState } from "@/lib/data/publish";
 import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
-import { adminClient } from "@/lib/integrations/admin";
 import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
 import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
-import { getMetaConnection } from "@/lib/integrations/meta/connection";
 import { sessionUser } from "@/lib/integrations/session";
-import { GALLERY_MIN, isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
-import { activeShots, latestPageImageRuns, pageImageCounts, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
+import { isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
+import { activeShots, latestPageImageRuns, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
 import { generationBlocker } from "@/lib/pipeline/page-images";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricedProducts, pricingDefaults } from "@/lib/pricing/store";
 import { getDifferentiator } from "@/lib/products/differentiator";
 import { scheduleHousekeeping } from "@/lib/products/housekeeping";
-import { productPosition, type AdsFacts, type CopyFacts, type CreativeFacts, type ImageFacts, type PublishFacts, type ReviewFacts } from "@/lib/products/stages";
-import { baseImage, getProductRow, listImageRows, listProductRows, toReferenceImage, toUiStatus, withDisplayUrls, type ImageRow, type ProductRow, } from "@/lib/products/store";
-import { customerReviews, latestImport, latestSource, reviewFacts, toReviewImport } from "@/lib/reviews/store";
+import { productPosition, type PublishFacts } from "@/lib/products/stages";
+import { baseImage, getProductRow, listImageRows, listProductRows, toReferenceImage, withDisplayUrls, type ImageRow, type ProductRow, } from "@/lib/products/store";
+import { customerReviews, latestImport, latestSource, toReviewImport } from "@/lib/reviews/store";
 import type { CopyState, CreativesState, PageImagesState, Product, ProductBase, ProductCopy, ProductCreatives, ProductFilter, ProductMessages, ProductPageImages, ProductReviews, ProductStrategy, StrategyState, UpsellProduct, VideosState } from "@/lib/types";
 import { activeScripts, expireStaleVideos, shotsFor, toCardView } from "@/lib/video/store";
 import { messagesState } from "@/lib/whatsapp/store";
@@ -30,9 +30,6 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import "server-only";
 import { getCanonicalProductData, getCanonicalProductStates, getLandingContextStale, getSelectedProductStrategy } from "./product-intelligence";
-
-/** Imágenes lista: portada y el mínimo de galería elegidos (lo mismo que la ruta, lib/products/stages.ts). */
-const imagesReady = (i: { cover: boolean; gallery: number }) => i.cover && i.gallery >= GALLERY_MIN;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,36 +49,6 @@ function cover(images: ImageRow[]): ImageRow | undefined {
   return baseImage(images) ?? images[0];
 }
 
-function copyFacts(run: CopyRunState | undefined, rows: ComponentState[] | undefined): CopyFacts | null {
-  if (!run && !rows?.length) return null;
-  return {
-    fromChat: run?.input.source === "mcp_chat",
-    run: run ? { status: run.status, error: run.error_message } : null,
-    progress: copyProgress((rows ?? []).map((r) => ({ component: r.component, status: toUiStatus(r.status), enabled: r.enabled }))),
-  };
-}
-
-/** Meta listo y las campañas de cada producto (etapa Anuncios). */
-async function adsFacts(uid: string, ids: string[]): Promise<(productId: string) => AdsFacts> {
-  const [meta, { data }] = await Promise.all([
-    getMetaConnection(uid),
-    adminClient().from("ad_campaigns").select("product_id, status").eq("user_id", uid).in("product_id", ids).in("status", ["launching", "paused", "active"]),
-  ]);
-  const metaReady = Boolean(meta?.status === "connected" && meta.ad_account_id && meta.page_id && meta.pixel_id);
-  const rows = (data ?? []) as { product_id: string; status: string }[];
-  return (productId) => {
-    const mine = rows.filter((r) => r.product_id === productId);
-    return { metaReady, campaigns: mine.filter((r) => r.status !== "launching").length, launching: mine.some((r) => r.status === "launching") };
-  };
-}
-
-/** El proveedor de imágenes y las piezas de cada producto (etapa Creativos). */
-async function creativeFacts(uid: string, ids: string[]): Promise<(productId: string) => CreativeFacts> {
-  const [choice, counts] = await Promise.all([imageProviderChoice(uid, "creatives"), creativeCounts(uid, ids)]);
-  const connected = choice.value !== null;
-  return (productId) => ({ connected, ...counts(productId) });
-}
-
 function publicationFacts(p: PublicationRow | undefined): PublishFacts | null {
   return p ? { status: p.status, error: p.error_message } : null;
 }
@@ -90,31 +57,23 @@ function toProduct(
   row: ProductRow,
   image: string,
   priced: boolean,
-  reviews?: ReviewFacts,
-  copy?: CopyFacts | null,
-  ads?: AdsFacts,
-  creatives?: CreativeFacts,
-  images?: ImageFacts,
   publish?: PublishFacts | null,
   ai = true,
-  intelligence?: { hasContext: boolean; described: boolean; selected: boolean; ready: boolean },
+  intelligence?: { hasContext: boolean; described: boolean; selected: boolean; ready: boolean; name: string; description: string },
+  content?: { hasContent: boolean; missing: string[]; stale: boolean; changes: string[] },
 ): Product {
   const position = productPosition({
     price: Number(row.price),
     currency: row.currency,
     base: { described: intelligence?.described ?? false, priced },
     intelligence: { selected: intelligence?.selected ?? false, ready: intelligence?.ready ?? false },
-    reviews,
-    copy,
-    ads,
-    creatives,
-    images,
     publish,
     ai,
+    content,
   });
   return {
     id: row.id,
-    name: row.title,
+    name: intelligence?.hasContext ? intelligence.name : row.title,
     image,
     sku: "",
     filter: position.filter,
@@ -128,6 +87,10 @@ function toProduct(
     anglesPhase: position.anglesPhase,
     copyPhase: position.copyPhase,
     aiConnected: ai,
+    contentState: position.contentState,
+    hasContent: content?.hasContent,
+    missing: content?.missing,
+    publicationChanges: content?.changes,
     supplierCost: row.cost == null ? 0 : Number(row.cost),
     price: Number(row.price),
     currency: row.currency,
@@ -135,33 +98,39 @@ function toProduct(
 }
 
 /**
- * Los productos dados con su posición en la ruta: una ida por tabla, solo con las columnas que la
- * calculan (sin payloads), filtrada a esos productos. Sin cookies ni `after`: la usa también el
+ * Los productos con su situación efectiva y publicación, sin consultar progreso de generación.
+ * Sin cookies ni `after`: la usa también el
  * número de Hoy en caché (lib/data/today.ts). `images: false` salta la miniatura (no firma URLs).
  */
 export async function productsWithPositions(uid: string, rows: ProductRow[], { images = true }: { images?: boolean } = {}): Promise<Product[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [imageRows, priced, reviews, copyRuns, copyRows, ads, creatives, pageImages, publications, anthropic, intelligence] = await Promise.all([
+  const [imageRows, priced, publications, anthropic, intelligence, prepared] = await Promise.all([
     images ? listImageRows(uid, ids) : Promise.resolve([] as ImageRow[]),
     pricedProducts(uid, ids),
-    reviewFacts(uid, ids),
-    latestCopyRunStates(uid, ids),
-    activeComponentStates(uid, ids),
-    adsFacts(uid, ids),
-    creativeFacts(uid, ids),
-    pageImageCounts(uid, ids),
     getPublications(uid, ids),
     getAnthropicConnection(uid),
     getCanonicalProductStates(uid, ids),
+    (async () => {
+      const results: Awaited<ReturnType<typeof getPreparedProduct>>[] = new Array(ids.length);
+      let next = 0;
+      await Promise.all(Array.from({ length: Math.min(4, ids.length) }, async () => {
+        while (next < ids.length) { const index = next++; results[index] = await getPreparedProduct(uid, ids[index]); }
+      }));
+      return results;
+    })(),
   ]);
   const ai = anthropic?.status === "connected";
   const covers = rows.map((r) => cover(imageRows.filter((i) => i.product_id === r.id))).filter((i): i is ImageRow => !!i);
   const urls = await withDisplayUrls(covers);
-  return rows.map((r) => {
+  return rows.map((r, index) => {
     const c = covers.find((i) => i.product_id === r.id);
-    const copy = copyFacts(copyRuns.get(r.id), copyRows.get(r.id));
-    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), reviews.get(r.id), copy, ads(r.id), creatives(r.id), pageImages(r.id), publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id));
+    return toProduct(r, c ? (urls.get(c.id) ?? "") : "", priced.has(r.id), publicationFacts(publications.get(r.id)), ai, intelligence.get(r.id), {
+      hasContent: Boolean(prepared[index].input.listing.short_description || prepared[index].input.components.length || prepared[index].input.gallery.length),
+      missing: prepared[index].missing,
+      stale: Boolean(publications.get(r.id)?.fingerprint !== fingerprint(prepared[index].input)),
+      changes: publicationChanges(prepared[index].input, publications.get(r.id)?.summary?.content),
+    });
   });
 }
 
@@ -299,29 +268,27 @@ export const getProductCopy = cache(async (id: string): Promise<ProductCopy | nu
   if (!found) return null;
   const [row, state] = found.state;
   if (!row) return null;
-  return { product: found.product, accent: row.page_accent_color ?? null, ...state, pdp: await getPdpWorkbench(row.user_id, id) };
+  return { product: found.product, accent: row.page_accent_color ?? null, ...state, page: await getEffectiveProductContent(row.user_id, id), pdp: await getPdpWorkbench(row.user_id, id) };
 });
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
 export async function copyState(uid: string, productId: string): Promise<CopyState> {
-  const [runs, rows, images, facts, counts] = await Promise.all([
-    latestCopyRuns(uid, [productId]), activeComponents(uid, [productId]), catalogImages(uid, productId), storeFacts(uid, productId), pageImageCounts(uid, [productId]),
+  const [runs, rows, images, page] = await Promise.all([
+    latestCopyRuns(uid, [productId]), activeComponents(uid, [productId]), catalogImages(uid, productId), getEffectiveProductContent(uid, productId),
   ]);
   const run = runs.get(productId);
-  const chosen = counts(productId);
-  const pageRows = (rows.get(productId) ?? []).filter((r) => r.enabled);
   const reasons: import("@/lib/copy/stale").CopyStaleReason[] = [];
   if (run?.input.source === "mcp_chat" && await getLandingContextStale(uid, productId)) reasons.push("product_context");
   const videoRows = await activeScripts(uid, productId);
   const videos = videoRows.filter((s) => s.final_status === "approved" && s.approved_at && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
   return {
     videos,
-    locked: pageRows.length || run?.input.source === "mcp_chat" ? null : imagesReady(chosen) ? null : "images",
+    locked: null,
     fromChat: run?.input.source === "mcp_chat",
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
     images,
-    facts,
+    facts: page.facts,
     stale: reasons.length > 0,
     staleReasons: reasons,
   };
@@ -426,4 +393,20 @@ export const getProductMessages = cache(async (id: string): Promise<ProductMessa
 /** La etapa Publicar: el producto y el estado de su publicación (lib/data/publish.ts). */
 export const getProductPublish = cache(async (id: string) => {
   return withProduct(id, (uid) => publishState(uid, id));
+});
+
+/** La ficha siempre abre, incluso sin contexto o página. Los opcionales no son requisitos. */
+export const getProductOverview = cache(async (id: string): Promise<ProductOverview | null> => {
+  const product = await getProduct(id);
+  if (!product) return null;
+  const uid = await userId();
+  const [page, context, strategy, publications, components, counts] = await Promise.all([
+    getEffectiveProductContent(uid, id), getCanonicalProductData(uid, id), getSelectedProductStrategy(uid, id),
+    getPublications(uid, [id]), activeComponents(uid, [id]), creativeCounts(uid, [id]),
+  ]);
+  const pub = publications.get(id);
+  return { product, page, context, strategy, savedSections: (components.get(id) ?? []).filter(c => c.status !== "rejected").length,
+    creatives: counts(id).approved,
+    publication: pub ? { status: pub.status, error: pub.error_message ?? undefined, publishedAt: pub.published_at ?? undefined,
+      productUrl: pub.product_url ?? undefined, stale: pub.fingerprint !== fingerprint(page.input) } : null };
 });

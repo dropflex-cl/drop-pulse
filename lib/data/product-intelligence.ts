@@ -20,7 +20,7 @@ export async function getCanonicalProductData(userId: string, productId: string)
 /** Lectura por lotes; los estados se derivan con la misma validación de estrategia que MCP. */
 export async function getCanonicalProductStates(userId: string, ids: string[]) {
   const principal = { userId, actorId: userId, actorKind: "merchant" as const, scopes: PI_SCOPES };
-  const result = new Map<string, { hasContext: boolean; described: boolean; selected: boolean; ready: boolean }>();
+  const result = new Map<string, { hasContext: boolean; described: boolean; selected: boolean; ready: boolean; name: string; description: string }>();
   for (let i = 0; i < ids.length; i += 20) {
     const { data, error } = await adminClient().rpc("pi_load_ui_knowledge", { p_access: contextAccess(principal), p_ids: ids.slice(i, i + 20) });
     if (error) throw new Error("No pudimos leer el contexto de los productos.");
@@ -28,7 +28,7 @@ export async function getCanonicalProductStates(userId: string, ids: string[]) {
       const read = parseKnowledgeRead(entry.read, principal, entry.product_id);
       const strategy = read.strategy ? strategyResponse(read.strategy, read, entry.product_id, "core") : null;
       result.set(entry.product_id, { hasContext: Boolean(read.snapshot.context), described: Boolean(read.snapshot.context?.display_name && read.snapshot.context.description),
-        selected: Boolean(strategy), ready: strategy?.readiness.ready_for_execution ?? false });
+        selected: Boolean(strategy), ready: strategy?.readiness.ready_for_execution ?? false, name: read.snapshot.context?.display_name ?? "", description: read.snapshot.context?.description ?? "" });
     }
   }
   return result;

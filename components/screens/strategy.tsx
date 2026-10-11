@@ -19,14 +19,14 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
       <AssistantScope productId={product.id} product={product.name} stage={STRATEGY_STAGE_TITLE} stageKey="angulos" image={product.image} />
       <TopBar back={product.name} backHref={`/products/${product.id}`} title={STRATEGY_STAGE_TITLE} actions={<><AiCostButton /><AssistantButton /></>} className="sticky top-0 z-sticky lg:hidden" />
       <div className="flex flex-1 flex-col gap-4 px-4 py-4 lg:max-w-content lg:px-8 lg:py-6">
-        <Notice title="Define la estrategia desde el chat" body="Guarda el análisis con save_product_analysis y selecciona la estrategia con set_product_strategy. Elegir un ángulo no demuestra que sea ganador." />
+
         {data.blocker ? <Notice title="Completa el contexto del producto" body={data.blocker} action={<Button size="sm" href={productHref(product.id, "importado")}>Ir a Información base</Button>} /> : null}
         {selection ? (
           <section className="flex flex-col gap-3 rounded-lg border bg-card p-4" aria-labelledby="selected-strategy">
             <h2 id="selected-strategy" className="text-heading">Estrategia seleccionada</h2>
             <p className="text-small">{selection.snapshot.positioning}</p>
             <p className="text-small text-muted-foreground">{selection.snapshot.rationale}</p>
-            {selection.readiness.stale || selection.readiness.needs_review ? <Notice title="Revisa la estrategia en el chat" body="Cambió el contexto o la evidencia. Recupera la selección y resuelve lo pendiente antes de generar contenido." /> : null}
+            {selection.readiness.stale || selection.readiness.needs_review ? <Notice title="Revisa la estrategia en el chat" body="Cambió el contexto o la evidencia. Puedes actualizar la estrategia desde el chat. El contenido ya guardado sigue disponible." /> : null}
             {angles?.map((angle) => <article key={angle.id} className="flex flex-col gap-1 rounded-md bg-muted p-3"><h3 className="text-label">{angle.name}</h3><p className="text-body">{angle.hook}</p><p className="text-caption text-muted-foreground">{angle.promise}</p></article>)}
           </section>
         ) : <EmptyState icon="text" title="Prepara tu estrategia en el chat" body="Cuando guardes la selección, podrás consultarla aquí. Consulta aquí los ángulos y el motivo de la selección." />}
@@ -34,7 +34,7 @@ export function StrategyScreen({ data }: { data: ProductStrategy }) {
       </div>
       <StickyActions variant="bar" summary="El análisis y la selección se guardan desde el chat.">
         <Button icon="refresh" onClick={() => router.refresh()}>Actualizar</Button>
-        {chosen.length ? <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "imagenes")}>Continuar: Imágenes</Button> : null}
+        {chosen.length ? <Button variant="primary" iconEnd="chevron-right" href={productHref(product.id, "imagenes")}>Ver imágenes guardadas</Button> : null}
       </StickyActions>
     </div>
   );

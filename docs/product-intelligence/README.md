@@ -8,6 +8,8 @@ Flujo: **Research → Strategy → Execution → Performance → Learning → St
 
 ## Documentación vigente
 
+- [Experiencia visual del contenido guardado](product-content-experience.md): auditoría, precedencia, navegación, edición manual y publicación.
+
 - [Estado y verificación](implementation-status.md): implementación actual y límites comprobados.
 - [Backlog](implementation-backlog.md): pendientes actuales, sin paquetes ya completados.
 - [Contratos MCP](mcp-contracts.md): 29 tools base y siete adicionales con flag para PDP; [schemas derivados](contracts/README.md).

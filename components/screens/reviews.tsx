@@ -11,7 +11,6 @@ import {
   ReviewSummary,
   ReviewsStorePreview,
   SegmentedControl,
-  StageMeter,
   TopBar,
   notify,
   notifyUndo,
@@ -422,7 +421,7 @@ export function ReviewsScreen({ data }: { data: ProductReviews }) {
         className="sticky top-0 z-sticky lg:hidden"
       />
       <div className="px-4 pb-2 lg:hidden">
-        <StageMeter stages={product.meter} />
+
       </div>
 
       {/* Escritorio: lista al centro y, si cabe, resumen y vista de la tienda a la derecha (RvDesk). */}

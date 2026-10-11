@@ -144,7 +144,6 @@ export const productsApi = {
   editReview: (id: string, reviewId: string, text: string) => send<{ review: CustomerReview }>("PUT", `/${id}/reviews/${reviewId}`, { text }),
   // Etapa Textos (la página del producto): cada acción devuelve el estado completo de la etapa.
   copy: (id: string) => call<CopyState>(`/${id}/copy`),
-  restoreComponent: (id: string, component: string) => send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, { restore: true }),
   updateComponent: (id: string, component: string, patch: { content?: unknown; enabled?: boolean; images?: ImagePick[]; approve?: boolean; expected_id?: string; expected_updated_at?: string }) =>
     send<CopyState>("PATCH", `/${id}/copy/components/${encodeURIComponent(component)}`, patch),
   saveAccent: (id: string, color: string) => send<{ accent: string }>("PUT", `/${id}/copy/accent`, { color }),

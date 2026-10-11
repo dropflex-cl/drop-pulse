@@ -25,7 +25,10 @@ interface Pick {
 
 export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-slider");
-  const picks: Pick[] = facts.reviews.map((review) => ({ review, excerpt: review.body, mode: "verbatim" }));
+  const picks: Pick[] = (content.items ?? []).flatMap(item => {
+    const review = facts.reviews.find(r => r.id === item.review_id);
+    return review ? [{ review, excerpt: item.excerpt || review.body, mode: item.excerpt_mode ?? "verbatim" }] : [];
+  });
   const total = picks.length;
   if (!total) return <p className="df df-placeholder" data-df-empty="review-slider">Aún no hay reseñas de este producto.</p>;
 

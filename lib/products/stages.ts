@@ -2,10 +2,9 @@
 // precio (Información base), las reseñas (opcional), la selección canónica y la página del producto. Puro: lo usan lib/data (lista, ruta, Hoy) y los tests.
 // Textos de design-system/reference/bundle.js (PP_STAGES, RV_STAGES y ANG_STAGES).
 
+import { contentSituation, type ProductContentState } from "./content-state";
 import type { MeterStage } from "@/components/df/stage-meter";
-import { enabledLabel, type CopyProgress } from "@/lib/copy/progress";
-import { money } from "@/lib/format";
-import { GALLERY_MIN } from "@/lib/page-images/catalog";
+import { type CopyProgress } from "@/lib/copy/progress";
 import type { ContentStatus, ProductFilter, RunStatus, Stage, StageKey } from "@/lib/types";
 
 export interface CopyFacts {
@@ -45,6 +44,7 @@ export interface ProductFacts {
    * Sin el dato (undefined), se asume conectada.
    */
   ai?: boolean;
+  content?: { hasContent: boolean; missing: string[]; stale: boolean; changes?: string[] };
 }
 
 /** El motivo en la ruta de una etapa de IA sin la clave de Anthropic (como «Conecta Higgsfield en Ajustes»). */
@@ -98,6 +98,7 @@ export type CopyPhase = "locked" | "new" | "writing" | "failed" | "review" | "do
 export const COPY_STAGE_TITLE = "Página del producto";
 
 export interface ProductPosition {
+  contentState: ProductContentState;
   phase: BasePhase;
   anglesPhase: AnglesPhase;
   copyPhase: CopyPhase;
@@ -112,244 +113,39 @@ export interface ProductPosition {
   status?: ContentStatus;
 }
 
-const active = (s?: RunStatus) => s === "queued" || s === "running";
 
-/** Contexto y precio explícitos: los análisis retirados no desbloquean etapas. */
-export function basePhase(f: ProductFacts): BasePhase {
-  return f.base?.priced && f.base.described ? "done" : "new";
-}
-
-/** La selección canónica lista habilita ejecución; seleccionar no demuestra rendimiento. */
-export function anglesPhase(f: ProductFacts, base: BasePhase = basePhase(f)): AnglesPhase {
-  if (base !== "done") return "locked";
-  return f.intelligence?.ready ? "done" : f.intelligence?.selected ? "choose" : "new";
-}
-
-/**
- * La página se habilita con los desarrollos de los ángulos aprobados. Una reescritura que falla con la página ya
- * escritos no tapa la revisión: la pantalla muestra el error sobre la lista.
- */
-/** La Página del producto va después de Imágenes: sus componentes usan las imágenes elegidas. */
-export function copyPhase(f: ProductFacts, angles: AnglesPhase, imagesDone = true): CopyPhase {
-  if (!f.copy?.fromChat && (angles !== "done" || !imagesDone)) return "locked";
+/** Compatibilidad de lectores históricos; ninguna sección depende de completar otra pantalla. */
+export function basePhase(f: ProductFacts): BasePhase { return f.base?.described ? "done" : "new"; }
+export function anglesPhase(f: ProductFacts): AnglesPhase { return f.intelligence?.selected ? "done" : "new"; }
+export function copyPhase(f: ProductFacts): CopyPhase {
   const c = f.copy;
-  if (!c) return "new";
-  if (active(c.run?.status)) return "writing";
-  if (c.progress.listing === "missing") return c.run?.status === "failed" ? "failed" : "new";
+  if (!c || c.progress.listing === "missing") return "new";
   return c.progress.complete ? "done" : "review";
 }
+export const STRATEGY_STAGE_TITLE = "Estrategia guardada";
 
-const COPY_STATE: Record<CopyPhase, Stage["state"]> = {
-  locked: "locked",
-  new: "current",
-  writing: "current",
-  failed: "error",
-  review: "review",
-  done: "done",
-};
-
-const COPY_METER: Record<CopyPhase, MeterStage> = {
-  locked: "locked",
-  new: "current",
-  writing: "current",
-  failed: "error",
-  review: "review",
-  done: "done",
-};
-
-function copyDesc(phase: CopyPhase, c: CopyFacts | null | undefined, anglesDone: boolean): string {
-  const p = c?.progress;
-  switch (phase) {
-    case "locked":
-      return anglesDone ? "Se habilita con las imágenes listas" : "Se habilita al elegir los ángulos de la estrategia";
-    case "new":
-      return "La ficha y los componentes de la página con tus ángulos";
-    case "writing":
-      return "La IA está escribiendo la página";
-    case "failed":
-      return c?.run?.error ?? "No se pudo escribir la página";
-    case "review":
-      return "Falta aprobar la ficha del producto";
-    case "done":
-      return enabledLabel(p?.enabled ?? 0);
-  }
-}
-
-/** Nombre de la etapa Ángulos (StageKey `angulos`): estrategia seleccionada desde el chat. */
-export const STRATEGY_STAGE_TITLE = "Estrategia";
-
-function baseDesc(f: ProductFacts, phase: BasePhase): string {
-  if (phase === "done") return "Datos del producto · precio y packs listos";
-  if (!f.base?.described && !f.base?.priced) return "Identifica el producto y guarda el precio";
-  if (!f.base?.described) return "Falta identificar el producto";
-  return "Falta guardar el precio y los packs";
-}
-
-const ANGLES_STATE: Record<AnglesPhase, Stage["state"]> = {
-  locked: "locked",
-  new: "current",
-  choose: "review",
-  done: "done",
-};
-
-function anglesDesc(phase: AnglesPhase): string {
-  switch (phase) {
-    case "locked":
-      return "Se habilita con los datos del producto y el precio";
-    case "new":
-      return "Define la estrategia desde el chat";
-    case "choose":
-      return "Revisa la estrategia en el chat";
-    case "done":
-      return "Estrategia seleccionada";
-  }
-}
-
-/** Anuncios: opcional, se habilita con la página del producto lista y Meta conectado (spec-anuncios §2). */
-function adsStage(pageDone: boolean, a: AdsFacts | null | undefined): Stage {
-  const base = { key: "anuncios", title: "Anuncios", optional: true } as const;
-  if (!pageDone) return { ...base, state: "locked", desc: "Después de la página del producto" };
-  if (!a?.metaReady) return { ...base, state: "locked", desc: "Conecta Meta Ads en Ajustes" };
-  if (a.launching) return { ...base, state: "current", desc: "Creando la campaña en Meta" };
-  if (a.campaigns) return { ...base, state: "done", desc: a.campaigns === 1 ? "1 campaña" : `${a.campaigns} campañas` };
-  return { ...base, state: "available", desc: "Lanza una campaña de testeo" };
-}
-
-/**
- * WhatsApp: opcional, al final. Los mensajes para confirmar y seguir los pedidos con el nombre y el
- * precio del producto: se habilita con la información base lista. Nunca bloquea ni queda pendiente.
- */
-function messagesStage(baseDone: boolean): Stage {
-  const base = { key: "mensajes", title: "WhatsApp", optional: true } as const;
-  if (!baseDone) return { ...base, state: "locked", desc: "Después de la información base" };
-  return { ...base, state: "available", desc: "Mensajes para confirmar y seguir pedidos" };
-}
-
-/**
- * Creativos: opcional, entre Publicar y Anuncios (docs/spec-creativos.md §6.5). Se habilita con los 2
- * desarrollos de Ángulos aprobados y un proveedor de imágenes (Higgsfield o Gemini); nunca bloquea Publicar.
- */
-function creativesStage(anglesDone: boolean, c: CreativeFacts | null | undefined): { stage: Stage; meter: MeterStage } {
-  const base = { key: "creativos", title: "Creativos", optional: true } as const;
-  const optional = (state: Stage["state"], desc: string) => ({ stage: { ...base, state, desc }, meter: "optional" as MeterStage });
-  // Como Anuncios: bloqueada, su rayita sigue siendo «opcional» (no cuenta como pendiente).
-  if (!anglesDone) return optional("locked", "Después de elegir los ángulos");
-  if (!c?.connected) return optional("locked", "Conecta Higgsfield en Ajustes");
-  if (c.running) return optional("current", "La IA está pensando tus anuncios");
-  if (c.rendering) return optional("current", c.rendering === 1 ? "Generando 1 imagen" : `Generando ${c.rendering} imágenes`);
-  if (c.pending) return { stage: { ...base, state: "review", desc: `${c.pending} por revisar` }, meter: "review" };
-  if (c.approved) return { stage: { ...base, state: "done", desc: c.approved === 1 ? "1 anuncio aprobado" : `${c.approved} anuncios aprobados` }, meter: "done" };
-  if (c.concepts) return optional("available", "Genera las imágenes de tus conceptos");
-  return optional("available", "Anuncios de imagen terminados con IA");
-}
-
-/**
- * Imágenes (docs/spec-imagenes.md): se habilita con la página del producto aprobada y queda lista con
- * la portada y al menos GALLERY_MIN imágenes de galería elegidas.
- */
-function imagesStage(anglesDone: boolean, i: ImageFacts | null | undefined): { stage: Stage; meter: MeterStage; done: boolean } {
-  const base = { key: "imagenes", title: "Imágenes" } as const;
-  if (!anglesDone) return { stage: { ...base, state: "locked", desc: "Se habilita al elegir los ángulos de la estrategia" }, meter: "locked", done: false };
-  const done = Boolean(i?.cover) && (i?.gallery ?? 0) >= GALLERY_MIN;
-  if (done) return { stage: { ...base, state: "done", desc: `Portada y ${i!.gallery} de galería` }, meter: "done", done };
-  if (i?.running) return { stage: { ...base, state: "current", desc: "La IA está pensando tu galería" }, meter: "current", done };
-  if (i?.rendering) return { stage: { ...base, state: "current", desc: i.rendering === 1 ? "Generando 1 imagen" : `Generando ${i.rendering} imágenes` }, meter: "current", done };
-  if (i?.options) {
-    const missing = [i.cover ? null : "la portada", (i.gallery ?? 0) < GALLERY_MIN ? `${GALLERY_MIN - (i.gallery ?? 0)} de galería` : null].filter(Boolean).join(" y ");
-    return { stage: { ...base, state: "review", desc: `Elige ${missing}` }, meter: "review", done };
-  }
-  return { stage: { ...base, state: "current", desc: "Genera las imágenes de tu página" }, meter: "current", done };
-}
-
-/** Publicar: con las imágenes y la página listas (docs/spec-publicar.md). */
-function publishStage(ready: boolean, p: PublishFacts | null | undefined): { stage: Stage; meter: MeterStage } {
-  const base = { key: "publicar", title: "Publicar en tu tienda" } as const;
-  if (!ready) return { stage: { ...base, state: "locked", desc: "Necesita la página y las imágenes aprobadas" }, meter: "locked" };
-  if (p?.status === "publishing") return { stage: { ...base, state: "current", desc: "Publicando en tu tienda" }, meter: "current" };
-  if (p?.status === "error") return { stage: { ...base, state: "error", desc: p.error ?? "No se pudo publicar · reintenta" }, meter: "error" };
-  if (p?.status === "published") return { stage: { ...base, state: "done", desc: "Publicado en tu tienda" }, meter: "done" };
-  return { stage: { ...base, state: "current", desc: "Instala el tema y publica el producto" }, meter: "current" };
-}
-
-/** Reseñas: opcional, entre Información base y Ángulos (arquitectura.md › 9). */
-function reviewsStage(r: ReviewFacts | null | undefined): { stage: Stage; meter: MeterStage } {
-  const base = { key: "resenas", title: "Reseñas", optional: true } as const;
-  if (r?.importing) return { stage: { ...base, state: "available", desc: "Importando de AliExpress" }, meter: "optional" };
-  if (!r?.total) return { stage: { ...base, state: "available", desc: "Importa de AliExpress; la IA las usa para escribir" }, meter: "optional" };
-  if (r.pending) return { stage: { ...base, state: "review", desc: `${r.pending} por revisar` }, meter: "review" };
-  return { stage: { ...base, state: "done", desc: r.approved === 1 ? "1 aprobada" : `${r.approved} aprobadas` }, meter: "done" };
-}
-
+/** Situación operativa del contenido; las etapas quedan solo como nombres para enlaces históricos y costos. */
 export function productPosition(f: ProductFacts): ProductPosition {
-  const phase = basePhase(f);
-  const angles = anglesPhase(f, phase);
-  const images = imagesStage(angles === "done", f.images);
-  const copy = copyPhase(f, angles, images.done);
-  const pageDone = copy === "done";
-  const reviews = reviewsStage(f.reviews);
-  const creatives = creativesStage(angles === "done", f.creatives);
-  const publish = publishStage(pageDone, f.publish);
+  const hasContent = f.content?.hasContent ?? Boolean(f.copy && f.copy.progress.listing !== "missing");
+  const missing = f.content?.missing ?? [];
+  const situation = contentSituation({ hasContent, missing, publication: f.publish ? { ...f.publish, stale: f.content?.stale } : null });
   const stages: Stage[] = [
-    {
-      key: "importado",
-      title: "Información base",
-      state: phase === "done" ? "done" : "current",
-      // Información base nunca se bloquea (ahí se escribe lo del producto): solo dice qué falta.
-      desc: baseDesc(f, phase),
-    },
-    // Reseñas es opcional: nunca bloquea ni se bloquea (arquitectura.md › 9).
-    reviews.stage,
-    { key: "angulos", title: STRATEGY_STAGE_TITLE, state: ANGLES_STATE[angles], desc: anglesDesc(angles) },
-    // Imágenes va antes de la Página del producto: sus componentes usan las imágenes elegidas. El
-    // precio y los packs viven en Información base (requisito para optimizar): no hay etapa de precio.
-    images.stage,
-    { key: "textos", title: COPY_STAGE_TITLE, state: COPY_STATE[copy], desc: copyDesc(copy, f.copy, angles === "done") },
-    publish.stage,
-    // Creativos es opcional y alimenta Anuncios: nunca bloquea Publicar (spec-creativos §6.5).
-    creatives.stage,
-    adsStage(pageDone, f.ads),
-    // WhatsApp es opcional: los mensajes de los pedidos, cuando empiecen a llegar.
-    messagesStage(phase === "done"),
+    { key: "importado", title: "Información y oferta", state: "available" },
+    { key: "textos", title: COPY_STAGE_TITLE, state: "available" },
+    { key: "imagenes", title: "Imágenes", state: "available" },
+    { key: "publicar", title: "Publicación", state: "available" },
+    { key: "angulos", title: STRATEGY_STAGE_TITLE, state: "available", optional: true },
+    { key: "creativos", title: "Creativos", state: "available", optional: true },
+    { key: "anuncios", title: "Anuncios", state: "available", optional: true },
+    { key: "resenas", title: "Reseñas", state: "available", optional: true },
+    { key: "mensajes", title: "WhatsApp", state: "available", optional: true },
   ];
-  const meter: MeterStage[] = [phase === "done" ? "done" : "current", reviews.meter, ANGLES_STATE[angles] as MeterStage, images.meter, COPY_METER[copy], publish.meter, creatives.meter, "optional", "optional"];
-  const price = f.price > 0 ? ` · ${money(f.price, f.currency)}` : "";
-  const common = { phase, anglesPhase: angles, copyPhase: copy, stages, meter };
-
-  if (phase === "new") {
-    const reason = !f.base?.described ? "Identifica el producto · agrega lo que sabes" : "Falta el precio y los packs";
-    return { ...common, filter: "avanzan", tone: "primary", reason, nextStage: "importado", summary: `Importado de Shopify · sin estrategia${price}` };
-  }
-
-  switch (angles) {
-    case "choose":
-      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · estrategia", nextStage: "angulos", summary: `Ángulos por elegir${price}`, status: "revision" };
-    case "done":
-      break;
-    default:
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: estrategia de venta", nextStage: "angulos", summary: `Información base lista${price}`, status: "aprobado" };
-  }
-
-  if (!images.done) {
-    if (images.stage.state === "review") return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu elección · imágenes", nextStage: "imagenes", summary: `Imágenes por elegir${price}`, status: "revision" };
-    return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: imágenes", nextStage: "imagenes", summary: `Ángulos listos${price}`, status: "aprobado" };
-  }
-
-  switch (copy) {
-    case "writing":
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Escribiendo la página con IA", nextStage: "textos", summary: `Escribiendo la página${price}` };
-    case "failed":
-      return { ...common, filter: "detenidos", tone: "danger", reason: "Página: no se pudo · reintenta", nextStage: "textos", summary: `Página con error${price}`, status: "error" };
-    case "review":
-      return { ...common, filter: "detenidos", tone: "warning", reason: "Espera tu revisión · página del producto", nextStage: "textos", summary: `Página por revisar${price}`, status: "revision" };
-    case "done":
-      if (f.publish?.status === "published") return { ...common, filter: "publicados", tone: "success", reason: "Publicado en tu tienda", nextStage: "anuncios", summary: `Publicado${price}`, status: "publicado" };
-      if (f.publish?.status === "publishing") return { ...common, filter: "avanzan", tone: "primary", reason: "Publicando en tu tienda", nextStage: "publicar", summary: `Publicando${price}`, status: "publicando" };
-      if (f.publish?.status === "error") return { ...common, filter: "detenidos", tone: "danger", reason: "No se pudo publicar · reintenta", nextStage: "publicar", summary: `Error al publicar${price}`, status: "error" };
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: publicar", nextStage: "publicar", summary: `Página lista${price}`, status: "aprobado" };
-    default:
-      return { ...common, filter: "avanzan", tone: "primary", reason: "Siguiente: página del producto", nextStage: "textos", summary: `Imágenes listas${price}`, status: "aprobado" };
-  }
+  return {
+    phase: basePhase(f), anglesPhase: anglesPhase(f), copyPhase: copyPhase(f),
+    contentState: situation.state, stages, meter: [],
+    filter: f.publish?.status === "published" ? "publicados" : situation.state === "error" ? "detenidos" : "avanzan",
+    tone: situation.state === "error" ? "danger" : ["published", "ready"].includes(situation.state) ? "success" : situation.state === "updated" ? "warning" : "muted",
+    nextStage: "publicar", reason: situation.label, summary: situation.label, status: situation.status,
+  };
 }
-
-/** En qué fase la ficha del producto muestra la pantalla de información base (y no la ruta). */
-export const showsBaseScreen = (phase: BasePhase) => phase !== "done";
+export const showsBaseScreen = () => false;

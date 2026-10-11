@@ -4,12 +4,11 @@ import { requireUser } from "@/lib/integrations/session";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { contextAccess, createContextRepository } from "@/lib/product-intelligence/repository";
 import { hydrateVisualState } from "@/lib/product-intelligence/visual-state";
-import { visualEnabled, visualRecordView } from "@/lib/product-intelligence/visual-service";
+import { visualRecordView } from "@/lib/product-intelligence/visual-service";
 import { VISUAL_LIMITS, visualTargetSchema } from "@/lib/product-intelligence/visual-schemas";
 import type { VisualWorkbench } from "@/lib/types";
 
 export async function getVisualWorkbench(userId: string, productId: string, offset = 0): Promise<VisualWorkbench | null> {
-  if (!visualEnabled()) return null;
   const principal = { userId, actorId: userId, actorKind: "merchant" as const, scopes: PI_SCOPES };
   const raw = await createContextRepository().loadVisual({ p_access: contextAccess(principal), p_product_id: productId }, AbortSignal.timeout(20000));
   const state = await hydrateVisualState(raw, principal, productId), canonical = state.references.find(r => r.is_base);

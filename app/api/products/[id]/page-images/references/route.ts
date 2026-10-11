@@ -8,9 +8,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     const { userId } = await ownedProduct(id);
-    const { slot, referenceId } = await json<{ slot: string; referenceId: string }>(req);
+    const { slot, referenceId, select } = await json<{ slot: string; referenceId: string; select?: boolean }>(req);
     if (typeof slot !== "string" || typeof referenceId !== "string") throw new ProductApiError("Falta el espacio o la foto.", 400);
-    await chooseReference(userId, id, slot, referenceId);
+    await chooseReference(userId, id, slot, referenceId, select !== false);
     return NextResponse.json(await pageImagesState(userId, id));
   } catch (e) {
     return errorResponse(e, "No pudimos elegir la foto. Intenta de nuevo.");

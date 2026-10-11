@@ -2,9 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, EmptyState, Icon, Notice, StatusBadge, TopBar, notify } from "@/components/df";
-import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { AiCostButton } from "@/components/shell/ai-cost-provider";
+import { Button, EmptyState, Icon, Notice, StatusBadge, notify } from "@/components/df";
+import { AssistantScope } from "@/components/shell/assistant-provider";
 import { StickyActions } from "@/components/shell/sticky-actions";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { money } from "@/lib/format";
@@ -32,13 +31,12 @@ function Section({ step, title, hint, children, className }: { step: number; tit
   return (
     <section aria-labelledby={`publish-${step}`} className={cn("flex flex-col gap-3 rounded-lg border bg-card p-4", className)}>
       <div className="flex items-start gap-3">
-        <span aria-hidden className="grid size-6 flex-none place-items-center rounded-full bg-muted text-label">{step}</span>
         <div className="min-w-0">
           <h2 id={`publish-${step}`} className="text-heading">{title}</h2>
           {hint ? <p className="text-label font-normal text-muted-foreground">{hint}</p> : null}
         </div>
       </div>
-      <div className="flex flex-col gap-3 pl-9">{children}</div>
+      <div className="flex flex-col gap-3">{children}</div>
     </section>
   );
 }
@@ -252,23 +250,23 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
   const content = (
     <ul className="flex flex-col gap-2">
       <Row icon="text">
-        <span className="font-medium">{plan.title}</span> · título, descripción y SEO de la ficha aprobada
+        <span className="font-medium">{plan.title}</span> · título, descripción y SEO guardados
       </Row>
       <Row icon="image">{plan.images === 1 ? "1 imagen en la galería" : `${plan.images} imágenes en la galería`}, en el orden que elegiste</Row>
       {plan.packs.length ? (
         <Row icon="tag">
           {plan.packs.length} packs:{" "}
           <span className="tabular-nums">{plan.packs.map((p) => `${p.units} × ${money(p.price, state.currency)}`).join(" · ")}</span>
-          <span className="mt-0.5 block text-label font-normal text-muted-foreground">
+          <details className="mt-1 text-label font-normal text-muted-foreground"><summary className="min-h-touch cursor-pointer py-3">Configurar packs en el checkout</summary>
             Los cobra EasySell. En su oferta por cantidad de este producto, crea una opción por pack con descuento fijo, sin preseleccionar:{" "}
             <span className="tabular-nums">{easySellDiscounts(plan.packs, state.currency)}</span>. Un pack que EasySell no cobre igual no se muestra en la tienda.
-          </span>
+          </details>
         </Row>
       ) : (
         <Row icon="tag">Una sola variante, al precio de 1 unidad</Row>
       )}
-      <Row icon="box">{plan.components.length ? `${plan.components.length} componentes: ${plan.components.join(", ")}` : "Sin componentes de conversión en uso"}</Row>
-      <Row icon="star">{plan.reviews ? `${plan.reviews} reseñas aprobadas, con la fuente visible` : "Sin reseñas aprobadas"}</Row>
+      <Row icon="box">{plan.components.length ? `${plan.components.length} componentes: ${plan.components.join(", ")}` : "Sin secciones adicionales en uso"}</Row>
+      <Row icon="star">{plan.reviews ? `${plan.reviews} reseñas disponibles` : "Sin reseñas en uso"}</Row>
       <Row icon="shield">
         {plan.policies.join(" · ")}.{" "}
         <a href="/settings#envios" className="text-primary underline underline-offset-2">
@@ -331,13 +329,11 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
           {connection}
           {missing}
         </div>
-        <Section step={1} title="El tema de tu tienda" hint="Una vez por tienda.">
-          {themeBody}
-        </Section>
-        <Section step={2} title="Tu producto" hint="Cambia en tu tienda al instante: título, precios, packs y fotos.">
-          {content}
+        <Section step={2} title="Tu producto" hint="Publicar actualiza el contenido y los precios en Shopify.">
           {result}
+          {content}
         </Section>
+        <details className="rounded-lg border bg-card p-4" open={theme.status === "none" && !state.connection ? true : undefined}><summary className="min-h-touch cursor-pointer text-label">Tema de tu tienda</summary><div className="flex flex-col gap-3 pt-3">{themeBody}</div></details>
       </div>
     );
 
@@ -347,19 +343,7 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
   return (
     <div className="@container flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Publicar en tu tienda" stageKey="publicar" image={product.image} />
-      <TopBar
-        back={product.name}
-        backHref={`/products/${product.id}`}
-        title="Publicar"
-        subtitle={subtitle}
-        actions={
-          <>
-            <AiCostButton />
-            <AssistantButton />
-          </>
-        }
-        className="sticky top-0 z-sticky lg:hidden"
-      />
+
       <div className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-4 lg:px-8 lg:pt-6">
         <p className="hidden text-body text-muted-foreground lg:block">Publicar en tu tienda · {subtitle}</p>
         {body}
@@ -380,7 +364,7 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
       >
         {published && !publishing ? (
           <Button href={productHref(product.id, "anuncios")} size="lg" iconEnd="chevron-right" className={actionClass}>
-            {desktop ? "Continuar: Anuncios" : "Anuncios"}
+            {desktop ? "Abrir anuncios" : "Anuncios"}
           </Button>
         ) : null}
         <Button variant="primary" size="lg" icon="send" loading={busy === "publish" || publishing} disabled={blocked || publishing || (published && !publication?.stale && busy !== null)} onClick={publish} className={actionClass}>

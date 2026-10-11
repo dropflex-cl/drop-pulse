@@ -109,6 +109,8 @@ export interface PublishComponent {
 }
 
 export interface PublishInput {
+  /** Hechos de tienda incluidos en la huella; se publican junto al producto. */
+  shopFacts?: { policies: unknown; logistics: unknown };
   experienceManifest?: ExperienceManifest;
   disabledConversionComponents?: string[];
   listing: Listing;
@@ -484,12 +486,12 @@ export function productMetafields(
   return { set, remove: productKeys().filter((k) => !written.has(k)) };
 }
 
-/** Huella de lo aprobado: si cambia después de publicar, la pantalla dice «Hay cambios sin publicar». */
+/** Huella del contenido efectivo: si cambia después de publicar, la pantalla dice «Hay cambios sin publicar». */
 export function fingerprint(
   input: PublishInput,
   extra: unknown = null,
 ): string {
   return createHash("md5")
-    .update(JSON.stringify([input, extra]))
+    .update(JSON.stringify([{ ...input, ...(input.experienceManifest ? { experienceManifest: { ...input.experienceManifest, experiences: input.experienceManifest.experiences.map(e => ({ ...e, revision: 0, plan_revision: 0 })) } } : {}) }, extra]))
     .digest("hex");
 }

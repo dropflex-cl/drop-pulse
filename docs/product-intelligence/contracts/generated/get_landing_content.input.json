@@ -1,7 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["product_id"],
+  "required": [
+    "product_id"
+  ],
   "additionalProperties": false,
   "properties": {
     "product_id": {
@@ -45,7 +47,11 @@
     "schema_version": {
       "default": "1.1",
       "type": "string",
-      "enum": ["1.0", "1.1", "1.2"]
+      "enum": [
+        "1.0",
+        "1.1",
+        "1.2"
+      ]
     }
   }
 }

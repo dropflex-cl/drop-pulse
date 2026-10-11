@@ -64,6 +64,10 @@ export interface Product {
    * La clave de Anthropic del comerciante está conectada para la revisión opcional de imágenes.
    * Los textos del chat y el render sin QA no requieren esta conexión.
    */
+  contentState?: import("@/lib/products/content-state").ProductContentState;
+  publicationChanges?: string[];
+  hasContent?: boolean;
+  missing?: string[];
   aiConnected?: boolean;
   supplierCost: number;
   /** Precio actual en la tienda y su moneda (ISO 4217). */
@@ -192,6 +196,8 @@ export interface PageComponentView {
   component: string;
   /** La versión vigente: la tuya si la editaste, si no la propuesta de la IA. */
   content: unknown;
+  /** Contenido vigente del chat para recuperar explícitamente tras una edición manual. */
+  chatContent?: unknown;
   edited: boolean;
   /** «Usar en la página». La ficha siempre va. */
   enabled: boolean;
@@ -219,6 +225,7 @@ export interface CopyState {
 }
 
 export interface ProductCopy extends CopyState {
+  page?: ProductPageContent;
   pdp?: PdpWorkbench | null;
   product: Product;
   /** Color de acento de la página (#rrggbb, lib/copy/accent.ts); null si todavía no se eligió. */
@@ -944,4 +951,21 @@ export interface VisualWorkbench {
   asset_total: number;
   asset_offset: number;
   pending_ingestions?: { id: string; iteration_id: string; state: string }[];
+}
+
+/** Datos efectivos: la misma entrada que usa Publicar, con URLs solo para representación. */
+export interface ProductPageContent {
+  input: import("@/lib/shopify/publish/mapping").PublishInput;
+  missing: string[];
+  urls: Record<string, string>;
+  facts: StoreFacts;
+}
+export interface ProductOverview {
+  product: Product;
+  page: ProductPageContent;
+  context: import("@/lib/products/product-data").ProductData;
+  strategy: import("@/lib/product-intelligence/schemas").Strategy | null;
+  publication: PublishState["publication"];
+  savedSections: number;
+  creatives: number;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { copyState } from "@/lib/data/products";
-import { restoreComponent, updateComponent, type ComponentPatch } from "@/lib/pipeline/copy";
+import { updateComponent, type ComponentPatch } from "@/lib/pipeline/copy";
 import { errorResponse, json, ownedProduct, ProductApiError } from "@/lib/products/http";
 import type { ImagePick } from "@/lib/types";
 
@@ -22,10 +22,6 @@ export async function PATCH(req: Request, { params }: Params) {
     const { id, component } = await params;
     const { userId } = await ownedProduct(id);
     const body = await json<Record<string, unknown>>(req);
-    if (body.restore === true) {
-      await restoreComponent(userId, id, decodeURIComponent(component));
-      return NextResponse.json(await copyState(userId, id));
-    }
     const patch: ComponentPatch = {};
     if (body.expected_id !== undefined) {
       if (typeof body.expected_id !== "string" || !/^[0-9a-f-]{36}$/.test(body.expected_id)) throw new ProductApiError("La versión del componente no es válida.", 400);

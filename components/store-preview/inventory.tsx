@@ -15,12 +15,13 @@ interface Content {
 
 export function InventoryPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("inventory");
-  const template = content.available_text || String(s.available_text ?? "");
+  if (!facts.inventory) return <p className="df df-placeholder" data-df-live="inventory">La disponibilidad se actualiza en Shopify.</p>;
+  const template = facts.inventory.available ? content.available_text || String(s.available_text ?? "") : content.sold_out_text || String(s.sold_out_text ?? "");
   const text = (template.includes("{min}") || template.includes("{max}")) && !facts.logistics
     ? "Disponible" : fill(template, facts);
   return (
     <df-inventory
-      className={`df df-inventory df-inventory--available${s.pulse ? " df-inventory--pulse" : ""}`}
+      className={`df df-inventory df-inventory--${facts.inventory.available ? "available" : "soldout"}${s.pulse ? " df-inventory--pulse" : ""}`}
       style={{ "--df-inventory-size": px(s.text_size), marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}
     >
       <span className="df-inventory__dot" aria-hidden />

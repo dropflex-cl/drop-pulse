@@ -83,18 +83,14 @@ describe("vistas previas de los componentes", () => {
           );
           // Sin logística, mostrar disponibilidad sin fabricar ventas o plazos.
           if (c.id === "inventory") {
-            expect(html).toContain("Disponible");
+            expect(html).toContain("La disponibilidad se actualiza en Shopify");
             expect(html).not.toContain("vendidos esta semana");
             continue;
           }
-          if (c.id === "benefit-double-box") {
-            expect(html).toContain("Con tu compra");
-            expect(html).toContain("Envío a domicilio");
-            expect(html).toContain(`Guía de ${MANY_REVIEWS.productName}`);
-            continue;
-          }
           if (c.id === "review-slider") {
-            for (const review of MANY_REVIEWS.reviews) expect(html).toContain(escape(review.body));
+            for (const item of (example as { items: { review_id: string; excerpt: string }[] }).items) {
+              if (MANY_REVIEWS.reviews.some(r => r.id === item.review_id)) expect(html).toContain(escape(item.excerpt));
+            }
             continue;
           }
           const texts = visibleTexts(example).map((t) =>
@@ -110,6 +106,16 @@ describe("vistas previas de los componentes", () => {
             `${c.id}: se ven ${shown.length} de ${texts.length}`,
           ).toBeGreaterThanOrEqual(min);
         }
+      });
+
+      if(c.id === "review-slider") it("respeta ids, extractos y orden; omite reseñas que ya no existen",()=>{
+        const facts = { ...MANY_REVIEWS, reviews: MANY_REVIEWS.reviews.slice(0,3).map((r,i) => ({ ...r, id: `review-${i}`, body: `Texto completo del comprador ${i}` })) };
+        const picked = [facts.reviews[1], facts.reviews[0]];
+        const content = { items: [...picked.map((r,i)=>({ review_id:r.id, excerpt:`Extracto guardado ${i}`,excerpt_mode:"condensed" })), { review_id:"missing", excerpt:"No debe verse", excerpt_mode:"verbatim" }] };
+        const html = renderToStaticMarkup(<Preview content={content} facts={facts} images={{}} />);
+        expect(html.indexOf("Extracto guardado 0")).toBeLessThan(html.indexOf("Extracto guardado 1"));
+        expect(html).not.toContain("No debe verse");
+        for(const review of facts.reviews.slice(2)) expect(html).not.toContain(escape(review.body));
       });
 
       if (c.id === "review-stars") {

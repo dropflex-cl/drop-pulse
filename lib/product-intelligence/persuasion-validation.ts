@@ -422,8 +422,9 @@ export function validateLandingExperience(
   plan: AnglePersuasionPlan,
   planRevision: number,
   context: PersuasionValidationContext,
+  operational = false,
 ): PersuasionIssue[] {
-  const issues = validatePersuasionPlan(plan, context);
+  const issues = operational ? [] : validatePersuasionPlan(plan, context);
   const add = (code: string, field: string, message: string) =>
     issues.push({ code, field, message, severity: "error" });
   if (
@@ -437,7 +438,7 @@ export function validateLandingExperience(
       "persuasion_plan_id",
       "La experiencia debe usar la identidad y revisión exactas del plan.",
     );
-  if (experience.status === "active" && plan.status !== "approved")
+  if (!operational && experience.status === "active" && plan.status !== "approved")
     add(
       "plan_approval",
       "status",
@@ -516,7 +517,7 @@ export function validateLandingExperience(
       add(
         "content_approval",
         section.section_key,
-        "Aprueba y habilita el contenido antes de activar la experiencia.",
+        "Guarda contenido válido y habilitado para esta versión de la página.",
       );
     for (const pick of section.images)
       if (
@@ -576,7 +577,7 @@ export function validateLandingExperience(
             add(
               "missing_asset",
               section.section_key,
-              "Vincula videos finales aprobados antes de activar.",
+              "Vincula videos finales disponibles para esta versión de la página.",
             );
         } else if (slot.key === "gifs") {
           const count =
@@ -599,7 +600,7 @@ export function validateLandingExperience(
           );
       }
     }
-    if (variant)
+    if (variant && !operational)
       issues.push(
         ...contentAttentionIssues(
           section.section_key,
@@ -609,7 +610,7 @@ export function validateLandingExperience(
         ),
       );
   }
-  for (const belief of plan.beliefs.filter((b) => b.mandatory))
+  for (const belief of (operational ? [] : plan.beliefs.filter((b) => b.mandatory)))
     if (
       !enabled.some(
         (s) =>
@@ -629,8 +630,8 @@ export function validateLandingExperience(
   ).length;
   const supportCount = enabled.length - primaryCount;
   if (
-    primaryCount > plan.attention_budget.max_primary_sections ||
-    supportCount > plan.attention_budget.max_support_sections
+    !operational && (primaryCount > plan.attention_budget.max_primary_sections ||
+    supportCount > plan.attention_budget.max_support_sections)
   )
     add(
       "attention_budget",

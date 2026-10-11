@@ -117,11 +117,20 @@
               "additionalProperties": false
             }
           },
-          "required": ["code", "message", "retryable", "details"],
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "details"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["ok", "request_id", "error"],
+      "required": [
+        "ok",
+        "request_id",
+        "error"
+      ],
       "additionalProperties": false
     },
     {
@@ -151,7 +160,10 @@
             },
             "contract_version": {
               "type": "string",
-              "enum": ["1.1", "1.2"]
+              "enum": [
+                "1.1",
+                "1.2"
+              ]
             },
             "context_stale": {
               "type": "boolean"
@@ -236,7 +248,10 @@
                           "type": "string"
                         }
                       },
-                      "required": ["heading", "body"],
+                      "required": [
+                        "heading",
+                        "body"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -382,7 +397,13 @@
                       "items": {}
                     }
                   },
-                  "required": ["id", "content", "enabled", "status", "images"],
+                  "required": [
+                    "id",
+                    "content",
+                    "enabled",
+                    "status",
+                    "images"
+                  ],
                   "additionalProperties": false
                 }
               ]
@@ -429,7 +450,13 @@
           "additionalProperties": false
         }
       },
-      "required": ["ok", "product_id", "revision", "request_id", "data"],
+      "required": [
+        "ok",
+        "product_id",
+        "revision",
+        "request_id",
+        "data"
+      ],
       "additionalProperties": false
     }
   ],
@@ -470,7 +497,13 @@
           "type": "boolean"
         }
       },
-      "required": ["component", "name", "kind", "min_reviews", "available"],
+      "required": [
+        "component",
+        "name",
+        "kind",
+        "min_reviews",
+        "available"
+      ],
       "additionalProperties": false
     },
     "__schema4": {},
@@ -492,13 +525,19 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["reference", "page_image"]
+          "enum": [
+            "reference",
+            "page_image"
+          ]
         },
         "id": {
           "$ref": "#/$defs/__schema0"
         }
       },
-      "required": ["source", "id"],
+      "required": [
+        "source",
+        "id"
+      ],
       "additionalProperties": false
     },
     "__schema9": {
@@ -514,7 +553,11 @@
           "type": "number"
         }
       },
-      "required": ["id", "body", "rating"],
+      "required": [
+        "id",
+        "body",
+        "rating"
+      ],
       "additionalProperties": false
     }
   },

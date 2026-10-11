@@ -27,7 +27,7 @@ import { LandingVariantPicker } from "./landing-variant-picker";
 import { SlotImagePicker } from "./slot-image-picker";
 
 // La hoja de edición de un componente o de la ficha: la vista previa arriba (se actualiza mientras
-// escribes), sus campos y, si lleva fotos, el selector del catálogo del producto. Guardar = aprobar
+// escribes), sus campos y, si lleva fotos, el selector del catálogo del producto. Guardar conserva la elección y la visibilidad
 // y usar en la página. Valida con el mismo esquema que el servidor.
 
 /** Las fotos elegidas por espacio, como URLs (lo que recibe la vista previa). */
@@ -145,7 +145,7 @@ export function ComponentEditor({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-0.5 px-4 pt-2 pb-3">
         <DrawerTitle className="text-heading">
-          {listing ? "Revisar la ficha" : `Editar ${name}`}
+          {listing ? "Editar la ficha" : `Editar ${name}`}
         </DrawerTitle>
         <DrawerDescription className="text-caption text-muted-foreground">
           {listing
@@ -163,7 +163,7 @@ export function ComponentEditor({
               onChange={setActiveSelection}
             />
             <p className="mt-2 text-caption text-muted-foreground">
-              Revisa todas las versiones. Se aprueban juntas al guardar.
+              Los cambios de esta versión se guardan junto con las demás.
             </p>
           </div>
         ) : null}
@@ -247,11 +247,7 @@ export function ComponentEditor({
               })
             }
           >
-            {isVariants(draft)
-              ? "Guardar y aprobar variantes"
-              : listing
-                ? "Guardar y aprobar"
-                : "Guardar y usar"}
+            Guardar cambios
           </Button>
         </div>
       </div>

@@ -12,10 +12,15 @@ import { prepareExperienceManifest } from "@/lib/product-intelligence/persuasion
 import "server-only";
 import { assertUgcPublishable } from "@/lib/video/publication";
 import { after } from "next/server";
+import { effectivePage } from "@/lib/products/effective-page";
+import { publicationSnapshot } from "@/lib/products/publication-snapshot";
+import { strictSchema, isEmptyContent } from "@/lib/copy/page-schema";
+import { CATALOG } from "@/lib/shopify/components/catalog";
 import { LISTING, type Listing } from "@/lib/copy/listing";
 import { validateLandingProposal } from "@/lib/product-intelligence/landing-service";
 import {
   contextAccess,
+  contextDatabaseError,
   createContextRepository,
 } from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
@@ -39,7 +44,6 @@ import { missingPublishScopes } from "@/lib/integrations/shopify/oauth";
 import {
   COVER,
   GALLERY,
-  GALLERY_MIN,
   GIFS,
   slotKind,
 } from "@/lib/page-images/catalog";
@@ -111,6 +115,7 @@ export interface PublishSummary {
   images?: number;
   packs?: number;
   reviews?: number;
+  content?: Record<string, string>;
   policies?: boolean;
   logistics?: boolean;
 }
@@ -156,6 +161,7 @@ const refSource = (r: ImageRow, alt: string): SourceImage =>
     : { key: refKey(r), url: r.url ?? undefined, alt };
 
 export interface Prepared {
+  currency: string;
   input: PublishInput;
   images: SourceImage[];
   videos?: SourceImage[];
@@ -182,13 +188,14 @@ export async function preparePublish(
   if (!row) throw new ProductApiError("No encontramos ese producto.", 404);
   const rows = rowsByProduct.get(productId) ?? [];
   const missing: string[] = [];
+  const componentMissing: { component: string; variant?: string; message: string }[] = [];
   if (!settings || !logisticsMetafield(settings.policies, settings.timezone))
     missing.push("Completa los plazos de entrega y la hora de corte en Ajustes › Envíos y políticas antes de publicar.");
 
   const listingRow = rows.find(
-    (r) => r.component === LISTING && r.status === "approved",
+    (r) => r.component === LISTING && r.status === "approved" && r.enabled,
   );
-  if (!listingRow) missing.push("Aprueba la ficha en Página del producto.");
+  if (!listingRow || !strictSchema(LISTING)?.safeParse(currentContent(listingRow)).success) missing.push("Guarda la ficha en Página del producto.");
   const listingContent = listingRow ? currentContent(listingRow) : null;
   const listing = (
     listingRow ? selectVariant(listingContent).content : null
@@ -205,7 +212,7 @@ export async function preparePublish(
       const ref = p.reference_image_id
         ? refById.get(p.reference_image_id)
         : undefined;
-      return ref ? refSource(ref, alt) : null;
+      return ref && !ref.excluded ? refSource(ref, alt) : null;
     }
     return p.storage_path
       ? {
@@ -216,35 +223,15 @@ export async function preparePublish(
         }
       : null;
   };
-  const chosen = pageRows.filter((p) => p.status === "approved");
-  try {
-    await assertVisualBindingsPublishable(
-      userId,
-      productId,
-      chosen
-        .map((p) => p.visual_binding_id)
-        .filter((id): id is string => Boolean(id)),
-    );
-  } catch (error) {
-    // Una pieza pendiente no impide abrir Publicar: se muestra el requisito y startPublish lo
-    // rechaza antes de escribir. Los fallos de acceso o infraestructura sí se propagan.
-    if (
-      !(error instanceof ProductIntelligenceError) ||
-      !["VALIDATION_ERROR", "INVALID_REFERENCE"].includes(error.code)
-    ) throw error;
-    missing.push(`${error.message} Revisa las piezas visuales en Imágenes antes de publicar.`);
-  }
+  const chosen = pageRows.filter((p) => p.status === "approved" && p.render_status === "succeeded" && (p.source !== "reference" || refs.some(r => r.id === p.reference_image_id && !r.excluded)));
   const name = listing?.short_name ?? row.title;
   const cover = chosen.find((p) => p.slot === COVER);
   const gallery = chosen
     .filter((p) => p.slot === GALLERY)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const benefits = chosen.filter((p) => slotKind(p.slot) === "benefit");
-  if (!cover) missing.push("Elige la portada en Imágenes.");
-  if (gallery.length < GALLERY_MIN)
-    missing.push(
-      `Elige al menos ${GALLERY_MIN} imágenes de galería en Imágenes.`,
-    );
+  if (!cover || !pageSource(cover, name)) missing.push("Elige una portada disponible en Imágenes.");
+
   const galleryImages = [cover, ...gallery, ...benefits]
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .map((p, i) => pageSource(p, i === 0 ? name : `${name}, imagen ${i + 1}`))
@@ -259,9 +246,7 @@ export async function preparePublish(
     }
     const p = pageRows.find((x) => x.id === pick.id);
     if (p?.visual_binding_id && p.status !== "approved")
-      throw new PublishError(
-        "Revisa y selecciona la pieza visual antes de publicar.",
-      );
+      return null;
     return p && p.render_status === "succeeded" && p.status !== "rejected"
       ? pageSource(p, name)
       : null;
@@ -278,13 +263,13 @@ export async function preparePublish(
         r.component !== LISTING &&
         r.status === "approved" &&
         r.enabled &&
-        componentById(r.component),
+        componentById(r.component) && contentVariants(currentContent(r)).some(v => !isEmptyContent(v.content)),
     )
     .map((r) => {
       const bySlot: Record<string, string[]> = {};
       for (const pick of (r.images ?? []) as ImagePick[]) {
         const src = resolvePick(pick);
-        if (!src) continue;
+        if (!src) { componentMissing.push({ component: r.component, message: `${r.component}: una imagen ya no está disponible. Elige otra en Página del producto.` }); continue; }
         images.push(src);
         (bySlot[pick.slot] ??= []).push(src.key);
       }
@@ -293,25 +278,25 @@ export async function preparePublish(
         bySlot[GIFS] = gifs.map((g) => g.key);
       }
       const content = currentContent(r);
+      if (!isVariants(content)) for (const slot of componentById(r.component)?.imageSlots ?? []) {
+        if (slot.key !== "videos" && (bySlot[slot.key] ?? []).length < slot.min) componentMissing.push({ component: r.component, message: `${r.component}: elige al menos ${slot.min} imágenes para ${slot.label} en Página del producto.` });
+      }
       const variantImages = isVariants(content)
         ? contentVariants(content).map((v) => {
             const slots: Record<string, string[]> = {};
             for (const pick of v.images ?? r.images ?? []) {
               const src = resolvePick(pick);
               if (!src) {
-                missing.push(
-                  `${r.component} (${v.key}): una imagen ya no está disponible.`,
-                );
+                componentMissing.push({ component: r.component, variant: v.key, message: `${r.component} (${v.key}): una imagen ya no está disponible.` });
                 continue;
               }
               images.push(src);
               (slots[pick.slot] ??= []).push(src.key);
             }
+            if (r.component === "gif-strip") slots[GIFS] = gifs.map((g) => g.key);
             for (const slot of componentById(r.component)?.imageSlots ?? [])
-              if ((slots[slot.key] ?? []).length < slot.min)
-                missing.push(
-                  `${r.component} (${v.key}): elige al menos ${slot.min} imágenes para ${slot.label}.`,
-                );
+              if (slot.key !== "videos" && (slots[slot.key] ?? []).length < slot.min)
+                componentMissing.push({ component: r.component, variant: v.key, message: `${r.component} (${v.key}): elige al menos ${slot.min} imágenes para ${slot.label}.` });
             if (r.component === "gif-strip")
               slots[GIFS] = gifs.map((g) => g.key);
             return { key: v.key, images: slots };
@@ -319,40 +304,6 @@ export async function preparePublish(
         : undefined;
       return { id: r.component, content, images: bySlot, variantImages };
     });
-
-  const variantRows = rows.filter(
-    (r) =>
-      r.status === "approved" && r.enabled && isVariants(currentContent(r)),
-  );
-  if (variantRows.length) {
-    try {
-      const access = contextAccess({
-        userId,
-        actorId: userId,
-        actorKind: "merchant",
-        scopes: PI_SCOPES,
-      });
-      const current = await createContextRepository().loadLanding(
-        { p_access: access, p_product_id: productId },
-        AbortSignal.timeout(10000),
-      );
-      validateLandingProposal(
-        userId,
-        current,
-        variantRows.map((r) => ({
-          component: r.component,
-          content: currentContent(r),
-        })),
-        productId,
-      );
-    } catch (error) {
-      missing.push(
-        error instanceof Error
-          ? error.message
-          : "Revisa las variantes antes de publicar.",
-      );
-    }
-  }
 
   // Reseñas aprobadas con sus fotos.
   const publishReviews = reviews.map((r) => {
@@ -382,7 +333,7 @@ export async function preparePublish(
   const labelsReady =
     labels?.status === "approved" && !packLabelsStale(labels, pricing);
   if (pricing && pricing.packs.length > 1 && labels && !labelsReady)
-    missing.push("Acepta las etiquetas de los packs en Información base.");
+    missing.push("Actualiza las etiquetas de los packs para el precio guardado en Información base.");
   const approvedLabels = labelsReady ? labels!.payload : [];
   const packs = (pricing?.packs ?? []).map((p) => {
     const l = approvedLabels.find((x) => x.units === p.units);
@@ -416,17 +367,15 @@ export async function preparePublish(
     throw new PublishError("No pudimos leer los videos aprobados.");
   const byId = new Map((approvedVideos ?? []).map((v) => [v.id, v]));
   const videos: SourceImage[] = [];
-  const selectedVideoIds: string[] = [];
   const ugc = components.find((c) => c.id === "ugc-slider");
-  function videoKeys(content: unknown): string[] {
+  function videoKeys(content: unknown, variant?: string): string[] {
     const ids = (content as { script_ids?: string[] })?.script_ids ?? [];
-    selectedVideoIds.push(...ids);
     return ids.map((id) => {
       const video = byId.get(id);
-      if (!video?.final_storage_path)
-        throw new PublishError(
-          "Un video de la página ya no está aprobado. Revisa Videos y el componente antes de publicar.",
-        );
+      if (!video?.final_storage_path) {
+        componentMissing.push({ component: "ugc-slider", variant, message: "Un video de la página ya no está disponible. Elige otro en Página del producto." });
+        return "";
+      }
       const key = `creative-media/${video.final_storage_path}`;
       videos.push({
         key,
@@ -440,15 +389,15 @@ export async function preparePublish(
   if (ugc) {
     if (isVariants(ugc.content)) {
       const fallback = ugc.content.find((v) => v.key === "default");
-      ugc.images.videos = videoKeys(fallback?.content);
+      ugc.images.videos = videoKeys(fallback?.content, fallback?.key);
       ugc.variantImages = ugc.content.map((v) => ({
         key: v.key,
-        images: { videos: videoKeys(v.content) },
+        images: { videos: videoKeys(v.content, v.key) },
       }));
     } else ugc.images.videos = videoKeys(ugc.content);
   }
-  await assertUgcPublishable(userId, productId, selectedVideoIds);
   const input: PublishInput = {
+    shopFacts: settings ? { policies: policiesMetafield(settings.policies, settings.locale), logistics: logisticsMetafield(settings.policies, settings.timezone) } : undefined,
     listing: listing ?? {
       title: row.title,
       short_name: row.title,
@@ -459,28 +408,86 @@ export async function preparePublish(
     },
     ...(isVariants(listingContent) ? { listingVariants: listingContent } : {}),
     components,
-    disabledConversionComponents: rows
-      .filter((r) => !r.enabled || r.status === "rejected")
-      .map((r) => r.component),
+    disabledConversionComponents: CATALOG.filter(c => !components.some(r => r.id === c.id)).map(c => c.id),
     reviews: publishReviews,
     packs,
     accent: row.page_accent_color,
     gallery: galleryImages.map((g) => ({ key: g.key, alt: g.alt })),
   };
+  input.experienceManifest = await prepareExperienceManifest(userId, productId, input, missing);
+  const used = input.experienceManifest?.experiences.flatMap(e => e.sections);
+  const uses = (component: string, variant?: string) => !used || used.some(s => s.component === component && (!variant || s.content_variant_key === variant));
+  input.components = input.components.filter(c => uses(c.id));
+  for (const issue of componentMissing) if(uses(issue.component, issue.variant)) missing.push(issue.message);
+  input.disabledConversionComponents = CATALOG.filter(c => !input.components.some(p => p.id === c.id)).map(c => c.id);
+  input.listing = effectivePage(input).listing;
+  const selectedVideoIds = input.components.filter(c => c.id === "ugc-slider").flatMap(c => contentVariants(c.content).filter(v => uses(c.id, v.key)).flatMap(v => (v.content as { script_ids?: string[] })?.script_ids ?? []));
+  try { await assertUgcPublishable(userId, productId, selectedVideoIds); }
+  catch (error) {
+    if (!(error instanceof ProductIntelligenceError) || !["VALIDATION_ERROR", "INVALID_REFERENCE"].includes(error.code)) throw error;
+    missing.push("Un video ya no está disponible para esta página. Elige otro en Página del producto.");
+  }
+  const keys = new Set([...input.gallery.map(g => g.key), ...input.reviews.flatMap(r => r.photos), ...input.components.flatMap(c => c.variantImages ? c.variantImages.filter(v => uses(c.id, v.key)).flatMap(v => Object.values(v.images).flat()) : Object.values(c.images).flat())]);
+  const usedPageIds = new Set([cover, ...gallery, ...benefits].flatMap(p => p ? [p.id] : []));
+  if (input.components.some(c => c.id === "gif-strip")) for (const p of chosen.filter(p => p.slot === GIFS)) usedPageIds.add(p.id);
+  for (const r of rows.filter(r => input.components.some(c => c.id === r.component))) {
+    for (const v of contentVariants(currentContent(r)).filter(v => uses(r.component, v.key))) {
+      for (const pick of v.images ?? r.images ?? []) if (pick.source === "page_image") usedPageIds.add(pick.id);
+    }
+  }
   try {
-    input.experienceManifest = await prepareExperienceManifest(
+    await assertVisualBindingsPublishable(
       userId,
       productId,
-      input,
+      pageRows.filter(p => usedPageIds.has(p.id))
+        .map((p) => p.visual_binding_id)
+        .filter((id): id is string => Boolean(id)),
     );
   } catch (error) {
-    missing.push(
-      error instanceof Error
-        ? error.message
-        : "Revisa las experiencias antes de publicar.",
-    );
+    // Una pieza pendiente no impide abrir Publicar: se muestra el requisito y startPublish lo
+    // rechaza antes de escribir. Los fallos de acceso o infraestructura sí se propagan.
+    if (
+      !(error instanceof ProductIntelligenceError) ||
+      !["VALIDATION_ERROR", "INVALID_REFERENCE"].includes(error.code)
+    ) throw error;
+    missing.push(`${error.message} Revisa las piezas visuales en Imágenes antes de publicar.`);
   }
-  return { input, images, videos, missing };
+  const variantRows = rows.filter(
+    (r) =>
+      r.status === "approved" && r.enabled && isVariants(currentContent(r)),
+  );
+  if (!input.experienceManifest && variantRows.length) {
+    try {
+      const access = contextAccess({
+        userId,
+        actorId: userId,
+        actorKind: "merchant",
+        scopes: PI_SCOPES,
+      });
+      const current = await createContextRepository().loadLanding(
+        { p_access: access, p_product_id: productId },
+        AbortSignal.timeout(10000),
+      );
+      validateLandingProposal(
+        userId,
+        current,
+        variantRows.map((r) => ({
+          component: r.component,
+          content: currentContent(r),
+        })),
+        productId,
+      );
+    } catch (error) {
+      missing.push(
+        error instanceof Error
+          ? error.message
+          : "Revisa las variantes antes de publicar.",
+      );
+    }
+  }
+
+  return { currency: pricing?.currency ?? row.currency, input, images: images.filter(image => keys.has(image.key)), videos: videos.filter(video => keys.has(video.key)), missing };
+
 }
 
 // ---------------------------------------------------------------- Shopify
@@ -600,25 +607,18 @@ const SHOP_METAFIELDS = /* GraphQL */ `
 
 /** Los datos de la tienda (políticas y plazos de Ajustes): se publican con cada producto. */
 async function publishShopFacts(
-  conn: ShopifyConnection,
+  conn: ShopifyConnection, facts: PublishInput["shopFacts"],
 ): Promise<{ policies: boolean; logistics: boolean }> {
-  const settings = await getStorePolicies(conn.user_id);
-  if (!settings || !logisticsMetafield(settings.policies, settings.timezone ?? conn.timezone))
-    throw new PublishError("Completa los plazos de entrega y la hora de corte en Ajustes › Envíos y políticas antes de publicar.");
-  const shop = await shopifyQuery<{
-    shop: { id: string; metafields: { nodes: { key: string }[] } };
-  }>(conn, SHOP_METAFIELDS);
-  const logistics = logisticsMetafield(
-    settings.policies,
-    settings.timezone ?? conn.timezone,
-  );
+  if (!facts?.logistics) throw new PublishError("Completa los plazos de entrega en Ajustes antes de publicar.");
+  const shop = await shopifyQuery<{ shop: { id: string; metafields: { nodes: { key: string }[] } } }>(conn, SHOP_METAFIELDS);
+  const logistics = facts.logistics;
   const list = [
     {
       namespace: "dropflex",
       key: "policies",
       type: "json",
       value: JSON.stringify(
-        policiesMetafield(settings.policies, settings.locale),
+        facts.policies,
       ),
     },
   ];
@@ -678,21 +678,18 @@ export async function startPublish(
   const conn = await getShopifyConnection(userId);
   const problem = connectionProblem(conn);
   if (problem) throw new ProductApiError(problem, 409);
-  const { missing } = await preparePublish(userId, productId);
+  const { input, missing } = await preparePublish(userId, productId);
   if (missing.length) throw new ProductApiError(missing[0], 409);
-  const current = (await getPublications(userId, [productId])).get(productId);
-  if (
-    current?.status === "publishing" &&
-    Date.now() - Date.parse(current.updated_at) < STALE_MS
-  )
-    throw new ProductApiError("Ya se está publicando.", 409);
-  await savePublication(userId, productId, conn!.shop_domain, {
-    status: "publishing",
-    error_message: null,
-    started_at: new Date().toISOString(),
+  const claim = await adminClient().rpc("pi_claim_product_publication", {
+    p_access: contextAccess({ userId, actorId: userId, actorKind: "merchant", scopes: PI_SCOPES }),
+    p_product_id: productId, p_shop: conn!.shop_domain,
   });
+  if (claim.error) {
+    if (claim.error.message === "PI_GENERATION_IN_PROGRESS") throw new ProductApiError("Ya se está publicando.", 409);
+    throw contextDatabaseError(claim.error);
+  }
   after(() =>
-    runPublish(userId, productId).catch((e) => console.error("[publish]", e)),
+    runPublish(userId, productId, { expectedFingerprint: fingerprint(input) }).catch((e) => console.error("[publish]", e)),
   );
 }
 
@@ -779,7 +776,7 @@ export async function runPublish(
       (c) => c.id === "ugc-slider",
     )?.content;
     const scriptIds = contentVariants(ugcContent).flatMap(
-      (v) => (v.content as { script_ids?: string[] })?.script_ids ?? [],
+      (v) => !input.experienceManifest || input.experienceManifest.experiences.some(e => e.sections.some(s => s.component === "ugc-slider" && s.content_variant_key === v.key)) ? (v.content as { script_ids?: string[] })?.script_ids ?? [] : [],
     );
     await assertUgcPublishable(userId, productId, scriptIds);
     const meta = productMetafields(input, gids);
@@ -811,7 +808,7 @@ export async function runPublish(
       meta.remove.filter((k) => present.has(k) && k !== EVENT_KEY),
     );
     await options.beforeWrite?.();
-    const shopFacts = await publishShopFacts(conn);
+    const shopFacts = await publishShopFacts(conn, input.shopFacts);
 
     await savePublication(userId, productId, shop, {
       status: "published",
@@ -821,6 +818,7 @@ export async function runPublish(
       product_url: set.productSet.product?.onlineStoreUrl ?? null,
       published_at: new Date().toISOString(),
       summary: {
+        content: publicationSnapshot(input),
         components: input.components.length,
         images: input.gallery.length,
         packs: input.packs.length > 1 ? input.packs.length : 0,

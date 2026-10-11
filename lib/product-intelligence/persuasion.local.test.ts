@@ -1,3 +1,4 @@
+import { preparePublish } from "@/lib/pipeline/publish";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 /** Opt-in: fixtures locales, sin IA, tienda ni campañas externas. */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -808,6 +809,38 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         ),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }, 20000);
+    it("cambia la página principal de forma atómica y conserva la historia", async () => {
+      const original = (await call("get_landing_experience", { product_id: product, experience_id: experienceId })).data.current!;
+      const base = await experienceInput();
+      await call("save_landing_experience", { ...base, experience: { ...original.payload, is_default: true } });
+      const fresh = await call("get_landing_experience", { product_id: product });
+      const second = await call("save_landing_experience", { ...base, experience_id: null, expected_revision: fresh.revision, expected_planning_stamp: fresh.data.planning_stamp, expected_etag: fresh.data.etag, idempotency_key: randomUUID(), experience: { ...original.payload, landing_hook_id: "alternate", experience_key: "alternate", is_default: true } });
+      const records = await call("get_landing_experience", { product_id: product });
+      expect(records.data.items.filter(e => e.is_default).map(e => e.id)).toEqual([second.data.id]);
+      const displaced = (await call("get_landing_experience", { product_id: product, experience_id: experienceId })).data.current!;
+      expect(displaced.payload.is_default).toBe(false); expect(displaced.revision).toBe(original.revision + 2);
+      const history = await checked(db.from("pi_pdp_revisions").select("id").eq("experience_id", experienceId).eq("revision", displaced.revision));
+      expect(history.data).toHaveLength(1);
+    });
+    it("el contenido fuera de las experiencias activas no exige imágenes ni se publica", async () => {
+      const current = await preparePublish(owner.userId, product);
+      const used = new Set(current.input.experienceManifest?.experiences.flatMap(e => e.sections.map(s => s.component)));
+      const component = CATALOG.find(c => c.imageSlots?.some(s => s.min > 0) && !used.has(c.id))!;
+      await checked(db.from("page_components").update({ status: "approved", enabled: true, proposal: component.examples[0], images: [] }).eq("product_id", product).eq("component", component.id).is("superseded_at", null));
+      const prepared = await preparePublish(owner.userId, product);
+      expect(prepared.input.experienceManifest?.experiences.length).toBe(2);
+      expect(prepared.input.components.some(c => c.id === component.id)).toBe(false);
+      expect(prepared.missing.some(m => m.includes(component.id))).toBe(false);
+    });
+    it("sin página principal muestra las versiones guardadas y exige elegir el destino de visitas directas", async () => {
+      const list = await call("get_landing_experience", { product_id: product });
+      const principal = list.data.items.find(e => e.is_default)!;
+      const current = (await call("get_landing_experience", { product_id: product, experience_id: principal.id })).data.current!;
+      await call("save_landing_experience", { ...await experienceInput(), experience_id: current.id, expected_etag: current.etag, experience: { ...current.payload, is_default: false } });
+      const prepared = await preparePublish(owner.userId, product);
+      expect(prepared.input.experienceManifest?.experiences).toHaveLength(2);
+      expect(prepared.missing.some(m => m.includes("página principal"))).toBe(true);
+    });
     it("ACL cerrado, rollback de referencia ajena y cascada completa", async () => {
       const anon = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

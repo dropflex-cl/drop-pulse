@@ -152,6 +152,7 @@ export function toComponentViews(rows: PageComponentRow[]): PageComponentView[] 
     updatedAt: r.updated_at,
     component: r.component,
     content: currentContent(r),
+    chatContent: r.proposal,
     edited: r.content != null,
     enabled: r.enabled,
     status: toUiStatus(r.status),

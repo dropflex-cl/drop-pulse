@@ -85,35 +85,27 @@ function applyExperience(disabled: string[] = []) {
   return { roots, window };
 }
 
-describe("apoyos comerciales de la PDP", () => {
-  it("mantiene la entrega visible incluso con una exclusión antigua", () => {
-    expect(conversionSupportState(["shipping-timeline", "pain-block"]).disabled_components).toEqual(["pain-block"]);
+describe("visibilidad de la página guardada", () => {
+  it("respeta todas las exclusiones del comerciante, incluida la entrega", () => {
+    expect(conversionSupportState(["shipping-timeline", "pain-block"]).disabled_components).toEqual(["pain-block", "shipping-timeline"]);
     const { roots, window } = applyExperience(["shipping-timeline"]);
-    expect(roots.find((n) => n.dataset.dfPdpComponent === "shipping-timeline")?.hidden).toBe(false);
-    window.DropFlexPdp.restore();
-    window.DropFlexPdp.apply();
-    expect(roots.find((n) => n.dataset.dfPdpComponent === "shipping-timeline")?.hidden).toBe(false);
+    expect(roots.find(n => n.dataset.dfPdpComponent === "shipping-timeline")?.hidden).toBe(true);
+    window.DropFlexPdp.restore(); window.DropFlexPdp.apply();
+    expect(roots.find(n => n.dataset.dfPdpComponent === "shipping-timeline")?.hidden).toBe(true);
   });
-  it("conserva todos los componentes omitidos por el plan", () => {
+  it("solo muestra los componentes de la experiencia efectiva", () => {
     const { roots } = applyExperience();
-    for (const id of DEFAULT_CONVERSION_SUPPORTS)
-      expect(
-        roots.find((n) => n.dataset.dfPdpComponent === id)?.hidden,
-        id,
-      ).toBe(false);
-    expect(
-      roots.find((n) => n.dataset.dfPdpComponent === "comparison-table")
-        ?.hidden,
-    ).toBe(false);
+    expect(roots.find(n => n.dataset.dfPdpComponent === "pain-block")?.hidden).toBe(false);
+    for(const id of DEFAULT_CONVERSION_SUPPORTS.filter(id => id !== "pain-block")) expect(roots.find(n => n.dataset.dfPdpComponent === id)?.hidden,id).toBe(true);
   });
-  it("respeta exclusiones y restaura el DOM al cambiar de experiencia", () => {
-    const { roots, window } = applyExperience(["review-wall", "pain-block"]);
-    expect(
-      roots.find((n) => n.dataset.dfPdpComponent === "review-wall")?.hidden,
-    ).toBe(false);
-    expect(roots.find((n) => n.dataset.dfPdpComponent === "pain-block")?.hidden).toBe(true);
+  it("no recupera secciones ocultas al cambiar de experiencia", () => {
+    const { roots, window }=applyExperience(["review-wall","pain-block"]);
+    expect(roots.find(n=>n.dataset.dfPdpComponent==="review-wall")?.hidden).toBe(true);
+    expect(roots.find(n=>n.dataset.dfPdpComponent==="pain-block")?.hidden).toBe(true);
     window.DropFlexPdp.restore();
-    expect(roots.every((n) => !n.hidden)).toBe(true);
+    expect(roots.every(n=>!n.hidden)).toBe(true);
+    window.DropFlexPdp.apply();
+    expect(roots.find(n=>n.dataset.dfPdpComponent==="pain-block")?.hidden).toBe(true);
   });
 });
 

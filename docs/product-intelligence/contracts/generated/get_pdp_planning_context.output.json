@@ -117,11 +117,20 @@
               "additionalProperties": false
             }
           },
-          "required": ["code", "message", "retryable", "details"],
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "details"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["ok", "request_id", "error"],
+      "required": [
+        "ok",
+        "request_id",
+        "error"
+      ],
       "additionalProperties": false
     },
     {
@@ -203,7 +212,13 @@
           "additionalProperties": false
         }
       },
-      "required": ["ok", "product_id", "revision", "request_id", "data"],
+      "required": [
+        "ok",
+        "product_id",
+        "revision",
+        "request_id",
+        "data"
+      ],
       "additionalProperties": false
     }
   ],
@@ -228,14 +243,24 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["reference", "page_image", "ugc"]
+          "enum": [
+            "reference",
+            "page_image",
+            "ugc"
+          ]
         },
         "id": {
           "$ref": "#/$defs/__schema0"
         },
         "role": {
           "type": "string",
-          "enum": ["hero", "proof", "demo", "explanation", "comparison"]
+          "enum": [
+            "hero",
+            "proof",
+            "demo",
+            "explanation",
+            "comparison"
+          ]
         },
         "slot": {
           "type": "string",
@@ -245,7 +270,11 @@
           "type": "boolean"
         }
       },
-      "required": ["source", "id", "role"],
+      "required": [
+        "source",
+        "id",
+        "role"
+      ],
       "additionalProperties": false
     },
     "__schema4": {
@@ -315,7 +344,10 @@
         },
         "placement": {
           "type": "string",
-          "enum": ["hero", "body"]
+          "enum": [
+            "hero",
+            "body"
+          ]
         },
         "attention_cost": {
           "type": "number",
@@ -333,7 +365,11 @@
         },
         "copy_density": {
           "type": "string",
-          "enum": ["very_low", "low", "medium"]
+          "enum": [
+            "very_low",
+            "low",
+            "medium"
+          ]
         },
         "supports_cta": {
           "type": "boolean"
@@ -381,13 +417,24 @@
               },
               "ratio": {
                 "type": "string",
-                "enum": ["1:1", "3:4", "9:16"]
+                "enum": [
+                  "1:1",
+                  "3:4",
+                  "9:16"
+                ]
               },
               "hint": {
                 "type": "string"
               }
             },
-            "required": ["key", "label", "min", "max", "ratio", "hint"],
+            "required": [
+              "key",
+              "label",
+              "min",
+              "max",
+              "ratio",
+              "hint"
+            ],
             "additionalProperties": false
           }
         },
@@ -447,7 +494,12 @@
         },
         "status": {
           "type": "string",
-          "enum": ["draft", "review", "approved", "archived"]
+          "enum": [
+            "draft",
+            "review",
+            "approved",
+            "archived"
+          ]
         },
         "primary_sections": {
           "type": "integer",
@@ -529,7 +581,12 @@
         },
         "status": {
           "type": "string",
-          "enum": ["draft", "review", "active", "archived"]
+          "enum": [
+            "draft",
+            "review",
+            "active",
+            "archived"
+          ]
         }
       },
       "required": [

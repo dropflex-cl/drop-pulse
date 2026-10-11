@@ -160,7 +160,7 @@ export function landingOutputs<E extends z.ZodType>(error: E) {
               z.strictObject({
                 component: z.string(),
                 id: uuid.nullable(),
-                status: z.enum(["generated", "approved"]),
+                status: z.enum(["generated", "approved", "rejected"]),
               }),
             )
             .min(1)

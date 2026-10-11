@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Field, notify, notifyUndo, StatusBadge } from "@/components/df";
+import { Button, Field, notify, StatusBadge } from "@/components/df";
 import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import { BADGE_CHARS, LABEL_CHARS, SUPPORT_CHARS, labelsStale } from "@/lib/pricing/labels";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ export function PackLabelsBar({
     try {
       const { packLabels } = await productsApi.decidePackLabels(productId, action, expectedEtag);
       onChange(packLabels ?? undefined);
-      if (action === "approve") notifyUndo("Etiquetas aceptadas", () => decide("reopen", packLabels?.etag));
+      if (action === "approve") notify("Etiquetas actualizadas");
     } catch (e) {
       notify(errorText(e, "No pudimos guardar tu decisión. Intenta de nuevo."));
     } finally {
@@ -65,19 +65,19 @@ export function PackLabelsBar({
       </div>
       {stale ? (
         <p role="status" className="text-caption text-warning">
-          Cambió el precio o el respaldo de estas etiquetas. Revísalas antes de aceptarlas.
+          Cambió el precio o el respaldo de estas etiquetas. Actualízalas para usar el precio vigente.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {!approved || stale ? (
           <Button size="sm" icon="check" loading={busy === "approve"} disabled={busy !== null} onClick={() => decide("approve")}>
-            Aceptar etiquetas
+            Actualizar etiquetas
           </Button>
         ) : null}
         <Button size="sm" variant="ghost" icon="edit" disabled={busy !== null} onClick={onEdit}>
           Editar
         </Button>
-        <p className="text-caption text-muted-foreground">Pide otras etiquetas en el chat y guárdalas desde el MCP.</p>
+        <p className="text-caption text-muted-foreground">Puedes ajustar las etiquetas aquí o preparar otras desde el chat.</p>
       </div>
     </div>
   );
@@ -136,7 +136,7 @@ export function PackLabelsEditor({
     try {
       const { packLabels } = await productsApi.editPackLabels(productId, draft, true, editingEtag);
       onSaved(packLabels ?? undefined);
-      notify("Etiquetas guardadas y aceptadas");
+      notify("Etiquetas guardadas");
     } catch (e) {
       setError(errorText(e, "No pudimos guardar las etiquetas. Intenta de nuevo."));
     } finally {

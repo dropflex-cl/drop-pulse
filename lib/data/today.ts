@@ -58,91 +58,17 @@ const campaignEntries = cache(async (uid: string): Promise<AttentionEntry[]> => 
   return out;
 });
 
-function productEntries(products: Product[]): AttentionEntry[] {
-  const out: AttentionEntry[] = [];
-  for (const p of products) {
-    const base = p.stages.find((s) => s.key === "importado");
-    const href = productHref(p.id, "importado");
-    if (base?.state === "current") {
-      out.push({
-        id: `optimize-${p.id}`,
-        group: "revisar",
-        kind: "stuck",
-        title: "Falta la información base",
-        product: `${p.name} · ${base.desc?.toLowerCase() ?? "identifica el producto y guarda el precio"}`,
-        actions: [{ label: "Empezar", href, iconEnd: "chevron-right" }],
-      });
-    }
-
-    // Etapa Estrategia: se habilita con los datos del producto y el precio.
-    const angles = p.stages.find((s) => s.key === "angulos");
-    const anglesHref = productHref(p.id, "angulos");
-    if (angles?.state === "error") {
-      out.push({
-        id: `angles-error-${p.id}`,
-        group: "primero",
-        kind: "error",
-        title: "No se pudo generar la estrategia",
-        product: p.name,
-        detail: angles.desc,
-        actions: [{ label: "Reintentar", href: anglesHref, variant: "primary" }],
-      });
-    } else if (p.anglesPhase === "choose") {
-      out.push({
-        id: `angles-review-${p.id}`,
-        group: "revisar",
-        kind: "review",
-        title: "Tu estrategia está lista: elige los ángulos",
-        product: p.name,
-        detail: angles?.desc,
-        actions: [{ label: "Elegir ángulos", href: anglesHref, iconEnd: "chevron-right" }],
-      });
-    } else if (p.anglesPhase === "new") {
-      out.push({
-        id: `angles-${p.id}`,
-        group: "revisar",
-        kind: "stuck",
-        title: "Falta generar la estrategia de venta",
-        product: `${p.name} · información base lista`,
-        actions: [{ label: "Empezar", href: anglesHref, iconEnd: "chevron-right" }],
-      });
-    }
-
-    // Página del producto (etapa Textos): se habilita con los 2 desarrollos aprobados.
-    const copy = p.stages.find((s) => s.key === "textos");
-    const copyHref = productHref(p.id, "textos");
-    if (p.copyPhase === "failed") {
-      out.push({
-        id: `copy-error-${p.id}`,
-        group: "primero",
-        kind: "error",
-        title: "No se pudieron escribir los textos",
-        product: p.name,
-        detail: copy?.desc,
-        actions: [{ label: "Reintentar", href: copyHref, variant: "primary" }],
-      });
-    } else if (p.copyPhase === "review") {
-      out.push({
-        id: `copy-review-${p.id}`,
-        group: "revisar",
-        kind: "review",
-        title: "La página del producto está lista para revisar",
-        product: p.name,
-        detail: copy?.desc,
-        actions: [{ label: "Revisar ahora", href: copyHref, iconEnd: "chevron-right" }],
-      });
-    } else if (p.copyPhase === "new") {
-      out.push({
-        id: `copy-${p.id}`,
-        group: "revisar",
-        kind: "stuck",
-        title: "Falta escribir la página del producto",
-        product: `${p.name} · ángulos aprobados`,
-        actions: [{ label: "Empezar", href: copyHref, iconEnd: "chevron-right" }],
-      });
-    }
-  }
-  return out;
+export function productEntries(products: Product[]): AttentionEntry[] {
+  return products.flatMap<AttentionEntry>(p => {
+    if (p.contentState === "error") return [{ id: `publish-error-${p.id}`, group: "primero" as const, kind: "error" as const,
+      title: "No se pudo publicar", product: p.name, detail: p.reason,
+      actions: [{ label: "Ver publicación", href: productHref(p.id, "publicar"), variant: "primary" as const }] }];
+    if (p.contentState === "updated" || p.contentState === "ready") return [{ id: `publish-${p.id}`, group: "revisar" as const, kind: "stuck" as const,
+      title: p.contentState === "updated" ? "Hay cambios sin publicar" : "Listo para publicar", product: p.name,
+      detail: p.contentState === "updated" ? p.publicationChanges?.join(" · ") : "La página guardada cumple los requisitos de publicación.",
+      actions: [{ label: "Ver producto", href: productHref(p.id), iconEnd: "chevron-right" as const }] }];
+    return [];
+  });
 }
 
 /** Decisiones pendientes, ya ordenadas por impacto: errores y dinero primero, revisión, lo detenido. */

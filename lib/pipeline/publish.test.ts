@@ -30,7 +30,7 @@ vi.mock("@/lib/copy/store", () => ({
   currentContent: (r: { content: unknown }) => r.content,
   activeComponents: vi.fn(async () => new Map([["product", [{
     component: "listing", status: "approved", enabled: true, images: [],
-    content: { title: "Ficha aprobada", short_name: "Producto", short_description: "Descripción", offer_line: "Paga al recibir", seo_title: "Producto", seo_description: "Descripción" },
+    content: { title: "Ficha aprobada", short_name: "Producto", short_description: "Mantén los útiles juntos y encuentra lo que necesitas en tu escritorio.", offer_line: "Paga al recibir", seo_title: "Organizador para escritorio", seo_description: "Organiza los útiles en tu escritorio y encuentra cada cosa en su lugar. Paga al recibir en casa." },
   }]]])),
 }));
 vi.mock("@/lib/page-images/store", () => ({
@@ -57,6 +57,7 @@ import { assertCurrent, makeVisualRecord, type VisualState } from "@/lib/product
 import { canonicalHash } from "@/lib/product-intelligence/concurrency";
 import { publishState } from "@/lib/data/publish";
 import { preparePublish, startPublish } from "./publish";
+import { pageImageRows } from "@/lib/page-images/store";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -133,5 +134,14 @@ describe("Publicar con imágenes que necesitan revisión", () => {
     const prepared = await preparePublish("owner", "product");
     expect(prepared.missing).toEqual([]);
     expect(prepared.input.gallery).toHaveLength(5);
+  });
+
+  it("no valida usos visuales de secciones omitidas aunque compartan archivo con la portada", async () => {
+    const gallery = await pageImageRows("owner", ["product"]);
+    vi.mocked(pageImageRows).mockResolvedValueOnce([...gallery, { ...gallery[0], id: "unused-image", slot: "visual-unused", visual_binding_id: "unused-binding" }]);
+    const prepared = await preparePublish("owner", "product");
+    expect(prepared.missing).toEqual([]);
+    expect(mocks.visual).toHaveBeenCalledWith("owner", "product", gallery.map(p => p.visual_binding_id));
+    expect(prepared.images).toHaveLength(5);
   });
 });

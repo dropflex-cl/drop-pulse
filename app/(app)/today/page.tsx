@@ -89,7 +89,7 @@ export default async function HoyPage() {
           </div>
         </Suspense>
         <div className="flex gap-2 px-4 lg:px-0 md:max-lg:px-0">
-          <Summary value={summary.pending} label="Por decidir" dot="bg-warning" />
+          <Summary value={summary.pending} label="Por atender" dot="bg-warning" />
           <Summary value={summary.errors} label="Con error" dot="bg-destructive" />
           <Summary value={summary.published} label="Publicados" dot="bg-success" />
         </div>
@@ -101,7 +101,7 @@ export default async function HoyPage() {
 
         {queue.length === 0 ? (
           <EmptyState icon={<Icon name="check" />} title="No tienes nada por decidir">
-            Todo avanza solo. Te avisamos aquí cuando algo necesite tu decisión.
+            Abre tus productos para ver el contenido guardado. Aquí aparecerán cambios por publicar y decisiones de tus campañas.
           </EmptyState>
         ) : (
           <div className="md:grid md:grid-cols-2 md:gap-x-4 lg:block">
@@ -120,7 +120,7 @@ export default async function HoyPage() {
             {review.length ? (
               <section aria-labelledby="revisar">
                 <SectionTitle className="md:max-lg:px-0">
-                  <span id="revisar">Contenido por revisar</span>
+                  <span id="revisar">Puedes continuar</span>
                 </SectionTitle>
                 <Group className="md:max-lg:mx-0">
                   {review.map((e) => (

@@ -175,7 +175,7 @@ describe("metafields", () => {
     };
     expect(state()).toEqual({ schema_version: "1.0", disabled_components: [] });
     expect(state(["review-wall", "inventory", "review-wall", "pain-block", "unknown"])).toEqual({
-      schema_version: "1.0", disabled_components: ["pain-block"],
+      schema_version: "1.0", disabled_components: ["inventory", "pain-block", "review-wall"],
     });
   });
 

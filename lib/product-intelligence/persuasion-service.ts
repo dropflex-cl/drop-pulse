@@ -59,7 +59,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
       p_dry_run: "dry_run" in input ? input.dry_run : false }, signal);
     if (writing && raw && typeof raw === "object" && "replay" in raw) return parseToolOutput(tool, raw.replay);
     const state = persuasionReadSchema.parse(raw);
-    if (!state.enabled) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
+    if (!state.enabled && !state.experiences.some(e => e.payload.status === "active")) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
     const currentRead = parseKnowledgeRead(state.knowledge, principal, input.product_id);
     const read = await shopifyStrategyRead(repository, currentRead, principal, input.product_id, identity, signal);
     const base = { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID() };
@@ -84,7 +84,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
         catalog: componentCapabilityCatalog(state.landing.review_count), plans: plans.map(planSummary),
         experiences: state.experiences.filter(e => e.payload.strategy_id === query.strategy_id && e.payload.angle_id === query.angle_id).map(experienceSummary),
         planning_stamp: state.planning_stamp, limitations: ["Las métricas actuales se agregan por campaña; no atribuyen resultados a una arquitectura.",
-          "Estrellas, badges de políticas, packs, stock, entrega, reseñas y medios de demostración se activan por defecto al tener datos reales. No requieren un slot narrativo; las desactivaciones explícitas se conservan.",
+          "Los apoyos comerciales respetan los componentes guardados, el orden y la visibilidad de cada experiencia. Usa datos reales y conserva las desactivaciones explícitas.",
           "UGC generado no es una reseña ni prueba de experiencia real.", "Consulta get_landing_content por componente para escribir su contrato real."] } });
       const id = parseToolInput("get_angle_persuasion_plan", command.input).plan_id;
       const current = id ? plans.find(p => p.id === id) : plans[0];
@@ -114,7 +114,8 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
       const plan = state.plans.find(p => p.id === request.experience.persuasion_plan_id);
       if (!plan) throw new ProductIntelligenceError("INVALID_REFERENCE", "El plan no pertenece a este producto.");
       issues = validateLandingExperience(request.experience, plan.payload, plan.revision,
-        persuasionValidationContext(state, principal, input.product_id, plan.payload.strategy_id, read));
+        persuasionValidationContext(state, principal, input.product_id, plan.payload.strategy_id, read),
+        principal.actorKind === "merchant" && Boolean(state.experiences.find(e => e.id === id)));
       blockIssues(issues, ["review", "active"].includes(request.experience.status));
       const old = state.experiences.find(e => e.id === id);
       if (principal.actorKind !== "merchant") {

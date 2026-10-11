@@ -1,17 +1,19 @@
 {%- doc -%}
-  Nota generada entre 4,4 y 5,0, persistida por producto en el navegador.
+  Valoración real guardada por la tienda. Sin datos, no se muestra.
   @param {object} product
 {%- enddoc -%}
 {%- liquid
   assign google = shop.metafields.dropflex.google_rating.value
+  assign google_score = google.rating | plus: 0
   assign google_count = google.count | default: 0 | plus: 0
   assign google_url_prefix = google.url | slice: 0, 8
 -%}
-<div class="df df-google-rating" data-df-google-rating data-product-id="{{ product.id }}" data-df-fixed aria-label="Reseñas de la tienda en Google">
+{%- if google_score > 0 and google_score <= 5 and google_count > 0 -%}
+<div class="df df-google-rating" data-df-google-rating data-product-id="{{ product.id }}" aria-label="Reseñas de la tienda en Google">
   {{ 'df-google-logo.svg' | inline_asset_content }}
-  {% render 'df-stars', rating: 4.4, size: '1rem' %}
+  {% render 'df-stars', rating: google_score, size: '1rem' %}
   {%- capture google_label -%}
-    Calificado <span data-df-google-score>4,4</span>/5 en Google
+    Calificado <span data-df-google-score>{{ google_score | replace: '.', ',' }}</span>/5 en Google
     {%- if google_count > 0 %} <span class="df-google-rating__count">({{ google_count }} reseñas)</span>{% endif -%}
   {%- endcapture -%}
   {%- if google_url_prefix == 'https://' -%}
@@ -20,4 +22,4 @@
     <span>{{ google_label }}</span>
   {%- endif -%}
 </div>
-<script src="{{ 'df-google-rating.js' | asset_url }}" defer></script>
+{%- endif -%}

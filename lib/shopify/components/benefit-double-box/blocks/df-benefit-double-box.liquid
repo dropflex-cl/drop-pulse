@@ -1,6 +1,15 @@
-{%- if request.design_mode -%}
-<p class="df df-placeholder" {{ block.shopify_attributes }}>Las tarjetas de envío y regalo siempre aparecen sobre el botón de compra. Asocia el PDF y su portada en los metafields del producto.</p>
-{%- endif -%}
+<div data-df-pdp-component="benefit-double-box">
+{%- assign df_product = closest.product | default: product -%}
+{%- assign df_variants = df_product.metafields.dropflex.benefit_double_box.value -%}
+{%- if df_variants.first.key != blank -%}
+ <df-landing-content data-df-component="df-benefit-double-box">
+  {%- assign df_default = df_variants | where: 'key', 'default' | first -%}
+  <div data-df-active>{% render 'df-benefit-double-box-content', product: df_product, section: section, block: block, content: df_default.content, df_variant: df_default %}</div>
+  {%- for df_variant in df_variants -%}<template data-df-variant="{{ df_variant.key | escape }}" data-angle="{{ df_variant.angle_id | escape }}" data-hook="{{ df_variant.hook_id | escape }}">{% render 'df-benefit-double-box-content', product: df_product, section: section, block: block, content: df_variant.content, df_variant: df_variant %}</template>{%- endfor -%}
+  <script>window.DropFlexLanding?.mount(document.currentScript.parentElement);</script>
+ </df-landing-content>
+{%- else -%}{% render 'df-benefit-double-box-content', product: df_product, section: section, block: block, content: df_variants %}{%- endif -%}
+</div>
 
 {% stylesheet %}
   .df-benefit-double-box {

@@ -231,7 +231,7 @@ export function PricingSection({
         />
       </div>
       {plan && !labels ? (
-        <p className="mt-3 text-caption text-muted-foreground">Escribe las etiquetas de los packs en el chat y guárdalas desde el MCP. Después podrás revisarlas aquí.</p>
+        <p className="mt-3 text-caption text-muted-foreground">Puedes preparar nombres para tus packs desde el chat. Los precios ya están guardados.</p>
       ) : null}
       {plan && labels && !editingLabels ? (
         <PackLabelsBar productId={productId} proposal={labels} packs={plan.packs} onChange={setLabels} onEdit={() => setEditingLabels(true)} />

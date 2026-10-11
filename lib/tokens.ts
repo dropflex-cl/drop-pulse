@@ -20,3 +20,7 @@ export function colorToken(name: string, theme: ThemeId): string {
   const alias = value.match(/^\{(.+)\}$/);
   return alias ? colorToken(alias[1], theme) : value;
 }
+
+/** Valores numéricos para interacciones que necesitan unidades en JavaScript. */
+export const imageSelectionDuration = Number.parseInt(tokens.duration.tokens.find(t => t.name === "duration-base")!.value);
+export const interactionTolerance = Number.parseInt(tokens.spacing.tokens.find(t => t.name === "space-1")!.value);

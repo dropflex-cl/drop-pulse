@@ -573,7 +573,7 @@ async function coverFrom(a: PageImageRow) {
 }
 
 /** Elegir una foto de Información base para un espacio: se crea su opción (una por espacio) y se elige. */
-export async function chooseReference(userId: string, productId: string, slot: string, referenceId: string): Promise<void> {
+export async function chooseReference(userId: string, productId: string, slot: string, referenceId: string, select = true): Promise<void> {
   await assertSlot(userId, productId, slot);
   if (slot === GIFS) throw new ProductApiError("En GIFs van animaciones: sube un GIF.", 400, "slot");
   const refs = await listImageRows(userId, [productId]);
@@ -592,7 +592,7 @@ export async function chooseReference(userId: string, productId: string, slot: s
     fail("Agregar la foto", error);
     row = data as PageImageRow;
   }
-  await choose(row);
+  if (select) await choose(row);
 }
 
 /** El orden de la galería o de los GIF: `ids` son las elegidas, de la primera a la última. */

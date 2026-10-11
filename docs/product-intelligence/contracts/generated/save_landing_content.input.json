@@ -39,7 +39,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -68,7 +71,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -97,7 +103,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -126,7 +135,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -155,7 +167,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -184,7 +199,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -213,7 +231,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -242,7 +263,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -271,7 +295,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -300,7 +327,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -329,7 +359,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -358,7 +391,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -387,7 +423,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -416,7 +455,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -445,7 +487,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -474,7 +519,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -503,7 +551,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -532,7 +583,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -561,7 +615,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -590,7 +647,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -619,7 +679,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -648,7 +711,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -677,7 +743,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -706,7 +775,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -735,7 +807,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -764,7 +839,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         },
         {
@@ -793,7 +871,10 @@
               "$ref": "#/$defs/__schema14"
             }
           },
-          "required": ["component", "content"],
+          "required": [
+            "component",
+            "content"
+          ],
           "additionalProperties": false
         }
       ]
@@ -907,7 +988,10 @@
           "$ref": "#/$defs/__schema7"
         }
       },
-      "required": ["icon", "text"]
+      "required": [
+        "icon",
+        "text"
+      ]
     },
     "__schema7": {
       "type": "string"
@@ -958,7 +1042,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema12": {
@@ -974,7 +1063,10 @@
         },
         "source": {
           "type": "string",
-          "enum": ["reference", "page_image"]
+          "enum": [
+            "reference",
+            "page_image"
+          ]
         },
         "id": {
           "type": "string",
@@ -982,7 +1074,11 @@
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
         }
       },
-      "required": ["slot", "source", "id"],
+      "required": [
+        "slot",
+        "source",
+        "id"
+      ],
       "additionalProperties": false
     },
     "__schema14": {
@@ -1092,7 +1188,9 @@
               "description": "Plantilla del texto junto a las estrellas: [{rating} opcional] + {count} + sustantivo concreto de comprador. Ej.: «{rating} · {count} reseñas» o «{count} opiniones de compradores». Sin adjetivos ni superlativos."
             }
           },
-          "required": ["label"]
+          "required": [
+            "label"
+          ]
         }
       ]
     },
@@ -1104,7 +1202,9 @@
           "const": "empty"
         }
       },
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "additionalProperties": false
     },
     "__schema20": {
@@ -1144,7 +1244,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema21": {
@@ -1165,7 +1270,9 @@
               "description": "Un ítem por objeción, en orden: pago contra entrega, envío, cambios o garantía, origen local, soporte."
             }
           },
-          "required": ["items"]
+          "required": [
+            "items"
+          ]
         }
       ]
     },
@@ -1234,7 +1341,11 @@
           "description": "Política real que afirma el texto; la tienda oculta el ítem si no está activa. none = no depende de una política (origen, atención)."
         }
       },
-      "required": ["icon", "text", "policy"]
+      "required": [
+        "icon",
+        "text",
+        "policy"
+      ]
     },
     "__schema23": {
       "type": "object",
@@ -1273,7 +1384,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema24": {
@@ -1301,7 +1417,11 @@
               "$ref": "#/$defs/__schema28"
             }
           },
-          "required": ["available_text", "limited_text", "sold_out_text"]
+          "required": [
+            "available_text",
+            "limited_text",
+            "sold_out_text"
+          ]
         }
       ]
     },
@@ -1354,7 +1474,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema30": {
@@ -1462,7 +1587,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema39": {
@@ -1483,7 +1613,9 @@
               "description": "Exactamente 2 tarjetas: la 1 es el pago (en pago contra entrega, siempre pagar al recibir); la 2 es cambio o garantía, o despacho y seguimiento si no hay política de cambio."
             }
           },
-          "required": ["cards"]
+          "required": [
+            "cards"
+          ]
         }
       ]
     },
@@ -1557,7 +1689,12 @@
           "description": "Política real que afirma la tarjeta; la tienda la oculta si no está activa."
         }
       },
-      "required": ["icon", "title", "body", "policy"]
+      "required": [
+        "icon",
+        "title",
+        "body",
+        "policy"
+      ]
     },
     "__schema41": {
       "type": "object",
@@ -1596,7 +1733,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema42": {
@@ -1617,7 +1759,9 @@
               "description": "Exactamente 5 textos, el MÁS FUERTE PRIMERO: el comerciante sube de 1 a 5 GIF y el GIF N usa el texto N, así que con 2 GIF solo se ven los 2 primeros. Cada uno muestra un momento o beneficio distinto del producto funcionando."
             }
           },
-          "required": ["gifs"]
+          "required": [
+            "gifs"
+          ]
         }
       ]
     },
@@ -1634,7 +1778,9 @@
           "$ref": "#/$defs/__schema47"
         }
       },
-      "required": ["heading"]
+      "required": [
+        "heading"
+      ]
     },
     "__schema44": {
       "type": "string",
@@ -1716,7 +1862,10 @@
           "description": "2 a 6 palabras: el beneficio primero, el mecanismo después."
         }
       },
-      "required": ["icon", "text"]
+      "required": [
+        "icon",
+        "text"
+      ]
     },
     "__schema50": {
       "type": "object",
@@ -1755,7 +1904,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema51": {
@@ -1780,7 +1934,9 @@
               "description": "De 2 a 8 reseñas reales, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."
             }
           },
-          "required": ["items"]
+          "required": [
+            "items"
+          ]
         }
       ]
     },
@@ -1805,11 +1961,19 @@
         },
         "excerpt_mode": {
           "type": "string",
-          "enum": ["verbatim", "condensed", "translated"],
+          "enum": [
+            "verbatim",
+            "condensed",
+            "translated"
+          ],
           "description": "verbatim = copia exacta; condensed = acortada sin cambiar el sentido; translated = traducida (y quizá acortada) al español neutro."
         }
       },
-      "required": ["review_id", "excerpt", "excerpt_mode"]
+      "required": [
+        "review_id",
+        "excerpt",
+        "excerpt_mode"
+      ]
     },
     "__schema54": {
       "type": "object",
@@ -1848,7 +2012,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema55": {
@@ -1942,7 +2111,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema62": {
@@ -1967,7 +2141,9 @@
               "description": "3 a 6 ítems de largo parecido. Orden: pago al recibir, envío (plazo real), cambio o garantía, soporte, atributo del producto."
             }
           },
-          "required": ["items"]
+          "required": [
+            "items"
+          ]
         }
       ]
     },
@@ -1988,7 +2164,10 @@
           "$ref": "#/$defs/__schema67"
         }
       },
-      "required": ["icon", "text"]
+      "required": [
+        "icon",
+        "text"
+      ]
     },
     "__schema65": {
       "type": "string",
@@ -2091,7 +2270,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema70": {
@@ -2112,7 +2296,11 @@
               "$ref": "#/$defs/__schema77"
             }
           },
-          "required": ["heading", "moments", "bridge"]
+          "required": [
+            "heading",
+            "moments",
+            "bridge"
+          ]
         }
       ]
     },
@@ -2150,7 +2338,11 @@
           "$ref": "#/$defs/__schema76"
         }
       },
-      "required": ["slot", "title", "text"]
+      "required": [
+        "slot",
+        "title",
+        "text"
+      ]
     },
     "__schema75": {
       "type": "string"
@@ -2202,7 +2394,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema80": {
@@ -2227,7 +2424,10 @@
               "description": "4 o 6 beneficios, cada uno de un eje distinto: función principal, comodidad, material, facilidad de uso, versatilidad, cuidado o durabilidad."
             }
           },
-          "required": ["heading", "benefits"]
+          "required": [
+            "heading",
+            "benefits"
+          ]
         }
       ]
     },
@@ -2289,7 +2489,11 @@
           "$ref": "#/$defs/__schema84"
         }
       },
-      "required": ["icon", "title", "body"]
+      "required": [
+        "icon",
+        "title",
+        "body"
+      ]
     },
     "__schema83": {
       "type": "string"
@@ -2334,7 +2538,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema86": {
@@ -2357,7 +2566,10 @@
               }
             }
           },
-          "required": ["heading", "items"]
+          "required": [
+            "heading",
+            "items"
+          ]
         }
       ]
     },
@@ -2383,7 +2595,11 @@
           "$ref": "#/$defs/__schema90"
         }
       },
-      "required": ["title", "body", "fact_id"]
+      "required": [
+        "title",
+        "body",
+        "fact_id"
+      ]
     },
     "__schema89": {
       "type": "string",
@@ -2434,7 +2650,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema92": {
@@ -2457,7 +2678,10 @@
               }
             }
           },
-          "required": ["heading", "cases"]
+          "required": [
+            "heading",
+            "cases"
+          ]
         }
       ]
     },
@@ -2498,7 +2722,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema94": {
@@ -2578,7 +2807,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema96": {
@@ -2680,7 +2914,10 @@
           "description": "Qué significa la cifra, sin el número. Ej.: «días para cambiarlo»."
         }
       },
-      "required": ["fact", "label"]
+      "required": [
+        "fact",
+        "label"
+      ]
     },
     "__schema101": {
       "type": "object",
@@ -2719,7 +2956,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema102": {
@@ -2745,7 +2987,11 @@
               "$ref": "#/$defs/__schema89"
             }
           },
-          "required": ["heading", "stages", "footnote"]
+          "required": [
+            "heading",
+            "stages",
+            "footnote"
+          ]
         }
       ]
     },
@@ -2771,7 +3017,12 @@
           "$ref": "#/$defs/__schema90"
         }
       },
-      "required": ["label", "title", "body", "fact_id"]
+      "required": [
+        "label",
+        "title",
+        "body",
+        "fact_id"
+      ]
     },
     "__schema104": {
       "type": "object",
@@ -2810,7 +3061,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema105": {
@@ -2833,7 +3089,10 @@
               }
             }
           },
-          "required": ["heading", "steps"]
+          "required": [
+            "heading",
+            "steps"
+          ]
         }
       ]
     },
@@ -2874,7 +3133,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema107": {
@@ -2897,7 +3161,10 @@
               }
             }
           },
-          "required": ["heading", "items"]
+          "required": [
+            "heading",
+            "items"
+          ]
         }
       ]
     },
@@ -2938,7 +3205,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema109": {
@@ -2956,7 +3228,9 @@
               "$ref": "#/$defs/__schema112"
             }
           },
-          "required": ["stories"]
+          "required": [
+            "stories"
+          ]
         }
       ]
     },
@@ -2998,7 +3272,10 @@
           "$ref": "#/$defs/__schema117"
         }
       },
-      "required": ["title", "caption_line_1"]
+      "required": [
+        "title",
+        "caption_line_1"
+      ]
     },
     "__schema114": {
       "type": "string"
@@ -3051,7 +3328,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema119": {
@@ -3074,7 +3356,10 @@
               }
             }
           },
-          "required": ["heading", "stories"]
+          "required": [
+            "heading",
+            "stories"
+          ]
         }
       ]
     },
@@ -3094,7 +3379,10 @@
           "pattern": "^[^<>]*$"
         }
       },
-      "required": ["title", "review_id"]
+      "required": [
+        "title",
+        "review_id"
+      ]
     },
     "__schema121": {
       "type": "object",
@@ -3133,7 +3421,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema122": {
@@ -3160,7 +3453,10 @@
               "description": "De 4 a 12 reseñas reales, en el orden del muro (la primera arriba a la izquierda). Primero las que tienen fotos; un número par (2 por fila en el teléfono)."
             }
           },
-          "required": ["heading", "items"]
+          "required": [
+            "heading",
+            "items"
+          ]
         }
       ]
     },
@@ -3173,7 +3469,9 @@
           "description": "Id de una reseña APROBADA de la lista recibida. Nunca inventado."
         }
       },
-      "required": ["review_id"]
+      "required": [
+        "review_id"
+      ]
     },
     "__schema124": {
       "type": "object",
@@ -3212,7 +3510,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema125": {
@@ -3248,7 +3551,13 @@
               "$ref": "#/$defs/__schema90"
             }
           },
-          "required": ["heading", "name", "credential", "quote", "fact_id"]
+          "required": [
+            "heading",
+            "name",
+            "credential",
+            "quote",
+            "fact_id"
+          ]
         }
       ]
     },
@@ -3289,7 +3598,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema127": {
@@ -3316,7 +3630,12 @@
               "$ref": "#/$defs/__schema139"
             }
           },
-          "required": ["heading", "us_label", "other_labels", "rows"]
+          "required": [
+            "heading",
+            "us_label",
+            "other_labels",
+            "rows"
+          ]
         }
       ]
     },
@@ -3375,11 +3694,20 @@
         },
         "basis": {
           "type": "string",
-          "enum": ["spec", "policy", "service"],
+          "enum": [
+            "spec",
+            "policy",
+            "service"
+          ],
           "description": "Dato real que sostiene nuestro valor: spec (ficha), policy (políticas), service (atención)."
         }
       },
-      "required": ["feature", "us", "others", "basis"]
+      "required": [
+        "feature",
+        "us",
+        "others",
+        "basis"
+      ]
     },
     "__schema135": {
       "type": "string"
@@ -3397,7 +3725,11 @@
     },
     "__schema137": {
       "type": "string",
-      "enum": ["yes", "no", "partial"]
+      "enum": [
+        "yes",
+        "no",
+        "partial"
+      ]
     },
     "__schema138": {
       "type": "object",
@@ -3406,7 +3738,9 @@
           "type": "string"
         }
       },
-      "required": ["text"]
+      "required": [
+        "text"
+      ]
     },
     "__schema139": {
       "description": "A qué se compara, en una frase: «Comparación referencial con correctores genéricos sin tallas».",
@@ -3452,7 +3786,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema142": {
@@ -3470,7 +3809,10 @@
               "$ref": "#/$defs/__schema89"
             }
           },
-          "required": ["heading", "body"]
+          "required": [
+            "heading",
+            "body"
+          ]
         }
       ]
     },
@@ -3511,7 +3853,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema144": {
@@ -3544,7 +3891,10 @@
               "$ref": "#/$defs/__schema158"
             }
           },
-          "required": ["heading", "items"]
+          "required": [
+            "heading",
+            "items"
+          ]
         }
       ]
     },
@@ -3636,7 +3986,11 @@
           "description": "Tema, para cobertura y orden. No se muestra. duracion = «¿Cuánto me dura?»."
         }
       },
-      "required": ["question", "answer", "topic"]
+      "required": [
+        "question",
+        "answer",
+        "topic"
+      ]
     },
     "__schema160": {
       "type": "string"
@@ -3681,7 +4035,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     },
     "__schema163": {
@@ -3705,7 +4064,11 @@
               "pattern": "^[^<>]*$"
             }
           },
-          "required": ["heading", "body", "cta_label"]
+          "required": [
+            "heading",
+            "body",
+            "cta_label"
+          ]
         }
       ]
     },
@@ -3746,7 +4109,12 @@
           }
         }
       },
-      "required": ["key", "angle_id", "hook_id", "content"],
+      "required": [
+        "key",
+        "angle_id",
+        "hook_id",
+        "content"
+      ],
       "additionalProperties": false
     }
   },
@@ -3758,7 +4126,11 @@
     },
     "schema_version": {
       "type": "string",
-      "enum": ["1.0", "1.1", "1.2"]
+      "enum": [
+        "1.0",
+        "1.1",
+        "1.2"
+      ]
     },
     "expected_revision": {
       "type": "integer",

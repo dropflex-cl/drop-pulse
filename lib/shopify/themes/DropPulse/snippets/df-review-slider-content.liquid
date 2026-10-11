@@ -17,7 +17,7 @@
 
   Contenido: metafield `dropflex.review_slider` (json)
     { heading?, items: [{ review_id, excerpt, excerpt_mode: verbatim|condensed|translated }] }
-  → si falta, el bloque elige las primeras reseñas aprobadas con la calificación mínima.
+  → solo las reseñas guardadas en este contenido y que siguen disponibles.
   Con menos reseñas que el mínimo del bloque (review_summary.count) no se dibuja nada.
 {%- enddoc -%}
 {%- liquid
@@ -32,8 +32,13 @@
 
   assign count = summary.count | default: reviews.size | default: 0 | plus: 0
 
-  assign total = reviews.size | default: 0
-  assign last_group = total | minus: 1 | divided_by: 50
+  assign total = 0
+  for pick in content.items
+    assign matched = reviews | where: 'id', pick.review_id | first
+    if matched != blank
+      assign total = total | plus: 1
+    endif
+  endfor
 
   assign show = true
   if product == blank or total == 0
@@ -93,14 +98,16 @@
       aria-label="Reseñas de compradores"
     >
       <div class="df-slider__track" data-df-track data-df-review-order>
-        {%- for group in (0..last_group) -%}
-        {%- assign group_offset = group | times: 50 -%}
-        {%- for review in reviews limit: 50 offset: group_offset -%}
+        {%- assign shown = 0 -%}
+        {%- for pick in content.items -%}
+        {%- assign review = reviews | where: 'id', pick.review_id | first -%}
+        {%- if review != blank -%}
+        {%- assign shown = shown | plus: 1 -%}
           {%- liquid
             assign author = review.author | default: 'Comprador'
             assign body = review.body
-            assign excerpt = body
-            assign mode = 'verbatim'
+            assign excerpt = pick.excerpt | default: body
+            assign mode = pick.excerpt_mode | default: 'verbatim'
             assign r_rating = review.rating | default: 5 | plus: 0
             assign r_from = review.image_from | plus: 0
             assign r_photos = review.image_count | plus: 0
@@ -114,7 +121,7 @@
             class="df-review-slider__card" data-review-id="{{ review.id | escape }}"
             role="group"
             aria-roledescription="reseña"
-            aria-label="{{ forloop.index | plus: group_offset }} de {{ total }}"
+            aria-label="{{ shown }} de {{ total }}"
           >
             {%- if s.style != 'compact' -%}
               <div class="df-review-slider__avatar">
@@ -156,7 +163,7 @@
               {%- endif -%}
             </div>
           </div>
-        {%- endfor -%}
+        {%- endif -%}
         {%- endfor -%}
       </div>
       {%- if total > 1 -%}

@@ -144,7 +144,10 @@
         },
         "source": {
           "type": "string",
-          "enum": ["reference", "page_image"]
+          "enum": [
+            "reference",
+            "page_image"
+          ]
         },
         "id": {
           "type": "string",
@@ -152,7 +155,11 @@
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
         }
       },
-      "required": ["slot", "source", "id"],
+      "required": [
+        "slot",
+        "source",
+        "id"
+      ],
       "additionalProperties": false
     },
     "__schema5": {
@@ -160,14 +167,24 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["reference", "page_image", "ugc"]
+          "enum": [
+            "reference",
+            "page_image",
+            "ugc"
+          ]
         },
         "id": {
           "$ref": "#/$defs/__schema0"
         },
         "role": {
           "type": "string",
-          "enum": ["hero", "proof", "demo", "explanation", "comparison"]
+          "enum": [
+            "hero",
+            "proof",
+            "demo",
+            "explanation",
+            "comparison"
+          ]
         },
         "slot": {
           "$ref": "#/$defs/__schema3"
@@ -176,12 +193,22 @@
           "type": "boolean"
         }
       },
-      "required": ["source", "id", "role"],
+      "required": [
+        "source",
+        "id",
+        "role"
+      ],
       "additionalProperties": false
     },
     "__schema6": {
       "type": "string",
-      "enum": ["order", "enabled", "component", "content", "assets"]
+      "enum": [
+        "order",
+        "enabled",
+        "component",
+        "content",
+        "assets"
+      ]
     }
   },
   "properties": {
@@ -271,7 +298,12 @@
         },
         "status": {
           "type": "string",
-          "enum": ["draft", "review", "active", "archived"]
+          "enum": [
+            "draft",
+            "review",
+            "active",
+            "archived"
+          ]
         },
         "sections": {
           "minItems": 1,

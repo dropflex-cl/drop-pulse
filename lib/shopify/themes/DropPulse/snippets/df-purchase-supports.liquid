@@ -20,41 +20,10 @@
         endif
         assign guide_cover = product.metafields.dropflex.gift_cover.value
       -%}
-      <div data-df-pdp-component="benefit-double-box" data-df-fixed>
-      <p class="df-purchase-supports__heading">Con tu compra</p>
-      <ul class="df-purchase-supports__gifts" role="list">
-        <li class="df-purchase-supports__gift">
-          {% render 'df-icon', name: 'truck' %}
-          <strong>Envío a domicilio</strong>
-          {%- if policies.free_shipping == true -%}
-            {%- if policies.free_shipping_threshold > 0 -%}
-              {%- assign threshold = policies.free_shipping_threshold | times: 100 -%}
-              <span>Gratis desde {{ threshold | money_without_trailing_zeros }}</span>
-            {%- else -%}<span class="df-purchase-supports__badge">Gratis</span>{%- endif -%}
-          {%- else -%}<span>Consulta el costo al pedir</span>{%- endif -%}
-        </li>
-        <li class="df-purchase-supports__gift">
-          {%- if guide_cover != blank -%}
-            {{ guide_cover | image_url: width: 160 | image_tag: width: 64, height: 64, loading: 'lazy', alt: guide_title }}
-          {%- else -%}{% render 'df-icon', name: 'gift' %}{%- endif -%}
-          <strong>{{ guide_title | escape }}</strong>
-          {%- if guide != blank -%}
-            <span class="df-purchase-supports__badge">Regalo con tu compra</span>
-            <span>Descarga en la confirmación del pedido</span>
-          {%- else -%}<span>Guía digital en preparación</span>{%- endif -%}
-        </li>
-      </ul>
-      </div>
+      {%- if product.metafields.dropflex.review_summary.value.count > 0 -%}
       <p class="df-purchase-supports__proof"><span class="df-purchase-supports__dot" aria-hidden="true"></span><strong data-df-review-count>{{ product.metafields.dropflex.review_summary.value.count | default: 0 }}</strong> reseñas de compradores</p>
+      {%- endif -%}
       <script type="application/json" data-df-review-state>{"product_id":{{ product.id | append: '' | json }},"summary":{{ product.metafields.dropflex.review_summary.value | json | replace: '<', '\u003c' }}}</script>
-    {%- else -%}
-      <script src="{{ 'df-inventory.js' | asset_url }}" defer></script>
-      <div data-df-purchase-inventory>{% render 'df-inventory-content', product: product, section: section %}</div>
-      <div data-df-purchase-reviews>
-        <script src="{{ 'df-slider.js' | asset_url }}" defer></script>
-        <script src="{{ 'df-review-slider.js' | asset_url }}" defer></script>
-        {% render 'df-review-slider-content', product: product, section: section %}
-      </div>
     {%- endif -%}
   </div>
 {%- endif -%}

@@ -3,10 +3,8 @@ import { CATALOG } from "./components/catalog";
 export const DEFAULT_CONVERSION_SUPPORTS: readonly string[] = CATALOG.map(
   (c) => c.id,
 );
-/** Apoyos permanentes: ninguna variante o exclusión puede retirarlos. */
-export const ALWAYS_ON_SUPPORTS: readonly string[] = [
-  "review-stars", "review-slider", "review-wall", "inventory", "benefit-double-box", "shipping-timeline",
-];
+/** Todos los apoyos pueden ocultarse; la ficha y el checkout permanecen fuera de este catálogo. */
+export const ALWAYS_ON_SUPPORTS: readonly string[] = [];
 export function conversionSupportState(disabled: string[] = []) {
   return {
     schema_version: "1.0",

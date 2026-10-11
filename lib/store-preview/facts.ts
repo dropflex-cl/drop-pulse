@@ -42,6 +42,8 @@ export interface StorePack {
 }
 
 export interface StoreFacts {
+  /** Solo cuando existe una lectura operativa real. Sin ella el preview indica que Shopify lo resuelve. */
+  inventory?: { available: boolean };
   /** Datos propios de Google; nunca se completan con reseñas importadas. */
   googleRating?: { rating: number; count: number; url: string };
   /** Archivo asociado por el comerciante en Shopify. El enlace no llega al preview público. */

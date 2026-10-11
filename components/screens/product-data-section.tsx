@@ -22,11 +22,14 @@ export function ProductDataSection({
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string>();
   const timer = useRef<number | undefined>(undefined);
+  const dirty = useRef(false);
+  const revision = useRef(value?.expected_context_revision ?? 0);
+  if (!dirty.current) revision.current = value?.expected_context_revision ?? 0;
 
   // Una identificación nueva reemplaza lo que se ve.
   const stamp = value?.updated_at;
   const [shownFor, setShownFor] = useState(stamp);
-  if (stamp !== shownFor) {
+  if (stamp !== shownFor && !dirty.current) {
     setShownFor(stamp);
     setName(value?.name ?? "");
     setDescription(value?.description ?? "");
@@ -35,12 +38,16 @@ export function ProductDataSection({
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const save = (next: { name: string; description: string }) => {
+    dirty.current = true;
+    const expected_context_revision = revision.current;
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       setState("saving");
       setError(undefined);
       try {
-        const { productData } = await productsApi.saveProductData(productId, { ...next, expected_context_revision: value?.expected_context_revision ?? 0 });
+        const { productData } = await productsApi.saveProductData(productId, { ...next, expected_context_revision });
+        dirty.current = false;
+        revision.current = productData.expected_context_revision ?? expected_context_revision;
         setShownFor(productData.updated_at);
         onSaved(productData);
         setState("saved");
@@ -65,7 +72,7 @@ export function ProductDataSection({
           </span>
         ) : null}
       </div>
-      <p className="text-small text-muted-foreground">Completa el nombre y la descripción. Revisa que describan lo que el producto hace.</p>
+      <p className="text-small text-muted-foreground">El nombre y la descripción guardados desde el chat aparecen aquí. Cambia solo lo que necesites.</p>
           <label className="flex flex-col gap-1 text-label">
             Producto
             <input

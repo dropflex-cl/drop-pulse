@@ -24,6 +24,7 @@ import { reviewVisualRecord } from "./visual-service";
 import { runVisualIngestion } from "./visual-operations";
 import { deleteProducts } from "@/lib/products/delete";
 import { getVisualWorkbench } from "@/lib/data/visual-production";
+import { setProductImageSelection } from "./product-image-selection";
 import type { ToolName, ToolOutputs } from "./schemas";
 
 describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase local", () => {
@@ -186,6 +187,30 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await call("get_visual_reuse_candidates", { product_id: product, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero" })).data.items).toHaveLength(1);
     expect((await call("get_visual_iteration_history", { product_id: product, plan_id: plan.id })).data.items).toHaveLength(1);
     await expect(reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: asset.id, decision: "archive" }, AbortSignal.timeout(30000))).rejects.toThrow("Quita los usos");
+  });
+  it("mezcla imágenes nativas y MCP y cambia su uso sin perder archivo, historial o idempotencia", async () => {
+    const original = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").eq("slot", "cover").single())).data!;
+    const native = randomUUID();
+    await checked(db.from("page_images").insert({ id: native, product_id: product, user_id: owner.userId, slot: "gallery", source: "upload", render_status: "succeeded", storage_path: `${owner.userId}/${product}/native.webp`, width: 600, height: 600, size_bytes: 100 }));
+    const workbench = (await getVisualWorkbench(owner.userId, product))!;
+    const historyBefore = (await state()).history.length;
+    const input = { expected_revision: workbench.revision, expected_etag: workbench.etag, expected_dependency_stamp: workbench.dependency_stamp, idempotency_key: randomUUID(), cover: native, gallery: [original.id] };
+    const result = await setProductImageSelection(owner.userId, product, input);
+    expect(await setProductImageSelection(owner.userId, product, input)).toEqual(result);
+    const images = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").order("slot"))).data!;
+    expect(images).toHaveLength(2);
+    expect(images[0]).toMatchObject({ id: native, slot: "cover", position: 1 });
+    expect(images[1]).toMatchObject({ slot: "gallery", position: 1, storage_path: original.storage_path });
+    expect(images[1].visual_binding_id).not.toBe(original.visual_binding_id);
+    const binding = (await state()).records.find((r: VisualRecord) => r.id === images[1].visual_binding_id);
+    expect(binding).toMatchObject({ version: 1, status: "selected", payload: { selection_source: "merchant" } });
+    await assertVisualBindingsPublishable(owner.userId, product, [binding.id]);
+    const fresh = (await getVisualWorkbench(owner.userId, product))!;
+    await setProductImageSelection(owner.userId, product, { expected_revision: fresh.revision, expected_etag: fresh.etag, expected_dependency_stamp: fresh.dependency_stamp, idempotency_key: randomUUID(), cover: images[1].id, gallery: [] });
+    const selected = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").single())).data!;
+    expect(selected).toMatchObject({ slot: "cover", storage_path: original.storage_path });
+    expect((await state()).files).toHaveLength(1);
+    expect((await state()).history.length).toBeGreaterThan(historyBefore);
   });
   it("reutiliza el mismo archivo en PDP, Meta y UGC; B-roll permanece un storyboard", async () => {
     const copyRun = randomUUID(), componentId = randomUUID(), persuasionId = randomUUID(), experienceId = randomUUID(), creativeRun = randomUUID(), conceptId = randomUUID();

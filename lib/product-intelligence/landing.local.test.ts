@@ -6,6 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import { productMetafields } from "@/lib/shopify/publish/mapping";
+import { updateComponent } from "@/lib/pipeline/copy";
 import {
   createProductIntelligenceExecutor,
   PERSISTED_INTELLIGENCE_TOOLS,
@@ -429,7 +430,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         await server.close();
       }
     });
-    it("persiste arrays completos, replay y validación de selectores en RPC", async () => {
+    it("conserva la edición manual al guardar variantes; recuperación explícita, replay y validación de selectores", async () => {
       const array = [
         { key: "default", angle_id: null, hook_id: null, content: listing },
         {
@@ -455,6 +456,10 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
       };
       const saved = await call("save_landing_content", request);
       expect(await call("save_landing_content", request)).toEqual(saved);
+      expect((await read()).data.current!.content).toEqual({ ...listing, title: "Título editado desde la UI" });
+      const current = (await checked(db.from("page_components").select("id,updated_at,proposal").eq("product_id", product).eq("component", "listing").is("superseded_at", null).single())).data!;
+      expect(current.proposal).toEqual(array);
+      await updateComponent(owner.userId, product, "listing", { expected_id: current.id, expected_updated_at: current.updated_at, content: array });
       expect((await read()).data.current!.content).toEqual(array);
       const loaded = (
         await checked(

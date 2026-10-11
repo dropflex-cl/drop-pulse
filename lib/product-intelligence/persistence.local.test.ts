@@ -244,7 +244,7 @@ describe.runIf(enabled)("PI · transacciones reales en Supabase local", () => {
         expected_pack_labels_etag: packs.data.pack_labels_etag, idempotency_key: randomUUID(), labels: [1, 2, 3].map((units) => ({ units,
           label: units === 1 ? "Uno para ti" : "Para compartir", support: null, badge: null, basis: "sharing", reason: "Unidades para compartir." })) });
       const packed = await client.callTool({ name: "save_pack_labels", arguments: nativePackLabels });
-      expect(packed.structuredContent).toMatchObject({ ok: true, revision: 12, data: { status: "generated" } });
+      expect(packed.structuredContent).toMatchObject({ ok: true, revision: 12, data: { status: "approved" } });
       expect((await client.callTool({ name: "save_pack_labels", arguments: nativePackLabels })).structuredContent).toEqual(packed.structuredContent);
       await expect(expiredKnowledge(auth.principal, { tool: "save_pack_labels", input: nativePackLabels }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(expiredKnowledge(auth.principal, { tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: productId }) }, signal())).rejects.toMatchObject({ code: "FORBIDDEN" });

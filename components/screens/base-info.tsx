@@ -1,31 +1,27 @@
 "use client";
 
-import { VisualProduction } from "./visual-production";
 import type { VisualWorkbench } from "@/lib/types";
 
-import { ACCEPTED_TYPES, Button, Icon, ImageUploader, ProductInfoInput, ReferenceAddTile, ReferenceImage, StageMeter, Switch, TopBar, notify, type UploadItem, type UploaderMode, } from "@/components/df";
-import { AiCostButton, useLocalCost } from "@/components/shell/ai-cost-provider";
-import { AssistantButton, AssistantScope } from "@/components/shell/assistant-provider";
-import { StickyActions } from "@/components/shell/sticky-actions";
+import { ACCEPTED_TYPES, Button, Icon, ImageUploader, ProductInfoInput, ReferenceAddTile, ReferenceImage, Switch, notify, type UploadItem, type UploaderMode, } from "@/components/df";
+import { useLocalCost } from "@/components/shell/ai-cost-provider";
+import { AssistantScope } from "@/components/shell/assistant-provider";
 import { useDesktop } from "@/components/shell/use-desktop";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { IMAGE_QA_USD } from "@/lib/ai/costs";
 import { count } from "@/lib/format";
 import { pickBase } from "@/lib/products/base";
 import { ProductApiClientError, productsApi, uploadImage } from "@/lib/products/client";
-import { hasProductData, type ProductData } from "@/lib/products/product-data";
+import { type ProductData } from "@/lib/products/product-data";
 import { detectTopics } from "@/lib/products/topics";
 import { productHref } from "@/lib/routes";
 import type { ProductBase, ReferenceImage as RefImage, SavedPricingDto } from "@/lib/types";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DifferentiatorSection } from "./differentiator-section";
 import { PricingSection } from "./pricing-section";
 import { ProductDataSection } from "./product-data-section";
 
 const AUTOSAVE_MS = 1500;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const NOTE = "Completa los datos y el precio. Prepara la estrategia desde el chat.";
 
 interface Upload extends UploadItem {
   file: File;
@@ -52,11 +48,17 @@ function useAutosave(productId: string, initial: string, contextRevision: number
   const [now, setNow] = useState(() => Date.now());
   const pending = useRef<string | null>(null);
   const revision = useRef(contextRevision);
-  revision.current = contextRevision;
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
   const inFlight = useRef(false);
   const timer = useRef<number | undefined>(undefined);
+  if (pending.current === null && !inFlight.current) revision.current = contextRevision;
+  const incoming = `${initialSavedAt ?? ""}:${initial}`;
+  const [shown, setShown] = useState(incoming);
+  if (shown !== incoming && pending.current === null && !inFlight.current) {
+    setShown(incoming); setText(initial); setTopics(detectTopics(initial));
+    setSavedAt(initialSavedAt ? Date.parse(initialSavedAt) : undefined);
+  }
 
   const save = useCallback(async () => {
     window.clearTimeout(timer.current);
@@ -85,6 +87,7 @@ function useAutosave(productId: string, initial: string, contextRevision: number
   }, [productId]);
 
   const change = (value: string) => {
+    if (pending.current === null && !inFlight.current) revision.current = contextRevision;
     setText(value);
     setTopics(detectTopics(value));
     pending.current = value;
@@ -107,7 +110,7 @@ function useAutosave(productId: string, initial: string, contextRevision: number
     };
   }, [productId]);
 
-  return { text, change, save, saving, error, topics, saved: savedLabel(savedAt, now) };
+  return { text, change, save, saving, dirty: pending.current !== null || inFlight.current, error, topics, saved: savedLabel(savedAt, now) };
 }
 
 /**
@@ -143,7 +146,7 @@ function ImageQaSection({ productId, initial }: { productId: string; initial: bo
   );
 }
 
-export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: VisualWorkbench | null }) {
+export function BaseInfoScreen({ base }: { base: ProductBase; visual?: VisualWorkbench | null }) {
   const desktop = useDesktop();
   const { product } = base;
   const [productData, setProductData] = useState<ProductData | undefined>(base.productData);
@@ -153,6 +156,12 @@ export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: V
     contextRevision.current = revision;
     setProductData((data) => data ? { ...data, expected_context_revision: revision } : data);
   }, base.baseInfoUpdatedAt);
+
+  const [seenContext, setSeenContext] = useState(base.productData?.updated_at);
+  if(seenContext !== base.productData?.updated_at && !info.dirty) {
+    setSeenContext(base.productData?.updated_at); setProductData(base.productData);
+    contextRevision.current = base.productData?.expected_context_revision ?? 0;
+  }
 
   const [images, setImages] = useState<RefImage[]>(base.images);
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -325,16 +334,10 @@ export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: V
   const status = (
     <>
       <ProductDataSection productId={product.id} value={productData} onSaved={savedProductData} />
-      {base.hasBrief ? (
-        // Se reinicia si la estrategia nueva trae otra propuesta.
-        <DifferentiatorSection key={JSON.stringify(base.differentiator.proposed)} productId={product.id} initial={base.differentiator} />
-      ) : null}
     </>
   );
 
-  // Acceso a la etapa opcional Reseñas (arquitectura.md › 9): importadas antes de optimizar, la IA
-  // las usa para escribir con palabras de clientes.
-  const reviewsStage = product.stages.find((s) => s.key === "resenas");
+  // Herramienta opcional: la importación no determina el estado ni bloquea la ficha.
   const reviewsCta = (
     <Link
       href={productHref(product.id, "resenas")}
@@ -342,9 +345,9 @@ export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: V
     >
       <Icon name="star" size="sm" />
       <span>
-        <b className="block text-small font-medium">{reviewsStage?.state === "available" ? "Importa reseñas de AliExpress" : "Reseñas"}</b>
+        <b className="block text-small font-medium">Importa reseñas de AliExpress</b>
         <small className="block text-caption text-muted-foreground">
-          {reviewsStage?.state === "available" ? "Opcional. Úsalas como evidencia en el chat." : reviewsStage?.desc}
+          Opcional. Úsalas como evidencia en el chat.
         </small>
       </span>
       <Icon name="chevron-right" size="sm" />
@@ -365,62 +368,28 @@ export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: V
     />
   );
 
-  // Acción principal: una por vista (design-system › primary).
-  let primary: React.ReactNode;
-  let summary: React.ReactNode = NOTE;
-  if (hasProductData(productData)) {
-    primary = pricing ? (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" href={productHref(product.id, "angulos")}>
-        Continuar: Estrategia
-      </Button>
-    ) : (
-      <Button variant="primary" size="lg" className="max-lg:w-full lg:h-control lg:text-row" iconEnd="chevron-right" disabled>
-        Continuar: Estrategia
-      </Button>
-    );
-    summary = pricing ? "Con estos datos y tu precio, prepara la estrategia en el chat." : "Guarda el precio y los packs para seguir: la estrategia parte de ese precio.";
-  } else {
-    primary = <Button variant="primary" size="lg" iconEnd="chevron-right" disabled className="max-lg:w-full lg:h-control lg:text-row">Continuar: Estrategia</Button>;
-    summary = "Completa el nombre y la descripción del producto.";
-  }
-
   return (
     // Escritorio: el pie con la acción queda abajo aunque el contenido sea corto (como el onboarding).
     <div className="flex flex-col lg:min-h-svh">
       <AssistantScope productId={product.id} product={product.name} stage="Información base" stageKey="importado" image={product.image} />
-      <TopBar
-        back="Productos"
-        backHref="/products"
-        title={product.name}
-        subtitle={product.summary}
-        actions={
-          <>
-            <AiCostButton />
-            <AssistantButton />
-          </>
-        }
-        className="sticky top-0 z-sticky lg:hidden"
-      />
-      <div className="px-4 pb-2 lg:hidden">
-        <StageMeter stages={product.meter} />
-      </div>
+
 
       <div className="flex flex-col gap-5 px-4 pt-2 pb-4 lg:grid lg:flex-1 lg:grid-cols-[minmax(0,1fr)_--spacing(90)] lg:items-start lg:gap-8 lg:px-8 lg:pt-6">
         <div className="flex min-w-0 flex-col gap-5">
           {status}
-          {visual ? <VisualProduction initial={visual} identityOnly /> : null}
+          <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
           {/* Móvil: las imágenes van arriba, en una fila de 4 con “Agregar”. */}
-          <section aria-label="Imágenes de referencia" className="lg:hidden">
-            {refsHeader}
+          <details className="rounded-lg border bg-card p-4 lg:hidden"><summary className="min-h-touch cursor-pointer text-label">Fotos de referencia</summary>
+            {images.length ? refsHeader : null}
             <div className="grid grid-cols-4 gap-2">
               {refTiles(true)}
               <ReferenceAddTile onClick={() => setSheetOpen(true)} />
             </div>
-          </section>
-          {infoInput(desktop ? 9 : 4)}
-          <div className="lg:hidden">{reviewsCta}</div>
-          <PricingSection productId={product.id} currency={product.currency ?? "CLP"} saved={pricing} defaults={base.pricingDefaults} packLabels={base.packLabels} onSaved={setPricing} />
-          <ImageQaSection productId={product.id} initial={base.imageQa} />
+          </details>
+          <details className="rounded-lg border bg-card p-4"><summary className="min-h-touch cursor-pointer text-label">Texto del proveedor y detalles</summary><div className="pt-3">{infoInput(desktop ? 9 : 4)}</div></details>
+          <details className="rounded-lg border p-4 lg:hidden"><summary className="min-h-touch cursor-pointer text-label">Agregar reseñas reales</summary>{reviewsCta}</details>
+
+          <details className="rounded-lg border bg-card p-4"><summary className="min-h-touch cursor-pointer text-label">Opciones de generación de imágenes</summary><ImageQaSection productId={product.id} initial={base.imageQa} /></details>
         </div>
         {/* Escritorio: referencias y carga a la derecha. */}
         <aside aria-label="Imágenes de referencia" className="hidden flex-col gap-4 lg:flex">
@@ -432,12 +401,6 @@ export function BaseInfoScreen({ base, visual }: { base: ProductBase; visual?: V
           {reviewsCta}
         </aside>
       </div>
-
-      {primary ? (
-        <StickyActions variant="bar" stack summary={summary} mobileNote={summary} className="lg:px-8">
-          {primary}
-        </StickyActions>
-      ) : null}
 
       {/* Móvil: la carga vive en una hoja inferior que abre el tile “Agregar”. */}
       {desktop ? null : (
