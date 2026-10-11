@@ -4,7 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { jsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/types.js";
 import Ajv2020 from "ajv/dist/2020";
 import addFormats from "ajv-formats";
-import { createProductIntelligenceServer, type DomainExecutor } from "./mcp";
+import { createProductIntelligenceServer, publishedSchemas, type DomainExecutor } from "./mcp";
 import { examplesFixture, principalFixture, requestFixture } from "./test-fixtures";
 import { ProductIntelligenceError } from "./errors";
 import { inputSchemas } from "./schemas";
@@ -24,8 +24,8 @@ const validators = (): jsonSchemaValidator => {
     return (input: unknown) => validate(input) ? { valid: true as const, data: input as T, errorMessage: undefined } : { valid: false as const, data: undefined, errorMessage: ajv.errorsText(validate.errors) };
   } };
 };
-async function connect(execute: DomainExecutor, userId = "merchant-a", requestTimeoutMs?: number) {
-  const server = createProductIntelligenceServer({ ...principalFixture(), userId }, execute, { requestTimeoutMs });
+async function connect(execute: DomainExecutor, userId = "merchant-a", requestTimeoutMs?: number, availableTools?: readonly (keyof typeof inputSchemas)[]) {
+  const server = createProductIntelligenceServer({ ...principalFixture(), userId }, execute, { requestTimeoutMs, availableTools });
   const client = new Client({ name: "pi-local-test", version: "1" }, { jsonSchemaValidator: validators() });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport); await client.connect(clientTransport);
@@ -98,12 +98,26 @@ describe("PI · protocolo MCP oficial", () => {
       const tools = [];
       let cursor: string | undefined;
       let pages = 0;
+      const actualPages: { names: string[]; cursor?: string }[] = [];
       do {
         const page = await session.client.listTools(cursor ? { cursor } : undefined);
         expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThanOrEqual(PI_LIMITS.outputBytes);
+        actualPages.push({ names: page.tools.map(tool => tool.name), cursor: page.nextCursor });
         tools.push(...page.tools); cursor = page.nextCursor; pages++;
       } while (cursor);
       expect(tools).toHaveLength(Object.keys(inputSchemas).length);
+      // Algoritmo anterior como oráculo: mismos límites UTF-8, orden y cursores.
+      const expectedPages = [];
+      let index = 0;
+      while (index < tools.length) {
+        const page = [];
+        while (index < tools.length && Buffer.byteLength(JSON.stringify({ tools: [...page, tools[index]], nextCursor: `pi-tools-v1:${index + 1}` })) <= PI_LIMITS.outputBytes) {
+          page.push(tools[index++]);
+        }
+        expect(page.length).toBeGreaterThan(0);
+        expectedPages.push({ names: page.map(tool => tool.name), cursor: index < tools.length ? `pi-tools-v1:${index}` : undefined });
+      }
+      expect(actualPages).toEqual(expectedPages);
       const native = tools.find(tool => tool.name === "ingest_chatgpt_visual_asset")!;
       expect(native._meta).toMatchObject({ "openai/fileParams": ["file"] });
       const file = native.inputSchema.properties?.file as { properties: Record<string, unknown>; required: string[] };
@@ -122,12 +136,40 @@ describe("PI · protocolo MCP oficial", () => {
       expect(session.client.getServerVersion()?.name).toBe("dropflex-product-intelligence");
     } finally { await session.close(); }
   });
+  it("aísla los contratos cacheados de modificaciones del cliente y de los exports", async () => {
+    const first = await connect(async () => null), second = await connect(async () => null);
+    try {
+      const page = await first.client.listTools();
+      const original = structuredClone(page.tools[0]);
+      page.tools[0].inputSchema.type = "array" as "object";
+      page.tools[0].annotations!.readOnlyHint = false;
+      expect((await first.client.listTools()).tools[0]).toEqual(original);
+      expect((await second.client.listTools()).tools[0]).toEqual(original);
+      const exported = publishedSchemas();
+      exported[original.name as keyof typeof exported].input.type = "array" as "object";
+      expect((await second.client.listTools()).tools[0]).toEqual(original);
+      expect(publishedSchemas()[original.name as keyof typeof exported].input).toEqual(original.inputSchema);
+    } finally { await first.close(); await second.close(); }
+  });
   it("rechaza cursores de discovery inválidos", async () => {
     const session = await connect(async () => null);
     try {
       await expect(session.client.listTools({ cursor: "foreign" })).rejects.toThrow("cursor");
       await expect(session.client.listTools({ cursor: `pi-tools-v1:${Object.keys(inputSchemas).length}` })).rejects.toThrow("cursor");
     } finally { await session.close(); }
+  });
+  it("la caché no amplía el catálogo disponible de otra petición", async () => {
+    const full = await connect(async () => null);
+    const execute = vi.fn<DomainExecutor>(async () => null);
+    const restricted = await connect(execute, "merchant-b", undefined, ["get_product_context"]);
+    try {
+      await full.client.listTools();
+      const page = await restricted.client.listTools();
+      expect(page.tools.map(tool => tool.name)).toEqual(["get_product_context"]);
+      expect(page.nextCursor).toBeUndefined();
+      expect(await restricted.client.callTool({ name: "list_products", arguments: {} })).toMatchObject({ isError: true, structuredContent: { error: { code: "EXECUTION_NOT_READY" } } });
+      expect(execute).not.toHaveBeenCalled();
+    } finally { await full.close(); await restricted.close(); }
   });
   it("lista productos sin conocer un ID y rechaza identidad inyectada", async () => {
     const response = { ok: true, request_id: "00000000-0000-4000-8000-000000000001", data: {

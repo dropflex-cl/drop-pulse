@@ -130,8 +130,20 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await fetch((ticket.data.upload as { url: string }).url, { method: "PUT", headers: { "Content-Type": "image/png", "x-upsert": "false" }, body: new Uint8Array(bytes) })).ok).toBe(true);
     const ingestion = await call("ingest_external_visual_asset", { ...await preconditions(), iteration_id: iteration.id, source: { type: "upload_ticket", ticket_id: ticket.data.operation_id } });
     await runVisualIngestion(String(ingestion.data.operation_id));
-    const status = await call("get_visual_ingestion_status", { product_id: product, operation_id: ingestion.data.operation_id });
-    expect(status.data, JSON.stringify(status.data)).toMatchObject({ state: "succeeded" });
+    const current = await preconditions();
+    const bytesRead = vi.spyOn(visualMedia, "visualStoredBytes").mockRejectedValue(new Error("La consulta de estado no necesita fotos"));
+    const signedUrl = vi.spyOn(visualMedia, "visualSignedUrl").mockRejectedValue(new Error("La consulta de estado no necesita URLs"));
+    const download = vi.spyOn(visualMedia, "downloadVisual").mockRejectedValue(new Error("La consulta de estado no necesita descargas"));
+    try {
+      const args = { product_id: product, operation_id: ingestion.data.operation_id };
+      const status = await call("get_visual_ingestion_status", args);
+      expect(status).toMatchObject({ revision: current.expected_revision, data: { state: "succeeded", etag: current.expected_etag, dependency_stamp: current.expected_dependency_stamp } });
+      const stranger = randomUUID();
+      await expect(call("get_visual_ingestion_status", args, { ...owner, userId: stranger, actorId: stranger })).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(call("get_visual_ingestion_status", args, { ...owner, scopes: [] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(call("get_visual_ingestion_status", { ...args, operation_id: randomUUID() })).rejects.toThrow();
+      expect(bytesRead).not.toHaveBeenCalled(); expect(signedUrl).not.toHaveBeenCalled(); expect(download).not.toHaveBeenCalled();
+    } finally { bytesRead.mockRestore(); signedUrl.mockRestore(); download.mockRestore(); }
     const assets = await call("list_visual_assets", { product_id: product }); asset = visualRecordSchema.parse((assets.data.items as unknown[])[0]); expect(asset.status).toBe("approved");
     expect((assets.data.items as { file: { mime_type: string } }[])[0].file.mime_type).toBe("image/webp");
     const again = await call("prepare_visual_asset_upload", { ...await preconditions(), iteration_id: iteration.id, mime_type: "image/png", size_bytes: bytes.length });

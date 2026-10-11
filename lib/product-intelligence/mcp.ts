@@ -169,6 +169,10 @@ export function generationContextJsonSchema() {
   return z.toJSONSchema(generationContextSchema, { target: "draft-2020-12" });
 }
 
+// Solo contratos estáticos: nunca comparte principal, grants, datos ni respuestas de tools.
+let serverSchemas: ReturnType<typeof publishedSchemas> | undefined;
+const discoveryToolBytes = new Map<ToolName, number>();
+
 /** Instancia por actor/request. Usa Server oficial: McpServer 1.32 pierde unions raíz en discovery. */
 export function createProductIntelligenceServer(
   principal: Principal,
@@ -198,7 +202,7 @@ export function createProductIntelligenceServer(
     },
   );
   registerOptimizationSkill(server, [visualReferenceResource()]);
-  const schemas = publishedSchemas();
+  const schemas = serverSchemas ??= publishedSchemas();
   const available =
     options.availableTools ?? (Object.keys(inputSchemas) as ToolName[]);
   const tools: Tool[] = available.map((name) => ({
@@ -270,18 +274,29 @@ export function createProductIntelligenceServer(
       throw new McpError(ErrorCode.InvalidParams, "El cursor de tools venció.");
     const page: Tool[] = [];
     let index = offset;
+    let pageBytes = 0;
     while (index < tools.length) {
-      const candidate = [...page, tools[index]];
+      const tool = tools[index];
+      const name = tool.name as ToolName;
+      let toolBytes = discoveryToolBytes.get(name);
+      if (toolBytes === undefined) {
+        toolBytes = Buffer.byteLength(JSON.stringify(tool));
+        discoveryToolBytes.set(name, toolBytes);
+      }
+      // Mismo JSON y cortes de página que antes, sin volver a serializar todos los contratos
+      // acumulados por cada candidato. La coma entre herramientas también cuenta en UTF-8.
+      const candidateBytes = pageBytes + toolBytes + (page.length ? 1 : 0);
       if (
-        new TextEncoder().encode(
+        candidateBytes + Buffer.byteLength(
           JSON.stringify({
-            tools: candidate,
+            tools: [],
             nextCursor: `pi-tools-v1:${index + 1}`,
           }),
-        ).length > PI_LIMITS.outputBytes
+        ) > PI_LIMITS.outputBytes
       )
         break;
       page.push(tools[index++]);
+      pageBytes = candidateBytes;
     }
     if (!page.length)
       throw new McpError(
@@ -289,7 +304,9 @@ export function createProductIntelligenceServer(
         "Un contrato supera el presupuesto de discovery.",
       );
     return {
-      tools: page,
+      // Transportes en memoria pueden entregar referencias directas al cliente.
+      // La respuesta conserva su mutabilidad sin exponer la caché privada compartida.
+      tools: structuredClone(page),
       ...(index < tools.length ? { nextCursor: `pi-tools-v1:${index}` } : {}),
     };
   });

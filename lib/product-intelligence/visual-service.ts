@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { adminClient } from "@/lib/integrations/admin";
 import { commandHash } from "./concurrency";
+import { parseKnowledgeRead } from "./knowledge";
 import { signContextCursor, verifyContextCursor } from "./context-cursor";
 import { ProductIntelligenceError } from "./errors";
 import type { DomainExecutor } from "./mcp";
@@ -16,7 +17,7 @@ import { contextAccess, type VisualRepository } from "./repository";
 import { parseToolOutput, PI_LIMITS } from "./validation";
 import { visualInputSchemas, visualReviewInput, VISUAL_LIMITS, type VisualRecord, type VisualTool, type VisualDependency } from "./visual-schemas";
 import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration, visualPlanReadiness,
-  prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, vHash, type VisualState } from "./visual-domain";
+  prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, visualReadSchema, vHash, type VisualState } from "./visual-domain";
 import { hydrateVisualState, visualReferenceBytes } from "./visual-state";
 import { visualSignedUrl } from "./visual-media";
 import { attachToolImage } from "./tool-media";
@@ -25,6 +26,7 @@ import { recordServerVisualEvent } from "./visual-transfer";
 
 export const visualEnabled = () => process.env.VISUAL_PRODUCTION_ENABLED !== "false";
 const object = z.record(z.string(), z.unknown());
+const operationContextSchema = visualReadSchema.pick({ revision: true, etag: true, dependency_stamp: true });
 const operationSchema = z.object({ id: z.string().uuid(), kind: z.string(), iteration_id: z.string().uuid(), status: z.string(), source: object,
   expires_at: z.string(), result: z.unknown().nullable(), error_message: z.string().nullable() });
 type Operation = z.infer<typeof operationSchema>;
@@ -78,6 +80,15 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       }
       return result;
     }
+    if (tool === "get_visual_ingestion_status") {
+      // Mantiene la lectura autorizada y sus tokens actuales. Consultar una transferencia
+      // no necesita descargar, firmar ni decodificar la foto base o construir destinos.
+      parseKnowledgeRead(object.parse(raw).knowledge, principal, input.product_id);
+      const context = operationContextSchema.parse(raw), q = visualInputSchemas[tool].parse(input);
+      const operation = operationSchema.parse(await repository.visualOperation({ p_access: access, p_product_id: q.product_id, p_operation_id: q.operation_id }, signal));
+      return parseToolOutput(tool, { ok: true, request_id: randomUUID(), product_id: input.product_id, revision: context.revision,
+        data: { etag: context.etag, dependency_stamp: context.dependency_stamp, ...safeOperation(operation) } });
+    }
     const state = await hydrateVisualState(raw, principal, input.product_id);
     const base = { ok: true as const, request_id: randomUUID(), product_id: input.product_id, revision: state.revision };
     const common = { etag: state.etag, dependency_stamp: state.dependency_stamp };
@@ -125,10 +136,6 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         signal.throwIfAborted();
         return attachToolImage(output({ canonical_reference: reference, image: image.metadata,
           next_action: "Si ya existe un adjunto canónico para este producto, ID y hash, reutiliza ese archivo y no repitas esta tool ni la tarjeta. Si no existe, muestra la tarjeta de referencia original. En ChatGPT, termina ese turno con Pulsa Usar referencia y continuar para seguir: no llames más herramientas, no intentes abrir el archivo ni diagnostiques un fallo antes del clic. La referencia está pendiente de adjuntar. El comerciante puede tocar Usar referencia y continuar: renueva el enlace, verifica el hash, sube el archivo original y comparte el fileId mediante imageIds en un nuevo turno. Solo en el nuevo turno con el archivo, inspecciona la referencia y retoma el último pedido autorizado sin pedir que lo repitan; si pidió no generar, conserva ese límite. No generes hasta recibir el archivo como entrada real. Otros clientes pueden usar el bloque de imagen o descargar la URL canónica. Si el archivo subido no es visible para el modelo o no puedes adjuntarlo al generador, explica la limitación y pide adjuntar la original manualmente una sola vez. Detente sin repetir esta tool ni el botón." }), image.content);
-      }
-      if (tool === "get_visual_ingestion_status") {
-        const q = visualInputSchemas[tool].parse(input);
-        return output(safeOperation(operationSchema.parse(await repository.visualOperation({ p_access: access, p_product_id: q.product_id, p_operation_id: q.operation_id }, signal))));
       }
       if (tool === "get_visual_generation_context") {
         const q = visualInputSchemas[tool].parse(input), k = object.parse(state.knowledge), strategy = object.nullable().parse(k.strategy);

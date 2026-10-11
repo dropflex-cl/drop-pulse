@@ -65,8 +65,8 @@ export function createShopifyAutomationExecutor(repository: ShopifyAutomationRep
         throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Elige la dirección del producto antes de autorizar su publicación automática.");
     }
     const currentState = automationStateSchema.parse(await repository.shopifyAutomation({ p_access: access, p_product_id: input.product_id, p_action: "read" }, signal));
-    const state = automationStateSchema.parse(await repository.shopifyAutomation({ p_access: access, p_product_id: input.product_id,
-      p_action: tool === "get_shopify_automation" ? "read" : tool === "disable_shopify_automation" ? "disable" : "authorize",
+    const state = tool === "get_shopify_automation" ? currentState : automationStateSchema.parse(await repository.shopifyAutomation({ p_access: access, p_product_id: input.product_id,
+      p_action: tool === "disable_shopify_automation" ? "disable" : "authorize",
       ...(q ? { p_expected_revision: serverRevision(q.expected_revision, currentState.revision), p_key: q.idempotency_key, p_hash: commandHash(tool, q), p_dry_run: q.dry_run } : {}),
       ...(tool === "authorize_shopify_automation" ? { p_payload: parseToolInput("authorize_shopify_automation", command.input) } : {}),
     }, signal));

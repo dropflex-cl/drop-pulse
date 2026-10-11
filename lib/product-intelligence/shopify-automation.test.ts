@@ -20,6 +20,20 @@ function runner(dry=false){
 }
 beforeEach(()=>{vi.clearAllMocks();mocks.prepare.mockResolvedValue({input,images:[],videos:[],missing:[]});mocks.connection.mockResolvedValue({shop_domain:"fixture.myshopify.com"});mocks.publications.mockResolvedValue(new Map());});
 describe("Shopify automático · cola y validación de publicación",()=>{
+ it("consulta el estado con una sola lectura autorizada y conserva la preparación de publicación",async()=>{
+  const r=runner();
+  const result=await r.execute(principal,{tool:"get_shopify_automation",input:parseToolInput("get_shopify_automation",{product_id:product})},AbortSignal.timeout(1000));
+  expect(result).toMatchObject({revision:6,data:{...state,publish_ready:true,missing:[]}});
+  expect(r.rpc).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({p_action:"read",p_product_id:product}),expect.any(AbortSignal));
+  expect(mocks.prepare).toHaveBeenCalledExactlyOnceWith(owner,product);
+  expect(r.wake).not.toHaveBeenCalled();expect(mocks.run).not.toHaveBeenCalled();
+ });
+ it("la lectura única sigue mostrando faltantes concretos y una autorización inactiva",async()=>{
+  const r=runner();r.rpc.mockResolvedValue({...state,active:false});mocks.prepare.mockResolvedValue({input,images:[],videos:[],missing:["Falta la portada"]});mocks.connection.mockResolvedValue(null);
+  const result=await r.execute(principal,{tool:"get_shopify_automation",input:parseToolInput("get_shopify_automation",{product_id:product})},AbortSignal.timeout(1000));
+  expect(result).toMatchObject({data:{active:false,publish_ready:false,missing:expect.arrayContaining(["Falta la portada","Conecta Shopify"])}});
+  expect(r.rpc).toHaveBeenCalledTimes(1);expect(r.wake).not.toHaveBeenCalled();
+ });
  it("rechaza antes de leer o escribir si faltan scopes",async()=>{
   const r=runner();await expect(r.execute({...principal,scopes:["product_intelligence:read"]},{tool:"publish_product",input:publicationInput()},AbortSignal.timeout(1000))).rejects.toMatchObject({code:"FORBIDDEN"});expect(r.rpc).not.toHaveBeenCalled();
  });
