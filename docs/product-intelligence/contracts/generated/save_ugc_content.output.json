@@ -185,7 +185,7 @@
             },
             "status": {
               "type": "string",
-              "const": "in_review"
+              "const": "approved"
             },
             "next_action": {
               "type": "string"

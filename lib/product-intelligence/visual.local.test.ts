@@ -41,7 +41,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
   async function preconditions() { const s = await state(); return { product_id: product, schema_version: "1.0", expected_revision: s.revision, expected_etag: s.etag, expected_dependency_stamp: s.dependency_stamp, idempotency_key: randomUUID(), dry_run: false }; }
   async function approve(record: VisualRecord) {
     const result = await reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: record.id, decision: "approve", reason: "Fiel al producto", tags: ["good_product_fidelity"] }, AbortSignal.timeout(30000));
-    return visualRecordSchema.parse((result as { data: { records: unknown[] } }).data.records[0]);
+    return visualRecordSchema.parse((result as { data: { records: unknown[] } }).data.records[0] ?? record);
   }
   beforeAll(async () => {
     expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe("http://127.0.0.1:55321");
@@ -86,10 +86,10 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const draft = visualFixture().plan; draft.strategy_id = strategyId; draft.identity_ref = { id: identity.id, version: identity.version, etag: identity.etag }; draft.shots[0].angle_id = angleId;
     const savedPlan = await call("save_visual_generation_plan", { ...await preconditions(), plan: draft });
     plan = visualRecordSchema.parse((savedPlan.data.records as unknown[])[0]);
-    await expect(approve(plan)).rejects.toThrow("Aprueba");
-    identity = await approve(identity);
+    expect(identity.status).toBe("approved");
+    expect(plan.status).toBe("approved");
     plan = visualRecordSchema.parse((await state()).records.find((r: VisualRecord) => r.id === plan.id));
-    expect(plan.status).toBe("review"); expect(plan.payload.identity_ref).toEqual({ id: identity.id, version: identity.version, etag: identity.etag });
+    expect(plan.status).toBe("approved"); expect(plan.payload.identity_ref).toEqual({ id: identity.id, version: identity.version, etag: identity.etag });
   });
   it("entrega bytes de la base autorizada; rechaza IDs/hashes distintos y otro comerciante", async () => {
     const context = await call("get_visual_generation_context", { product_id: product });
@@ -111,12 +111,11 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
       await expect(call("get_visual_reference_image", args, { ...owner, userId: strangerId, actorId: strangerId })).rejects.toMatchObject({ code: "FORBIDDEN" });
     } finally { await client.close(); await server.close(); }
   });
-  it("persiste el plan y congela la toma solo después de la revisión merchant", async () => {
+  it("persiste el plan aprobado y congela la toma sin revisión adicional", async () => {
     const value = visualFixture().plan; value.strategy_id = strategyId; value.identity_ref = { id: identity.id, version: identity.version, etag: identity.etag }; value.shots[0].angle_id = angleId;
     const saved = await call("save_visual_generation_plan", { ...await preconditions(), plan_id: plan.id, plan: value }); plan = visualRecordSchema.parse((saved.data.records as unknown[])[0] ?? (await state()).records.find((r: VisualRecord) => r.id === plan.id));
     const input = { plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero", source_system: "chatgpt", resolved_instruction: "Conserva la forma del organizador canónico" };
-    await expect(call("prepare_visual_iteration", { ...await preconditions(), ...input })).rejects.toThrow("Aprueba");
-    plan = await approve(plan);
+    expect(plan.status).toBe("approved");
     const prepared = await call("prepare_visual_iteration", { ...await preconditions(), ...input, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag } });
     iteration = visualRecordSchema.parse((prepared.data.records as unknown[])[0]);
     const referenceResult = await call("get_visual_reference_image", { product_id: product, reference_image_id: reference, reference_content_hash: identity.payload.reference_content_hash, iteration_id: iteration.id });
@@ -124,7 +123,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const recovered = await call("get_visual_generation_plan", { product_id: product, plan_id: plan.id, shot_key: "hero" });
     expect(recovered.data.identity).toMatchObject({ id: identity.id });
   });
-  it("ticket firmado → optimización → copia propia → asset por revisar; deduplica sin autoaprobar", async () => {
+  it("ticket firmado → optimización → copia propia → asset aprobado; deduplica la aprobación", async () => {
     const bytes = await sharp({ create: { width: 1000, height: 1000, channels: 3, background: { r: 30, g: 35, b: 40 } } }).png().toBuffer();
     const ticket = await call("prepare_visual_asset_upload", { ...await preconditions(), iteration_id: iteration.id, mime_type: "image/png", size_bytes: bytes.length });
     expect((await fetch((ticket.data.upload as { url: string }).url, { method: "PUT", headers: { "Content-Type": "image/png", "x-upsert": "false" }, body: new Uint8Array(bytes) })).ok).toBe(true);
@@ -132,7 +131,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     await runVisualIngestion(String(ingestion.data.operation_id));
     const status = await call("get_visual_ingestion_status", { product_id: product, operation_id: ingestion.data.operation_id });
     expect(status.data, JSON.stringify(status.data)).toMatchObject({ state: "succeeded" });
-    const assets = await call("list_visual_assets", { product_id: product }); asset = visualRecordSchema.parse((assets.data.items as unknown[])[0]); expect(asset.status).toBe("generated");
+    const assets = await call("list_visual_assets", { product_id: product }); asset = visualRecordSchema.parse((assets.data.items as unknown[])[0]); expect(asset.status).toBe("approved");
     expect((assets.data.items as { file: { mime_type: string } }[])[0].file.mime_type).toBe("image/webp");
     const again = await call("prepare_visual_asset_upload", { ...await preconditions(), iteration_id: iteration.id, mime_type: "image/png", size_bytes: bytes.length });
     const second = again.data.upload as { path: string; token: string }; await checked(db.storage.from("page-media").uploadToSignedUrl(second.path, second.token, bytes, { contentType: "image/png" }));
@@ -173,17 +172,17 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
       p_event: { ...event, event_id: randomUUID(), reported_by: "widget", url: "https://secret.test" } });
     expect(invalid.error).toBeTruthy();
   });
-  it("selección merchant proyecta portada; conserva feedback, historial y candidatos reutilizables", async () => {
+  it("selección MCP proyecta portada sin revisión adicional; conserva feedback, historial y candidatos reutilizables", async () => {
     const context = await call("get_visual_generation_context", { product_id: product });
     const target = (context.data.targets as { key: string; etag: string; value: { target: unknown } }[]).find(t => t.key === "gallery:cover")!;
     const bound = await call("bind_visual_asset", { ...await preconditions(), asset_id: asset.id, bindings: [{ target: target.value.target, target_etag: target.etag }] });
     const binding = visualRecordSchema.parse((bound.data.records as unknown[])[0]);
-    await expect(reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: binding.id, decision: "select" }, AbortSignal.timeout(30000))).rejects.toThrow("Aprueba la imagen");
+    expect(binding.status).toBe("selected");
     asset = await approve(asset);
     await reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: binding.id, decision: "select" }, AbortSignal.timeout(30000));
     const bridge = (await checked(db.from("page_images").select("*").eq("visual_binding_id", binding.id).single())).data;
     expect(bridge).toMatchObject({ status: "approved", slot: "cover", source: "upload" });
-    const workbench = await getVisualWorkbench(owner.userId, product); expect(workbench?.records.find(r => r.id === asset.id)?.reviews).toHaveLength(1);
+    const workbench = await getVisualWorkbench(owner.userId, product); expect(workbench?.records.find(r => r.id === asset.id)?.reviews).toHaveLength(0);
     expect((await call("get_visual_reuse_candidates", { product_id: product, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero" })).data.items).toHaveLength(1);
     expect((await call("get_visual_iteration_history", { product_id: product, plan_id: plan.id })).data.items).toHaveLength(1);
     await expect(reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: asset.id, decision: "archive" }, AbortSignal.timeout(30000))).rejects.toThrow("Quita los usos");
@@ -233,7 +232,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await call("list_visual_assets", { product_id: product })).data.items[0].validity.state).toBe("current");
     expect((await checked(db.from("ai_generations").select("*", { head: true, count: "exact" }).eq("product_id", product))).count).toBe(0);
   }, 30000);
-  it("drift granular, historial de intentos y reconciliación no heredan aprobación", async () => {
+  it("drift granular, historial de intentos y reconciliación queda aprobada al guardar", async () => {
     const oldPlan = plan.payload; const input = { ...await preconditions(), plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero", source_system: "chatgpt", resolved_instruction: "Nueva variante", parent_asset_id: asset.id };
     const next = await call("prepare_visual_iteration", input), it = visualRecordSchema.parse((next.data.records as unknown[])[0]);
     await call("record_visual_iteration_result", { ...await preconditions(), iteration_id: it.id, state: "failed", detail: "El generador externo no entregó un archivo" });
@@ -245,9 +244,9 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const updatedPlan = { name: oldPlan.name, strategy_id: oldPlan.strategy_id, identity_ref: { id: identity.id, version: identity.version, etag: identity.etag }, visual_system: oldPlan.visual_system,
       shots: (oldPlan.shots as Record<string, unknown>[]).map(s => Object.fromEntries(Object.entries(s).filter(([k]) => !["dependencies", "shot_hash", "shot_id", "shot_version"].includes(k)))) };
     const reconciled = await call("save_visual_reconciliation", { ...await preconditions(), plan_id: plan.id, plan: updatedPlan, resolutions: [{ shot_key: "hero", action: "retain", reason: "Se conserva la escena, y la descripción precisa la misma forma física" }] });
-    expect((reconciled.data.records as VisualRecord[])[0].status).toBe("review");
+    expect((reconciled.data.records as VisualRecord[])[0].status).toBe("approved");
     expect((await state()).history.length).toBeGreaterThan(context.history.length);
-    expect((await call("get_visual_reuse_candidates", { product_id: product, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero" })).data.items).toMatchObject([{ reuse: { compatible: false } }]);
+    expect((await call("get_visual_reuse_candidates", { product_id: product, plan_ref: { id: plan.id, version: plan.version, etag: plan.etag }, shot_key: "hero" })).data.items).toMatchObject([{ reuse: { compatible: true } }]);
   });
   it("un batch con referencia inválida revierte todas las versiones", async () => {
     const current = await state(), write = await preconditions();

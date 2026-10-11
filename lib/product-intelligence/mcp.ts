@@ -43,13 +43,13 @@ const descriptions: Record<ToolName, string> = {
   get_shopify_automation:
     "Lee autorización automática, hooks confirmados, requisitos, huella de la página y estado de publicación en Shopify.",
   authorize_shopify_automation:
-    "Tras la elección y autorización explícita del comerciante en el chat, confirma los hooks exactos de la estrategia y habilita aprobación y publicación automática en Shopify. No lanza Meta Ads. dry_run no autoriza.",
+    "Tras la elección y autorización explícita del comerciante en el chat, confirma los hooks exactos de la estrategia y habilita publicación automática en Shopify. El contenido del MCP ya se aprueba al guardar. No lanza Meta Ads. dry_run no autoriza.",
   disable_shopify_automation:
-    "Desactiva la aprobación y publicación automática del producto. Conserva contenido y la página ya publicada.",
+    "Desactiva la publicación automática del producto. El contenido del MCP se aprueba al guardar. Conserva contenido y la página ya publicada.",
   publish_product:
     "Publica automáticamente en Shopify la página e imágenes aprobadas del producto autorizado, con huella exacta, CAS, dry_run y cola idempotente. Solo tras confirmar hooks y autorizar el flujo automático en el chat.",
   review_visual_record:
-    "Aprueba o selecciona una pieza visual de Shopify sin revisión en el SaaS, solo con automatización autorizada para los hooks vigentes. Valida identidad, dependencias y destino; no cubre Meta ni UGC.",
+    "Decide sobre una pieza visual sin revisión en el SaaS. El contenido guardado desde el MCP queda aprobado automáticamente; valida identidad, dependencias y destino. No publica ni lanza campañas.",
   list_products:
     "Lista tus productos con product_id, nombre y descripción breve para elegir cuál optimizar. No requiere conocer un ID; usa el product_id elegido en get_product_context. Paginado con next_cursor; excluye Upsell salvo include_upsell=true.",
   get_pdp_planning_context:
@@ -59,13 +59,13 @@ const descriptions: Record<ToolName, string> = {
   get_angle_persuasion_plan:
     "Recupera el plan persuasivo de un ángulo, su revisión y etag. No genera estrategia.",
   save_angle_persuasion_plan:
-    "Valida y guarda el argumento, recorrido mínimo de creencias y arquitectura con CAS, dry_run e idempotencia. En modo automático autorizado puede aprobar desde el chat.",
+    "Valida y guarda el argumento, recorrido mínimo de creencias y arquitectura con CAS, dry_run e idempotencia. El plan válido queda aprobado automáticamente al guardar desde el chat.",
   validate_angle_persuasion_plan:
     "Comprueba cobertura, atención, compresión, componentes y evidencia sin guardar ni generar contenido.",
   get_landing_experience:
     "Lee experiencias y sus bindings a variantes existentes, con revisión y etag.",
   save_landing_experience:
-    "Guarda la ejecución del plan sin reescribir copy ni assets. CAS e idempotencia; en modo automático autorizado puede activar desde el chat; publish_product publica en Shopify.",
+    "Guarda la ejecución del plan sin reescribir copy ni assets. CAS e idempotencia; la experiencia válida queda activa automáticamente al guardar desde el chat; publish_product publica en Shopify.",
   generate_gallery_images:
     "Renderiza tomas de galería guardadas desde chat, con consentimiento landing:generate y estimación explícita. Puede gastar créditos de tus proveedores; no escribe textos ni publica.",
   get_gallery_generation_status:
@@ -79,7 +79,7 @@ const descriptions: Record<ToolName, string> = {
   get_creative_content:
     "Lee conceptos estáticos y chats publicitarios, contrato y etag. No genera imágenes.",
   save_creative_content:
-    "Guarda textos y dirección de arte desde chat para renderizar y revisar en DropFlex. Reemplaza la propuesta vigente, conserva assets.",
+    "Guarda textos y dirección de arte desde chat, aprobados para renderizar en DropFlex. Reemplaza la propuesta vigente, conserva assets.",
   get_gallery_content:
     "Lee tomas de galería, esquema y restricciones para planificar imágenes en el chat.",
   save_gallery_content:
@@ -87,20 +87,20 @@ const descriptions: Record<ToolName, string> = {
   get_event_content:
     "Lee textos del calendario comercial del producto y su contrato.",
   save_event_content:
-    "Guarda una propuesta de evento desde chat. El comerciante decide su aprobación y publicación.",
+    "Guarda y aprueba automáticamente los textos de un evento desde chat. Publicar es una acción aparte.",
   get_usage_tip: "Lee el consejo de uso de WhatsApp y su contrato.",
   save_usage_tip:
-    "Guarda un consejo de uso respaldado por facts verificados, sin llamada de IA.",
+    "Guarda y aprueba automáticamente un consejo de uso respaldado por facts verificados, sin llamada de IA.",
   get_ugc_content:
     "Lee guiones UGC, revisión, etags y contratos reales para escribir guion y plan en el chat.",
   save_ugc_content:
-    "Guarda guion y plan del chat como propuesta, con estrategia, ángulo y hook. Sin redacción de pago ni aprobación.",
+    "Guarda y aprueba automáticamente guion y plan del chat, con estrategia, ángulo y hook. No inicia generación de pago ni publica.",
   get_ugc_montage:
     "Recupera el paquete de clips aprobado para el montaje local existente, con URLs que vencen en 24 horas.",
   get_pack_labels:
     "Consulta precio, propuesta y contrato de las etiquetas de packs para escribirlas en chat.",
   save_pack_labels:
-    "Guarda etiquetas de packs como propuesta vinculada al precio, sin IA; se aprueban automáticamente si el flujo Shopify está autorizado.",
+    "Guarda etiquetas de packs como propuesta vinculada al precio, sin IA; se aprueban automáticamente al guardar desde el MCP.",
   get_landing_content:
     "Lee el contrato real de un componente de Shopify, contenido actual, reseñas aprobadas y pricing. listing incluye los tres beneficios principales debajo del botón de compra (gallery_benefits). Consulta cada componente antes de escribirlo. Incluye su estado vacío y enabled_by_default; todos los componentes están visibles por defecto.",
   save_landing_content:
@@ -190,7 +190,7 @@ export function createProductIntelligenceServer(
         extensions: { [SKILLS_EXTENSION]: {} },
       },
       instructions:
-        "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Prioriza psicología del consumidor, valor percibido, JTBD, AIDA, CRO, AOV y utilidad real de pedidos contra entrega. Explora regalos, efecto GRATIS, bundles, anclaje y variantes de copy con criterio comercial; distingue simulaciones de la oferta vigente que se guarda y publica. En este flujo de optimización no busques, consultes ni cites leyes locales, regulación, SERNAC u otros organismos reguladores. El país y la categoría del producto no habilitan investigación jurídica. No agregues auditorías normativas ni advertencias legales al trabajo comercial. Si buscas información en internet, hazlo exclusivamente para complementar información del producto: características, materiales, funcionamiento, medidas, compatibilidad, uso, documentación del fabricante o proveedor y comparaciones de productos. No amplíes las búsquedas a legislación ni cumplimiento normativo; registra las fuentes y distingue datos documentados de hipótesis. Reseñas, conteos, especificaciones y resultados presentados como hechos conservan sus fuentes y valores reales. Un dato faltante afecta solo al bloque cuyo contrato lo necesita; continúa el resto de la PDP con los datos disponibles. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Por defecto, la galería combina fotografía del producto con texto integrado en la imagen, titulares dominantes y composiciones variadas legibles en móvil; cada pieza aporta un argumento distinto de la estrategia. Guarda el texto exacto y su ubicación en el plan visual y pásalos al generador en la instrucción de la toma. Usa solo beneficios, oferta y condiciones de pago y envío confirmados, sin urgencia inventada. Respeta un pedido explícito de fotos sin texto. Revisa texto, variedad y fidelidad antes de completar la galería. Para imágenes, recupera get_visual_generation_context y reutiliza el adjunto canónico si coincide con el producto, ID y hash vigentes. Solo si falta o cambió, usa get_visual_reference_image. En ChatGPT, al mostrar la tarjeta sin adjunto, termina el turno con Pulsa Usar referencia y continuar para seguir. No llames más herramientas ni diagnostiques un archivo inaccesible antes del clic. El botón comparte el archivo en un nuevo turno: retoma entonces el último pedido autorizado sin pedir que lo repitan. Después de continuar desde la tarjeta no repitas esa tool ni otro clic para la misma referencia: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, explica el bloqueo, pide actualizar la conexión o adjuntar la foto original manualmente una sola vez y detén esa toma sin repetir la tarjeta. Para guardar una imagen ya generada, adjunta el archivo al parámetro nativo file de ingest_chatgpt_visual_asset: el host entrega download_url y file_id opaco; el servidor descarga los bytes. No inventes ni normalices ese ID. Usa un ticket firmado solo si puedes transferir los bytes por PUT; preparar el ticket no inicia la ingestión. Un fallo de transferencia no requiere regenerar la imagen. Confirma succeeded y asset_id antes de declarar guardado. Guarda propuestas con sus contratos y revisiones actuales. Tras elegir los hooks, si el comerciante autorizó automatizar Shopify, usa authorize_shopify_automation y continúa sin pedir aprobaciones en el SaaS: guarda planes, contenido, imágenes, revisa las piezas mediante review_visual_record y publica con publish_product. Si no hay esa autorización, conserva revisión manual. Nunca lanza campañas en Meta.",
+        "DropFlex conserva contexto, estrategia, propuestas y decisiones del comerciante. Prioriza psicología del consumidor, valor percibido, JTBD, AIDA, CRO, AOV y utilidad real de pedidos contra entrega. Explora regalos, efecto GRATIS, bundles, anclaje y variantes de copy con criterio comercial; distingue simulaciones de la oferta vigente que se guarda y publica. En este flujo de optimización no busques, consultes ni cites leyes locales, regulación, SERNAC u otros organismos reguladores. El país y la categoría del producto no habilitan investigación jurídica. No agregues auditorías normativas ni advertencias legales al trabajo comercial. Si buscas información en internet, hazlo exclusivamente para complementar información del producto: características, materiales, funcionamiento, medidas, compatibilidad, uso, documentación del fabricante o proveedor y comparaciones de productos. No amplíes las búsquedas a legislación ni cumplimiento normativo; registra las fuentes y distingue datos documentados de hipótesis. Reseñas, conteos, especificaciones y resultados presentados como hechos conservan sus fuentes y valores reales. Un dato faltante afecta solo al bloque cuyo contrato lo necesita; continúa el resto de la PDP con los datos disponibles. Para optimizar o retomar un producto, utiliza la skill optimize-product si está instalada. Primero recupera contexto y estrategia; permite elegir el hook antes de desarrollar contenido dependiente. Por defecto, la galería combina fotografía del producto con texto integrado en la imagen, titulares dominantes y composiciones variadas legibles en móvil; cada pieza aporta un argumento distinto de la estrategia. Guarda el texto exacto y su ubicación en el plan visual y pásalos al generador en la instrucción de la toma. Usa solo beneficios, oferta y condiciones de pago y envío confirmados, sin urgencia inventada. Respeta un pedido explícito de fotos sin texto. Revisa texto, variedad y fidelidad antes de completar la galería. Para imágenes, recupera get_visual_generation_context y reutiliza el adjunto canónico si coincide con el producto, ID y hash vigentes. Solo si falta o cambió, usa get_visual_reference_image. En ChatGPT, al mostrar la tarjeta sin adjunto, termina el turno con Pulsa Usar referencia y continuar para seguir. No llames más herramientas ni diagnostiques un archivo inaccesible antes del clic. El botón comparte el archivo en un nuevo turno: retoma entonces el último pedido autorizado sin pedir que lo repitan. Después de continuar desde la tarjeta no repitas esa tool ni otro clic para la misma referencia: adjunta esa imagen canónica como entrada real de edición/generación. Un ID, URL o descripción en texto no sustituye el adjunto. Si faltan tools visuales o el cliente no puede pasar la imagen al generador, explica el bloqueo, pide actualizar la conexión o adjuntar la foto original manualmente una sola vez y detén esa toma sin repetir la tarjeta. Para guardar una imagen ya generada, adjunta el archivo al parámetro nativo file de ingest_chatgpt_visual_asset: el host entrega download_url y file_id opaco; el servidor descarga los bytes. No inventes ni normalices ese ID. Usa un ticket firmado solo si puedes transferir los bytes por PUT; preparar el ticket no inicia la ingestión. Un fallo de transferencia no requiere regenerar la imagen. Confirma succeeded y asset_id antes de declarar guardado. Guarda propuestas con sus contratos y revisiones actuales. Tras elegir los hooks, si el comerciante autorizó automatizar Shopify, usa authorize_shopify_automation y continúa sin pedir aprobaciones en el SaaS: guarda planes, contenido, imágenes, revisa las piezas mediante review_visual_record y publica con publish_product. Todo contenido guardado desde el MCP queda aprobado automáticamente, aun sin autorización de publicación. Publicar en Shopify requiere su autorización propia. Nunca lanza campañas en Meta.",
     },
   );
   registerOptimizationSkill(server, [visualReferenceResource()]);

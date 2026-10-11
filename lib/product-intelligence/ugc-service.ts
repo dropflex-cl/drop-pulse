@@ -30,7 +30,7 @@ export const UGC_RULES = [
   "Los hechos aprobados, las hipótesis y la estrategia seleccionada siguen separados. Seleccionar no demuestra un ganador.",
   "Usa solo pruebas y precios vigentes. Sin testimonios inventados, experto ficticio, edad dicha ni resultados propios de la persona de IA.",
   "hook es la entrada de este video, una hipótesis vinculada al ángulo. landing_angle_id y landing_hook_id son los selectores URL df_angle/df_hook: usa los mismos en save_landing_content.",
-  "Guardar no aprueba ni genera. Revisa en Creativos > Videos; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
+  "Guardar desde el MCP aprueba el guion automáticamente; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
   "Para generar otras escenas con personaje pide K1 primero, o inclúyelo en el mismo lote. Los clips requieren todas las imágenes clave aprobadas.",
   "El montaje sigue siendo local: get_ugc_montage devuelve el paquete; sube el MP4 desde la UI y apruébalo antes de publicar o usarlo en Meta.",
 ];
@@ -160,7 +160,7 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
         artifact_etag: s.artifact_etag, final_status: s.final_status, has_final_video: Boolean(s.final_storage_path), approved: !!s.approved_at, status: s.status, provenance: s.provenance,
         cost_estimate_usd: s.payload ? scriptCost(s.payload) : null,
         ...(detailed ? { payload: s.payload, shots: read.shots.filter((x) => x.script_id === s.id).map((x) => ({ id: x.id, key: x.key, kind: x.kind, render_status: x.render_status, status: x.status, error: x.error_message, url: x.storage_path ? urls.get(x.storage_path) ?? null : null })) } : {}),
-        review_path: productHref(input.product_id, "creativos") })), contract: query.include_contract ? JSON.parse(JSON.stringify(z.toJSONSchema(chatUgcContent))) : null, rules: UGC_RULES, next_action: "Escribe guion y plan, valida con dry_run y guarda con save_ugc_content. Revisa en Creativos > Videos." } });
+        review_path: productHref(input.product_id, "creativos") })), contract: query.include_contract ? JSON.parse(JSON.stringify(z.toJSONSchema(chatUgcContent))) : null, rules: UGC_RULES, next_action: "Escribe guion y plan, valida con dry_run y guarda con save_ugc_content; queda aprobado automáticamente." } });
     }
     if (tool === "get_ugc_montage") {
       const query = parseToolInput(tool, command.input), script = scriptIn(read, query.script_id);

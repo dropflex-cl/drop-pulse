@@ -354,7 +354,7 @@
                 },
                 "approval": {
                   "type": "string",
-                  "const": "merchant_ui"
+                  "const": "automatic_on_mcp_save"
                 },
                 "reuse": {
                   "type": "boolean"

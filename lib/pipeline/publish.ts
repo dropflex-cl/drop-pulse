@@ -1,4 +1,5 @@
 import { assertVisualBindingsPublishable } from "@/lib/product-intelligence/visual-publication";
+import { ProductIntelligenceError } from "@/lib/product-intelligence/errors";
 import { prepareExperienceManifest } from "@/lib/product-intelligence/persuasion-publication";
 // Etapa Publicar (docs/spec-publicar.md): lleva a Shopify lo APROBADO de un producto.
 //   1. definiciones de metafields (una vez, PUBLIC_READ);
@@ -216,13 +217,23 @@ export async function preparePublish(
       : null;
   };
   const chosen = pageRows.filter((p) => p.status === "approved");
-  await assertVisualBindingsPublishable(
-    userId,
-    productId,
-    chosen
-      .map((p) => p.visual_binding_id)
-      .filter((id): id is string => Boolean(id)),
-  );
+  try {
+    await assertVisualBindingsPublishable(
+      userId,
+      productId,
+      chosen
+        .map((p) => p.visual_binding_id)
+        .filter((id): id is string => Boolean(id)),
+    );
+  } catch (error) {
+    // Una pieza pendiente no impide abrir Publicar: se muestra el requisito y startPublish lo
+    // rechaza antes de escribir. Los fallos de acceso o infraestructura sí se propagan.
+    if (
+      !(error instanceof ProductIntelligenceError) ||
+      !["VALIDATION_ERROR", "INVALID_REFERENCE"].includes(error.code)
+    ) throw error;
+    missing.push(`${error.message} Revisa las piezas visuales en Imágenes antes de publicar.`);
+  }
   const name = listing?.short_name ?? row.title;
   const cover = chosen.find((p) => p.slot === COVER);
   const gallery = chosen

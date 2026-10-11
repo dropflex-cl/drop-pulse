@@ -110,6 +110,19 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Shopify automático · consen
   for(const bucket of ["product-references","page-media"]) { const listed=await db.storage.from(bucket).list(`${owner.userId}/${product}`,{limit:1000});if(listed.data?.length)await checked(db.storage.from(bucket).remove(listed.data.map(f=>`${owner.userId}/${product}/${f.name}`))); }
   for(const id of users)await checked(db.auth.admin.deleteUser(id));for(const id of clients)await checked(db.auth.admin.oauth.deleteClient(id));vi.unstubAllEnvs();
  },20000);
+ it("OAuth guarda contenido aprobado sin autorizar publicación",async()=>{
+  expect(await policy()).toMatchObject({enabled:false,active:false});
+  const landing=await chatCall("get_landing_content",{product_id:product});
+  const saved=await chatCall("save_landing_content",{product_id:product,schema_version:"1.1",expected_revision:landing.revision,expected_landing_etag:landing.data.landing_etag,idempotency_key:randomUUID(),entries:[{component:"listing",content:listing}]});
+  expect(saved.data.components[0].status).toBe("approved");
+  const ref=(await chatCall("get_visual_generation_context",{product_id:product})).data.canonical_reference!;
+  const identity=await chatCall("save_visual_identity",{...await visualWrite(),identity:{...visualFixture().identityInput,canonical_reference_image_id:image,reference_content_hash:ref.content_hash}});
+  expect(identity.data.records[0]).toMatchObject({status:"approved"});
+  const state=await policy(); expect(state.active).toBe(false);
+  const denied=await db.rpc("pi_shopify_automation",{p_access:contextAccess(chat.principal,chat.identity),p_product_id:product,p_action:"publish",p_expected_revision:state.revision,p_key:randomUUID(),p_hash:"a".repeat(64),p_payload:{}});
+  expect(denied.error?.message).toBe("PI_FORBIDDEN");
+  expect(await count("product_publications")).toBe(0);
+ });
  it("sin elección exacta no autoriza; dry run no crea consentimiento",async()=>{
   expect(await policy()).toMatchObject({enabled:false,active:false});
   const i=await authorize();originalAuthorization=i;
@@ -136,7 +149,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Shopify automático · consen
   const proposal = { ...visualFixture().identityInput, canonical_reference_image_id: image, reference_content_hash: ref.content_hash };
   // Una propuesta previa existe antes de continuar en el modo automático autorizado.
   const previous = await call("save_visual_identity", { ...await visualWrite(), identity: proposal });
-  const previousIdentity = visualRecordSchema.parse(previous.data.records[0]); expect(previousIdentity.status).toBe("review");
+  const previousIdentity = visualRecordSchema.parse(previous.data.records[0]); expect(previousIdentity.status).toBe("approved");
   const saved=await chatCall("save_visual_identity",{...await visualWrite(),identity:proposal});
   identity=visualRecordSchema.parse((saved.data.records as unknown[])[0]);expect(identity.status).toBe("approved"); expect(identity.version).toBe(previousIdentity.version + 1);
   const value=visualFixture().plan;value.strategy_id=plan.strategy_id;value.identity_ref={id:identity.id,version:identity.version,etag:identity.etag};value.shots[0].angle_id=plan.angle_id;
@@ -147,8 +160,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Shopify automático · consen
   const upload=ticket.data.upload as {path:string;token:string};await checked(db.storage.from("page-media").uploadToSignedUrl(upload.path,upload.token,bytes,{contentType:"image/png"}));
   const ingested=await chatCall("ingest_external_visual_asset",{...await visualWrite(),iteration_id:it.id,source:{type:"upload_ticket",ticket_id:ticket.data.operation_id}});
   await runVisualIngestion(String(ingested.data.operation_id));
-  asset=visualRecordSchema.parse((await chatCall("list_visual_assets",{product_id:product})).data.items[0]);expect(asset.status).toBe("generated");
-  asset=visualRecordSchema.parse((await chatCall("review_visual_record",{...await visualWrite(),record_id:asset.id,decision:"approve",reason:"La fixture conserva la identidad",tags:["good_product_fidelity"]})).data.records[0]);expect(asset.status).toBe("approved");
+  asset=visualRecordSchema.parse((await chatCall("list_visual_assets",{product_id:product})).data.items[0]);expect(asset.status).toBe("approved");
+  expect(asset.payload.approval_source).toBe("mcp");
   const target=(await chatCall("get_visual_generation_context",{product_id:product})).data.targets.find(t=>t.key==="gallery:cover")!;
   const binding=visualRecordSchema.parse((await chatCall("bind_visual_asset",{...await visualWrite(),asset_id:asset.id,bindings:[{target:target.value.target,target_etag:target.etag}]})).data.records[0]);
   await chatCall("review_visual_record",{...await visualWrite(),record_id:binding.id,decision:"select",reason:"Portada de prueba"});
@@ -170,7 +183,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Shopify automático · consen
  it("precio/mercado cambiado invalida la autorización; read-only no concede decisiones",async()=>{
   expect((await policy({...contextAccess(chat.principal,chat.identity),scopes:["product_intelligence:read"]})).active).toBe(false);
   await checked(db.from("products").update({currency:"USD"}).eq("id",product));expect((await policy()).active).toBe(false);
-  await expect(chatCall("review_visual_record",{...await visualWrite(),record_id:asset.id,decision:"approve"})).rejects.toMatchObject({code:"FORBIDDEN"});
+  expect(await chatCall("review_visual_record",{...await visualWrite(),record_id:asset.id,decision:"approve"})).toMatchObject({ok:true});
+  await expect(call("review_visual_record",{...await visualWrite(),record_id:asset.id,decision:"approve"},{...chat.principal,scopes:["product_intelligence:read"]},chat.runner)).rejects.toMatchObject({code:"FORBIDDEN"});
   await checked(db.from("products").update({currency:"CLP"}).eq("id",product));expect((await policy()).active).toBe(true);
  });
  it("colas idempotentes, lease y revocación real impiden publicar sin autorización",async()=>{

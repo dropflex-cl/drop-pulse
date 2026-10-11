@@ -27,7 +27,7 @@ export function ugcOutputs<E extends z.ZodType>(error: E) {
     get: z.union([fail, z.strictObject({ ...base, data: z.strictObject({ ugc_etag: etag, scripts: z.array(z.record(z.string(), z.unknown())).max(24), next_cursor: z.string().nullable(), truncated: z.boolean(),
       contract: z.record(z.string(), z.unknown()).nullable(), rules: z.array(z.string()), next_action: z.string() }) })]),
     save: z.union([fail, z.strictObject({ ...base, data: z.strictObject({ applied: z.boolean(), dry_run: z.boolean(), script_id: uuid.nullable(),
-      ugc_etag: etag, artifact_etag: etag.nullable(), status: z.literal("in_review"), next_action: z.string() }) })]),
+      ugc_etag: etag, artifact_etag: etag.nullable(), status: z.literal("approved"), next_action: z.string() }) })]),
     montage: z.union([fail, z.strictObject({ ...base, data: z.strictObject({ package: z.record(z.string(), z.unknown()), next_action: z.string() }) })]),
   };
 }

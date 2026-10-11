@@ -1,4 +1,4 @@
-import { automationActive } from "./automation-active";
+import { approveMcpVisual, selectMcpBindings } from "./mcp-approval";
 import { ensureVisualRenditions } from "./visual-renditions";
 import { visualTargetSchema } from "./visual-schemas";
 import "server-only";
@@ -78,7 +78,6 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       return result;
     }
     const state = await hydrateVisualState(raw, principal, input.product_id);
-    const automatic = writing && await automationActive(repository, principal, input.product_id, identity, signal);
     const base = { ok: true as const, request_id: randomUUID(), product_id: input.product_id, revision: state.revision };
     const common = { etag: state.etag, dependency_stamp: state.dependency_stamp };
     const cursorAt = (next: number) => `${state.snapshot_id!}.${signContextCursor({ binding: vHash({ queryHash, sid: state.snapshot_id! }), revision: state.revision, offset: next,
@@ -143,8 +142,8 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         return output({ product: k.product, context: k.context, pricing: k.pricing, policies: k.policies,
           selected_strategy: strategy ? { id: strategy.id, state: strategy.state, readiness: strategy.readiness, positioning: object.parse(strategy.snapshot).positioning, rationale: object.parse(strategy.snapshot).rationale } : null,
           canonical_reference: canonical ? { ...canonical, ...object.parse(referenceInfo) } : null, identity: state.records.find(r => r.kind === "identity" && r.status !== "archived") ?? null,
-          context_records: contextPage, targets: state.targets.slice(0, 50).map(t => ({ key: t.key, etag: t.etag, value: { target: object.parse(t.value).target } })), capabilities: { generation: "external_only", ingestion: ["chatgpt_file", "remote_url", "upload_ticket"], approval: "merchant_ui", reuse: true, max_upload_bytes: VISUAL_LIMITS.uploadBytes, max_pixels: VISUAL_LIMITS.maxPixels, max_plans: VISUAL_LIMITS.plans, max_shots: VISUAL_LIMITS.shots, max_assets: VISUAL_LIMITS.assets },
-          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Las imágenes de la tienda, incluida la portada, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. Si cambian la oferta o las políticas consumidas, revisa las tomas dependientes.", "Reutiliza el adjunto si coincide con producto, ID y content_hash canónicos. Solo si falta o cambió, lee get_visual_reference_image. En ChatGPT, mostrar la tarjeta sin adjunto exige terminar el turno y esperar la continuación del botón; no diagnostiques un fallo antes del clic. En el nuevo turno debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Con automatización autorizada, identidad y plan se aprueban al guardar. prepare_visual_iteration congela la toma y la referencia.", "Adjunta el archivo generado al parámetro nativo file de ingest_chatgpt_visual_asset; el host entrega download_url y file_id opaco y el servidor descarga los bytes. No reconstruyas el ID ni el objeto desde el nombre o enlace mostrado. Si el host no permite file params, usa una URL HTTPS descargable o un ticket firmado solo si el entorno puede hacer el PUT. Un ticket pending no inicia ingestión. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado."] });
+          context_records: contextPage, targets: state.targets.slice(0, 50).map(t => ({ key: t.key, etag: t.etag, value: { target: object.parse(t.value).target } })), capabilities: { generation: "external_only", ingestion: ["chatgpt_file", "remote_url", "upload_ticket"], approval: "automatic_on_mcp_save", reuse: true, max_upload_bytes: VISUAL_LIMITS.uploadBytes, max_pixels: VISUAL_LIMITS.maxPixels, max_plans: VISUAL_LIMITS.plans, max_shots: VISUAL_LIMITS.shots, max_assets: VISUAL_LIMITS.assets },
+          next_steps: ["Lee las páginas de context_records antes de crear el brief.", "Las imágenes de la tienda, incluida la portada, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. Si cambian la oferta o las políticas consumidas, revisa las tomas dependientes.", "Reutiliza el adjunto si coincide con producto, ID y content_hash canónicos. Solo si falta o cambió, lee get_visual_reference_image. En ChatGPT, mostrar la tarjeta sin adjunto exige terminar el turno y esperar la continuación del botón; no diagnostiques un fallo antes del clic. En el nuevo turno debes ver la imagen y adjuntarla como entrada del generador; no basta su descripción ni URL en texto.", "Identidad, plan e imágenes guardados desde el MCP se aprueban automáticamente. bind_visual_asset selecciona su uso al guardar. prepare_visual_iteration congela la toma y la referencia.", "Adjunta el archivo generado al parámetro nativo file de ingest_chatgpt_visual_asset; el host entrega download_url y file_id opaco y el servidor descarga los bytes. No reconstruyas el ID ni el objeto desde el nombre o enlace mostrado. Si el host no permite file params, usa una URL HTTPS descargable o un ticket firmado solo si el entorno puede hacer el PUT. Un ticket pending no inicia ingestión. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado."] });
       }
       if (tool === "get_visual_identity" || tool === "get_visual_generation_plan") {
         const q = tool === "get_visual_identity" ? visualInputSchemas.get_visual_identity.parse(input) : visualInputSchemas.get_visual_generation_plan.parse(input);
@@ -218,7 +217,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         }); break;
       }
       case "unbind_visual_asset": { const q = visualInputSchemas[tool].parse(input);
-        records = q.binding_ids.map(id => { const b = findVisual(state, id, "binding"); if (b.status === "selected") invalidVisual("Quita la selección en DropFlex antes de archivar el uso.", "VALIDATION_ERROR"); return makeVisualRecord(state, "binding", { ...b.payload, archived_at: new Date().toISOString() }, "archived", id); }); break; }
+        records = q.binding_ids.map(id => { const b = findVisual(state, id, "binding"); return makeVisualRecord(state, "binding", { ...b.payload, archived_at: new Date().toISOString() }, "archived", id); }); break; }
       case "prepare_visual_asset_upload": { const q = visualInputSchemas[tool].parse(input), it = findVisual(state, q.iteration_id, "iteration"); assertCurrent(it, state);
         operation = { id: randomUUID(), kind: "upload", iteration_id: it.id, source: { path: `${principal.userId}/${q.product_id}/visual-upload-${randomUUID()}.${q.mime_type.split("/")[1]}`, mime_type: q.mime_type, size_bytes: q.size_bytes, cleanup_after: new Date(Date.now() + 3 * 60 * 60000).toISOString() } }; break; }
       case "ingest_chatgpt_visual_asset": case "ingest_external_visual_asset": {
@@ -236,20 +235,22 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
       }
       default: throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación no guarda propuestas.");
     }
-    if (automatic) records = records.map(record => {
-      const strategy = state.live[`strategy:${record.payload.strategy_id}`];
-      if (record.kind !== "identity" && !(record.kind === "plan" && strategy && !strategy.blocked && (record.payload.shots as { channel: string }[]).every(s => ["pdp", "gallery"].includes(s.channel)))) return record;
+    records = records.map(record => {
+      if (!["identity", "plan"].includes(record.kind)) return record;
       if (record.kind === "plan") {
         const readiness = visualPlanReadiness(record, state);
         const blockers = readiness.reasons.filter(reason => reason.code !== "plan_not_approved");
         if (blockers.length) throw new ProductIntelligenceError("VALIDATION_ERROR", blockers[0].message,
           { missing_fields: blockers.map(reason => reason.code), next_action: readiness.next_action });
       }
-      const status = "approved";
-      return state.records.some(head => head.id === record.id)
-        ? makeVisualRecord(state, record.kind, record.payload, status, record.id)
-        : { ...record, status, etag: vHash({ kind: record.kind, status, payload: record.payload, version: record.version }) };
+      return approveMcpVisual(record);
     });
+    if (tool === "bind_visual_asset" || tool === "save_visual_binding_suggestions") {
+      records = selectMcpBindings(state, records);
+      if (!input.dry_run) for (const binding of records.filter(r => r.kind === "binding" && r.status === "selected")) {
+        await ensureVisualRenditions(state, findVisual(state, String(binding.payload.asset_id), "asset"), visualTargetSchema.parse(binding.payload.target), principal.userId);
+      }
+    }
     const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: persistedTool, p_expected_revision: input.expected_revision,
       p_etag: input.expected_etag, p_stamp: input.expected_dependency_stamp, p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run, p_operation: operation }, signal));
     if (result.ok && !input.dry_run && "operation_id" in result.data && typeof result.data.operation_id === "string") {
@@ -284,31 +285,20 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
   };
 }
 
-/** La UI revisa manualmente; MCP necesita una autorización automática vigente para Shopify. */
+/** Las decisiones explícitas del MCP tienen el mismo alcance de contenido que las de la UI. */
 export async function reviewVisualRecord(repository: VisualRepository, principal: Principal, raw: unknown, signal: AbortSignal, identity?: DelegatedIdentity, fromChat = false) {
   requireScopes(principal, ["product_intelligence:read", "product_intelligence:write"]);
   if (principal.actorKind === "delegated" && !identity) throw new ProductIntelligenceError("FORBIDDEN", "La revisión requiere una conexión delegada vigente.");
   if (!visualEnabled()) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La producción visual no está habilitada.");
   const input = visualReviewInput.parse(raw);
-  if ((fromChat || principal.actorKind !== "merchant") && !await automationActive(repository, principal, input.product_id, identity, signal))
-    throw new ProductIntelligenceError("FORBIDDEN", "Confirma los hooks y autoriza el flujo automático en el chat antes de aprobar piezas.");
   const access = contextAccess(principal, identity), hash = vHash({ tool: "review_visual_record", input });
   const loaded = await repository.loadVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_key: input.idempotency_key, p_hash: hash, p_dry_run: input.dry_run }, signal);
   const replay = object.parse(loaded); if (replay.replay) return replay.replay;
   const state = await hydrateVisualState(loaded, principal, input.product_id), current = findVisual(state, input.record_id);
   if (input.expected_etag !== current.etag && input.expected_etag !== state.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de decidir.");
   if (input.expected_revision !== state.revision || input.expected_dependency_stamp !== state.dependency_stamp) throw new ProductIntelligenceError("REVISION_CONFLICT", "El contexto cambió. Recupéralo antes de decidir.");
-  if (fromChat || principal.actorKind !== "merchant") {
-    const target = current.payload.target as { type?: string } | undefined;
-    const asset = current.kind === "binding" ? findVisual(state, String(current.payload.asset_id), "asset") : current.kind === "asset" ? current : null;
-    const plan = current.kind === "plan" ? current : asset ? findVisual(state, (asset.payload.plan_ref as { id: string }).id, "plan", asset.payload.plan_ref as { id: string; version: number; etag: string }) : null;
-    const strategy = plan ? state.live[`strategy:${plan.payload.strategy_id}`] : null;
-    if ((target && !["gallery_shot", "landing_section"].includes(target.type ?? "")) || (plan && (!strategy || strategy.blocked || !(plan.payload.shots as { channel: string }[]).every(s => ["pdp", "gallery"].includes(s.channel)))))
-      throw new ProductIntelligenceError("FORBIDDEN", "La autorización automática solo cubre imágenes de Shopify.");
-    // Una aprobación automática no convierte dependencias obsoletas en comprobadas.
-    if (input.decision === "approve" || input.decision === "select") assertCurrent(current, state);
-  }
-  const records = prepareVisualReview(state, input);
+  const records = prepareVisualReview(state, input).map(record =>
+    fromChat && ["approve", "select"].includes(input.decision) && record.id === current.id ? approveMcpVisual(record) : record);
   if (input.decision === "select" && !input.dry_run) await ensureVisualRenditions(state, findVisual(state, String(current.payload.asset_id), "asset"), visualTargetSchema.parse(current.payload.target), principal.userId);
   return repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: "review_visual_record", p_expected_revision: input.expected_revision,
     p_etag: input.expected_etag, p_stamp: input.expected_dependency_stamp, p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run }, signal);

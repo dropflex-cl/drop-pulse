@@ -53,9 +53,9 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
   });
   it("propuesta generada, snapshot exacto, revisión/audit atómicos; cero AI/publicación", async () => {
     await price(); const i = await input(), r = await call("save_pack_labels", i);
-    expect(r).toMatchObject({ revision: i.expected_revision + 1, data: { status: "generated", applied: true } });
+    expect(r).toMatchObject({ revision: i.expected_revision + 1, data: { status: "approved", applied: true } });
     const row = (await checked(db.from("pack_labels").select("*").eq("product_id", product).single())).data!;
-    expect(row).toMatchObject({ source: "mcp_chat", model: "chat", status: "generated", provenance: { analysis_revision: i.expected_revision, actor_id: owner.userId } });
+    expect(row).toMatchObject({ source: "mcp_chat", model: "chat", status: "approved", provenance: { analysis_revision: i.expected_revision, actor_id: owner.userId } });
     expect(row.provenance.snapshot.pricing).toBeTruthy(); expect(row.prices.map((p: { units: number }) => p.units)).toEqual([1, 2, 3]);
     const audit = (await checked(db.from("pi_audit_events").select("operation,actor_id").eq("product_id", product).eq("operation", "pack_labels_propose").single())).data!;
     expect(audit.actor_id).toBe(owner.userId); expect(await count("ai_generations")).toBe(0); expect(await count("product_publications")).toBe(0);
@@ -86,7 +86,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
   });
   it("UI aprueba/reabre sin IA; contexto solo consume etiquetas aprobadas", async () => {
     await price(); await call("save_pack_labels", await input());
-    const before = await call("get_product_context", { product_id: product }); expect(JSON.stringify(before)).not.toContain("Uno para ti");
+    const before = await call("get_product_context", { product_id: product }); expect(JSON.stringify(before)).toContain("Uno para ti");
     await approve(); expect(await current()).toMatchObject({ status: "approved" });
     const after = await call("get_product_context", { product_id: product }); expect(JSON.stringify(after)).toContain("Uno para ti");
     await approve("reopen"); expect(await current()).toMatchObject({ status: "in_review" }); expect(await count("ai_generations")).toBe(0);
@@ -95,7 +95,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     await price(); await call("save_pack_labels", await input()); const old = (await read()).data.pack_labels_etag, id = (await current()).id;
     await call("save_pack_labels", { ...await input(), labels: labels.map((l) => ({ ...l, label: "Para regalar" })) });
     await expect(approve("approve", old)).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
-    expect(await current()).toMatchObject({ status: "generated" });
+    expect(await current()).toMatchObject({ status: "approved" });
     const historical = (await checked(db.from("pack_labels").select("superseded_at").eq("id", id).single())).data!; expect(historical.superseded_at).toBeTruthy();
     const etag = (await read()).data.pack_labels_etag; await price(5000);
     await expect(approve("approve", etag)).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });

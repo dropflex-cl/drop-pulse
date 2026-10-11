@@ -128,22 +128,22 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     const saved=await saveBasicContext(owner.userId,product,{description:"Organizador con compartimentos."},2);
     expect(saved).toMatchObject({expected_revision:5,expected_context_revision:2});
   });
-  it("consejo requiere aprobación exacta y deja de usarse cuando cambia su evidencia",async()=>{
+  it("consejo MCP se aprueba al guardar y deja de usarse si se revoca su evidencia",async()=>{
     await call("save_usage_tip",{...await input("get_usage_tip"),content:{text:"Separa tus útiles en los compartimentos del organizador.",basis:"Compartimentos comprobados",fact_ids:[fact]}});
     const repo=createContextRepository(db),args={p_access:contextAccess(owner),p_product_id:product};
-    const r=await repo.loadTipReview!(args,signal()) as {usable:boolean;content_etag:string};expect(r.usable).toBe(false);
+    const r=await repo.loadTipReview!(args,signal()) as {usable:boolean;content_etag:string};expect(r.usable).toBe(true);
     await expect(reviewUsageTip(repo,owner,product,"approve","a".repeat(64))).rejects.toMatchObject({code:"ARTIFACT_CONFLICT"});
     await reviewUsageTip(repo,owner,product,"approve",r.content_etag);expect(await repo.loadTipReview!(args,signal())).toMatchObject({usable:true});
     const context=await call("get_product_context",{product_id:product});if(!context.ok)throw context;
     await call("save_research",{product_id:product,schema_version:"1.0",expected_revision:context.revision,idempotency_key:randomUUID(),facts:[{id:fact,usage_status:"prohibited",reason:"Nueva revisión"}]});
     expect(await repo.loadTipReview!(args,signal())).toMatchObject({usable:false});
   });
-  it("evento existente crea propuesta sin aprobar ni publicar, y rechaza evento ajeno al calendario",async()=>{
+  it("evento existente queda aprobado al guardar sin publicar, y rechaza evento ajeno al calendario",async()=>{
     const event=(await checked(db.from("events").select("id").eq("status","published").limit(1).single())).data!;
     const content={event_id:event.id,fact_ids:[fact],content:{announcement:"Organiza tu espacio para esta temporada",subtitle:"Dale un lugar a los útiles de tu escritorio y encuentra cada cosa cuando la necesitas.",badge_label:"TEMPORADA"}};
     await expect(call("save_event_content",{...await input("get_event_content"),content:{...content,event_id:randomUUID()}})).rejects.toMatchObject({code:"INVALID_REFERENCE"});
     await call("save_event_content",{...await input("get_event_content"),content});
-    expect((await checked(db.from("event_copy").select("status,content,model").eq("product_id",product).single())).data).toMatchObject({status:"generated",content:null,model:"chat"});
+    expect((await checked(db.from("event_copy").select("status,content,model").eq("product_id",product).single())).data).toMatchObject({status:"approved",content:content.content,model:"chat"});
   });
   it("métricas vacías son explícitas; no permite aprendizaje concluyente sin datos",async()=>{
     const m=await metrics();expect(m.data).toMatchObject({groups:[],cod:null,attribution:"product_campaigns_only"});

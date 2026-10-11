@@ -49,8 +49,11 @@ export function visualValidity(dependencies: readonly VisualDependency[], state:
   return visualValiditySchema.parse({ state: blocked ? "blocked" : reasons.length ? "needs_review" : "current", reasons: reasons.slice(0, 100) });
 }
 export function recordValidity(r: VisualRecord, state: VisualState): VisualValidity {
+  // La aprobación del contenido recibido por MCP no se reabre al cambiar precio, estrategia o
+  // políticas. La revocación o eliminación de una dependencia sigue bloqueando su uso.
   const ds = (r.payload.validity_dependencies ?? r.payload.dependencies) as VisualDependency[] | undefined;
-  return visualValidity(ds ?? [], state);
+  const validity = visualValidity(ds ?? [], state);
+  return r.payload.approval_source === "mcp" && validity.state === "needs_review" ? { state: "current", reasons: [] } : validity;
 }
 export function assertCurrent(r: VisualRecord, state: VisualState) {
   if (recordValidity(r, state).state !== "current") invalidVisual("El contenido cambió o necesita revisión antes de usarlo.", "VALIDATION_ERROR");

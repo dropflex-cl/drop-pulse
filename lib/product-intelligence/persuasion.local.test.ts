@@ -725,14 +725,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
     });
     it("OAuth real conserva overrides de copy y experiencia; revocar impide incluso replay", async () => {
       const agent = await delegated();
-      await expect(
-        call(
-          "save_landing_experience",
-          await experienceInput(),
-          agent.principal,
-          agent.runner,
-        ),
-      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(await call("save_landing_experience", await experienceInput(), agent.principal, agent.runner)).toMatchObject({ok:true});
       experience = {
         ...experience,
         sections: experience.sections.map((s) =>

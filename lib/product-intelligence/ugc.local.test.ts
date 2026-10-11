@@ -73,10 +73,10 @@ local("UGC · persistencia y cola local", () => {
     expect(validate(i.content),JSON.stringify(validate.errors)).toBe(true);
     expect(await call("save_ugc_content",{...i,dry_run:true})).toMatchObject({data:{applied:false,script_id:null,dry_run:true}});
     expect(await count("video_scripts")).toBe(before);
-    const r=await call("save_ugc_content",i);expect(r).toMatchObject({revision:6,data:{status:"in_review",applied:true}});
+    const r=await call("save_ugc_content",i);expect(r).toMatchObject({revision:6,data:{status:"approved",applied:true}});
     if(!r.ok||!r.data.script_id)throw r;
     const row=(await checked(db.from("video_scripts").select("*").eq("id",r.ok?r.data.script_id:"").single())).data!;
-    expect(row).toMatchObject({source:"mcp_chat",model:"chat",approved_at:null,provenance:{strategy_id:strategy,angle_id:angle,landing_hook_id:"lost-pencil"}});
+    expect(row).toMatchObject({source:"mcp_chat",model:"chat",approved_at:expect.any(String),provenance:{strategy_id:strategy,angle_id:angle,landing_hook_id:"lost-pencil"}});
     const detail=await call("get_ugc_content",{product_id:product,script_id:r.data.script_id,include_contract:true});
     expect(detail).toMatchObject({ok:true,data:{scripts:[{id:r.data.script_id,payload:row.payload}],contract:expect.any(Object)}});
     expect(await count("ai_generations")).toBe(0);expect(await count("pi_ugc_operations")).toBe(0);
@@ -98,9 +98,9 @@ local("UGC · persistencia y cola local", () => {
     const anon=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!);
     expect((await anon.rpc("pi_load_ugc",{p_access:contextAccess(owner),p_product_id:product})).error?.code).toBe("42501");
   });
-  it("no genera sin revisión; dry_run calcula y no crea operation, shot o receipt",async()=>{
+  it("guion aprobado desde MCP permite generar; dry_run calcula y no crea operation, shot o receipt",async()=>{
     const r=await saved(),id=r.data.script_id!;
-    await expect(call("generate_ugc",await renderInput(id))).rejects.toMatchObject({code:"EXECUTION_NOT_READY"});await approve(id);
+    expect((await read()).data.scripts.find(s=>s.id===id)?.approved).toBe(true);
     const countBefore=await count("pi_idempotency_records");
     expect(await call("generate_ugc",{...await renderInput(id),dry_run:true})).toMatchObject({data:{dry_run:true,max_output_items:1,will_call_providers:["higgsfield"]}});
     expect(await count("pi_ugc_operations")).toBe(0);expect(await count("video_shots")).toBe(0);expect(await count("pi_idempotency_records")).toBe(countBefore);

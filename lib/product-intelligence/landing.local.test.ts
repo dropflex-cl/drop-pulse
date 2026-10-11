@@ -203,7 +203,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         revision: initial.expected_revision,
         data: {
           applied: true,
-          components: [{ status: "generated" }, { status: "generated" }],
+          components: [{ status: "approved" }, { status: "approved" }],
         },
       });
       const rows = (
@@ -632,7 +632,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         )
       ).data!;
       expect(rows).toHaveLength(CATALOG.length + 1);
-      expect(rows.every((r) => r.status === "generated")).toBe(true);
+      expect(rows.every((r) => r.status === "approved")).toBe(true);
       expect(
         rows.filter((r) => r.component !== benefit.id).every((r) => r.enabled),
       ).toBe(true);

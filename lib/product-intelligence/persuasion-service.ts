@@ -1,4 +1,4 @@
-import { automationActive, shopifyStrategyRead } from "./automation-active";
+import { shopifyStrategyRead } from "./automation-active";
 import { imagePickSchema } from "@/lib/copy/variants";
 import { contentVariants } from "@/lib/copy/variants";
 import "server-only";
@@ -60,9 +60,8 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     if (writing && raw && typeof raw === "object" && "replay" in raw) return parseToolOutput(tool, raw.replay);
     const state = persuasionReadSchema.parse(raw);
     if (!state.enabled) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
-    const automatic = await automationActive(repository, principal, input.product_id, identity, signal);
     const currentRead = parseKnowledgeRead(state.knowledge, principal, input.product_id);
-    const read = automatic ? await shopifyStrategyRead(repository, currentRead, principal, input.product_id, identity, signal) : currentRead;
+    const read = await shopifyStrategyRead(repository, currentRead, principal, input.product_id, identity, signal);
     const base = { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID() };
     if (tool === "get_component_catalog") return parseToolOutput(tool, { ...base, data: { catalog: componentCapabilityCatalog(state.landing.review_count) } });
     if (tool === "get_landing_experience") {
@@ -103,17 +102,17 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     if (write.expected_planning_stamp !== state.planning_stamp) throw new ProductIntelligenceError("REVISION_CONFLICT", "El contexto de la página cambió. Recupera el recorrido y concilia tu decisión.");
     let issues: ReturnType<typeof validatePersuasionPlan>, id: string | null, payload: AnglePersuasionPlan | typeof state.experiences[number]["payload"];
     if (tool === "save_angle_persuasion_plan") {
-      const request = parseToolInput(tool, command.input); id = request.plan_id; payload = request.plan;
+      const request = parseToolInput(tool, command.input); id = request.plan_id;
+      request.plan.status = request.plan.status === "archived" ? "archived" : "approved"; payload = request.plan;
       issues = validatePersuasionPlan(request.plan, persuasionValidationContext(state, principal, input.product_id, request.plan.strategy_id, read));
-      if (request.plan.status === "approved" && principal.actorKind !== "merchant" && (!automatic || request.plan.strategy_id !== read.currentActiveStrategyId)) throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede aprobar el plan.");
       blockIssues(issues, ["review", "approved"].includes(request.plan.status));
       // Un plan consumido es inmutable: se crea otra variante sin cambiar experiencias activas.
       if (id && state.experiences.some(e => e.payload.persuasion_plan_id === id && e.payload.status === "active")) throw new ProductIntelligenceError("DEPENDENCY_IN_USE", "Crea otro plan o archiva las experiencias activas antes de cambiarlo.");
     } else {
-      const request = parseToolInput(tool, command.input); id = request.experience_id; payload = request.experience;
+      const request = parseToolInput(tool, command.input); id = request.experience_id;
+      request.experience.status = request.experience.status === "archived" ? "archived" : "active"; payload = request.experience;
       const plan = state.plans.find(p => p.id === request.experience.persuasion_plan_id);
       if (!plan) throw new ProductIntelligenceError("INVALID_REFERENCE", "El plan no pertenece a este producto.");
-      if (request.experience.status === "active" && principal.actorKind !== "merchant" && (!automatic || request.experience.strategy_id !== read.currentActiveStrategyId)) throw new ProductIntelligenceError("FORBIDDEN", "Solo el comerciante puede activar una experiencia.");
       issues = validateLandingExperience(request.experience, plan.payload, plan.revision,
         persuasionValidationContext(state, principal, input.product_id, plan.payload.strategy_id, read));
       blockIssues(issues, ["review", "active"].includes(request.experience.status));

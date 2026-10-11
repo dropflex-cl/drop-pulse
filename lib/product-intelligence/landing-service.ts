@@ -200,7 +200,7 @@ export function createLandingExecutor(
             ? fromRow(read.snapshot.settings)
             : null,
           next_action:
-            "Escribe usando este contrato y get_product_context/get_product_strategy. Con automatización Shopify activa, save_landing_content aprueba el contenido; completa imágenes y publica con publish_product. Sin ella, revisa en DropFlex.",
+            "Escribe usando este contrato y get_product_context/get_product_strategy. save_landing_content aprueba el contenido automáticamente al guardar desde el MCP. Completa imágenes; publicar con publish_product requiere autorización propia.",
         },
       });
     }
