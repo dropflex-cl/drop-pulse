@@ -1,0 +1,11 @@
+{%- assign df_product = closest.product | default: product -%}
+{% render 'df-google-rating', product: df_product %}
+
+{% schema %}
+{
+  "name": "Valoración de Google",
+  "tag": null,
+  "settings": [],
+  "presets": [{ "name": "Valoración de Google" }]
+}
+{% endschema %}

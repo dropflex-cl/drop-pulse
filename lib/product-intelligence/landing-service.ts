@@ -163,7 +163,7 @@ export function createLandingExecutor(
                 ]
               : [
                   "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",
-                  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto bajo el botón de compra, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy y hechos aprobados y verificados.",
+                  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto antes del selector de packs, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy y hechos aprobados y verificados.",
                   "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. No inventes certificaciones, resultados ni cifras. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
                 ],
             forbidden: c?.forbidden ?? [

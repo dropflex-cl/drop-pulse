@@ -1,39 +1,17 @@
 {%- doc -%}
-  Apoyos permanentes antes y después del botón, sin depender de bloques editables.
-  El enlace al PDF nunca se imprime en la ficha pública.
+  Estado de reseñas compartido por los componentes de la página.
+  Google y beneficios se dibujan en sus bloques, antes del título y de los packs.
   @param {object} product
   @param {string} position
   @param {object} section
 {%- enddoc -%}
-{%- if product != blank -%}
-  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+{%- if product != blank and position == 'before' -%}
   <script src="{{ 'df-review-state.js' | asset_url }}" defer></script>
-  <div class="df df-purchase-supports" data-df-purchase-supports="{{ position }}" style="{% render 'df-accent-vars', product: product %}">
-    {%- if position == 'before' -%}
-      {% render 'df-google-rating', product: product %}
-      {%- liquid
-        assign policies = shop.metafields.dropflex.policies.value
-        assign guide = product.metafields.dropflex.gift_pdf.value
-        assign guide_title = product.metafields.dropflex.gift_title.value
-        if guide_title == blank
-          assign guide_title = 'Guía de ' | append: product.title
-        endif
-        assign guide_cover = product.metafields.dropflex.gift_cover.value
-      -%}
-      {%- if product.metafields.dropflex.review_summary.value.count > 0 -%}
-      <p class="df-purchase-supports__proof"><span class="df-purchase-supports__dot" aria-hidden="true"></span><strong data-df-review-count>{{ product.metafields.dropflex.review_summary.value.count | default: 0 }}</strong> reseñas de compradores</p>
-      {%- endif -%}
-      <script type="application/json" data-df-review-state>{"product_id":{{ product.id | append: '' | json }},"summary":{{ product.metafields.dropflex.review_summary.value | json | replace: '<', '\u003c' }}}</script>
-    {%- endif -%}
-  </div>
+  <script type="application/json" data-df-review-state>{"product_id":{{ product.id | append: '' | json }},"summary":{{ product.metafields.dropflex.review_summary.value | json | replace: '<', '\u003c' }}}</script>
 {%- endif -%}
 
 {% stylesheet %}
   .df-purchase-supports { display: grid; gap: var(--df-gap); width: 100%; margin-block: var(--df-gap); }
-  .df-google-rating { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: calc(var(--df-gap) / 2); border: 1px dashed var(--df-hairline); border-radius: var(--df-radius-sm); padding: calc(var(--df-gap) / 2); font-size: 0.875rem; }
-  .df-google-rating > svg { flex: none; }
-  .df-google-rating a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: calc(var(--df-gap) / 4); min-height: 44px; color: inherit; text-decoration: none; }
-  .df-google-rating__count { color: var(--df-muted); font-size: 0.75rem; }
   .df-purchase-supports__heading { margin: 0; text-align: center; font-weight: 700; }
   .df-purchase-supports__gifts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--df-gap) / 2); margin: 0; padding: 0; list-style: none; }
   .df-purchase-supports__gift { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--df-gap) / 2); padding: var(--df-gap); text-align: center; border-radius: var(--df-radius); background: var(--df-surface); font-size: 0.75rem; }

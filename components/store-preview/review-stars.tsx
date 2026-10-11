@@ -31,7 +31,9 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   // Con pocas reseñas, la proporción; una plantilla sin {count} escribiría la cantidad a mano: la
   // tienda la descarta.
   const proof = reviewProof(facts.reviews);
-  const label = proof
+  const label = s.compact
+    ? `${ratingText} · ${countText} reseñas`
+    : proof
     ? `${ratingText} · ${countText} reseñas · ${proof}`
     : template.includes("{count}")
       ? fill(
@@ -61,7 +63,7 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
 
   return (
     <df-review-stars
-      className={`df df-review-stars df-review-stars--${s.alignment}`}
+      className={`df df-review-stars df-review-stars--${s.alignment}${s.compact ? " df-review-stars--compact" : ""}`}
       style={
         {
           "--df-review-stars-text": px(s.text_size),

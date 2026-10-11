@@ -63,8 +63,6 @@
       <span class="df-price__badge" data-df-badge{% if save <= 0 %} hidden{% endif %}>{{ badge_text | escape }}</span>
     {%- endif -%}
     {%- comment -%} Eventos (dropflex.event): etiqueta con el % real y cuenta regresiva hasta la fecha real. {%- endcomment -%}
-    {%- render 'df-event-badge', product: product, percent: percent -%}
-    {%- render 'df-event-countdown', product: product -%}
   </df-price>
 {%- endif -%}
 

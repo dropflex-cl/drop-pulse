@@ -1097,6 +1097,12 @@ df-landing-content > [data-df-active] { display: contents; }
   }
 }
 
+/* _landing/blocks/df-event-badges.liquid */
+/* space-2 de design-system/tokens.json. */
+.df-product-event-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.df-product-event-badges:not(:has(.df-ev-only)) { display: none; }
+html:not(.df-event-on) .df-product-event-badges { display: none; }
+
 /* _landing/blocks/df-hype-badge.liquid */
 /* .df.df-hype-badge: df-components.css (que pone el color de .df) se carga después y le ganaría. */
 .df.df-hype-badge {
@@ -1642,7 +1648,7 @@ df-landing-content > [data-df-active] { display: contents; }
 }
 
 /* _landing/snippets/df-gallery-benefits.liquid */
-/* Tres tarjetas debajo del botón de compra.
+/* Tres tarjetas antes del selector de packs.
    Medidas: space-1/2/3, type-caption/label/metric-lg de design-system/tokens.json. */
 .df-gallery-benefits-host:not(:has(.df-gallery-benefits)) { display: none; }
 .df-gallery-benefits-host { display: block; width: 100%; }
@@ -1742,12 +1748,15 @@ df-landing-content > [data-df-active] { display: contents; }
   .df-gallery-benefits__item { font-size: 13px; line-height: 18px; }
 }
 
+/* _landing/snippets/df-google-rating.liquid */
+/* space-1/2/6, type-label/caption y size-touch de design-system/tokens.json. */
+.df-google-rating { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; border: 1px dashed var(--df-hairline); border-radius: var(--df-radius-sm); padding: 4px 8px; font-size: 14px; line-height: 20px; }
+.df-google-rating > svg, .df-google-rating > img { width: 24px; height: 24px; flex: none; }
+.df-google-rating a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 44px; color: inherit; text-decoration: none; }
+.df-google-rating__count { color: var(--df-muted); font-size: 12px; }
+
 /* _landing/snippets/df-purchase-supports.liquid */
 .df-purchase-supports { display: grid; gap: var(--df-gap); width: 100%; margin-block: var(--df-gap); }
-.df-google-rating { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: calc(var(--df-gap) / 2); border: 1px dashed var(--df-hairline); border-radius: var(--df-radius-sm); padding: calc(var(--df-gap) / 2); font-size: 0.875rem; }
-.df-google-rating > svg { flex: none; }
-.df-google-rating a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: calc(var(--df-gap) / 4); min-height: 44px; color: inherit; text-decoration: none; }
-.df-google-rating__count { color: var(--df-muted); font-size: 0.75rem; }
 .df-purchase-supports__heading { margin: 0; text-align: center; font-weight: 700; }
 .df-purchase-supports__gifts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--df-gap) / 2); margin: 0; padding: 0; list-style: none; }
 .df-purchase-supports__gift { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--df-gap) / 2); padding: var(--df-gap); text-align: center; border-radius: var(--df-radius); background: var(--df-surface); font-size: 0.75rem; }
@@ -3611,6 +3620,11 @@ a.df-review-stars__row:focus-visible {
 .df-review-stars__label {
   font-weight: 500;
 }
+
+/* Fila compacta: mantiene size-touch (44 px), sin el argumento largo de prueba social. */
+.df-review-stars--compact .df-review-stars__row { flex-wrap: nowrap; max-width: 100%; }
+.df-review-stars--compact .df-review-stars__stars { flex: none; }
+.df-review-stars--compact .df-review-stars__label { font-size: 12px; line-height: 16px; }
 
 /* review-wall/sections/df-review-wall.liquid */
 /* La paleta es la de Facebook, NO la del tema: una publicación teñida como el resto de la

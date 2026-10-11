@@ -1,0 +1,11 @@
+{%- assign df_product = closest.product | default: product -%}
+{% render 'df-gallery-benefits', product: df_product %}
+
+{% schema %}
+{
+  "name": "Beneficios del producto",
+  "tag": null,
+  "settings": [],
+  "presets": [{ "name": "Beneficios del producto" }]
+}
+{% endschema %}

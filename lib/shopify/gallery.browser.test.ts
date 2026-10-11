@@ -44,18 +44,30 @@ function html(long = false) {
         `<button type="button" class="slideshow-control slideshow-controls__thumbnail" ref="thumbnails[]" on:click="/select/${i}" aria-label="Ver imagen ${i + 1}" ${i === 0 ? 'aria-selected="true"' : ""}><img src="/photo-${i}.svg" alt=""></button>`,
     )
     .join("");
-  return `<!doctype html><html><head><script type="importmap">${JSON.stringify({ imports })}</script><script>${selector}</script>
-  <style>${file("assets/df-components.css")}${css("slideshow-styles")}${css("product-media-container-styles")}${css("df-gallery-benefits")}${css("slideshow-controls")}
+  const details = JSON.parse(file("templates/product.json")).sections.main.blocks["product-details"];
+  const blocks: Record<string, string> = {
+    google_rating: '<div class="df df-google-rating"><span>Google</span><span>Calificado 4,8/5 en Google</span></div>',
+    review_stars: '<df-review-stars class="df df-review-stars df-review-stars--compact"><a class="df-review-stars__row" href="#reviews" aria-label="Calificación 4,8 de 5, basada en 4.912 reseñas"><span class="df-review-stars__stars" aria-hidden="true">★★★★★</span><span class="df-review-stars__label" aria-hidden="true">4,8 · 4.912 reseñas</span></a></df-review-stars>',
+    stars_row: '<div class="df df-hype-badge">Pagas al recibir <span data-df-event-pc>−20 %</span></div>',
+    title: '<h1 class="df df-title">Producto de prueba</h1>',
+    subtitle: '<p class="df df-subtitle">Una descripción breve de su utilidad.</p>',
+    gallery_benefits: `<df-landing-content class="df df-gallery-benefits-host" style="${vars}" data-df-component="df-gallery-benefits"><div data-df-active>${benefits(long)}</div><template data-df-variant="default">${benefits(long)}</template><template data-df-variant="empty" data-angle="empty"></template><script>window.DropFlexLanding.mount(document.currentScript.parentElement);</script></df-landing-content>`,
+    pack_offers: '<div class="df df-pack-offers"><p>Elige tu pack</p></div>',
+    price: '<df-price><span data-df-now>$19.990</span><script type="application/json" data-df-variants>{"1":{"p":"$19.990","pc":20}}</script></df-price>',
+    buy_buttons: '<button id="es-popup-button" type="button">Pídelo ahora y paga al recibir</button>',
+  };
+  const intro = details.block_order.map((id: string) => blocks[id] || "").join("\n");
+  return `<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports })}</script><script>${selector}</script>
+  <style>${file("assets/df-components.css")}${css("slideshow-styles")}${css("product-media-container-styles")}${css("df-gallery-benefits")}${css("df-google-rating")}${[...file("blocks/df-review-stars.liquid").matchAll(/{% stylesheet %}([\s\S]*?){% endstylesheet %}/g)].map(m => m[1]).join("\n")}${css("slideshow-controls")}
   body{margin:0;background:white;font-family:Arial,sans-serif}*{box-sizing:border-box}img{display:block;max-width:100%}media-gallery{display:block}slideshow-container{padding-inline:16px}.product-information{max-width:600px;margin:auto}.product-media{width:100%;height:100%}.product-media__image{width:100%;height:100%}slideshow-controls{display:block}.slideshow-control{padding:0;border:0}.slideshow-controls__thumbnails{padding-inline:16px;gap:8px}.slideshow-controls__thumbnails button{width:64px;aspect-ratio:1;flex:none}.slideshow-control img{width:100%;height:100%;object-fit:contain}.product-details{display:grid;gap:16px;padding:16px}#es-popup-button{min-height:44px;background:#873652;color:white;border:0;border-radius:12px}</style>
   <script type="module" src="/assets/slideshow.js"></script></head><body><section class="product-information"><media-gallery class="df" style="${vars};--thumbnail-width:64px;--aspect-ratio:1;--minimum-touch-target:44px">
   <slideshow-component ref="slideshow" initial-slide="0" infinite><slideshow-container ref="slideshowContainer"><slideshow-slides ref="scroller" tabindex="-1">${slides}</slideshow-slides>
   </slideshow-container><slideshow-controls thumbnails pagination-position="center"><div class="slideshow-controls__thumbnails-container" ref="thumbnailsContainer"><div class="slideshow-controls__thumbnails">${thumbnails}</div></div></slideshow-controls></slideshow-component>
-  </media-gallery><div class="product-details"><button id="es-popup-button" type="button">Pídelo ahora y paga al recibir</button>
-  <df-landing-content class="df df-gallery-benefits-host" style="${vars}" data-df-component="df-gallery-benefits"><div data-df-active>${benefits(long)}</div><template data-df-variant="default">${benefits(long)}</template><template data-df-variant="empty" data-angle="empty"></template><script>window.DropFlexLanding.mount(document.currentScript.parentElement);</script></df-landing-content>
-  </div></section><script src="/assets/df-gallery.js" data-autoplay="false" defer></script></body></html>`;
+  </media-gallery><div class="product-details">${intro}
+  </div></section><script src="/assets/df-price.js" defer></script><script src="/assets/df-gallery.js" data-autoplay="false" defer></script></body></html>`;
 }
 describe.runIf(process.env.GALLERY_BROWSER_TEST === "1")(
-  "Galería y beneficios bajo el botón · navegador",
+  "Galería y ficha inicial · navegador",
   () => {
     let browser: Browser;
     beforeAll(async () => {
@@ -95,8 +107,19 @@ describe.runIf(process.env.GALLERY_BROWSER_TEST === "1")(
       );
       return { context, p };
     }
+    it("actualiza el descuento del evento situado sobre el título al elegir un pack", async () => {
+      const { context, p } = await page(390);
+      try {
+        await p.evaluate(() => customElements.whenDefined("df-price"));
+        await p.evaluate(() => document.querySelector(".product-information")!.dispatchEvent(new CustomEvent("df:pack", { bubbles: true, detail: { p: "$29.990", pc: 35 } })));
+        expect(await p.locator("[data-df-now]").textContent()).toBe("$29.990");
+        expect(await p.locator("[data-df-event-pc]").textContent()).toBe("−35 %");
+        await p.evaluate(() => document.querySelector(".product-information")!.dispatchEvent(new CustomEvent("df:pack", { bubbles: true, detail: { p: "$19.990", pc: 0 } })));
+        expect(await p.locator("[data-df-event-pc]").isHidden()).toBe(true);
+      } finally { await context.close(); }
+    });
     it.each([320, 390, 1280])(
-      "foto completa, miniaturas y tarjetas bajo el botón sin desbordar a %i px",
+      "foto, reseñas compactas y beneficios antes de los packs sin desbordar a %i px",
       async (width) => {
         const { context, p } = await page(width, true);
         try {
@@ -106,7 +129,14 @@ describe.runIf(process.env.GALLERY_BROWSER_TEST === "1")(
           const button = (await p.locator("#es-popup-button").boundingBox())!;
           expect(photo.width).toBeGreaterThan(Math.min(width, 600) - 40);
           expect(thumbs.y).toBeGreaterThanOrEqual(photo.y + photo.height - 1);
-          expect(list.y).toBeGreaterThanOrEqual(button.y + button.height);
+          const selectors = ["slideshow-slides", "slideshow-controls", ".df-google-rating", ".df-review-stars", ".df-hype-badge", ".df-title", ".df-subtitle", ".df-gallery-benefits", ".df-pack-offers", "#es-popup-button"];
+          const boxes = await Promise.all(selectors.map(selector => p.locator(selector).boundingBox()));
+          for (let i = 1; i < boxes.length; i++)
+            expect(boxes[i]!.y, selectors[i]).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height - 1);
+          expect(list.y + list.height).toBeLessThan(button.y);
+          const review = p.locator(".df-review-stars__row");
+          expect((await review.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+          expect(await review.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
           const cards = await p.locator(".df-gallery-benefits__item").evaluateAll(items => items.map(item => ({ x: item.getBoundingClientRect().x, y: item.getBoundingClientRect().y })));
           expect(cards[0].y).toBe(cards[1].y);
           expect(cards[1].y).toBe(cards[2].y);

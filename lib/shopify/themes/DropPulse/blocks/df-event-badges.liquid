@@ -1,0 +1,32 @@
+{%- liquid
+  assign df_product = closest.product | default: product
+  assign variant = df_product.selected_or_first_available_variant
+  assign percent = 0
+  if variant.compare_at_price > variant.price
+    assign savings = variant.compare_at_price | minus: variant.price
+    assign percent = savings | times: 100.0 | divided_by: variant.compare_at_price | round
+  endif
+-%}
+{%- capture badges -%}
+  {% render 'df-event-badge', product: df_product, percent: percent %}
+  {% render 'df-event-countdown', product: df_product %}
+{%- endcapture -%}
+{%- if badges contains 'df-ev-only' -%}
+  <div class="df df-product-event-badges" {{ block.shopify_attributes }}>{{ badges }}</div>
+{%- endif -%}
+
+{% stylesheet %}
+  /* space-2 de design-system/tokens.json. */
+  .df-product-event-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .df-product-event-badges:not(:has(.df-ev-only)) { display: none; }
+  html:not(.df-event-on) .df-product-event-badges { display: none; }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Badges del evento",
+  "tag": null,
+  "settings": [],
+  "presets": [{ "name": "Badges del evento" }]
+}
+{% endschema %}

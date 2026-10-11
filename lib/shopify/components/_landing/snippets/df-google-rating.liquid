@@ -9,7 +9,8 @@
   assign google_url_prefix = google.url | slice: 0, 8
 -%}
 {%- if google_score > 0 and google_score <= 5 and google_count > 0 -%}
-<div class="df df-google-rating" data-df-google-rating data-product-id="{{ product.id }}" aria-label="Reseñas de la tienda en Google">
+{{ 'df-components.css' | asset_url | stylesheet_tag }}
+<div class="df df-google-rating" style="{% render 'df-accent-vars', product: product %}" data-df-google-rating data-product-id="{{ product.id }}" aria-label="Reseñas de la tienda en Google">
   {{ 'df-google-logo.svg' | inline_asset_content }}
   {% render 'df-stars', rating: google_score, size: '1rem' %}
   {%- capture google_label -%}
@@ -23,3 +24,11 @@
   {%- endif -%}
 </div>
 {%- endif -%}
+
+{% stylesheet %}
+  /* space-1/2/6, type-label/caption y size-touch de design-system/tokens.json. */
+  .df-google-rating { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; border: 1px dashed var(--df-hairline); border-radius: var(--df-radius-sm); padding: 4px 8px; font-size: 14px; line-height: 20px; }
+  .df-google-rating > svg, .df-google-rating > img { width: 24px; height: 24px; flex: none; }
+  .df-google-rating a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 44px; color: inherit; text-decoration: none; }
+  .df-google-rating__count { color: var(--df-muted); font-size: 12px; }
+{% endstylesheet %}

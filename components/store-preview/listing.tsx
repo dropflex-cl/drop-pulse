@@ -6,11 +6,10 @@ import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
 import { GalleryPreview } from "./gallery";
 import { ProductBenefitsPreview } from "./product-benefits";
-import { PurchaseSupportsPreview } from "./purchase-supports";
+import { GoogleRatingPreview } from "./purchase-supports";
 
-// La ficha en la tienda, en el orden de la PDP del tema (templates/product.json): foto, título, la
-// bajada (df-subtitle), el precio con el ahorro (df-price), la oferta sobre los packs
-// (df-pack-offers) y el botón. No es un componente del catálogo: repite el marcado de los bloques de
+// La ficha sigue templates/product.json: galería, Google, reseñas, badges, título, bajada,
+// tres beneficios y packs; luego precio, condiciones y botón. Repite el marcado de los bloques de
 // lib/shopify/components/_landing para que el CSS generado del tema lo dibuje igual.
 
 function PackOffers({ heading, packs, currency }: { heading?: string; packs: StorePack[]; currency: string }) {
@@ -64,9 +63,17 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
     <div className="df flex flex-col gap-3 pb-4">
       <GalleryPreview facts={facts} />
       <div className="flex flex-col gap-3 px-4">
+        <GoogleRatingPreview facts={facts} />
         {slots?.top}
+        {facts.policies.cod ? <p className="df df-hype-badge df-hype-badge--solid"><span className="df-hype-badge__text">Pagas al recibir</span></p> : null}
         <p className="df df-heading df-title">{content.title || facts.productName}</p>
         {content.short_description ? <p className="df df-subtitle">{content.short_description}</p> : null}
+        <ProductBenefitsPreview benefits={content.gallery_benefits} />
+        {packs.length > 1 ? (
+          <PackOffers heading={content.offer_line} packs={packs} currency={facts.currency} />
+        ) : content.offer_line ? (
+          <p className="text-small font-semibold text-(--df-accent-ink)">{content.offer_line}</p>
+        ) : null}
         <hr className="m-0 border-0 border-t border-(--df-hairline)" />
         <div className="df df-price">
           <span className="df-price__now">{formatMoney(facts.price, facts.currency)}</span>
@@ -80,14 +87,7 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
           ) : null}
         </div>
         {slots?.afterPrice}
-        {packs.length > 1 ? (
-          <PackOffers heading={content.offer_line} packs={packs} currency={facts.currency} />
-        ) : content.offer_line ? (
-          <p className="text-small font-semibold text-(--df-accent-ink)">{content.offer_line}</p>
-        ) : null}
-        <PurchaseSupportsPreview facts={facts} />
         <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Pedir y pagar en casa</div>
-        <ProductBenefitsPreview benefits={content.gallery_benefits} />
         {slots?.afterButton}
       </div>
     </div>

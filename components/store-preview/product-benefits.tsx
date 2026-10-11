@@ -1,7 +1,7 @@
 import type { Listing } from "@/lib/copy/listing";
 import { DfIcon } from "./primitives";
 
-/** Los tres beneficios aprobados, debajo del botón de compra. */
+/** Los tres beneficios del producto, antes del selector de packs. */
 export function ProductBenefitsPreview({ benefits }: { benefits?: Listing["gallery_benefits"] }) {
   if (benefits?.length !== 3) return null;
   return (

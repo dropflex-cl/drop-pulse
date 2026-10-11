@@ -90,9 +90,9 @@ Los componentes están visibles por defecto. Sin datos reales muestran un estado
 
 ## Apoyos permanentes alrededor de la compra
 
-Google, envío y guía se renderizan desde `buy-buttons`, independientemente del template guardado.
-Estrellas, disponibilidad, carrusel y muro no pueden apagarse. Los apoyos del botón se anclan
-antes o después de él; el carrusel muestra todas las reseñas aprobadas con orden aleatorio
+Google se renderiza en su bloque bajo las miniaturas. Le siguen estrellas compactas, badges,
+título, bajada, tres beneficios y packs. Disponibilidad y carrusel conservan sus bloques bajo
+el botón; `buy-buttons` carga el estado técnico de reseñas. El carrusel conserva un orden
 persistido por producto. Total y nota permanecen reales y se actualizan al publicar.
 La guía solo entrega su enlace en la confirmación del pedido, tras asociar un PDF real.
 Configuración y límites: [`shopify-purchase-supports`](../../../docs/shopify-purchase-supports.md).

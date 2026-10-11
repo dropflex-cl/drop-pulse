@@ -58,7 +58,9 @@
       render 'df-review-proof', summary: summary
     endcapture
     assign label = content.label | default: s.label
-    if proof != blank
+    if s.compact
+      assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas'
+    elsif proof != blank
       assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas · ' | append: proof
     elsif label contains '{count}'
       assign label = label | replace: '{count}', count_text | replace: '{rating}', rating_text
@@ -84,7 +86,7 @@
   {%- endif -%}
 
   <df-review-stars
-    class="df df-review-stars df-review-stars--{{ s.alignment }}"
+    class="df df-review-stars df-review-stars--{{ s.alignment }}{% if s.compact %} df-review-stars--compact{% endif %}"
     style="{% render 'df-accent-vars', product: product %} --df-review-stars-text: {{ s.text_size }}px; --df-review-stars-offset: {{ s.scroll_offset }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
   >

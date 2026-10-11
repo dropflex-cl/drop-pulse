@@ -40,7 +40,7 @@ export const listingSchema = z.object({
         text: plain("gallery_benefits.text")
           .pipe(z.string().trim().min(3).max(42))
           .describe(
-            "Beneficio principal del producto en una frase corta, legible bajo el botón de compra. Ej.: «Se ajusta a tu cuerpo». Sin precios ni políticas de la tienda.",
+            "Beneficio principal del producto en una frase corta, legible antes de los packs. Ej.: «Se ajusta a tu cuerpo». Sin precios ni políticas de la tienda.",
           ),
       }),
     )
@@ -53,7 +53,7 @@ export const listingSchema = z.object({
     )
     .optional()
     .describe(
-      "Tres beneficios principales, distintos y respaldados por los hechos del producto, en orden de importancia. Se muestran bajo el botón de compra con el acento del producto. Inclúyelos al crear la ficha; opcional para conservar fichas anteriores.",
+      "Tres beneficios principales, distintos y respaldados por los hechos del producto, en orden de importancia. Se muestran antes del selector de packs con el acento del producto. Inclúyelos al crear la ficha; opcional para conservar fichas anteriores.",
     ),
   offer_line: plain("offer_line")
     .pipe(z.string().min(10).max(90))
@@ -89,6 +89,6 @@ export const LISTING_FIELDS: Record<keyof Listing, string> = {
 export const LISTING_INFO = {
   name: "Ficha del producto",
   placement:
-    "Tres beneficios principales bajo el botón de compra; título y bajada arriba del precio; textos para Google.",
+    "Tres beneficios principales antes del selector de packs; título y bajada arriba del precio; textos para Google.",
   objection: "¿Qué es, sirve para lo que necesito y cuánto me cuesta?",
 };

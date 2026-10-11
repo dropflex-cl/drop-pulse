@@ -102,7 +102,7 @@ const descriptions: Record<ToolName, string> = {
   save_pack_labels:
     "Actualiza las etiquetas vigentes de packs sin IA ni aprobación adicional. Conserva descartes; cambiar el precio no desactiva las etiquetas guardadas.",
   get_landing_content:
-    "Lee el contrato real de un componente de Shopify, contenido vigente, reseñas utilizables y precio. listing incluye los tres beneficios principales debajo del botón de compra (gallery_benefits). Consulta cada componente antes de escribirlo. Incluye estado vacío y visibilidad; respeta las secciones ocultas y los descartes.",
+    "Lee el contrato real de un componente de Shopify, contenido vigente, reseñas utilizables y precio. listing incluye los tres beneficios principales antes del selector de packs (gallery_benefits). Consulta cada componente antes de escribirlo. Incluye estado vacío y visibilidad; respeta las secciones ocultas y los descartes.",
   save_landing_content:
     "Actualiza los componentes vigentes de la PDP sin aprobación adicional ni autorización de publicación. Admite {state: empty} salvo en listing, incluidos sus beneficios en listing.gallery_benefits. enabled cambia la visibilidad explícitamente; omitirlo conserva ocultos y descartes. Omitir imágenes conserva las selecciones; images: [] las vacía. UI y MCP editan la misma fila. Publicar es una acción aparte.",
   get_product_context:

@@ -4,16 +4,15 @@ import { DfIcon, DfStars } from "./primitives";
 
 /* eslint-disable @next/next/no-img-element */
 
-export function PurchaseSupportsPreview({ facts }: { facts: StoreFacts }) {
+export function GoogleRatingPreview({ facts }: { facts: StoreFacts }) {
   const google = facts.googleRating;
+  if (!google || google.rating <= 0 || google.rating > 5 || google.count <= 0) return null;
+  const label = <>Calificado {String(google.rating).replace(".", ",")}/5 en Google<span className="df-google-rating__count">({google.count} reseñas)</span></>;
   return (
-    <div className="df df-purchase-supports">
-      {google && google.count > 0 ? <div className="df df-google-rating">
-        <img src="/df-google-logo.svg" alt="Google" width={24} height={24} />
-        <DfStars rating={google.rating} size="1rem" />
-        <span>Calificado {String(google.rating).replace(".", ",")}/5 en Google{google && google.count > 0 && <span className="df-google-rating__count"> ({google.count} reseñas)</span>}</span>
-      </div> : null}
-      {facts.count > 0 ? <p className="df-purchase-supports__proof"><span className="df-purchase-supports__dot" aria-hidden="true" /><strong>{new Intl.NumberFormat("es-CL").format(facts.count)}</strong> reseñas de compradores</p> : null}
+    <div className="df df-google-rating" aria-label="Reseñas de la tienda en Google">
+      <img src="/df-google-logo.svg" alt="" width={24} height={24} />
+      <DfStars rating={google.rating} size="1rem" />
+      {google.url.startsWith("https://") ? <a href={google.url} target="_blank" rel="noopener noreferrer">{label}</a> : <span>{label}</span>}
     </div>
   );
 }

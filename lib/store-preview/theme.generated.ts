@@ -181,14 +181,15 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "margin_bottom": 0
   },
   "review-stars": {
+    "compact": true,
     "show_text": true,
     "label": "{rating} · {count} reseñas",
     "min_reviews": 3,
     "anchor": "resenas",
     "scroll_offset": 80,
     "alignment": "left",
-    "star_size": 18,
-    "text_size": 14,
+    "star_size": 16,
+    "text_size": 12,
     "margin_top": 0,
     "margin_bottom": 0
   },

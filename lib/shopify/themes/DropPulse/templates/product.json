@@ -40,7 +40,7 @@
             "width_mobile": "fill",
             "height": "fit",
             "details_position": "flex-start",
-            "gap": 16,
+            "gap": 12,
             "sticky_details_desktop": false,
             "background_media": "none",
             "border": "none",
@@ -58,31 +58,38 @@
               "type": "group",
               "settings": {
                 "content_direction": "row",
-                "vertical_on_mobile": false,
+                "vertical_on_mobile": true,
                 "horizontal_alignment": "flex-start",
                 "vertical_alignment": "center",
-                "gap": 12,
+                "gap": 8,
                 "width": "fill",
                 "width_mobile": "fill",
                 "height": "fit"
               },
               "blocks": {
-                "review_stars": {
-                  "type": "df-review-stars",
-                  "settings": {
-                    "margin_top": 8,
-                    "margin_bottom": -8
-                  }
-                },
                 "hype_badge": {
                   "type": "df-hype-badge",
                   "settings": {
-                    "margin_top": 8,
-                    "margin_bottom": -8
+                    "margin_top": 0,
+                    "margin_bottom": 0
+                  }
+                },
+                "event_badges": {
+                  "type": "df-event-badges",
+                  "settings": {}
+                },
+                "social_badge": {
+                  "type": "df-social-badge",
+                  "settings": {
+                    "margin_top": 4
                   }
                 }
               },
-              "block_order": ["review_stars", "hype_badge"]
+              "block_order": [
+                "event_badges",
+                "hype_badge",
+                "social_badge"
+              ]
             },
             "title": {
               "type": "df-title",
@@ -105,12 +112,6 @@
             "price": {
               "type": "df-price",
               "settings": {}
-            },
-            "social_badge": {
-              "type": "df-social-badge",
-              "settings": {
-                "margin_top": 4
-              }
             },
             "benefit_usps": {
               "type": "df-benefit-usps",
@@ -235,22 +236,45 @@
                       "settings": {}
                     }
                   },
-                  "block_order": ["description"]
+                  "block_order": [
+                    "description"
+                  ]
                 }
               },
-              "block_order": ["row_description"]
+              "block_order": [
+                "row_description"
+              ]
+            },
+            "google_rating": {
+              "type": "df-google-rating",
+              "settings": {}
+            },
+            "review_stars": {
+              "type": "df-review-stars",
+              "settings": {
+                "compact": true,
+                "star_size": 16,
+                "text_size": 12,
+                "margin_top": 0,
+                "margin_bottom": 0
+              }
+            },
+            "gallery_benefits": {
+              "type": "df-gallery-benefits",
+              "settings": {}
             }
           },
           "block_order": [
-            "social_proof",
+            "google_rating",
+            "review_stars",
             "stars_row",
             "title",
             "subtitle",
+            "gallery_benefits",
+            "pack_offers",
             "divider",
             "price",
             "benefit_usps",
-            "social_badge",
-            "pack_offers",
             "buy_buttons",
             "inventory",
             "payment_icons",
@@ -259,6 +283,7 @@
             "gif_strip",
             "review_slider",
             "ugc_slider",
+            "social_proof",
             "details_accordion"
           ]
         }

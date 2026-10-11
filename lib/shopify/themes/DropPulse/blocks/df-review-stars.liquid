@@ -65,6 +65,11 @@
   .df-review-stars__label {
     font-weight: 500;
   }
+
+  /* Fila compacta: mantiene size-touch (44 px), sin el argumento largo de prueba social. */
+  .df-review-stars--compact .df-review-stars__row { flex-wrap: nowrap; max-width: 100%; }
+  .df-review-stars--compact .df-review-stars__stars { flex: none; }
+  .df-review-stars--compact .df-review-stars__label { font-size: 12px; line-height: 16px; }
 {% endstylesheet %}
 
 {% schema %}
@@ -79,6 +84,13 @@
     {
       "type": "header",
       "content": "Texto"
+    },
+    {
+      "type": "checkbox",
+      "id": "compact",
+      "label": "Mostrar resumen compacto",
+      "info": "Una fila de estrellas, calificación y cantidad. Conserva los textos guardados para la vista completa.",
+      "default": true
     },
     {
       "type": "checkbox",
@@ -147,7 +159,7 @@
       "max": 28,
       "step": 1,
       "unit": "px",
-      "default": 18
+      "default": 16
     },
     {
       "type": "range",
@@ -157,7 +169,7 @@
       "max": 18,
       "step": 1,
       "unit": "px",
-      "default": 14
+      "default": 12
     },
     {
       "type": "range",

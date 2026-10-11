@@ -1,17 +1,16 @@
 # review-stars — Estrellas de reseñas
 
-Bloque de la columna del producto: cinco estrellas con relleno parcial, «4,6 · 19 reseñas» y el origen de las reseñas, todo como enlace a las reseñas completas. Archivo: `blocks/df-review-stars.liquid` + `assets/df-review-stars.js`. Contrato: [`content.ts`](content.ts).
+Bloque de la columna del producto: cinco estrellas con relleno parcial y «4,6 · 19 reseñas», como enlace a las reseñas completas. Archivo: `blocks/df-review-stars.liquid` + `assets/df-review-stars.js`. Contrato: [`content.ts`](content.ts).
 
 ## Dónde va y por qué
 
-Sobre el título del producto. Es lo primero que se lee de la ficha: antes de evaluar el precio, el comprador ya recibe «otros lo compraron y lo calificaron». Además es un atajo: el que desconfía toca y baja a verificar las reseñas.
+Bajo la valoración de Google y antes de los badges y el título. Antes de evaluar el precio, el comprador recibe «otros lo compraron y lo calificaron». Además es un atajo: el que desconfía toca y baja a verificar las reseñas.
 
 ## Anatomía
 
 Igual en móvil y escritorio:
 
-1. Fila (alto mínimo 44 px, es el área táctil): 5 estrellas de 18 px (`df-stars`, relleno proporcional: 4,6 → 92 %) + texto de 14 px, peso 500.
-2. Debajo, el origen en 12 px y color apagado: «Reseñas de compradores del mismo producto en AliExpress».
+Una fila (alto mínimo 44 px, es el área táctil): 5 estrellas de 16 px por defecto (`df-stars`, relleno proporcional: 4,6 → 92 %) + texto de 12 px, peso 500. El modo compacto muestra solo nota y cantidad, sin el argumento extenso de prueba social. Desactivar `compact` recupera el texto guardado o la proporción real; no modifica contenido persistido. La tienda no muestra el origen de las reseñas.
 
 Alineación izquierda, centro o derecha. Sin fondo ni borde; el subrayado del texto aparece al pasar el puntero.
 
