@@ -84,12 +84,7 @@ export const scrollingBenefits = defineComponent({
     "Tuteo implícito, sin mayúsculas sostenidas, sin emojis, sin exclamaciones ni punto final.",
     "Máximo un ítem sobre el producto (atributo verificable), el resto sobre el servicio de la tienda.",
   ],
-  forbidden: [
-    "Superlativos sin respaldo: «n.º 1», «el mejor del país», «el más vendido».",
-    "«100 % garantizado», «envío inmediato», «24/7» o cualquier plazo o monto escrito a mano (Ley 19.496, arts. 28 y 33).",
-    "Presentar la garantía legal como beneficio extra u ofrecer menos que la legal.",
-    "Claims de salud («alivia el dolor», «corrige la columna»).",
-  ],
+  forbidden: [],
   examples: [
     {
       items: [

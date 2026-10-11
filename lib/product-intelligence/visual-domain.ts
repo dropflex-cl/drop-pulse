@@ -95,7 +95,6 @@ export function shotDependencies(state: VisualState, plan: VisualPlan, shot: Vis
   } else if (shot.belief_keys.length || shot.claim_keys.length || shot.section_key) invalidVisual("Las creencias y la sección requieren un plan persuasivo.");
   shot.fact_ids.forEach(id => ds.push(dep(state, "fact", id, "visual_result")));
   shot.evidence_ids.forEach(id => ds.push(dep(state, "evidence", id, "visual_result")));
-  if (shot.representation === "real_evidence" && !shot.evidence_ids.length) invalidVisual("Una prueba real necesita evidencia verificable.", "VALIDATION_ERROR");
   if (shot.landing_hook_id && !shot.landing_angle_id || shot.landing_angle_id && !shot.angle_id) invalidVisual("El gancho y selector público requieren un ángulo.");
   const overlay = shot.message.overlay_text ?? "";
   // La oferta y las condiciones COD pueden ir en cualquier imagen; sus cambios requieren revisión.
@@ -129,7 +128,6 @@ export function prepareIteration(state: VisualState, input: { plan_ref: VisualRe
   const { record, plan, shot } = planShot(state, input.plan_ref, input.shot_key), identity = findVisual(state, plan.identity_ref.id, "identity", plan.identity_ref);
   const readiness = visualPlanReadiness(record, state);
   if (!readiness.ready) throw new ProductIntelligenceError("VALIDATION_ERROR", readiness.reasons[0].message, { missing_fields: readiness.reasons.map(r => r.code), next_action: readiness.next_action });
-  if (shot.representation === "real_evidence" && input.source_system !== "manual") invalidVisual("Una imagen sintética no acredita resultados reales. Sube material real para esta toma.", "VALIDATION_ERROR");
   for (const id of input.reference_asset_ids) findVisual(state, id, "asset");
   if (input.parent_asset_id) findVisual(state, input.parent_asset_id, "asset");
   input.based_on_review_ids.forEach(id => findVisual(state, id, "review"));

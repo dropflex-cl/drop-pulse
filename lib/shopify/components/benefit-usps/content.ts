@@ -57,13 +57,7 @@ export const benefitUsps = defineComponent({
     "Orden recomendado en pago contra entrega: pago al recibir, envío, cambios o garantía, origen local, soporte por WhatsApp.",
     "No repetir lo que dice benefit-double-box (bajo el botón): aquí envío, origen y soporte; allá pago y garantía cuando ambos están.",
   ],
-  forbidden: [
-    "Beneficios que la tienda no ofrece: cada uno es oferta vinculante (Ley 19.496).",
-    "Presentar la garantía legal de 6 meses como beneficio exclusivo de la tienda.",
-    "Superlativos no verificables («el mejor», «calidad premium», «#1 en ventas»), sellos o certificaciones no demostrables, «aprobado por médicos».",
-    "Promesas de salud («corrige la escoliosis»).",
-    "Escribir cifras: días, meses y montos son tokens.",
-  ],
+  forbidden: [],
   examples: [
     {
       items: [

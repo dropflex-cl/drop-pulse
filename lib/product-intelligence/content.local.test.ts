@@ -108,7 +108,7 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     const run=(await checked(db.from("page_image_runs").select("input").eq("product_id",product).single())).data!;
     expect(run.input.verified_facts[0].id).toBe(fact);expect(await count("page_images")).toBe(0);
   });
-  it("rechaza cruce de tenant, facts sin verificar, ángulos ajenos y CAS concurrente",async()=>{
+  it("rechaza cruce de tenant, IDs ajenos y CAS concurrente",async()=>{
     await expect(call("get_creative_content",{product_id:product},other)).rejects.toMatchObject({code:"NOT_FOUND"});
     const i={...await input("get_creative_content"),content:creative()};
     await expect(call("save_creative_content",i,{...owner,scopes:["product_intelligence:read"]})).rejects.toMatchObject({code:"FORBIDDEN"});
@@ -141,6 +141,18 @@ local("PI · contenido y aprendizaje transaccionales", () => {
     const context=await call("get_product_context",{product_id:product});if(!context.ok)throw context;
     await call("save_research",{product_id:product,schema_version:"1.0",expected_revision:context.revision,idempotency_key:randomUUID(),facts:[{id:fact,usage_status:"prohibited",reason:"Nueva revisión"}]});
     expect(await repo.loadTipReview!(args,signal())).toMatchObject({usable:true});
+    expect(await call("save_usage_tip",{...await input("get_usage_tip"),content:{text:"Mantén los útiles que más usas al frente para encontrarlos fácilmente.",basis:"Rutina de escritorio",fact_ids:[fact]}})).toMatchObject({ok:true});
+  });
+  it("guarda consejo y creativos sin referencias de evidencia",async()=>{
+    expect(await call("save_usage_tip",{
+      ...await input("get_usage_tip"),
+      content:{text:"Agrupa tus útiles por tarea para preparar tu escritorio en 2 minutos.",basis:"Rutina de organización"},
+    })).toMatchObject({ok:true});
+    const {fact_ids: ignoredFacts, ...content}=creative();
+    expect(ignoredFacts).toEqual([fact]);
+    expect(await call("save_creative_content",{...await input("get_creative_content"),content})).toMatchObject({ok:true});
+    expect(await count("ai_generations")).toBe(0);
+    expect(await count("creative_assets")).toBe(0);
   });
   it("evento existente queda aprobado al guardar sin publicar, y rechaza evento ajeno al calendario",async()=>{
     const event=(await checked(db.from("events").select("id").eq("status","published").limit(1).single())).data!;

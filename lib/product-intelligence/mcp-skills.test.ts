@@ -41,6 +41,10 @@ describe("DropFlex · importación de skill MCP", () => {
       /no activa QA pagado, reintentos automáticos ni gastos adicionales/,
       /autorización del lote o de publicación no autoriza intentos adicionales por QA/,
     ], forbids: [/prepara una corrección dentro del pedido de generación autorizado/, /corrige las tomas afectadas dentro del alcance autorizado/] },
+    { name: "redactar sin pruebas reales ni vacíos automáticos", path: "references/production.md", requires: [
+      /sin exigir pruebas reales/, /`fact_id` es opcional/, /imágenes de referencia o generadas/,
+      /`customer-stories` permite escribir contenido propio/, /no requiere crear un bundle en Shopify/,
+    ], forbids: [/Sin esos respaldos usa el estado vacío/, /exige evidencia auténtica y material manual/, /hechos verificados, aprobados y sin contradicciones/] },
     { name: "guardar sin aprobación ni permiso Shopify", path: "SKILL.md", requires: [
       /Guardar contenido válido lo deja disponible/, /Publicar es otra acción, con autorización Shopify propia/,
       /No hay un recorrido obligatorio de aprobación/, /No uses `review_visual_record` para aprobar cada guardado/,

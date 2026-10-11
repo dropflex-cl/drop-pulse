@@ -58,7 +58,6 @@ La referencia calculaba una sola vez (el contador no avanzaba), con la hora del 
 - `closed_template`: invitación sin urgencia con `{arrive}`, ≤ 50.
 - Etiquetas: 1-2 palabras en secuencia (≤ 12; el hito 3 ≤ 14). `node_delivered_sub_suffix` (≤ 20): refuerzo del pago contra entrega, solo si está activo.
 - Tuteo, sin emojis, sin exclamaciones en las etiquetas.
-- **Prohibido:** escribir horas, días o fechas (el esquema rechaza dígitos); «entrega garantizada mañana» o «envío express» si no es el servicio real; contadores sin corte real (Ley 19.496, arts. 12 y 28).
 
 ## Despacho los sábados y plazo de regiones
 

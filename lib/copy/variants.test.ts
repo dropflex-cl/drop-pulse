@@ -39,11 +39,11 @@ describe("Landing · contenido condicionado por URL", () => {
         expected_landing_etag: "a".repeat(64), idempotency_key: "variants-test-1", entries: [{ component: c.id, content: value }] })).not.toThrow();
     }
   });
-  it("valida montos y reseñas de las variantes que no son default", () => {
+  it("valida montos sin exigir reseñas aprobadas en variantes", () => {
     const bad = variants.map((v) => v.key === "opening" ? { ...v, content: { ...v.content, offer_line: "$99.999 · Paga al recibir" } } : v);
     expect(pageProblems({ listing: bad, components: {} }, ["listing"], { currency: "CLP", amounts: [19990], reviewIds: [] }).join(" ")).toContain("99999");
     const wall = CATALOG.find((c) => c.id === "review-wall")!;
-    expect(pageProblems({ listing: null, components: { [wall.id]: contentVariants(wall.examples[0]) } }, [wall.id], { currency: "CLP", amounts: [], reviewIds: [] }).join(" ")).toContain("RESEÑAS APROBADAS");
+    expect(pageProblems({ listing: null, components: { [wall.id]: contentVariants(wall.examples[0]) } }, [wall.id], { currency: "CLP", amounts: [], reviewIds: [] })).toEqual([]);
   });
   it("publica arrays y pools de archivos sin exponer picks privados ni alterar precios", () => {
     const def = CATALOG.find((c) => c.id === "image-with-benefits")!;

@@ -391,9 +391,9 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         p_stamp: loaded.stamp,
         p_key: randomUUID(),
         p_hash: "a".repeat(64),
-        p_entries: [entries[0], { component: "review-wall", content: {} }],
+        p_entries: [entries[0], { component: "missing-component", content: {} }],
       });
-      expect(fail.error?.message).toBe("PI_INVALID_REFERENCE");
+      expect(fail.error?.message).toBe("PI_VALIDATION_ERROR");
       expect(
         await Promise.all(
           [
@@ -665,6 +665,51 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         )
       ).data!;
       expect(mechanism.enabled).toBe(false);
+    });
+    it("guarda resultados, historias y comparaciones sin evidencia ni mínimo de reseñas", async () => {
+      const image = randomUUID();
+      await checked(db.from("page_images").insert({
+        id: image, product_id: product, user_id: owner.userId,
+        slot: "gallery", source: "ai", render_status: "succeeded",
+        storage_path: `${owner.userId}/${product}/${image}.webp`,
+        width: 600, height: 600, size_bytes: 100,
+      }));
+      const component = (id: string) => CATALOG.find(c => c.id === id)!;
+      const request = {
+        ...(await input()),
+        entries: [
+          {
+            component: "before-after",
+            content: [{
+              key: "default", angle_id: null, hook_id: null,
+              content: component("before-after").examples[0],
+              images: [
+                { slot: "before", source: "page_image", id: image },
+                { slot: "after", source: "page_image", id: image },
+              ],
+            }],
+          },
+          { component: "results-timeline", content: component("results-timeline").examples[0] },
+          { component: "expert-endorsement", content: component("expert-endorsement").examples[0] },
+          {
+            component: "customer-stories",
+            content: {
+              heading: "Una rutina más simple",
+              stories: [{ title: "Todo a mano", name: "Andrea", body: "Ahora encuentro mis útiles fácilmente y aprovecho mejor mi escritorio." }],
+            },
+          },
+          { component: "review-wall", content: component("review-wall").examples[0] },
+        ],
+      };
+      expect(await count("product_reviews")).toBe(0);
+      expect(await call("save_landing_content", request)).toMatchObject({ ok: true });
+      const rows = (await checked(db.from("page_components")
+        .select("component,content").eq("product_id", product)
+        .in("component", request.entries.map(entry => entry.component))
+        .is("superseded_at", null))).data!;
+      for (const entry of request.entries) {
+        expect(rows.find(row => row.component === entry.component)?.content).toEqual(entry.content);
+      }
     });
     it("producto en borrado impide replay y cascada borra propuestas/receipts", async () => {
       expect((await read()).data.context_stale).toBe(false);

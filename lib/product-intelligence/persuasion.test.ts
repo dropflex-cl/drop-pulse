@@ -42,20 +42,20 @@ describe("PDP · argumento mínimo y contratos reales", () => {
     expect(codes(p)).toEqual(expect.arrayContaining(["invalid_reference", "component_job", "component_candidate", "hero_support"]));
     p.sections.push({ ...p.sections[0], section_key: "commerce", selected_component: "shipping-timeline" }); expect(codes(p)).toContain("runtime_placement");
   });
-  it("no usa evidencia contradictoria ni enlaces de otros facts", () => {
+  it("la procedencia de claims no exige evidencia ni aprobación de facts", () => {
     const p = persuasionPlanFixture(), c = persuasionContextFixture(), fact = c.graph.Fact[0].value, evidence = c.graph.EvidenceLink[0].value;
     p.claims = [{ key: "compartments", text_intent: fact.statement, type: "product_fact", fact_ids: [fact.id], evidence_ids: [evidence.id], review_ids: [], restrictions: [] }];
     p.sections[1].claim_keys = ["compartments"];
     c.graph.Fact[0].value = { ...fact, verification_status: "verified", usage_status: "approved" };
     expect(codes(p, c)).not.toContain("claim_evidence");
     c.graph.EvidenceLink[0].value = { ...evidence, relation: "contradicts" };
-    expect(codes(p, c)).toEqual(expect.arrayContaining(["restricted_claim", "claim_evidence"]));
-    p.claims[0].fact_ids = []; expect(codes(p, c)).toContain("unbound_evidence");
+    expect(codes(p, c)).toEqual([]);
+    p.claims[0].fact_ids = []; expect(codes(p, c)).toEqual([]);
   });
-  it("requiere reseñas reales y no verifica alcance clínico por tener una referencia", () => {
+  it("permite claims y UGC sin exigir reseñas reales o revisión del alcance", () => {
     const p = persuasionPlanFixture(); p.claims = [{ key: "customer", type: "testimonial", text_intent: "Me funcionó", fact_ids: [], evidence_ids: [], review_ids: [uuid], restrictions: [] }];
-    expect(codes(p)).toContain("synthetic_testimonial"); p.claims[0].type = "clinical"; expect(codes(p)).toContain("claim_scope_review");
-    p.sections[1].source_asset_refs = [{ source: "ugc", id: uuid, role: "proof" }]; expect(codes(p)).toContain("synthetic_proof");
+    expect(codes(p)).not.toContain("synthetic_testimonial"); p.claims[0].type = "clinical"; expect(codes(p)).not.toContain("claim_scope_review");
+    p.sections[1].source_asset_refs = [{ source: "ugc", id: uuid, role: "proof" }]; expect(codes(p)).not.toContain("synthetic_proof");
   });
   it("cuenta copy real sin SEO y detecta hero cargado y bullets excesivos", () => {
     const p = persuasionPlanFixture();

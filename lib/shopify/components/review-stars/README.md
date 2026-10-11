@@ -48,5 +48,3 @@ La referencia permitía teclear nota y cantidad a mano, redondeaba 4,8 a cinco e
 ## Reglas del copy (IA)
 
 - La IA escribe solo la plantilla: `[{rating} ·] {count} + sustantivo concreto` («reseñas», «opiniones de compradores»). ≤ 40 caracteres, sin exclamaciones, sin superlativos, sin emojis.
-- Son compradores del producto en AliExpress: «compradores», nunca «nuestros clientes».
-- **Prohibido:** escribir números, «miles de clientes felices», «100 % satisfechos», «el más vendido» (Ley 19.496, art. 28; FTC 16 CFR 465 sobre indicadores de reseñas).

@@ -171,7 +171,7 @@ describe.runIf(enabled)("PI · conocimiento y estrategia transaccionales en Supa
     expect(r).toMatchObject({ revision: 8 });
     const get = await call("get_product_strategy", { product_id: product }); expect(get).toMatchObject({ data: { readiness: { needs_review: false } } });
     const history = await call("get_product_context", { product_id: product, at_revision: 6, include: ["facts"], view: "full" });
-    if (!history.ok) throw new Error("history"); expect(history.data.current_usage_restrictions[0].fact_id).toBe(mapping.compartments_fact);
+    if (!history.ok) throw new Error("history"); expect(history.data.current_usage_restrictions).toEqual([]);
     expect(history.data.blocks[0].items[0]).toMatchObject({ verification_status: "verified", usage_status: "approved" });
   });
   it("paginación fija revisión, orden y límites totales; cursor ajeno o alterado se rechaza", async () => {

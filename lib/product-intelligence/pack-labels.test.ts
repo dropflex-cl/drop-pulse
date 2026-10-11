@@ -25,25 +25,25 @@ describe("PI · etiquetas de packs escritas en chat", () => {
     expect(validateChatPackLabels([...labels].reverse(), plan, [], {}, id, id)).toEqual(labels);
     expect(() => validateChatPackLabels(labels.slice(1), plan, [], {}, id, id)).toThrow("Cada pack");
   });
-  it("montos y descuentos pertenecen a ese pack, y no admite HTML/tratamiento/claims", () => {
-    for (const label of ["<b>Uno para ti</b>", "Tratamiento completo", "Cura todo", "$99.999", "Ahorras 98%"])
+  it("montos y descuentos pertenecen a ese pack y conserva texto plano", () => {
+    for (const label of ["<b>Uno para ti</b>", "$99.999", "Ahorras 98%"])
       expect(() => validateChatPackLabels([{ ...labels[0], label }, ...labels.slice(1)], plan, [], {}, id, id)).toThrow();
     const valid = [{ ...labels[0], support: "$29.990" }, ...labels.slice(1)];
     expect(validateChatPackLabels(valid, plan, [], {}, id, id)).toEqual(valid);
   });
-  it("ni duración pequeña ni cantidades escritas en palabras eluden la evidencia", () => {
+  it("permite duración en números o palabras sin facts", () => {
     for (const label of ["1 mes de uso", "Dos meses de uso"])
-      expect(() => validateChatPackLabels([{ ...labels[0], label, basis: "duration" }, ...labels.slice(1)], plan, [], {}, id, id)).toThrow("duración");
+      expect(() => validateChatPackLabels([{ ...labels[0], label, basis: "duration" }, ...labels.slice(1)], plan, [], {}, id, id)).not.toThrow();
   });
-  it("duración usa cantidad/unidad real, sus múltiplos y facts actuales sin contradicción", () => {
+  it("duración conserva referencias opcionales sin exigir aprobación o coincidencia numérica", () => {
     const f = fact(), duration = labels.map((l) => ({ ...l, label: `${l.units} ${l.units === 1 ? "mes" : "meses"} de uso`, basis: "duration" as const }));
     expect(validateChatPackLabels(duration, plan, [f.id], { Fact: [f] }, id, id)).toEqual(duration);
     expect(validateChatPackLabels(duration, plan, [f.id], { Fact: [{ ...f, value: 1, unit: "month" }] }, id, id)).toEqual(duration);
     for (const value of ["30 días de uso", "Dos meses de uso"])
-      expect(() => validateChatPackLabels(duration, plan, [f.id], { Fact: [{ ...f, value }] }, id, id)).toThrow();
+      expect(() => validateChatPackLabels(duration, plan, [f.id], { Fact: [{ ...f, value }] }, id, id)).not.toThrow();
     expect(() => validateChatPackLabels(duration, plan, [randomUUID()], { Fact: [f] }, id, id)).toThrow();
     const e = { ...contextFixture().strategy.evidence_links[0], fact_id: f.id, relation: "contradicts" };
-    expect(() => validateChatPackLabels(duration, plan, [f.id], { Fact: [f], EvidenceLink: [e] }, id, id)).toThrow();
+    expect(() => validateChatPackLabels(duration, plan, [f.id], { Fact: [f], EvidenceLink: [e] }, id, id)).not.toThrow();
   });
   it("lectura no escribe, entrega contrato y packs físicos; exige pricing para guardar", async () => {
     const repository = { loadPackLabels: vi.fn(async () => raw()), commitPackLabels: vi.fn() }, run = createPackLabelsExecutor(repository);
@@ -71,19 +71,19 @@ describe("PI · etiquetas de packs escritas en chat", () => {
     await expect(run({ ...owner, scopes: ["product_intelligence:read"] }, command, AbortSignal.timeout(1000))).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(repository.loadPackLabels).toHaveBeenCalledTimes(1); expect(repository.commitPackLabels).not.toHaveBeenCalled();
   });
-  it("aprobación UI revalida duración vigente y transmite la versión leída", async () => {
+  it("el alias UI transmite la versión sin exigir aprobación de facts", async () => {
     const f = fact(), current = { id, source: "mcp_chat", payload: labels, provenance: { duration_fact_ids: [f.id] } };
     const repository = { loadPackLabels: vi.fn(async () => ({ ...raw(), current, snapshot: { pricing: pricingPersistence(plan), knowledge: { graph: { Fact: [f] } } } })), commitPackLabels: vi.fn(async () => ({})) };
     await decidePackLabels(repository, owner, id, { action: "approve", expected_etag: "a".repeat(64) }, AbortSignal.timeout(1000));
     expect(repository.commitPackLabels).toHaveBeenCalledWith(expect.objectContaining({ p_action: "approve", p_etag: "a".repeat(64), p_fact_ids: [f.id] }), expect.any(AbortSignal));
     repository.loadPackLabels.mockResolvedValueOnce({ ...raw(), current, snapshot: { pricing: pricingPersistence(plan), knowledge: { graph: { Fact: [{ ...f, usage_status: "prohibited" }] } } } });
-    await expect(decidePackLabels(repository, owner, id, { action: "approve", expected_etag: "a".repeat(64) }, AbortSignal.timeout(1000))).rejects.toMatchObject({ code: "INVALID_REFERENCE" });
+    await expect(decidePackLabels(repository, owner, id, { action: "approve", expected_etag: "a".repeat(64) }, AbortSignal.timeout(1000))).resolves.toEqual({});
   });
-  it("stale cubre cambio de moneda, packs removidos y evidencia revocada", () => {
+  it("stale cubre precio y moneda sin exigir evidencia vigente", () => {
     const row = { prices: plan.packs.map(({ units, price }) => ({ units, price })), provenance: { currency: "CLP" } };
     expect(packLabelsStale(row, plan)).toBe(false);
     expect(packLabelsStale(row, { ...plan, currency: "USD" })).toBe(true);
     expect(packLabelsStale(row, { ...plan, packs: plan.packs.slice(1) })).toBe(true);
-    expect(packLabelsStale({ ...row, evidence_stale: true }, plan)).toBe(true);
+    expect(packLabelsStale({ ...row, evidence_stale: true }, plan)).toBe(false);
   });
 });

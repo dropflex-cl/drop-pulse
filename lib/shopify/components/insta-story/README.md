@@ -49,7 +49,7 @@ Medios: si existe `insta_story_media` manda sobre los bloques. Textos: la histor
 - **Exposición pasiva:** con avance automático, cinco historias son unos 25 segundos de demostración sin decidir nada; las barras invitan a terminar.
 - **Cierre sin riesgo:** la última historia lleva el llamado («Pedir y pagar al recibir»).
 
-La referencia horneaba el texto dentro de imágenes generadas con IA («recomendado por nuestros expertos» sobre una persona generada), no tenía toques, pausa ni cierre con gesto, usaba una librería de carrusel y cargaba todos los videos desde el inicio. Aquí el texto es HTML, los medios son reales, los gestos son los de Instagram y los videos se cargan al abrirse.
+La referencia horneaba el texto dentro de imágenes generadas con IA («recomendado por nuestros expertos» sobre una persona generada), no tenía toques, pausa ni cierre con gesto, usaba una librería de carrusel y cargaba todos los videos desde el inicio. Aquí el texto es HTML, los medios pueden ser de referencia o generados, los gestos son los de Instagram y los videos se cargan al abrirse.
 
 ## Reglas del copy (IA)
 
@@ -58,4 +58,3 @@ La referencia horneaba el texto dentro de imágenes generadas con IA («recomend
 - Línea 1: contexto o beneficio observable, ≤ 28. Línea 2: el remate en acento, ≤ 24.
 - Secuencia de 4 a 6: gancho → cómo se usa → detalle → uso diario → cierre con CTA. Cada texto describe lo que se ve en su medio.
 - `cta_label`: verbo + riesgo cero COD, ≤ 22, solo en la última (máximo 2).
-- **Prohibido:** expertos, médicos o kinesiólogos sin respaldo; «clientes felices», reseñas o citas sobre medios que no son UGC real; presentar una persona generada con IA como cliente o experto; cifras o escasez; claims de salud (Ley 19.496 arts. 28 y 33; regla FTC 2024 como referencia).

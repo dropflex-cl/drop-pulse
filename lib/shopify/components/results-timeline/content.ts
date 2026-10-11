@@ -12,7 +12,7 @@ export const resultsTimeline = defineComponent({
   placement:
     "Qué puedes esperar: después de la demostración y antes del cierre de compra.",
   objection:
-    "Todavía no hay plazos de resultados documentados para este producto.",
+    "¿Cómo se integra en mi rutina con el tiempo?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -38,32 +38,24 @@ export const resultsTimeline = defineComponent({
     footnote: pdpBody,
   }),
   realData: [
-    "Hechos aprobados y verificados; referencias reales, reseñas aprobadas, políticas y precios publicados.",
+    "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
     "Una idea principal por sección, textos cortos y concretos para móvil.",
-    "No envíes contenido ficticio para rellenar: sin evidencia se publica el estado vacío.",
-    "Todos los fact_id deben pertenecer a hechos aprobados y verificados del producto.",
   ],
-  forbidden: [
-    "Testimonios, expertos, estudios, resultados, escasez o plazos inventados.",
-    "Imágenes generadas usadas como evidencia.",
-    "Regalos que no se entregan ni garantías que la tienda no ofrece.",
-  ],
+  forbidden: [],
   examples: [
     {
-      heading: "Conoce la evolución documentada",
+      heading: "Conoce la evolución",
       stages: [
         {
           title: "Prepara el uso",
           body: "Sigue las instrucciones de preparación antes de comenzar a usarlo.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
           label: "Al empezar",
         },
         {
           title: "Revisa el resultado",
-          body: "Revisa el resultado de la demostración y las condiciones de uso documentadas.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
+          body: "Observa el cambio y adapta la rutina a tus necesidades.",
           label: "Después de usarlo",
         },
       ],
@@ -76,13 +68,11 @@ export const resultsTimeline = defineComponent({
         {
           title: "Prepara el uso",
           body: "Sigue las instrucciones de preparación antes de comenzar a usarlo.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
           label: "Al empezar",
         },
         {
           title: "Revisa el resultado",
-          body: "Revisa el resultado de la demostración y las condiciones de uso documentadas.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
+          body: "Observa el cambio y adapta la rutina a tus necesidades.",
           label: "Después de usarlo",
         },
       ],

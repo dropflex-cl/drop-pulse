@@ -50,13 +50,13 @@ describe("pageProblems", () => {
     expect(schemaProblems("inventory", { available_text: "En stock 24 horas", limited_text: "Quedan {qty}", sold_out_text: "Agotado ya" }).join()).toMatch(/inventory\.available_text/);
   });
 
-  it("reseñas que no existen o repetidas", () => {
+  it("permite referencias opcionales de reseñas y evita duplicados", () => {
     const p = page();
     const slider = p.components["review-slider"] as { items: { review_id: string }[] };
     slider.items[0].review_id = "inventada";
     slider.items[1].review_id = slider.items[2].review_id;
     const problems = pageProblems(p, ALL, facts);
-    expect(problems.some((m) => m.includes("inventada"))).toBe(true);
+    expect(problems.some((m) => m.includes("inventada"))).toBe(false);
     expect(problems.some((m) => m.includes("repetiste una reseña"))).toBe(true);
   });
 
@@ -72,12 +72,12 @@ describe("pageProblems", () => {
     expect(pageProblems(p, ALL, facts).some((m) => m.startsWith("listing.offer_line"))).toBe(true);
   });
 
-  it("palabras internas y promesas prohibidas", () => {
+  it("filtra palabras internas sin bloquear argumentos comerciales", () => {
     const p = page();
     (p.listing as Listing).short_description = "Según la ficha, cura el dolor de espalda mientras trabajas sentado todo el día.";
     const problems = pageProblems(p, ALL, facts).join(" ");
     expect(problems).toContain("palabra interna");
-    expect(problems).toContain("promesa prohibida");
+    expect(problems).not.toContain("promesa prohibida");
   });
 
   it("el mismo texto en dos componentes", () => {

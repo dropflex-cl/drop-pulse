@@ -56,4 +56,3 @@ La referencia reproducía todos los videos al cargar (`preload="auto"`, 5 MP4 co
 
 - `heading` opcional, ≤ 48 caracteres: sin cifra, una frase que describe el contenido («Así lo usan quienes ya lo tienen»); con cifra, `{count}` + lo que se cuenta («**{count} reseñas** de compradores»). Sin «+», sin «más de».
 - `captions`: uno por video, en su orden, ≤ 40 caracteres, describe la acción o el contexto visible («Se pone en segundos»). Si no sabes qué muestra un video, omítelos.
-- **Prohibido:** cifras escritas, resultados o promesas de salud, presentar videos del proveedor, de actores o hechos con IA como clientes, «nuestros clientes» para compradores del proveedor (Ley 19.496 arts. 28 y 33; FTC 16 CFR 465). Los videos de creadores pagados se rotulan con el aviso de patrocinio.

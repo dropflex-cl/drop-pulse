@@ -45,7 +45,7 @@ Una pregunta cuyo texto conserva un token sin dato real no se muestra (ni en la 
 - **Validación:** el acento en «tus dudas» reconoce al lector.
 - **Prueba social ligera:** junto al título, pero solo con el resumen real de reseñas y su fuente visible.
 
-La referencia decía «miles de clientes confían» sin dato y usaba caras ilustradas como clientes; aquí la prueba social sale del resumen real de reseñas y los avatares son del comerciante, con la advertencia de usar solo clientes reales con permiso o ilustraciones que no se hagan pasar por clientes.
+La referencia decía «miles de clientes confían» sin dato y usaba caras ilustradas como clientes; aquí la prueba social sale del resumen real de reseñas y los avatares pueden ser imágenes disponibles, ilustraciones o imágenes generadas.
 
 ## Reglas del copy (IA)
 
@@ -56,4 +56,3 @@ La referencia decía «miles de clientes confían» sin dato y usaba caras ilust
 - **Duración** (`duracion`, «¿Cuánto me dura?»): va siempre que el producto traiga rendimiento o duración. Usa el rendimiento que dio el comerciante y explica los packs como meses de uso («El pack de 3 frascos te alcanza para 3 a 4 meses de rutina»). Es la **única respuesta que puede llevar dígitos**, y solo los de los datos del producto (la app los compara con `key_facts` y `base_info`, `lib/copy/facts.ts`); el esquema de este componente exige el resto sin números.
 - **Resultados** (`resultados`): en belleza y bienestar se incluye, condicionado al uso constante y sin plazo.
 - Prueba social solo con `{rating}`/`{count}`.
-- **Prohibido:** escribir plazos, días, costos o cantidades (van como tokens; la excepción es el rendimiento en la respuesta de duración); inventar el rendimiento o prometer resultados en un plazo; claims de salud; «el mejor», «100 % garantizado», «certificado»; inventar materiales o cuidados; presentar la garantía legal como beneficio extra (Ley 19.496 arts. 28 y 33).

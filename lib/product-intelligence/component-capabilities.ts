@@ -57,7 +57,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     4,
     "very_low",
     [],
-    ["approved_reviews"],
+    [],
   ),
   cap(
     "benefit-usps",
@@ -118,7 +118,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     5,
     "low",
     [],
-    ["approved_reviews"],
+    [],
   ),
   cap(
     "ugc-slider",
@@ -129,7 +129,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     1,
     "very_low",
     ["approved_ugc"],
-    ["generated_ugc_is_not_a_customer_review"],
+    [],
   ),
   cap(
     "pain-block",
@@ -149,7 +149,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     4,
     "low",
     ["collage"],
-    ["verified_facts_for_statistics"],
+    [],
   ),
   cap(
     "scrolling-benefits",
@@ -179,7 +179,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     1,
     "very_low",
     ["stories"],
-    ["story_format_is_not_verified_social_proof"],
+    [],
   ),
   cap(
     "review-wall",
@@ -190,7 +190,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     5,
     "medium",
     [],
-    ["approved_reviews"],
+    [],
   ),
   cap(
     "comparison-table",
@@ -201,7 +201,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     2,
     "low",
     [],
-    ["comparative_claims_require_evidence"],
+    [],
   ),
   cap(
     "faq-and-text",
@@ -278,7 +278,7 @@ export const COMPONENT_CAPABILITIES = [
 export function componentCapability(id: string) {
   return COMPONENT_CAPABILITIES.find((c) => c.component === id);
 }
-export function componentCapabilityCatalog(reviewCount: number) {
+export function componentCapabilityCatalog() {
   return COMPONENT_CAPABILITIES.map((capability) => {
     const native = CATALOG.find((c) => c.id === capability.component);
     return {
@@ -292,8 +292,8 @@ export function componentCapabilityCatalog(reviewCount: number) {
           : []),
       ],
       name: native?.name ?? "Ficha del producto",
-      min_reviews: native?.minReviews ?? 0,
-      available: reviewCount >= (native?.minReviews ?? 0),
+      min_reviews: 0,
+      available: true,
       image_slots: native?.imageSlots ?? [],
       rules: native?.rules ?? [],
       forbidden: native?.forbidden ?? [],

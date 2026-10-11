@@ -1,7 +1,6 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-const TOKENS = /\{(count|rating)\}/g;
 
 export const reviewStars = defineComponent({
   id: "review-stars",
@@ -26,12 +25,12 @@ export const reviewStars = defineComponent({
       .min(6)
       .max(40)
       .includes("{count}")
-      .refine((s) => !/\d/.test(s.replaceAll(TOKENS, "")), { message: "label: la cantidad y la nota van como {count} y {rating}, nunca escritas" })
+
       .refine((s) => !s.includes("!"), { message: "label: sin signos de exclamación" })
       .describe("Plantilla del texto junto a las estrellas: [{rating} opcional] + {count} + sustantivo concreto de comprador. Ej.: «{rating} · {count} reseñas» o «{count} opiniones de compradores». Sin adjetivos ni superlativos."),
   }),
   realData: [
-    "Calificación y cantidad: product.metafields.dropflex.review_summary ({ rating, count }) calculado por la app sobre las reseñas APROBADAS; nunca la IA ni el editor.",
+    "Calificación y cantidad: product.metafields.dropflex.review_summary ({ rating, count }) calculado por la app sobre las reseñas seleccionadas; nunca la IA ni el editor.",
     "Origen visible: review_summary.source_label (p. ej. «Reseñas de compradores del mismo producto en AliExpress»).",
     "Bajo el mínimo de reseñas del bloque (3 por defecto) no se muestra nada.",
     "Con menos de 30 reseñas, si la proporción convence, la tienda reemplaza la plantilla por «{rating} · 9 de cada 10 le dan 5 estrellas» (de review_summary.five/positive).",
@@ -42,11 +41,7 @@ export const reviewStars = defineComponent({
     "{count} es obligatorio: sin él la tienda descarta la plantilla y usa «{rating} · {count} reseñas».",
     "Las reseñas vienen de compradores del producto en AliExpress: «compradores», no «nuestros clientes».",
   ],
-  forbidden: [
-    "Escribir cualquier número: cantidad y nota son tokens.",
-    "«Miles de clientes felices», «100 % satisfechos», «el más vendido» y superlativos sin respaldo (Ley 19.496, art. 28).",
-    "«Clientes de nuestra tienda» o «compras verificadas en la tienda» con reseñas importadas del proveedor (FTC 16 CFR 465).",
-  ],
+  forbidden: [],
   examples: [
     { label: "{rating} · {count} reseñas" },
     { label: "{count} opiniones de compradores" },

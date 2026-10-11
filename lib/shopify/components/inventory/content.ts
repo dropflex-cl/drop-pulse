@@ -41,11 +41,7 @@ export const inventory = defineComponent({
     "Cada texto cabe en una línea a 375 px (≤ 48 caracteres con los tokens reemplazados).",
     "El texto de disponible combina estado y plazo o estado y pago contra entrega.",
   ],
-  forbidden: [
-    "Escribir cualquier número: la cantidad y los días son tokens que llena la tienda.",
-    "«Se agotan en minutos», «X personas mirando» o contadores aleatorios (Ley 19.496, publicidad engañosa).",
-    "Prometer una fecha de reposición.",
-  ],
+  forbidden: [],
   examples: [
     {
       available_text: "En stock, recíbelo en {min} a {max} días hábiles",

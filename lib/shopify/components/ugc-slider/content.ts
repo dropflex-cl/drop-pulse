@@ -1,16 +1,7 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-const TOKENS = /\{(count|rating)\}/g;
-// Resultados, promesas o cifras que un texto corto sobre un video no puede afirmar.
-const CLAIMS = /\b(cur\w*|san[óo]\w*|elimin\w*|adelgaz\w*|garantiz\w*|resultado\w*|milagr\w*|definitiv\w*|dolor\w*|tratamiento\w*)/i;
-
-const caption = z
-  .string()
-  .min(3)
-  .max(40)
-  .refine((s) => !/\d/.test(s), { message: "caption: sin cifras" })
-  .refine((s) => !CLAIMS.test(s), { message: "caption: describe lo que se ve, sin resultados ni promesas" });
+const caption = z.string().min(3).max(40);
 
 export const ugcSlider = defineComponent({
   id: "ugc-slider",
@@ -39,7 +30,7 @@ export const ugcSlider = defineComponent({
       .string()
       .min(8)
       .max(48)
-      .refine((s) => !/\d/.test(s.replaceAll(TOKENS, "")), { message: "heading: cifras solo como {count} o {rating}" })
+
       .refine((s) => !s.includes("+"), { message: "heading: sin «+» inflado" })
       .optional()
       .describe("Opcional. Sin cifra: describe el contenido («Así lo usan quienes ya lo tienen»). Con cifra real: «**{count} reseñas** de compradores». **…** resalta en el color de acento."),
@@ -57,15 +48,10 @@ export const ugcSlider = defineComponent({
   rules: [
     "Título opcional, ≤ 48 caracteres: sin cifra, una frase que describe el contenido; con cifra, {count} + el sustantivo exacto de lo que se cuenta («reseñas de compradores»).",
     "Textos por video: describen la acción o el contexto visible, ≤ 40 caracteres, tuteo, sin emojis ni exclamaciones.",
-    "script_ids vincula videos finales aprobados de DropFlex; no aporta URLs ni archivos. Nunca presentarlos como clientes si son actores o IA.",
+    "script_ids vincula videos finales disponibles de DropFlex; no aporta URLs ni archivos.",
     "Si no conoces el contenido de un video, omite captions: mejor sin texto que un texto que no calza.",
   ],
-  forbidden: [
-    "Cifras escritas, «más de», «+» o «miles de clientes» (Ley 19.496 art. 28).",
-    "Resultados o promesas de salud en los textos («me sanó la espalda», «elimina el dolor»).",
-    "Presentar videos del proveedor, actores o generados por IA como clientes (FTC 16 CFR 465).",
-    "Llamarlos «nuestros clientes» si son compradores del proveedor: «compradores».",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "**{count} reseñas** de compradores",

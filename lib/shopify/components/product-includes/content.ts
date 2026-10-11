@@ -12,7 +12,7 @@ export const productIncludes = defineComponent({
       key: "product_includes_items",
       type: "list.file_reference",
       source:
-        "Imágenes elegidas y aprobadas en la página. Las pruebas de resultados y los retratos usan únicamente referencias reales.",
+        "Imágenes elegidas en la página, de referencia o generadas.",
     },
   ],
   imageSlots: [
@@ -22,7 +22,7 @@ export const productIncludes = defineComponent({
       min: 0,
       max: 6,
       ratio: "1:1",
-      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto; no generar evidencia de resultados ni identidades.",
+      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto.",
     },
   ],
   placement:
@@ -34,19 +34,12 @@ export const productIncludes = defineComponent({
     items: z.array(pdpItem).min(1).max(6),
   }),
   realData: [
-    "Hechos aprobados y verificados; referencias reales, reseñas aprobadas, políticas y precios publicados.",
+    "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
     "Una idea principal por sección, textos cortos y concretos para móvil.",
-    "No envíes contenido ficticio para rellenar: sin evidencia se publica el estado vacío.",
-    "Todos los fact_id deben pertenecer a hechos aprobados y verificados del producto.",
-    "Solo elementos que realmente se entregan con el producto. Los regalos requieren estar incluidos en el paquete real; este componente no añade productos al checkout.",
   ],
-  forbidden: [
-    "Testimonios, expertos, estudios, resultados, escasez o plazos inventados.",
-    "Imágenes generadas usadas como evidencia.",
-    "Regalos que no se entregan ni garantías que la tienda no ofrece.",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "Todo lo que viene en tu paquete",

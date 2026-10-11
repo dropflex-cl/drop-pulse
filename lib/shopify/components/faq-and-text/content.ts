@@ -1,32 +1,11 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-/** Tokens de política que la tienda reemplaza con datos reales; un token sin dato oculta la pregunta. */
-const POLICY_TOKENS = /\{(min|max|return_days|warranty_months)\}/g;
-/** «{rating} de 5» es la escala, no una cifra inventada. */
-const PROOF_TOKENS = /\{rating\} de 5\b|\{(count|rating)\}/g;
+const text = () => z.string();
 
-const noDigits = (field: string, tokens: RegExp) =>
-  z.string().refine((s) => !/\d/.test(s.replaceAll(tokens, "")), {
-    message: `${field}: plazos, cifras y cantidades van como tokens, nunca escritos`,
-  });
-
-/** Promesas de salud o resultados (Ley 19.496; ISP/MINSAL para dispositivos y suplementos). */
-const noHealthClaims = (field: string) =>
-  z.string().refine((s) => !/\bcura|corrige|alivia|elimina el dolor|escoliosis|garantizad|el mejor|certificad|aprobado por/i.test(s), {
-    message: `${field}: sin claims de salud, superlativos ni garantías que no son la política real`,
-  });
-
-/**
- * Temas, en el orden de la lista. `duracion` («¿Cuánto me dura?») es el único que puede llevar
- * dígitos: el rendimiento que dio el comerciante (la app valida aparte que esos números estén en
- * los datos del producto, lib/pipeline/publish.ts). Los demás siguen sin números.
- */
+/** Temas disponibles para las preguntas de la página. */
 export const FAQ_TOPICS = ["pago_cod", "envio", "uso", "duracion", "talla_compat", "cuidado", "diferencial", "resultados", "garantia", "otro"] as const;
-/** El tema que puede escribir cifras (rendimiento y meses de uso). */
-export const DIGITS_TOPIC = "duracion";
 
-const hasDigits = (s: string) => /\d/.test(s.replaceAll(POLICY_TOKENS, ""));
 
 export const faqAndText = defineComponent({
   id: "faq-and-text",
@@ -49,25 +28,24 @@ export const faqAndText = defineComponent({
     .object({
       eyebrow: z.string().min(3).max(28).optional()
         .describe("Rótulo corto sobre el título: «Preguntas frecuentes»."),
-      heading: noHealthClaims("heading").pipe(z.string().min(10).max(50))
+      heading: text().pipe(z.string().min(10).max(50))
         .describe("Tranquilidad + «tus dudas/preguntas», 3 a 7 palabras. Ej.: «Resolvemos tus dudas antes de pedir»."),
       heading_highlight: z.string().min(3).max(20).optional()
         .describe("1 o 2 palabras LITERALES del título que van en acento («tus dudas»)."),
-      body: noDigits("body", POLICY_TOKENS).pipe(noHealthClaims("body")).pipe(z.string().min(20).max(160)).optional()
+      body: text().pipe(text()).pipe(z.string().min(20).max(160)).optional()
         .describe("Una frase de apoyo: dónde más resolver dudas (WhatsApp, soporte en español)."),
       cta_label: z.string().min(4).max(24).optional()
         .describe("Verbo + beneficio sin riesgo: «Pedir y pagar al recibir»."),
-      social_proof_text: noDigits("social_proof_text", PROOF_TOKENS)
+      social_proof_text: text()
         .pipe(z.string().min(10).max(60))
-        .refine((s) => /\{(count|rating)\}/.test(s), { message: "social_proof_text: requiere {count} o {rating} (resumen real de reseñas)" })
         .optional()
-        .describe("Solo con reseñas reales: «{rating} de 5 según {count} reseñas». Sin tokens no se publica."),
+        .describe("Texto de apoyo editable; {rating} y {count} son tokens opcionales del resumen de reseñas."),
       items: z
         .array(
           z.object({
-            question: noDigits("question", POLICY_TOKENS).pipe(z.string().min(8).max(70).regex(/\?$/, "question: termina en «?»"))
+            question: text().pipe(z.string().min(8).max(70).regex(/\?$/, "question: termina en «?»"))
               .describe("Como la pensaría el comprador, 1ª persona y coloquial, una sola pregunta. Ej.: «¿Pago cuando me llegue?»."),
-            answer: noHealthClaims("answer").pipe(z.string().min(20).max(280))
+            answer: text().pipe(z.string().min(20).max(280))
               .describe("1ª frase responde directo («Sí.», «Entre {min} y {max} días hábiles.»), 2ª el detalle, 3ª opcional la red de seguridad. Sin números, salvo en la de duración (el rendimiento que dio el comerciante)."),
             topic: z.enum(FAQ_TOPICS).describe("Tema, para cobertura y orden. No se muestra. duracion = «¿Cuánto me dura?»."),
           }),
@@ -80,11 +58,6 @@ export const faqAndText = defineComponent({
       if (c.heading_highlight && !c.heading.includes(c.heading_highlight)) {
         ctx.addIssue({ code: "custom", path: ["heading_highlight"], message: "heading_highlight debe aparecer tal cual en heading" });
       }
-      c.items.forEach((item, i) => {
-        if (item.topic !== DIGITS_TOPIC && hasDigits(item.answer)) {
-          ctx.addIssue({ code: "custom", path: ["items", i, "answer"], message: "answer: plazos, cifras y cantidades van como tokens, nunca escritos (solo la pregunta de duración lleva el rendimiento)" });
-        }
-      });
       const topics = new Set(c.items.map((i) => i.topic));
       for (const required of ["envio", "uso", "garantia"] as const) {
         if (!topics.has(required)) {
@@ -96,8 +69,8 @@ export const faqAndText = defineComponent({
     "{min} y {max}: días de preparación + tránsito de shop.metafields.dropflex.logistics.",
     "{return_days} y {warranty_months}: shop.metafields.dropflex.policies. Una pregunta con un token sin dato no se muestra.",
     "Pago contra entrega: la pregunta pago_cod solo si policies.cod es verdadero.",
-    "{count} y {rating}: product.metafields.dropflex.review_summary (reseñas aprobadas), con su source_label visible. Sin resumen, la prueba social se oculta.",
-    "Avatares: imágenes del editor (clientes reales con permiso o ilustraciones), nunca de la IA.",
+    "{count} y {rating}: product.metafields.dropflex.review_summary (reseñas seleccionadas), con su source_label visible. Sin resumen, la prueba social se oculta.",
+    "Avatares: imágenes disponibles, ilustraciones o imágenes generadas.",
   ],
   rules: [
     "Español neutro con tuteo, cercano y seguro, frases cortas. Sin exclamaciones salvo un «¡Sí!» inicial; sin mayúsculas sostenidas.",
@@ -105,19 +78,12 @@ export const faqAndText = defineComponent({
     "Orden: pago_cod → envio → uso → duracion → talla_compat → cuidado → diferencial → resultados → garantia (el cierre reduce el riesgo).",
     "Cada respuesta: la primera frase responde directo; ≤ 280 caracteres.",
     "Plazos, días de cambio y meses de garantía solo como {min}, {max}, {return_days}, {warranty_months}.",
-    "La pregunta de duración («¿Cuánto me dura?», topic duracion) usa el rendimiento que dio el comerciante y explica los packs como meses de uso. Va siempre que el producto traiga rendimiento o duración, y es la única respuesta que puede llevar números: solo los de los datos del producto.",
-    "Si la categoría es belleza o bienestar, incluye resultados (topic resultados), condicionado al uso constante y sin plazo.",
+    "La pregunta de duración («¿Cuánto me dura?», topic duracion) permite explicar rendimiento, duración y packs sin requisito de hechos verificados.",
+    "Si la categoría es belleza o bienestar, incluye resultados (topic resultados) conectados con el uso del producto.",
     "La pregunta de resultados condiciona al uso constante y nunca promete un plazo.",
     "La garantía legal no se presenta como un beneficio extra.",
   ],
-  forbidden: [
-    "Escribir números: plazos, días, costos, cantidad de clientes o pedidos (Ley 19.496 arts. 28 y 33). La única excepción es la respuesta de duración, con el rendimiento tal como lo dio el comerciante.",
-    "Inventar el rendimiento o la duración, o prometer resultados en un plazo («en dos semanas»).",
-    "Claims de salud («corrige», «cura», «alivia el dolor», «elimina la escoliosis»).",
-    "«El mejor del mercado», «100 % garantizado», «certificado», «aprobado por…».",
-    "Inventar materiales, composición o cuidados que no estén en la ficha del producto.",
-    "Prueba social sin datos reales («miles de clientes confían»).",
-  ],
+  forbidden: [],
   examples: [
     {
       eyebrow: "Preguntas frecuentes",

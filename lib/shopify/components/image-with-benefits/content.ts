@@ -1,19 +1,16 @@
 import * as z from "zod/v4";
 import { defineComponent, ICON_KEYS } from "../define";
 
-const noDigits = (field: string, allow: RegExp = /$^/g) =>
-  z.string().refine((s) => !/\d/.test(s.replaceAll(allow, "")), {
-    message: `${field}: sin números escritos; medidas y cifras van en la ficha del producto`,
-  });
+const text = () => z.string();
 const noEndPunctuation = (s: string) => !/[.!]$/.test(s.trim());
 
 const benefit = z.object({
   icon: z.enum(ICON_KEYS).describe("Ícono del eje del beneficio: target (función), hand (comodidad), feather o leaf (material), clock (facilidad), globe (versatilidad), droplet (cuidado)…"),
-  title: noDigits("title")
+  title: text()
     .pipe(z.string().min(4).max(24))
     .refine(noEndPunctuation, { message: "Sin punto final" })
     .describe("2 o 3 palabras, sustantivo + adjetivo concreto. Ej.: «Tela respirable»."),
-  body: noDigits("body")
+  body: text()
     .pipe(z.string().min(40).max(110))
     .describe("Una oración: característica real → beneficio en tu día a día, con el momento de uso cuando aplique. Tuteo."),
 });
@@ -44,7 +41,7 @@ export const imageWithBenefits = defineComponent({
     "Pregunta retórica en el título («¿Por qué …?»): abre curiosidad y la sección la responde.",
   ],
   content: z.object({
-    heading: noDigits("heading", /\{count\}/g)
+    heading: text()
       .pipe(z.string().min(8).max(40))
       .describe("«¿Por qué [marca o producto]?» o «{count} razones para elegirlo» ({count} = cantidad real de beneficios, la pone la tienda)."),
     benefits: z
@@ -66,12 +63,7 @@ export const imageWithBenefits = defineComponent({
     "Texto: una oración de 40 a 110 caracteres, característica real → beneficio en tu día, mencionando el momento de uso cuando aplique.",
     "Tono claro, cálido y concreto; tuteo; nada de relleno («de la más alta calidad»).",
   ],
-  forbidden: [
-    "Superlativos («el mejor del mundo»), porcentajes y «garantizado» sin remitir a la garantía real.",
-    "Claims de salud o terapéuticos: «alivia dolores», «corrige la columna», «previene hernias» (Ley 19.496, art. 28; sin registro ISP).",
-    "«Aprobado por especialistas» y certificaciones sin respaldo.",
-    "Características que no están en la ficha del producto.",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "¿Por qué PosturaFit?",

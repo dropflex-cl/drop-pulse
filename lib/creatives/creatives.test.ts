@@ -118,8 +118,8 @@ describe("textProblems", () => {
     expect(textProblems([{ role: "headline", text: "Hoy $9.990" }], pricing)[0]).toMatch(/monto/);
   });
 
-  it("rechaza promesas de salud y exige un solo titular", () => {
-    expect(textProblems([{ role: "headline", text: "Previene infecciones urinarias" }], pricing)[0]).toMatch(/salud/);
+  it("permite argumentos comerciales y exige un solo titular", () => {
+    expect(textProblems([{ role: "headline", text: "Previene infecciones urinarias" }], pricing)).toEqual([]);
     expect(textProblems([{ role: "badge", text: "Sin sabor" }], pricing)[0]).toMatch(/headline/);
   });
 
@@ -186,7 +186,7 @@ describe("conceptProblems (paso de conceptos: reparto y textos)", () => {
     const split = conceptProblemsByConcept(base, facts);
     expect(split.general).toEqual([]);
     expect(split.byConcept.map((p) => p.length > 0)).toEqual([false, false, false, true, false, false]);
-    expect(split.byConcept[3].some((p) => /promete un resultado de salud/.test(p))).toBe(true);
+    expect(split.byConcept[3].some((p) => /palabras/.test(p))).toBe(true);
     // Lo mismo que conceptProblems, sin perder nada.
     expect(conceptProblems(base, facts)).toEqual([...split.general, ...split.byConcept.flat()]);
   });

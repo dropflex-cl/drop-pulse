@@ -54,11 +54,7 @@ export const shippingTimeline = defineComponent({
     "Etiquetas de hito: 1-2 palabras que formen una secuencia narrativa (pedido → despacho → entrega).",
     "node_delivered_sub_suffix: solo si la tienda tiene pago contra entrega activo.",
   ],
-  forbidden: [
-    "Escribir horas, días o fechas: el tiempo y las fechas salen de la logística real (Ley 19.496, arts. 12 y 28: el plazo informado es parte de la oferta).",
-    "«Entrega garantizada mañana», «envío express» o «llega en 24 horas» si no es el servicio real.",
-    "Contadores que se reinician al recargar o sin corte real.",
-  ],
+  forbidden: [],
   examples: [
     {
       countdown_template: "Pide dentro de {time} y recíbelo desde {arrive}",

@@ -67,7 +67,7 @@ export async function updateComponent(
   const raw = await createContextRepository().loadLanding({ p_access: access, p_product_id: productId }, AbortSignal.timeout(10000));
   const content = patch.content ?? currentContent(row);
   if (patch.content !== undefined) {
-    validateLandingProposal(userId, raw, [{ component, content: isVariants(content) ? content : [{ key: "default", angle_id: null, hook_id: null, content, images: patch.images ?? row.images }] }], productId);
+    validateLandingProposal(raw, [{ component, content: isVariants(content) ? content : [{ key: "default", angle_id: null, hook_id: null, content, images: patch.images ?? row.images }] }]);
   }
   if (patch.images) {
     const allowed = new Set((await catalogImages(userId, productId, false)).map(i => `${i.source}:${i.id}`));

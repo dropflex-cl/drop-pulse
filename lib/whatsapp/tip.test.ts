@@ -13,9 +13,9 @@ describe("consejo de uso", () => {
     expect(problems("Úsalo sobre una polera y empieza con 20 minutos el primer día.")).toEqual([]);
   });
 
-  it("rechaza números inventados, promesas de salud, montos, emojis, formato y largos", () => {
-    expect(problems("Úsalo 45 minutos cada mañana.").join()).toMatch(/números que no están/);
-    expect(problems("Úsalo a diario y cura el dolor de espalda.").join()).toMatch(/salud/);
+  it("permite argumentos sin verificación y conserva montos, formato y límites", () => {
+    expect(problems("Úsalo 45 minutos cada mañana.")).toEqual([]);
+    expect(problems("Úsalo a diario y cura el dolor de espalda.")).toEqual([]);
     expect(problems("Aprovecha el pack de 2 por $19.990.").join()).toMatch(/monto/);
     expect(problems("Úsalo sobre una polera 💪").join()).toMatch(/emojis/);
     expect(problems("Úsalo *siempre* sobre una polera.").join()).toMatch(/formato/);

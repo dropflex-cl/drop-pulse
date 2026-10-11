@@ -27,26 +27,23 @@ export const customerStories = defineComponent({
             .string()
             .regex(/^[^<>]*$/, "Escribe texto plano, sin HTML.")
             .min(1)
-            .max(100),
+            .max(100)
+            .optional()
+            .describe("Referencia opcional para reutilizar una reseña del producto."),
+          body: z.string().regex(/^[^<>]*$/, "Escribe texto plano, sin HTML.").min(8).max(400).optional(),
+          name: z.string().regex(/^[^<>]*$/, "Escribe texto plano, sin HTML.").min(1).max(70).optional(),
         }),
       )
       .min(1)
       .max(4),
   }),
   realData: [
-    "Hechos aprobados y verificados; referencias reales, reseñas aprobadas, políticas y precios publicados.",
+    "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
     "Una idea principal por sección, textos cortos y concretos para móvil.",
-    "No envíes contenido ficticio para rellenar: sin evidencia se publica el estado vacío.",
-    "Todos los fact_id deben pertenecer a hechos aprobados y verificados del producto.",
-    "Solo selecciona reseñas aprobadas con review_id. La tienda muestra el texto, autor y fotos reales; no reescribe testimonios.",
   ],
-  forbidden: [
-    "Testimonios, expertos, estudios, resultados, escasez o plazos inventados.",
-    "Imágenes generadas usadas como evidencia.",
-    "Regalos que no se entregan ni garantías que la tienda no ofrece.",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "Lo que cuentan quienes lo usan",

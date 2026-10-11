@@ -2,7 +2,7 @@ import { contextPricing, productContextResponse } from "./context";
 import { canonicalHash } from "./concurrency";
 import { cursorBinding, signContextCursor, type ContextCursor } from "./context-cursor";
 import { ProductIntelligenceError } from "./errors";
-import { usageRestrictions, type RecordKind } from "./graph";
+import { type RecordKind } from "./graph";
 import { strategyResponse, type KnowledgeRead } from "./knowledge";
 import type { Principal } from "./policy";
 import type { JsonValue, ToolInputs, ToolOutputs } from "./schemas";
@@ -19,7 +19,6 @@ export function knowledgeContextResponse(read: KnowledgeRead, input: ToolInputs[
   const strategy = read.strategy ? strategyResponse(read.strategy, read, input.product_id, input.view === "summary" ? "core" : "execution") : null;
   result.data.active_strategy_id = read.activeStrategyId;
   if (strategy) result.data.readiness = strategy.readiness;
-  const restrictions = usageRestrictions(read.currentGraph);
   const pricing = contextPricing(read.snapshot), policiesStamp = canonicalHash(read.snapshot.settings as JsonValue);
   const page: { block: Response["data"]["blocks"][number]; item: Response["data"]["blocks"][number]["items"][number] }[] = [];
   for (const block of result.data.blocks) {
@@ -48,18 +47,9 @@ export function knowledgeContextResponse(read: KnowledgeRead, input: ToolInputs[
     next.block.items.push(next.item); size += cost;
   }
   if (end === start && end < page.length) throw new ProductIntelligenceError("RESPONSE_TOO_LARGE", "Un registro completo no cabe en la respuesta. Reduce su contenido antes de continuar.");
-  // Uso vigente del material expuesto en esta página, incluso si su contenido es histórico.
-  const relevantFacts = new Set<string>();
-  for (const block of result.data.blocks) {
-    if (block.strategy) block.strategy.snapshot.facts.forEach((fact) => relevantFacts.add(fact.id));
-    for (const item of block.items) {
-      if (block.name === "facts") relevantFacts.add(item.id);
-      if ("fact_ids" in item) item.fact_ids.forEach((id) => relevantFacts.add(id));
-      if ("generation_guidance" in item) item.generation_guidance?.proof_fact_ids?.forEach((id) => relevantFacts.add(id));
-    }
-  }
-  result.data.current_usage_restrictions = restrictions.filter((r) => relevantFacts.has(r.fact_id));
-  if (result.data.current_usage_restrictions.length > 100 || bytes(result) > 60000) throw new ProductIntelligenceError("RESPONSE_TOO_LARGE", "Solicita menos bloques o un page_size menor para incluir sus restricciones de uso completas.");
+  // El campo sigue disponible para clientes anteriores; la evidencia no restringe el contenido.
+  result.data.current_usage_restrictions = [];
+  if (bytes(result) > 60000) throw new ProductIntelligenceError("RESPONSE_TOO_LARGE", "Solicita menos bloques o un page_size menor.");
   if (end < page.length) {
     result.data.truncated = true;
     result.data.next_cursor = signContextCursor({ binding: cursorBinding(principal, input), revision: read.revision, offset: end,

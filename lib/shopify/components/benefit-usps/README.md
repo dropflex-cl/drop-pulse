@@ -52,4 +52,3 @@ La referencia usaba PNG a color con `alt` descriptivos en inglés (ruido para el
 - Un ítem por objeción, en orden: pago contra entrega, envío, cambios o garantía, origen local, soporte.
 - `policy` obligatorio: la política que afirma el texto (`none` si no depende de una).
 - Tuteo, afirmativo, sin exclamaciones, mayúsculas sostenidas ni emojis.
-- **Prohibido:** beneficios que la tienda no ofrece (oferta vinculante, Ley 19.496), la garantía legal de 6 meses como beneficio propio, superlativos («el mejor», «#1 en ventas»), sellos no demostrables, promesas de salud, cifras escritas.

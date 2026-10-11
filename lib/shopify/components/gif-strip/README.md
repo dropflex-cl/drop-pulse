@@ -39,4 +39,3 @@ Bajo el botón, después de la doble tarjeta y antes de las reseñas. Responde �
 - 5 textos, cada uno un momento distinto (el problema en acción, el uso, el resultado, un detalle, la facilidad), del más fuerte al más débil.
 - Título ≤ 70: una conducta cotidiana en pregunta o una afirmación que responde 2 o 3 dudas. Nunca abre con el nombre del producto.
 - Cuerpo: alterna párrafo (≤ 160, qué hace + resultado visible) y lista (2 a 4 líneas de ≤ 40, un ícono distinto por línea, beneficio antes que mecanismo).
-- **Prohibido:** promesas de salud, precios u ofertas, datos que no están en la ficha, presentar el GIF como de un cliente.

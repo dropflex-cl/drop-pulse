@@ -63,7 +63,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
     const currentRead = parseKnowledgeRead(state.knowledge, principal, input.product_id);
     const read = currentRead;
     const base = { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID() };
-    if (tool === "get_component_catalog") return parseToolOutput(tool, { ...base, data: { catalog: componentCapabilityCatalog(state.landing.review_count) } });
+    if (tool === "get_component_catalog") return parseToolOutput(tool, { ...base, data: { catalog: componentCapabilityCatalog() } });
     if (tool === "get_landing_experience") {
       const query = parseToolInput(tool, command.input);
       const current = query.experience_id ? state.experiences.find(e => e.id === query.experience_id) : null;
@@ -81,7 +81,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
           policies: read.snapshot.settings, usage_restrictions: context.strategy.readiness },
         available_assets: state.assets, landing: { review_count: state.landing.review_count, rows: state.landing.rows.map(r => ({ component: r.component, enabled: r.enabled, status: r.status,
           variants: contentVariants(r.content ?? r.proposal).map(v => ({ key: v.key, angle_id: v.angle_id, hook_id: v.hook_id, image_count: (v.images ?? r.images).length })) })) },
-        catalog: componentCapabilityCatalog(state.landing.review_count), plans: plans.map(planSummary),
+        catalog: componentCapabilityCatalog(), plans: plans.map(planSummary),
         experiences: state.experiences.filter(e => e.payload.strategy_id === query.strategy_id && e.payload.angle_id === query.angle_id).map(experienceSummary),
         planning_stamp: state.planning_stamp, limitations: ["Las métricas actuales se agregan por campaña; no atribuyen resultados a una arquitectura.",
           "Los apoyos comerciales respetan los componentes guardados, el orden y la visibilidad de cada experiencia. Usa datos reales y conserva las desactivaciones explícitas.",

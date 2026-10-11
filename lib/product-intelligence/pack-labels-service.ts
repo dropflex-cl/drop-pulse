@@ -26,9 +26,9 @@ export function parsePackLabelsRead(raw: unknown) {
 }
 export const PACK_LABEL_RULES = ["Una etiqueta por pack calculado, en su orden; no envíes precios derivados ni estados de aprobación.",
   "Máximo 80 caracteres de etiqueta, 100 de apoyo y 30 de distintivo; solo un pack puede tener distintivo.",
-  "Duración solo con cantidad y unidad de facts aprobados/verificados y sin contradicción, referidos en duration_fact_ids. Se admiten múltiplos por unidades del pack.",
-  "Sin HTML, tratamiento ni promesas de salud o resultados. Usa montos y porcentajes reales del pack.",
-  "Si duration_facts_has_more es true, recupera los demás facts con get_product_context paginado. Guardar desde el MCP aprueba automáticamente las etiquetas. Este save no publica ni llama IA."];
+  "Puedes redactar duración y beneficios sin aportar duration_fact_ids; estos IDs son procedencia opcional.",
+  "Texto plano. Los montos y porcentajes corresponden al pack calculado.",
+  "Los facts paginados son procedencia opcional. Guardar desde el MCP deja las etiquetas disponibles. Este save no publica ni llama IA."];
 export function createPackLabelsExecutor(repository: PackLabelsRepository, identity?: DelegatedIdentity): DomainExecutor {
   return async (principal, command, signal) => {
     if (command.tool !== "get_pack_labels" && command.tool !== "save_pack_labels") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Esta operación no es de etiquetas de packs.");

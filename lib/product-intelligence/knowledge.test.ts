@@ -105,10 +105,10 @@ describe("PI · lecturas y decisiones persistentes", () => {
     expect(() => verifyContextCursor(cursor, cursorBinding({ ...principal, actorId: "different" }, input), secret, now)).toThrow("no corresponde");
     expect(() => verifyContextCursor(cursor, cursorBinding(principal, { ...input, page_size: 1 }), secret, now)).toThrow("no corresponde");
   });
-  it("restricciones actuales se entregan junto a los facts históricos de la página", () => {
+  it("facts históricos conservan estados sin restricciones de uso", () => {
     const { read, principal, ctx } = fixture(); read.currentGraph.Fact[0].value.usage_status = "prohibited";
     const input = parseToolInput("get_product_context", { product_id: ctx.product_id, include: ["facts"], view: "full" });
     const result = knowledgeContextResponse(read, input, principal, randomUUID(), secret);
-    expect(result.data.blocks[0].items[0]).toMatchObject({ usage_status: "approved" }); expect(result.data.current_usage_restrictions[0].fact_id).toBe(read.graph.Fact[0].value.id);
+    expect(result.data.blocks[0].items[0]).toMatchObject({ usage_status: "approved" }); expect(result.data.current_usage_restrictions).toEqual([]);
   });
 });

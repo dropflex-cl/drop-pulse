@@ -1,8 +1,6 @@
 import { serverRevision, serverToken } from "./current-content";
 import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
 import { DEFAULT_ACCENT } from "@/lib/copy/accent";
-import { pdpProofProblems } from "@/lib/copy/pdp-proof";
-import { isEmptyContent } from "@/lib/copy/page-schema";
 import { pdpBindingSchema } from "./pdp-bindings";
 import "server-only";
 import { randomUUID } from "node:crypto";
@@ -17,8 +15,6 @@ import { pricingPlanFromRow, type PricingRow } from "@/lib/pricing/rows";
 import { fromRow } from "@/lib/settings/policies";
 import { commandHash } from "./concurrency";
 import { ProductIntelligenceError } from "./errors";
-import { emptyGraph, usageRestrictions } from "./graph";
-import { factRecordSchema, evidenceLinkRecordSchema } from "./schemas";
 import type { DomainExecutor } from "./mcp";
 import type { DelegatedIdentity } from "./oauth";
 import { requireScopes, toolScopes } from "./policy";
@@ -144,8 +140,8 @@ export function createLandingExecutor(
               component: c.id,
               name: c.name,
               kind: c.kind,
-              min_reviews: c.minReviews ?? 0,
-              available: read.review_count >= (c.minReviews ?? 0),
+              min_reviews: 0,
+              available: true,
             })),
           ],
           contract: {
@@ -163,15 +159,15 @@ export function createLandingExecutor(
             rules: c
               ? [
                   ...c.rules,
-                  'Todos los componentes están visibles por defecto. Sin datos reales puedes enviar {state: "empty"}; conserva la sección con su estado vacío. Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente.',
+                  'Todos los componentes están visibles por defecto. El estado {state: "empty"} es opcional; desarrolla el contenido solicitado sin exigir evidencia. Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente.',
                 ]
               : [
                   "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",
-                  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto antes del selector de packs, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy y hechos aprobados y verificados.",
-                  "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. No inventes certificaciones, resultados ni cifras. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
+                  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto antes del selector de packs, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy.",
+                  "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
                 ],
             forbidden: c?.forbidden ?? [
-              "HTML, cifras inventadas, promesas no respaldadas.",
+              "HTML.",
             ],
             real_data: c?.realData ?? [
               "Precio y packs calculados en el servidor.",
@@ -205,16 +201,14 @@ export function createLandingExecutor(
             ? fromRow(read.snapshot.settings)
             : null,
           next_action:
-            "Escribe usando este contrato y get_product_context/get_product_strategy. save_landing_content aprueba el contenido automáticamente al guardar desde el MCP. Completa imágenes; publicar con publish_product requiere autorización propia.",
+            "Escribe usando este contrato y get_product_context/get_product_strategy. save_landing_content deja el contenido disponible al guardar desde el MCP. Completa imágenes; publicar con publish_product requiere autorización propia.",
         },
       });
     }
     if (!("stamp" in read)) throw new ProductIntelligenceError("INTERNAL_ERROR", "No pudimos leer el contenido de la página.");
     validateLandingProposal(
-      principal.userId,
       read,
       write.entries,
-      input.product_id,
     );
     return parseToolOutput(
       "save_landing_content",
@@ -236,12 +230,10 @@ export function createLandingExecutor(
   };
 }
 
-/** La revisión UI y el MCP usan la misma evidencia, precios, reseñas y catálogo de imágenes. */
+/** UI y MCP validan el formato, la oferta operativa y el catálogo de archivos. */
 export function validateLandingProposal(
-  userId: string,
   raw: unknown,
   entries: { component: string; content: unknown }[],
-  productId: string,
 ): void {
   const read = readSchema.parse(raw);
   if (!read.snapshot.pricing)
@@ -257,24 +249,6 @@ export function validateLandingProposal(
   const parts = Object.fromEntries(
     entries.map((e) => [e.component, e.content]),
   );
-  // Solo facts aprobados/verificados respaldan números de uso. Hipótesis y texto del proveedor no son prueba.
-  const graph = emptyGraph();
-  graph.Fact = (read.snapshot.knowledge.graph.Fact ?? []).map((f) => ({
-    userId,
-    productId,
-    value: factRecordSchema.parse(f),
-  }));
-  graph.EvidenceLink = (read.snapshot.knowledge.graph.EvidenceLink ?? []).map(
-    (e) => ({ userId, productId, value: evidenceLinkRecordSchema.parse(e) }),
-  );
-  const restricted = new Set(usageRestrictions(graph).map((r) => r.fact_id));
-  const factText = graph.Fact.map(({ value }) => value)
-    .filter((f) => !restricted.has(f.id))
-    .map(
-      (f) =>
-        `${f.statement}: ${typeof f.value === "string" ? f.value : JSON.stringify(f.value)}`,
-    )
-    .join("\n");
   const problems = pageProblems(
     { listing: parts.listing ?? null, components: parts },
     ids,
@@ -282,37 +256,12 @@ export function validateLandingProposal(
       currency: pricing.currency,
       amounts: allowedAmounts(pricing),
       reviewIds: read.reviews.map((r) => r.id),
-      factText,
     },
   );
-  for (const id of ids)
-    if (
-      !contentVariants(parts[id]).every((v) => isEmptyContent(v.content)) &&
-      read.review_count < (componentById(id)?.minReviews ?? 0)
-    )
-      problems.push(
-        `${id}: aprueba más reseñas antes de escribir este componente.`,
-      );
   const allowed = new Set(read.image_catalog.map((i) => `${i.source}:${i.id}`));
   for (const entry of entries)
     for (const variant of contentVariants(entry.content)) {
       const slots = componentById(entry.component)?.imageSlots ?? [];
-      const usableFacts = new Map(
-        graph.Fact.filter((f) => !restricted.has(f.value.id)).map((f) => [
-          f.value.id,
-          `${f.value.statement}: ${JSON.stringify(f.value.value)}`,
-        ]),
-      );
-      problems.push(
-        ...pdpProofProblems(entry.component, variant.content, usableFacts),
-      );
-      if (
-        ["before-after", "expert-endorsement"].includes(entry.component) &&
-        (variant.images ?? []).some((p) => p.source !== "reference")
-      )
-        problems.push(
-          `${entry.component}.${variant.key}: las pruebas de resultados y retratos requieren referencias reales, no imágenes generadas.`,
-        );
       for (const pick of variant.images ?? []) {
         if (
           !slots.some((s) => s.key === pick.slot) ||

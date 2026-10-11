@@ -22,7 +22,7 @@ Primer bloque del cuerpo: después de la galería y la ficha y **antes de `image
 | Ajustes y bloques «Momento» del editor | respaldo: título (por defecto «¿Te pasa esto?»), remate y hasta 3 momentos |
 | Ajustes de la sección | producto fuera de la ficha, diseño en escritorio, tamaño del título, colores, rellenos |
 
-No hay datos reales: es solo texto, sin cifras, plazos ni tokens. Sin imagen en v1 (la spec deja una foto opcional para más adelante). Sin momentos, la sección no se muestra (en el editor, un aviso).
+No hay datos reales: es texto editable, con cifras o plazos cuando el contenido los incluya. Sin imagen en v1 (la spec deja una foto opcional para más adelante). Sin momentos, la sección no se muestra (en el editor, un aviso).
 
 ## Comportamiento
 
@@ -46,4 +46,3 @@ No hay datos reales: es solo texto, sin cifras, plazos ni tokens. Sin imagen en 
   - `text`: 1 o 2 oraciones, 30 a 160 caracteres, en **primera** («me lavo la cara…») o **tercera persona** («quienes ya usan crema…»), con palabras de todos los días: cada momento sale del argumento de venta (el de su ángulo).
 - **Remate** (`bridge`): 20 a 120 caracteres; lleva al **diferenciador**, no a la oferta.
 - Sobrio: sin exclamaciones ni mayúsculas sostenidas.
-- **Prohibido:** diagnosticar al lector («tienes la piel deshidratada»), cifras y plazos (validado: sin dígitos), promesas de resultado y afirmaciones de salud, humillar («tu cara se ve vieja»), segunda persona sobre edad, salud o peso.

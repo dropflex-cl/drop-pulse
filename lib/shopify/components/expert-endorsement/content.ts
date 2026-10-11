@@ -12,23 +12,23 @@ export const expertEndorsement = defineComponent({
       key: "expert_endorsement_portrait",
       type: "list.file_reference",
       source:
-        "Imágenes elegidas y aprobadas en la página. Las pruebas de resultados y los retratos usan únicamente referencias reales.",
+        "Imágenes elegidas en la página, de referencia o generadas.",
     },
   ],
   imageSlots: [
     {
       key: "portrait",
-      label: "Retrato autorizado",
+      label: "Retrato",
       min: 0,
       max: 1,
       ratio: "1:1",
-      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto; no generar evidencia de resultados ni identidades.",
+      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto.",
     },
   ],
   placement:
     "Una opinión con respaldo: después de la demostración y antes del cierre de compra.",
   objection:
-    "Todavía no hay una opinión profesional documentada para este producto.",
+    "¿Por qué elegir esta solución para mi rutina?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -50,35 +50,26 @@ export const expertEndorsement = defineComponent({
     fact_id: pdpFact,
   }),
   realData: [
-    "Hechos aprobados y verificados; referencias reales, reseñas aprobadas, políticas y precios publicados.",
+    "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
     "Una idea principal por sección, textos cortos y concretos para móvil.",
-    "No envíes contenido ficticio para rellenar: sin evidencia se publica el estado vacío.",
-    "Todos los fact_id deben pertenecer a hechos aprobados y verificados del producto.",
-    "El hecho debe documentar la identidad, credencial, declaración literal y autorización del profesional; el retrato es una referencia real.",
   ],
-  forbidden: [
-    "Testimonios, expertos, estudios, resultados, escasez o plazos inventados.",
-    "Imágenes generadas usadas como evidencia.",
-    "Regalos que no se entregan ni garantías que la tienda no ofrece.",
-  ],
+  forbidden: [],
   examples: [
     {
-      heading: "Conoce una opinión documentada",
+      heading: "Una perspectiva sobre el producto",
       name: "Nombre del profesional",
-      credential: "Especialidad documentada",
+      credential: "Organización de espacios",
       quote:
-        "Esta opinión de ejemplo debe reemplazarse por una declaración real y autorizada.",
-      fact_id: "00000000-0000-4000-8000-000000000001",
+        "Tener tus herramientas a mano hace más simple comenzar cada tarea.",
     },
     {
       heading: "Conoce la opinión del profesional",
       name: "Nombre del profesional",
-      credential: "Especialidad documentada",
+      credential: "Organización de espacios",
       quote:
-        "Esta opinión de ejemplo debe reemplazarse por una declaración real y autorizada.",
-      fact_id: "00000000-0000-4000-8000-000000000001",
+        "Un escritorio ordenado te ayuda a aprovechar mejor tu espacio de trabajo.",
     },
   ],
 });

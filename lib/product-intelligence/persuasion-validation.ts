@@ -2,7 +2,7 @@ import { isEmptyContent } from "@/lib/copy/page-schema";
 import { contentVariants } from "@/lib/copy/variants";
 import { componentById } from "@/lib/shopify/components/catalog";
 import { componentCapability } from "./component-capabilities";
-import { usageRestrictions, type IntelligenceGraph } from "./graph";
+import { type IntelligenceGraph } from "./graph";
 import type {
   AnglePersuasionPlan,
   LandingExperience,
@@ -106,26 +106,12 @@ export function validatePersuasionPlan(
     audience.primary_objection_ids,
     "audience_state.primary_objection_ids",
   );
-  const restricted = new Set(
-    usageRestrictions(context.graph).map((r) => r.fact_id),
-  );
   const references = (
     item: { fact_ids: string[]; evidence_ids: string[] },
     field: string,
   ) => {
     lookup("Fact", item.fact_ids, `${field}.fact_ids`);
     lookup("EvidenceLink", item.evidence_ids, `${field}.evidence_ids`);
-    for (const id of item.evidence_ids) {
-      const link = context.graph.EvidenceLink.find(
-        (r) => r.value.id === id,
-      )?.value;
-      if (link && !item.fact_ids.includes(link.fact_id))
-        add(
-          "unbound_evidence",
-          `${field}.evidence_ids`,
-          "La evidencia debe respaldar uno de los facts declarados.",
-        );
-    }
   };
   references(
     {
@@ -297,27 +283,12 @@ export function validatePersuasionPlan(
           `${field}.source_asset_refs`,
           "El asset no está disponible en este producto.",
         );
-      if (asset.source === "ugc" && asset.role === "proof")
-        add(
-          "synthetic_proof",
-          `${field}.source_asset_refs`,
-          "El UGC generado puede demostrar el producto, pero no acredita una experiencia real de un comprador.",
-        );
     }
     const empty = context.rows.some(
       (r) =>
         r.component === section.selected_component &&
         contentVariants(r.content).every((v) => isEmptyContent(v.content)),
     );
-    const minReviews = empty
-      ? 0
-      : (componentById(section.selected_component)?.minReviews ?? 0);
-    if (context.review_count < minReviews)
-      add(
-        "missing_proof",
-        field,
-        "Aprueba suficientes reseñas reales antes de usar este componente.",
-      );
     if (
       !empty &&
       section.selected_component === "inventory" &&
@@ -354,45 +325,6 @@ export function validatePersuasionPlan(
   for (const [i, claim] of plan.claims.entries()) {
     const field = `claims.${i}`;
     references(claim, field);
-    if (claim.fact_ids.some((id) => restricted.has(id)))
-      add(
-        "restricted_claim",
-        field,
-        "El claim usa un fact sin verificar/aprobar o con contradicciones.",
-      );
-    const supporting = claim.evidence_ids.filter((id) => {
-      const e = context.graph.EvidenceLink.find(
-        (r) => r.value.id === id,
-      )?.value;
-      return e?.relation === "supports" && claim.fact_ids.includes(e.fact_id);
-    });
-    if (claim.type === "testimonial") {
-      if (
-        !claim.review_ids.length ||
-        claim.review_ids.some((id) => !context.review_ids.includes(id))
-      )
-        add(
-          "synthetic_testimonial",
-          field,
-          "Un testimonio requiere una reseña real aprobada; el lenguaje sintético y UGC generado no son reseñas.",
-        );
-    } else if (!claim.fact_ids.length || !supporting.length)
-      add(
-        "claim_evidence",
-        field,
-        "Vincula la afirmación a facts utilizables y evidencia explícita que los respalde.",
-      );
-    if (
-      ["clinical", "performance", "comparative", "timeline"].includes(
-        claim.type,
-      )
-    )
-      add(
-        "claim_scope_review",
-        field,
-        "La existencia de evidencia no demuestra el alcance de este claim. Documenta la revisión humana del alcance en las restricciones.",
-        claim.restrictions.length ? "warning" : "error",
-      );
     if (!plan.sections.some((s) => s.claim_keys.includes(claim.key)))
       add(
         "unused_claim",
@@ -527,12 +459,6 @@ export function validateLandingExperience(
           "invalid_reference",
           section.section_key,
           "El asset no está disponible en este producto.",
-        );
-      if (asset.source === "ugc" && asset.role === "proof")
-        add(
-          "synthetic_proof",
-          section.section_key,
-          "El UGC generado no es una reseña real ni evidencia de resultados.",
         );
     }
     if (

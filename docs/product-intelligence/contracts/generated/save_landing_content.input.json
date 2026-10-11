@@ -727,7 +727,7 @@
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema121"
+                    "$ref": "#/$defs/__schema122"
                   }
                 }
               ]
@@ -755,14 +755,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema122"
+                  "$ref": "#/$defs/__schema123"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema124"
+                    "$ref": "#/$defs/__schema125"
                   }
                 }
               ]
@@ -790,14 +790,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema125"
+                  "$ref": "#/$defs/__schema126"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema126"
+                    "$ref": "#/$defs/__schema127"
                   }
                 }
               ]
@@ -825,14 +825,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema127"
+                  "$ref": "#/$defs/__schema128"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema141"
+                    "$ref": "#/$defs/__schema142"
                   }
                 }
               ]
@@ -860,14 +860,14 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema142"
+                  "$ref": "#/$defs/__schema143"
                 },
                 {
                   "minItems": 1,
                   "maxItems": 12,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema143"
+                    "$ref": "#/$defs/__schema144"
                   }
                 }
               ]
@@ -895,7 +895,7 @@
             "content": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/__schema144"
+                  "$ref": "#/$defs/__schema145"
                 },
                 {
                   "minItems": 1,
@@ -1999,7 +1999,7 @@
           "type": "object",
           "properties": {
             "heading": {
-              "description": "Opcional. Título corto sobre el carrusel, sin cifras escritas. Ej.: «Lo que dicen quienes ya lo usan» o «{count} reseñas de compradores».",
+              "description": "Opcional. Título corto sobre el carrusel, editable. Ej.: «Lo que dicen quienes ya lo usan» o «{count} reseñas de compradores».",
               "$ref": "#/$defs/__schema52"
             },
             "items": {
@@ -2009,7 +2009,7 @@
               "items": {
                 "$ref": "#/$defs/__schema53"
               },
-              "description": "De 2 a 8 reseñas reales, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."
+              "description": "De 2 a 8 reseñas, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."
             }
           },
           "required": [
@@ -2029,13 +2029,13 @@
         "review_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Id de una reseña APROBADA de la lista recibida. Nunca inventado."
+          "description": "Id de una reseña de la lista recibida, si quieres reutilizarla."
         },
         "excerpt": {
           "type": "string",
           "minLength": 20,
           "maxLength": 110,
-          "description": "La oración más específica del original con las palabras del autor (50–90 caracteres ideal), primera persona. Sin agregar datos, adjetivos ni resultados; sin emojis."
+          "description": "La oración más específica del original con las palabras del autor (50–90 caracteres ideal), primera persona. Puedes editar el extracto para el argumento solicitado."
         },
         "excerpt_mode": {
           "type": "string",
@@ -2675,8 +2675,7 @@
       },
       "required": [
         "title",
-        "body",
-        "fact_id"
+        "body"
       ]
     },
     "__schema89": {
@@ -2689,7 +2688,7 @@
       "type": "string",
       "format": "uuid",
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-      "description": "ID de un hecho aprobado y verificado de este producto que respalda esta afirmación. No un ID inventado ni una hipótesis."
+      "description": "Referencia opcional a un hecho del producto para conservar procedencia."
     },
     "__schema91": {
       "type": "object",
@@ -2842,8 +2841,7 @@
             "heading",
             "before_label",
             "after_label",
-            "body",
-            "fact_id"
+            "body"
           ]
         }
       ]
@@ -2911,7 +2909,7 @@
               "type": "string",
               "minLength": 80,
               "maxLength": 224,
-              "description": "1 o 2 oraciones: para quién o en qué situación + cómo funciona (mecanismo real) + resultado esperable no médico. Máximo una frase en **negrita**."
+              "description": "1 o 2 oraciones: para quién o en qué situación + cómo funciona (mecanismo real) + resultado esperado. Máximo una frase en **negrita**."
             },
             "bullets": {
               "minItems": 2,
@@ -2920,7 +2918,7 @@
               "items": {
                 "$ref": "#/$defs/__schema97"
               },
-              "description": "3 razones (2 a 4): atributo verificable → beneficio, 3 a 7 palabras, sin punto final. Una puede ser sobre el pago al recibir."
+              "description": "3 razones (2 a 4): atributo del producto → beneficio, 3 a 7 palabras, sin punto final. Una puede ser sobre el pago al recibir."
             },
             "cta_label": {
               "type": "string",
@@ -2937,7 +2935,7 @@
               "description": "Plantilla de la línea de calificación con {rating} y, si quieres, {count}. Ej.: «{rating} de 5 según {count} reseñas». Nunca «pedidos»."
             },
             "review_id": {
-              "description": "Id de una reseña APROBADA de la lista recibida para el testimonio (la más concreta: antes → después). Se muestra tal cual; omítelo si ninguna sirve.",
+              "description": "Id de una reseña seleccionada de la lista recibida para el testimonio (la más concreta: antes → después). Se muestra tal cual; omítelo si ninguna sirve.",
               "$ref": "#/$defs/__schema98"
             },
             "stats": {
@@ -3098,8 +3096,7 @@
       "required": [
         "label",
         "title",
-        "body",
-        "fact_id"
+        "body"
       ]
     },
     "__schema104": {
@@ -3451,18 +3448,33 @@
           "pattern": "^[^<>]*$"
         },
         "review_id": {
+          "description": "Referencia opcional para reutilizar una reseña del producto.",
+          "$ref": "#/$defs/__schema121"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 400,
+          "pattern": "^[^<>]*$"
+        },
+        "name": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 100,
+          "maxLength": 70,
           "pattern": "^[^<>]*$"
         }
       },
       "required": [
-        "title",
-        "review_id"
+        "title"
       ]
     },
     "__schema121": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[^<>]*$"
+    },
+    "__schema122": {
       "type": "object",
       "properties": {
         "key": {
@@ -3507,7 +3519,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema122": {
+    "__schema123": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema19"
@@ -3519,16 +3531,16 @@
               "type": "string",
               "minLength": 8,
               "maxLength": 48,
-              "description": "Título sobre el muro, sin cifras escritas. Ej.: «Fotos de quienes ya lo recibieron» o «{count} compradores ya lo tienen»."
+              "description": "Título sobre el muro, editable. Ej.: «Fotos de quienes ya lo recibieron» o «{count} compradores ya lo tienen»."
             },
             "items": {
               "minItems": 4,
               "maxItems": 12,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema123"
+                "$ref": "#/$defs/__schema124"
               },
-              "description": "De 4 a 12 reseñas reales, en el orden del muro (la primera arriba a la izquierda). Primero las que tienen fotos; un número par (2 por fila en el teléfono)."
+              "description": "De 4 a 12 reseñas, en el orden del muro (la primera arriba a la izquierda). Primero las que tienen fotos; un número par (2 por fila en el teléfono)."
             }
           },
           "required": [
@@ -3538,20 +3550,20 @@
         }
       ]
     },
-    "__schema123": {
+    "__schema124": {
       "type": "object",
       "properties": {
         "review_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Id de una reseña APROBADA de la lista recibida. Nunca inventado."
+          "description": "Id de una reseña de la lista recibida, si quieres reutilizarla."
         }
       },
       "required": [
         "review_id"
       ]
     },
-    "__schema124": {
+    "__schema125": {
       "type": "object",
       "properties": {
         "key": {
@@ -3578,7 +3590,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema122"
+          "$ref": "#/$defs/__schema123"
         },
         "images": {
           "maxItems": 30,
@@ -3596,7 +3608,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema125": {
+    "__schema126": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema19"
@@ -3633,13 +3645,12 @@
             "heading",
             "name",
             "credential",
-            "quote",
-            "fact_id"
+            "quote"
           ]
         }
       ]
     },
-    "__schema126": {
+    "__schema127": {
       "type": "object",
       "properties": {
         "key": {
@@ -3666,7 +3677,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema125"
+          "$ref": "#/$defs/__schema126"
         },
         "images": {
           "maxItems": 30,
@@ -3684,7 +3695,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema127": {
+    "__schema128": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema19"
@@ -3693,19 +3704,19 @@
           "type": "object",
           "properties": {
             "heading": {
-              "$ref": "#/$defs/__schema128"
+              "$ref": "#/$defs/__schema129"
             },
             "us_label": {
-              "$ref": "#/$defs/__schema130"
-            },
-            "other_labels": {
               "$ref": "#/$defs/__schema131"
             },
+            "other_labels": {
+              "$ref": "#/$defs/__schema132"
+            },
             "rows": {
-              "$ref": "#/$defs/__schema133"
+              "$ref": "#/$defs/__schema134"
             },
             "footnote": {
-              "$ref": "#/$defs/__schema139"
+              "$ref": "#/$defs/__schema140"
             }
           },
           "required": [
@@ -3717,56 +3728,56 @@
         }
       ]
     },
-    "__schema128": {
-      "description": "«[Producto o marca propia] vs. [categoría genérica]» o «¿Por qué elegir [producto]?». Nunca una marca o tienda de terceros.",
-      "$ref": "#/$defs/__schema129"
-    },
     "__schema129": {
-      "type": "string"
+      "description": "«[Producto o marca propia] vs. [categoría genérica]» o «¿Por qué elegir [producto]?». Nunca una marca o tienda de terceros.",
+      "$ref": "#/$defs/__schema130"
     },
     "__schema130": {
+      "type": "string"
+    },
+    "__schema131": {
       "type": "string",
       "minLength": 2,
       "maxLength": 18,
       "description": "Nombre corto de nuestra columna: el producto o la tienda («PosturaFit», «Nuestra tienda»)."
     },
-    "__schema131": {
+    "__schema132": {
       "minItems": 1,
       "maxItems": 2,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema132"
+        "$ref": "#/$defs/__schema133"
       },
       "description": "1 o 2 columnas: lo que el cliente ya probó (alternatives_already_tried: «Crema más espesa», «Colágeno para tomar»); «Genéricos» solo si no hay una alternativa previa clara; canales («Tiendas internacionales», «Tienda física») solo en una tabla de dónde comprar. NUNCA una marca."
     },
-    "__schema132": {
+    "__schema133": {
       "type": "string"
     },
-    "__schema133": {
+    "__schema134": {
       "minItems": 4,
       "maxItems": 6,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema134"
+        "$ref": "#/$defs/__schema135"
       },
       "description": "4 a 6 filas: al menos 3 de producto (basis spec: qué hace, dónde actúa, cómo entra en la rutina) y primero. Filas de compra (policy o service: pago al recibir, envío, cambios) solo si las otras columnas son canales o tiendas."
     },
-    "__schema134": {
+    "__schema135": {
       "type": "object",
       "properties": {
         "feature": {
           "description": "Atributo en positivo, 2 a 5 palabras, sin negaciones dobles. Ej.: «Pago al recibir».",
-          "$ref": "#/$defs/__schema135"
+          "$ref": "#/$defs/__schema136"
         },
         "us": {
-          "$ref": "#/$defs/__schema136"
+          "$ref": "#/$defs/__schema137"
         },
         "others": {
           "minItems": 1,
           "maxItems": 2,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema136"
+            "$ref": "#/$defs/__schema137"
           },
           "description": "Un valor por cada other_labels, en el mismo orden."
         },
@@ -3787,21 +3798,21 @@
         "basis"
       ]
     },
-    "__schema135": {
+    "__schema136": {
       "type": "string"
     },
-    "__schema136": {
+    "__schema137": {
       "anyOf": [
         {
-          "$ref": "#/$defs/__schema137"
+          "$ref": "#/$defs/__schema138"
         },
         {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema139"
         }
       ],
       "description": "\"yes\" | \"no\" | \"partial\" | { text } (≤ 18 con tokens, solo valores cortos; plazos con {min}–{max})."
     },
-    "__schema137": {
+    "__schema138": {
       "type": "string",
       "enum": [
         "yes",
@@ -3809,7 +3820,7 @@
         "partial"
       ]
     },
-    "__schema138": {
+    "__schema139": {
       "type": "object",
       "properties": {
         "text": {
@@ -3820,14 +3831,14 @@
         "text"
       ]
     },
-    "__schema139": {
-      "description": "A qué se compara, en una frase: «Comparación referencial con correctores genéricos sin tallas».",
-      "$ref": "#/$defs/__schema140"
-    },
     "__schema140": {
-      "type": "string"
+      "description": "A qué se compara, en una frase: «Comparación referencial con correctores genéricos sin tallas».",
+      "$ref": "#/$defs/__schema141"
     },
     "__schema141": {
+      "type": "string"
+    },
+    "__schema142": {
       "type": "object",
       "properties": {
         "key": {
@@ -3854,7 +3865,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema127"
+          "$ref": "#/$defs/__schema128"
         },
         "images": {
           "maxItems": 30,
@@ -3872,7 +3883,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema142": {
+    "__schema143": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema19"
@@ -3894,7 +3905,7 @@
         }
       ]
     },
-    "__schema143": {
+    "__schema144": {
       "type": "object",
       "properties": {
         "key": {
@@ -3921,7 +3932,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema142"
+          "$ref": "#/$defs/__schema143"
         },
         "images": {
           "maxItems": 30,
@@ -3939,7 +3950,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema144": {
+    "__schema145": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema19"
@@ -3948,22 +3959,22 @@
           "type": "object",
           "properties": {
             "eyebrow": {
-              "$ref": "#/$defs/__schema145"
+              "$ref": "#/$defs/__schema146"
             },
             "heading": {
-              "$ref": "#/$defs/__schema147"
+              "$ref": "#/$defs/__schema148"
             },
             "heading_highlight": {
-              "$ref": "#/$defs/__schema149"
+              "$ref": "#/$defs/__schema150"
             },
             "body": {
-              "$ref": "#/$defs/__schema151"
+              "$ref": "#/$defs/__schema152"
             },
             "cta_label": {
-              "$ref": "#/$defs/__schema153"
+              "$ref": "#/$defs/__schema154"
             },
             "social_proof_text": {
-              "$ref": "#/$defs/__schema155"
+              "$ref": "#/$defs/__schema156"
             },
             "items": {
               "$ref": "#/$defs/__schema158"
@@ -3976,52 +3987,49 @@
         }
       ]
     },
-    "__schema145": {
-      "description": "Rótulo corto sobre el título: «Preguntas frecuentes».",
-      "$ref": "#/$defs/__schema146"
-    },
     "__schema146": {
+      "description": "Rótulo corto sobre el título: «Preguntas frecuentes».",
+      "$ref": "#/$defs/__schema147"
+    },
+    "__schema147": {
       "type": "string",
       "minLength": 3,
       "maxLength": 28
     },
-    "__schema147": {
-      "description": "Tranquilidad + «tus dudas/preguntas», 3 a 7 palabras. Ej.: «Resolvemos tus dudas antes de pedir».",
-      "$ref": "#/$defs/__schema148"
-    },
     "__schema148": {
-      "type": "string"
+      "description": "Tranquilidad + «tus dudas/preguntas», 3 a 7 palabras. Ej.: «Resolvemos tus dudas antes de pedir».",
+      "$ref": "#/$defs/__schema149"
     },
     "__schema149": {
-      "description": "1 o 2 palabras LITERALES del título que van en acento («tus dudas»).",
-      "$ref": "#/$defs/__schema150"
+      "type": "string"
     },
     "__schema150": {
+      "description": "1 o 2 palabras LITERALES del título que van en acento («tus dudas»).",
+      "$ref": "#/$defs/__schema151"
+    },
+    "__schema151": {
       "type": "string",
       "minLength": 3,
       "maxLength": 20
     },
-    "__schema151": {
-      "description": "Una frase de apoyo: dónde más resolver dudas (WhatsApp, soporte en español).",
-      "$ref": "#/$defs/__schema152"
-    },
     "__schema152": {
-      "type": "string"
+      "description": "Una frase de apoyo: dónde más resolver dudas (WhatsApp, soporte en español).",
+      "$ref": "#/$defs/__schema153"
     },
     "__schema153": {
-      "description": "Verbo + beneficio sin riesgo: «Pedir y pagar al recibir».",
-      "$ref": "#/$defs/__schema154"
+      "type": "string"
     },
     "__schema154": {
+      "description": "Verbo + beneficio sin riesgo: «Pedir y pagar al recibir».",
+      "$ref": "#/$defs/__schema155"
+    },
+    "__schema155": {
       "type": "string",
       "minLength": 4,
       "maxLength": 24
     },
-    "__schema155": {
-      "description": "Solo con reseñas reales: «{rating} de 5 según {count} reseñas». Sin tokens no se publica.",
-      "$ref": "#/$defs/__schema156"
-    },
     "__schema156": {
+      "description": "Texto de apoyo editable; {rating} y {count} son tokens opcionales del resumen de reseñas.",
       "$ref": "#/$defs/__schema157"
     },
     "__schema157": {
@@ -4103,7 +4111,7 @@
           ]
         },
         "content": {
-          "$ref": "#/$defs/__schema144"
+          "$ref": "#/$defs/__schema145"
         },
         "images": {
           "maxItems": 30,

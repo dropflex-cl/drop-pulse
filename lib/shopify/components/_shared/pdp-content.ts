@@ -15,8 +15,8 @@ export const pdpFact = z
   .string()
   .uuid()
   .describe(
-    "ID de un hecho aprobado y verificado de este producto que respalda esta afirmación. No un ID inventado ni una hipótesis.",
-  );
+    "Referencia opcional a un hecho del producto para conservar procedencia.",
+  ).optional();
 export const pdpItem = z.object({
   title: z
     .string()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authorizeResearchChanges, ReferenceResolver, usageRestrictions, validateGraph, validateStrategyChoice } from "./graph";
+import { authorizeResearchChanges, ReferenceResolver, validateGraph, validateStrategyChoice } from "./graph";
 import { authorizeTool, checkArtifact, checkRevision, type DelegatedGrant } from "./policy";
 import { canonicalHash } from "./concurrency";
 import { calculateProductPricing, currencyScale, toMajor, toMinor, pricingSnapshot } from "./pricing";
@@ -59,11 +59,11 @@ describe("PI · pertenencia, evidencia y selección", () => {
       expect(() => authorizeResearchChanges(principalFixture(), previous, next)).not.toThrow();
     }
   });
-  it("conserva nueva contradicción ordinaria y bloquea su uso", () => {
+  it("conserva contradicciones como procedencia sin bloquear uso", () => {
     const previous = graphFixture(); const next = structuredClone(previous);
     next.EvidenceLink.push({ ...structuredClone(next.EvidenceLink[0]), value: { ...next.EvidenceLink[0].value, id: "00000000-0000-0000-0000-000000000888", relation: "contradicts" } });
     expect(() => authorizeResearchChanges({ ...principalFixture(), scopes: ["product_intelligence:write"] }, previous, next)).not.toThrow();
-    expect(usageRestrictions(next)[0].fact_id).toBe(next.Fact[0].value.id);
+    expect(next.EvidenceLink[1].value.relation).toBe("contradicts");
     expect(previous.EvidenceLink).toHaveLength(1);
   });
   it("quitar respaldo revisado exige verify, un cambio solo de revisión no", () => {

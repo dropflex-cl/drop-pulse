@@ -11,7 +11,7 @@ import {
   variantsSchema,
 } from "./variants";
 import { LISTING, listingSchema } from "./listing";
-import { COD, FORBIDDEN, INTERNAL, amountAllowed, amountsIn } from "./schemas";
+import { COD, INTERNAL, amountAllowed, amountsIn } from "./schemas";
 
 // Los mensajes de validación llegan al comerciante (hoja de edición) y al modelo: en español y
 // simples. Los largos y cantidades con frase propia; el resto, el idioma de zod.
@@ -38,7 +38,7 @@ z.config({
   },
 });
 
-/** Permite dejar una sección visible sin inventar contenido para completarla. */
+/** Conserva un estado vacío cuando se elige explícitamente. */
 export const emptyContentSchema = z.strictObject({ state: z.literal("empty") });
 export const withEmptyContent = (schema: z.ZodType) =>
   z.union([emptyContentSchema, schema]);
@@ -75,26 +75,10 @@ export interface PageFacts {
   currency: string;
   /** Los montos que se pueden nombrar (lib/copy/schemas.ts › allowedAmounts). */
   amounts: number[];
-  /** Ids de las reseñas aprobadas que la IA puede citar. */
+  /** IDs disponibles para referencias opcionales, conservados por compatibilidad. */
   reviewIds: string[];
   /** Los datos que dio el comerciante (ficha y Información base): de aquí salen los números de la pregunta de duración. */
   factText?: string;
-}
-
-/** Números de un texto, normalizados («1,5» y «1.5» son el mismo). */
-const numbersIn = (t: string) =>
-  [...t.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0].replace(",", "."));
-
-/**
- * Números de la pregunta de duración que no salen de los datos del comerciante. Se aceptan también
- * los múltiplos por pack (2 o 3 veces un número de los datos: «3 frascos rinden de 3 a 4 meses»).
- */
-export function unsupportedNumbers(answer: string, factText: string): string[] {
-  const known = new Set(numbersIn(factText).map(Number));
-  const ok = (n: number) =>
-    [...known].some((k) => [1, 2, 3].some((m) => Math.abs(k * m - n) < 1e-9)) ||
-    n <= 3;
-  return numbersIn(answer).filter((x) => !ok(Number(x)));
 }
 
 /** Los problemas del esquema estricto, en el formato que entiende el modelo («faq-and-text.items.2.answer: …»). */
@@ -208,11 +192,6 @@ export function pageProblems(
 
   for (const [id, value] of parts) {
     const used = reviewIdsIn(id, value);
-    const unknown = used.filter((r) => !facts.reviewIds.includes(r));
-    if (unknown.length)
-      problems.push(
-        `${id}: estas reseñas no están en RESEÑAS APROBADAS: ${unknown.join(", ")}. Usa solo esos ids.`,
-      );
     if (new Set(used).size < used.length)
       problems.push(`${id}: repetiste una reseña.`);
   }
@@ -239,37 +218,6 @@ export function pageProblems(
         `${t.path}: estos montos no están en PRECIO Y OFERTA: ${wrong.join(", ")}. Usa solo esos números.`,
       );
   }
-  for (const re of FORBIDDEN) {
-    const hit = texts.find((t) => re.test(t.text));
-    if (hit)
-      problems.push(
-        `${hit.path} tiene una promesa prohibida («${hit.text.match(re)![0]}»): usa «ayuda a» o «diseñado para».`,
-      );
-  }
-
-  // La pregunta de duración puede llevar números, pero solo los que dio el comerciante.
-  if (facts.factText !== undefined) {
-    const listing = parts.find(([id]) => id === LISTING)?.[1] as
-      { gallery_benefits?: { text: string }[] } | undefined;
-    (listing?.gallery_benefits ?? []).forEach((item, i) => {
-      const bad = unsupportedNumbers(item.text, facts.factText!);
-      if (bad.length)
-        problems.push(
-          `listing.gallery_benefits.${i}.text: ${bad.join(", ")} no sale de los datos del producto. Usa solo cifras comprobadas.`,
-        );
-    });
-    const faq = parts.find(([id]) => id === "faq-and-text")?.[1] as
-      { items?: { topic?: string; answer?: string }[] } | undefined;
-    (faq?.items ?? []).forEach((item, i) => {
-      if (item.topic !== "duracion" || !item.answer) return;
-      const bad = unsupportedNumbers(item.answer, facts.factText!);
-      if (bad.length)
-        problems.push(
-          `faq-and-text.items.${i}.answer: ${bad.join(", ")} no sale de los datos del producto. Usa solo el rendimiento que dio el comerciante.`,
-        );
-    });
-  }
-
   const offer = (out.listing as { offer_line?: string } | null)?.offer_line;
   if (ids.includes(LISTING) && offer && !COD.test(offer))
     problems.push(

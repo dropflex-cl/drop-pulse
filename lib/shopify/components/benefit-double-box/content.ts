@@ -60,12 +60,7 @@ export const benefitDoubleBox = defineComponent({
     "Nombres de marcas de pago (Mercado Pago, Webpay) solo si están activos en la tienda.",
     "No repetir lo que dice benefit-usps (sobre el botón): aquí pago y garantía, allá envío, origen y soporte.",
   ],
-  forbidden: [
-    "Ofrecer menos que la ley o presentar lo legal como regalo: garantía legal de 6 meses (art. 21) y retracto de 10 días en compras a distancia (art. 3 bis, Ley 19.496).",
-    "«100 % garantizado» sin política escrita; «devolución de tu dinero» si solo hay cambio.",
-    "Sellos inventados («Compra segura certificada»).",
-    "Escribir cifras: días, meses y montos son tokens.",
-  ],
+  forbidden: [],
   examples: [
     {
       cards: [

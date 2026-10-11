@@ -15,19 +15,13 @@ export const guarantee = defineComponent({
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({ heading: pdpHeading, body: pdpBody }),
   realData: [
-    "Hechos aprobados y verificados; referencias reales, reseñas aprobadas, políticas y precios publicados.",
+    "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
     "Una idea principal por sección, textos cortos y concretos para móvil.",
-    "No envíes contenido ficticio para rellenar: sin evidencia se publica el estado vacío.",
-    "Todos los fact_id deben pertenecer a hechos aprobados y verificados del producto.",
     "Los precios, ahorros, pago, envío, devoluciones y garantía se leen de datos publicados. No escribir números ni nuevas políticas en el texto.",
   ],
-  forbidden: [
-    "Testimonios, expertos, estudios, resultados, escasez o plazos inventados.",
-    "Imágenes generadas usadas como evidencia.",
-    "Regalos que no se entregan ni garantías que la tienda no ofrece.",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "Compra con las condiciones claras",

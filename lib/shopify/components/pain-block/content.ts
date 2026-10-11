@@ -1,27 +1,7 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-const noDigits = (field: string) =>
-  z.string().refine((s) => !/\d/.test(s), {
-    message: `${field}: sin cifras ni plazos; el dolor se cuenta con palabras`,
-  });
-
-/** Promesas de salud o de resultado (Ley 19.496, art. 28; sin registro ISP). */
-const noHealthClaims = (field: string) =>
-  z.string().refine((s) => !/\b(cura|curar|corrige|alivia|elimina|previene|sana tu|rejuvenec|garantizad|certificad|aprobado por|el mejor)/i.test(s), {
-    message: `${field}: sin afirmaciones de salud, promesas de resultado ni superlativos`,
-  });
-
-/** Diagnosticar o humillar al lector en segunda persona («tienes la piel…», «tu cara se ve…»). */
-const noDiagnosis = (field: string) =>
-  z.string().refine((s) => !/\btienes (la |el |una |un )?(piel|cara|pelo|cabello|espalda|postura|columna|sobrepeso|arrugas|acn[ée])|\btu (cara|piel|cuerpo|espalda|pelo|cabello) (se ve|est[áa])/i.test(s), {
-    message: `${field}: no diagnostiques ni juzgues al lector; cuéntalo en primera o tercera persona`,
-  });
-
-const sober = (field: string) =>
-  z.string().refine((s) => !/[!¡]/.test(s), { message: `${field}: sobrio, sin exclamaciones` });
-
-const text = (field: string) => noDigits(field).pipe(noHealthClaims(field)).pipe(noDiagnosis(field)).pipe(sober(field));
+const text = () => z.string();
 
 export const painBlock = defineComponent({
   id: "pain-block",
@@ -41,21 +21,21 @@ export const painBlock = defineComponent({
   ],
   content: z
     .object({
-      heading: text("heading").pipe(z.string().min(8).max(48))
+      heading: text().pipe(z.string().min(8).max(48))
         .describe("Una pregunta de reconocimiento, sin diagnosticar. Ej.: «¿Te pasa esto frente al espejo?»."),
       moments: z
         .array(
           z.object({
             slot: z.number().int().min(1).max(3).describe("Orden del momento dentro del argumento activo (1, 2 o 3)."),
-            title: text("title").pipe(z.string().min(8).max(40))
+            title: text().pipe(z.string().min(8).max(40))
               .describe("La escena en pocas palabras, sin punto final. Ej.: «La cara tirante a las siete»."),
-            text: text("text").pipe(z.string().min(30).max(160))
+            text: text().pipe(z.string().min(30).max(160))
               .describe("1 o 2 oraciones en primera persona («me lavo la cara…») o tercera («quienes ya usan crema…»), con palabras de todos los días."),
           }),
         )
         .min(1).max(3)
         .describe("De 1 a 3 momentos del mensaje activo. slot identifica el momento, sin repetir."),
-      bridge: text("bridge").pipe(z.string().min(20).max(120))
+      bridge: text().pipe(z.string().min(20).max(120))
         .describe("Una frase que lleva del dolor al diferenciador del producto (qué faltaba), no a la oferta. Ej.: «La crema cubre la superficie. Lo que faltaba es colágeno concentrado, en gotas, donde la piel lo necesita.». Es la solución, no un complemento."),
     })
     .superRefine((c, ctx) => {
@@ -73,13 +53,7 @@ export const painBlock = defineComponent({
     "El remate (bridge) lleva al diferenciador del producto (qué faltaba), no a la oferta, al precio ni al pago al recibir.",
     "Sobrio y cercano: sin exclamaciones, sin mayúsculas sostenidas, sin dramatizar.",
   ],
-  forbidden: [
-    "Diagnosticar al lector («tienes la piel deshidratada», «tu postura está mal»).",
-    "Cifras y plazos («en siete días», «el noventa por ciento»), escritos con números o con palabras.",
-    "Promesas de resultado y afirmaciones de salud («elimina las arrugas», «corrige la columna»).",
-    "Humillar o dramatizar («tu cara se ve vieja», «das vergüenza»).",
-    "Segunda persona sobre edad, salud o peso («a tu edad», «con tu sobrepeso»).",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "¿Te pasa esto frente al espejo?",

@@ -85,12 +85,7 @@ export const gifStrip = defineComponent({
     "Ataca el costo de la alternativa cuando aplique («sin taladro, sin gasfiter»). Valida antes de vender si el título nombra un miedo.",
     "Describe lo que un GIF típico del producto puede mostrar: el uso, el mecanismo, el antes y el después visible. Nunca algo que no se vería en una animación de pocos segundos.",
   ],
-  forbidden: [
-    "Promesas de salud o resultados médicos: «cura», «elimina», «trata», «garantiza resultados»; nunca afirmar que el lector TIENE una condición (Ley 19.496 art. 28; sin registro ISP).",
-    "Precios, descuentos, packs o regalos: la ficha ya los muestra y cambian.",
-    "Materiales, medidas, certificaciones o garantías que no están en la ficha del producto.",
-    "Presentar el GIF como de un cliente («así lo usa María»): es el producto funcionando, no un testimonio.",
-  ],
+  forbidden: [],
   examples: [
     {
       gifs: [

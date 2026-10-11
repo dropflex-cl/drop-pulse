@@ -1,5 +1,5 @@
 {%- doc -%}
- Estructura de la PDP: información respaldada, reseñas y comercio reales.
+ Estructura de la PDP: contenido editable y datos comerciales.
  @param {string} component
  @param {object} product
  @param {object} section
@@ -40,12 +40,12 @@
    assign reviews = product.metafields.dropflex.reviews.value.items
    for story in content.stories
     assign review = reviews | where: 'id', story.review_id | first
-    if review != blank
+    if story.body != blank or review != blank
      assign valid = true
     endif
    endfor
   when 'expert-endorsement'
-   if content.fact_id != blank and content.quote != blank
+   if content.quote != blank
     assign valid = true
    endif
   when 'guarantee'
@@ -60,7 +60,7 @@
 -%}
 {%- capture before_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'before', index: 0, df_variant: df_variant, alt: content.before_label %}{%- endcapture -%}
 {%- capture after_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'after', index: 0, df_variant: df_variant, alt: content.after_label %}{%- endcapture -%}
-{%- if component == 'before-after' and content.fact_id != blank and before_image != blank and after_image != blank -%}{%- assign valid = true -%}{%- endif -%}
+{%- if component == 'before-after' and before_image != blank and after_image != blank -%}{%- assign valid = true -%}{%- endif -%}
 {%- if valid -%}
 <section class="df df-rich df-{{ component | escape }} df-container" style="{% render 'df-accent-vars', product: product %}" aria-labelledby="df-rich-title-{{ section.id }}">
  <h2 class="df-heading df-rich__heading" id="df-rich-title-{{ section.id }}">{{ heading | escape }}</h2>
@@ -105,10 +105,15 @@
   <div class="df-rich__grid">
    {% for story in content.stories %}
     {% assign review = reviews | where: 'id', story.review_id | first %}
-    {% if review != blank %}<article class="df-rich__card">
-     {% if review.image_count > 0 %}{% assign photo = photos[review.image_from] %}{{ photo | image_url: width: 800 | image_tag: loading: 'lazy', class: 'df-rich__image', alt: story.title }}{% endif %}
-     <h3 class="df-heading">{{ story.title | escape }}</h3>{% render 'df-stars', rating: review.rating %}
-     <blockquote class="df-text">{{ review.body | escape }}</blockquote><p class="df-rich__label">{{ review.author | escape }}</p>
+    {% if story.body != blank or review != blank %}<article class="df-rich__card">
+     {% if story.body != blank %}
+      <h3 class="df-heading">{{ story.title | escape }}</h3>
+      <blockquote class="df-text">{{ story.body | escape }}</blockquote><p class="df-rich__label">{{ story.name | escape }}</p>
+     {% else %}
+      {% if review.image_count > 0 %}{% assign photo = photos[review.image_from] %}{{ photo | image_url: width: 800 | image_tag: loading: 'lazy', class: 'df-rich__image', alt: story.title }}{% endif %}
+      <h3 class="df-heading">{{ story.title | escape }}</h3>{% render 'df-stars', rating: review.rating %}
+      <blockquote class="df-text">{{ review.body | escape }}</blockquote><p class="df-rich__label">{{ review.author | escape }}</p>
+     {% endif %}
     </article>{% endif %}
    {% endfor %}
   </div>

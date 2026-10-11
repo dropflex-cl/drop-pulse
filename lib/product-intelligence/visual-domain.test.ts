@@ -78,11 +78,11 @@ describe("Contrato visual e invariantes", () => {
     f.state.live["pricing:current"].hash = vHash("otra oferta");
     expect(recordValidity(plan, f.state).state).toBe("current");
   });
-  it("congela identidad y restricciones aprobadas; el resultado sintético nunca se declara evidencia real", () => {
+  it("conserva identidad y permite proveedores generativos sin requisitos de evidencia", () => {
     const f = ready(), input = { plan_ref: recordRef(f.plan), shot_key: "hero", parent_asset_id: null, reference_asset_ids: [], based_on_review_ids: [], resolved_instruction: "Usa la base", source_system: "chatgpt", model: null };
     const it = prepareIteration(f.state, input); expect(it.payload.reference_image_ids).toEqual([f.reference]); expect(it.payload.identity_snapshot).toMatchObject({ forbidden_variations: ["Accesorios inventados"] });
     const shot = (f.plan.payload.shots as Record<string, unknown>[])[0]; shot.representation = "real_evidence";
-    expect(() => prepareIteration(f.state, input)).toThrow("sintética");
+    expect(() => prepareIteration(f.state, input)).not.toThrow();
     shot.representation = "product_depiction"; f.plan.status = "review"; expect(() => prepareIteration(f.state, input)).not.toThrow();
   });
   it("separa aprobación de selección, evita archivar usos seleccionados y registra feedback", () => {

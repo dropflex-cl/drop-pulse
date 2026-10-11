@@ -51,4 +51,3 @@ La referencia mezclaba reseñas con pedidos para inflar la base («10.000+ pedid
 - **Botón:** acción + bajo riesgo en pago contra entrega («Pídelo y paga al recibir», «Quiero el mío»), ≤ 24 caracteres.
 - **Calificación:** solo plantilla con `{rating}` y `{count}`; «reseñas» u «opiniones», nunca «pedidos».
 - **Testimonio y cifras:** la IA solo elige un `review_id` de la lista de aprobadas y un `fact` con su etiqueta; los valores los pone la tienda.
-- **Prohibido:** «científicamente probado», «clínicamente», «recomendado por médicos», «cura», «elimina el dolor», garantías de resultado en X días, «el más vendido», cifras de clientes, presentarlo como dispositivo médico (Ley 19.496, arts. 28 y 33).

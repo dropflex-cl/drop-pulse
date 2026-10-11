@@ -4,7 +4,7 @@ import { CATALOG } from "@/lib/shopify/components/catalog";
 import { publishedSchemas } from "./mcp";
 import { PI_SCOPES, type Principal } from "./policy";
 import { parseToolInput, parseToolOutput } from "./validation";
-import { createLandingExecutor } from "./landing-service";
+import { createLandingExecutor, validateLandingProposal } from "./landing-service";
 import { productPresentation } from "@/lib/products/presentation";
 import { contextFixture } from "./test-fixtures";
 import { DEFAULT_ACCENT } from "@/lib/copy/accent";
@@ -209,64 +209,35 @@ describe("PI · contenido de Shopify desde chat", () => {
         review_count: 0,
       },
     });
-    if (result.ok) expect(result.data.catalog).toHaveLength(CATALOG.length + 1);
+    if (result.ok) {
+      expect(result.data.catalog).toHaveLength(CATALOG.length + 1);
+      expect(result.data.catalog.every(component => component.available && component.min_reviews === 0)).toBe(true);
+      expect(result.data.contract.forbidden).toEqual([]);
+    }
+    const listingRead = parseToolOutput("get_landing_content", await run(owner, {
+      tool: "get_landing_content", input: parseToolInput("get_landing_content", { product_id: id, component: "listing" }),
+    }, AbortSignal.timeout(1000)));
+    if (listingRead.ok) expect(listingRead.data.contract.forbidden).toEqual(["HTML."]);
     expect(repository.commitLanding).not.toHaveBeenCalled();
   });
-  it("write no permite costos inventados, referencias de reseña ni saltar su mínimo", async () => {
-    const repository = {
-        loadLanding: vi.fn(async () => raw()),
-        commitLanding: vi.fn(),
-      },
-      run = createLandingExecutor(repository);
-    const call = (input: unknown) =>
-      run(
-        owner,
-        {
-          tool: "save_landing_content",
-          input: parseToolInput("save_landing_content", input),
-        },
-        AbortSignal.timeout(1000),
-      );
-    await expect(
-      call({
-        ...request(),
-        entries: [
-          {
-            component: "listing",
-            content: {
-              ...listing,
-              offer_line: "Llévalo por $99.999 · Paga al recibir",
-            },
-          },
-        ],
-      }),
-    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
-    await expect(
-      call({
-        ...request(),
-        entries: [
-          {
-            component: "listing",
-            content: {
-              ...listing,
-              gallery_benefits: [
-                { icon: "ruler", text: "Capacidad de 500 útiles" },
-                { icon: "eye", text: "Encuentra tus útiles" },
-                { icon: "home", text: "Aprovecha tu escritorio" },
-              ],
-            },
-          },
-        ],
-      }),
-    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
-    const c = CATALOG.find((c) => c.id === "review-wall")!;
-    await expect(
-      call({
-        ...request(),
-        entries: [{ component: c.id, content: c.examples[0] }],
-      }),
-    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
-    expect(repository.commitLanding).not.toHaveBeenCalled();
+  it("conserva el precio operativo y permite copy sin evidencia ni mínimos de reseñas", () => {
+    expect(() => validateLandingProposal(raw(), [{ component: "listing", content: { ...listing, offer_line: "Llévalo por $99.999 · Paga al recibir" } }])).toThrow();
+    expect(() => validateLandingProposal(raw(), [{ component: "listing", content: { ...listing, gallery_benefits: [
+      { icon: "ruler", text: "Capacidad de 500 útiles" }, { icon: "eye", text: "Encuentra tus útiles" }, { icon: "home", text: "Aprovecha tu escritorio" },
+    ] } }, { component: "review-wall", content: CATALOG.find(c => c.id === "review-wall")!.examples[0] }])).not.toThrow();
+  });
+  it("guarda resultados, expertos e imágenes generadas sin fact_id y conserva pertenencia de archivos", () => {
+    const stripFacts = (value: unknown): unknown => Array.isArray(value) ? value.map(stripFacts) : value && typeof value === "object"
+      ? Object.fromEntries(Object.entries(value).filter(([key]) => key !== "fact_id").map(([key, child]) => [key, stripFacts(child)])) : value;
+    const image = randomUUID();
+    const data = { ...raw(), image_catalog: [{ source: "page_image", id: image }] };
+    const entries = ["before-after", "results-timeline", "expert-endorsement", "mechanism"].map(component => ({ component,
+      content: [{ key: "default", angle_id: null, hook_id: null, content: stripFacts(CATALOG.find(c => c.id === component)!.examples[0]),
+        ...(component === "before-after" ? { images: [{ slot: "before", source: "page_image", id: image }, { slot: "after", source: "page_image", id: image }] } : {}) }],
+    }));
+    expect(() => validateLandingProposal(data, entries)).not.toThrow();
+    expect(() => validateLandingProposal(raw(), entries)).toThrow("no pertenece");
+    expect(() => validateLandingProposal(raw(), [{ component: "customer-stories", content: { heading: "En la rutina de todos los días", stories: [{ title: "En el escritorio", body: "Mantengo todo a mano durante el trabajo.", name: "María" }] } }])).not.toThrow();
   });
   it("descubre estado vacío y acepta todos los componentes sin testimonios de relleno", async () => {
     const read = raw();
@@ -278,7 +249,7 @@ describe("PI · contenido de Shopify desde chat", () => {
       parseToolInput("save_landing_content", { ...request(), entries }),
     ).not.toThrow();
     const { validateLandingProposal } = await import("./landing-service");
-    expect(() => validateLandingProposal(id, read, entries, id)).not.toThrow();
+    expect(() => validateLandingProposal(read, entries)).not.toThrow();
     const repository = {
       loadLanding: vi.fn(async () => read),
       commitLanding: vi.fn(),
@@ -339,7 +310,7 @@ describe("PI · contenido de Shopify desde chat", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(repository.loadLanding).toHaveBeenCalledTimes(1);
   });
-  it("evidencia contradictoria no respalda cifras de duración aunque el fact siga approved", async () => {
+  it("la edición de duración no depende de estados de evidencia", async () => {
     const data = raw(),
       frozen = contextFixture();
     const fact = {
@@ -353,16 +324,6 @@ describe("PI · contenido de Shopify desde chat", () => {
       ...frozen.strategy.evidence_links[0],
       fact_id: fact.id,
       relation: "contradicts",
-    };
-    const repository = {
-      loadLanding: vi.fn(async () => ({
-        ...data,
-        snapshot: {
-          ...data.snapshot,
-          knowledge: { graph: { Fact: [fact], EvidenceLink: [link] } },
-        },
-      })),
-      commitLanding: vi.fn(),
     };
     const faq = CATALOG.find((c) => c.id === "faq-and-text")!.examples[0] as {
       items: unknown[];
@@ -379,21 +340,13 @@ describe("PI · contenido de Shopify desde chat", () => {
         },
       ],
     };
-    const command = {
-      tool: "save_landing_content" as const,
-      input: parseToolInput("save_landing_content", {
+    expect(() => parseToolInput("save_landing_content", {
         ...request(),
         entries: [{ component: "faq-and-text", content }],
-      }),
-    };
-    await expect(
-      createLandingExecutor(repository)(
-        owner,
-        command,
-        AbortSignal.timeout(1000),
-      ),
-    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
-    expect(repository.commitLanding).not.toHaveBeenCalled();
+      })).not.toThrow();
+    expect(() => validateLandingProposal({ ...data, snapshot: { ...data.snapshot,
+      knowledge: { graph: { Fact: [fact], EvidenceLink: [link] } },
+    } }, [{ component: "faq-and-text", content }])).not.toThrow();
   });
   it("contenido de chat queda disponible sin una fase de revisión", () => {
     expect(productPresentation({ content: { hasContent: true, missing: [], stale: false } })).toMatchObject({ contentState: "ready", publicationReady: true });

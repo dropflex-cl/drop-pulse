@@ -51,4 +51,3 @@ La referencia escribía los plazos a mano, repetía «Placeholder Icon» como al
 - Orden: pago al recibir → envío → cambio o garantía → soporte → un atributo del producto (opcional).
 - 3 a 6 ítems de largo parecido (12 a 26 caracteres, máximo 32 con los tokens reemplazados), sin verbos cuando se pueda, sin punto final, sin exclamaciones ni emojis.
 - Todo número es un token y todo ítem que menciona una política declara `requires` (el esquema lo exige).
-- **Prohibido:** «n.º 1», «el mejor», «el más vendido», «100 % garantizado», «envío inmediato», «24/7» sin respaldo, presentar la garantía legal como extra, claims de salud (Ley 19.496, arts. 28 y 33).

@@ -32,7 +32,7 @@ Producto `5fc0c212-67de-402b-b7a5-8b61f2643d6f`: los 27 componentes estaban apro
 
 Los estados antiguos `generated`, `in_review` y `approved` siguen aceptados durante el despliegue; no son requisitos de uso. `rejected`, archivado, descarte, selección y `enabled=false` siguen siendo decisiones explícitas. Las acciones antiguas de aprobación son alias compatibles. Guardar no habilita secciones ocultas ni publica el producto.
 
-Las afirmaciones nuevas, reseñas y evidencias externas conservan validación de autenticidad y permisos. Cambiar el contexto no revalida automáticamente todo lo guardado ni gasta créditos. Inventario, campañas y publicación siguen leyendo sus sistemas operativos reales.
+El contenido solicitado no requiere evidencia, verificación de hechos ni reseñas aprobadas. Fuentes y estados conservan procedencia; propietario y permisos siguen vigentes. Cambiar el contexto no revalida automáticamente todo lo guardado ni gasta créditos. Inventario, campañas y publicación siguen leyendo sus sistemas operativos reales.
 
 ## Concurrencia, seguridad y publicación
 
@@ -110,3 +110,14 @@ Aplicada y comprobada en Supabase local y, con autorización explícita del come
 Verificación: 124 pruebas de los módulos afectados y 55 de integración local (galería/anuncios, UGC, migración, contenido vigente y proyecciones). La migración se prueba dentro de una transacción revertida, con configuración anterior encendida/apagada, imágenes elegidas/descartadas, costos históricos y trabajos vigentes/obsoletos. Dos renders con proveedor simulado y Storage real guardan únicamente el trabajo solicitado y su costo. Chromium comprobó cuatro pantallas a 390 y 1280 px, en claro/oscuro: 16 combinaciones sin QA, desbordamiento, errores de navegador ni incidencias WCAG AA detectadas. Contratos, tokens, TypeScript, lint de cambios y compilación aislada correctos. La suite general aislada pasó 1.203 pruebas y detectó dos fallos de `review-stars` reproducibles en HEAD anterior al cambio; no se modificó ese componente para esta retirada. No se ejecutaron llamadas pagadas ni publicaciones de productos.
 
 Cierre de producción: migración registrada una sola vez; cero columnas o referencias SQL de QA retiradas; RPC nueva disponible solo para `service_role`, sin permisos de `anon` ni `authenticated`. Coinciden las quince huellas previas de datos y objetos de Storage (excluyendo únicamente campos retirados y huellas técnicas sustituidas por la migración). La comprobación HTTP de la app devolvió 200. Los respaldos y resultados quedan en `output/image-review-retirement/production/`.
+
+
+## Retirada de requisitos de evidencia para el contenido
+
+Por pedido explícito del comerciante, el MCP y la skill de optimización dejan de exigir pruebas reales, hechos aprobados o verificados, reseñas importadas, material manual o revisión de alcance para redactar y guardar contenido. `fact_id` es opcional en los componentes de PDP; las referencias existentes conservan procedencia. Las historias aceptan `body` y `name` propios o un `review_id` opcional. Antes/después y retratos aceptan imágenes generadas y se muestran sin `fact_id` tanto en Shopify como en la vista previa. Las etiquetas de packs permiten duración sin facts. No se usa `{state:"empty"}` automáticamente por falta de respaldo; permanece como elección explícita.
+
+`20261217000000_remove_content_evidence_gates.sql` retira los mínimos de reseñas y los requisitos de verificación/aprobación/proveedor de las RPC. Conserva datos existentes, pertenencia, permisos, concurrencia, idempotencia, archivos, descartes y visibilidad. La procedencia, los estados de investigación y la autorización para publicar se conservan. Las declaraciones explícitas de investigación y sus permisos de edición siguen siendo metadata auditada; no son requisitos de contenido. El precio, los packs y la logística operativos conservan su cálculo y publicación propios.
+
+La fuente actual del plugin incluye estos cambios en 1.6.4. La migración se aplicó en Supabase local. El paquete instalado y los servicios remotos requieren su actualización y despliegue; no se publicaron productos ni campañas como parte de este cambio.
+
+Verificación: 1.321 pruebas generales, 90 pruebas de integración local y 75 regresiones de los módulos finales; contratos, tokens, TypeScript y lint de los archivos modificados correctos. La compilación con webpack terminó correctamente. Turbopack encontró una restricción de puertos del entorno; el lint global mantiene errores en archivos del tema y otros módulos ajenos a esta retirada.

@@ -60,4 +60,3 @@ La referencia marcaba cruz en todo, incluso en lo que la competencia sí tiene, 
   - Validado en el esquema: filas `spec` ≥ 3, `spec` antes que las demás, y filas de compra solo con columnas de canal.
 - Dos tipos de tabla: **producto contra alternativas** (solo filas de producto) y **dónde comprar** (canales: 3 filas de producto y después las de compra).
 - Valores: `yes`, `no`, `partial` o `{ text }` corto; plazos con `{min}–{max}`. Al menos una fila con `yes` o `partial` en la competencia.
-- **Prohibido:** marcas de terceros, «el mejor», «el único», «certificado», claims de salud, cifras escritas, decir que la competencia es falsa o insegura (Ley 19.496 arts. 28 y 33; Ley 20.169). El comerciante aprueba la tabla antes de publicarla.

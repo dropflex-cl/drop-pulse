@@ -62,14 +62,14 @@ describe("normalizeChat", () => {
 });
 
 describe("chatProblems", () => {
-  it("aplica las reglas de los textos horneados: montos y salud", () => {
+  it("conserva los montos operativos sin filtrar argumentos comerciales", () => {
     const c = chat();
     c.messages[3].text = "Lo pagué $9.990 y me curó los hongos";
     const problems = chatProblems(c, pricing).join(" ");
     expect(problems).toMatch(/monto que no está/);
     const cure = chat();
     cure.messages[3].text = "Te juro que cura todo";
-    expect(chatProblems(cure, pricing).join(" ")).toMatch(/resultado de salud/);
+    expect(chatProblems(cure, pricing)).toEqual([]);
     expect(chatProblems(chat(), pricing)).toEqual([]);
   });
 });

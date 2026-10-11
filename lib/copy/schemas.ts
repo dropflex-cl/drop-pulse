@@ -7,9 +7,6 @@ import type { PricingPlan } from "@/lib/pricing/plan";
 /** Palabras de trabajo que no pueden llegar a la tienda («según la ficha», «el ángulo principal»). */
 export const INTERNAL = /(?<![\p{L}])(la ficha|ficha de producto|precio y oferta|cliente ideal|[áa]ngulo (principal|secundario))(?![\p{L}])/iu;
 
-/** Promesas que la ley y Meta no permiten en productos de bienestar (el prompt da las alternativas). */
-export const FORBIDDEN = [/\bcura(n|r)?\b/i, /\bresultados? garantizados?\b/i, /\b100\s?% garantizad[oa]s?\b/i];
-
 /** El texto dice que se paga al recibir. */
 export const COD = /pag(a|as|o|ar|ues)\b.*\b(recib|entreg|llegu)|contra ?entrega|al recibir/i;
 

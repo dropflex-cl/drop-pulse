@@ -12,36 +12,36 @@ export const beforeAfter = defineComponent({
       key: "before_after_before",
       type: "list.file_reference",
       source:
-        "Imágenes elegidas y aprobadas en la página. Las pruebas de resultados y los retratos usan únicamente referencias reales.",
+        "Imágenes elegidas en la página, de referencia o generadas.",
     },
     {
       key: "before_after_after",
       type: "list.file_reference",
       source:
-        "Imágenes elegidas y aprobadas en la página. Las pruebas de resultados y los retratos usan únicamente referencias reales.",
+        "Imágenes elegidas en la página, de referencia o generadas.",
     },
   ],
   imageSlots: [
     {
       key: "before",
-      label: "Antes, foto real",
+      label: "Antes",
       min: 0,
       max: 1,
       ratio: "1:1",
-      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto; no generar evidencia de resultados ni identidades.",
+      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto.",
     },
     {
       key: "after",
-      label: "Después, foto real",
+      label: "Después",
       min: 0,
       max: 1,
       ratio: "1:1",
-      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto; no generar evidencia de resultados ni identidades.",
+      hint: "Foto en el orden del contenido. Sin imagen se conserva el texto.",
     },
   ],
   placement:
     "Mira la diferencia: después de la demostración y antes del cierre de compra.",
-  objection: "Todavía no hay una comparación documentada para este producto.",
+  objection: "¿Qué diferencia puedo ver al usarlo?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -59,33 +59,24 @@ export const beforeAfter = defineComponent({
     fact_id: pdpFact,
   }),
   realData: [
-    "Hechos aprobados y verificados; referencias reales, reseñas aprobadas, políticas y precios publicados.",
+    "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
     "Una idea principal por sección, textos cortos y concretos para móvil.",
-    "No envíes contenido ficticio para rellenar: sin evidencia se publica el estado vacío.",
-    "Todos los fact_id deben pertenecer a hechos aprobados y verificados del producto.",
-    "Las dos fotos deben ser referencias reales de la misma demostración, no imágenes generadas. El hecho aprobado debe documentar las condiciones de la comparación.",
   ],
-  forbidden: [
-    "Testimonios, expertos, estudios, resultados, escasez o plazos inventados.",
-    "Imágenes generadas usadas como evidencia.",
-    "Regalos que no se entregan ni garantías que la tienda no ofrece.",
-  ],
+  forbidden: [],
   examples: [
     {
-      heading: "Compara una demostración real",
+      heading: "Mira la diferencia",
       before_label: "Antes del uso",
       after_label: "Después del uso",
-      body: "Estas imágenes corresponden a la misma demostración, sin alterar el resultado.",
-      fact_id: "00000000-0000-4000-8000-000000000001",
+      body: "Compara el espacio antes y después de organizar tus útiles.",
     },
     {
-      heading: "Conoce la comparación documentada",
+      heading: "Compara el antes y el después",
       before_label: "Antes del uso",
       after_label: "Después del uso",
-      body: "Estas imágenes corresponden a la misma demostración, sin alterar el resultado.",
-      fact_id: "00000000-0000-4000-8000-000000000001",
+      body: "Observa cómo cambia tu escritorio con todo en su lugar.",
     },
   ],
 });

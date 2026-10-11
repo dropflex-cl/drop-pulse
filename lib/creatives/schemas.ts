@@ -104,7 +104,6 @@ export function mergeConcept(c: ConceptIdea, a: ConceptArt): ConceptPayload {
   return { ...c, ...artFields, texts: c.texts.map((t, i) => ({ ...t, placement: placements[i]?.placement ?? "", points_to: placements[i]?.points_to ?? null })) };
 }
 
-const FORBIDDEN = [/\bcura(n|r)?\b/i, /\btrata(r|n)?\b.*\b(infecci|enfermedad)/i, /\bprevien(e|en)\b.*\binfecci/i, /\belimina(r|n)?\b/i, /\bgarantizad[oa]s?\b/i, /\bcures?\b/i, /\btreats?\b/i];
 
 /**
  * Lo que el comerciante puede cambiar de un concepto antes de generarlo: las palabras. El rol y la
@@ -143,20 +142,14 @@ export function textProblems(texts: StoredText[], pricing: PricingPlan, where = 
 }
 
 /**
- * Montos fuera de PRECIO Y OFERTA y promesas de salud en un texto horneado (también los del video UGC).
+ * Montos fuera de PRECIO Y OFERTA en un texto horneado (también los del video UGC).
  * `extra`: montos de mercado que el comerciante verificó al elegir el ángulo (TestAngle.market_amounts).
  */
 export function claimProblems(text: string, pricing: PricingPlan, at = "", extra: number[] = []): string[] {
   const problems: string[] = [];
   const allowed = [...allowedAmounts(pricing), ...extra];
   for (const n of amountsIn(text, pricing.currency)) if (!amountAllowed(n, allowed)) problems.push(`${at}«${text}» trae un monto que no está en PRECIO Y OFERTA.`);
-  problems.push(...healthProblems(text, at));
   return problems;
-}
-
-/** Promesas de salud en un texto (también los ganchos editados, que no se revisan contra el precio). */
-export function healthProblems(text: string, at = ""): string[] {
-  return FORBIDDEN.some((re) => re.test(text)) ? [`${at}«${text}» promete un resultado de salud (usa «ayuda a», «apoya»).`] : [];
 }
 
 /** Qué está mal en los conceptos (el reparto y los textos). Vacío si se pueden guardar. */

@@ -114,7 +114,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     expect(await current()).toMatchObject({ status: "approved", payload: [{ label: "Un regalo útil" }, { label: "Un regalo útil" }, { label: "Un regalo útil" }] });
     await expect(call("save_pack_labels", stale)).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
   });
-  it("evidencia revisada/revocada exige otra revisión y no se consume como aprobada", async () => {
+  it("los estados de evidencia son metadatos y no bloquean el contenido de etiquetas", async () => {
     await price(); let r = await read();
     const research = await call("save_research", { product_id: product, schema_version: "1.0", expected_revision: r.revision, idempotency_key: randomUUID(),
       sources: [{ client_ref: "supplier", title: "Ficha ficticia del proveedor", source_type: "supplier", retrieved_at: new Date().toISOString(), excerpt: "Cada envase dura 1 mes de uso.", author: null, editor: null, url: "https://example.test/facts", internal_ref: null }],
@@ -124,11 +124,11 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("PI · etiquetas persistentes 
     await call("save_pack_labels", { ...await input(), duration_fact_ids: [factId], labels: labels.map((l) => ({ ...l, basis: "duration", label: `${l.units} ${l.units === 1 ? "mes" : "meses"} de uso` })) });
     await approve(); expect((await current()).evidence_stale).toBe(false);
     r = await read(); await call("save_research", { product_id: product, schema_version: "1.0", expected_revision: r.revision, idempotency_key: randomUUID(), facts: [{ id: factId, reason: "Revisé otra vez la ficha del proveedor." }] });
-    expect((await current()).evidence_stale).toBe(true);
+    expect((await current()).evidence_stale).toBe(false);
     await approve(); expect((await current()).evidence_stale).toBe(false);
     r = await read(); await call("save_research", { product_id: product, schema_version: "1.0", expected_revision: r.revision, idempotency_key: randomUUID(), facts: [{ id: factId, usage_status: "prohibited", reason: "El dato no puede usarse." }] });
-    expect((await current()).evidence_stale).toBe(true);
-    await expect(approve()).rejects.toMatchObject({ code: "INVALID_REFERENCE" });
+    expect((await current()).evidence_stale).toBe(false);
+    await approve(); expect((await current()).evidence_stale).toBe(false);
     await approve("reopen"); expect(await current()).toMatchObject({ status: "approved" });
     const context = await call("get_product_context", { product_id: product }); if (!context.ok) throw new Error("context"); expect(JSON.stringify(context.data.product.pricing)).toContain("mes de uso");
   });

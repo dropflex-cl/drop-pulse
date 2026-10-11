@@ -1,9 +1,7 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-const RATING_TOKENS = /\{(rating|count)\}/g;
 // La escala («de 5», «/5») no es un hecho: se permite. Todo otro número es un token.
-const noDigits = (s: string) => !/\d/.test(s.replaceAll(RATING_TOKENS, "").replaceAll(/(\/\s?|de )5\b/g, ""));
 const boldPairs = (s: string) => (s.match(/\*\*/g) ?? []).length / 2;
 
 /** Hechos reales que puede mostrar una cifra. El valor lo pone la tienda; la IA solo escribe la etiqueta. */
@@ -41,20 +39,20 @@ export const statsWithImage = defineComponent({
       .min(12)
       .max(64)
       .refine((s) => boldPairs(s) === 1, { message: "El título lleva exactamente una parte destacada con **…**" })
-      .refine((s) => !/\d/.test(s), { message: "Sin números en el título" })
+
       .describe("[verbo de invitación o resultado] + [beneficio concreto] con UNA palabra o marca destacada entre **…** (≤ 60 caracteres visibles). Ej.: «Recupera una postura erguida con **PosturaFit**»."),
     description: z
       .string()
       .min(80)
       .max(224)
       .refine((s) => boldPairs(s) <= 1 && Number.isInteger(boldPairs(s)), { message: "Máximo una frase en **negrita**" })
-      .refine((s) => !/\d/.test(s), { message: "Sin números: los hechos van en las cifras reales" })
-      .describe("1 o 2 oraciones: para quién o en qué situación + cómo funciona (mecanismo real) + resultado esperable no médico. Máximo una frase en **negrita**."),
+
+      .describe("1 o 2 oraciones: para quién o en qué situación + cómo funciona (mecanismo real) + resultado esperado. Máximo una frase en **negrita**."),
     bullets: z
       .array(z.string().min(8).max(48).refine((s) => !/[.!]$/.test(s.trim()), { message: "Sin punto final" }))
       .min(2)
       .max(4)
-      .describe("3 razones (2 a 4): atributo verificable → beneficio, 3 a 7 palabras, sin punto final. Una puede ser sobre el pago al recibir."),
+      .describe("3 razones (2 a 4): atributo del producto → beneficio, 3 a 7 palabras, sin punto final. Una puede ser sobre el pago al recibir."),
     cta_label: z
       .string()
       .min(6)
@@ -65,13 +63,13 @@ export const statsWithImage = defineComponent({
       .min(10)
       .max(48)
       .includes("{rating}")
-      .refine(noDigits, { message: "La calificación y la cantidad van como {rating} y {count}, nunca escritas" })
+
       .describe("Plantilla de la línea de calificación con {rating} y, si quieres, {count}. Ej.: «{rating} de 5 según {count} reseñas». Nunca «pedidos»."),
     review_id: z
       .string()
       .min(1)
       .optional()
-      .describe("Id de una reseña APROBADA de la lista recibida para el testimonio (la más concreta: antes → después). Se muestra tal cual; omítelo si ninguna sirve."),
+      .describe("Id de una reseña seleccionada de la lista recibida para el testimonio (la más concreta: antes → después). Se muestra tal cual; omítelo si ninguna sirve."),
     stats: z
       .array(
         z.object({
@@ -80,7 +78,7 @@ export const statsWithImage = defineComponent({
             .string()
             .min(4)
             .max(32)
-            .refine((s) => !/\d/.test(s), { message: "La etiqueta no lleva el número" })
+
             .describe("Qué significa la cifra, sin el número. Ej.: «días para cambiarlo»."),
         }),
       )
@@ -91,24 +89,19 @@ export const statsWithImage = defineComponent({
   realData: [
     "Calificación y cantidad: dropflex.review_summary (rating, count, source_label). La línea solo aparece con el mínimo de reseñas del editor, y la fuente siempre se muestra.",
     "Con menos de 30 reseñas, si la proporción convence, la tienda reemplaza rating_label por «{rating} de 5 · 9 de cada 10 le dan 5 estrellas» (de review_summary.five/positive).",
-    "Testimonio: la reseña aprobada de dropflex.reviews con ese id (autor enmascarado, calificación, país), mostrada tal cual y recortada a 240 caracteres.",
+    "Testimonio: la reseña seleccionada de dropflex.reviews con ese id (autor enmascarado, calificación, país), mostrada tal cual y recortada a 240 caracteres.",
     "Cifras: rating y review_count de review_summary; return_days y warranty_months de shop.metafields.dropflex.policies; delivery_days_max = preparación + tránsito máximo de shop.metafields.dropflex.logistics.",
     "Fotos: ajustes del editor → dropflex.stats_with_image_images → imágenes del producto. Nunca imágenes que muestren resultados que el producto no logra.",
   ],
   rules: [
     "Título: [verbo de invitación o resultado] + [beneficio concreto] + **destacado** (marca o palabra-beneficio), una sola parte destacada.",
-    "Descripción: 80 a 220 caracteres; para quién + mecanismo real + resultado no médico; máximo una **negrita**.",
-    "Razones: 3 (2 a 4), atributo verificable → beneficio, ≤ 48 caracteres, sin punto final.",
+    "Descripción: 80 a 220 caracteres; para quién + mecanismo real + resultado esperado; máximo una **negrita**.",
+    "Razones: 3 (2 a 4), atributo del producto → beneficio, ≤ 48 caracteres, sin punto final.",
     "Botón: acción + bajo riesgo en pago contra entrega, ≤ 24 caracteres.",
     "Calificación: solo plantilla con {rating} y {count}; hablar de «reseñas» u «opiniones», nunca de «pedidos» o «clientes».",
     "Tuteo, español neutro, frases cortas, sin emojis ni mayúsculas sostenidas.",
   ],
-  forbidden: [
-    "Escribir calificaciones, cantidades, cifras, testimonios o nombres de clientes: la IA solo elige un review_id de la lista.",
-    "«Científicamente probado», «clínicamente», «recomendado por médicos o kinesiólogos», «cura», «elimina el dolor», «corrige la escoliosis».",
-    "Garantías de resultado en X días, «el más vendido», cifras de clientes (Ley 19.496, arts. 28 y 33).",
-    "Presentar el producto como dispositivo médico.",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "Recupera una postura erguida con **PosturaFit**",

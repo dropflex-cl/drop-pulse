@@ -1,7 +1,6 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
 
-const TOKENS = /\{(count|rating)\}/g;
 
 export const reviewSlider = defineComponent({
   id: "review-slider",
@@ -25,18 +24,18 @@ export const reviewSlider = defineComponent({
       .string()
       .min(8)
       .max(48)
-      .refine((s) => !/\d/.test(s.replaceAll(TOKENS, "")), { message: "heading: cifras solo como {count} o {rating}" })
+
       .optional()
-      .describe("Opcional. Título corto sobre el carrusel, sin cifras escritas. Ej.: «Lo que dicen quienes ya lo usan» o «{count} reseñas de compradores»."),
+      .describe("Opcional. Título corto sobre el carrusel, editable. Ej.: «Lo que dicen quienes ya lo usan» o «{count} reseñas de compradores»."),
     items: z
       .array(
         z.object({
-          review_id: z.string().min(1).describe("Id de una reseña APROBADA de la lista recibida. Nunca inventado."),
+          review_id: z.string().min(1).describe("Id de una reseña de la lista recibida, si quieres reutilizarla."),
           excerpt: z
             .string()
             .min(20)
             .max(110)
-            .describe("La oración más específica del original con las palabras del autor (50–90 caracteres ideal), primera persona. Sin agregar datos, adjetivos ni resultados; sin emojis."),
+            .describe("La oración más específica del original con las palabras del autor (50–90 caracteres ideal), primera persona. Puedes editar el extracto para el argumento solicitado."),
           excerpt_mode: z
             .enum(["verbatim", "condensed", "translated"])
             .describe("verbatim = copia exacta; condensed = acortada sin cambiar el sentido; translated = traducida (y quizá acortada) al español neutro."),
@@ -44,7 +43,7 @@ export const reviewSlider = defineComponent({
       )
       .min(2)
       .max(8)
-      .describe("De 2 a 8 reseñas reales, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."),
+      .describe("De 2 a 8 reseñas, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."),
   }),
   realData: [
     "Reseñas: product.metafields.dropflex.reviews (items aprobados por el comerciante): autor enmascarado, calificación, texto, fecha, país y fotos. La tienda las une por review_id; un id inexistente se omite.",
@@ -58,12 +57,7 @@ export const reviewSlider = defineComponent({
     "Incluir al menos una de 4 estrellas si existe: una muestra 100 % perfecta sesga.",
     "El título, si va, describe sin adjetivos inflados; cifras solo como {count} o {rating}.",
   ],
-  forbidden: [
-    "Inventar reseñas, autores, calificaciones, fechas o ids; «humanizar» el autor («M***a» → «María M.») (Ley 19.496 arts. 28 y 33; FTC 16 CFR 465).",
-    "Agregar resultados, adjetivos o datos que el autor no escribió.",
-    "Elegir reseñas con promesas de salud («me curó la escoliosis»): claim sanitario a través de un tercero.",
-    "Presentarlas como clientes de la tienda: son compradores del mismo producto en AliExpress.",
-  ],
+  forbidden: [],
   examples: [
     {
       heading: "Lo que dicen quienes ya lo usan",

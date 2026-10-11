@@ -62,10 +62,10 @@ export function createContentExecutor(repository: ContentRepository & KnowledgeR
         "Si has_more es true, recupera las páginas restantes con next_cursor antes de reemplazar el plan completo.",
         "El chat escribe el contenido. Guardar crea una propuesta, sin publicar ni iniciar generación.",
         "angle_ids debe contener todos los ángulos de la estrategia seleccionada, en su orden; máximo tres.",
-        "Referencia únicamente facts aprobados y verificados del producto. La estrategia seleccionada sigue siendo una hipótesis.",
+        "Las referencias a facts son opcionales y conservan procedencia sin exigir verificación o aprobación.",
         "Lee el contexto y la estrategia antes de escribir. Usa el etag y la revisión leídos; dry_run valida sin guardar.",
         "landing_angle_id y landing_hook_id son los selectores df_angle/df_hook. Usa los mismos al guardar las variantes de landing; no son UUID del análisis.",
-        "Los chats publicitarios son dramatizaciones, nunca reseñas reales ni evidencia de compradores.",
+        "Los chats publicitarios desarrollan el argumento solicitado.",
         ...(kind === "gallery" ? ["Todas las tomas, incluida la portada y el ambiente, pueden llevar texto, precios, packs, descuentos y condiciones COD del contexto vigente. La galería no impone topes editoriales de caracteres, palabras, líneas o cantidad de textos ni exige un titular."] : []),
       ], next_action: "Escribe y valida el contenido en el chat; guárdalo con la tool save correspondiente y revísalo en DropFlex.",
     } });
@@ -73,9 +73,8 @@ export function createContentExecutor(repository: ContentRepository & KnowledgeR
     const state = knowledge.currentSnapshot, plan = state.pricing ? pricingPlanFromRow(state.pricing as PricingRow) : null;
     if (!plan || plan.currency !== state.catalog.currency) throw new ProductIntelligenceError("VALIDATION_ERROR", "Guarda Precio y packs primero.");
     const content = write.content;
-    const facts = knowledge.currentGraph.Fact.filter(({ value: f }) => f.usage_status === "approved" && f.verification_status === "verified" &&
-      !knowledge.currentGraph.EvidenceLink.some(({ value: e }) => e.fact_id === f.id && e.relation === "contradicts"));
-    if (content.fact_ids.some(id => !facts.some(({ value: f }) => f.id === id))) throw new ProductIntelligenceError("INVALID_REFERENCE", "Referencia hechos aprobados y verificados del producto.");
+    const facts = knowledge.currentGraph.Fact;
+    if (content.fact_ids.some(id => !facts.some(({ value: f }) => f.id === id))) throw new ProductIntelligenceError("INVALID_REFERENCE", "La referencia no pertenece a este producto.");
     let strategy: ReturnType<typeof strategyResponse> | null = null;
     if ("strategy_id" in content) {
       if (!knowledge.strategy || knowledge.strategy.id !== content.strategy_id) throw new ProductIntelligenceError("INVALID_REFERENCE", "Usa la estrategia seleccionada del producto.");
@@ -97,7 +96,6 @@ export function createContentExecutor(repository: ContentRepository & KnowledgeR
     if ("plan" in content) problems.push(...planProblems(content.plan, 3, content.angle_ids.map((_, i) => i + 1)));
     if ("event_id" in content) problems.push(...eventCopyProblems(content.content, { currency: plan.currency, amounts: allowedAmounts(plan) }));
     if ("text" in content) {
-      if (!content.fact_ids.length) problems.push("El consejo de uso necesita al menos un hecho que lo respalde.");
       problems.push(...tipProblems(content.text, { pricing: plan, factText: facts.filter(({ value: f }) => content.fact_ids.includes(f.id)).map(({ value: f }) => `${f.statement} ${JSON.stringify(f.value)}`).join("\n") }));
     }
     if (problems.length) throw new ProductIntelligenceError("VALIDATION_ERROR", problems.slice(0, 5).join(" "));

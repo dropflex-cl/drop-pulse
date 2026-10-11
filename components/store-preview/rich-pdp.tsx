@@ -11,6 +11,7 @@ interface Item {
   body?: string;
   label?: string;
   review_id?: string;
+  name?: string;
 }
 interface Content {
   heading?: string;
@@ -30,7 +31,7 @@ interface Content {
   fact_id?: string;
 }
 function Image({ src, alt = "" }: { src?: string; alt?: string }) {
-  // Imágenes elegidas en la página, sin sintetizar pruebas de resultados.
+  // Las referencias y las imágenes generadas comparten el mismo destino.
   return src ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img className="df-rich__image" src={src} alt={alt} loading="lazy" />
@@ -46,18 +47,19 @@ export function RichPdpPreview({
   const [position, setPosition] = useState(50);
   const id = useId();
   const items = content.items ?? content.steps ?? [];
-  const stories = (content.stories ?? []).flatMap((s) => {
-    const review = facts.reviews.find((r) => r.id === s.review_id);
+  const stories = (content.stories ?? []).flatMap((s, i) => {
+    const review = s.body ? { id: `story-${i}`, body: s.body, author: s.name ?? "", photos: [] as string[], rating: null }
+      : facts.reviews.find((r) => r.id === s.review_id);
     return review ? [{ ...s, review }] : [];
   });
   const policy = facts.policies;
   const valid =
     component === "before-after"
-      ? Boolean(content.fact_id && images.before?.[0] && images.after?.[0])
+      ? Boolean(images.before?.[0] && images.after?.[0])
       : component === "customer-stories"
         ? stories.length > 0
         : component === "expert-endorsement"
-          ? Boolean(content.fact_id && content.quote)
+          ? Boolean(content.quote)
           : component === "guarantee"
             ? Boolean(
                 policy.cod ||
@@ -191,7 +193,7 @@ export function RichPdpPreview({
             <article className="df-rich__card" key={review.id}>
               <Image src={review.photos[0]} alt={title} />
               <h3 className="df-heading">{title}</h3>
-              <DfStars rating={review.rating} />
+              {review.rating !== null ? <DfStars rating={review.rating} /> : null}
               <blockquote className="df-text">{review.body}</blockquote>
               <p className="df-rich__label">{review.author}</p>
             </article>

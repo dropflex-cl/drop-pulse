@@ -118,14 +118,6 @@ export function validatePriorities(graph: IntelligenceGraph): void {
   }
 }
 
-export function usageRestrictions(graph: IntelligenceGraph): { fact_id: string; reason: string }[] {
-  return graph.Fact.flatMap(({ value: fact }) => {
-    const contradicted = graph.EvidenceLink.some(({ value }) => value.fact_id === fact.id && value.relation === "contradicts");
-    if (fact.verification_status !== "verified" || fact.usage_status !== "approved" || contradicted) return [{ fact_id: fact.id, reason: contradicted ? "Existe evidencia contradictoria pendiente de resolución." : "El hecho no está verificado y aprobado para uso." }];
-    return [];
-  });
-}
-
 /** Validar cambios sensibles contra el estado anterior, no solo lo que declara el payload. */
 export function authorizeResearchChanges(principal: Principal, previous: IntelligenceGraph, next: IntelligenceGraph): void {
   const byId = <K extends RecordKind>(kind: K, id: string) => previous[kind].find(({ value }) => value.id === id)?.value;

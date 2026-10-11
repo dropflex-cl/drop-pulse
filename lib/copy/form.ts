@@ -55,7 +55,7 @@ export type FormField =
 /** Nombres de los campos en la pantalla. Una clave nueva sin nombre se muestra tal cual (y el test avisa). */
 export const FIELD_LABELS: Record<string, string> = {
   ...LISTING_FIELDS,
-  fact_id: "Hecho que lo respalda",
+  fact_id: "Hecho relacionado",
   steps: "Pasos",
   cases: "Usos",
   stages: "Etapas",
@@ -63,7 +63,7 @@ export const FIELD_LABELS: Record<string, string> = {
   after_label: "Etiqueta del después",
   name: "Nombre",
   credential: "Credencial",
-  quote: "Declaración literal",
+  quote: "Declaración",
   heading: "Título",
   moments: "Momentos",
   slot: "Orden",

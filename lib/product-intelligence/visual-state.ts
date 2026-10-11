@@ -57,10 +57,10 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   }
   const graph = graphRecords(read.currentGraph);
   for (const { value } of read.currentGraph.angle) add("angle", value.id, value, value.lifecycle !== "active" || !selected?.snapshot.angles.some(a => a.id === value.id));
-  for (const { value } of read.currentGraph.Fact) add("fact", value.id, value, value.verification_status !== "verified" || value.usage_status !== "approved" || read.currentGraph.EvidenceLink.some(e => e.value.fact_id === value.id && e.value.relation === "contradicts"));
+  for (const { value } of read.currentGraph.Fact) add("fact", value.id, value);
   for (const { value } of read.currentGraph.EvidenceLink) {
     const source = read.currentGraph.Source.find(s => s.value.id === value.source_id)?.value;
-    add("evidence", value.id, { ...value, source }, !source || value.relation !== "supports" || live[`fact:${value.fact_id}`]?.blocked !== false);
+    add("evidence", value.id, { ...value, source }, !source);
   }
   add("pricing", "current", read.currentSnapshot.pricing, !read.currentSnapshot.pricing);
   add("policy", "current", read.currentSnapshot.settings, !read.currentSnapshot.settings);
@@ -79,7 +79,7 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   for (const exp of src.pdp.experiences.filter(e => e.payload.status !== "archived")) {
     add("landing_experience", exp.id, exp.payload);
     for (const section of exp.payload.sections) {
-      const native = componentCapabilityCatalog(src.pdp.landing.review_count).find(c => c.component === section.component);
+      const native = componentCapabilityCatalog().find(c => c.component === section.component);
       const content = src.pdp.landing.rows.find(r => r.component === section.component);
       const variant = content && contentVariants(content.content ?? content.proposal).find(v => v.key === section.content_variant_key);
       if (!variant) continue;

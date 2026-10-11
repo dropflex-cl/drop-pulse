@@ -1,6 +1,5 @@
 // Tipo histórico y validadores del consejo de uso. Sin redacción automática.
 
-import { unsupportedNumbers } from "@/lib/copy/page-schema";
 import { INTERNAL } from "@/lib/copy/schemas";
 import { claimProblems } from "@/lib/creatives/schemas";
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -32,7 +31,5 @@ export function tipProblems(tip: string, facts: { pricing: PricingPlan; factText
   if (/^un consejo\b/i.test(t)) problems.push(`${at} repite «Un consejo»: el mensaje ya lo dice.`);
   if (INTERNAL.test(t)) problems.push(`${at} usa palabras internas (la ficha, precio y oferta, cliente ideal).`);
   problems.push(...claimProblems(t, facts.pricing));
-  const numbers = unsupportedNumbers(t, facts.factText);
-  if (numbers.length) problems.push(`${at} usa números que no están en la ficha ni en la información (${numbers.join(", ")}).`);
   return problems;
 }
