@@ -1,0 +1,63 @@
+{
+  "project_ref": "oukcswnfrzroxgwqmujf",
+  "feature_commit": "3a075c0c2b87cb058b2513b9be4aa67ae806b843",
+  "applied_migrations": [
+    "20261215000000"
+  ],
+  "verification": "Comparación de dumps de esquema public antes/después, sin datos ni ejecución de tools de negocio",
+  "functions_added": [
+    "pi_landing_read_data",
+    "pi_pdp_state_with_snapshot",
+    "pi_read_landing_component",
+    "pi_read_visual",
+    "pi_read_visual_operation"
+  ],
+  "functions_changed": [
+    "pi_pdp_state",
+    "pi_visual_source_state"
+  ],
+  "functions_removed": [],
+  "rest_of_public_schema_identical": true,
+  "permissions": {
+    "pi_landing_read_data": {
+      "service_role_execute": false,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "public_execute": false
+    },
+    "pi_pdp_state_with_snapshot": {
+      "service_role_execute": false,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "public_execute": false
+    },
+    "pi_read_landing_component": {
+      "service_role_execute": true,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "public_execute": false
+    },
+    "pi_read_visual": {
+      "service_role_execute": true,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "public_execute": false
+    },
+    "pi_read_visual_operation": {
+      "service_role_execute": true,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "public_execute": false
+    }
+  },
+  "date": "2026-10-11",
+  "post_apply_dry_run": {
+    "upToDate": true,
+    "migrations": [],
+    "seeds": [],
+    "roles": []
+  },
+  "migration_versions_local_and_remote": 80,
+  "latest_migration": "20261215000000",
+  "no_pending_migrations": true
+}

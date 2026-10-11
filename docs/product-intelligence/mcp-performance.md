@@ -1,6 +1,6 @@
 # Rendimiento del MCP
 
-Auditoría local del 11 de octubre de 2026 sobre el transporte, discovery, servicios, RPC y medios. Conserva los 65 contratos públicos de entrada/salida, sus defaults, presupuestos, campos técnicos y errores de autorización. El cierre añade la migración compatible `20261215000000_mcp_read_projections.sql`, aplicada exclusivamente en Supabase local. No se ejecutaron operaciones en producción ni llamadas a proveedores pagados.
+Auditoría local del 11 de octubre de 2026 sobre el transporte, discovery, servicios, RPC y medios. Conserva los 65 contratos públicos de entrada/salida, sus defaults, presupuestos, campos técnicos y errores de autorización. El cierre añade la migración compatible `20261215000000_mcp_read_projections.sql`, inicialmente aplicada exclusivamente en Supabase local. La aplicación posterior en producción fue autorizada expresamente y se registra al final. No hubo llamadas a proveedores pagados.
 
 ## Mejoras implementadas
 
@@ -56,7 +56,7 @@ Los snapshots conservan tabla, actor, TTL de 900 s, datos estables, orden y curs
 
 No se añaden tablas, assets, cachés comerciales ni índices de negocio. La eliminación sigue usando las cascadas existentes de `pi_visual_read_snapshots` y auditoría. Las RPC y firmas anteriores permanecen disponibles. Las RPC nuevas son exclusivas de `service_role`; los helpers internos tampoco pueden invocarse directamente con ese rol. No se modifican auth, RLS, grants anteriores, receipts, leases, CAS ni publicación.
 
-Antes de usar el código nuevo en otro entorno se necesita esta migración y las anteriores del repositorio; **no se aplicó en producción ni se desplegó el código**. El stack local tenía pendientes `20261211000000_current_product_content.sql` y `20261214000000_current_ugc_keyframe_targets.sql`; se aplicaron localmente para probar la experiencia vigente. La migración de proyecciones también se ejecutó repetidamente en una transacción local al validar su definición final, sin resetear datos ajenos.
+Antes de usar el código nuevo en otro entorno se necesita esta migración y las anteriores del repositorio; **al cerrar las pruebas locales no se había aplicado en producción ni subido el código**. El stack local tenía pendientes `20261211000000_current_product_content.sql` y `20261214000000_current_ugc_keyframe_targets.sql`; se aplicaron localmente para probar la experiencia vigente. La migración de proyecciones también se ejecutó repetidamente en una transacción local al validar su definición final, sin resetear datos ajenos.
 
 ## Cobertura de la primera optimización
 
@@ -194,4 +194,12 @@ Los dos fallos de `components/store-preview/previews.test.tsx` se reprodujeron s
 
 Evidencia por requisito: contratos/equivalencia (`landing.test.ts`, `read-projections.local.test.ts`, contracts/discovery); menos solicitudes/escrituras (`visual-performance.test.ts`, conteos del benchmark y estadísticas transaccionales); UI/MCP (`current-content.local.test.ts`); paginación/expiración (`read-projections.local.test.ts`); merchant/scopes/revocación/ACL (`read-projections.local.test.ts`, `persistence.local.test.ts`); archivos/fallos parciales (`visual-performance.test.ts`, Storage local); CAS, idempotencia y leases (suites `visual.local`, `persistence.local`, `current-content.local`, `shopify-automation.local`); telemetría (`http-runtime-performance.test.ts`, `visual-performance.test.ts`, auditoría local); compatibilidad SQL/lectores cruzados (`read-projections.local.test.ts`).
 
-La migración final se aplicó solo al stack local y los lectores anteriores permanecen invocables. Producción sigue en solo lectura; no se desplegó, no se publicaron productos, no se crearon generaciones ni se gastaron créditos. No quedan gaps de implementación abiertos dentro de este alcance; quedan los costos necesarios y las limitaciones de verificación explicitados arriba.
+Al cerrar la implementación, la migración final estaba aplicada solo al stack local y los lectores anteriores permanecían invocables. Producción se mantuvo en solo lectura durante ese trabajo; no se publicaron productos, no se crearon generaciones ni se gastaron créditos. No quedan gaps de implementación abiertos dentro de este alcance; quedan los costos necesarios y las limitaciones de verificación explicitados arriba.
+
+## Aplicación posterior en producción
+
+El usuario autorizó expresamente hacer commit, push a `main` y aplicar las migraciones pendientes. El commit funcional `3a075c0` se subió a `origin/main` antes de ejecutar la migración. `supabase db push --linked --dry-run` identificó únicamente `20261215000000_mcp_read_projections.sql`; `supabase db push --linked --yes` la aplicó correctamente al proyecto `oukcswnfrzroxgwqmujf`, sin seeds ni roles adicionales. Un segundo dry-run confirmó `upToDate: true` y ninguna migración pendiente; el historial local/remoto coincide en las 80 versiones, hasta `20261215000000`.
+
+Se compararon dumps del esquema `public` antes/después, sin extraer datos comerciales ni ejecutar tools de negocio: cinco funciones internas nuevas, dos funciones modificadas (`pi_pdp_state`, `pi_visual_source_state`), ninguna eliminada y el resto del esquema idéntico. Las tres RPC nuevas tienen EXECUTE solo para `service_role`; los dos helpers no tienen EXECUTE para clientes ni `service_role`. Los permisos anteriores, tablas, RLS, índices, triggers y FK permanecen idénticos. La comparación de esquema no pretende medir latencia o validar una sesión comercial de producción.
+
+[Evidencia de la aplicación y permisos](production-mcp-performance-2026-10-11.json). El push puede activar el despliegue integrado de Vercel; este registro confirma Git y base de datos, no el estado final de ese despliegue. No hubo publicaciones Shopify/Meta, generaciones ni consumo de créditos.
