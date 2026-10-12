@@ -45,7 +45,7 @@ export interface StoreFacts {
   /** Solo cuando existe una lectura operativa real. Sin ella el preview indica que Shopify lo resuelve. */
   inventory?: { available: boolean; quantity?: number; management?: string | null; policy?: string };
   policyLinks?: { refund?: string; shipping?: string };
-  /** Datos propios de Google; nunca se completan con reseñas importadas. */
+  /** Enlace de Google opcional; rating/count anteriores se conservan por compatibilidad, no se usan. */
   googleRating?: { rating: number; count: number; url: string };
   /** Archivo asociado por el comerciante en Shopify. El enlace no llega al preview público. */
   gift?: { title: string; cover?: string; ready: boolean };
@@ -62,7 +62,7 @@ export interface StoreFacts {
   packs?: StorePack[];
   /** Las reseñas aprobadas, en su orden. */
   reviews: StoreReview[];
-  /** Promedio de las aprobadas (1 decimal); null sin reseñas. */
+  /** Valoración agregada compartida y editable (1 decimal); null si no hay una nota guardada. */
   rating: number | null;
   count: number;
   policies: StorePolicies;
@@ -190,7 +190,7 @@ export function formatMoney(value: number, currency: string): string {
 export function tokenValues(
   facts: StoreFacts,
 ): Record<string, { value: string; example: boolean }> {
-  const hasReviews = facts.count > 0 && facts.rating != null;
+  const hasReviews = facts.rating != null;
   const p = facts.policies;
   return {
     rating: {

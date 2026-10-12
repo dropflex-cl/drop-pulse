@@ -1,5 +1,5 @@
 import { PdpEmptyPreview } from "./pdp-empty";
-import { fill, reviewProof, type StoreReview } from "@/lib/store-preview/facts";
+import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { contentReview, type ReviewContent } from "@/lib/store-preview/review-content";
 import { wallAuthor, wallDate } from "@/lib/store-preview/review-wall";
 import { px, settingsOf } from "@/lib/store-preview/settings";
@@ -73,7 +73,6 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
   heading = fill(heading, facts);
   const rating = facts.rating ?? 0;
   const ratingText = rating.toFixed(1).replace(".", ",");
-  const proof = reviewProof(facts.reviews);
   const colsD = Number(s.columns_desktop) || 3;
   const initial = Number(s.initial_posts) || 6;
   const shown = picks.slice(0, initial);
@@ -99,16 +98,14 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
             {heading && (
               <h2 className="df-heading df-review-wall__heading">{heading}</h2>
             )}
-            {s.show_rating && rating > 0 && (
-              <p className="df-review-wall__rating">
+            {s.show_rating && (
+              <p className="df-review-wall__rating" hidden={rating <= 0}>
                 <DfStars rating={rating} size="1.125rem" />
                 <span className="df-review-wall__score" aria-hidden>
                   {ratingText}
                 </span>
                 <span>
-                  {proof
-                    ? proof.charAt(0).toUpperCase() + proof.slice(1)
-                    : `${facts.count} ${facts.count === 1 ? "reseña" : "reseñas"}`}
+                  {`${fill("{count}", facts)} ${facts.count === 1 ? "reseña" : "reseñas"}`}
                 </span>
               </p>
             )}

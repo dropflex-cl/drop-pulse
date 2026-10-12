@@ -37,7 +37,7 @@ export const reviewWall = defineComponent({
   realData: [
     "Cada item permite body, name y rating propios. review_id es opcional para reutilizar una reseña importada.",
     "Fotos: product.metafields.dropflex.reviews_images (hasta 3 por publicación).",
-    "Calificación sobre el muro: product.metafields.dropflex.review_summary (rating, count; con pocas reseñas, la proporción de 5 estrellas).",
+    "Calificación sobre el muro: valoración compartida editable de review-stars (rating/count), publicada en review_summary. Sin mínimos, importación ni verificación.",
     "Nombre: name del contenido propio o el autor de la reseña reutilizada.",
   ],
   rules: [

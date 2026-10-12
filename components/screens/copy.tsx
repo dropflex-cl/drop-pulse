@@ -8,7 +8,7 @@ import { useDesktop } from "@/components/shell/use-desktop";
 import { componentName } from "@/lib/copy/page-ui";
 import { contentVariants, selectVariant, landingSelections, type LandingSelection } from "@/lib/copy/variants";
 import { isEmptyContent } from "@/lib/copy/page-schema";
-import { effectivePage, effectiveVariant, pageSelections } from "@/lib/products/effective-page";
+import { effectiveRating, effectivePage, effectiveVariant, pageSelections } from "@/lib/products/effective-page";
 import { ProductApiClientError, productsApi } from "@/lib/products/client";
 import { productHref } from "@/lib/routes";
 import type { ImagePick, ProductCopy } from "@/lib/types";
@@ -29,6 +29,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
   const editingView = data.components.find(c => c.component === editing);
   const resolved = data.page ? effectivePage(data.page.input, selection) : null;
   const effectiveIds = resolved?.components.map(c => c.id) ?? [];
+  const facts = resolved && data.page ? { ...data.page.facts, ...effectiveRating(data.page.input, selection) } : data.facts;
   const rows = [...data.components.filter(c => c.component === "listing"),
     ...effectiveIds.flatMap(id => data.components.filter(c => c.component === id)),
     ...data.components.filter(c => c.component !== "listing" && !effectiveIds.includes(c.component))].filter(c => contentVariants(c.content).some(v => !isEmptyContent(v.content)));
@@ -70,7 +71,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
     <StickyActions variant="bar" className="lg:px-8"><Button variant="primary" size="lg" block href={productHref(data.product.id, "publicar")} iconEnd="chevron-right">Ver publicación</Button></StickyActions>
     <Drawer open={Boolean(editingView)} onOpenChange={open => !open && setEditing(null)} direction={desktop ? "right" : "bottom"} repositionInputs={false}>
       <DrawerContent className="h-[92svh] lg:h-auto lg:w-[min(--spacing(160),100vw)] lg:max-w-none">
-        {editingView ? <ComponentEditor key={`${editingView.id}:${selection.angle_id}:${selection.hook_id}`} selection={data.page ? effectiveVariant(data.page.input, editingView.component, editingView.content, selection) : selection} view={editingView} facts={data.page?.facts ?? data.facts} accent={accent} catalog={data.images} videos={data.videos}
+        {editingView ? <ComponentEditor key={`${editingView.id}:${selection.angle_id}:${selection.hook_id}`} selection={data.page ? effectiveVariant(data.page.input, editingView.component, editingView.content, selection) : selection} view={editingView} facts={facts} accent={accent} catalog={data.images} videos={data.videos}
           imagesHref={productHref(data.product.id, "imagenes")} saving={busy === editingView.component} error={error} onCancel={() => setEditing(null)} onSave={patch => update(editingView.component, patch)} /> : null}
       </DrawerContent>
     </Drawer>

@@ -5,14 +5,15 @@ import { DfIcon, DfStars } from "./primitives";
 /* eslint-disable @next/next/no-img-element */
 
 export function GoogleRatingPreview({ facts }: { facts: StoreFacts }) {
-  const google = facts.googleRating;
-  if (!google || google.rating <= 0 || google.rating > 5 || google.count <= 0) return null;
-  const label = <>Calificado {String(google.rating).replace(".", ",")}/5 en Google<span className="df-google-rating__count">({google.count} reseñas)</span></>;
+  const rating = facts.rating;
+  if (rating == null || rating <= 0) return null;
+  const url = facts.googleRating?.url ?? "";
+  const label = <>Calificado {rating.toFixed(1).replace(".", ",")}/5 en Google<span className="df-google-rating__count">({facts.count.toLocaleString("es-CL")} reseñas)</span></>;
   return (
-    <div className="df df-google-rating" aria-label="Reseñas de la tienda en Google">
+    <div className="df df-google-rating" aria-label="Valoración del producto">
       <img src="/store-preview/df-google-logo.svg" alt="" width={24} height={24} />
-      <DfStars rating={google.rating} size="1rem" />
-      {google.url.startsWith("https://") ? <a href={google.url} target="_blank" rel="noopener noreferrer">{label}</a> : <span>{label}</span>}
+      <DfStars rating={rating} size="1rem" />
+      {url.startsWith("https://") ? <a href={url} target="_blank" rel="noopener noreferrer">{label}</a> : <span>{label}</span>}
     </div>
   );
 }

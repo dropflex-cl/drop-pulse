@@ -1,6 +1,6 @@
 # La tienda como landing de un producto
 
-Piezas del tema que **no son componentes del catálogo**: la IA no escribe su contenido. Muestran datos reales (precio, variantes, reseñas aprobadas, políticas) o textos aprobados en la app. Se copian al tema con los demás componentes (`npm run shopify:components`) y siguen las mismas reglas del [README de componentes](../README.md): prefijo `df-`, portables, escapados, sin defaults vacíos.
+Piezas del tema que **no son componentes del catálogo**: muestran los datos operativos, medios y textos vigentes. La valoración agregada es editable en `review-stars` y se comparte con los demás bloques, sin exigir importaciones ni verificación. Se copian al tema con los demás componentes (`npm run shopify:components`) y siguen las mismas reglas del [README de componentes](../README.md): prefijo `df-`, portables y escapados.
 
 ## Modo landing
 
@@ -112,10 +112,10 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 
 | Bloque | Dónde | Datos |
 |---|---|---|
-| `df-google-rating` | Bajo las miniaturas | Valoración y cantidad reales de la tienda en `shop.metafields.dropflex.google_rating`; enlace HTTPS opcional |
+| `df-google-rating` | Bajo las miniaturas | Valoración editable compartida de `review-stars`, publicada en `product.metafields.dropflex.review_summary`; sin configuración ni importación de Google. El metafield de tienda solo conserva el enlace HTTPS opcional |
 | `df-hype-badge` | Bajo el resumen de reseñas, antes del título | Etiqueta con el acento del producto. Por defecto «Pagas al recibir», solo con COD activo; texto personalizado del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
 | `df-event-badges` | Junto a los demás badges, antes del título | Evento vigente y descuento real de la variante o pack elegido |
-| `df-social-proof` | Después de los videos, al final de la ficha | Fotos de reseñas aprobadas con 4 o 5 estrellas y la cantidad real de `dropflex.review_summary`. Sin nombres inventados: muestra el total real de opiniones positivas |
+| `df-social-proof` | Después de los videos, al final de la ficha | Fotos de reseñas aprobadas con 4 o 5 estrellas y la cantidad editable compartida de `dropflex.review_summary`; sin mínimos ni requisito de fotos/importación |
 | `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
 | `df-subtitle` | Bajo el título | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
 | `df-price` | Bajo la línea divisoria | Precio y precio tachado de la variante elegida, más el ahorro calculado. Con packs, los del pack elegido (evento `df:pack`). Al cambiar, el monto nuevo sube 4 px con un fundido y el sello de ahorro hace un pequeño pop (200 ms); nunca un contador de cifras |
@@ -156,7 +156,7 @@ instalarse una vez en las notificaciones de la tienda. Detalle en `docs/shopify-
 
 ## Orden de la ficha inicial
 
-La galería conserva foto principal y miniaturas. La columna de compra sigue: valoración real de Google, resumen compacto de reseñas del producto, badges, título, bajada, tres beneficios y packs. Precio y condiciones comerciales quedan después de los packs y antes del botón. La prueba social con avatares se conserva al final de la ficha, después de los videos.
+La galería conserva foto principal y miniaturas. La columna de compra sigue: valoración compartida en Google, resumen compacto de reseñas del producto, badges, título, bajada, tres beneficios y packs. Precio y condiciones comerciales quedan después de los packs y antes del botón. La prueba social con avatares se conserva al final de la ficha, después de los videos.
 
 Google y los beneficios son bloques independientes que reutilizan los snippets existentes; `buy-buttons` conserva el formulario y el estado técnico de reseñas, sin repetir esos elementos. `review-stars` usa por defecto una fila de estrellas, nota y cantidad; el ajuste `compact` permite recuperar la presentación extensa sin cambiar el texto guardado. Los badges del evento conservan fechas y descuentos reales y siguen el precio del pack elegido.
 

@@ -1,5 +1,5 @@
 {%- doc -%}
-  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  Render del contenido vigente; valoración compartida editable y datos operativos de Shopify.
   @param {object} product
   @param {object} section
   @param {object} [block]
@@ -16,10 +16,15 @@
   assign product = closest.product | default: product
   assign s = block.settings
   # content llega de la variante seleccionada (o del objeto legacy).
-  assign summary = product.metafields.dropflex.review_summary.value
+  capture pdp_rating
+    render 'df-pdp-rating', product: product, df_variant: df_variant
+  endcapture
+  assign pdp_rating = pdp_rating | split: '|'
+  assign pdp_score = pdp_rating[0] | plus: 0
+  assign pdp_count = pdp_rating[1] | plus: 0
 
-  assign rating = content.rating | default: summary.rating | default: 0 | plus: 0 | at_least: 0 | at_most: 5
-  assign count = content.count | default: summary.count | default: 0 | plus: 0
+  assign rating = pdp_score
+  assign count = pdp_count
 
   assign own_label = false
   if content.label != blank
@@ -30,7 +35,7 @@
   assign show = true
   if product == blank
     assign show = false
-  elsif own_label == false and rating <= 0 or own_label == false and count < 1
+  elsif own_label == false and rating <= 0
     assign show = false
   endif
 
@@ -49,19 +54,11 @@
       assign count_text = thousands | append: '.' | append: rest
     endif
 
-    # Con pocas reseñas la proporción convence más que la cantidad (snippets/df-review-proof).
-    capture proof
-      if content.rating == nil and content.count == nil
-        render 'df-review-proof', summary: summary
-      endif
-    endcapture
     assign label = content.label | default: s.label
     if own_label
       assign label = content.label
     elsif s.compact
       assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas'
-    elsif proof != blank
-      assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas · ' | append: proof
     elsif label contains '{count}'
       assign label = label | replace: '{count}', count_text | replace: '{rating}', rating_text
     else
@@ -88,7 +85,7 @@
 
   {%- endif -%}
 
-  <df-review-stars
+  <df-review-stars data-df-rating-group {% if own_label %}data-df-rating-optional{% endif %}
     class="df df-review-stars df-review-stars--{{ s.alignment }}{% if s.compact %} df-review-stars--compact{% endif %}"
     style="{% render 'df-accent-vars', product: product %} --df-review-stars-text: {{ s.text_size }}px; --df-review-stars-offset: {{ s.scroll_offset }}px; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
@@ -98,11 +95,11 @@
     {%- else -%}
       <p class="df-review-stars__row" role="img" aria-label="{{ aria | escape }}">
     {%- endif -%}
-      {%- if rating > 0 -%}<span aria-hidden="true" class="df-review-stars__stars">
+      {%- if rating > 0 -%}<span aria-hidden="true" class="df-review-stars__stars" data-df-rating-stars>
         {%- render 'df-stars', rating: rating, size: star_size, label: aria -%}
       </span>{%- endif -%}
       {%- if s.show_text -%}
-        <span class="df-review-stars__label" aria-hidden="true">{{ label | escape }}</span>
+        <span class="df-review-stars__label" aria-hidden="true" data-df-rating-template="{% if own_label %}{{ content.label | escape }}{% elsif s.compact %}{rating} · {count} reseñas{% else %}{{ content.label | default: s.label | escape }}{% endif %}">{{ label | escape }}</span>
       {%- endif -%}
     {%- if anchor != blank -%}
       </a>

@@ -50,7 +50,7 @@ export const reviewSlider = defineComponent({
   realData: [
     "Cada item permite body, name y rating propios. review_id es opcional para reutilizar una reseña importada.",
     "Fotos: product.metafields.dropflex.reviews_images (reviews_images[image_from…]); la primera es el avatar.",
-    "Los tokens {count} y {rating} consultan review_summary cuando se usan; no son requisitos del texto propio.",
+    "Los tokens {count} y {rating} usan la valoración compartida editable de review-stars, publicada en review_summary; no exigen reseñas importadas.",
   ],
   rules: [
     "Desarrolla los textos solicitados con body o excerpt; nombre y calificación son opcionales. No requiere evidencia ni material manual.",

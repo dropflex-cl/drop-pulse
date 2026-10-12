@@ -1,5 +1,5 @@
 {%- doc -%}
-  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  Render del contenido vigente; valoración compartida editable y datos operativos de Shopify.
   @param {object} product
   @param {object} section
   @param {object} [block]
@@ -18,7 +18,7 @@
   REGLA: los datos de política dentro de las respuestas son tokens que se llenan con datos reales:
   {min} {max} días hábiles (logística) · {return_days} · {warranty_months} (políticas). Una
   pregunta con un token sin dato NO se muestra. La prueba social usa {count} y {rating} del
-  resumen real de reseñas; sin resumen, se oculta.
+  agregado compartido editable de la PDP, sin exigir importación o verificación.
 
   Contenido: metafield `dropflex.faq_and_text` (json) → si falta, los ajustes y bloques «Pregunta».
     { eyebrow?, heading, heading_highlight?, body?, cta_label?, social_proof_text?,
@@ -32,7 +32,12 @@
   # content llega de la variante seleccionada (o del objeto legacy).
   assign logistics = shop.metafields.dropflex.logistics.value
   assign policies = shop.metafields.dropflex.policies.value
-  assign summary = product.metafields.dropflex.review_summary.value
+  capture pdp_rating
+    render 'df-pdp-rating', product: product, df_variant: df_variant
+  endcapture
+  assign pdp_rating = pdp_rating | split: '|'
+  assign pdp_score = pdp_rating[0] | plus: 0
+  assign pdp_count = pdp_rating[1] | plus: 0
 
   # Datos reales para los tokens.
   assign days_min = nil
@@ -78,12 +83,21 @@
     assign heading_html = heading_html | replace_first: highlight_esc, highlight_html
   endif
 
-  # Prueba social: solo con el resumen real de reseñas. Un token sin dato oculta el texto.
+  # Prueba social desde la valoración editable compartida. El texto propio no requiere cifras.
   assign social_html = nil
   if s.show_social_proof and social_text != blank
-    if summary.count > 0
-      assign rating_text = summary.rating | round: 1 | append: '' | replace: '.', ','
-      assign social_text = social_text | replace: '{count}', summary.count | replace: '{rating}', rating_text
+    if pdp_score > 0
+      assign r10 = pdp_score | times: 10 | round
+      assign r_int = r10 | divided_by: 10
+      assign r_dec = r10 | modulo: 10
+      assign rating_text = r_int | append: ',' | append: r_dec
+      assign count_text = pdp_count | append: ''
+      if pdp_count >= 1000
+        assign thousands = pdp_count | divided_by: 1000
+        assign rest = pdp_count | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
+        assign count_text = thousands | append: '.' | append: rest
+      endif
+      assign social_text = social_text | replace: '{count}', count_text | replace: '{rating}', rating_text
     endif
     unless social_text contains '{'
       assign social_html = social_text | escape
@@ -221,7 +235,7 @@
             endif
           -%}
           {%- if social_html != blank or avatar_count > 0 -%}
-            <div class="df-faq-and-text__proof">
+            <div class="df-faq-and-text__proof" data-df-rating-stars>
               {%- if avatar_count > 0 -%}
                 <ul class="df-faq-and-text__avatars" role="list">
                   {%- for n in (1..3) -%}
@@ -240,10 +254,10 @@
               {%- endif -%}
               {%- if social_html != blank -%}
                 <div class="df-faq-and-text__proof-text">
-                  {%- if summary.count > 0 -%}
-                    {% render 'df-stars', rating: summary.rating, size: '0.875rem' %}
+                  {%- if pdp_score > 0 -%}
+                    {% render 'df-stars', rating: pdp_score, size: '0.875rem' %}
                   {%- endif -%}
-                  <p class="df-faq-and-text__proof-line">{{ social_html }}</p>
+                  <p class="df-faq-and-text__proof-line" data-df-rating-template="{{ content.social_proof_text | default: s.social_proof_text | escape }}">{{ social_html }}</p>
                 </div>
               {%- endif -%}
             </div>

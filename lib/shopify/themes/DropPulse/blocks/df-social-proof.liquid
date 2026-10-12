@@ -1,6 +1,6 @@
 {%- doc -%}
-  DropFlex · Prueba social agregada desde reseñas aprobadas.
-  Fotos del producto aportadas por autores anonimizados y cantidad real de opiniones positivas.
+  DropFlex · Prueba social con la valoración agregada compartida de la PDP.
+  Fotos disponibles y cantidad editable compartida.
   No inventa nombres ni interpreta una calificación como recomendación.
 {%- enddoc -%}
 {%- liquid
@@ -11,10 +11,9 @@
   assign reviews = product.metafields.dropflex.reviews.value.items
   assign images = product.metafields.dropflex.reviews_images.value
   assign summary = product.metafields.dropflex.review_summary.value
-  assign rating = summary.rating | default: 0 | plus: 0
   assign count = summary.count | default: 0 | plus: 0
 
-  assign positive = summary.positive | default: 0 | plus: 0
+
   assign name_count = 0
   assign avatar_count = 0
 -%}
@@ -55,9 +54,9 @@
   {%- endfor -%}
 {%- endcapture -%}
 {%- liquid
-  assign others = positive
+  assign others = count
   assign show = true
-  if product == blank or count < s.min_reviews or rating < 4 or name_count == 0 or others < 1
+  if product == blank or count < 1
     assign show = false
   endif
 
@@ -68,7 +67,7 @@
       assign rest = others | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
       assign others_text = thousands | append: '.' | append: rest
     endif
-    assign template = '**{others} opiniones positivas** de compradores'
+    assign template = '**{others} opiniones** de compradores'
     if template contains '{others}'
       # Primero se parte por las marcas de negrita y después se pone el hueco de los nombres, que
       # llena df-social-proof.js.
@@ -93,8 +92,8 @@
         {%- assign odd = forloop.index0 | modulo: 2 -%}
         {%- comment -%} Variable nueva: en Liquid la del for no se puede reasignar. {%- endcomment -%}
         {%- assign piece = part -%}
-        {%- if odd == 1 -%}<strong>{{ piece }}</strong>{%- else -%}{{ piece }}{%- endif -%}
-        {%- if forloop.index0 == 1 and s.show_verified -%}
+        {%- if odd == 1 -%}<strong data-df-rating-template="{count} opiniones">{{ piece }}</strong>{%- else -%}{{ piece }}{%- endif -%}
+        {%- if forloop.index0 == 1 and s.show_verified and reviews.size > 0 and count == reviews.size -%}
           <span class="df-social-proof__verified">{% render 'df-icon', name: 'check-circle' %}<span class="df-visually-hidden"> (reseñas revisadas por la tienda)</span></span>
         {%- endif -%}
       {%- endfor -%}
@@ -103,7 +102,7 @@
 {%- elsif request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <div class="df df-placeholder" {{ block.shopify_attributes }}>
-    Prueba social: aparece con reseñas aprobadas en DropFlex (al menos {{ s.min_reviews }}, con promedio de 4 o más).
+    Prueba social: guarda la cantidad en Estrellas de la PDP. No requiere reseñas importadas.
   </div>
 {%- endif -%}
 
@@ -181,7 +180,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "Fotos y cantidad salen de las reseñas aprobadas. Muestra opiniones positivas reales, sin inventar nombres ni recomendaciones."
+      "content": "La cantidad usa la valoración compartida editable de Estrellas. Las fotos disponibles son opcionales."
     },
     {
       "type": "checkbox",
@@ -192,7 +191,7 @@
     {
       "type": "range",
       "id": "min_reviews",
-      "label": "Mínimo de reseñas",
+      "label": "Mínimo anterior (sin efecto)",
       "min": 3,
       "max": 20,
       "step": 1,

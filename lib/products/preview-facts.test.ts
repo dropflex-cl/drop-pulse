@@ -11,7 +11,7 @@ function input(): PublishInput {
 describe("Hechos de la vista previa desde la publicación efectiva", () => {
   it("utiliza el mismo precio, orden, reseñas y políticas, sin referencias de respaldo", () => {
     const page = input(), facts = previewFacts(page, { chosen: "signed-cover", photo: "signed-review", unused: "old-reference" }, "CLP");
-    expect(facts).toMatchObject({ productName: page.listing.title, productImage: "signed-cover", productImages: ["signed-cover"], price: 24990, compareAt: 32990, currency: "CLP", count: 1, rating: 5,
+    expect(facts).toMatchObject({ productName: page.listing.title, productImage: "signed-cover", productImages: ["signed-cover"], price: 24990, compareAt: 32990, currency: "CLP", count: 1, rating: 4.9,
       policies: { cod: true, free_shipping: false, return_days: 15 }, logistics: { min: 3, max: 6, city: "Santiago", extra: 2 } });
     expect(facts.packs).toEqual(page.packs); expect(facts.reviews[0]).toMatchObject({ photos: ["signed-review"], date: "oct 2026", iso: "2026-10-01" });
   });

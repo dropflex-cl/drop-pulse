@@ -22,12 +22,12 @@ export function UgcSliderPreview({ content, facts, images }: PreviewProps<Conten
   const perView = String(s.cards_visible || "3");
   const shape = String(s.shape);
 
-  // Datos reales de reseñas para {count}, {rating} y la fila de estrellas.
-  const hasReviews = (facts.rating ?? 0) > 0 && facts.count >= Number(s.min_reviews);
+  // Valoración compartida de la PDP para {count}, {rating} y la fila de estrellas.
+  const hasReviews = (facts.rating ?? 0) > 0 && facts.count >= 0;
   let heading = content.heading || String(s.heading ?? "");
-  // Sin dato real, un título con cifra no se muestra.
+  // Sin valoración, un título con cifra no se muestra.
   if (/\{(count|rating)\}/.test(heading)) heading = hasReviews ? fill(heading, facts) : "";
-  const showRating = Boolean(s.show_rating) && hasReviews;
+  const showRating = Boolean(s.show_rating);
   const ratingText = fill("{rating}", facts);
   const countText = fill("{count}", facts);
 
@@ -68,7 +68,7 @@ export function UgcSliderPreview({ content, facts, images }: PreviewProps<Conten
             </p>
           )}
           {showRating && (
-            <p className="df-ugc-slider__rating">
+            <p className="df-ugc-slider__rating" hidden={!hasReviews}>
               <DfStars rating={facts.rating ?? 0} size="1rem" />
               <span aria-hidden>{`${ratingText} · ${countText} reseñas`}</span>
             </p>

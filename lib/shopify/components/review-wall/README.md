@@ -11,7 +11,7 @@ Cada item admite `body`, `name` y `rating` opcional, o `review_id` para reutiliz
 Muro de reseñas aprobadas con autores anonimizados, fechas y fotos originales. No fabrica
 identidades, reacciones, comentarios ni acciones sociales.
 
-Se activa por defecto con al menos cuatro reseñas aprobadas. Si no hay contenido específico,
+No exige un mínimo de reseñas. Si no hay contenido específico,
 selecciona hasta 12 reseñas, con fotos primero. Una selección de `dropflex.review_wall.items`
 conserva su orden y omite IDs que ya no existen. Una desactivación explícita publicada en
 `dropflex.conversion_supports.disabled_components` mantiene el muro oculto.
@@ -22,4 +22,6 @@ Sin JavaScript, todas las reseñas quedan accesibles. Respeta movimiento reducid
 el foco al revelar publicaciones. La vista previa usa los mismos autores y fechas.
 
 Datos: `dropflex.reviews`, `reviews_images`, `review_summary`; textos y selección opcionales
-en `review_wall`. La IA solo puede seleccionar reseñas, nunca escribirlas.
+en `review_wall`. La IA puede escribir body/name/rating propios o reutilizar review_id.
+
+La nota y cantidad agregadas usan review-stars, publicada en review_summary, sin requisito de importación o verificación. Las notas individuales conservan su propio valor.

@@ -736,6 +736,9 @@ df-landing-content > [data-df-active] { display: contents; }
     .df-inventory--pulse.is-ping .df-inventory__dot::after { animation: none; }
   }
 
+/* Las cifras compartidas sin nota permanecen ocultas hasta elegir una variante con valoración. */
+[data-df-rating-group][hidden], .df-stats-with-image__rating[hidden] { display: none !important; }
+
 /* Estructura visual compartida. Medidas de la grilla de 4px y tokens del tema. */
 .df-rich { box-sizing: border-box; --df-rich-touch: 44px; --df-rich-pad: calc(var(--df-gap) * 1.5); --df-rich-space: calc(var(--df-title-gap) * 1.5); padding-block: var(--df-rich-space); }
 .df-rich__heading { font-size: var(--df-title-size); text-align: center; margin-bottom: var(--df-title-gap); text-wrap: balance; }

@@ -30,8 +30,8 @@ Bajo el botón de compra. El tráfico llega desde anuncios en video (Meta, TikTo
 |---|---|
 | Metafield `dropflex.ugc_slider` (IA) | `heading?` (tokens `{count}` `{rating}`, `**resaltado**`), `captions?[]` alineados por índice con los videos |
 | `product.metafields.dropflex.ugc_videos` (real, media del componente) | videos que sube el comerciante (Shopify Files); pósters de `video.preview_image` |
-| Ajustes del bloque | hasta 6 videos con su texto (respaldo del metafield), título, calificación, mínimo de reseñas, patrocinado, forma, visibles, radio, play, vista previa, paginación, flechas, fondo, modo, progreso, márgenes |
-| `product.metafields.dropflex.review_summary` (real) | `{count}`, `{rating}`, estrellas y `source_label` del encabezado; bajo el mínimo (3) no se muestran y un título con cifra se oculta |
+| Ajustes del bloque | hasta 6 videos con su texto (respaldo del metafield), título, calificación, ajuste histórico de mínimo (sin efecto), patrocinado, forma, visibles, radio, play, vista previa, paginación, flechas, fondo, modo, progreso, márgenes |
+| `product.metafields.dropflex.review_summary` (compartido y editable) | `{count}`, `{rating}`, estrellas del encabezado; no exige mínimos de reseñas, importación ni verificación |
 
 ## Comportamiento
 
@@ -50,9 +50,13 @@ Bajo el botón de compra. El tráfico llega desde anuncios en video (Meta, TikTo
 - **Familiaridad de formato:** reels e historias; nadie necesita aprender a usarlo.
 - **Reproductor flotante:** el video sigue mientras el comprador baja y toca «Comprar».
 
-La referencia reproducía todos los videos al cargar (`preload="auto"`, 5 MP4 completos en datos móviles), duplicaba cada video en la pista y el modal, mostraba una cifra de clientes de demo y cuadros verdes que imitaban a una plataforma de reseñas. Aquí: pósters, un solo video, cifras solo reales y estrellas propias.
+La referencia reproducía todos los videos al cargar (`preload="auto"`, 5 MP4 completos en datos móviles), duplicaba cada video en la pista y el modal, mostraba una cifra de clientes de demo y cuadros verdes que imitaban a una plataforma de reseñas. Aquí: pósters, un solo video, cifras desde la fuente compartida editable y estrellas propias.
 
 ## Reglas del copy (IA)
 
 - `heading` opcional, ≤ 48 caracteres: sin cifra, una frase que describe el contenido («Así lo usan quienes ya lo tienen»); con cifra, `{count}` + lo que se cuenta («**{count} reseñas** de compradores»). Sin «+», sin «más de».
 - `captions`: uno por video, en su orden, ≤ 40 caracteres, describe la acción o el contexto visible («Se pone en segundos»). Si no sabes qué muestra un video, omítelos.
+
+## Valoración compartida vigente
+
+La nota y cantidad agregadas se editan en `review-stars` mediante `save_landing_content` y se publican en `review_summary`. No requieren datos de Google, reseñas importadas, mínimos, evidencia ni verificación. Los campos antiguos rating/count de Hero son respaldo compatible, no una segunda fuente cuando Estrellas aporta esos valores. Las notas individuales de testimonios son independientes.

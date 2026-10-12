@@ -1,5 +1,5 @@
 import { PdpEmptyPreview } from "./pdp-empty";
-import { fill, reviewProof } from "@/lib/store-preview/facts";
+import { fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -16,11 +16,11 @@ interface Content {
 
 export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-stars");
-  const rating = Math.min(5, Math.max(0, content.rating ?? facts.rating ?? 0));
-  const count = content.count ?? facts.count;
+  const rating = Math.min(5, Math.max(0, facts.rating ?? 0));
+  const count = facts.count;
   const template = content.label || String(s.label ?? "");
   const ownLabel = Boolean(content.label && !/\{(rating|count)\}/.test(content.label));
-  if ((rating <= 0 || count < 1) && !ownLabel)
+  if (rating <= 0 && !ownLabel)
     return <PdpEmptyPreview component="review-stars" />;
 
   // Igual que el Liquid: 4.6 → «4,6», 5 → «5,0»; 1234 → «1.234».
@@ -31,13 +31,8 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
       ? `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, "0")}`
       : String(count);
 
-  // Con pocas reseñas, la proporción; una plantilla sin {count} escribiría la cantidad a mano: la
-  // tienda la descarta.
-  const proof = content.rating === undefined && content.count === undefined ? reviewProof(facts.reviews) : "";
   const label = ownLabel ? template : s.compact
     ? `${ratingText} · ${countText} reseñas`
-    : proof
-    ? `${ratingText} · ${countText} reseñas · ${proof}`
     : template.includes("{count}")
       ? fill(
           template

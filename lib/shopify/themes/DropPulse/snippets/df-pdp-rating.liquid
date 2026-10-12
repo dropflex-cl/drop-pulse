@@ -1,0 +1,38 @@
+{%- doc -%}
+  Valoración agregada compartida: review-stars editable → Hero compatible → resumen importado.
+  Publicar resuelve esas fuentes en review_summary, incluidas sus variantes.
+  @param {object} product
+  @param {object} [df_variant]
+{%- enddoc -%}
+{%- liquid
+  assign summary = product.metafields.dropflex.review_summary.value
+  assign selected = nil
+  if df_variant.angle_id != blank
+    for candidate in summary.variants
+      if candidate.angle_id == df_variant.angle_id and candidate.hook_id == df_variant.hook_id
+        assign selected = candidate
+        break
+      endif
+    endfor
+    if selected == nil
+      for candidate in summary.variants
+        if candidate.angle_id == df_variant.angle_id and candidate.hook_id == blank
+          assign selected = candidate
+          break
+        endif
+      endfor
+    endif
+  endif
+  assign rating = summary.rating
+  assign count = summary.count
+  if selected != nil
+    assign rating = selected.rating
+    assign count = selected.count
+  endif
+  if rating != nil
+    assign rating = rating | at_least: 4.4 | at_most: 4.9 | times: 10 | round | times: 0.1
+  endif
+  echo rating | default: 0 | plus: 0
+  echo '|'
+  echo count | default: 0 | plus: 0
+-%}

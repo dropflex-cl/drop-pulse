@@ -1,5 +1,5 @@
 {%- doc -%}
-  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  Render del contenido vigente; valoración compartida editable y datos operativos de Shopify.
   @param {object} product
   @param {object} section
   @param {object} [block]
@@ -16,11 +16,16 @@
   endif
   assign s = section.settings
   # content llega de la variante seleccionada (o del objeto legacy).
-  assign summary = product.metafields.dropflex.review_summary.value
+  capture pdp_rating
+    render 'df-pdp-rating', product: product, df_variant: df_variant
+  endcapture
+  assign pdp_rating = pdp_rating | split: '|'
+  assign pdp_score = pdp_rating[0] | plus: 0
+  assign pdp_count = pdp_rating[1] | plus: 0
   assign reviews = product.metafields.dropflex.reviews.value.items
   assign images = product.metafields.dropflex.reviews_images.value
 
-  assign count = summary.count | default: reviews.size | default: 0 | plus: 0
+  assign count = pdp_count
 
   # Índices (en dropflex.reviews) de las reseñas elegidas, en el orden del muro. Un id que ya no
   # existe (la reseña se despublicó) se omite; una reseña sin texto ni fotos no es publicación.
@@ -76,7 +81,7 @@
   endif
 
   if show
-    assign rating = summary.rating | default: 0 | plus: 0
+    assign rating = pdp_score
     assign r10 = rating | times: 10 | round
     assign r_int = r10 | divided_by: 10
     assign r_dec = r10 | modulo: 10
@@ -149,20 +154,15 @@
       {%- if heading != blank or s.show_rating -%}
         <div class="df-review-wall__head" data-df-reveal>
           {%- if heading != blank -%}
-            <h2 class="df-heading df-review-wall__heading">{{ heading | escape }}</h2>
+            <h2 class="df-heading df-review-wall__heading" data-df-rating-template="{{ content.heading | default: s.heading | escape }}">{{ heading | escape }}</h2>
           {%- endif -%}
-          {%- if s.show_rating and rating > 0 -%}
-            {%- capture proof -%}{%- render 'df-review-proof', summary: summary -%}{%- endcapture -%}
-            <p class="df-review-wall__rating">
+          {%- if s.show_rating -%}
+            <p class="df-review-wall__rating" data-df-rating-group data-df-rating-stars {% if rating <= 0 %}hidden{% endif %}>
               {%- assign stars_label = rating_text | append: ' de 5 estrellas' -%}
               {%- render 'df-stars', rating: rating, size: '1.125rem', label: stars_label -%}
-              <span class="df-review-wall__score" aria-hidden="true">{{ rating_text }}</span>
-              <span>
-                {%- if proof != blank -%}
-                  {{ proof | strip | capitalize }}
-                {%- else -%}
-                  {{ count_text }} {% if count == 1 %}reseña{% else %}reseñas{% endif %}
-                {%- endif -%}
+              <span class="df-review-wall__score" aria-hidden="true" data-df-rating-template="{rating}">{{ rating_text }}</span>
+              <span data-df-rating-template="{count} reseñas">
+                {{ count_text }} {% if count == 1 %}reseña{% else %}reseñas{% endif %}
               </span>
             </p>
           {%- endif -%}

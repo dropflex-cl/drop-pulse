@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pdpRating } from "@/lib/copy/pdp-rating";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
 import { listingSchema, LISTING_INFO } from "@/lib/copy/listing";
 import { strictSchema } from "@/lib/copy/page-schema";
@@ -81,6 +82,9 @@ export function componentGenerationContext(state: VisualState, component: string
       return { component: id, argument_job: COMPONENT_ARGUMENTS[id], enabled: peer?.enabled ?? true,
         excerpt: JSON.stringify(peer ? contentVariants(peer.content ?? peer.proposal).find(v => v.key === variantKey)?.content ?? null : null).slice(0, 500) };
     }),
+    rating_source: { component: "review-stars", fields: ["rating", "count"],
+      current: pdpRating(k.landing.rows.map(r => ({ id: r.component, content: r.content ?? r.proposal })), k.landing.reviews, variant),
+      instructions: "La nota agregada debe estar entre 4,4 y 4,9, inclusive. Lee get_landing_content de review-stars y guarda rating/count allí con save_landing_content. Google, Hero, muro, UGC y FAQ leen esa misma valoración. No exige importación, evidencia ni configuración de Google. Conserva las variantes y selecciones existentes." },
     canonical_reference: canonicalReference(state), targets,
     available_images: k.landing.image_catalog, available_reviews: k.landing.reviews, media: k.media,
     instructions: ["Desarrolla un argumento propio de este componente desde primary_direction.hook y la información vigente del producto. Consulta other_arguments para evitar repetir titulares y razones.",
@@ -88,6 +92,7 @@ export function componentGenerationContext(state: VisualState, component: string
       "Antes de editar variantes, lee get_landing_content para conservar su contenido completo. Guarda textos con save_landing_content respetando este schema. No publiques ni generes imágenes por el solo hecho de guardar.",
       "Para una imagen solicitada, traduce el argumento a una escena y mensaje propios del slot, con su ratio y posición. Inspecciona y adjunta la imagen base real al generador; conserva identidad, envase y proporciones.",
       "Prepara la toma con prepare_visual_iteration, ingiere el archivo y consulta su estado. Selecciona el destino landing_component exacto con bind_visual_asset; cada posición conserva las demás imágenes.",
+      "Edita la nota y cantidad agregadas en review-stars. Esa fuente se comparte con Google y los demás componentes; no escribas agregados distintos en cada bloque. Las calificaciones de testimonios individuales son independientes.",
       "Desarrolla reseñas e historias con los campos propios del schema. Los IDs de reseñas importadas y la evidencia son referencias opcionales; no dejes textos pendientes por carecer de ellos.",
       "GIF y video necesitan archivos reproducibles de su tipo. Los archivos pueden ser generados o subidos; no necesitan procedencia manual. Si falta el archivo, guarda el texto o guion solicitado y reporta únicamente el medio faltante."],
   };
@@ -115,7 +120,8 @@ export function pdpCompletionReport(state: VisualState) {
       };
     });
     return { component, enabled: row?.enabled ?? true, discarded: row?.status === "rejected", argument_job: COMPONENT_ARGUMENTS[component], variants,
-      media_requirements: native?.media ?? [], real_data: native?.realData ?? [], review_count: k.landing.review_count };
+      media_requirements: native?.media ?? [], real_data: native?.realData ?? [], review_count: k.landing.review_count,
+      rating_source: "review-stars" };
   });
   const active = components.filter(c => c.enabled && !c.discarded);
   return { primary_direction: k.strategy?.snapshot.angles[0] ?? null, canonical_reference: canonicalReference(state), components,

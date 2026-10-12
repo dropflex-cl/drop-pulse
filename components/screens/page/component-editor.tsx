@@ -1,5 +1,6 @@
 "use client";
 
+import { pdpRating } from "@/lib/copy/pdp-rating";
 import { Button } from "@/components/df";
 import { PREVIEWS } from "@/components/store-preview/registry";
 import { StoreFrame } from "@/components/store-preview/store-frame";
@@ -99,6 +100,7 @@ export function ComponentEditor({
   );
   const Preview = PREVIEWS[view.component];
   const variant = selectVariant(draft, activeSelection);
+  const previewFacts = view.component === "review-stars" ? { ...facts, ...pdpRating([{ id: "review-stars", content: draft }, { id: "stats-with-image", content: { rating: facts.rating ?? undefined, count: facts.count } }], [], activeSelection) } : facts;
   const activePicks = variant.images ?? picks;
   const updateDraft = (content: unknown) => {
     const clean = isEmptyContent(content)
@@ -178,7 +180,7 @@ export function ComponentEditor({
               <div className={def?.kind === "block" ? "p-4" : undefined}>
                 <Preview
                   content={variant.content}
-                  facts={facts}
+                  facts={previewFacts}
                   images={imagesBySlot(activePicks, eligibleImages)}
                 />
               </div>

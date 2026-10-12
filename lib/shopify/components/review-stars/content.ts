@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_RATING_MIN, PDP_RATING_MAX } from "@/lib/copy/pdp-rating";
 import { defineComponent } from "../define";
 
 
@@ -26,14 +27,15 @@ export const reviewStars = defineComponent({
 
       .refine((s) => !s.includes("!"), { message: "label: sin signos de exclamación" })
       .describe("Texto editable junto a las estrellas. Los tokens {rating} y {count} son opcionales."),
-    rating: z.number().min(0).max(5).optional().describe("Calificación editable; si se omite, usa el resumen importado disponible."),
-    count: z.number().int().nonnegative().optional().describe("Cantidad editable; si se omite, usa el resumen importado disponible."),
+    rating: z.number().min(PDP_RATING_MIN).max(PDP_RATING_MAX).optional().describe("Calificación agregada editable entre 4.4 y 4.9, compartida por toda la PDP, incluido Google. No requiere importación ni verificación."),
+    count: z.number().int().nonnegative().optional().describe("Cantidad agregada editable y compartida por toda la PDP. No requiere reseñas importadas."),
   }),
   realData: [
-    "label, rating y count son contenido editable del componente. El resumen importado es un respaldo opcional cuando no se aportan las cifras.",
-    "Un label sin tokens puede mostrarse sin calificación ni cantidad; no requiere reseñas importadas.",
+    "rating y count son la fuente editable común de Google, Estrellas, Hero y cifras, muro, UGC, FAQ y prueba social. Se guardan con save_landing_content en review-stars. El resumen importado y los campos antiguos de Hero son respaldos opcionales.",
+    "Cada ángulo/hook conserva su valoración. Un label sin tokens puede mostrarse sin cifras. No requiere conexión con Google, reseñas importadas ni evidencia.",
   ],
   rules: [
+    "La valoración agregada debe estar entre 4,4 y 4,9, inclusive. Se muestra con un decimal.",
     "Desarrolla el texto solicitado. Puedes aportar rating y count o reutilizar el resumen disponible.",
     "≤ 40 caracteres con los tokens, tono neutro, sin exclamaciones, sin emojis.",
   ],

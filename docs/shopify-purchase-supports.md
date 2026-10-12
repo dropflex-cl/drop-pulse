@@ -55,21 +55,9 @@ Variables utilizadas: [referencia oficial de notificaciones](https://help.shopif
 
 ## Valoración de Google
 
-El bloque está siempre activo, incluso sin configuración de Google ni reseñas importadas.
-`df-google-rating.js` elige una nota entre 4,4 y 5,0 inclusive, en décimas, y guarda el entero
-44–50 en `df:google-rating:<Shopify product id>` de localStorage. Todas las apariciones del
-producto usan la misma nota, texto y relleno de estrellas; recargar o cambiar de experiencia
-la conserva. La nota es generada por el componente: no es una valoración consultada ni
-sincronizada con Google. No reemplaza la calificación real de las reseñas del producto.
+Google lee la misma valoración agregada del producto que Estrellas, Hero y cifras, muro, UGC y FAQ. La fuente editable es `review-stars.rating/count`, por variante comercial; los campos antiguos de Hero y el resumen importado son respaldos compatibles. Se guarda con `save_landing_content` y se publica en `product.metafields.dropflex.review_summary`.
 
-Sin JavaScript se muestra 4,4. Si el navegador bloquea localStorage, se conserva la nota en
-memoria durante la visita; borrar los datos del navegador permite generar otra nota.
-La vista previa del editor muestra el respaldo 4,4.
-
-`shop.metafields.dropflex.google_rating` (JSON, PUBLIC_READ) sigue siendo opcional para el
-enlace HTTPS y la cantidad real de reseñas de la ficha de la tienda:
-`{ "count": 126, "url": "https://..." }`. Su campo `rating` anterior ya no controla la nota.
-No se atribuyen a Google las reseñas importadas del producto.
+No exige una ficha de Google configurada, importación, mínimos de reseñas, evidencia ni verificación. No genera una nota aleatoria. `shop.metafields.dropflex.google_rating` conserva únicamente el enlace HTTPS opcional: sus rating/count ya no deciden lo que muestra el bloque. Texto, relleno de estrellas y cantidad se sincronizan al cambiar ángulo/hook con la misma fuente publicada. La caché del navegador conserva el orden de tarjetas, sin sustituir las cifras vigentes.
 
 ## Alcance de la actualización
 
@@ -77,3 +65,5 @@ Actualizar el tema lleva los snippets, assets y el bloque `buy-buttons` a tienda
 conserva sus templates y ajustes. Los bloques anteriores de reseñas y disponibilidad se recolocan
 sin duplicarse. Las instalaciones nuevas ya traen la disponibilidad después del botón.
 Publicar de nuevo el producto sube todas las reseñas y crea las definiciones del regalo.
+
+La nota agregada está limitada a **4,4–4,9**, inclusive, con un decimal. El guardado rechaza valores fuera del rango; los agregados anteriores o importados se limitan al extremo más cercano al mostrarse y publicarse. Las notas individuales permanecen intactas.

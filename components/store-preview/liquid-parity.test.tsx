@@ -1,3 +1,4 @@
+import { pdpRating } from "@/lib/copy/pdp-rating";
 import { readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { Liquid } from "liquidjs";
@@ -109,8 +110,9 @@ describe("contrato visual Liquid → React", () => {
   ];
   it.each(ownContent)("$id: muestra contenido propio sin reseñas importadas", async ({ id, content }) => {
     const Preview = PREVIEWS[id];
-    const liquid = await liquidMarkup(id, content, EMPTY_FACTS, {});
-    const react = renderToStaticMarkup(<Preview content={content} facts={EMPTY_FACTS} images={{}} />);
+    const f = { ...EMPTY_FACTS, ...pdpRating([{ id, content }], []) };
+    const liquid = await liquidMarkup(id, content, f, {});
+    const react = renderToStaticMarkup(<Preview content={content} facts={f} images={{}} />);
     expect(visualTree(react, id)).toEqual(visualTree(liquid, id));
     expect(react).not.toContain("data-df-empty");
     expect(liquid).not.toContain("data-df-empty");

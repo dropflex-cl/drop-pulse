@@ -76,8 +76,8 @@ export function FaqAndTextPreview({ content, facts }: PreviewProps<Content>) {
   const body = fill(content.body, facts);
   const cta = fill(content.cta_label, facts);
 
-  // Prueba social: solo con el resumen real de reseñas; sin él los tokens quedan y el texto se oculta.
-  const hasSummary = facts.count > 0 && facts.rating != null;
+  // Prueba social desde la valoración editable compartida. El texto propio no requiere cifras.
+  const hasSummary = facts.rating != null && facts.rating > 0;
   const socialRaw = s.show_social_proof ? content.social_proof_text || "" : "";
   const social = hasSummary ? fill(socialRaw, facts) : socialRaw;
   const showSocial = social && !social.includes("{");

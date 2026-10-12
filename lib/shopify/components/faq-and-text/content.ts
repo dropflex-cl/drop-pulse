@@ -22,7 +22,7 @@ export const faqAndText = defineComponent({
     "Fluidez cognitiva: respuestas colapsadas; se escanean las preguntas y se abre solo la que importa.",
     "Transparencia: anticipar las preguntas transmite que la tienda conoce a su cliente.",
     "Validación en el título: la palabra en acento reconoce las dudas del lector («tus dudas»).",
-    "Prueba social ligera junto al título, solo con el resumen real de reseñas ({rating}, {count}).",
+    "Prueba social ligera junto al título con la valoración compartida editable ({rating}, {count}).",
   ],
   content: z
     .object({
@@ -69,7 +69,7 @@ export const faqAndText = defineComponent({
     "{min} y {max}: días de preparación + tránsito de shop.metafields.dropflex.logistics.",
     "{return_days} y {warranty_months}: shop.metafields.dropflex.policies. Una pregunta con un token sin dato no se muestra.",
     "Pago contra entrega: la pregunta pago_cod solo si policies.cod es verdadero.",
-    "{count} y {rating}: product.metafields.dropflex.review_summary (reseñas seleccionadas), con su source_label visible. Sin resumen, la prueba social se oculta.",
+    "{count} y {rating}: valoración compartida editable en review-stars, publicada en review_summary. No exige reseñas importadas ni verificación; el texto propio puede mostrarse sin cifras.",
     "Avatares: imágenes disponibles, ilustraciones o imágenes generadas.",
   ],
   rules: [

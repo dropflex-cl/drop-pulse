@@ -1,11 +1,12 @@
 import * as z from "zod/v4";
+import { PDP_RATING_MIN, PDP_RATING_MAX } from "@/lib/copy/pdp-rating";
 import { defineComponent } from "../define";
 import { reviewItem } from "../_shared/review-content";
 
-// La escala («de 5», «/5») no es un hecho: se permite. Todo otro número es un token.
+// Las cifras aceptan un valor propio o una referencia operativa opcional.
 const boldPairs = (s: string) => (s.match(/\*\*/g) ?? []).length / 2;
 
-/** Hechos reales que puede mostrar una cifra. El valor lo pone la tienda; la IA solo escribe la etiqueta. */
+/** Fuentes opcionales de cifras; rating/review_count usan el agregado editable compartido. */
 export const STAT_FACTS = ["rating", "review_count", "return_days", "warranty_months", "delivery_days_max"] as const;
 
 export const statsWithImage = defineComponent({
@@ -28,7 +29,7 @@ export const statsWithImage = defineComponent({
     "Segunda pantalla de la landing, justo después del bloque de compra (o primera sección de un advertorial): junta en un solo vistazo calificación, promesa, razones, testimonio y botón.",
   objection: "¿Esto funciona y otros ya lo compraron? El comprador frío que llega desde un anuncio y todavía no confía.",
   levers: [
-    "Prueba social cuantitativa arriba de todo: la calificación real ancla la credibilidad antes de leer (primacía, efecto halo).",
+    "Prueba social cuantitativa arriba de todo: la valoración compartida ancla la credibilidad antes de leer (primacía, efecto halo).",
     "Prueba social cualitativa: un testimonio real con nombre y estrellas genera identificación con un par.",
     "Escaneabilidad: 3 razones con check se leen en 3 segundos.",
     "Simulación mental: fotos de uso real dejan imaginarse con el producto.",
@@ -65,8 +66,8 @@ export const statsWithImage = defineComponent({
       .max(48)
 
       .describe("Línea de calificación editable. {rating} y {count} son tokens opcionales."),
-    rating: z.number().min(0).max(5).optional(),
-    count: z.number().int().nonnegative().optional(),
+    rating: z.number().min(PDP_RATING_MIN).max(PDP_RATING_MAX).optional().describe("Campo compatible de respaldo entre 4.4 y 4.9. Edita la valoración compartida en review-stars; su rating prevalece en toda la PDP."),
+    count: z.number().int().nonnegative().optional().describe("Campo compatible de respaldo. Edita la cantidad compartida en review-stars; su count prevalece en toda la PDP."),
     testimonial: reviewItem.optional().describe("Texto propio con body, name y rating opcionales, o reseña reutilizada por review_id."),
     review_id: z
       .string()
@@ -91,8 +92,8 @@ export const statsWithImage = defineComponent({
       .describe("0 a 3 cifras con value propio o fact para reutilizar un dato operativo."),
   }),
   realData: [
-    "rating, count y testimonial permiten contenido propio. review_id y review_summary son referencias opcionales para reutilizar datos importados.",
-    "Cifras: rating y review_count de review_summary; return_days y warranty_months de shop.metafields.dropflex.policies; delivery_days_max = preparación + tránsito máximo de shop.metafields.dropflex.logistics.",
+    "La nota y cantidad agregadas usan la fuente común review-stars; rating/count antiguos son respaldo compatible cuando Estrellas no los aporta. testimonial permite contenido propio; review_id es opcional.",
+    "Cifras: rating y review_count de la valoración compartida editable de la PDP; return_days y warranty_months de shop.metafields.dropflex.policies; delivery_days_max = preparación + tránsito máximo de shop.metafields.dropflex.logistics.",
     "Fotos: ajustes del editor → dropflex.stats_with_image_images → imágenes del producto; admite imágenes de referencia o generadas.",
   ],
   rules: [

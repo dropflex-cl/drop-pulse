@@ -1,3 +1,4 @@
+import { pdpRating } from "@/lib/copy/pdp-rating";
 import { contentVariants, landingSelections, selectVariant, type LandingVariant, type LandingSelection } from "@/lib/copy/variants";
 import { isEmptyContent } from "@/lib/copy/page-schema";
 import { resolveLandingExperience } from "@/lib/product-intelligence/experience-resolver";
@@ -54,4 +55,12 @@ export function pageSelections(input: PublishInput): LandingVariant[] {
     ...experiences.filter(e => !e.is_default).map(e => ({ key: e.experience_key, angle_id: e.landing_angle_id, hook_id: e.landing_hook_id, content: {} })),
   ] : landingSelections([input.listingVariants ?? input.listing, ...input.components.map(c => c.content)]);
   return items.map(v => ({ ...v, content: effectivePage(input,v).listing }));
+}
+
+
+/** La visibilidad de una sección no crea una fuente alternativa de valoración. */
+export function effectiveRating(input: PublishInput, selection: LandingSelection = {}) {
+  const sources = input.components.filter(c => ["review-stars", "stats-with-image"].includes(c.id))
+    .map(c => ({ id: c.id, content: effectiveVariant(input, c.id, c.content, selection).content }));
+  return pdpRating(sources, input.reviews);
 }

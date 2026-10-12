@@ -161,11 +161,12 @@ describe("metafields", () => {
     expect(JSON.parse(by.get("reviews")!.value).items[29]).toMatchObject({ id: "r29", image_from: 87, image_count: 3 });
   });
 
-  it("publica todas las reseñas y calcula la nota sobre ese mismo conjunto", () => {
+  it("publica todas las reseñas y limita la nota agregada al rango comercial", () => {
     const many = Array.from({ length: 81 }, (_, i) => ({ id: `r${i}`, author: "M***a", rating: i < 30 ? 5 : 3, body: `Reseña ${i}`, photos: [] }));
     const by = new Map(productMetafields(input({ reviews: many }), new Map()).set.map(m => [m.key, m]));
     expect(JSON.parse(by.get("reviews")!.value).items).toHaveLength(81);
-    expect(JSON.parse(by.get("review_summary")!.value)).toEqual({ count: 81, rating: 3.7, five: 30, positive: 30 });
+    expect(JSON.parse(by.get("review_summary")!.value)).toEqual({ count: 81, rating: 4.4, five: 30, positive: 30 });
+    expect(JSON.parse(by.get("reviews")!.value).items[80].rating).toBe(3);
   });
 
   it("activa los apoyos por defecto y conserva las desactivaciones explícitas al publicar", () => {

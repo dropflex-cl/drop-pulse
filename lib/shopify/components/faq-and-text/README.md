@@ -10,7 +10,7 @@ En el tercio inferior de la landing, después de beneficios, reseñas y comparat
 
 - **Móvil (375 px):** una columna, texto centrado arriba y acordeón abajo. Título de 28 px, preguntas de 16 px, respuestas de 15 px.
 - **Escritorio (≥ 990 px):** dos columnas; la de texto (30–50 %, ajustable, 40 % por defecto) queda fija al desplazar y alineada a la izquierda.
-- **Texto:** antetítulo (`.df-eyebrow`), título `h2` con las palabras de `heading_highlight` en `--df-accent-ink`, bajada, prueba social (pila de hasta 3 avatares de 44 px superpuestos, estrellas reales, texto con `{rating}`/`{count}` y la fuente de las reseñas) y un botón con el acento.
+- **Texto:** antetítulo (`.df-eyebrow`), título `h2` con las palabras de `heading_highlight` en `--df-accent-ink`, bajada, prueba social (pila de hasta 3 avatares de 44 px superpuestos, estrellas desde la fuente compartida, texto con `{rating}`/`{count}` sin mostrar plataforma de origen) y un botón con el acento.
 - **Acordeón:** pregunta en negrita con un signo + que pasa a − (la barra vertical gira y se desvanece); respuesta en `.df-text`.
 - **Dos ejes de diseño** (las tres variantes de la referencia): «Tarjeta alrededor» (fondo `--df-surface` y radio que envuelve todo) y «Estilo de preguntas»: divisores (línea de 1 px) o tarjetas (cada pregunta sobre `--df-surface`, o sobre el fondo si ya hay tarjeta alrededor).
 
@@ -21,9 +21,9 @@ En el tercio inferior de la landing, después de beneficios, reseñas y comparat
 | Metafield `dropflex.faq_and_text` (IA) | `eyebrow?`, `heading`, `heading_highlight?`, `body?`, `cta_label?`, `social_proof_text?`, `items[3..8]` (`question`, `answer`, `topic`) |
 | Ajustes de la sección | los mismos textos como respaldo, enlace del botón (vacío = página del producto), avatares 1-3, prueba social sí/no, una abierta a la vez, primera abierta, JSON-LD, tarjeta, estilo, ancho del texto, fondo, espacios; producto fuera de la ficha |
 | Bloques «Pregunta» (máx. 8) | respaldo del editor: pregunta y respuesta |
-| `shop.metafields.dropflex.logistics` (real) | `{min}` y `{max}`: preparación + tránsito |
-| `shop.metafields.dropflex.policies` (real) | `{return_days}`, `{warranty_months}` |
-| `product.metafields.dropflex.review_summary` (real) | `{rating}`, `{count}`, estrellas y `source_label` visible |
+| `shop.metafields.dropflex.logistics` (compartido y editable) | `{min}` y `{max}`: preparación + tránsito |
+| `shop.metafields.dropflex.policies` (compartido y editable) | `{return_days}`, `{warranty_months}` |
+| `product.metafields.dropflex.review_summary` (compartido y editable) | `{rating}`, `{count}`, estrellas sin mostrar plataforma de origen |
 
 Una pregunta cuyo texto conserva un token sin dato real no se muestra (ni en la página ni en el JSON-LD). La prueba social con un token sin dato se oculta. Sin preguntas válidas la sección no se dibuja (en el editor muestra un aviso).
 
@@ -43,9 +43,9 @@ Una pregunta cuyo texto conserva un token sin dato real no se muestra (ni en la 
 - **Fluidez cognitiva:** respuestas colapsadas; se escanean las preguntas y se abre solo la que importa.
 - **Transparencia:** anticipar las preguntas transmite que la tienda conoce a su cliente.
 - **Validación:** el acento en «tus dudas» reconoce al lector.
-- **Prueba social ligera:** junto al título, pero solo con el resumen real de reseñas y su fuente visible.
+- **Prueba social ligera:** junto al título, pero con la valoración compartida editable y su fuente visible.
 
-La referencia decía «miles de clientes confían» sin dato y usaba caras ilustradas como clientes; aquí la prueba social sale del resumen real de reseñas y los avatares pueden ser imágenes disponibles, ilustraciones o imágenes generadas.
+La referencia decía «miles de clientes confían» sin dato y usaba caras ilustradas como clientes; aquí la prueba social sale de la valoración compartida editable y los avatares pueden ser imágenes disponibles, ilustraciones o imágenes generadas.
 
 ## Reglas del copy (IA)
 
@@ -56,3 +56,7 @@ La referencia decía «miles de clientes confían» sin dato y usaba caras ilust
 - **Duración** (`duracion`, «¿Cuánto me dura?»): va siempre que el producto traiga rendimiento o duración. Usa el rendimiento que dio el comerciante y explica los packs como meses de uso («El pack de 3 frascos te alcanza para 3 a 4 meses de rutina»). Es la **única respuesta que puede llevar dígitos**, y solo los de los datos del producto (la app los compara con `key_facts` y `base_info`, `lib/copy/facts.ts`); el esquema de este componente exige el resto sin números.
 - **Resultados** (`resultados`): en belleza y bienestar se incluye, condicionado al uso constante y sin plazo.
 - Prueba social solo con `{rating}`/`{count}`.
+
+## Valoración compartida vigente
+
+La nota y cantidad agregadas se editan en `review-stars` mediante `save_landing_content` y se publican en `review_summary`. No requieren datos de Google, reseñas importadas, mínimos, evidencia ni verificación. Los campos antiguos rating/count de Hero son respaldo compatible, no una segunda fuente cuando Estrellas aporta esos valores. Las notas individuales de testimonios son independientes.

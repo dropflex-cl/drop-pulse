@@ -1,3 +1,4 @@
+import { pdpRatingSummary } from "@/lib/copy/pdp-rating";
 import { conversionSupportState } from "@/lib/shopify/conversion-supports";
 import type { ExperienceManifest } from "@/lib/product-intelligence/experience-resolver";
 // Publicar, lo puro (docs/spec-publicar.md): de lo APROBADO en DropFlex a lo que recibe Shopify.
@@ -279,6 +280,7 @@ export function productKeys(): string[] {
 export function landingAtomicKeys(input: PublishInput): string[] {
   return [
     SHARED_METAFIELDS.conversionSupports.key,
+    SHARED_METAFIELDS.reviewSummary.key,
     ...(input.listingVariants ? [SHARED_METAFIELDS.landingListing.key] : []),
     ...(input.experienceManifest
       ? [SHARED_METAFIELDS.landingExperiences.key]
@@ -392,28 +394,16 @@ export function productMetafields(
         image_count: mine.length,
       };
     });
-    const rating =
-      Math.round(
-        (reviews.reduce((n, r) => n + r.rating, 0) / reviews.length) * 10,
-      ) / 10;
     set.push(mf(SHARED_METAFIELDS.reviews.key, "json", { items }));
-    // Sin origen visible: por decisión del comerciante la tienda no nombra la plataforma de las reseñas.
-    // five/positive: para la proporción que se muestra con pocas reseñas (snippets/df-review-proof).
-    const five = input.reviews.filter((r) => r.rating >= 5).length;
-    const positive = input.reviews.filter((r) => r.rating >= 4).length;
-    set.push(
-      mf(SHARED_METAFIELDS.reviewSummary.key, "json", {
-        rating,
-        count: input.reviews.length,
-        five,
-        positive,
-      }),
-    );
     if (photos.length)
       set.push(
         mf(SHARED_METAFIELDS.reviewsImages.key, "list.file_reference", photos),
       );
   }
+
+  const summary = pdpRatingSummary(input.components, input.reviews);
+  if (summary.rating !== null || summary.count > 0 || summary.variants?.some(v => v.rating !== null || v.count > 0))
+    set.push(mf(SHARED_METAFIELDS.reviewSummary.key, "json", summary));
 
   for (const c of input.components) {
     const def = componentById(c.id);

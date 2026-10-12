@@ -22,7 +22,7 @@ export const UI_ICON_KEYS = [
 ] as const;
 
 /**
- * Metafields de DATOS REALES que publica la app (nunca la IA) y que varios componentes leen.
+ * Metafields compartidos que publica la app: datos operativos y contenido editable.
  * Son compartidos: ningún componente los declara como propios.
  */
 export const SHARED_METAFIELDS = {
@@ -30,8 +30,9 @@ export const SHARED_METAFIELDS = {
   /** Producto · color (#rrggbb). products.page_accent_color. */
   accent: { owner: "product", namespace: "dropflex", key: "accent", type: "color" },
   /**
-   * Producto · json. Resumen de las reseñas APROBADAS (product_reviews):
-   * { rating: number (1 decimal), count: number, five: number (de 5★), positive: number (de 4★ o más) }
+   * Producto · json. Valoración compartida editable de review-stars, con respaldo compatible de Hero y del resumen importado:
+   * { rating: number|null (1 decimal), count: number, variants?: [{key, angle_id, hook_id, rating, count}] }.
+   * five/positive solo se conservan cuando el agregado coincide con las importaciones.
    * La tienda no muestra el origen de las reseñas (decisión del comerciante, 2026-09-24).
    */
   reviewSummary: { owner: "product", namespace: "dropflex", key: "review_summary", type: "json" },
@@ -134,8 +135,9 @@ export interface ConversionComponent<C extends z.ZodType = z.ZodType> {
   /** Imágenes que se eligen en la etapa Página del producto (Publicar las sube a Shopify Files). */
   imageSlots?: ImageSlot[];
   /**
-   * Reseñas aprobadas que necesita para existir: sin ellas no se escribe (la IA elegiría reseñas
-   * que no hay) ni se puede usar en la página. Igual al ajuste min_reviews de su Liquid.
+   * Campo histórico de compatibilidad. No condiciona disponibilidad, guardado ni publicación:
+   * el contenido propio y la valoración agregada editable no necesitan importaciones.
+   * @deprecated
    */
   minReviews?: number;
   /** Dónde va en la página y por qué ahí. */

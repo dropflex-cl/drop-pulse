@@ -33,7 +33,7 @@ export const ugcSlider = defineComponent({
 
       .refine((s) => !s.includes("+"), { message: "heading: sin «+» inflado" })
       .optional()
-      .describe("Opcional. Sin cifra: describe el contenido («Así lo usan quienes ya lo tienen»). Con cifra real: «**{count} reseñas** de compradores». **…** resalta en el color de acento."),
+      .describe("Opcional. Sin cifra: describe el contenido («Así lo usan quienes ya lo tienen»). Con cifra compartida: «**{count} reseñas** de compradores». **…** resalta en el color de acento."),
     captions: z
       .array(caption.describe("≤ 40 caracteres: lo que se ve o el uso («Se ajusta en segundos», «Debajo de la ropa»). Sin cifras ni resultados."))
       .max(10)
@@ -42,7 +42,7 @@ export const ugcSlider = defineComponent({
   }),
   realData: [
     "Videos y pósters: product.metafields.dropflex.ugc_videos (list.file_reference) que sube el comerciante; los ajustes de video del bloque son el respaldo.",
-    "{count} y {rating} del título y la fila de estrellas: product.metafields.dropflex.review_summary, solo sobre el mínimo de reseñas; si no, el título con cifra no se muestra.",
+    "{count} y {rating} usan la valoración compartida editable de review-stars, publicada en review_summary. No exige un mínimo de reseñas ni importación, verificación o conexión con Google.",
     "Aviso «Incluye contenido patrocinado»: lo declara el comerciante en el bloque.",
   ],
   rules: [

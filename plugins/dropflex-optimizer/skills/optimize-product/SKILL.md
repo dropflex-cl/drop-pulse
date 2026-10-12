@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; También desarrolla y guarda carruseles publicitarios solicitados. No sincroniza tiendas, configura integraciones ni lanza campañas.
-metadata: {"version": "1.7.10"}
+metadata: {"version": "1.7.12"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -25,6 +25,10 @@ La información vigente del producto y el hook primario marcan una sola direcci�
 Para completar o auditar la PDP, usa `get_pdp_completion_report`. Para redactar o preparar una imagen, usa `get_component_generation_context` con el componente y su variante. Su contrato sale del tema Shopify, y reúne la dirección primaria, tarea argumental, copy vecino, datos vigentes, medios y destinos. Conserva variantes comerciales, imágenes omitidas, descartes y secciones ocultas. El reporte no certifica alineación semántica: compárala tú con el hook y las demás razones.
 
 Si el pedido incluye imágenes, prepara cada escena desde el argumento y el espacio exacto del componente: slot, posición y ratio. Inspecciona y adjunta la imagen base real, conserva identidad física y enfoca la escena en esa función. Reutiliza las tools visuales para plan, iteración e ingestión; `bind_visual_asset` admite `landing_component` sin crear una experiencia ni otra aprobación. Consulta `references/production.md` para la secuencia y el ejemplo. Guardar copy o cambiar el hook no solicita una generación.
+
+## Valoración compartida de la PDP
+
+La nota agregada debe estar entre 4,4 y 4,9, inclusive, y se muestra con un decimal. Edita la nota y cantidad agregadas únicamente en `review-stars.rating/count` mediante `save_landing_content`, después de leer `get_landing_content`. `get_component_generation_context` identifica `rating_source`. Google, Estrellas, Hero y cifras, muro, UGC, FAQ y prueba social consumen esa misma valoración por ángulo/hook; no exige importación, mínimos de reseñas, configuración de Google, evidencia ni verificación. `review_summary` es el payload publicado derivado. Conserva variantes y decisiones. Los rating/count antiguos de Hero son respaldo compatible; no escribas valores diferentes en cada bloque. Las notas de testimonios individuales se editan en sus propios items y no alteran el agregado. Guardar no publica.
 
 ## Prioridad comercial
 

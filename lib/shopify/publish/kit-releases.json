@@ -65,6 +65,7 @@
     "eb9f015ea9",
     "ecf698cae6",
     "f06ed6fc52",
+    "f094df4a88",
     "f1aae22961",
     "f4b1f58758",
     "faaba09899",
@@ -127,6 +128,7 @@
       "1799dea3ef889a4d5c0339dc4ec26f66"
     ],
     "assets/df-components.css": [
+      "01fab4293a06f818bef559e78a2f9d53",
       "03289481a1ba8aba6e615baec1635e6b",
       "0cffcd402fabc6466834665f84581bdb",
       "1c8a594a9e8af2f8eeeedd05822dbd6f",
@@ -213,7 +215,8 @@
       "c5bc0f7c2bd4995b7bf3ba8f3578b0a0"
     ],
     "assets/df-review-state.js": [
-      "8d839fce1769f58cdb73de2816314b47"
+      "8d839fce1769f58cdb73de2816314b47",
+      "8e73437c1182dccf6e86b373712630bb"
     ],
     "assets/df-review-wall.js": [
       "a5f15f76517f8cef9ec8dd380ebe9af6",
@@ -852,6 +855,7 @@
       "555ac61be092352c46083115c447ba0b",
       "58c0046c27173b8a554eaaafcddd9d76",
       "58f36accc38e6feff3637d8a86aa7286",
+      "8b8c87446a9e5a63b8b281d665bf85fa",
       "8bc67365531bf12a1522acbc7202767c",
       "96151ac9e889f8263294feb765d2daca",
       "9c94b30a6b7d7b468d7cdcdbbdd61795",
@@ -892,6 +896,7 @@
       "5c92fa7cca24904e2564c57790adb9fa"
     ],
     "blocks/df-social-proof.liquid": [
+      "04ac63b3dc227e44bf39a43576b0fe51",
       "0df67bf52a25bc13e39174223e60a78f",
       "1fafb066b8570945dab21933d93bb424",
       "9d9d8f50fb58277f9e9195d74a93f3d9",
@@ -921,6 +926,7 @@
       "7c6469586f152d17d996b5dfbb515887",
       "895a10aa924dab92fc0e4569a510fa48",
       "961ff432795c1928b9105e63008c6fbd",
+      "981dd3c02b3a6c5be6fce671a0d119c5",
       "cc9ee605e55e4c938b00d8de17b61be9",
       "eca159bdb8bfc06e1b9c0ae3873bf435",
       "fe6b07c60204d69472152ebcc6598f8a"
@@ -1340,6 +1346,7 @@
       "3c9c26c2c65bd719093cb6a315192e1e",
       "3e9d288131bb3026d36673a37cd6f289",
       "52591c673aa04996707ca278c5f41c28",
+      "78e3e1c3c600a6ab7e3c2fa2da0bb016",
       "84acd07faf70a8ca146d093350b992ee",
       "a2d9f32e047260cd04378d4f767ff3d0",
       "b33ca30bd34b99ba07849d856ad9e10f",
@@ -1639,6 +1646,7 @@
       "f988872022b7d1e48ea352eefb1b7326"
     ],
     "snippets/df-faq-and-text-content.liquid": [
+      "25c22b1e63d0f8b3624bfdc3051532b1",
       "c798ca2bdd71394aeef4face142f580c"
     ],
     "snippets/df-gallery-benefits-content.liquid": [
@@ -1660,6 +1668,7 @@
       "dd8f30c7d4d9293e6069d1dcab077f49"
     ],
     "snippets/df-google-rating.liquid": [
+      "37a191290cf60832efd168c3c6f0f207",
       "7c406dd210a27397ea7e843db4b6173a",
       "8211e61730e4969e6d5eefaa79c2342c",
       "d28ff53be412650c63d73dab7431fd60",
@@ -1719,6 +1728,9 @@
       "d01cc94e8b4693ccf69383b8dedff1ae",
       "d515f2b3888aeb25694122aa0b54b51c"
     ],
+    "snippets/df-pdp-rating.liquid": [
+      "0ea851bab9537a30f6d19d6bd32e1c1c"
+    ],
     "snippets/df-product-includes-content.liquid": [
       "b24b7bf604b1fb6c0e95256a5afd8471"
     ],
@@ -1739,11 +1751,13 @@
     ],
     "snippets/df-review-slider-content.liquid": [
       "180d7a4bf28c244945c37a1b618a1583",
+      "32f181d008640b7cf95bb09a90735e4e",
       "839b52e5ba19930ba172f36e602af7e2",
       "8474d79bff6e6935a0cabd2296018987",
       "87815316b25c0e0bdc0686f5dbdbc5e2"
     ],
     "snippets/df-review-stars-content.liquid": [
+      "367a3274044a50bee3a20743d84ddf14",
       "564269f5639aff81aeed56b0eb42350c",
       "a0f2fe80caa6e82dc9aae520d7b72203",
       "a8808202e3b356be0b53361af04edc55",
@@ -1752,7 +1766,8 @@
     "snippets/df-review-wall-content.liquid": [
       "040d238448e4eb3304a9e0717e22f0c2",
       "4f0169fb9ecf1269e735ef530e22e966",
-      "a009eeffc17f6eb39c8a7c1aa22e09d7"
+      "a009eeffc17f6eb39c8a7c1aa22e09d7",
+      "f9b9ff41f0103a1e9f41d25b590fa1bc"
     ],
     "snippets/df-rich-pdp-content.liquid": [
       "67e83ff6a7fbd43319c50494228d7f5a",
@@ -1776,6 +1791,7 @@
       "d1b93be43bae1b31ea4115f666922426"
     ],
     "snippets/df-stats-with-image-content.liquid": [
+      "31db17f7c5ceb8539ede4f4dbcbd93e2",
       "93dc1f7699cec996585208e7f20cab86",
       "a8e74f2ba18d975835b79a1922ed8780",
       "e0490286c6c8a9b8ab176203ea8e0213"
@@ -1796,6 +1812,7 @@
     ],
     "snippets/df-ugc-slider-content.liquid": [
       "0eb535e601f2aa5a04865a6f1ea8fd3b",
+      "27c2278bf17b066933a6604f02323686",
       "3f149f4ae6c9cef0e77c8face1cf6c29",
       "cf4bb0b703f2fbcd6ba2e0f186e3066c"
     ],

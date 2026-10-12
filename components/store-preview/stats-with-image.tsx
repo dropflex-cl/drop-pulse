@@ -2,7 +2,6 @@ import { PdpEmptyPreview } from "./pdp-empty";
 import { Fragment } from "react";
 import {
   fill,
-  reviewProof,
   tokenValues,
   type StoreFacts,
 } from "@/lib/store-preview/facts";
@@ -86,16 +85,12 @@ export function StatsWithImagePreview({
   const ratingLabel = content.rating_label || String(s.rating_label ?? "");
   const reviewId = content.review_id || String(s.review_id ?? "");
 
-  const ratingFacts = { ...facts, rating: content.rating ?? facts.rating, count: content.count ?? facts.count };
+  const ratingFacts = facts;
   const hasRating =
-    (ratingFacts.rating ?? 0) > 0 && ratingFacts.count > 0;
+    (ratingFacts.rating ?? 0) > 0;
   const showRating =
-    Boolean(s.show_rating) && hasRating && Boolean(ratingLabel);
-  // Con pocas reseñas, la proporción en vez de la plantilla con {count}.
-  const proof = content.rating === undefined && content.count === undefined ? reviewProof(facts.reviews) : "";
-  const ratingLine = proof
-    ? `${tokenValues(ratingFacts).rating.value} de 5 · ${proof}`
-    : fill(ratingLabel, ratingFacts);
+    Boolean(s.show_rating) && Boolean(ratingLabel);
+  const ratingLine = fill(ratingLabel, ratingFacts);
 
   // Testimonio real, elegido por id (tal cual, recortado a 240).
   const review =
@@ -164,7 +159,7 @@ export function StatsWithImagePreview({
         )}
         <div className="df-stats-with-image__body">
           {showRating && (
-            <div className="df-stats-with-image__rating">
+            <div className="df-stats-with-image__rating" hidden={!hasRating}>
               <span aria-hidden>
                 <DfStars rating={ratingFacts.rating ?? 0} size="1.125rem" />
               </span>

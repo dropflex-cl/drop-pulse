@@ -713,6 +713,11 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         ],
       };
       expect(await count("product_reviews")).toBe(0);
+      for (const rating of [4.3, 5]) {
+        await expect(call("save_landing_content", { ...(await input()), entries: [
+          { component: "review-stars", content: { label: "{rating} · {count} opiniones", rating, count: 12 } },
+        ] })).rejects.toThrow();
+      }
       expect(await call("save_landing_content", JSON.parse(JSON.stringify(request)))).toMatchObject({ ok: true });
       const rows = (await checked(db.from("page_components")
         .select("component,content").eq("product_id", product)
@@ -726,6 +731,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
         components: rows.map(row => ({ id: row.component, content: row.content, images: {} })),
       }, new Map());
       expect(JSON.stringify(metafields)).toContain("Andrea");
+      expect(JSON.parse(metafields.set.find(m => m.key === "review_summary")!.value)).toMatchObject({ rating: 4.7, count: 12 });
+      expect(metafields.set.some(m => m.key === "reviews")).toBe(false);
     });
     it("producto en borrado impide replay y cascada borra propuestas/receipts", async () => {
       expect((await read()).data.context_stale).toBe(false);

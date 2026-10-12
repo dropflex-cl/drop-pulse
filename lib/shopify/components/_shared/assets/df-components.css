@@ -664,3 +664,6 @@ df-landing-content > [data-df-active] { display: contents; }
   @media (prefers-reduced-motion: reduce) {
     .df-inventory--pulse.is-ping .df-inventory__dot::after { animation: none; }
   }
+
+/* Las cifras compartidas sin nota permanecen ocultas hasta elegir una variante con valoración. */
+[data-df-rating-group][hidden], .df-stats-with-image__rating[hidden] { display: none !important; }

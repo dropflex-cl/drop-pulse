@@ -1,6 +1,7 @@
+import { effectiveRating } from "@/lib/products/effective-page";
 import type { PublishInput } from "@/lib/shopify/publish/mapping";
 import type { logisticsMetafield, policiesMetafield } from "@/lib/settings/policies";
-import { averageRating, type StoreFacts } from "@/lib/store-preview/facts";
+import { type StoreFacts } from "@/lib/store-preview/facts";
 import { reviewDate } from "@/lib/reviews/copy";
 
 /** Hechos visibles derivados del mismo snapshot publicado, sin volver a leer selección ni políticas. */
@@ -13,7 +14,7 @@ export function previewFacts(input: PublishInput, urls: Record<string, string>, 
     productName: input.listing.title, productImage: gallery[0], productImages: gallery,
     packs: input.packs, price: unit?.price ?? 0, compareAt: unit?.compareAt, currency, verifiedFacts,
     reviews: input.reviews.map(r => ({ ...r, date: reviewDate(r.date), iso: r.date, photos: r.photos.flatMap(key => urls[key] ? [urls[key]] : []) })),
-    count: input.reviews.length, rating: averageRating(input.reviews),
+    ...effectiveRating(input),
     policies: { cod: true, free_shipping: policies?.free_shipping ?? false, threshold: policies?.free_shipping_threshold,
       return_days: policies?.return_days, warranty_months: policies?.warranty_months, whatsapp: policies?.whatsapp },
     logistics: logistics ? { min: logistics.handling_days + logistics.transit_days_min, max: logistics.handling_days + logistics.transit_days_max,

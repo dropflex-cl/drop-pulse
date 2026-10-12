@@ -2,14 +2,14 @@ import { ListingPreview } from "@/components/store-preview/listing";
 import { StoreFrame } from "@/components/store-preview/store-frame";
 import { PREVIEWS } from "@/components/store-preview/registry";
 import { LISTING_SLOTS, type ListingSlot } from "@/lib/copy/page-ui";
-import { effectivePage, pagePlacement } from "@/lib/products/effective-page";
+import { effectiveRating, effectivePage, pagePlacement } from "@/lib/products/effective-page";
 import type { LandingSelection } from "@/lib/copy/variants";
 import type { ProductPageContent } from "@/lib/types";
 
 /** Sin contenido de ejemplo ni selección paralela: cada archivo y variante salen de la entrada de publicación. */
 export function EffectivePagePreview({ page, selection, accent }: { page: ProductPageContent; selection?: LandingSelection; accent?: string | null }) {
   const resolved = effectivePage(page.input, selection);
-  const facts = { ...page.facts, productName: resolved.listing.title };
+  const facts = { ...page.facts, productName: resolved.listing.title, ...effectiveRating(page.input, selection) };
   const draw = (component: (typeof resolved.components)[number]) => {
     const Preview = PREVIEWS[component.id];
     if (!Preview) return null;

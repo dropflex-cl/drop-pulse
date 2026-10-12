@@ -173,6 +173,7 @@
               "type": "array",
               "items": {}
             },
+            "rating_source": {},
             "canonical_reference": {
               "anyOf": [
                 {
@@ -278,6 +279,7 @@
             "component",
             "current",
             "other_arguments",
+            "rating_source",
             "canonical_reference",
             "targets",
             "available_images",

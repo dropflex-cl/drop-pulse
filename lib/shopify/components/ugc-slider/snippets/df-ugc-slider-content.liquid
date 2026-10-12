@@ -1,5 +1,5 @@
 {%- doc -%}
-  Render de contenido aprobado; los datos reales siguen saliendo de Shopify.
+  Render del contenido vigente; valoración compartida editable y datos operativos de Shopify.
   @param {object} product
   @param {object} section
   @param {object} [block]
@@ -29,7 +29,12 @@
   assign product = closest.product | default: product
   assign s = block.settings
   # content llega de la variante seleccionada (o del objeto legacy).
-  assign summary = product.metafields.dropflex.review_summary.value
+  capture pdp_rating
+    render 'df-pdp-rating', product: product, df_variant: df_variant
+  endcapture
+  assign pdp_rating = pdp_rating | split: '|'
+  assign pdp_score = pdp_rating[0] | plus: 0
+  assign pdp_count = pdp_rating[1] | plus: 0
   assign mf_videos = product.metafields.dropflex.ugc_videos.value | where: 'id'
 
   if df_variant != blank
@@ -67,11 +72,11 @@
   endif
 
   if show
-    # Datos reales de reseñas para {count}, {rating} y la fila de estrellas.
-    assign rating = summary.rating | default: 0 | plus: 0
-    assign count = summary.count | default: 0 | plus: 0
+    # Valoración compartida editable para {count}, {rating} y las estrellas.
+    assign rating = pdp_score
+    assign count = pdp_count
     assign has_reviews = false
-    if rating > 0 and count >= s.min_reviews
+    if rating > 0
       assign has_reviews = true
     endif
     assign r10 = rating | times: 10 | round
@@ -90,7 +95,7 @@
       if has_reviews
         assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
       else
-        # Sin dato real, un título con cifra no se muestra.
+        # Sin valoración guardada, un título con cifra no se muestra.
         assign heading = ''
       endif
     endif
@@ -120,22 +125,22 @@
     style="{{ accent_vars }} --df-ugc-per-view: {{ per_view }}; margin-block: {{ s.margin_top }}px {{ s.margin_bottom }}px;"
     {{ block.shopify_attributes }}
   >
-    {%- if heading != blank or s.show_rating and has_reviews -%}
+    {%- if heading != blank or s.show_rating -%}
       <div class="df-ugc-slider__header">
         {%- if heading != blank -%}
           {%- assign parts = heading | escape | split: '**' -%}
-          <p class="df-heading df-ugc-slider__heading">
+          <p class="df-heading df-ugc-slider__heading" data-df-rating-template="{{ content.heading | default: s.heading | escape }}" data-df-rating-highlight="df-ugc-slider__highlight">
             {%- for part in parts -%}
               {%- assign odd = forloop.index0 | modulo: 2 -%}
               {%- if odd == 1 -%}<strong class="df-ugc-slider__highlight">{{ part }}</strong>{%- else -%}{{ part }}{%- endif -%}
             {%- endfor -%}
           </p>
         {%- endif -%}
-        {%- if s.show_rating and has_reviews -%}
+        {%- if s.show_rating -%}
           {%- assign rating_label = 'Calificación ' | append: rating_text | append: ' de 5, ' | append: count_text | append: ' reseñas' -%}
-          <p class="df-ugc-slider__rating">
+          <p class="df-ugc-slider__rating" data-df-rating-group data-df-rating-stars {% unless has_reviews %}hidden{% endunless %}>
             {%- render 'df-stars', rating: rating, size: '1rem', label: rating_label -%}
-            <span aria-hidden="true">{{ rating_text }} · {{ count_text }} reseñas</span>
+            <span aria-hidden="true" data-df-rating-template="{rating} · {count} reseñas">{{ rating_text }} · {{ count_text }} reseñas</span>
           </p>
         {%- endif -%}
       </div>
