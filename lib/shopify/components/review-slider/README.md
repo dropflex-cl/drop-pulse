@@ -14,10 +14,7 @@ Una reseña de comprador a la vez, justo después del botón y de la disponibili
 Diseño mínimo: avatar circular con foto real o inicial, texto en cursiva, autor anonimizado
  y estrellas. Sin país, plataforma de origen ni marcas de compra verificada.
 
-Lee todas las reseñas publicadas desde `dropflex.reviews` y las fotos desde
-`dropflex.reviews_images`. Ya no filtra por calificación, foto, mínimo de 3, selección de IA
-ni `max_items`. Conserva los ajustes históricos en el schema para no romper templates guardados.
-Los loops se dividen en grupos de 50 para recorrer también colecciones grandes en Liquid.
+Lee los items elegidos en el contenido vigente de `review-slider`. Cada `review_id` recupera la reseña publicada desde `dropflex.reviews` y las fotos desde `dropflex.reviews_images`. Tener reseñas disponibles o una cantidad agregada no las asigna al carrusel: se guardan sus IDs con `save_landing_content`, conservando el orden elegido. No filtra por calificación ni exige fotos; conserva los ajustes históricos del schema.
 
 Rota cada 5 segundos por defecto (ajustable), con anterior, siguiente, indicador de posición
  y pausa. Se detiene al interactuar, con el foco, al salir de pantalla, al ocultar la pestaña
@@ -27,6 +24,6 @@ existente en el espacio fijo de `buy-buttons`; si el editor lo quitó, usa su re
 El total y la nota usan la fuente editable común `review-stars`, publicada en `review_summary`. No exige importación ni verificación.
 `df:reviews:<product id>` guarda las cifras editables compartidas y el orden aleatorio en localStorage.
 El orden conserva las reseñas conocidas, añade nuevas y elimina las retiradas. Sin storage
-funciona con memoria de la página. Sin reseñas, el bloque conserva un mensaje visible.
+funciona con memoria de la página. Sin items disponibles, el bloque conserva el mensaje «Todavía no hay reseñas en este carrusel.»; describe este componente y no afirma que el producto carezca de reseñas.
 
 La IA guarda los items y extractos actuales; las decisiones de orden y visibilidad se conservan.

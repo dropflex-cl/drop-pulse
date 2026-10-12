@@ -1,6 +1,7 @@
 import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { contentReview, type ReviewContent } from "@/lib/store-preview/review-content";
 import { px, settingsOf } from "@/lib/store-preview/settings";
+import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
 import { DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
 
@@ -29,7 +30,7 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
     return review ? [{ review, excerpt: item.excerpt || review.body, mode: item.excerpt_mode ?? "verbatim" }] : [];
   });
   const total = picks.length;
-  if (!total) return <div className="df df-placeholder" data-df-empty="review-slider">Aún no hay reseñas de este producto.</div>;
+  if (!total) return <div className="df df-placeholder" data-df-empty="review-slider">{PDP_EMPTY_STATES["review-slider"].body}</div>;
 
   let heading = content.heading || String(s.heading ?? "");
   if (heading.includes("{rating}") && !facts.rating)

@@ -4,12 +4,16 @@ import { LISTING } from "@/lib/copy/listing";
 import { fill, reviewProof } from "@/lib/store-preview/facts";
 import { EMPTY_FACTS, FIXTURE_FACTS } from "@/lib/store-preview/fixture";
 import { CATALOG } from "@/lib/shopify/components/catalog";
+import { imageOnlyPdpSlot } from "@/lib/shopify/components/_shared/pdp-content";
+import { parseHTML } from "linkedom";
 import { PREVIEWS } from "./registry";
 import { StoreFrame } from "./store-frame";
 
 const IMAGES = {
   before: ["https://example.test/before.jpg"],
   after: ["https://example.test/after.jpg"],
+  cases: ["https://example.test/cases.jpg"],
+  steps: ["https://example.test/steps.jpg"],
   main: ["https://example.test/a.jpg"],
   collage: [
     "https://example.test/a.jpg",
@@ -85,6 +89,14 @@ describe("vistas previas de los componentes", () => {
               <Preview content={example} facts={c.id === "shipping-timeline" ? { ...MANY_REVIEWS, logistics: { min: 1, max: 3, handling: 0, cutoff: 9 } } : MANY_REVIEWS} images={IMAGES} />
             </StoreFrame>,
           );
+          const imageSlot = imageOnlyPdpSlot(c.id, example);
+          if (imageSlot) {
+            const document = parseHTML(html).document;
+            expect(document.querySelector("img")?.getAttribute("alt")).toBe((example as { image_alt: string }).image_alt);
+            expect(document.querySelector("img")?.getAttribute("src")).toBe(IMAGES[imageSlot as "cases" | "steps"][0]);
+            expect(document.querySelector("h2, p, details, .df-rich__number")).toBeNull();
+            continue;
+          }
           // Sin logística, mostrar disponibilidad sin fabricar ventas o plazos.
           if (c.id === "inventory") {
             expect(html).toContain("La disponibilidad se actualiza en Shopify");

@@ -84,7 +84,7 @@ export const PDP_EMPTY_STATES: Record<
   },
   "review-slider": {
     heading: "Experiencias de compradores",
-    body: "Todavía no hay reseñas publicadas.",
+    body: "Todavía no hay reseñas en este carrusel.",
     icon: "users",
   },
   "ugc-slider": {

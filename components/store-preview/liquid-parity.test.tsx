@@ -100,6 +100,32 @@ function visualTree(html: string, id: string) {
 }
 
 describe("contrato visual Liquid → React", () => {
+  it("reseñas: recupera las ocho elegidas y conserva su orden, texto y fotos", async () => {
+    const reviews = Array.from({ length: 8 }, (_, index) => ({ ...facts.reviews[index % facts.reviews.length], id: `review-${index}` }));
+    const f = { ...facts, reviews, count: 8 };
+    const content = { items: [...reviews].reverse().map(review => ({ review_id: review.id })) };
+    const Preview = PREVIEWS["review-slider"];
+    const liquid = await liquidMarkup("review-slider", content, f, {});
+    const react = renderToStaticMarkup(<Preview content={content} facts={f} images={{}} />);
+    expect(visualTree(react, "review-slider")).toEqual(visualTree(liquid, "review-slider"));
+    for (const markup of [liquid, react]) {
+      const document = parseHTML(markup).document;
+      const cards = [...document.querySelectorAll(".df-review-slider__card")];
+      expect(cards.map(card => card.getAttribute("data-review-id"))).toEqual(content.items.map(item => item.review_id));
+      expect(cards.map(card => card.querySelector("blockquote p")?.textContent)).toEqual([...reviews].reverse().map(review => review.body));
+      expect(document.querySelectorAll(".df-review-slider__avatar img")).toHaveLength(8);
+      expect(document.querySelector("[data-df-empty]")).toBeNull();
+    }
+  });
+  it.each([{ state: "empty" }, { items: [{ review_id: "missing-review" }] }])("reseñas: un carrusel vacío no niega las opiniones disponibles", async content => {
+    const Preview = PREVIEWS["review-slider"];
+    const liquid = await liquidMarkup("review-slider", content, facts, {});
+    const react = renderToStaticMarkup(<Preview content={content} facts={facts} images={{}} />);
+    for (const markup of [liquid, react]) {
+      expect(parseHTML(markup).document.querySelector('[data-df-empty="review-slider"]')?.textContent.trim()).toContain("Todavía no hay reseñas en este carrusel.");
+      expect(markup).not.toContain("no hay reseñas de este producto");
+    }
+  });
   for (const id of ["use-cases", "usage-steps"]) {
     it.each([true, false])(`${id} image_only conserva paridad y exige imagen (%s)`, async available => {
       const Preview = PREVIEWS[id], slot = id === "use-cases" ? "cases" : "steps";
