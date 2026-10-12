@@ -29,7 +29,7 @@
   {% render 'df-stars', rating: google_score, size: '1rem' %}
   {%- capture google_label -%}
     Calificado <span data-df-google-score data-df-rating-template="{rating}">{{ rating_text }}</span>/5 en Google
-    <span class="df-google-rating__count" data-df-rating-template="({count} reseñas)">({{ count_text }} reseñas)</span>
+    <span class="df-google-rating__count" data-df-rating-template="({count} reseñas hoy)">({{ count_text }} reseñas hoy)</span>
   {%- endcapture -%}
   {%- if google_url_prefix == 'https://' -%}
     <a href="{{ google.url | escape }}" target="_blank" rel="noopener noreferrer">{{ google_label }}</a>

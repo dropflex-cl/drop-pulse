@@ -76,7 +76,7 @@
       assign rest = others | modulo: 1000 | plus: 1000 | append: '' | slice: 1, 3
       assign others_text = thousands | append: '.' | append: rest
     endif
-    assign template = '**{others} opiniones** de compradores'
+    assign template = '**{others} opiniones hoy** de compradores'
     if template contains '{others}'
       # Primero se parte por las marcas de negrita y después se pone el hueco de los nombres, que
       # llena df-social-proof.js.
@@ -101,7 +101,7 @@
         {%- assign odd = forloop.index0 | modulo: 2 -%}
         {%- comment -%} Variable nueva: en Liquid la del for no se puede reasignar. {%- endcomment -%}
         {%- assign piece = part -%}
-        {%- if odd == 1 -%}<strong data-df-rating-template="{count} opiniones">{{ piece }}</strong>{%- else -%}{{ piece }}{%- endif -%}
+        {%- if odd == 1 -%}<strong data-df-rating-template="{count} opiniones hoy">{{ piece }}</strong>{%- else -%}{{ piece }}{%- endif -%}
         {%- if forloop.index0 == 1 and s.show_verified and reviews.size > 0 and count == reviews.size -%}
           <span class="df-social-proof__verified">{% render 'df-icon', name: 'check-circle' %}<span class="df-visually-hidden"> (reseñas revisadas por la tienda)</span></span>
         {%- endif -%}

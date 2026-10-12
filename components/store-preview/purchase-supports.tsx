@@ -8,7 +8,7 @@ export function GoogleRatingPreview({ facts }: { facts: StoreFacts }) {
   const rating = facts.rating;
   if (rating == null || rating <= 0) return null;
   const url = facts.googleRating?.url ?? "";
-  const label = <>Calificado {rating.toFixed(1).replace(".", ",")}/5 en Google<span className="df-google-rating__count">({facts.count.toLocaleString("es-CL")} reseñas)</span></>;
+  const label = <>Calificado {rating.toFixed(1).replace(".", ",")}/5 en Google<span className="df-google-rating__count">({facts.count.toLocaleString("es-CL")} reseñas hoy)</span></>;
   return (
     <div className="df df-google-rating" aria-label="Valoración del producto">
       <img src="/store-preview/df-google-logo.svg" alt="" width={20} height={20} />

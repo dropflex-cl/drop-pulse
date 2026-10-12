@@ -88,7 +88,7 @@ describe("tokens con datos reales o de ejemplo", () => {
 
   it("llena con lo real y marca lo de ejemplo", () => {
     expect(fill("Cambio gratis por {return_days} días", facts)).toBe("Cambio gratis por 30 días");
-    expect(fill("{rating} · {count} reseñas", facts)).toBe(`4,8 · ${EXAMPLE.count} reseñas`);
+    expect(fill("{rating} · {count} reseñas", facts)).toBe(`4,8 · ${EXAMPLE.count} reseñas hoy`);
     expect(exampleTokens({ a: "{rating} y {return_days}", b: ["{min}", "{qty}"] }, facts).sort()).toEqual(["min", "rating"]);
     const real = { ...facts, rating: 4.6, count: 1200, logistics: { min: 1, max: 3 } };
     expect(fill("{rating} de 5 · {count} · {min}-{max}", real)).toBe("4,6 de 5 · 1.200 · 1-3");

@@ -100,6 +100,9 @@
       assign social_text = social_text | replace: '{count}', count_text | replace: '{rating}', rating_text
     endif
     unless social_text contains '{'
+      capture social_text
+        render 'df-review-count-label', text: social_text, count_text: count_text
+      endcapture
       assign social_html = social_text | escape
     endunless
   endif

@@ -228,14 +228,19 @@ export function tokenValues(
   };
 }
 
+/** Total vigente; «hoy» describe el texto del contador, no un filtro por fecha. */
+export function reviewCountLabel(text: string): string {
+  return text.replace(/(\d[\d.,]*\s+(?:reseñas?|opiniones|opinión))\b(?!\s+hoy\b)/gi, "$1 hoy");
+}
+
 /** El texto con sus tokens llenos. */
 export function fill(text: string | undefined, facts: StoreFacts): string {
   if (!text) return "";
   const values = tokenValues(facts);
-  return text.replace(
+  return reviewCountLabel(text.replace(
     /\{([a-z_]+)\}/g,
     (m, k: string) => values[k]?.value ?? m,
-  );
+  ));
 }
 
 /** Render de tienda: conserva el token sin dato para que el componente lo omita, igual que Liquid. */

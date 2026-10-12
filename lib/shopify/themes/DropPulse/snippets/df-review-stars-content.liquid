@@ -66,7 +66,11 @@
       assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas'
     endif
 
-    assign aria = 'Calificación ' | append: rating_text | append: ' de 5, basada en ' | append: count_text | append: ' reseñas'
+    capture label
+      render 'df-review-count-label', text: label, count_text: count_text
+    endcapture
+
+    assign aria = 'Calificación ' | append: rating_text | append: ' de 5, basada en ' | append: count_text | append: ' reseñas hoy'
     if rating <= 0
       assign aria = label
     endif

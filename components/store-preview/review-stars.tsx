@@ -1,5 +1,5 @@
 import { PdpEmptyPreview } from "./pdp-empty";
-import { fill } from "@/lib/store-preview/facts";
+import { fill, reviewCountLabel } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -31,7 +31,7 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
       ? `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, "0")}`
       : String(count);
 
-  const label = ownLabel ? template : s.compact
+  const label = reviewCountLabel(ownLabel ? template : s.compact
     ? `${ratingText} · ${countText} reseñas`
     : template.includes("{count}")
       ? fill(
@@ -40,9 +40,9 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
             .replaceAll("{rating}", ratingText),
           facts,
         )
-      : `${ratingText} · ${countText} reseñas`;
+      : `${ratingText} · ${countText} reseñas`);
 
-  const aria = rating > 0 ? `Calificación ${ratingText} de 5, basada en ${countText} reseñas` : label;
+  const aria = rating > 0 ? `Calificación ${ratingText} de 5, basada en ${countText} reseñas hoy` : label;
   const anchor = String(s.anchor ?? "")
     .replace(/#/g, "")
     .trim();

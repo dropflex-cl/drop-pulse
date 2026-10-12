@@ -70,7 +70,7 @@ export function UgcSliderPreview({ content, facts, images }: PreviewProps<Conten
           {showRating && (
             <p className="df-ugc-slider__rating" hidden={!hasReviews}>
               <DfStars rating={facts.rating ?? 0} size="1rem" />
-              <span aria-hidden>{`${ratingText} · ${countText} reseñas`}</span>
+              <span aria-hidden>{`${ratingText} · ${countText} reseñas hoy`}</span>
             </p>
           )}
         </div>

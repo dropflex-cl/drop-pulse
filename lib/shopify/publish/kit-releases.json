@@ -47,6 +47,7 @@
     "9bc9a38332",
     "9d7a0f126d",
     "a10fd1956b",
+    "a3361a8e29",
     "a7ad088b1b",
     "aa43948962",
     "ab002b8d61",
@@ -224,6 +225,7 @@
       "c5bc0f7c2bd4995b7bf3ba8f3578b0a0"
     ],
     "assets/df-review-state.js": [
+      "2de325c0b398f22dbf029dc1d1b5b739",
       "8d839fce1769f58cdb73de2816314b47",
       "8e73437c1182dccf6e86b373712630bb"
     ],
@@ -914,6 +916,7 @@
       "04ac63b3dc227e44bf39a43576b0fe51",
       "0df67bf52a25bc13e39174223e60a78f",
       "1fafb066b8570945dab21933d93bb424",
+      "47a9e31954a5ef241c0a4c89d8c310a2",
       "947edc589aff14cb4bc3c50cf540a730",
       "9d9d8f50fb58277f9e9195d74a93f3d9",
       "9f80c30bcabbe7936c3a92930328954c",
@@ -1666,7 +1669,8 @@
     ],
     "snippets/df-faq-and-text-content.liquid": [
       "25c22b1e63d0f8b3624bfdc3051532b1",
-      "c798ca2bdd71394aeef4face142f580c"
+      "c798ca2bdd71394aeef4face142f580c",
+      "e8b16557b2478639cbaec7e857ea9ec8"
     ],
     "snippets/df-gallery-benefits-content.liquid": [
       "938f6c796908956911fe88f4eb7ddbf2",
@@ -1690,6 +1694,7 @@
       "37a191290cf60832efd168c3c6f0f207",
       "7c406dd210a27397ea7e843db4b6173a",
       "8211e61730e4969e6d5eefaa79c2342c",
+      "8ed55cb3415e995c402b83f85a13fe0a",
       "c5c0d0024196e966a3e719fb18d644a0",
       "d28ff53be412650c63d73dab7431fd60",
       "f48d7ccda7e5f69b8a653504074084b3"
@@ -1762,6 +1767,9 @@
     "snippets/df-results-timeline-content.liquid": [
       "a4bfaa2346e6d7802e8af0ca899a3cb8"
     ],
+    "snippets/df-review-count-label.liquid": [
+      "225daee2646902c93fcebd8e7a688f4e"
+    ],
     "snippets/df-review-popup.liquid": [
       "5ca018ce88bc2edfc36bc34781300722",
       "ea74cc26f1419d7c766362fc3683867a"
@@ -1772,6 +1780,7 @@
     "snippets/df-review-slider-content.liquid": [
       "180d7a4bf28c244945c37a1b618a1583",
       "32f181d008640b7cf95bb09a90735e4e",
+      "5a874fc2b58cb7e8e7b12f4de9870b46",
       "839b52e5ba19930ba172f36e602af7e2",
       "8474d79bff6e6935a0cabd2296018987",
       "87815316b25c0e0bdc0686f5dbdbc5e2",
@@ -1782,6 +1791,7 @@
     "snippets/df-review-stars-content.liquid": [
       "367a3274044a50bee3a20743d84ddf14",
       "564269f5639aff81aeed56b0eb42350c",
+      "93d2e4777233240eb48ab6be77f197d0",
       "a0f2fe80caa6e82dc9aae520d7b72203",
       "a8808202e3b356be0b53361af04edc55",
       "e4ebcfc7907e9f2fe39a2f135d41d4c0"
@@ -1790,6 +1800,7 @@
       "040d238448e4eb3304a9e0717e22f0c2",
       "4f0169fb9ecf1269e735ef530e22e966",
       "a009eeffc17f6eb39c8a7c1aa22e09d7",
+      "c52ab0f0a8fe3156ce7b72e48b157de2",
       "f9b9ff41f0103a1e9f41d25b590fa1bc"
     ],
     "snippets/df-rich-pdp-content.liquid": [
@@ -1819,7 +1830,8 @@
       "31db17f7c5ceb8539ede4f4dbcbd93e2",
       "93dc1f7699cec996585208e7f20cab86",
       "a8e74f2ba18d975835b79a1922ed8780",
-      "e0490286c6c8a9b8ab176203ea8e0213"
+      "e0490286c6c8a9b8ab176203ea8e0213",
+      "e09ef38ec0ecd517b1d7aec4a5d5d133"
     ],
     "snippets/df-stats-with-image-image.liquid": [
       "7ef77dd3a6c363e718c77659bd272e08",
@@ -1839,6 +1851,7 @@
       "0eb535e601f2aa5a04865a6f1ea8fd3b",
       "27c2278bf17b066933a6604f02323686",
       "3f149f4ae6c9cef0e77c8face1cf6c29",
+      "a25703179b32525fdd116d0aae134ab0",
       "cf4bb0b703f2fbcd6ba2e0f186e3066c"
     ],
     "snippets/df-usage-steps-content.liquid": [

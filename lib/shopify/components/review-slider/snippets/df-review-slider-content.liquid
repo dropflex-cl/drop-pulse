@@ -62,6 +62,9 @@
       assign heading = s.heading
     endif
     assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
+    capture heading
+      render 'df-review-count-label', text: heading, count_text: count_text
+    endcapture
 
     # Navegación manual con dots y deslizamiento; sin rotación automática ni botón de pausa.
     assign anchor = s.anchor_id | default: 'resenas' | remove: '#' | strip | handleize

@@ -93,7 +93,7 @@ Los componentes están visibles por defecto. Sin datos reales muestran un estado
 Google se renderiza en su bloque bajo las miniaturas. Le siguen badges y
 título, bajada, tres beneficios y packs. Disponibilidad y carrusel conservan sus bloques bajo
 el botón; `buy-buttons` carga el estado técnico de reseñas. El carrusel conserva un orden
-persistido por producto. Total y nota permanecen reales y se actualizan al publicar.
+persistido por producto. Total y nota permanecen reales y se actualizan al publicar. Los contadores muestran «8 reseñas hoy» o «8 opiniones hoy»; el sufijo se aplica al total vigente, también en textos guardados, sin filtrar reseñas por fecha ni cambiar el contrato de datos.
 La guía solo entrega su enlace en la confirmación del pedido, tras asociar un PDF real.
 La fila independiente de estrellas queda apagada en el template inicial para no repetir Google; sus datos siguen disponibles.
 Configuración y límites: [`shopify-purchase-supports`](../../../docs/shopify-purchase-supports.md).

@@ -1,0 +1,21 @@
+{%- doc -%}
+  Añade «hoy» al total vigente de reseñas, sin cambiar la cantidad ni duplicar el sufijo.
+  @param {string} text
+  @param {string} count_text
+{%- enddoc -%}
+{%- liquid
+  assign label = text
+  assign nouns = 'reseñas,reseña,opiniones,opinión' | split: ','
+  if count_text != blank
+  for noun in nouns
+    assign needle = count_text | append: ' ' | append: noun
+    assign plural = count_text | append: ' reseñas'
+    if noun == 'reseña' and label contains plural
+      continue
+    endif
+    assign today = needle | append: ' hoy'
+    assign label = label | replace: today, needle | replace: needle, today
+  endfor
+  endif
+  echo label
+-%}

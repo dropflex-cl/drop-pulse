@@ -172,6 +172,11 @@
             assign value = stat.value
           endif
           assign label = stat.label | escape
+          if stat.fact == 'review_count'
+            unless label contains 'hoy'
+              assign label = label | append: ' hoy'
+            endunless
+          endif
         -%}
         {%- if value != blank and label != blank -%}
           <li class="df-stats-with-image__stat">
@@ -285,10 +290,13 @@
 
       <div class="df-stats-with-image__body">
         {%- if show_rating -%}
-          {%- assign rating_line = rating_label | escape | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
+          {%- capture rating_line -%}
+            {%- assign rating_line = rating_label | replace: '{rating}', rating_text | replace: '{count}', count_text -%}
+            {%- render 'df-review-count-label', text: rating_line, count_text: count_text -%}
+          {%- endcapture -%}
           <div class="df-stats-with-image__rating" data-df-reveal data-df-rating-group {% unless has_rating %}hidden{% endunless %}>
             <span aria-hidden="true" data-df-rating-stars>{% render 'df-stars', rating: review_rating, size: '1.125rem' %}</span>
-            <p class="df-stats-with-image__rating-text" data-df-rating-template="{{ rating_label | escape }}">{{ rating_line }}</p>
+            <p class="df-stats-with-image__rating-text" data-df-rating-template="{{ rating_label | escape }}">{{ rating_line | escape }}</p>
           </div>
         {%- endif -%}
 

@@ -79,7 +79,7 @@ describe("agregados compartidos al cambiar una variante", () => {
       <script data-df-review-state></script>
       <div data-df-rating-group data-df-rating-stars><span data-df-rating-template="Calificado {rating}/5 en Google"></span><span data-df-rating-template="({count} reseñas)"></span><span class="df-stars"><span class="df-visually-hidden"></span></span></div>
       <div data-df-rating-group data-df-rating-stars><span data-df-rating-template="{rating} · {count} reseñas"></span><span class="df-stars"><span class="df-visually-hidden"></span></span></div>
-      <div id="individual"><span class="df-stars" style="--df-stars-fill:80%"></span></div>
+      <strong data-df-rating-template="**{count} opiniones hoy** de compradores" data-df-rating-highlight="highlight"></strong><div id="individual"><span class="df-stars" style="--df-stars-fill:80%"></span></div>
     </body></html>`);
     document.querySelector('[data-df-review-state]')!.textContent = JSON.stringify({ product_id: "123", summary: { rating: 4.7, count: 1234,
       variants: [{ key: "default", angle_id: null, hook_id: null, rating: 4.7, count: 1234 }, { key: "hook", angle_id: "routine", hook_id: "morning", rating: 4.9, count: 18 }] } });
@@ -89,11 +89,14 @@ describe("agregados compartidos al cambiar una variante", () => {
     runInNewContext(source, { window, document, Intl, Math, localStorage: { getItem: (k: string) => saved.get(k) ?? null, setItem: (k: string, v: string) => saved.set(k, v) } });
     window.DropFlexReviews.sync();
     expect(document.body.textContent).toContain("Calificado 4,7/5 en Google");
-    expect(document.body.textContent).toContain("(1.234 reseñas)");
+    expect(document.body.textContent).toContain("(1.234 reseñas hoy)");
+    expect(document.querySelector(".highlight")?.textContent).toBe("1.234 opiniones hoy");
+    expect(document.body.textContent).not.toContain("hoy hoy");
     selection.angle = "routine"; selection.hook = "morning";
     window.DropFlexReviews.sync();
     expect(document.body.textContent).toContain("Calificado 4,9/5 en Google");
-    expect(document.body.textContent).toContain("4,9 · 18 reseñas");
+    expect(document.body.textContent).toContain("4,9 · 18 reseñas hoy");
+    expect(document.querySelector(".highlight")?.textContent).toBe("18 opiniones hoy");
     for (const el of document.querySelectorAll('[data-df-rating-stars] .df-stars')) expect(el.getAttribute("style")).toContain("98%");
     expect(document.querySelector('#individual .df-stars')!.getAttribute("style")).toContain("80%");
     expect(JSON.parse(saved.get("df:reviews:123")!)).toMatchObject({ rating: 4.9, count: 18 });

@@ -20,7 +20,7 @@ export function SocialProofPreview({ facts }: { facts: StoreFacts }) {
         ) : <DfIcon name="users" />}
       </span>)}
     </span>
-    <p className="df-social-proof__text"><strong data-df-rating-template="{count} opiniones">{facts.count.toLocaleString("es-CL")} opiniones</strong>
+    <p className="df-social-proof__text"><strong data-df-rating-template="{count} opiniones hoy">{facts.count.toLocaleString("es-CL")} opiniones hoy</strong>
       {s.show_verified ? <span className="df-social-proof__verified"><DfIcon name="check-circle" /><span className="df-visually-hidden"> (reseñas revisadas por la tienda)</span></span> : null}
       {" de compradores"}
     </p>

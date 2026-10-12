@@ -100,6 +100,10 @@
       endif
     endif
 
+    capture heading
+      render 'df-review-count-label', text: heading, count_text: count_text
+    endcapture
+
     assign per_view = s.cards_visible | default: '3'
     assign show_controls = false
     if total > 1
@@ -137,10 +141,10 @@
           </p>
         {%- endif -%}
         {%- if s.show_rating -%}
-          {%- assign rating_label = 'Calificación ' | append: rating_text | append: ' de 5, ' | append: count_text | append: ' reseñas' -%}
+          {%- assign rating_label = 'Calificación ' | append: rating_text | append: ' de 5, ' | append: count_text | append: ' reseñas hoy' -%}
           <p class="df-ugc-slider__rating" data-df-rating-group data-df-rating-stars {% unless has_reviews %}hidden{% endunless %}>
             {%- render 'df-stars', rating: rating, size: '1rem', label: rating_label -%}
-            <span aria-hidden="true" data-df-rating-template="{rating} · {count} reseñas">{{ rating_text }} · {{ count_text }} reseñas</span>
+            <span aria-hidden="true" data-df-rating-template="{rating} · {count} reseñas hoy">{{ rating_text }} · {{ count_text }} reseñas hoy</span>
           </p>
         {%- endif -%}
       </div>

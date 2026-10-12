@@ -105,7 +105,7 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
                   {ratingText}
                 </span>
                 <span>
-                  {`${fill("{count}", facts)} ${facts.count === 1 ? "reseña" : "reseñas"}`}
+                  {`${fill("{count}", facts)} ${facts.count === 1 ? "reseña" : "reseñas"} hoy`}
                 </span>
               </p>
             )}

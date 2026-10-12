@@ -98,6 +98,9 @@
       assign heading = s.heading
     endif
     assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
+    capture heading
+      render 'df-review-count-label', text: heading, count_text: count_text
+    endcapture
 
     assign cols_m = s.columns_mobile | default: '2' | plus: 0
     assign cols_d = s.columns_desktop | default: 3
@@ -161,8 +164,8 @@
               {%- assign stars_label = rating_text | append: ' de 5 estrellas' -%}
               {%- render 'df-stars', rating: rating, size: '1.125rem', label: stars_label -%}
               <span class="df-review-wall__score" aria-hidden="true" data-df-rating-template="{rating}">{{ rating_text }}</span>
-              <span data-df-rating-template="{count} reseñas">
-                {{ count_text }} {% if count == 1 %}reseña{% else %}reseñas{% endif %}
+              <span data-df-rating-template="{count} reseñas hoy">
+                {{ count_text }} {% if count == 1 %}reseña{% else %}reseñas{% endif %} hoy
               </span>
             </p>
           {%- endif -%}
