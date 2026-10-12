@@ -23,7 +23,7 @@ Aplica directamente este sistema, adaptando escenas y paleta al producto:
 - Pie discreto constante: marca de la tienda y una condición comercial confirmada, con ubicación y tamaño coherentes. Reserva el precio para la tarjeta de oferta, en panel blanco de alto contraste que no tape el producto. No repitas todos los beneficios y condiciones en cada imagen.
 - Alterna primeros planos, bodegones, detalles y escenas de uso según el argumento. Conserva el sistema tipográfico y el pie, variando el encuadre, la escala y la disposición.
 
-El chat elige las escenas, deriva la paleta y escribe el copy; el comerciante no debe completar este brief. Repite esta dirección textual completa en cada llamada al generador, junto con la base real y las decisiones concretas de la tarjeta. No hace falta una imagen adicional de estilo ni adjuntar una tarjeta de otro chat.
+El chat elige las escenas, deriva la paleta y escribe el copy; el comerciante no debe completar este brief. No busques ni muestres imágenes de inspiración o galerías de ejemplos por tu cuenta. Si solo pide explicar la dirección, descríbela en texto desde estas reglas. Repite esta dirección textual completa en cada llamada al generador, junto con la base real y las decisiones concretas de la tarjeta. No hace falta una imagen adicional de estilo ni adjuntar una tarjeta de otro chat.
 
 Concreta el sistema predeterminado o, cuando el usuario la haya aportado, su dirección alternativa en instrucciones ejecutables:
 

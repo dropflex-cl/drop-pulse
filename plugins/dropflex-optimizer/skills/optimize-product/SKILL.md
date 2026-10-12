@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; También desarrolla y guarda carruseles publicitarios solicitados. No sincroniza tiendas, configura integraciones ni lanza campañas.
-metadata: {"version": "1.7.9"}
+metadata: {"version": "1.7.10"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -111,5 +111,7 @@ Usa el idioma del mercado; en español, tuteo neutro. Presenta una decisión pri
 Invocaciones: «Optimiza la aspiradora y ayúdame a elegir el hook primario», «Dame otros hooks del ángulo elegido», «Retoma la PDP», «La foto cambia el mango: corrige esa toma».
 
 ## Carruseles publicitarios
+
+Estilo predeterminado, también al explicar la dirección: fotografía editorial realista a sangre, una escena y una idea por tarjeta; titular blanco dominante en sans serif geométrica muy gruesa sobre bandas oscuras redondeadas ajustadas a cada línea, arriba a la izquierda; márgenes amplios, apoyo breve y pie discreto constante. Deriva la paleta del producto. Alterna encuadres y reserva un panel blanco de precio para la oferta. Sin serif decorativa, medallones, filas de iconos ni botones ilustrados. Desarrolla el arte autónomamente desde estas reglas: no busques ni muestres imágenes de inspiración o galerías de ejemplo, ni pidas adjuntar referencias de estilo. Si el usuario solo pide explicar el estilo, descríbelo en texto. La base del producto obtenida por MCP sigue siendo la única imagen de entrada predeterminada del generador. Una dirección alternativa solo procede de un pedido explícito del usuario.
 
 Si el usuario pide analizar, generar, subir o editar un carrusel para Ads, lee [references/carousel-ads.md](references/carousel-ads.md), incluida su dirección artística predeterminada, y [la dirección visual](references/production.md#dirección-visual-para-pago-contra-entrega). Ejecuta desde producto, hook y oferta con ese estilo definido: no solicites imágenes de inspiración, ejemplos anteriores ni un brief artístico al comerciante. La dirección textual de la skill basta; la imagen base real del producto se recupera por MCP y conserva su identidad. Solo adapta el estilo si el usuario pide otra dirección o aporta voluntariamente una referencia. Conserva composición, tipografía y densidad concretas en la instrucción real de cada imagen; «premium» o los colores del empaque no bastan. Usa `get_ad_carousels` para recuperar el contrato y las piezas vigentes y `save_ad_carousel` para guardar sus tarjetas, escenas, textos y decisiones. Cada imagen usa la base real y se ingiere por el flujo visual existente; la app muestra el mismo carrusel. Guardarlo no elige una campaña ni publica en Meta.
