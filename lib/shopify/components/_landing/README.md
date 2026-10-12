@@ -113,7 +113,7 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 | Bloque | Dónde | Datos |
 |---|---|---|
 | `df-google-rating` | Bajo las miniaturas | Valoración editable compartida de `review-stars`, publicada en `product.metafields.dropflex.review_summary`; sin configuración ni importación de Google. El metafield de tienda solo conserva el enlace HTTPS opcional |
-| `df-hype-badge` | Bajo el resumen de reseñas, antes del título | Etiqueta con el acento del producto. Por defecto «Pagas al recibir», solo con COD activo; texto personalizado del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
+| `df-hype-badge` | Opcional, antes del título; apagado en el template inicial | Etiqueta con el acento del producto. «Pagas al recibir» solo con COD activo; queda apagada para no repetir la información bajo el botón. Texto personalizado del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
 | `df-event-badges` | Junto a los demás badges, antes del título | Evento vigente y descuento real de la variante o pack elegido |
 | `df-social-proof` | Antes del carrusel de reseñas | Fotos de reseñas aprobadas con 4 o 5 estrellas y la cantidad editable compartida de `dropflex.review_summary`; sin caja, fondo, borde ni padding exterior; sin mínimos ni requisito de fotos/importación |
 | `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |

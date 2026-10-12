@@ -69,6 +69,7 @@
               "blocks": {
                 "hype_badge": {
                   "type": "df-hype-badge",
+                  "disabled": true,
                   "settings": {
                     "margin_top": 0,
                     "margin_bottom": 0
