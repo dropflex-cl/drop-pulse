@@ -1,0 +1,79 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.3",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "release_id": "pluginrel_6acc5044064c819194186456699356f6",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "f155c478568658a4713909730f85cf2251aebf92",
+  "change": "Actualizar una PDP con imágenes existentes guarda y asigna los archivos indicados, sin llamar al generador. Se aclara esta ruta en instrucciones MCP, descriptions y skill.",
+  "checks": {
+    "source_in_main": true,
+    "source_pushed_to_origin_main": true,
+    "production": {
+      "status": "Ready",
+      "environment": "Production",
+      "domain": "drop-pulse.vercel.app",
+      "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/5TSi12estJARpNV2vCPr2TULNxwz",
+      "commit": "f155c47",
+      "verified_in": "Vercel deployment details",
+      "function_region": "gru1::gru1"
+    },
+    "new_database_migration_required": false,
+    "theme_or_mcp_schema_changes": false,
+    "mcp_descriptions_changed": [
+      "ingest_chatgpt_visual_asset",
+      "prepare_visual_iteration"
+    ],
+    "read_back": true,
+    "changed_files_match_source": true,
+    "preserved_identity_connection_audience_and_other_files": true,
+    "overlay_files": 4,
+    "validation": {
+      "tests": 47,
+      "suites": 3,
+      "typecheck": "passed",
+      "scoped_lint": "passed",
+      "pi_contracts": "passed",
+      "diff_check": "passed"
+    },
+    "server": {
+      "authenticated_tools_list_directly_checked": false,
+      "unauthenticated_tools_list_http_status": 401,
+      "local_protocol_tools_list_tests": "passed",
+      "production_catalog_observed_through_client_refresh": true
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "installed_version_visible": "1.7.3",
+      "new_existing_image_route_visible_in_skill_details": true,
+      "imported_tools_checked_by_name_and_description": [
+        "ingest_chatgpt_visual_asset",
+        "prepare_visual_iteration",
+        "bind_visual_asset",
+        "list_visual_assets",
+        "get_visual_ingestion_status",
+        "get_component_generation_context",
+        "get_pdp_completion_report"
+      ],
+      "new_chat": {
+        "url": "https://chatgpt.com/c/6acc50d6-c5f4-83e9-a9df-83bcaed7aa4d",
+        "read_tool": "list_visual_assets",
+        "read_succeeded": true,
+        "assets_total_at_read": 13,
+        "product_revision_at_read": 59,
+        "skill_version_reported": "1.7.3",
+        "updated_tool_descriptions_confirmed": [
+          "ingest_chatgpt_visual_asset",
+          "prepare_visual_iteration"
+        ],
+        "write_tools_invoked": false
+      }
+    }
+  },
+  "limits": [
+    "La consulta HTTP directa tools/list requiere OAuth; no se extrajeron credenciales del navegador. La evidencia del catálogo productivo viene del refresco de la conexión y sus descripciones importadas; no se presenta como una segunda consulta OAuth independiente.",
+    "Se verificaron catálogo, skill y lectura en una conversación nueva. No se ensayó una nueva ingestión o asignación de imágenes como parte de esta entrega, ni se generó contenido o se publicó un producto.",
+    "El producto cambió durante la comprobación por operaciones externas a esta tarea; los conteos y revisiones se registran solo para el instante de la lectura."
+  ]
+}
