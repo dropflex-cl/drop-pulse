@@ -2,7 +2,7 @@
 // espacios de imagen faltan y un resumen en texto para lectores de pantalla (la vista previa es
 // decorativa). Puro.
 
-import { componentById } from "@/lib/shopify/components/catalog";
+import { componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
 import type {
   ConversionComponent,
   ImageSlot,
@@ -78,14 +78,14 @@ export function missingGifs(id: string, gifs: string[] | undefined): boolean {
 }
 
 /** Los espacios de imagen con menos fotos que su mínimo. */
-export function missingImages(id: string, images: ImagePick[]): ImageSlot[] {
-  return (componentById(id)?.imageSlots ?? []).filter(
+export function missingImages(id: string, images: ImagePick[], content?: unknown): ImageSlot[] {
+  return componentImageSlots(id, content).filter(
     (s) => images.filter((p) => p.slot === s.key).length < s.min,
   );
 }
 
 const NOT_COPY =
-  /(^|\.)(icon|policy|requires|topic|basis|fact|fact_id|state|review_id|excerpt_mode)$/;
+  /(^|\.)(icon|policy|requires|topic|basis|fact|fact_id|state|review_id|excerpt_mode|display_mode)$/;
 
 /** Lo que dice el componente, en texto plano (sin **, con los tokens tal cual). */
 export function componentSummary(content: unknown, max = 220): string {

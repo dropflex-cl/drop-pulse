@@ -1,7 +1,7 @@
 // El formulario de edición de un componente, armado desde su esquema zod (el mismo que valida): la
 // hoja de edición de la etapa Página del producto lo dibuja sin conocer cada componente. Puro.
 
-import type * as z from "zod/v4";
+import * as z from "zod/v4";
 import { toJSONSchema } from "zod/v4";
 import { LISTING_FIELDS } from "./listing";
 
@@ -56,6 +56,8 @@ export type FormField =
 /** Nombres de los campos en la pantalla. Una clave nueva sin nombre se muestra tal cual (y el test avisa). */
 export const FIELD_LABELS: Record<string, string> = {
   ...LISTING_FIELDS,
+  display_mode: "Presentación",
+  image_alt: "Texto alternativo",
   fact_id: "Hecho relacionado",
   steps: "Pasos",
   cases: "Usos",
@@ -127,6 +129,8 @@ export const FIELD_LABELS: Record<string, string> = {
 
 /** Nombres de los valores de los enums (políticas, temas, modos). Los íconos tienen su propio selector. */
 export const CHOICE_LABELS: Record<string, string> = {
+  accordion: "Acordeones",
+  image_only: "Solo imagen",
   cod: "Pago al recibir",
   free_shipping: "Envío gratis",
   returns: "Cambios y devoluciones",
@@ -191,6 +195,23 @@ const choice = (values: string[]) =>
 
 /** Los campos de un esquema de contenido (objeto zod), en su orden. */
 export function formFields(schema: z.ZodType): FormField[] {
+  // Los modos de presentación comparten un editor: alternarlos no borra campos ocultos.
+  const definition = defOf(schema);
+  if (definition.type === "union") {
+    const options = definition.options as z.ZodObject[];
+    if (options.every(option => defOf(option).type === "object")) {
+      const keys = [...new Set(options.flatMap(option => Object.keys(option.shape)))];
+      const shape = Object.fromEntries(keys.map(key => {
+        const members = options.map(option => option.shape[key]).filter(Boolean) as z.ZodType[];
+        const literals = members.map(member => member instanceof z.ZodOptional ? member.unwrap() : member);
+        const values = literals.flatMap(member => member instanceof z.ZodLiteral ? [...member.values] : []);
+        const field = values.length === members.length && values.every(value => typeof value === "string")
+          ? z.enum(values as [string, ...string[]]) : members[0];
+        return [key, members.length < options.length || members.some(member => member.isOptional()) ? field.optional() : field];
+      }));
+      schema = z.object(shape);
+    }
+  }
   const f = field("", "", schema, false);
   if (f.kind !== "group")
     throw new Error("form: el contenido de un componente es un objeto");

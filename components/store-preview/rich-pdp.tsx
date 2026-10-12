@@ -14,6 +14,8 @@ interface Item {
   name?: string;
 }
 interface Content {
+  display_mode?: string;
+  image_alt?: string;
   heading?: string;
   body?: string;
   items?: Item[];
@@ -46,6 +48,7 @@ export function RichPdpPreview({
   const content = (raw ?? {}) as Content;
   const [position, setPosition] = useState(50);
   const id = useId();
+  const imageOnly = component === "use-cases" && content.display_mode === "image_only";
   const items = content.items ?? content.steps ?? [];
   const stories = (content.stories ?? []).flatMap((s, i) => {
     const review = s.body ? { id: `story-${i}`, body: s.body, author: s.name ?? "", photos: [] as string[], rating: null }
@@ -70,11 +73,18 @@ export function RichPdpPreview({
             : component === "offer-summary"
               ? Boolean(facts.packs?.length)
               : component === "use-cases"
-                ? Boolean(content.cases?.length)
+                ? imageOnly ? Boolean(images.cases?.[0]) : Boolean(content.cases?.length)
                 : component === "results-timeline"
                   ? Boolean(content.stages?.length)
                   : items.length > 0;
   if (!valid) return <PdpEmptyPreview component={component} />;
+  if (imageOnly) return (
+    <section className={`df df-rich df-${component} df-container`} aria-label={content.image_alt}>
+      <div className="df-rich__visual">
+        <Image src={images.cases?.[0]} alt={content.image_alt} />
+      </div>
+    </section>
+  );
   const money = (n: number) =>
     new Intl.NumberFormat("es-CL", {
       style: "currency",

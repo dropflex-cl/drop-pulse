@@ -37,9 +37,9 @@ const slots: Record<string, string> = { mechanism: "main", "use-cases": "cases",
 const content = (id: string) => CATALOG.find(c => c.id === id)!.examples[0];
 const input: PublishInput = { listing: {} as PublishInput["listing"], packs: [], reviews: [], accent: null, gallery: [], components: ids.map(id => ({ id, content: content(id), images: { [slots[id]]: id === "insta-story" ? ["story-a", "story-b", "story-c"] : [id] } })) };
 
-async function render(id: string, variant = false, empty = false) {
+async function render(id: string, variant = false, empty = false, override?: unknown) {
   const engine = renderer();
-  const selected = input.components.find(c => c.id === id)!;
+  const selected = { ...input.components.find(c => c.id === id)!, ...(override ? { content: override } : {}) };
   const keys = selected.images[slots[id]];
   const mapped = productMetafields({ ...input, components: [{ ...selected, ...(variant ? { content: [{ key: "default", angle_id: null, hook_id: null, content: selected.content }], variantImages: [{ key: "default", images: { [slots[id]]: empty ? [] : [...keys].reverse() } }] } : {}) }] }, new Map(keys.map(key => [key, `gid://shopify/MediaImage/${key}`])));
   const values = Object.fromEntries(mapped.set.map(m => [m.key, { value: m.type === "json" ? JSON.parse(m.value) : m.type.includes("file_reference") ? (() => {
@@ -52,6 +52,19 @@ async function render(id: string, variant = false, empty = false) {
 }
 
 describe("MCP/UI → archivos de Shopify → imágenes de la PDP", () => {
+  it.each([false, true])("image_only muestra un solo archivo sin repetir texto (variante: %s)", async variant => {
+    const data = { ...(content("use-cases") as object), display_mode: "image_only", image_alt: "Tres momentos para usar el contorno en tu rutina diaria." };
+    const document = await render("use-cases", variant, false, data);
+    expect(document.querySelectorAll("img")).toHaveLength(1);
+    expect(document.querySelector("img")?.getAttribute("alt")).toBe(data.image_alt);
+    expect(document.querySelector("h2, summary, details, p")).toBeNull();
+    expect(document.querySelector(".df-rich__visual")).not.toBeNull();
+  });
+  it("image_only con selección vacía no recupera archivos de otra variante ni textos retenidos", async () => {
+    const document = await render("use-cases", true, true, { ...(content("use-cases") as object), display_mode: "image_only", image_alt: "Tres momentos para usar el contorno en tu rutina diaria." });
+    expect(document.querySelector("img, details")).toBeNull();
+    expect(document.querySelector(".df-pdp-empty")).not.toBeNull();
+  });
   it.each(ids)("renderiza los archivos asignados a %s con una lista de referencias realista", async id => {
     const document = await render(id);
     const expected = input.components.find(c => c.id === id)!.images[slots[id]].map(key => `/files/${key}.webp`);

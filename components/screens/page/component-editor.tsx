@@ -19,7 +19,7 @@ import {
   selectVariant,
   type LandingSelection,
 } from "@/lib/copy/variants";
-import { componentById } from "@/lib/shopify/components/catalog";
+import { componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
 import type { StoreFacts } from "@/lib/store-preview/facts";
 import type { CatalogImage, ImagePick, PageComponentView } from "@/lib/types";
 import { useMemo, useState } from "react";
@@ -84,7 +84,6 @@ export function ComponentEditor({
     useState<LandingSelection>(selection);
   const listing = view.component === LISTING;
   const def = componentById(view.component);
-  const slots = def?.imageSlots ?? [];
   const eligibleImages = ["before-after", "expert-endorsement"].includes(
     view.component,
   )
@@ -94,12 +93,15 @@ export function ComponentEditor({
     structuredClone(view.content),
   );
   const [picks, setPicks] = useState<ImagePick[]>(view.images);
-  const fields = useMemo(
-    () => formFields(baseContentSchema(view.component)!),
-    [view.component],
-  );
   const Preview = PREVIEWS[view.component];
   const variant = selectVariant(draft, activeSelection);
+  const slots = componentImageSlots(view.component, variant.content);
+  const imageOnly = (variant.content as { display_mode?: string } | null)?.display_mode === "image_only";
+  const fields = useMemo(
+    () => formFields(baseContentSchema(view.component)!).filter(field => view.component !== "use-cases"
+      || (imageOnly ? ["display_mode", "image_alt"].includes(field.key) : field.key !== "image_alt")),
+    [view.component, imageOnly],
+  );
   const previewFacts = view.component === "review-stars" ? { ...facts, ...pdpRating([{ id: "review-stars", content: draft }, { id: "stats-with-image", content: { rating: facts.rating ?? undefined, count: facts.count } }], [], activeSelection) } : facts;
   const activePicks = variant.images ?? picks;
   const updateDraft = (content: unknown) => {

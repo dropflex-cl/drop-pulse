@@ -58,6 +58,9 @@ import { canonicalHash } from "@/lib/product-intelligence/concurrency";
 import { publishState } from "@/lib/data/publish";
 import { preparePublish, startPublish } from "./publish";
 import { pageImageRows } from "@/lib/page-images/store";
+import { activeComponents } from "@/lib/copy/store";
+import { effectivePage } from "@/lib/products/effective-page";
+import { productMetafields } from "@/lib/shopify/publish/mapping";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -134,6 +137,30 @@ describe("Publicar con contenido vigente y archivos elegidos", () => {
     const prepared = await preparePublish("owner", "product");
     expect(prepared.missing).toEqual([]);
     expect(prepared.input.gallery).toHaveLength(5);
+  });
+
+  it.each([false, true])("image_only exige archivo y llega intacto a página efectiva y Shopify (variante: %s)", async variant => {
+    const baseline = (await activeComponents("owner", ["product"])).get("product")!;
+    const content = { display_mode: "image_only", image_alt: "Tres usos del organizador dentro de tu rutina diaria." };
+    const pick = { source: "page_image", id: "image-1", slot: "cases" };
+    for (const available of [false, true]) {
+      const images = available ? [pick] : [];
+      const rows = [...baseline, { ...baseline[0], component: "use-cases", images: variant ? [] : images,
+        content: variant ? [{ key: "default", angle_id: null, hook_id: null, content, images }] : content }];
+      vi.mocked(activeComponents).mockResolvedValueOnce(new Map([["product", rows]]) as unknown as Awaited<ReturnType<typeof activeComponents>>);
+      const prepared = await preparePublish("owner", "product");
+      if (!available) expect(prepared.missing.join(" ")).toContain("elige al menos 1 imágenes");
+      else {
+        expect(prepared.missing).toEqual([]);
+        const component = effectivePage(prepared.input).components.find(c => c.id === "use-cases")!;
+        expect(component.content).toEqual(content);
+        expect(component.images.cases).toHaveLength(1);
+        const files = new Map(prepared.images.map(image => [image.key, `gid://shopify/MediaImage/${image.key}`]));
+        const mapped = productMetafields(prepared.input, files);
+        const value = JSON.parse(mapped.set.find(m => m.key === "use_cases")!.value);
+        expect(variant ? value[0].content : value).toEqual(content);
+      }
+    }
   });
 
   it("no valida usos visuales de secciones omitidas aunque compartan archivo con la portada", async () => {

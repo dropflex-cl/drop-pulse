@@ -1,6 +1,6 @@
 import { isEmptyContent } from "@/lib/copy/page-schema";
 import { contentVariants } from "@/lib/copy/variants";
-import { componentById } from "@/lib/shopify/components/catalog";
+import { componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
 import { componentCapability } from "./component-capabilities";
 import { type IntelligenceGraph } from "./graph";
 import type {
@@ -473,7 +473,7 @@ export function validateLandingExperience(
       );
     if (experience.status === "active" && !isEmptyContent(variant?.content)) {
       const picks = variant?.images ?? row?.images ?? [];
-      for (const slot of componentById(section.component)?.imageSlots ?? []) {
+      for (const slot of componentImageSlots(section.component, variant?.content)) {
         if (slot.key === "videos") {
           const scripts =
             (variant?.content as { script_ids?: string[] })?.script_ids ?? [];

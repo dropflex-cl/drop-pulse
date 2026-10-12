@@ -61,7 +61,19 @@
 {%- capture before_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'before', index: 0, df_variant: df_variant, alt: content.before_label %}{%- endcapture -%}
 {%- capture after_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'after', index: 0, df_variant: df_variant, alt: content.after_label %}{%- endcapture -%}
 {%- if component == 'before-after' and before_image != blank and after_image != blank -%}{%- assign valid = true -%}{%- endif -%}
+{%- assign image_only = false -%}
+{%- if component == 'use-cases' and content.display_mode == 'image_only' -%}
+ {%- assign image_only = true -%}
+ {%- capture visual_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'cases', index: 0, df_variant: df_variant, alt: content.image_alt %}{%- endcapture -%}
+ {%- assign valid = false -%}
+ {%- if visual_image != blank -%}{%- assign valid = true -%}{%- endif -%}
+{%- endif -%}
 {%- if valid -%}
+{%- if image_only -%}
+<section class="df df-rich df-{{ component | escape }} df-container" style="{% render 'df-accent-vars', product: product %}" aria-label="{{ content.image_alt | escape }}">
+ <div class="df-rich__visual">{{ visual_image }}</div>
+</section>
+{%- else -%}
 <section class="df df-rich df-{{ component | escape }} df-container" style="{% render 'df-accent-vars', product: product %}" aria-labelledby="df-rich-title-{{ section.id }}">
  <h2 class="df-heading df-rich__heading" id="df-rich-title-{{ section.id }}">{{ heading | escape }}</h2>
  {% case component %}
@@ -146,6 +158,7 @@
   {% if policies.cod %}<p class="df-text df-rich__note">Paga al recibir tu pedido</p>{% endif %}
  {% endcase %}
 </section>
+{%- endif -%}
 {%- else -%}
  {% render 'df-component-empty', component: component, product: product %}
 {%- endif -%}

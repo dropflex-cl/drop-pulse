@@ -59,7 +59,7 @@ import {
 import { approvedReviewRows, displayText } from "@/lib/reviews/rows";
 import { logisticsMetafield, policiesMetafield } from "@/lib/settings/policies";
 import { getStorePolicies } from "@/lib/settings/policies-store";
-import { componentById } from "@/lib/shopify/components/catalog";
+import { componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
 import { EVENT_KEY, publishProductEvent } from "@/lib/events/store";
 import { ensureDefinitions } from "@/lib/shopify/publish/definitions";
 import {
@@ -274,7 +274,7 @@ export async function preparePublish(
         bySlot[GIFS] = gifs.map((g) => g.key);
       }
       const content = currentContent(r);
-      if (!isVariants(content)) for (const slot of componentById(r.component)?.imageSlots ?? []) {
+      if (!isVariants(content)) for (const slot of componentImageSlots(r.component, content)) {
         if (slot.key !== "videos" && (bySlot[slot.key] ?? []).length < slot.min) componentMissing.push({ component: r.component, message: `${r.component}: elige al menos ${slot.min} imágenes para ${slot.label} en Página del producto.` });
       }
       const variantImages = isVariants(content)
@@ -290,7 +290,7 @@ export async function preparePublish(
               (slots[pick.slot] ??= []).push(src.key);
             }
             if (r.component === "gif-strip") slots[GIFS] = gifs.map((g) => g.key);
-            for (const slot of componentById(r.component)?.imageSlots ?? [])
+            for (const slot of componentImageSlots(r.component, v.content))
               if (slot.key !== "videos" && (slots[slot.key] ?? []).length < slot.min)
                 componentMissing.push({ component: r.component, variant: v.key, message: `${r.component} (${v.key}): elige al menos ${slot.min} imágenes para ${slot.label}.` });
             if (r.component === "gif-strip")

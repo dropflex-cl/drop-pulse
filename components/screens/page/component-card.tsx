@@ -60,7 +60,7 @@ export function ComponentCard({
         id === "image-with-benefits" ? ["count"] : [],
       )
     : [];
-  const missing = view ? missingImages(id, view.images) : [];
+  const missing = view ? missingImages(id, view.images, view.content) : [];
   // Sin sus fotos mínimas (las historias) el componente muestra su estado vacío en la tienda: se dice en vez de un marco vacío.
   const needsPhotos = missing.find((s) => s.min > 0);
   const noImage = view?.enabled ? missing : [];

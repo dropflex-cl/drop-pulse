@@ -58,6 +58,7 @@
     "e0d2a3e1c9",
     "e279718eb6",
     "e4b7966cd3",
+    "e524b52e43",
     "e53ede6b0c",
     "e554157efa",
     "e6358a8ce2",
@@ -223,6 +224,7 @@
       "b31d9594a17ff96822b28cba79edb6f6"
     ],
     "assets/df-rich-pdp.css": [
+      "55e814edb014772b259a6e173afcbbbf",
       "e288b793dc68ebb92132fce011f69e3a"
     ],
     "assets/df-rich-pdp.js": [
@@ -1771,7 +1773,8 @@
     ],
     "snippets/df-rich-pdp-content.liquid": [
       "67e83ff6a7fbd43319c50494228d7f5a",
-      "cc50588c291b0a049251a97726ced8d6"
+      "cc50588c291b0a049251a97726ced8d6",
+      "ce2a96699fd49f1ef1e950369a28d8fa"
     ],
     "snippets/df-rich-pdp-image.liquid": [
       "a52b62ebe8818efd493d067609d4eafd",

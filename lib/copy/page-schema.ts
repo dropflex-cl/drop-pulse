@@ -109,7 +109,7 @@ export function textsOf(
 
 /** Campos que no son texto para el comprador: claves, ids y enums. */
 const NOT_COPY =
-  /(^|\.)(icon|policy|requires|topic|basis|fact|fact_id|state|review_id|excerpt_mode)$/;
+  /(^|\.)(icon|policy|requires|topic|basis|fact|fact_id|state|review_id|excerpt_mode|display_mode)$/;
 
 /** Los ids de reseña que usa un componente. */
 function reviewIdsIn(id: string, value: unknown): string[] {

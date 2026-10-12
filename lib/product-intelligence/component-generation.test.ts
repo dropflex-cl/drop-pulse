@@ -14,6 +14,19 @@ function contextFixture() {
   return f;
 }
 describe("Contexto de cada componente desde el tema y el hook", () => {
+  it("descubre image_only y reporta su imagen requerida desde el contrato vigente", () => {
+    const f = contextFixture();
+    const k = f.state.knowledge as { landing: { rows: { component: string; content: unknown; images: { slot: string; source: string; id: string }[] }[] } };
+    const row = k.landing.rows.find(r => r.component === "use-cases")!;
+    row.content = { display_mode: "image_only", image_alt: "Tres usos del organizador en casa, en el trabajo y al guardar tus útiles." };
+    const context = componentGenerationContext(f.state, "use-cases");
+    expect(JSON.stringify(context.component.schema)).toContain('"image_only"');
+    expect(context.component.image_slots[0]).toMatchObject({ key: "cases", min: 1 });
+    expect(pdpCompletionReport(f.state).summary.content_pending).not.toContain("use-cases");
+    expect(pdpCompletionReport(f.state).summary.images_pending).toContain("use-cases");
+    row.images = [{ slot: "cases", source: "reference", id: f.reference }];
+    expect(pdpCompletionReport(f.state).summary.images_pending).not.toContain("use-cases");
+  });
   it("desarrolla reseñas propias sin marcarlas pendientes por falta de importación", () => {
     const f = contextFixture();
     const knowledge = f.state.knowledge as { landing: { rows: { component: string; content: unknown }[] } };

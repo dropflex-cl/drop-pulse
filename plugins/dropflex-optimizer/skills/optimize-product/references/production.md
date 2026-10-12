@@ -41,6 +41,12 @@ Si estas tools aún no aparecen en el cliente, actualiza el catálogo de la cone
 
 ## Actualizar con imágenes existentes
 
+### Usos con el mensaje integrado en la imagen
+
+En `use-cases`, inspecciona la imagen existente. Si ya reúne todos los usos, títulos y explicaciones, consulta `get_component_generation_context` y guarda con `save_landing_content` el contenido de la variante con `display_mode: "image_only"` e `image_alt`: texto plano de 8–500 caracteres que transmita los usos y el mensaje para lectores de pantalla. `heading` y `cases` son opcionales en este modo; conserva los textos anteriores si existen. Solo se muestra la primera imagen de `cases`, abierta, a todo el ancho disponible y con su proporción natural, sin heading, acordeones ni descripciones externas.
+
+Reutiliza la asignación existente de `cases`, posición 1; si hay que cambiarla, usa `bind_visual_asset` con `{type: "landing_component", component: "use-cases", content_variant_key: "default", slot: "cases", position: 1}` (o la variante pedida). Omite `images` y `enabled` al guardar solo el modo: conserva selección, orden, imágenes adicionales, otras variantes, descartes y secciones ocultas. No regenera ni publica. El reporte exige una imagen disponible en ese modo; si falta, informa el archivo faltante. Para fotos que necesitan explicación, conserva `accordion` (también el comportamiento sin `display_mode`), heading y 2–5 cases. No elijas `image_only` por la mera presencia de una foto: su mensaje debe resolver la sección completa.
+
 Ante «actualiza la PDP con estas nuevas imágenes», trabaja con los archivos que el usuario señala. Este pedido autoriza su guardado y asignación; no solicita crear ni editar sus píxeles. Aplica esta ruta antes del recorrido de generación, aunque las imágenes se hayan creado con ChatGPT en un turno anterior.
 
 1. Recupera `list_visual_assets` y pagina si hace falta. Si el archivo indicado ya está en DropFlex, reutiliza su `asset_id`; no vuelvas a ingerirlo ni prepares otra generación. No confundas una pieza de la misma familia con el archivo elegido.

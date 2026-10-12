@@ -187,6 +187,19 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     while (reportCursor) { const next = await call("get_pdp_completion_report", { product_id: product, cursor: reportCursor }); reportRows.push(...next.data.components.items); reportCursor = next.data.components.next_cursor; }
     expect(reportRows).toHaveLength(27);
     expect(reportRows).toEqual(expect.arrayContaining([expect.objectContaining({ component: "use-cases", enabled: false })]));
+    // Cambiar solo la presentación conserva textos, imágenes omitidas, variante y sección oculta.
+    const beforeMode = (await checked(db.from("page_components").select("content").eq("product_id", product).eq("component", "use-cases").is("superseded_at", null).single())).data!;
+    const imageOnly = { ...(content as object), display_mode: "image_only", image_alt: "Tres usos del organizador en casa, en el trabajo y al guardar tus herramientas." };
+    await call("save_landing_content", { product_id: product, schema_version: "1.1", entries: [{ component: "use-cases", content: beforeMode.content.map((variant: Record<string, unknown>) => {
+      const kept = { ...variant }; delete kept.images;
+      return { ...kept, ...(variant.key === "default" ? { content: imageOnly } : {}) };
+    }) }] });
+    const imageRow = (await checked(db.from("page_components").select("enabled,content").eq("product_id", product).eq("component", "use-cases").is("superseded_at", null).single())).data!;
+    expect(imageRow.enabled).toBe(false);
+    expect(imageRow.content[0]).toMatchObject({ content: imageOnly, images: beforeMode.content[0].images });
+    expect(imageRow.content[1]).toEqual(beforeMode.content[1]);
+    const imageContext = await call("get_component_generation_context", { product_id: product, component: "use-cases" });
+    expect(imageContext.data.component).toMatchObject({ image_slots: expect.arrayContaining([expect.objectContaining({ key: "cases", min: 1 })]) });
     await expect(call("get_component_generation_context", { product_id: product, component: "use-cases", content_variant_key: "missing" })).rejects.toThrow("variante no existe");
     const foreign = randomUUID();
     await expect(call("get_pdp_completion_report", { product_id: product }, { ...owner, userId: foreign, actorId: foreign })).rejects.toMatchObject({ code: "FORBIDDEN" });

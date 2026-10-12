@@ -6,6 +6,8 @@
 .df-rich__card h3 { font-size: 1.125rem; text-wrap: balance; }
 .df-rich__image { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: var(--df-radius-media); }
 .df-rich__main-image { max-width: 480px; margin: 0 auto var(--df-title-gap); }
+.df-rich__visual { max-width: 800px; margin-inline: auto; }
+.df-rich__visual .df-rich__image { aspect-ratio: auto; }
 .df-rich__number { display: grid; place-items: center; width: var(--df-rich-touch); height: var(--df-rich-touch); border-radius: var(--df-radius-pill); background: var(--df-accent); color: var(--df-on-accent); font-weight: 700; }
 .df-rich__label { color: var(--df-accent-ink); font-weight: 600; font-size: .875rem; }
 .df-rich__cases { display: grid; gap: var(--df-gap); max-width: 800px; margin-inline: auto; }

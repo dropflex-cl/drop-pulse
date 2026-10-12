@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { pdpRating } from "@/lib/copy/pdp-rating";
-import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
+import { CATALOG, componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
 import { listingSchema, LISTING_INFO } from "@/lib/copy/listing";
 import { strictSchema } from "@/lib/copy/page-schema";
 import { contentVariants, imagePickSchema } from "@/lib/copy/variants";
@@ -75,7 +75,7 @@ export function componentGenerationContext(state: VisualState, component: string
       placement: native?.placement ?? LISTING_INFO.placement, capability: componentCapabilityCatalog().find(c => c.component === component),
       schema: JSON.parse(JSON.stringify(z.toJSONSchema(contentSchema(component), { target: "draft-7", unrepresentable: "any" }))),
       rules: native?.rules ?? [], forbidden: native?.forbidden ?? [], real_data: native?.realData ?? ["Precio y packs, variantes, disponibilidad y políticas vigentes"],
-      media: native?.media ?? [], image_slots: native?.imageSlots ?? [] },
+      media: native?.media ?? [], image_slots: componentImageSlots(component, variant.content) },
     current: { enabled: row?.enabled ?? true, status: row?.status ?? "missing", variant: { ...variant, images: variant.images ?? row?.images ?? [] }, variants: variants.map(v => ({ key: v.key, angle_id: v.angle_id, hook_id: v.hook_id })) },
     other_arguments: ["listing", ...CATALOG.map(c => c.id)].filter(id => id !== component).map(id => {
       const peer = k.landing.rows.find(r => r.component === id);
@@ -113,7 +113,7 @@ export function pdpCompletionReport(state: VisualState) {
       return { key: v.key, media_pending: mediaPending, angle_id: v.angle_id, hook_id: v.hook_id,
         content_state: !row || isEmpty(v.content) ? "missing" : parsed.success ? "complete" : "invalid",
         missing_fields: parsed.success || isEmpty(v.content) ? [] : parsed.error.issues.slice(0, 10).map(i => ({ field: i.path.join("."), message: i.message })),
-        image_slots: (native?.imageSlots ?? []).map(slot => {
+        image_slots: componentImageSlots(component, v.content).map(slot => {
           const count = picks.filter(p => p.slot === slot.key && !unavailable.includes(p)).length;
           return { ...slot, selected: count, missing: Math.max(0, slot.min - count), fallback_available: slot.min === 0 && Boolean(state.references.length) };
         }), unavailable_images: unavailable,
