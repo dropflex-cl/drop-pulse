@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.7.4"}
+metadata: {"version": "1.7.5"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -66,9 +66,11 @@ Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. 
 
 ## Guiones UGC
 
-Antes de proponer conceptos o redactar un guion, lee [la escritura UGC](references/ugc-writing.md). Recupera la estrategia con `get_product_strategy({product_id, include: "execution"})` y el contrato con `get_ugc_content({product_id, include_contract: true})`. Parte de la dirección elegida y establece la cadena situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta. Cada escena debe avanzar ese mismo argumento: repetir el hook al comienzo no basta si después cambias la razón de compra por una rutina genérica.
+Antes de proponer conceptos o redactar un guion, lee [la escritura UGC](references/ugc-writing.md). Recupera `get_product_context` para los datos actuales del producto y la oferta, `get_product_strategy({product_id, include: "execution"})` y `get_ugc_content({product_id, include_contract: true})`. Un guion anterior no sustituye estas lecturas. Parte de la dirección elegida y establece la cadena situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta. Cada escena debe avanzar ese mismo argumento: repetir el hook al comienzo no basta si después cambias la razón de compra por una rutina genérica.
 
-Comprueba la continuidad comercial y las palabras por escena antes de mostrar el guion, incluso cuando el usuario pida solo una propuesta sin guardar. Esta preparación es trabajo editorial del chat, no un plan que el comerciante deba aprobar ni una nueva entidad del MCP. «No guardes» conserva el trabajo en la conversación; proponer un guion no autoriza generar clips ni publicar.
+Revisa y corrige antes de entregar: explicación que conecte una característica o uso concreto con el beneficio buscado, objeción pertinente y oferta específica del pack vigente. Si detectas que sigue genérico, reescríbelo; no entregues esa debilidad como una mejora para después. Usa lo disponible sin inventar resultados. Una descripción de aplicación sencilla o «no es magia» por sí solas no desarrollan la razón de compra.
+
+Cuenta las palabras reales de cada línea y calcula palabras ÷ segundos. Muestra ese conteo y ritmo junto a la duración por escena; comprueba también suma y límites del contrato. Nunca declares «cabe» ni un ritmo máximo sin esa cuenta. La apertura completa debe comunicar la tensión en los primeros 3 segundos y caber en 9 palabras: dividirla con un punto o una pregunta no permite dejar la mitad significativa fuera. Corrige los excesos antes de mostrar la propuesta, incluso sin guardado. Esta preparación es trabajo editorial del chat, no un plan que el comerciante deba aprobar ni una nueva entidad del MCP. «No guardes» conserva el trabajo en la conversación; proponer un guion no autoriza generar clips ni publicar.
 
 ## Página e imágenes
 

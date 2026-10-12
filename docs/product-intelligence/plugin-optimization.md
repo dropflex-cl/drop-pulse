@@ -2,13 +2,15 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
-## Escritura UGC y continuidad argumental · 1.7.4
+## Escritura UGC y continuidad argumental · 1.7.5
 
 Caso observado: una propuesta abría con el hook elegido sobre apariencia de cansancio, pero su desarrollo cambiaba a una rutina incompleta y autocuidado genérico. Dos líneas tampoco cabían en el tiempo asignado. La skill ahora recupera `get_product_strategy` con `include: "execution"` y el contrato UGC, establece situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta, y comprueba que cada escena avance esa misma razón de compra. La cadena es trabajo editorial, no seis escenas obligatorias ni otra aprobación del comerciante.
 
 La nueva referencia `references/ugc-writing.md` distingue variantes de apertura de cambios de motivación, exige conectar características y demostración con el beneficio, y revisa palabras/segundo por toma antes de mostrar una propuesta. Conserva los límites de las instrucciones del usuario: «no guardes» permite lecturas y respuesta en el chat, sin writers ni dry runs. No solicita clips, publicaciones ni otra IA para la revisión editorial.
 
-Se sincronizan ambos manifiestos y la skill en 1.7.4. La allowlist de recursos MCP incluye la nueva referencia; no cambian tools, schemas, permisos, contratos de Shopify ni migraciones. Las comprobaciones de distribución y cliente se registran en `plugin-release-1.7.4.json` después de la publicación. Un release y sus pruebas de transporte no demuestran por sí solos la calidad de una respuesta conversacional nueva.
+La prueba conversacional de 1.7.4 confirmó lecturas y carga, pero entregó una propuesta genérica con conteos incorrectos. La revisión 1.7.5 lleva el control a la skill principal: recuperar producto y oferta, reescribir debilidades antes de entregar, mostrar palabras y ritmo de cada línea, y comprobar la tensión completa de la apertura sin esquivar su límite con puntuación. No exige seis escenas ni deja la explicación o el pack como mejoras para después.
+
+Se sincronizan ambos manifiestos y la skill en 1.7.5. La allowlist de recursos MCP incluye la nueva referencia; no cambian tools, schemas, permisos, contratos de Shopify ni migraciones. Las comprobaciones de distribución y cliente se registran en `plugin-release-1.7.5.json` después de la publicación. Un release y sus pruebas de transporte no demuestran por sí solos la calidad de una respuesta conversacional nueva.
 
 ## Versión publicada · 1.7.0
 
