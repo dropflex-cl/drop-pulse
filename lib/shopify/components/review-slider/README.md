@@ -16,9 +16,7 @@ Diseño mínimo: avatar circular con foto real o inicial, texto en cursiva, auto
 
 Lee los items elegidos en el contenido vigente de `review-slider`. Cada `review_id` recupera la reseña publicada desde `dropflex.reviews` y las fotos desde `dropflex.reviews_images`. Tener reseñas disponibles o una cantidad agregada no las asigna al carrusel: se guardan sus IDs con `save_landing_content`, conservando el orden elegido. No filtra por calificación ni exige fotos; conserva los ajustes históricos del schema.
 
-Rota cada 5 segundos por defecto (ajustable), con anterior, siguiente, indicador de posición
- y pausa. Se detiene al interactuar, con el foco, al salir de pantalla, al ocultar la pestaña
- y con movimiento reducido. Solo aparece un carrusel: `df-review-state.js` coloca el bloque
+Se navega deslizando o tocando dots circulares de 8 px, uno por reseña, con áreas táctiles de 44 px y `aria-current`. No muestra flechas, contador ni pausa y no avanza automáticamente. El ajuste histórico de autoplay se conserva por compatibilidad, sin activar rotación. Solo aparece un carrusel: `df-review-state.js` coloca el bloque
 existente en el espacio fijo de `buy-buttons`; si el editor lo quitó, usa su respaldo.
 
 El total y la nota usan la fuente editable común `review-stars`, publicada en `review_summary`. No exige importación ni verificación.

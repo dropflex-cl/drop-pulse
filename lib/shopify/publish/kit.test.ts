@@ -11,6 +11,7 @@ import {
   readKit,
   withEasySellOn,
   withPdpIntro,
+  withPdpReviewOrder,
 } from "./kit";
 
 describe("kit del tema", () => {
@@ -188,6 +189,31 @@ describe("app embeds", () => {
 
 describe("actualizar una PDP personalizada", () => {
   const kit = readFileSync(join(KIT_DIR, "templates/product.json"), "utf8");
+  it.each([true, false])("pone opiniones antes del slider conservando ajustes y bloques (UGC: %s)", videos => {
+    const remote = JSON.parse(kit);
+    const details = remote.sections.main.blocks["product-details"];
+    details.blocks.merchant_note = { type: "text", settings: { text: "Mi nota" } };
+    details.blocks.social_proof.disabled = true;
+    details.blocks.review_slider.settings.anchor_id = "mis-resenas";
+    details.block_order = ["merchant_note", "review_slider", ...(videos ? ["ugc_slider"] : []), "social_proof", "details_accordion"];
+    const result = JSON.parse(withPdpReviewOrder(JSON.stringify(remote))!);
+    const next = result.sections.main.blocks["product-details"];
+    expect(next.block_order).toEqual(["merchant_note", "social_proof", "review_slider", ...(videos ? ["ugc_slider"] : []), "details_accordion"]);
+    expect(next.blocks).toEqual(details.blocks);
+    expect(result.order).toEqual(remote.order);
+    expect(withPdpReviewOrder(JSON.stringify(result))).toBeNull();
+  });
+  it("conserva órdenes personalizados, ausencias y JSON inválido", () => {
+    expect(withPdpReviewOrder(kit)).toBeNull();
+    expect(withPdpReviewOrder("{")).toBeNull();
+    const remote = JSON.parse(kit);
+    const details = remote.sections.main.blocks["product-details"];
+    details.blocks.merchant_note = { type: "text", settings: { text: "Mi nota" } };
+    for (const order of [["review_slider", "merchant_note", "social_proof"], ["review_slider"], ["social_proof"]]) {
+      details.block_order = order;
+      expect(withPdpReviewOrder(JSON.stringify(remote))).toBeNull();
+    }
+  });
   function legacyIntro() {
     const remote = JSON.parse(kit);
     const details = remote.sections.main.blocks["product-details"];

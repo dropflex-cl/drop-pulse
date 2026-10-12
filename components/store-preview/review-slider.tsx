@@ -2,11 +2,11 @@ import { fill, type StoreReview } from "@/lib/store-preview/facts";
 import { contentReview, type ReviewContent } from "@/lib/store-preview/review-content";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
-import { DfIcon, DfStars } from "./primitives";
+import { DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
 
 // blocks/df-review-slider.liquid en su primer estado: la primera reseña a la vista, sin rotar (el
-// autoplay y la pausa son del JS). Con menos reseñas que el mínimo, el aviso del editor.
+// navegación por dots y deslizamiento; sin avance automático).
 
 interface Item extends ReviewContent {
   excerpt_mode?: "verbatim" | "condensed" | "translated";
@@ -36,7 +36,6 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   if (heading.includes("{rating}") && !facts.rating)
     heading = String(s.heading ?? "");
   heading = fill(heading, facts);
-  const autoplay = total > 1;
   const photoStyle = s.style !== "compact";
 
   return (
@@ -54,8 +53,8 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
       )}
 
       <df-slider
-        data-autoplay={autoplay ? Number(s.autoplay_delay) * 1000 : undefined}
         data-loop=""
+        data-dot-label="Ir a la reseña"
         role="region"
         aria-roledescription="carrusel"
         aria-label="Reseñas de compradores"
@@ -112,10 +111,9 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
           })}
         </div>
         {total > 1 && <div className="df-slider__controls">
-          <button type="button" className="df-slider__arrow" data-df-prev="" aria-label="Ver reseña anterior"><DfIcon name="chevron-left" /></button>
-          <span data-df-review-page="">1 / {total}</span>
-          <button type="button" className="df-slider__arrow" data-df-pause="" aria-label="Pausar reseñas" aria-pressed="false"><DfIcon name="pause" /></button>
-          <button type="button" className="df-slider__arrow" data-df-next="" aria-label="Ver reseña siguiente"><DfIcon name="chevron-right" /></button>
+          <div className="df-slider__dots" data-df-dots="">
+            {picks.map((_, index) => <button key={index} type="button" className="df-slider__dot" aria-label={`Ir a la reseña ${index + 1}`} aria-current={index === 0 ? "true" : "false"} />)}
+          </div>
         </div>}
       </df-slider>
     </df-review-slider>

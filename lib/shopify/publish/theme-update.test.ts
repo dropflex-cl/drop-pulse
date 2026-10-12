@@ -58,6 +58,21 @@ describe("comprobación y escritura del tema comparten el plan", () => {
     expect((await getThemeUpdateStatus(conn, inst, kit)).outdated).toBe(true);
     expect(mocks.mutation).not.toHaveBeenCalled();
   });
+  it("actualiza el orden anterior de reseñas de una plantilla personalizada sin reemplazar sus ajustes", async () => {
+    const data = JSON.parse(kit.files.find(f => f.path === "templates/product.json")!.data.toString());
+    const details = data.sections.main.blocks["product-details"];
+    details.blocks.merchant_note = { type: "text", settings: { text: "Texto del comerciante" } };
+    details.blocks.review_slider.settings.anchor_id = "mis-resenas";
+    details.block_order = ["merchant_note", "review_slider", "ugc_slider", "social_proof", "details_accordion"];
+    merchantTemplate = JSON.stringify(data);
+    remote.find(f => f.path === "templates/product.json")!.md5 = createHash("md5").update(merchantTemplate).digest("hex");
+    expect((await getThemeUpdateStatus(conn, inst, kit)).outdated).toBe(true);
+    expect(await updateTheme(conn, kit)).toMatchObject({ upserted: 1 });
+    const file = mocks.mutation.mock.calls.flatMap(call => call[2].files ?? []).find(file => file.filename === "templates/product.json");
+    const applied = JSON.parse(file.body.value).sections.main.blocks["product-details"];
+    expect(applied.block_order).toEqual(["merchant_note", "social_proof", "review_slider", "ugc_slider", "details_accordion"]);
+    expect(applied.blocks).toEqual(details.blocks);
+  });
   it("no aplica transiciones de plantilla ni cambia la versión de un kit futuro con el mismo código", async () => {
     inst.kit_version = "future-version";
     await expect(updateTheme(conn, kit)).resolves.toEqual({ upserted: 0, restored: 0, removed: 0 });

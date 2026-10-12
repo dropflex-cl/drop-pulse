@@ -18,6 +18,7 @@ import {
   readKit,
   withEasySellOn,
   withPdpIntro,
+  withPdpReviewOrder,
   withPdpSections,
   type Kit,
   type RemoteFile,
@@ -517,7 +518,8 @@ async function prepareThemeUpdate(
     const kitTemplate = byPath.get(productTemplate)!.data.toString("utf8");
     const intro = remote ? withPdpIntro(remote, kitTemplate) : null;
     const sections = remote ? withPdpSections(intro ?? remote, kitTemplate) : null;
-    const merged = sections ?? intro;
+    const reviewOrder = remote ? withPdpReviewOrder(sections ?? intro ?? remote) : null;
+    const merged = reviewOrder ?? sections ?? intro;
     if (merged) {
       byPath.set(productTemplate, {
         ...byPath.get(productTemplate)!,

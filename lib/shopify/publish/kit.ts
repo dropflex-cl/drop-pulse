@@ -87,7 +87,7 @@ export function readKit(dir = KIT_DIR): Kit {
   // Esta transición también debe ofrecer Actualizar tema cuando el código ya está al día.
   const kit = {
     files,
-    version: md5(Buffer.from(`${code}\npdp-intro:1`)).slice(0, 10),
+    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1`)).slice(0, 10),
   };
   if (dir === KIT_DIR) memo = kit;
   return kit;
@@ -411,6 +411,32 @@ export function withPdpIntro(
     if (error instanceof SyntaxError) return null;
     throw error;
   }
+}
+
+/** Invierte el grupo anterior de reseñas del kit sin tocar ajustes ni órdenes personalizados. */
+export function withPdpReviewOrder(remote: string): string | null {
+  let data;
+  try { data = parseThemeJson(remote); }
+  catch (error) { if (error instanceof SyntaxError) return null; throw error; }
+  if (!data?.sections) return null;
+  let changed = false;
+  for (const main of Object.values(data.sections) as ProductBlock[]) {
+    if (main.type !== "product-information") continue;
+    for (const details of Object.values(main.blocks ?? {})) {
+      if (details.type !== "_product-details" || !details.blocks || !Array.isArray(details.block_order)) continue;
+      const order = details.block_order;
+      if (["df-review-slider", "df-social-proof"].some(type => order.filter(id => details.blocks![id]?.type === type).length !== 1)) continue;
+      const index = order.findIndex(id => details.blocks![id]?.type === "df-review-slider");
+      if (index < 0) continue;
+      const proofIndex = details.blocks[order[index + 1]]?.type === "df-social-proof" ? index + 1
+        : details.blocks[order[index + 1]]?.type === "df-ugc-slider" && details.blocks[order[index + 2]]?.type === "df-social-proof" ? index + 2 : -1;
+      if (proofIndex < 0) continue;
+      const [proof] = order.splice(proofIndex, 1);
+      order.splice(index, 0, proof);
+      changed = true;
+    }
+  }
+  return changed ? JSON.stringify(data) : null;
 }
 
 /** Agrega las nuevas secciones a plantillas DropFlex personalizadas sin cambiar sus ajustes. */

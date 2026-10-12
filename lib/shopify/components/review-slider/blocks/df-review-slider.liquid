@@ -29,6 +29,22 @@
     gap: 16px;
   }
 
+  .df-review-slider .df-slider__dots {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .df-review-slider .df-slider__dot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .df-review-slider .df-slider__dot[aria-current='true']::before {
+    width: 8px;
+    border-radius: 50%;
+  }
+
   .df-review-slider--time-positive {
     --df-st-time: var(--df-positive);
   }

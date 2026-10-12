@@ -1499,10 +1499,10 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--df-hairline);
-  border-radius: var(--df-radius);
-  background: var(--df-surface);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
 }
 
 
@@ -3451,6 +3451,22 @@ df-insta-story {
   --df-st-time: var(--df-accent-ink);
   display: grid;
   gap: 16px;
+}
+
+.df-review-slider .df-slider__dots {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0;
+}
+
+.df-review-slider .df-slider__dot {
+  width: 44px;
+  height: 44px;
+}
+
+.df-review-slider .df-slider__dot[aria-current='true']::before {
+  width: 8px;
+  border-radius: 50%;
 }
 
 .df-review-slider--time-positive {

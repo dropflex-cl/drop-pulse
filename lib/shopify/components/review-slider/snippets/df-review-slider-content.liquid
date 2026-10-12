@@ -63,12 +63,7 @@
     endif
     assign heading = heading | replace: '{count}', count_text | replace: '{rating}', rating_text
 
-    # Rotan solas siempre (sin flechas ni pausa); se detienen con el puntero, el foco, fuera de
-    # pantalla y con prefers-reduced-motion (df-slider.js). También se pueden deslizar.
-    assign autoplay = 0
-    if total > 1
-      assign autoplay = s.autoplay_delay | default: 5 | times: 1000
-    endif
+    # Navegación manual con dots y deslizamiento; sin rotación automática ni botón de pausa.
     assign anchor = s.anchor_id | default: 'resenas' | remove: '#' | strip | handleize
   endif
 -%}
@@ -89,7 +84,6 @@
     {%- endif -%}
 
     <df-slider
-      {% if autoplay > 0 %}data-autoplay="{{ autoplay }}"{% endif %}
       data-loop
       data-dot-label="Ir a la reseña"
       role="region"
@@ -169,10 +163,11 @@
       </div>
       {%- if total > 1 -%}
         <div class="df-slider__controls">
-          <button type="button" class="df-slider__arrow" data-df-prev aria-label="Ver reseña anterior">{% render 'df-icon', name: 'chevron-left' %}</button>
-          <span data-df-review-page>1 / {{ total }}</span>
-          <button type="button" class="df-slider__arrow" data-df-pause aria-label="Pausar reseñas" aria-pressed="false">{% render 'df-icon', name: 'pause' %}</button>
-          <button type="button" class="df-slider__arrow" data-df-next aria-label="Ver reseña siguiente">{% render 'df-icon', name: 'chevron-right' %}</button>
+          <div class="df-slider__dots" data-df-dots>
+            {%- for position in (1..total) -%}
+              <button type="button" class="df-slider__dot" aria-label="Ir a la reseña {{ position }}" aria-current="{% if forloop.first %}true{% else %}false{% endif %}"></button>
+            {%- endfor -%}
+          </div>
         </div>
       {%- endif -%}
     </df-slider>

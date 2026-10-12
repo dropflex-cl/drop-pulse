@@ -10,6 +10,8 @@ El editor de Pasos de uso utiliza el mismo selector «Presentación», con «Pas
 
 El estado vacío de Reseñas describe el carrusel: «Todavía no hay reseñas en este carrusel.» No afirma que el producto carezca de reseñas cuando otros bloques ya muestran opiniones. La cantidad agregada y los items elegidos para el carrusel son datos distintos.
 
+En la ficha de tienda, el resumen «X opiniones de compradores» precede al carrusel, con avatares y texto sobre el fondo de la página, sin caja, borde ni padding exterior. El carrusel usa solo dots circulares de 8 px (regla `.df-dot` de `reference/bundle.css`) con áreas táctiles de 44 px (`size-touch`); no muestra flechas, contador ni pausa y se navega manualmente, sin autoplay.
+
 1. **Primero lo que te toca.** Cada pantalla responde “¿qué tengo que decidir aquí?” antes que “¿qué hay aquí?”. Lo que bloquea ventas o gasta dinero va arriba; lo que avanza solo, abajo o escondido.
 2. **La IA propone, tú decides.** Todo lo generado entra como `generado` y solo cambia de estado por una acción tuya. El destello (`sparkle`) marca siempre lo que hizo la IA; nunca decora.
 3. **Decidir rápido y deshacer fácil.** Aceptar, descartar y elegir son un toque, sin diálogos de confirmación. Lo reversible se confirma con `Toast` y “Deshacer”; solo lo que cuesta dinero (apagar o subir una campaña) pide un segundo toque.

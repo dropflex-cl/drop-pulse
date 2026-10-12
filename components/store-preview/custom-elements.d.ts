@@ -18,6 +18,7 @@ declare module "react" {
       "df-price": StoreElement;
       "df-review-slider": StoreElement;
       "df-review-stars": StoreElement;
+      "df-social-proof": StoreElement;
       "df-review-wall": StoreElement;
       "df-scrolling-benefits": StoreElement;
       "df-shipping-timeline": StoreElement;

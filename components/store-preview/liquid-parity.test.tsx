@@ -12,6 +12,7 @@ import type { StoreFacts } from "@/lib/store-preview/facts";
 import { settingsOf } from "@/lib/store-preview/settings";
 import { PREVIEWS } from "./registry";
 import { PackOffersPreview, PricePreview } from "./listing";
+import { SocialProofPreview } from "./social-proof";
 
 // Renderiza los snippets originales, no snapshots escritos a mano del JSX que se quiere verificar.
 const base = join(process.cwd(), "lib/shopify/components");
@@ -74,7 +75,7 @@ async function liquidMarkup(id: string, content: unknown, f: StoreFacts, images:
   const context = { product, shop, content, section: { id: "audit", index: 3, settings: s, blocks: [] }, block: { settings: s } };
   if ((content as { state?: string })?.state === "empty" && id !== "shipping-timeline")
     return engine.renderFile("df-component-empty", { ...context, component: id });
-  const html = await engine.renderFile(id === "price" ? "df-price" : `df-${id}-content`, context);
+  const html = await engine.renderFile(id === "price" ? "df-price" : id === "social-proof" ? "df-social-proof" : `df-${id}-content`, context);
   // Los wrappers reales hacen este mismo fallback para las piezas sin contenido o archivos.
   return html.includes('class="df') ? html : engine.renderFile("df-component-empty", { ...context, component: id });
 }
@@ -115,7 +116,16 @@ describe("contrato visual Liquid → React", () => {
       expect(cards.map(card => card.querySelector("blockquote p")?.textContent)).toEqual([...reviews].reverse().map(review => review.body));
       expect(document.querySelectorAll(".df-review-slider__avatar img")).toHaveLength(8);
       expect(document.querySelector("[data-df-empty]")).toBeNull();
+      expect(document.querySelectorAll('[data-df-dots] button')).toHaveLength(8);
+      expect(document.querySelector('[data-df-dots] [aria-current="true"]')?.getAttribute("aria-label")).toBe("Ir a la reseña 1");
+      expect(document.querySelector('[data-df-prev], [data-df-next], [data-df-pause], [data-df-review-page], [data-autoplay]')).toBeNull();
     }
+  });
+  it("resumen de opiniones: paridad de cifras, avatares y marcado minimalista", async () => {
+    const liquid = await liquidMarkup("social-proof", {}, facts, {});
+    const react = renderToStaticMarkup(<SocialProofPreview facts={facts} />);
+    expect(visualTree(react, "social-proof")).toEqual(visualTree(liquid, "social-proof"));
+    for (const markup of [liquid, react]) expect(parseHTML(markup).document.querySelector("strong")?.textContent).toBe(`${facts.count.toLocaleString("es-CL")} opiniones`);
   });
   it.each([{ state: "empty" }, { items: [{ review_id: "missing-review" }] }])("reseñas: un carrusel vacío no niega las opiniones disponibles", async content => {
     const Preview = PREVIEWS["review-slider"];
