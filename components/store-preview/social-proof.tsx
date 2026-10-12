@@ -6,7 +6,11 @@ import { DfIcon } from "./primitives";
 export function SocialProofPreview({ facts }: { facts: StoreFacts }) {
   if (facts.count < 1) return null;
   const s = settingsOf("social-proof");
-  const avatars = facts.reviews.filter(review => review.rating >= 4).slice(0, 3);
+  const eligible = facts.reviews.filter(review => review.rating >= 4);
+  const avatars = [
+    ...eligible.filter(review => review.photos[0]),
+    ...eligible.filter(review => !review.photos[0]),
+  ].slice(0, 3);
   return <df-social-proof className="df df-social-proof" style={{ marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` }}>
     <span className="df-social-proof__avatars" aria-hidden="true">
       {avatars.map(review => <span key={review.id} className="df-social-proof__avatar">

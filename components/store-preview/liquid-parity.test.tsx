@@ -127,6 +127,24 @@ describe("contrato visual Liquid → React", () => {
     expect(visualTree(react, "social-proof")).toEqual(visualTree(liquid, "social-proof"));
     for (const markup of [liquid, react]) expect(parseHTML(markup).document.querySelector("strong")?.textContent).toBe(`${facts.count.toLocaleString("es-CL")} opiniones`);
   });
+  it.each([0, 1, 2, 3, 4])("resumen de opiniones: prioriza %i fotos aunque lleguen después de reseñas sin foto", async photoCount => {
+    const reviews = Array.from({ length: 3 + photoCount }, (_, index) => ({
+      ...facts.reviews[0], id: `review-${index}`,
+      photos: index < 3 ? [] : [`https://example.test/late-photo-${index}.webp`],
+    }));
+    const f = { ...facts, reviews, count: reviews.length };
+    const liquid = await liquidMarkup("social-proof", {}, f, {});
+    const react = renderToStaticMarkup(<SocialProofPreview facts={f} />);
+    expect(visualTree(react, "social-proof")).toEqual(visualTree(liquid, "social-proof"));
+    for (const markup of [liquid, react]) {
+      const avatars = [...parseHTML(markup).document.querySelectorAll(".df-social-proof__avatar")];
+      expect(avatars).toHaveLength(3);
+      expect(avatars.map(avatar => avatar.querySelector("img")?.getAttribute("src") ?? null)).toEqual([
+        ...reviews.slice(3, 6).map(review => review.photos[0]),
+        ...Array(Math.max(0, 3 - photoCount)).fill(null),
+      ]);
+    }
+  });
   it.each([{ state: "empty" }, { items: [{ review_id: "missing-review" }] }])("reseñas: un carrusel vacío no niega las opiniones disponibles", async content => {
     const Preview = PREVIEWS["review-slider"];
     const liquid = await liquidMarkup("review-slider", content, facts, {});

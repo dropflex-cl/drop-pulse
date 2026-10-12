@@ -18,39 +18,48 @@
   assign avatar_count = 0
 -%}
 {%- capture avatars_html -%}
-  {%- for review in reviews -%}
-    {%- liquid
-      if avatar_count >= 3
-        break
-      endif
-      assign r_rating = review.rating | plus: 0
-      if r_rating < 4
-        continue
-      endif
-      assign avatar_count = avatar_count | plus: 1
-      if name_count < 2
-        assign name_count = name_count | plus: 1
-      endif
-      assign photo = nil
-      assign image_count = review.image_count | plus: 0
-      if image_count > 0
-        assign from = review.image_from | plus: 0
-        for img in images
-          if forloop.index0 == from
-            assign photo = img
-            break
-          endif
-        endfor
-      endif
-    -%}
-    {%- if photo != blank -%}
-      <span class="df-social-proof__avatar">
-        {{- photo | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '40px', alt: '', loading: 'lazy' -}}
-      </span>
-    {%- else -%}
-      {%- comment -%} Sin foto: un ícono neutro, no una identidad inventada. {%- endcomment -%}
-      <span class="df-social-proof__avatar">{% render 'df-icon', name: 'users' %}</span>
-    {%- endif -%}
+  {%- comment -%} Dos pasadas estables: fotos reales primero; íconos solo para completar. {%- endcomment -%}
+  {%- for priority in (1..2) -%}
+    {%- for review in reviews -%}
+      {%- liquid
+        if avatar_count >= 3
+          break
+        endif
+        assign r_rating = review.rating | plus: 0
+        if r_rating < 4
+          continue
+        endif
+        assign photo = nil
+        assign image_count = review.image_count | plus: 0
+        if image_count > 0
+          assign from = review.image_from | plus: 0
+          for img in images
+            if forloop.index0 == from
+              assign photo = img
+              break
+            endif
+          endfor
+        endif
+        if priority == 1 and photo == blank
+          continue
+        endif
+        if priority == 2 and photo != blank
+          continue
+        endif
+        assign avatar_count = avatar_count | plus: 1
+        if name_count < 2
+          assign name_count = name_count | plus: 1
+        endif
+      -%}
+      {%- if photo != blank -%}
+        <span class="df-social-proof__avatar">
+          {{- photo | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '40px', alt: '', loading: 'lazy' -}}
+        </span>
+      {%- else -%}
+        {%- comment -%} Sin foto: un ícono neutro, no una identidad inventada. {%- endcomment -%}
+        <span class="df-social-proof__avatar">{% render 'df-icon', name: 'users' %}</span>
+      {%- endif -%}
+    {%- endfor -%}
   {%- endfor -%}
 {%- endcapture -%}
 {%- liquid

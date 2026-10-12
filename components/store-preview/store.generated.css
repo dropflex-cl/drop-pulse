@@ -3453,9 +3453,8 @@ df-insta-story {
   gap: 16px;
 }
 
-/* space-4: usa el gutter de la ficha para conservar targets de 44 px en móvil. */
 .df-review-slider .df-slider__controls {
-  margin-inline: -16px;
+  margin-top: 0;
 }
 
 .df-review-slider .df-slider__dots {
@@ -3465,8 +3464,11 @@ df-insta-story {
 }
 
 .df-review-slider .df-slider__dot {
-  width: 44px;
+  /* Ancho compacto de df-slider__dot; separación vertical space-2. */
+  width: 24px;
   height: 44px;
+  align-items: start;
+  padding-top: 8px;
 }
 
 .df-review-slider .df-slider__dot[aria-current='true']::before {
