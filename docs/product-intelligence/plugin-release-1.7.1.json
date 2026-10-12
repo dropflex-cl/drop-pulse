@@ -1,0 +1,59 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.1",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "release_id": "pluginrel_6acc413dccb48191a29aa43840d0d3de",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commits": [
+    "cf02792432926f1a06484b8fde35da2880a2a470",
+    "e36c1ee"
+  ],
+  "checks": {
+    "preserved_files": 11,
+    "read_back": true,
+    "new_database_migration_required": false,
+    "production_contracts": {
+      "review_wall": {
+        "body_supported": true,
+        "rules": [
+          "Desarrolla los textos solicitados con body; nombre y calificación son opcionales. No requiere evidencia ni fotos para mostrarse.",
+          "Al reutilizar una reseña, review_id recupera su texto, autor, fecha y fotos.",
+          "Si hay suficientes, no repetir las que elegiste para review-slider: son dos lugares de la misma página.",
+          "Todos los componentes están visibles por defecto. El estado {state: \"empty\"} es opcional; desarrolla el contenido solicitado sin exigir evidencia. Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente."
+        ]
+      },
+      "review_stars": {
+        "editable_count": true,
+        "empty_state": {
+          "heading": "Opiniones de compradores",
+          "body": "Todavía no hay reseñas publicadas."
+        }
+      }
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "imported_tool_names": [
+        "get_component_generation_context",
+        "get_pdp_completion_report",
+        "save_landing_content"
+      ],
+      "installed_version_visible": "1.7.1",
+      "new_chat_behavior_checked": false
+    },
+    "tests": {
+      "general": 1335,
+      "local_integration": 15,
+      "liquid_react_parity": true,
+      "typecheck": true,
+      "changed_files_lint": true,
+      "theme_check_errors": 0,
+      "theme_check_warnings": 45
+    }
+  },
+  "limits": [
+    "No se escribieron productos ni se generaron medios.",
+    "Un chat abierto conserva su historial; no se verificó el comportamiento del modelo en un chat nuevo.",
+    "El tema de cada tienda se actualiza desde Publicación; no se instaló en Shopify durante esta corrección."
+  ]
+}
