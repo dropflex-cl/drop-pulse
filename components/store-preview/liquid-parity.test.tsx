@@ -115,6 +115,7 @@ describe("contrato visual Liquid → React", () => {
       expect(cards.map(card => card.getAttribute("data-review-id"))).toEqual(content.items.map(item => item.review_id));
       expect(cards.map(card => card.querySelector("blockquote p")?.textContent)).toEqual([...reviews].reverse().map(review => review.body));
       expect(document.querySelectorAll(".df-review-slider__avatar img")).toHaveLength(8);
+      expect(cards.every(card => card.querySelector(".df-review-slider__avatar")?.parentElement?.classList.contains("df-review-slider__meta"))).toBe(true);
       expect(document.querySelector("[data-df-empty]")).toBeNull();
       expect(document.querySelectorAll('[data-df-dots] button')).toHaveLength(8);
       expect(document.querySelector('[data-df-dots] [aria-current="true"]')?.getAttribute("aria-label")).toBe("Ir a la reseña 1");

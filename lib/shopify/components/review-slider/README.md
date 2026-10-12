@@ -11,8 +11,7 @@ Cada item admite `body`, `name` y `rating` opcional, o `review_id` para reutiliz
 ## Compatibilidad con reseñas importadas
 
 Una reseña de comprador a la vez, justo después del botón y de la disponibilidad.
-Diseño mínimo: avatar circular con foto real o inicial, texto en cursiva, autor anonimizado
- y estrellas. Sin país, plataforma de origen ni marcas de compra verificada.
+Diseño editorial: cita con texto normal, autor anonimizado y estrellas debajo, con avatar pequeño con foto real o inicial. Sin país, plataforma de origen ni marcas de compra verificada.
 
 Lee los items elegidos en el contenido vigente de `review-slider`. Cada `review_id` recupera la reseña publicada desde `dropflex.reviews` y las fotos desde `dropflex.reviews_images`. Tener reseñas disponibles o una cantidad agregada no las asigna al carrusel: se guardan sus IDs con `save_landing_content`, conservando el orden elegido. No filtra por calificación ni exige fotos; conserva los ajustes históricos del schema.
 
@@ -25,3 +24,5 @@ El orden conserva las reseñas conocidas, añade nuevas y elimina las retiradas.
 funciona con memoria de la página. Sin items disponibles, el bloque conserva el mensaje «Todavía no hay reseñas en este carrusel.»; describe este componente y no afirma que el producto carezca de reseñas.
 
 La IA guarda los items y extractos actuales; las decisiones de orden y visibilidad se conservan.
+
+Presentación editorial: la cita aparece primero, sin cursiva y con el color del texto. Autor, estrellas y avatar pequeño de 24 px van debajo; los dots se alinean con el eje izquierdo. El resumen de opiniones mantiene el conteo a la izquierda y las fotos de compradores a la derecha. Los ajustes de foto/compacto siguen controlando si se muestra el avatar del autor.

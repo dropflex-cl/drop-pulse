@@ -53,7 +53,7 @@
       -%}
       {%- if photo != blank -%}
         <span class="df-social-proof__avatar">
-          {{- photo | image_url: width: 96 | image_tag: widths: '48, 96', sizes: '40px', alt: '', loading: 'lazy' -}}
+          {{- photo | image_url: width: 64 | image_tag: widths: '32, 64', sizes: '32px', alt: '', loading: 'lazy' -}}
         </span>
       {%- else -%}
         {%- comment -%} Sin foto: un ícono neutro, no una identidad inventada. {%- endcomment -%}
@@ -119,7 +119,8 @@
   .df-social-proof {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 16px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -130,19 +131,20 @@
   .df-social-proof__avatars {
     display: flex;
     flex: none;
+    order: 1;
   }
 
   .df-social-proof__avatar {
     display: inline-grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     overflow: hidden;
     border: 2px solid var(--df-bg);
     border-radius: var(--df-radius-pill);
     background: var(--df-accent-soft);
     color: var(--df-accent-ink);
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
   }
 
@@ -158,7 +160,7 @@
 
   .df-social-proof__text {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.4;
     color: var(--df-muted);
     text-wrap: pretty;

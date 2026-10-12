@@ -31,11 +31,12 @@
 
   .df-review-slider .df-slider__controls {
     margin-top: 0;
+    justify-content: flex-start;
   }
 
   .df-review-slider .df-slider__dots {
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0;
   }
 
@@ -50,6 +51,37 @@
   .df-review-slider .df-slider__dot[aria-current='true']::before {
     width: 8px;
     border-radius: 50%;
+  }
+
+  /* Texto pequeño y caption del design system; retrato secundario junto al autor. */
+  .df-review-slider .df-review-slider__body {
+    flex: 1;
+    gap: 8px;
+  }
+
+  .df-review-slider .df-review-slider__text p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-style: normal;
+    color: var(--df-fg);
+  }
+
+  .df-review-slider .df-review-slider__meta {
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--df-muted);
+  }
+
+  .df-review-slider .df-review-slider__author {
+    font-weight: 500;
+  }
+
+  .df-review-slider .df-review-slider__avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
 
   .df-review-slider--time-positive {

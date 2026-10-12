@@ -65,26 +65,26 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
             const photo = review.photos[0];
             return (
               <div key={`${review.id}-${i}`} className="df-review-slider__card" data-review-id={review.id} role="group" aria-roledescription="reseña" aria-label={`${i + 1} de ${total}`}>
-                {photoStyle && (
-                  <div className="df-review-slider__avatar">
-                    {photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={photo}
-                        alt={`Foto de la reseña de ${author}`}
-                        width={62}
-                        height={62}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span aria-hidden>
-                        {author.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                )}
                 <div className="df-review-slider__body">
                   <p className="df-review-slider__meta">
+                    {photoStyle && (
+                      <span className="df-review-slider__avatar">
+                        {photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={photo}
+                            alt={`Foto de la reseña de ${author}`}
+                            width={62}
+                            height={62}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span aria-hidden>
+                            {author.slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
+                      </span>
+                    )}
                     <span className="df-review-slider__author">{author}</span>
                     {review.rating > 0 && <DfStars rating={review.rating} size="0.875rem" />}
                   </p>

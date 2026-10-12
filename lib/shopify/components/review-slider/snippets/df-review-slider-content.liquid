@@ -118,22 +118,22 @@
             aria-roledescription="reseña"
             aria-label="{{ shown }} de {{ total }}"
           >
-            {%- if s.style != 'compact' -%}
-              <div class="df-review-slider__avatar">
-                {%- if photo != blank -%}
-                  {%- assign photo_alt = 'Foto de la reseña de ' | append: author -%}
-                  {{
-                    photo
-                    | image_url: width: 124, height: 124, crop: 'center'
-                    | image_tag: width: 62, height: 62, loading: 'lazy', alt: photo_alt
-                  }}
-                {%- else -%}
-                  <span aria-hidden="true">{{ author | slice: 0 | upcase | escape }}</span>
-                {%- endif -%}
-              </div>
-            {%- endif -%}
             <div class="df-review-slider__body">
               <p class="df-review-slider__meta">
+                {%- if s.style != 'compact' -%}
+                  <span class="df-review-slider__avatar">
+                    {%- if photo != blank -%}
+                      {%- assign photo_alt = 'Foto de la reseña de ' | append: author -%}
+                      {{
+                        photo
+                        | image_url: width: 124, height: 124, crop: 'center'
+                        | image_tag: width: 62, height: 62, loading: 'lazy', alt: photo_alt
+                      }}
+                    {%- else -%}
+                      <span aria-hidden="true">{{ author | slice: 0 | upcase | escape }}</span>
+                    {%- endif -%}
+                  </span>
+                {%- endif -%}
                 <span class="df-review-slider__author">{{ author | escape }}</span>
                 {%- if r_rating > 0 -%}{%- render 'df-stars', rating: r_rating, size: '0.875rem', label: stars_label -%}{%- endif -%}
               </p>

@@ -1498,7 +1498,8 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 .df-social-proof {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -1509,19 +1510,20 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 .df-social-proof__avatars {
   display: flex;
   flex: none;
+  order: 1;
 }
 
 .df-social-proof__avatar {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   overflow: hidden;
   border: 2px solid var(--df-bg);
   border-radius: var(--df-radius-pill);
   background: var(--df-accent-soft);
   color: var(--df-accent-ink);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -1537,7 +1539,7 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 
 .df-social-proof__text {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.4;
   color: var(--df-muted);
   text-wrap: pretty;
@@ -3455,11 +3457,12 @@ df-insta-story {
 
 .df-review-slider .df-slider__controls {
   margin-top: 0;
+  justify-content: flex-start;
 }
 
 .df-review-slider .df-slider__dots {
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0;
 }
 
@@ -3474,6 +3477,37 @@ df-insta-story {
 .df-review-slider .df-slider__dot[aria-current='true']::before {
   width: 8px;
   border-radius: 50%;
+}
+
+/* Texto pequeño y caption del design system; retrato secundario junto al autor. */
+.df-review-slider .df-review-slider__body {
+  flex: 1;
+  gap: 8px;
+}
+
+.df-review-slider .df-review-slider__text p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-style: normal;
+  color: var(--df-fg);
+}
+
+.df-review-slider .df-review-slider__meta {
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--df-muted);
+}
+
+.df-review-slider .df-review-slider__author {
+  font-weight: 500;
+}
+
+.df-review-slider .df-review-slider__avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .df-review-slider--time-positive {
