@@ -71,17 +71,18 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Proyecciones MCP · Supabase 
     await createVisualExecutor(repo)(owner, { tool: "get_visual_ingestion_status", input: parseToolInput("get_visual_ingestion_status", { product_id: product, operation_id: operation }) }, signal());
     expect(read).toHaveBeenCalledTimes(1); expect(await snapshots()).toBe(before);
   });
-  it("compartir el snapshot interno no cambia un byte de la representación SQL anterior ni su hash", async () => {
+  it("el contexto añade medios específicos y conserva la representación anterior y los tokens exactos", async () => {
     const oldSource = readFileSync("supabase/migrations/20261202000000_visual_removed_targets.sql", "utf8").split("as $$\n", 2)[1].split("\n$$;", 1)[0];
     const oldPdp = readFileSync("supabase/migrations/20261211000000_current_product_content.sql", "utf8").split("-- pi_pdp_state\n", 2)[1].split("AS $function$\n", 2)[1].split("\n$function$;", 1)[0];
     const sql = (value: string) => value.replaceAll("p_product_id", `'${product}'::uuid`).replaceAll("p_owner_id", `'${owner.userId}'::uuid`);
     const comparison = JSON.parse(execFileSync("docker", ["exec", "-i", "supabase_db_dropflex-v2", "psql", "-U", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], {
       encoding: "utf8", input: `with legacy_source as (${sql(oldSource)}), legacy_pdp as (${sql(oldPdp)}) select jsonb_build_object(
-        'source_equal',(select * from legacy_source)=public.pi_visual_source_state('${product}','${owner.userId}'),
+        'source_equal',(select * from legacy_source)=(public.pi_visual_source_state('${product}','${owner.userId}')-'page_images'),
         'pdp_equal',(select * from legacy_pdp)=public.pi_pdp_state('${product}','${owner.userId}'),
-        'stamp',public.pi_snapshot_hash((select * from legacy_source)));`,
+        'gifs',public.pi_visual_source_state('${product}','${owner.userId}')->'page_images',
+        'stamp',public.pi_snapshot_hash((select * from legacy_source)||jsonb_build_object('page_images','[]'::jsonb)));`,
     }));
-    expect(comparison).toMatchObject({ source_equal: true, pdp_equal: true });
+    expect(comparison).toMatchObject({ source_equal: true, pdp_equal: true, gifs: [] });
     expect((await rpc("pi_read_visual_operation", { p_operation_id: operation })).dependency_stamp).toBe(comparison.stamp);
   });
   it("lectura sin cursor omite historia y replica la hidratación vigente; la historia explícita permanece", async () => {

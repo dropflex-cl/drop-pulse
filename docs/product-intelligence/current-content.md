@@ -121,3 +121,10 @@ Por pedido explícito del comerciante, el MCP y la skill de optimización dejan 
 La fuente actual del plugin incluye estos cambios en 1.6.4. La migración se aplicó en Supabase local. El paquete instalado y los servicios remotos requieren su actualización y despliegue; no se publicaron productos ni campañas como parte de este cambio.
 
 Verificación: 1.321 pruebas generales, 90 pruebas de integración local y 75 regresiones de los módulos finales; contratos, tokens, TypeScript y lint de los archivos modificados correctos. La compilación con webpack terminó correctamente. Turbopack encontró una restricción de puertos del entorno; el lint global mantiene errores en archivos del tema y otros módulos ajenos a esta retirada.
+
+
+## Argumentos e imágenes por componente
+
+`get_component_generation_context` combina información y oferta vigentes con la estrategia y su ángulo/hook primario, el contrato nativo de Shopify y una tarea argumental propia de cada componente. Incluye la variante solicitada, extractos de los demás argumentos, slots, ratios y destinos. El chat desarrolla y revisa el copy; el servidor valida su contrato. `get_pdp_completion_report` resume todos los contratos, variantes, contenido pendiente, imágenes y medios específicos. Sus componentes se paginan con `components.next_cursor`. La validación estructural no certifica alineación semántica ni sustituye `preparePublish`.
+
+Los usos visuales aceptan `landing_component` con `component`, `content_variant_key`, `slot` y `position` (desde 1), sin crear un plan persuasivo o una experiencia para desbloquear el destino. `bind_visual_asset` conserva las imágenes vecinas y sincroniza las experiencias existentes que usan esa variante, sin alterar su orden ni visibilidad. Las selecciones anteriores conservan el orden del array; una asignación directa añade posiciones estables al slot. GIF y video mantienen sus contratos propios. Una toma nueva exige que la identidad corresponda al ID y hash de la base vigente; el cambio de base conserva los archivos y usos existentes. Migración: `20261218000000_component_generation_context.sql`. Skill `optimize-product` y plugin: 1.7.0.

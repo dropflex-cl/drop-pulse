@@ -34,7 +34,7 @@ const cap = (
   copy_density,
   asset_requirements,
   constraints,
-  supports_cta: component === "listing" || component === "offer-summary",
+  supports_cta: ["listing", "offer-summary", "stats-with-image", "faq-and-text", "insta-story"].includes(component),
 });
 
 // Capacidades editoriales, no puntajes de conversión. IDs, contratos y mínimos salen del catálogo real.
@@ -283,6 +283,7 @@ export function componentCapabilityCatalog() {
     const native = CATALOG.find((c) => c.id === capability.component);
     return {
       ...capability,
+      placement: native?.kind === "block" ? "hero" as const : capability.placement,
       constraints: [
         ...capability.constraints,
         ...((DEFAULT_CONVERSION_SUPPORTS as readonly string[]).includes(

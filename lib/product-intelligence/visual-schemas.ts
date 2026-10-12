@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GALLERY_MAX } from "@/lib/page-images/catalog";
+import { LANDING_COMPONENT_IDS } from "./landing-schemas";
 import { persuasionJobSchema } from "./persuasion-schemas";
 
 export const VISUAL_LIMITS = { plans: 20, shots: 30, assets: 200, records: 1000, pageSize: 12, uploadBytes: 15 * 1024 * 1024,
@@ -35,6 +36,7 @@ export const visualPlanSchema = z.strictObject({ name: text.max(120), strategy_i
 export const visualTargetSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("gallery_shot"), shot_key: key, slot: z.string().regex(/^(cover|gallery|benefit-[a-z0-9_-]{1,64})$/), position: z.number().int().min(1).max(GALLERY_MAX).nullable() }),
   z.strictObject({ type: z.literal("landing_section"), experience_id: visualUuid, content_variant_key: key, section_key: key, component: key, slot: key }),
+  z.strictObject({ type: z.literal("landing_component"), component: z.enum(LANDING_COMPONENT_IDS as [string, ...string[]]), content_variant_key: key, slot: key, position: z.number().int().min(1).max(10) }),
   z.strictObject({ type: z.literal("creative_concept"), concept_id: visualUuid, ratio: z.enum(["1:1", "9:16"]), slot: z.literal("image") }),
   z.strictObject({ type: z.literal("ugc_shot"), script_id: visualUuid, video_shot_id: visualUuid, slot: z.enum(["keyframe", "b_roll"]) }),
 ]);
@@ -54,6 +56,8 @@ export const visualTransferEventSchema = z.strictObject({ event_id: visualUuid, 
 export const visualReadinessSchema = z.strictObject({ ready: z.boolean(), current_strategy_id: visualUuid.nullable(), current_identity_ref: visualRefSchema.nullable(),
   next_action: z.enum(["generate", "approve_identity", "reconcile_plan", "approve_plan"]), reasons: z.array(z.strictObject({ code: key, message: text })).max(10) });
 export const visualInputSchemas = {
+  get_component_generation_context: z.strictObject({ ...read, component: z.enum(LANDING_COMPONENT_IDS as [string, ...string[]]), content_variant_key: key.default("default") }),
+  get_pdp_completion_report: z.strictObject({ ...read, cursor }),
   record_visual_transfer_event: z.strictObject({ ...read, event: visualTransferEventSchema }),
   get_visual_transfer_history: z.strictObject({ ...read, attempt_id: visualUuid.optional() }),
   get_visual_generation_context: z.strictObject({ ...read, strategy_id: visualUuid.optional(), angle_id: visualUuid.optional(), channel: z.enum(["pdp", "gallery", "ad", "ugc"]).optional(), cursor }),
@@ -85,6 +89,8 @@ export const visualInputSchemas = {
 export type VisualTool = keyof typeof visualInputSchemas;
 export const visualTools = Object.keys(visualInputSchemas) as VisualTool[];
 export const visualDescriptions: Record<VisualTool, string> = {
+  get_component_generation_context: "Lee producto vigente, hook primario, tarea argumental propia, contratos del tema, contenido vecino y destinos de imágenes por variante, slot y posición. Prepara textos y escenas distintos dentro de la misma dirección. No genera, guarda ni publica.",
+  get_pdp_completion_report: "Audita todos los componentes y variantes vigentes: contenido ausente o inválido, imágenes elegidas y faltantes, medios específicos y secciones ocultas o descartadas. No certifica alineación semántica ni sustituye la preparación de publicación.",
   record_visual_transfer_event: "Registra un evento técnico del cliente sin cambiar revisiones, aprobación ni demostrar que el generador recibió la referencia. No envíes URLs ni tokens.",
   get_visual_transfer_history: "Lee los últimos 50 eventos de transferencia, separando reportes del cliente de resultados del servidor. No confirma uso de referencia por el generador.",
   ingest_chatgpt_visual_asset: "Adjunta el archivo generado al parámetro nativo file; ChatGPT entrega download_url y file_id. Conserva el ID opaco del host sin reconstruirlo ni cambiarlo. DropFlex descarga los bytes y los copia a Storage con la iteración preparada. Consulta get_visual_ingestion_status hasta succeeded antes de declarar guardado. La imagen queda disponible al guardar; no publica.",
@@ -134,6 +140,8 @@ export function visualOutputs<E extends z.ZodType>(error: E) {
   const plans = envelope(z.strictObject({ ...commonVisualOutput, current: visualRecordViewSchema.nullable(), shots: visualPage(z.looseObject({ shot_key: z.string(), validity: visualValiditySchema })), identity: visualRecordSchema.nullable(), canonical_reference: canonicalView,
     assets: z.array(visualRecordViewSchema).max(3), items: z.array(z.strictObject({ id: visualUuid, version: z.number().int().positive(), etag: visualHash, name: z.string(), status: z.string() })).max(VISUAL_LIMITS.plans) }));
   return {
+    get_component_generation_context: envelope(z.strictObject({ ...commonVisualOutput, product: z.unknown(), context: z.unknown(), pricing: z.unknown(), policies: z.unknown(), selected_strategy: z.unknown(), primary_direction: z.unknown(), evidence_context: z.unknown(), component: z.unknown(), current: z.unknown(), other_arguments: z.array(z.unknown()), canonical_reference: canonicalView, targets: z.array(z.unknown()), available_images: z.array(z.unknown()), available_reviews: z.array(z.unknown()), media: z.unknown(), instructions: z.array(z.string()) })),
+    get_pdp_completion_report: envelope(z.strictObject({ ...commonVisualOutput, primary_direction: z.unknown(), canonical_reference: canonicalView, components: visualPage(z.unknown()), summary: z.unknown(), limitations: z.array(z.string()) })),
     record_visual_transfer_event: envelope(z.strictObject({ event_id: visualUuid, recorded: z.boolean() })),
     get_visual_transfer_history: envelope(z.strictObject({ events: z.array(visualTransferEventSchema.extend({ reported_by: z.enum(["widget", "server"]), created_at: z.string() })).max(50) })),
     get_visual_reference_image: envelope(z.strictObject({ ...commonVisualOutput, canonical_reference: canonicalView.unwrap(),

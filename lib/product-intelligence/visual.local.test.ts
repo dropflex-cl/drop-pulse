@@ -1,3 +1,4 @@
+import { componentById } from "@/lib/shopify/components/catalog";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
@@ -155,6 +156,47 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     expect((await call("get_visual_ingestion_status", { product_id: product, operation_id: repeated.data.operation_id })).data.result).toMatchObject({ asset_id: asset.id });
     expect((await state()).files).toHaveLength(1);
   }, 30000);
+  it("contexto y asignaciones directas por variante conservan imágenes vecinas y secciones ocultas", async () => {
+    const content = componentById("use-cases")!.examples[0];
+    const variants = [{ key: "default", angle_id: null, hook_id: null, content, images: [{ slot: "cases", source: "reference", id: reference }] },
+      { key: "alternate", angle_id: "desk", hook_id: "tidy", content, images: [{ slot: "cases", source: "reference", id: reference }] }];
+    await call("save_landing_content", { product_id: product, schema_version: "1.1", entries: [{ component: "use-cases", content: variants, enabled: false }] });
+    const context = await call("get_component_generation_context", { product_id: product, component: "use-cases" });
+    expect(context.data).toMatchObject({ primary_direction: { id: angleId }, current: { enabled: false }, canonical_reference: { id: reference } });
+    const targets = context.data.targets as { value: { target: { type: string; position: number } } }[];
+    expect(targets).toHaveLength(5); expect(targets.map(t => t.value.target.position)).toEqual([1, 2, 3, 4, 5]);
+    const target = (position: number) => ({ type: "landing_component", component: "use-cases", content_variant_key: "default", slot: "cases", position });
+    const bind = async (position: number) => call("bind_visual_asset", { product_id: product, schema_version: "1.0", asset_id: asset.id, bindings: [{ target: target(position) }] });
+    await bind(2); await bind(3); await bind(2);
+    const row = (await checked(db.from("page_components").select("enabled,content").eq("product_id", product).eq("component", "use-cases").is("superseded_at", null).single())).data!;
+    const selected = row.content[0].images;
+    expect(row.enabled).toBe(false); expect(selected).toHaveLength(3);
+    expect(selected.map((i: { position: number }) => i.position)).toEqual([1, 2, 3]);
+    expect(selected[0]).toMatchObject({ source: "reference", id: reference });
+    expect(row.content[1].images).toEqual(variants[1].images);
+    const activeBindings = (await checked(db.from("pi_visual_records").select("id,payload").eq("product_id", product).eq("kind", "binding").eq("status", "selected"))).data!;
+    expect(activeBindings.filter(b => b.payload.target.type === "landing_component")).toHaveLength(2);
+    const b2 = activeBindings.find(b => b.payload.target.type === "landing_component" && b.payload.target.position === 2)!;
+    await call("unbind_visual_asset", { product_id: product, schema_version: "1.0", binding_ids: [b2.id] });
+    const after = (await checked(db.from("page_components").select("content").eq("product_id", product).eq("component", "use-cases").is("superseded_at", null).single())).data!;
+    expect(after.content[0].images.map((i: { position: number }) => i.position)).toEqual([1, 3]);
+    await bind(2);
+    const report = await call("get_pdp_completion_report", { product_id: product });
+    expect(report.data).toMatchObject({ summary: { hidden: 1 }, components: { total: 27 } });
+    const reportRows = [...report.data.components.items]; let reportCursor = report.data.components.next_cursor;
+    while (reportCursor) { const next = await call("get_pdp_completion_report", { product_id: product, cursor: reportCursor }); reportRows.push(...next.data.components.items); reportCursor = next.data.components.next_cursor; }
+    expect(reportRows).toHaveLength(27);
+    expect(reportRows).toEqual(expect.arrayContaining([expect.objectContaining({ component: "use-cases", enabled: false })]));
+    await expect(call("get_component_generation_context", { product_id: product, component: "use-cases", content_variant_key: "missing" })).rejects.toThrow("variante no existe");
+    const foreign = randomUUID();
+    await expect(call("get_pdp_completion_report", { product_id: product }, { ...owner, userId: foreign, actorId: foreign })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(call("get_component_generation_context", { product_id: product, component: "use-cases" }, { ...owner, scopes: [] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(call("bind_visual_asset", { product_id: product, schema_version: "1.0", asset_id: asset.id, bindings: [{ target: { ...target(1), slot: "fake" } }] })).rejects.toThrow("destino ya no existe");
+    // La lectura del catálogo no depende de activar planes persuasivos.
+    const flag = process.env.PDP_PERSUASION_ENABLED; process.env.PDP_PERSUASION_ENABLED = "false";
+    try { expect((await call("get_component_catalog", { product_id: product })).data.catalog.length).toBe(27); }
+    finally { if (flag === undefined) delete process.env.PDP_PERSUASION_ENABLED; else process.env.PDP_PERSUASION_ENABLED = flag; }
+  }, 30000);
   it("archivo nativo de ChatGPT → storage propio; renovar URL no duplica la operación", async () => {
     const bytes = await sharp({ create: { width: 1000, height: 1000, channels: 3, background: { r: 30, g: 35, b: 40 } } }).png().toBuffer();
     const download = vi.spyOn(visualMedia, "downloadVisual").mockResolvedValue(bytes);
@@ -211,7 +253,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     const input = { expected_revision: workbench.revision, expected_etag: workbench.etag, expected_dependency_stamp: workbench.dependency_stamp, idempotency_key: randomUUID(), cover: native, gallery: [original.id] };
     const result = await setProductImageSelection(owner.userId, product, input);
     expect(await setProductImageSelection(owner.userId, product, input)).toEqual(result);
-    const images = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").order("slot"))).data!;
+    const images = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").in("slot", ["cover", "gallery"]).order("slot"))).data!;
     expect(images).toHaveLength(2);
     expect(images[0]).toMatchObject({ id: native, slot: "cover", position: 1 });
     expect(images[1]).toMatchObject({ slot: "gallery", position: 1, storage_path: original.storage_path });
@@ -221,7 +263,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     await assertVisualBindingsPublishable(owner.userId, product, [binding.id]);
     const fresh = (await getVisualWorkbench(owner.userId, product))!;
     await setProductImageSelection(owner.userId, product, { expected_revision: fresh.revision, expected_etag: fresh.etag, expected_dependency_stamp: fresh.dependency_stamp, idempotency_key: randomUUID(), cover: images[1].id, gallery: [] });
-    const selected = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").single())).data!;
+    const selected = (await checked(db.from("page_images").select("*").eq("product_id", product).eq("status", "approved").in("slot", ["cover", "gallery"]).single())).data!;
     expect(selected).toMatchObject({ slot: "cover", storage_path: original.storage_path });
     expect((await state()).files).toHaveLength(1);
     expect((await state()).history.length).toBeGreaterThan(historyBefore);
@@ -269,6 +311,12 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     await reviewVisualRecord(repository(), owner, { ...await preconditions(), record_id: uses[0].id, decision: "unselect" }, AbortSignal.timeout(30000));
     expect((await checked(db.from("page_images").select("status").eq("visual_binding_id", uses[0].id).single())).data!.status).toBe("generated");
     expect((await call("list_visual_assets", { product_id: product })).data.items[0].validity.state).toBe("current");
+    const direct = await call("bind_visual_asset", { product_id: product, schema_version: "1.0", asset_id: asset.id, bindings: [{ target: { type: "landing_component", component: "image-with-benefits", content_variant_key: "default", slot: "main", position: 1 } }] });
+    const component = (await checked(db.from("page_components").select("images").eq("id", componentId).single())).data!;
+    const projectedExperience = (await checked(db.from("pi_landing_experiences").select("payload").eq("id", experienceId).single())).data!.payload;
+    expect(projectedExperience.sections.find((s: { section_key: string }) => s.section_key === "fit")).toMatchObject({ enabled: false, images: component.images });
+    expect(component.images[0]).toMatchObject({ slot: "main", position: 1, id: direct.data.records.find(r => r.kind === "binding" && r.status === "selected")!.id });
+
     expect((await checked(db.from("ai_generations").select("*", { head: true, count: "exact" }).eq("product_id", product))).count).toBe(0);
   }, 30000);
   it("drift granular, historial de intentos y reconciliación queda aprobada al guardar", async () => {

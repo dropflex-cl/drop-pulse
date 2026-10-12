@@ -159,6 +159,8 @@ export interface AngleHookView {
 
 /** Una foto elegida para un espacio de imagen de un componente (ImageSlot en su content.ts). */
 export interface ImagePick {
+  /** Posición estable dentro del slot; las selecciones anteriores conservan el orden del array. */
+  position?: number;
   slot: string;
   source: "reference" | "page_image";
   id: string;

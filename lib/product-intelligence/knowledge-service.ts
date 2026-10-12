@@ -66,7 +66,7 @@ export function createProductIntelligenceExecutor(repository: KnowledgeRepositor
       return parseToolOutput(command.tool, { ok: true, request_id: randomUUID(), data });
     }
     if (persuasionTools.includes(command.tool as typeof persuasionTools[number])) {
-      if (!persuasionEnabled() || !repository.loadPersuasion || !repository.commitPersuasion) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La planificación de páginas aún no está habilitada.");
+      if ((!persuasionEnabled() && command.tool !== "get_component_catalog") || !repository.loadPersuasion || !repository.commitPersuasion) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La planificación de páginas aún no está habilitada.");
       return createPersuasionExecutor(repository as PersuasionRepository, identity)(principal, command, signal);
     }
     if (command.tool === "generate_gallery_images" || command.tool === "get_gallery_generation_status") {

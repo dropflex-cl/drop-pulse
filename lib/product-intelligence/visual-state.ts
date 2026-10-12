@@ -3,6 +3,7 @@ import { z } from "zod";
 import sharp from "sharp";
 import { GALLERY_MAX, slotKind } from "@/lib/page-images/catalog";
 import { imagesForGeneration } from "@/lib/products/store";
+import { componentLandingSchema } from "./component-generation";
 import { contentVariants } from "@/lib/copy/variants";
 import { componentCapabilityCatalog } from "./component-capabilities";
 import { parseKnowledgeRead, graphRecords, strategyResponse } from "./knowledge";
@@ -14,9 +15,9 @@ import { createVisualUrlSigner, stateVisualSigner } from "./visual-url-signer";
 import { VISUAL_LIMITS, type VisualTarget } from "./visual-schemas";
 
 const row = z.record(z.string(), z.unknown());
-const sourceSchema = z.object({ references: z.array(z.object({ id: z.string(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable().optional(),
+const sourceSchema = z.object({ page_images: z.array(row).default([]), references: z.array(z.object({ id: z.string(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable().optional(),
   is_base: z.boolean(), is_cover: z.boolean(), excluded: z.boolean() })), gallery: z.array(row), gallery_shots: z.array(row), creative_concepts: z.array(row), scripts: z.array(row), video_shots: z.array(row),
-  pdp: z.object({ plans: z.array(persuasionRecordSchema), experiences: z.array(experienceRecordSchema), landing: z.object({ rows: z.array(z.object({ component: z.string(), proposal: z.unknown(), content: z.unknown(), images: z.array(z.unknown()).optional() })), review_count: z.number() }) }) });
+  pdp: z.object({ plans: z.array(persuasionRecordSchema), experiences: z.array(experienceRecordSchema), landing: componentLandingSchema }) });
 const sourceRead = z.object({ source: sourceSchema, knowledge: z.unknown().optional(), knowledge_projection: z.object({
   snapshot: row, stamp: z.string(), effective_scopes: z.unknown(), grant_expires_at: z.unknown(),
 }).optional(), revision: z.number().optional() });
@@ -76,6 +77,13 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   addTarget({ type: "gallery_shot", slot: "cover", shot_key: "general", position: null }, { slot: "cover", ratio: "1:1" });
   for (let position = 1; position <= GALLERY_MAX; position++) addTarget({ type: "gallery_shot", slot: "gallery", shot_key: "general", position }, { slot: "gallery", position, ratio: "1:1" });
   for (const shot of src.gallery_shots.filter(s => slotKind(String(s.slot)) === "benefit")) addTarget({ type: "gallery_shot", slot: String(shot.slot), shot_key: "general", position: null }, { slot: shot.slot, ratio: "3:4", shot: shot.payload });
+  for (const content of src.pdp.landing.rows) {
+    const native = componentCapabilityCatalog().find(c => c.component === content.component);
+    for (const variant of contentVariants(content.content ?? content.proposal)) for (const slot of native?.image_slots ?? []) {
+      for (let position = 1; position <= slot.max; position++) addTarget({ type: "landing_component", component: content.component, content_variant_key: variant.key, slot: slot.key, position },
+        { variant: { ...variant, images: undefined }, slot, position });
+    }
+  }
   for (const exp of src.pdp.experiences.filter(e => e.payload.status !== "archived")) {
     add("landing_experience", exp.id, exp.payload);
     for (const section of exp.payload.sections) {
@@ -95,7 +103,8 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   // Maps/arrays in state were cloned by Zod; use the populated instances.
   state.live = live; state.targets = targets;
   state.knowledge = { product: read.currentSnapshot.catalog, context: read.currentSnapshot.context, pricing: read.currentSnapshot.pricing, policies: read.currentSnapshot.settings,
-    strategy: selected ? strategyResponse(selected, read, productId) : null, graph, persuasion_plans: src.pdp.plans, landing_experiences: src.pdp.experiences,
+    landing: src.pdp.landing, media: { selected_gifs: src.page_images.filter(i => i.slot === "gifs" && i.is_selected === true && !i.discarded_at && i.render_status === "succeeded" && i.storage_path).map(i => i.id),
+      available_video_scripts: src.scripts.filter(s => s.final_storage_path && s.final_status !== "rejected").map(s => s.id) }, strategy: selected ? strategyResponse(selected, read, productId) : null, graph, persuasion_plans: src.pdp.plans, landing_experiences: src.pdp.experiences,
     gallery_requirements: src.gallery.map(r => ({ id: r.id, payload: r.payload })), creative_concepts: src.creative_concepts.map(c => ({ id: c.id, payload: c.payload })) };
   return state;
 }

@@ -16,7 +16,7 @@
     ]
   },
   "name": "dropflex-optimizer",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "description": "Elige hooks y, con tu autorización, aprueba automáticamente página e imágenes y publica en Shopify desde el chat.",
   "author": {
     "name": "DropFlex"

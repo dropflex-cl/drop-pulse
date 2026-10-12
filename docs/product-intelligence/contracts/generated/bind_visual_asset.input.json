@@ -96,6 +96,66 @@
               "properties": {
                 "type": {
                   "type": "string",
+                  "const": "landing_component"
+                },
+                "component": {
+                  "type": "string",
+                  "enum": [
+                    "listing",
+                    "review-stars",
+                    "benefit-usps",
+                    "inventory",
+                    "shipping-timeline",
+                    "benefit-double-box",
+                    "gif-strip",
+                    "review-slider",
+                    "ugc-slider",
+                    "scrolling-benefits",
+                    "pain-block",
+                    "image-with-benefits",
+                    "mechanism",
+                    "use-cases",
+                    "before-after",
+                    "stats-with-image",
+                    "results-timeline",
+                    "usage-steps",
+                    "product-includes",
+                    "insta-story",
+                    "customer-stories",
+                    "review-wall",
+                    "expert-endorsement",
+                    "comparison-table",
+                    "guarantee",
+                    "faq-and-text",
+                    "offer-summary"
+                  ]
+                },
+                "content_variant_key": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "slot": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                }
+              },
+              "required": [
+                "type",
+                "component",
+                "content_variant_key",
+                "slot",
+                "position"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
                   "const": "creative_concept"
                 },
                 "concept_id": {

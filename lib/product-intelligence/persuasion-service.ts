@@ -59,7 +59,7 @@ export function createPersuasionExecutor(repository: PersuasionRepository, ident
       p_dry_run: "dry_run" in input ? input.dry_run : false }, signal);
     if (writing && raw && typeof raw === "object" && "replay" in raw) return parseToolOutput(tool, raw.replay);
     const state = persuasionReadSchema.parse(raw);
-    if (!state.enabled && !state.experiences.some(e => e.payload.status === "active")) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
+    if (tool !== "get_component_catalog" && !state.enabled && !state.experiences.some(e => e.payload.status === "active")) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Activa la planificación de páginas para este producto.");
     const currentRead = parseKnowledgeRead(state.knowledge, principal, input.product_id);
     const read = currentRead;
     const base = { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID() };

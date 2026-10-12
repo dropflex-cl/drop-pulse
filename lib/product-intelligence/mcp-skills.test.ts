@@ -22,6 +22,17 @@ async function connect() {
 }
 
 describe("DropFlex · importación de skill MCP", () => {
+  it("descubre contexto por componente y reporte paginado como lecturas sin efectos", async () => {
+    const session = await connect();
+    try {
+      const tools = await session.client.listTools();
+      for (const name of ["get_component_generation_context", "get_pdp_completion_report"]) {
+        expect(tools.tools.find(t => t.name === name)).toMatchObject({ annotations: { readOnlyHint: true } });
+      }
+      expect(session.client.getInstructions()).toContain("tarea argumental distinta");
+      expect(session.execute).not.toHaveBeenCalled();
+    } finally { await session.close(); }
+  });
   it("el servidor exige un pedido explícito antes de regenerar o descartar por un fallo visual", async () => {
     const session = await connect();
     try {

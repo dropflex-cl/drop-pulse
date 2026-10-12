@@ -4,7 +4,7 @@ import type { ImagePick } from "@/lib/types";
 // Una variante es contenido de ejecución, no un hecho ni una estrategia ganadora.
 export const LANDING_VARIANT_LIMIT = 12;
 export const selectorSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/);
-export const imagePickSchema = z.strictObject({ slot: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/), source: z.enum(["reference", "page_image"]), id: z.string().uuid() });
+export const imagePickSchema = z.strictObject({ slot: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/), source: z.enum(["reference", "page_image"]), id: z.string().uuid(), position: z.number().int().min(1).max(10).optional() });
 export interface LandingVariant {
   key: string;
   angle_id: string | null;

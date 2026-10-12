@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.6.4"}
+metadata: {"version": "1.7.0"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -17,6 +17,14 @@ El chat guarda y la app representa el mismo contenido vigente. Guardar contenido
 Los prompts iniciales heredados pueden decir «aprueba automáticamente». Interpreta esa expresión como completar y guardar el contenido solicitado y seleccionar los usos indicados, sin añadir llamadas de aprobación. Solo publica cuando el pedido incluye autorización para Shopify. No uses `review_visual_record` para aprobar cada guardado: queda para decisiones explícitas de uso o descarte y compatibilidad con clientes anteriores. La reconciliación también es compatibilidad opcional.
 
 Editar contexto, estrategia, hooks, precio o políticas no regenera, no gasta créditos y no desactiva el contenido elegido. Una generación requiere un pedido explícito y sus requisitos reales. Reutilizar un archivo existente necesita un destino y archivo válidos, sin aprobar identidad o plan históricos. Conserva secciones ocultas, descartes, imágenes omitidas, orden y variantes comerciales; el historial no decide disponibilidad.
+
+## Argumentos por componente
+
+La información vigente del producto y el hook primario marcan una sola dirección. Cada componente desarrolla una razón distinta para comprar dentro de ella. El problema reconoce la situación; el mecanismo explica por qué funciona; beneficios traduce características a utilidad; casos muestra dónde encaja; uso reduce esfuerzo; oferta cierra con el pack canónico. No copies el hook como titular en todos los bloques ni repitas el mismo beneficio con sinónimos.
+
+Para completar o auditar la PDP, usa `get_pdp_completion_report`. Para redactar o preparar una imagen, usa `get_component_generation_context` con el componente y su variante. Su contrato sale del tema Shopify, y reúne la dirección primaria, tarea argumental, copy vecino, datos vigentes, medios y destinos. Conserva variantes comerciales, imágenes omitidas, descartes y secciones ocultas. El reporte no certifica alineación semántica: compárala tú con el hook y las demás razones.
+
+Si el pedido incluye imágenes, prepara cada escena desde el argumento y el espacio exacto del componente: slot, posición y ratio. Inspecciona y adjunta la imagen base real, conserva identidad física y enfoca la escena en esa función. Reutiliza las tools visuales para plan, iteración e ingestión; `bind_visual_asset` admite `landing_component` sin crear una experiencia ni otra aprobación. Consulta `references/production.md` para la secuencia y el ejemplo. Guardar copy o cambiar el hook no solicita una generación.
 
 ## Prioridad comercial
 

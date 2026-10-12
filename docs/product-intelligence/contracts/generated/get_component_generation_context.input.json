@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "product_id",
+    "component"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "component": {
+      "type": "string",
+      "enum": [
+        "listing",
+        "review-stars",
+        "benefit-usps",
+        "inventory",
+        "shipping-timeline",
+        "benefit-double-box",
+        "gif-strip",
+        "review-slider",
+        "ugc-slider",
+        "scrolling-benefits",
+        "pain-block",
+        "image-with-benefits",
+        "mechanism",
+        "use-cases",
+        "before-after",
+        "stats-with-image",
+        "results-timeline",
+        "usage-steps",
+        "product-includes",
+        "insta-story",
+        "customer-stories",
+        "review-wall",
+        "expert-endorsement",
+        "comparison-table",
+        "guarantee",
+        "faq-and-text",
+        "offer-summary"
+      ]
+    },
+    "content_variant_key": {
+      "default": "default",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    }
+  }
+}

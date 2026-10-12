@@ -1,3 +1,4 @@
+import { componentGenerationContext, pdpCompletionReport } from "./component-generation";
 import { selectedUse, serverRevision, serverToken } from "./current-content";
 import { availableVisualRecord, selectMcpBindings } from "./content-decisions";
 import { ensureVisualRenditions } from "./visual-renditions";
@@ -15,7 +16,7 @@ import type { DelegatedIdentity } from "./oauth";
 import { requireScopes, toolScopes, type Principal } from "./policy";
 import { contextAccess, type VisualRepository } from "./repository";
 import { parseToolOutput, PI_LIMITS } from "./validation";
-import { visualInputSchemas, visualReviewInput, VISUAL_LIMITS, type VisualRecord, type VisualTool, type VisualDependency } from "./visual-schemas";
+import { visualInputSchemas, visualWriteSchema, visualReviewInput, VISUAL_LIMITS, type VisualRecord, type VisualTool, type VisualDependency } from "./visual-schemas";
 import { assetCompatibility, assertCurrent, findVisual, invalidVisual, makeVisualRecord, planShot, prepareBindings, prepareIdentity, prepareIteration, visualPlanReadiness,
   prepareVisualPlan, prepareVisualReview, recordRef, recordValidity, visualReadSchema, vHash, type VisualState } from "./visual-domain";
 import { hydrateVisualState, visualReferenceBytes } from "./visual-state";
@@ -48,7 +49,7 @@ export async function visualRecordView(r: VisualRecord, state: VisualState) {
 export function createVisualExecutor(repository: VisualRepository, identity?: DelegatedIdentity, wake?: (id: string) => void, secret = process.env.OAUTH_STATE_SECRET ?? ""): DomainExecutor {
   const run: DomainExecutor = async (principal, command, signal) => {
     const tool = command.tool as VisualTool, schema = visualInputSchemas[tool];
-    if (!schema || !visualEnabled()) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La producción visual no está habilitada.");
+    if (!schema || (!visualEnabled() && !["get_component_generation_context", "get_pdp_completion_report"].includes(tool))) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "La producción visual no está habilitada.");
     requireScopes(principal, toolScopes[tool]);
     const input = schema.parse(command.input);
     if (tool === "record_visual_transfer_event" || tool === "get_visual_transfer_history") {
@@ -58,7 +59,8 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         ...("event" in q ? { p_event: { ...q.event, reported_by: "widget" } } : { p_attempt_id: q.attempt_id ?? null }) }, signal));
     }
     const persistedTool = tool === "ingest_chatgpt_visual_asset" ? "ingest_external_visual_asset" : tool;
-    const writing = "expected_revision" in input, access = contextAccess(principal, identity);
+    const writeInput = "expected_revision" in input ? visualWriteSchema.strip().parse(input) : null;
+    const writing = writeInput !== null, access = contextAccess(principal, identity);
     if (tool === "get_visual_ingestion_status" && repository.readVisualOperation) {
       const q = visualInputSchemas[tool].parse(input);
       const raw = object.parse(await repository.readVisualOperation({ p_access: access, p_product_id: input.product_id, p_operation_id: q.operation_id }, signal));
@@ -68,7 +70,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     }
     const queryHash = vHash({ tool, user: principal.userId, actor: principal.actorId, input: Object.fromEntries(Object.entries(input).filter(([k]) => k !== "cursor")) });
     let snapshotId: string | null = null, offset = 0;
-    if ("cursor" in input && input.cursor) {
+    if ("cursor" in input && typeof input.cursor === "string" && input.cursor) {
       const cut = input.cursor.indexOf("."), sid = input.cursor.slice(0, cut);
       if (!z.string().uuid().safeParse(sid).success) throw new ProductIntelligenceError("CURSOR_INVALID", "Recupera esta lista desde el inicio.");
       const cursor = verifyContextCursor(input.cursor.slice(cut + 1), vHash({ queryHash, sid }), secret);
@@ -77,7 +79,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     const hashInput = tool === "ingest_chatgpt_visual_asset" ? { ...input, file: { ...visualInputSchemas.ingest_chatgpt_visual_asset.parse(input).file, download_url: undefined } } : input;
     const hash = writing ? commandHash(tool, hashInput) : null;
     const raw = await (repository.readVisual ?? repository.loadVisual)({ p_access: access, p_product_id: input.product_id, p_tool: writing ? persistedTool : null,
-      p_key: writing ? input.idempotency_key : null, p_hash: hash, p_dry_run: writing && input.dry_run, p_snapshot_id: snapshotId,
+      p_key: writeInput?.idempotency_key ?? null, p_hash: hash, p_dry_run: writeInput?.dry_run ?? false, p_snapshot_id: snapshotId,
       ...(repository.readVisual ? { p_paginate: "cursor" in schema.shape, p_history: "version" in input && Boolean(input.version) } : {}) }, signal);
     const replay = object.safeParse(raw);
     if (replay.success && replay.data.replay) {
@@ -130,6 +132,14 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
         expires: Math.floor(Date.now() / 1000) + VISUAL_LIMITS.snapshotSeconds - 5 }, secret)}` : null };
     };
     if (!writing) {
+      if (tool === "get_component_generation_context") {
+        const q = visualInputSchemas.get_component_generation_context.parse(input);
+        return output(componentGenerationContext(state, q.component, q.content_variant_key));
+      }
+      if (tool === "get_pdp_completion_report") {
+        const report = pdpCompletionReport(state);
+        return output({ ...report, components: page(report.components) });
+      }
       if (tool === "get_visual_reference_image") {
         const q = visualInputSchemas[tool].parse(input), canonical = state.references.find(r => r.is_base);
         const info = canonical && state.live[`reference:${canonical.id}`];
@@ -203,7 +213,7 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     const mutation = input as Record<string, unknown>;
     const subjectId = mutation.identity_id ?? mutation.plan_id ?? mutation.asset_id ?? mutation.iteration_id ?? (tool === "save_visual_identity" ? state.records.find(r => r.kind === "identity")?.id : null) ?? (mutation.plan_ref && object.parse(mutation.plan_ref).id);
     const subject = subjectId ? state.records.find(r => r.id === subjectId) : null;
-    if (input.expected_etag && input.expected_etag !== state.etag && input.expected_etag !== subject?.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de guardar.");
+    if (writeInput!.expected_etag && writeInput!.expected_etag !== state.etag && writeInput!.expected_etag !== subject?.etag) throw new ProductIntelligenceError("ARTIFACT_CONFLICT", "La propuesta cambió. Recupérala antes de guardar.");
     let records: VisualRecord[] = [], operation: Record<string, unknown> | null = null;
     switch (tool) {
       case "save_visual_identity": { const q = visualInputSchemas[tool].parse(input); records = [prepareIdentity(state, q.identity, q.identity_id)]; break; }
@@ -262,13 +272,13 @@ export function createVisualExecutor(repository: VisualRepository, identity?: De
     });
     if (tool === "bind_visual_asset" || tool === "save_visual_binding_suggestions") {
       records = selectMcpBindings(state, records);
-      if (!input.dry_run) for (const binding of records.filter(r => r.kind === "binding" && r.status === "selected")) {
+      if (!writeInput!.dry_run) for (const binding of records.filter(r => r.kind === "binding" && r.status === "selected")) {
         await ensureVisualRenditions(state, findVisual(state, String(binding.payload.asset_id), "asset"), visualTargetSchema.parse(binding.payload.target), principal.userId);
       }
     }
-    const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: persistedTool, p_expected_revision: serverRevision(input.expected_revision, state.revision),
-      p_etag: serverToken(input.expected_etag, state.etag), p_stamp: serverToken(input.expected_dependency_stamp, state.dependency_stamp), p_key: input.idempotency_key, p_hash: hash, p_records: records, p_dry_run: input.dry_run, p_operation: operation }, signal));
-    if (result.ok && !input.dry_run && "operation_id" in result.data && typeof result.data.operation_id === "string") {
+    const result = parseToolOutput(tool, await repository.commitVisual({ p_access: access, p_product_id: input.product_id, p_tool: persistedTool, p_expected_revision: serverRevision(writeInput!.expected_revision, state.revision),
+      p_etag: serverToken(writeInput!.expected_etag, state.etag), p_stamp: serverToken(writeInput!.expected_dependency_stamp, state.dependency_stamp), p_key: writeInput!.idempotency_key, p_hash: hash, p_records: records, p_dry_run: writeInput!.dry_run, p_operation: operation }, signal));
+    if (result.ok && !writeInput!.dry_run && "operation_id" in result.data && typeof result.data.operation_id === "string") {
       if (tool === "prepare_visual_asset_upload") return parseToolOutput(tool, { ...result, data: { ...result.data, ...await signedUpload(operationSchema.parse(await repository.visualOperation({ p_access: access, p_product_id: input.product_id, p_operation_id: result.data.operation_id }, signal))) } });
       wake?.(result.data.operation_id);
     }
