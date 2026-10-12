@@ -52,19 +52,21 @@ async function render(id: string, variant = false, empty = false, override?: unk
 }
 
 describe("MCP/UI → archivos de Shopify → imágenes de la PDP", () => {
-  it.each([false, true])("image_only muestra un solo archivo sin repetir texto (variante: %s)", async variant => {
-    const data = { ...(content("use-cases") as object), display_mode: "image_only", image_alt: "Tres momentos para usar el contorno en tu rutina diaria." };
-    const document = await render("use-cases", variant, false, data);
-    expect(document.querySelectorAll("img")).toHaveLength(1);
-    expect(document.querySelector("img")?.getAttribute("alt")).toBe(data.image_alt);
-    expect(document.querySelector("h2, summary, details, p")).toBeNull();
-    expect(document.querySelector(".df-rich__visual")).not.toBeNull();
-  });
-  it("image_only con selección vacía no recupera archivos de otra variante ni textos retenidos", async () => {
-    const document = await render("use-cases", true, true, { ...(content("use-cases") as object), display_mode: "image_only", image_alt: "Tres momentos para usar el contorno en tu rutina diaria." });
-    expect(document.querySelector("img, details")).toBeNull();
-    expect(document.querySelector(".df-pdp-empty")).not.toBeNull();
-  });
+  for (const id of ["use-cases", "usage-steps"]) {
+    it.each([false, true])(`${id} image_only muestra un solo archivo sin repetir texto (variante: %s)`, async variant => {
+      const data = { ...(content(id) as object), display_mode: "image_only", image_alt: "Tres momentos para usar el contorno en tu rutina diaria." };
+      const document = await render(id, variant, false, data);
+      expect(document.querySelectorAll("img")).toHaveLength(1);
+      expect(document.querySelector("img")?.getAttribute("alt")).toBe(data.image_alt);
+      expect(document.querySelector("h2, summary, details, p, .df-rich__number, .df-rich__card")).toBeNull();
+      expect(document.querySelector(".df-rich__visual")).not.toBeNull();
+    });
+    it(`${id} image_only con selección vacía no recupera archivos de otra variante ni textos retenidos`, async () => {
+      const document = await render(id, true, true, { ...(content(id) as object), display_mode: "image_only", image_alt: "Tres momentos para usar el contorno en tu rutina diaria." });
+      expect(document.querySelector("img, details")).toBeNull();
+      expect(document.querySelector(".df-pdp-empty")).not.toBeNull();
+    });
+  }
   it.each(ids)("renderiza los archivos asignados a %s con una lista de referencias realista", async id => {
     const document = await render(id);
     const expected = input.components.find(c => c.id === id)!.images[slots[id]].map(key => `/files/${key}.webp`);

@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
+import { imageOnlyPdpSlot } from "@/lib/shopify/components/_shared/pdp-content";
 import type { PreviewProps } from "./types";
 import { DfIcon, DfStars } from "./primitives";
 import { PdpEmptyPreview } from "./pdp-empty";
@@ -48,7 +49,7 @@ export function RichPdpPreview({
   const content = (raw ?? {}) as Content;
   const [position, setPosition] = useState(50);
   const id = useId();
-  const imageOnly = component === "use-cases" && content.display_mode === "image_only";
+  const imageOnlySlot = imageOnlyPdpSlot(component, content);
   const items = content.items ?? content.steps ?? [];
   const stories = (content.stories ?? []).flatMap((s, i) => {
     const review = s.body ? { id: `story-${i}`, body: s.body, author: s.name ?? "", photos: [] as string[], rating: null }
@@ -57,7 +58,7 @@ export function RichPdpPreview({
   });
   const policy = facts.policies;
   const valid =
-    component === "before-after"
+    imageOnlySlot ? Boolean(images[imageOnlySlot]?.[0]) : component === "before-after"
       ? Boolean(images.before?.[0] && images.after?.[0])
       : component === "customer-stories"
         ? stories.length > 0
@@ -73,15 +74,15 @@ export function RichPdpPreview({
             : component === "offer-summary"
               ? Boolean(facts.packs?.length)
               : component === "use-cases"
-                ? imageOnly ? Boolean(images.cases?.[0]) : Boolean(content.cases?.length)
+                ? Boolean(content.cases?.length)
                 : component === "results-timeline"
                   ? Boolean(content.stages?.length)
                   : items.length > 0;
   if (!valid) return <PdpEmptyPreview component={component} />;
-  if (imageOnly) return (
+  if (imageOnlySlot) return (
     <section className={`df df-rich df-${component} df-container`} aria-label={content.image_alt}>
       <div className="df-rich__visual">
-        <Image src={images.cases?.[0]} alt={content.image_alt} />
+        <Image src={images[imageOnlySlot]?.[0]} alt={content.image_alt} />
       </div>
     </section>
   );

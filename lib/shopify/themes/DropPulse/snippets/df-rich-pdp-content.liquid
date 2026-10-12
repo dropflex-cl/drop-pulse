@@ -62,9 +62,11 @@
 {%- capture after_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'after', index: 0, df_variant: df_variant, alt: content.after_label %}{%- endcapture -%}
 {%- if component == 'before-after' and before_image != blank and after_image != blank -%}{%- assign valid = true -%}{%- endif -%}
 {%- assign image_only = false -%}
-{%- if component == 'use-cases' and content.display_mode == 'image_only' -%}
+{%- assign image_only_slot = nil -%}
+{%- if component == 'use-cases' -%}{%- assign image_only_slot = 'cases' -%}{%- elsif component == 'usage-steps' -%}{%- assign image_only_slot = 'steps' -%}{%- endif -%}
+{%- if image_only_slot != nil and content.display_mode == 'image_only' -%}
  {%- assign image_only = true -%}
- {%- capture visual_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: 'cases', index: 0, df_variant: df_variant, alt: content.image_alt %}{%- endcapture -%}
+ {%- capture visual_image -%}{% render 'df-rich-pdp-image', component: component, product: product, slot: image_only_slot, index: 0, df_variant: df_variant, alt: content.image_alt %}{%- endcapture -%}
  {%- assign valid = false -%}
  {%- if visual_image != blank -%}{%- assign valid = true -%}{%- endif -%}
 {%- endif -%}

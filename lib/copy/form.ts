@@ -130,6 +130,7 @@ export const FIELD_LABELS: Record<string, string> = {
 /** Nombres de los valores de los enums (políticas, temas, modos). Los íconos tienen su propio selector. */
 export const CHOICE_LABELS: Record<string, string> = {
   accordion: "Acordeones",
+  steps: "Pasos",
   image_only: "Solo imagen",
   cod: "Pago al recibir",
   free_shipping: "Envío gratis",

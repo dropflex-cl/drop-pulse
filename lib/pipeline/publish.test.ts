@@ -139,25 +139,26 @@ describe("Publicar con contenido vigente y archivos elegidos", () => {
     expect(prepared.input.gallery).toHaveLength(5);
   });
 
-  it.each([false, true])("image_only exige archivo y llega intacto a página efectiva y Shopify (variante: %s)", async variant => {
+  it.each(["use-cases", "usage-steps"].flatMap(id => [false, true].map(variant => ({ id, variant }))))("$id image_only llega a página efectiva y Shopify (variante: $variant)", async ({ id, variant }) => {
+    const slot = id === "use-cases" ? "cases" : "steps";
     const baseline = (await activeComponents("owner", ["product"])).get("product")!;
     const content = { display_mode: "image_only", image_alt: "Tres usos del organizador dentro de tu rutina diaria." };
-    const pick = { source: "page_image", id: "image-1", slot: "cases" };
+    const pick = { source: "page_image", id: "image-1", slot };
     for (const available of [false, true]) {
       const images = available ? [pick] : [];
-      const rows = [...baseline, { ...baseline[0], component: "use-cases", images: variant ? [] : images,
+      const rows = [...baseline, { ...baseline[0], component: id, images: variant ? [] : images,
         content: variant ? [{ key: "default", angle_id: null, hook_id: null, content, images }] : content }];
       vi.mocked(activeComponents).mockResolvedValueOnce(new Map([["product", rows]]) as unknown as Awaited<ReturnType<typeof activeComponents>>);
       const prepared = await preparePublish("owner", "product");
       if (!available) expect(prepared.missing.join(" ")).toContain("elige al menos 1 imágenes");
       else {
         expect(prepared.missing).toEqual([]);
-        const component = effectivePage(prepared.input).components.find(c => c.id === "use-cases")!;
+        const component = effectivePage(prepared.input).components.find(c => c.id === id)!;
         expect(component.content).toEqual(content);
-        expect(component.images.cases).toHaveLength(1);
+        expect(component.images[slot]).toHaveLength(1);
         const files = new Map(prepared.images.map(image => [image.key, `gid://shopify/MediaImage/${image.key}`]));
         const mapped = productMetafields(prepared.input, files);
-        const value = JSON.parse(mapped.set.find(m => m.key === "use_cases")!.value);
+        const value = JSON.parse(mapped.set.find(m => m.key === id.replaceAll("-", "_"))!.value);
         expect(variant ? value[0].content : value).toEqual(content);
       }
     }

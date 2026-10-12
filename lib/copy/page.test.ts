@@ -110,13 +110,13 @@ describe("rutas de los errores de contenido", () => {
 });
 
 describe("el formulario desde el esquema", () => {
-  it("permite cambiar la presentación de usos y mantiene su contrato accesible", () => {
-    const schema = WRITTEN.find(c => c.id === "use-cases")!.content;
+  it.each([{ id: "use-cases", mode: "accordion", label: "Acordeones" }, { id: "usage-steps", mode: "steps", label: "Pasos" }])("permite cambiar la presentación de $id y mantiene su contrato accesible", ({ id, mode, label }) => {
+    const schema = WRITTEN.find(c => c.id === id)!.content;
     expect(schema.safeParse({ display_mode: "image_only", image_alt: "Tres usos del producto dentro de tu rutina diaria." }).success).toBe(true);
     expect(schema.safeParse({ display_mode: "image_only" }).success).toBe(false);
-    expect(schema.safeParse({ display_mode: "accordion" }).success).toBe(false);
+    expect(schema.safeParse({ display_mode: mode }).success).toBe(false);
     const fields = formFields(schema);
-    expect(fields.find(f => f.key === "display_mode")).toMatchObject({ kind: "choice", options: [{ value: "image_only", label: "Solo imagen" }, { value: "accordion", label: "Acordeones" }] });
+    expect(fields.find(f => f.key === "display_mode")).toMatchObject({ kind: "choice", options: [{ value: "image_only", label: "Solo imagen" }, { value: mode, label }] });
     expect(fields.find(f => f.key === "image_alt")).toMatchObject({ kind: "text", max: 500 });
   });
   const labels = (fields: FormField[]): string[] =>

@@ -22,7 +22,8 @@ import { ugcSlider } from "./ugc-slider/content";
 
 import { productIncludes } from "./product-includes/content";
 import { usageSteps } from "./usage-steps/content";
-import { isImageOnlyUseCases, useCases } from "./use-cases/content";
+import { useCases } from "./use-cases/content";
+import { imageOnlyPdpSlot } from "./_shared/pdp-content";
 import { beforeAfter } from "./before-after/content";
 import { resultsTimeline } from "./results-timeline/content";
 import { customerStories } from "./customer-stories/content";
@@ -67,7 +68,7 @@ export const componentById = (id: string) => CATALOG.find((c) => c.id === id);
 /** Requisitos del modo vigente; cambiarlo conserva las asignaciones existentes. */
 export function componentImageSlots(id: string, content?: unknown) {
   const slots = componentById(id)?.imageSlots ?? [];
-  return id === "use-cases" && isImageOnlyUseCases(content)
+  return imageOnlyPdpSlot(id, content)
     ? slots.map(slot => ({ ...slot, min: 1 }))
     : slots;
 }

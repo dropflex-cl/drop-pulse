@@ -6,6 +6,8 @@ DropFlex ayuda a comerciantes de dropshipping con pago contra entrega a llevar p
 
 El editor de Situaciones de uso llama «Presentación» al selector con «Acordeones» y «Solo imagen». En «Solo imagen», el campo «Texto alternativo» transmite el mensaje de la infografía para lectores de pantalla. Los textos anteriores se conservan al cambiar de presentación.
 
+El editor de Pasos de uso utiliza el mismo selector «Presentación», con «Pasos» y «Solo imagen». En «Solo imagen», muestra la infografía sin título, números ni tarjetas externos, conservando las instrucciones guardadas.
+
 1. **Primero lo que te toca.** Cada pantalla responde “¿qué tengo que decidir aquí?” antes que “¿qué hay aquí?”. Lo que bloquea ventas o gasta dinero va arriba; lo que avanza solo, abajo o escondido.
 2. **La IA propone, tú decides.** Todo lo generado entra como `generado` y solo cambia de estado por una acción tuya. El destello (`sparkle`) marca siempre lo que hizo la IA; nunca decora.
 3. **Decidir rápido y deshacer fácil.** Aceptar, descartar y elegir son un toque, sin diálogos de confirmación. Lo reversible se confirma con `Toast` y “Deshacer”; solo lo que cuesta dinero (apagar o subir una campaña) pide un segundo toque.

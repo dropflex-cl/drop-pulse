@@ -210,6 +210,26 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
     try { expect((await call("get_component_catalog", { product_id: product })).data.catalog.length).toBe(27); }
     finally { if (flag === undefined) delete process.env.PDP_PERSUASION_ENABLED; else process.env.PDP_PERSUASION_ENABLED = flag; }
   }, 30000);
+  it("pasos en solo imagen conserva la fila, instrucciones, fotos y variante oculta", async () => {
+    const content = componentById("usage-steps")!.examples[0];
+    const variants = [{ key: "default", angle_id: null, hook_id: null, content, images: [{ slot: "steps", source: "reference", id: reference }] },
+      { key: "alternate", angle_id: "desk", hook_id: "tidy", content, images: [{ slot: "steps", source: "reference", id: reference }] }];
+    await call("save_landing_content", { product_id: product, schema_version: "1.1", entries: [{ component: "usage-steps", content: variants, enabled: false }] });
+    const before = (await checked(db.from("page_components").select("id,enabled,content,proposal").eq("product_id", product).eq("component", "usage-steps").is("superseded_at", null).single())).data!;
+    const beforeContent = before.content ?? before.proposal;
+    const imageOnly = { ...(content as object), display_mode: "image_only", image_alt: "Cómo usar el organizador: prepara el equipo y ajusta antes de usar según el manual." };
+    await call("save_landing_content", { product_id: product, schema_version: "1.1", entries: [{ component: "usage-steps", content: beforeContent.map((variant: Record<string, unknown>) => {
+      const kept = { ...variant }; delete kept.images;
+      return { ...kept, ...(variant.key === "default" ? { content: imageOnly } : {}) };
+    }) }] });
+    const after = (await checked(db.from("page_components").select("id,enabled,content,proposal").eq("product_id", product).eq("component", "usage-steps").is("superseded_at", null).single())).data!;
+    const afterContent = after.content ?? after.proposal;
+    expect(after).toMatchObject({ id: before.id, enabled: false });
+    expect(afterContent[0]).toMatchObject({ content: imageOnly, images: beforeContent[0].images });
+    expect(afterContent[1]).toEqual(beforeContent[1]);
+    const context = await call("get_component_generation_context", { product_id: product, component: "usage-steps" });
+    expect(context.data.component).toMatchObject({ image_slots: expect.arrayContaining([expect.objectContaining({ key: "steps", min: 1 })]) });
+  });
   it("archivo nativo de ChatGPT → storage propio; renovar URL no duplica la operación", async () => {
     const bytes = await sharp({ create: { width: 1000, height: 1000, channels: 3, background: { r: 30, g: 35, b: 40 } } }).png().toBuffer();
     const download = vi.spyOn(visualMedia, "downloadVisual").mockResolvedValue(bytes);

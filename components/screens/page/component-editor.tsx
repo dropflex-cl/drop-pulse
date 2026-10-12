@@ -98,7 +98,7 @@ export function ComponentEditor({
   const slots = componentImageSlots(view.component, variant.content);
   const imageOnly = (variant.content as { display_mode?: string } | null)?.display_mode === "image_only";
   const fields = useMemo(
-    () => formFields(baseContentSchema(view.component)!).filter(field => view.component !== "use-cases"
+    () => formFields(baseContentSchema(view.component)!).filter(field => !["use-cases", "usage-steps"].includes(view.component)
       || (imageOnly ? ["display_mode", "image_alt"].includes(field.key) : field.key !== "image_alt")),
     [view.component, imageOnly],
   );

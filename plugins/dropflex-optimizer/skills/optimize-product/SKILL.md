@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; También desarrolla y guarda carruseles publicitarios solicitados. No sincroniza tiendas, configura integraciones ni lanza campañas.
-metadata: {"version": "1.7.13"}
+metadata: {"version": "1.7.14"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -82,7 +82,7 @@ Antes de entregar, llama `validate_ugc_script_timing` con `product_id`, `format`
 
 Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imágenes, creativos o UGC. Usa componentes reales y writers existentes. Consulta cada contrato antes de redactar; respeta campos protegidos y la autorización vigente del producto.
 
-En `use-cases`, si una imagen ya contiene todos los usos y sus explicaciones, usa el modo `image_only`: guarda `display_mode` e `image_alt` y conserva el archivo existente en `cases`, posición 1, de esa variante. No repitas el mensaje con un título externo, acordeones o descripciones. Sigue [la presentación de usos](references/production.md#usos-con-el-mensaje-integrado-en-la-imagen).
+En `use-cases` y `usage-steps`, si una imagen ya contiene todos los usos o instrucciones y sus explicaciones, usa el modo `image_only`: guarda `display_mode` e `image_alt` y conserva el archivo existente en `cases` o `steps`, posición 1, de esa variante. No repitas el mensaje con un título externo, acordeones, números, tarjetas o descripciones. Sigue [la presentación de usos e instrucciones](references/production.md#usos-con-el-mensaje-integrado-en-la-imagen).
 
 Si el pedido incluye un ebook de regalo, usa la skill `create-gift-ebook`: recupera el contexto y la dirección ya elegidos, infiere la paleta desde la referencia real según esa skill y prepara el PDF como regalo permanente con cada compra. No cambies el acento guardado de la PDP. Crear el PDF y conectar su entrega a pedidos son resultados distintos; no anuncies entrega automática sin un mecanismo real.
 

@@ -100,23 +100,25 @@ function visualTree(html: string, id: string) {
 }
 
 describe("contrato visual Liquid → React", () => {
-  it.each([true, false])("use-cases image_only conserva paridad y exige imagen (%s)", async available => {
-    const id = "use-cases", Preview = PREVIEWS[id];
-    const content = { ...(CATALOG.find(c => c.id === id)!.examples[0] as object), display_mode: "image_only", image_alt: "Tres momentos para incorporar el contorno en tu rutina diaria." };
-    const images = { cases: available ? ["https://example.test/infographic.webp", "https://example.test/retained.webp"] : [] };
-    const liquid = await liquidMarkup(id, content, facts, images);
-    const react = renderToStaticMarkup(<Preview content={content} facts={facts} images={images} />);
-    expect(visualTree(react, id)).toEqual(visualTree(liquid, id));
-    for (const markup of [liquid, react]) {
-      const document = parseHTML(markup).document;
-      expect(document.querySelectorAll("img")).toHaveLength(available ? 1 : 0);
-      expect(document.querySelector("details, summary")).toBeNull();
-      if (available) {
-        expect(document.querySelector("h2, p")).toBeNull();
-        expect(document.querySelector("img")?.getAttribute("alt")).toBe(content.image_alt);
-      } else expect(document.querySelector(".df-pdp-empty")).not.toBeNull();
-    }
-  });
+  for (const id of ["use-cases", "usage-steps"]) {
+    it.each([true, false])(`${id} image_only conserva paridad y exige imagen (%s)`, async available => {
+      const Preview = PREVIEWS[id], slot = id === "use-cases" ? "cases" : "steps";
+      const content = { ...(CATALOG.find(c => c.id === id)!.examples[0] as object), display_mode: "image_only", image_alt: "Tres momentos para incorporar el contorno en tu rutina diaria." };
+      const images = { [slot]: available ? ["https://example.test/infographic.webp", "https://example.test/retained.webp"] : [] };
+      const liquid = await liquidMarkup(id, content, facts, images);
+      const react = renderToStaticMarkup(<Preview content={content} facts={facts} images={images} />);
+      expect(visualTree(react, id)).toEqual(visualTree(liquid, id));
+      for (const markup of [liquid, react]) {
+        const document = parseHTML(markup).document;
+        expect(document.querySelectorAll("img")).toHaveLength(available ? 1 : 0);
+        expect(document.querySelector("details, summary")).toBeNull();
+        if (available) {
+          expect(document.querySelector("h2, p, .df-rich__number, .df-rich__card")).toBeNull();
+          expect(document.querySelector("img")?.getAttribute("alt")).toBe(content.image_alt);
+        } else expect(document.querySelector(".df-pdp-empty")).not.toBeNull();
+      }
+    });
+  }
   const ownContent = [
     { id: "review-slider", content: { items: [{ body: "Encuentro cada útil fácilmente en mi escritorio.", name: "Ana", rating: 4.5 }, { excerpt: "La rutina de trabajo ahora es mucho más simple.", name: "Luis" }] } },
     { id: "review-wall", content: { heading: "En el escritorio de cada día", items: [{ body: "Me gusta tener las herramientas a mano al trabajar.", name: "Ana" }, { body: "Aprovecho mejor el espacio en mi mesa.", name: "Luis" }] } },
