@@ -10,11 +10,11 @@
 {%- liquid
  assign key = component | replace: '-', '_' | append: '_' | append: slot
  assign index = index | default: 0
- assign media = product.metafields.dropflex[key].value
+ assign media = product.metafields.dropflex[key].value | where: 'id'
  if df_variant != blank
   assign pool_key = key | append: '_variants'
   assign selected = df_variant.media_indices[slot][index]
-  assign media = product.metafields.dropflex[pool_key].value
+  assign media = product.metafields.dropflex[pool_key].value | where: 'id'
   assign image = nil
   if selected != nil
    assign image = media[selected]

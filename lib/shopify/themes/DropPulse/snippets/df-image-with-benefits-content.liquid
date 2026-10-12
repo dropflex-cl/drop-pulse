@@ -33,8 +33,8 @@
 
   # La foto elegida en DropFlex (Publicar) → la del editor → la destacada del producto.
   assign image = product.metafields.dropflex.image_with_benefits_image.value | default: s.image
-  if df_variant.media_indices.main != nil
-    assign df_pool = product.metafields.dropflex.image_with_benefits_image_variants.value
+  if df_variant != blank and df_variant.media_indices.main != nil
+    assign df_pool = product.metafields.dropflex.image_with_benefits_image_variants.value | where: 'id'
     assign df_selected_files = '' | split: ','
     for df_index in df_variant.media_indices.main
       assign df_file = df_pool | slice: df_index, 1
@@ -45,6 +45,8 @@
   if image == blank and s.use_product_image
     assign image = product.featured_image
   endif
+
+  assign image = image.preview_image | default: image
 
   if content.benefits.size > 0
     assign source = 'metafield'

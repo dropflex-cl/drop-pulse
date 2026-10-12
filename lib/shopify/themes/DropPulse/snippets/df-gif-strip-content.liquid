@@ -32,9 +32,9 @@
   assign product = closest.product | default: product
   assign s = block.settings
   # content llega de la variante seleccionada (o del objeto legacy).
-  assign gifs = product.metafields.dropflex.gif_strip_media.value
-  if df_variant.media_indices.gifs != nil
-    assign df_pool = product.metafields.dropflex.gif_strip_media_variants.value
+  assign gifs = product.metafields.dropflex.gif_strip_media.value | where: 'id'
+  if df_variant != blank and df_variant.media_indices.gifs != nil
+    assign df_pool = product.metafields.dropflex.gif_strip_media_variants.value | where: 'id'
     assign df_selected_files = '' | split: ','
     for df_index in df_variant.media_indices.gifs
       assign df_file = df_pool | slice: df_index, 1

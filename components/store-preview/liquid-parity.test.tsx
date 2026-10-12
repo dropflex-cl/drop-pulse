@@ -38,7 +38,7 @@ engine.registerFilter("image_tag", (src: string, ...args: unknown[]) => `<img sr
 engine.registerFilter("money", (n: number) => `$${Math.round(n / 100).toLocaleString("es-CL")}`);
 engine.registerFilter("money_without_trailing_zeros", (n: number) => `$${Math.round(n / 100).toLocaleString("es-CL")}`);
 
-const media = (src: string) => ({ src, width: 800, height: 800, media_type: "image", preview_image: { src, width: 800, height: 800 } });
+const media = (src: string) => ({ id: src, src, width: 800, height: 800, media_type: "image", preview_image: { src, width: 800, height: 800 } });
 const facts: StoreFacts = {
   ...FIXTURE_FACTS, inventory: { available: true },
   productImage: "https://example.test/product.webp", productImages: ["https://example.test/product.webp"],
@@ -57,7 +57,7 @@ async function liquidMarkup(id: string, content: unknown, f: StoreFacts, images:
   };
   for (const [slot, spec] of Object.entries(SLOT_METAFIELD[id] ?? {})) {
     if (id === "gif-strip") continue;
-    const files = (images[slot] ?? []).map(src => slot === "videos" ? { sources: [{ mime_type: "video/mp4", url: src, height: 720 }] } : media(src));
+    const files = (images[slot] ?? []).map(src => slot === "videos" ? { id: src, sources: [{ mime_type: "video/mp4", url: src, height: 720 }] } : media(src));
     values[spec.key] = spec.type === "file_reference" ? files[0] : files;
   }
   const variant = { id: 1, price: f.price * 100, compare_at_price: (f.compareAt ?? 0) * 100, available: f.inventory?.available ?? true, inventory_quantity: f.inventory?.quantity ?? 100, inventory_management: f.inventory?.management ?? "shopify", inventory_policy: f.inventory?.policy ?? "deny" };

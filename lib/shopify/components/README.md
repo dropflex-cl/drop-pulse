@@ -96,3 +96,7 @@ el botón; `buy-buttons` carga el estado técnico de reseñas. El carrusel conse
 persistido por producto. Total y nota permanecen reales y se actualizan al publicar.
 La guía solo entrega su enlace en la confirmación del pedido, tras asociar un PDF real.
 Configuración y límites: [`shopify-purchase-supports`](../../../docs/shopify-purchase-supports.md).
+
+## Lectura de archivos de la PDP
+
+Los metafields `list.file_reference` de Shopify son listas de referencias, no arrays de JSON. Antes de consultar una posición, aplicar `where: 'id'` a `.value`: materializa los archivos en el mismo orden, sin elegir otros ni recuperar descartes. Los pools de variantes se materializan antes de resolver `media_indices`; una selección vacía sigue vacía. La imagen única usa `preview_image` cuando el archivo es un MediaImage. Mecanismo, casos, pasos e historias conservan el componente, espacio y posición publicados por MCP/UI; esta lectura no cambia sus contratos ni requiere regenerar imágenes.

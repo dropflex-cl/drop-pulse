@@ -64,9 +64,9 @@
   endif
 
   # ── Fotos: editor → metafield del componente → producto ──
-  assign media_files = product.metafields.dropflex.stats_with_image_images.value
-  if df_variant.media_indices.collage != nil
-    assign df_pool = product.metafields.dropflex.stats_with_image_images_variants.value
+  assign media_files = product.metafields.dropflex.stats_with_image_images.value | where: 'id'
+  if df_variant != blank and df_variant.media_indices.collage != nil
+    assign df_pool = product.metafields.dropflex.stats_with_image_images_variants.value | where: 'id'
     assign df_selected_files = '' | split: ','
     for df_index in df_variant.media_indices.collage
       assign df_file = df_pool | slice: df_index, 1

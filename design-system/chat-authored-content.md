@@ -47,3 +47,7 @@ Las tools de ingestión ya están implementadas. Guardar crea propuestas; el com
 Los avisos conservan los títulos de la tabla histórica. Los campos de datos base no guardan sobre una edición posterior: «Los datos del producto cambiaron desde tu lectura. Actualiza la página antes de guardar.»
 
 - Datos guardados desde el servicio compartido: «Contexto guardado». La etiqueta solo aparece cuando hay nombre y descripción. La navegación canónica muestra «Estrategia seleccionada» o «Revisa la estrategia en el chat», sin exigir dos ángulos si la selección válida tiene uno.
+
+## Asignaciones de imágenes vigentes
+
+En Imágenes, «Imágenes guardadas en el chat» muestra cada archivo disponible con «Asignada a:» y sus destinos actuales (nombre de componente, espacio y posición), o «Sin asignar». «Usar en» y «Usar imagen» permiten añadir un uso explícito. Una imagen usada por un componente no se presenta como pendiente de asignación. Portada y galería conservan su selección y orden independientes. Se conservan los usos en distintas variantes, descartes y secciones ocultas.
