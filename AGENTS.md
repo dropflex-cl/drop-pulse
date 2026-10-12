@@ -148,6 +148,23 @@ Español neutro con tuteo, nunca voseo ni “usted”: “Revisa”, “Elige”
 - Los argumentos de cada componente parten de la información vigente del producto y del hook elegido, y desarrollan razones distintas dentro de esa dirección. Las imágenes solicitadas responden al contexto y formato de su componente y usan la imagen base real. Los datos operativos provienen de sus fuentes reales. Mantener las variantes, imágenes omitidas, selecciones, orden, descartes y secciones ocultas; cambiar el contrato no autoriza generar, gastar créditos ni publicar.
 - Verificar el recorrido de los datos afectados: contrato descubierto por MCP → guardado o asignación → contenido efectivo → preview y payload de publicación. Regenerar con `npm run pi:contracts` y, cuando corresponda, `npm run shopify:components`; ejecutar las comprobaciones pertinentes de contratos, tema y pruebas de integración. La descripción del cambio debe indicar qué requisitos cambiaron y cómo se verificó su paridad.
 
+### Verificación obligatoria al distribuir cambios de MCP o skill
+
+**El código en `main`, el servidor desplegado, la versión distribuida de la skill y el catálogo importado por la conexión son verificaciones independientes. Una versión visible de la skill no acredita que sus tools estén disponibles. No declarar una actualización lista para usar hasta comprobar el catálogo de la conexión del cliente.**
+
+Cuando se solicite publicar o actualizar el MCP/plugin, completar estos pasos en orden:
+
+1. Verificar los commits requeridos en `main` y en `origin/main`, y comprobar que producción ejecuta el cambio. Si hay migraciones necesarias, confirmar el proyecto de destino, revisar las pendientes con un dry run y aplicarlas dentro del alcance autorizado; comprobar que no quedan pendientes requeridas. Un push o un endpoint accesible no certifican por sí solos el despliegue.
+2. Si cambió la skill, sincronizar su versión y los manifiestos, regenerar el paquete y actualizar el plugin distribuido existente. Leer de vuelta su versión, release y archivos; conservar identidad, conexión, permisos y archivos ajenos al cambio. No editar la caché instalada ni confundir el número de versión de la App con el de la skill.
+3. Comprobar que el servidor MCP anuncia las tools afectadas y sus contratos vigentes (`tools/list`). Separar esta evidencia de la del catálogo ya importado por ChatGPT.
+4. En la conexión existente de DropFlex en ChatGPT, ejecutar **Refresh tools** después del despliegue y esperar a que termine. Revisar sus detalles y confirmar por nombre y contrato/descripción cada tool nueva o modificada. No usar solo el total de herramientas como prueba. Para el cambio 1.7.0, comprobar expresamente `get_pdp_completion_report` y `get_component_generation_context`; el catálogo verificado entonces contenía 67 tools, cifra histórica que no debe fijarse como requisito futuro.
+5. Abrir una conversación nueva para cargar el catálogo actualizado y confirmar que las tools necesarias son invocables antes de iniciar el trabajo que depende de ellas. Un chat abierto puede conservar el catálogo anterior aunque la conexión ya se haya refrescado. Si no se puede comprobar una sesión nueva, indicar esa comprobación como pendiente y pedir al usuario que abra el chat; no afirmar que la conversación actual ya dispone de las tools.
+6. Registrar evidencia del commit/despliegue, migraciones requeridas, versión y release de la skill cuando cambie, catálogo importado y comprobación de la sesión nueva. Al informar el resultado, distinguir lo verificado de lo pendiente; no equiparar «comiteado», «desplegado», «skill actualizada» y «tools disponibles».
+
+Si la skill está actualizada pero faltan tools, comparar primero el catálogo anunciado por el servidor con el importado por la conexión. Si el servidor las anuncia, refrescar la conexión y cargar una sesión nueva; si tampoco las anuncia, revisar despliegue y discovery del MCP. No invocar nombres inexistentes ni iniciar escrituras o generaciones que dependan de esas tools. Actualizar el catálogo conserva los datos del comerciante y no requiere publicar productos, generar contenido, gastar créditos ni ampliar permisos.
+
+Referencia del flujo de conexión y refresco: [guía oficial de OpenAI](https://developers.openai.com/plugins/deploy/connect-chatgpt).
+
 ## Onboarding
 
 - Rutas: `/auth/create-account` (O1), `/onboarding/*` (pasos 1–4 y Listo), `SetupChecklist` en Hoy y Conexiones en Ajustes. Pasos en `components/onboarding/steps/`.
