@@ -34,6 +34,12 @@ Verificación local realizada:
 
 ## Estado de distribución
 
-Esta verificación cubre el repositorio y Supabase local. No acredita despliegue, migración en producción, actualización del plugin distribuido ni herramientas importadas por la conexión actual de ChatGPT. Las seis imágenes Sadoer de `output/imagegen/sadoer-carousel` siguen siendo archivos locales: no se regeneraron, ingirieron ni publicaron con este cambio.
+El commit `51c6b8d` está en `main` y `origin/main`. Vercel confirmó ese commit en producción con estado Ready y dominio `drop-pulse.vercel.app`; el runtime conserva `gru1::gru1`. El dry-run del proyecto Supabase `oukcswnfrzroxgwqmujf` identificó únicamente `20261219000000_ad_carousels.sql`, que se aplicó correctamente; un segundo dry-run confirmó que no quedan migraciones pendientes.
+
+El plugin existente conserva su identidad y conexión. La versión distribuida 1.7.7 tiene release `pluginrel_6acd1bb2883c8191885846f7a7cb25d1`; el readback verificó archivos y manifiestos contra la fuente. Refresh tools terminó después del despliegue y el catálogo importado de ChatGPT muestra `get_ad_carousels` y `save_ad_carousel` con sus descripciones vigentes. El servidor local respondió tools/list por ambos transportes con los contratos actuales; no se realizó una consulta HTTP OAuth independiente a tools/list de producción.
+
+Queda pendiente comprobar en una conversación nueva la invocación de la lectura nueva y el contrato `ad_carousel_card` de asignación. Este chat conserva el catálogo anterior; la versión de la skill y el refresco no acreditan que pueda invocar las tools nuevas aquí. [Evidencia de distribución](plugin-release-1.7.7.json).
+
+Las seis imágenes Sadoer de `output/imagegen/sadoer-carousel` siguen siendo archivos locales: no se regeneraron, ingirieron ni publicaron con este cambio.
 
 Antes de usarlo desde ChatGPT, seguir la verificación obligatoria de AGENTS.md: commit en main/origin/main y producción, migración con proyecto de destino confirmado y dry-run, publicación de la versión del plugin preservando identidad/conexión, `tools/list` del servidor, Refresh tools en la conexión existente y comprobación en una conversación nueva. Verificar por nombre `get_ad_carousels`, `save_ad_carousel` y el destino `ad_carousel_card`; la versión visible de la skill o el total de tools no lo certifican.

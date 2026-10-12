@@ -1,0 +1,73 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.7",
+  "release_id": "pluginrel_6acd1bb2883c8191885846f7a7cb25d1",
+  "previous_release_id": "pluginrel_6acc63c0379481918d999949d1508485",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "51c6b8d66ebc8b57a1f254bfde271a274ace42ef",
+  "checks": {
+    "main_and_origin_main_match": true,
+    "production": {
+      "status": "Ready",
+      "environment": "Production",
+      "domain": "drop-pulse.vercel.app",
+      "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/AVr2z1YK8Rru1BoibxACqQZwxUCQ",
+      "commit": "51c6b8d",
+      "verified_in": "Vercel deployment details",
+      "function_region": "gru1::gru1"
+    },
+    "database": {
+      "project_ref": "oukcswnfrzroxgwqmujf",
+      "dry_run_migrations": [
+        "20261219000000_ad_carousels.sql"
+      ],
+      "applied": true,
+      "post_apply_dry_run": {
+        "upToDate": true,
+        "migrations": []
+      }
+    },
+    "plugin": {
+      "read_back": true,
+      "changed_files_match_source": true,
+      "overlay_files": 5,
+      "files_after": 13,
+      "identity_app_connection_permissions_and_foreign_files_preserved": true
+    },
+    "server": {
+      "local_tools_list_verified": true,
+      "tools": 70,
+      "contracts_sha256": "6993de64bf470b867ce57ce2dd0bcb3081fd38d34687f79e7c9cc6226865de35",
+      "authenticated_production_tools_list_directly_checked": false,
+      "production_catalog_observed_through_client_refresh": true
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "imported_tools_verified": {
+        "get_ad_carousels": "Lee carruseles publicitarios vigentes, tarjetas ordenadas, textos, escenas y contrato real. No genera ni publica.",
+        "save_ad_carousel": "Guarda un carrusel de 2 a 10 tarjetas como una pieza publicitaria. Conserva imágenes y usos omitidos. UI y MCP editan el mismo contenido; no genera, publica ni lanza Meta Ads."
+      },
+      "existing_read_invocation": {
+        "tool": "get_visual_generation_context",
+        "ok": true,
+        "request_id": "34bf93b2-1a1f-4adf-9f15-6f25c1ff06d4"
+      },
+      "new_conversation_checked": false,
+      "current_conversation_new_tools_available": false
+    },
+    "validation": {
+      "unit_tests": 404,
+      "local_database_tests": 4,
+      "build": "passed",
+      "typecheck": "passed",
+      "scoped_lint": "passed",
+      "ui_cases": 4,
+      "wcag_findings": 0
+    }
+  },
+  "pending": [
+    "Comprobar en una conversación nueva la invocación de get_ad_carousels y el contrato ad_carousel_card de bind_visual_asset.",
+    "No se realizó tools/list por HTTP OAuth independiente en producción; el catálogo productivo se inspeccionó después de Refresh tools."
+  ],
+  "samples": "Las seis imágenes Sadoer siguen locales; sin ingestión, regeneración ni publicación Meta."
+}
