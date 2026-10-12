@@ -3,13 +3,14 @@ import { IconButton, StageList, StatusBadge, Thumb } from "@/components/df";
 import { CopyScreen } from "@/components/screens/copy";
 import { AssistantProvider } from "@/components/shell/assistant-provider";
 import { fixture } from "./fixture";
+import { previewCatalogData } from "./catalog-data";
+import { PreviewCatalog } from "./preview-catalog";
 
-// Verificación visual de la página del producto (ficha y componentes) con datos de ejemplo:
-// ?state=locked|start|writing|failed|fresh|review|stale|done|context
-// Imita el layout del producto (encabezado + ruta a la izquierda en escritorio). Las acciones llaman a
-// la API real y fallan sin datos: aquí solo importa cómo se ve.
-async function Screen({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
-  const { state = "start" } = await searchParams;
+// Sin parámetros o con ?state=done: catálogo desplegado con fixtures de todos los componentes.
+// ?state=done&view=screen y los demás estados conservan la pantalla de producto para desarrollo.
+async function Screen({ searchParams }: { searchParams: Promise<{ state?: string; view?: string }> }) {
+  const { state = "done", view } = await searchParams;
+  if (state === "done" && view !== "screen") return <PreviewCatalog {...previewCatalogData()} />;
   const data = fixture(state);
   const { product } = data;
   return (
@@ -35,7 +36,7 @@ async function Screen({ searchParams }: { searchParams: Promise<{ state?: string
   );
 }
 
-export default function Page({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ state?: string; view?: string }> }) {
   return (
     <AssistantProvider>
       <main id="contenido" className="min-h-svh">
