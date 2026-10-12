@@ -1,0 +1,93 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.0",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acc365595cc8191b6f295eb554819c1",
+  "previous_release_id": "pluginrel_6acc1f6faea48191ad157a7a63e92af6",
+  "source_commit": "6fc2220af27eac5ce77ef48f15d135930f8314ef",
+  "checks": [
+    {
+      "path": ".app.json",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": ".codex-plugin/plugin.json",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "plugin.json",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/SKILL.md",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/agents/openai.yaml",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/references/pdf-production.md",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/create-gift-ebook/scripts/build_ebook.py",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/SKILL.md",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/agents/openai.yaml",
+      "changed": false,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/references/production.md",
+      "changed": true,
+      "matches": true
+    },
+    {
+      "path": "skills/optimize-product/references/strategy-and-hooks.md",
+      "changed": false,
+      "matches": true
+    }
+  ],
+  "production": {
+    "project_ref": "oukcswnfrzroxgwqmujf",
+    "applied_migrations": [
+      {
+        "path": "supabase/migrations/20261217000000_remove_content_evidence_gates.sql",
+        "sha256": "693ad2d25a36211de0c3e13d29ca3ffc5c1d54b05a2804054ebcc48501cb8f1b"
+      },
+      {
+        "path": "supabase/migrations/20261218000000_component_generation_context.sql",
+        "sha256": "4d2039468de3606659762709b178847482b5d991ecb5ac3527899c549f93cc4e"
+      }
+    ],
+    "post_apply_dry_run": {
+      "upToDate": true,
+      "migrations": []
+    },
+    "schema_backup": "/Users/cquezada/.local/share/dropflex/backups/2026-10-11-plugin-1.7.0/public-before.sql",
+    "live_read": {
+      "tool": "get_visual_generation_context",
+      "ok": true,
+      "gallery_targets": 7,
+      "landing_component_targets": 35
+    },
+    "merchant_content_revision_unchanged": true
+  },
+  "host_installation_reloaded": false
+}

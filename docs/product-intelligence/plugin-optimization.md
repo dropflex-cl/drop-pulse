@@ -2,6 +2,14 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
+## Versión publicada · 1.7.0
+
+El plugin privado [DropFlex · Optimización](https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa) se actualizó a 1.7.0, release `pluginrel_6acc365595cc8191b6f295eb554819c1`. El push a `main` había actualizado la fuente, pero el registro del plugin seguía en 1.6.4. La actualización remota y su lectura posterior verificaron los once archivos: cambiaron ambos manifiestos, la skill y su referencia de producción; los otros siete, la conexión, identidad, presentación y audiencia permanecen iguales. [Evidencia del release](plugin-release-1.7.0.json).
+
+La versión añade `get_component_generation_context` y `get_pdp_completion_report`, argumentos propios por componente desde el hook elegido y asignación de imágenes por variante, slot y posición. Se aplicaron las migraciones `20261217000000` y `20261218000000` en el proyecto vinculado `oukcswnfrzroxgwqmujf`, con respaldo previo del esquema. La simulación posterior confirmó cero migraciones pendientes. Una lectura del MCP activo devolvió 35 destinos `landing_component` y 7 de galería, conservando la revisión del contenido del producto. Esta verificación no generó imágenes ni publicó productos de comerciantes.
+
+Una instalación o conversación abierta puede mantener el snapshot anterior. Actualiza el plugin y el catálogo de la conexión y abre un chat nuevo; el readback remoto confirma el release publicado, no la recarga del cliente. Las secciones siguientes conservan el historial de versiones anteriores.
+
 ## Motivaciones de compra y evaluación de hooks · 1.6.2
 
 La skill diagnostica situaciones concretas de compra antes de redactar: experiencia, dolor o deseo, alternativa actual y resultado buscado. No define al comprador solo por querer usar la categoría ni espera que el comerciante le recuerde investigar el dolor. Sin investigación de clientes, desarrolla hipótesis explícitas sin inventar frecuencia, validación o expresiones observadas.
