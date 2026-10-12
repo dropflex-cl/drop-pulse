@@ -79,6 +79,14 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
   const publishing = publication?.status === "publishing";
   const working = installing || publishing;
 
+  useEffect(() => { setState(initial); }, [initial]);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => { if (!busy) void productsApi.publishState(product.id).then(next => { if (active) setState(next); }, () => undefined); };
+    window.addEventListener("focus", refresh);
+    return () => { active = false; window.removeEventListener("focus", refresh); };
+  }, [product.id, busy, initial]);
+
   // Sondeo mientras Shopify procesa el tema o se publica el producto.
   useEffect(() => {
     if (!working) return;
@@ -210,7 +218,8 @@ export function PublishScreen({ product, initial }: { product: Product; initial:
         ) : (
           <p className="text-body text-muted-foreground">Tu tienda muestra solo la página del producto: la home y las colecciones llevan al último producto visitado.</p>
         )}
-        {theme.outdated ? <Notice tone="info" icon="refresh" title="Hay una versión nueva del tema" body="Se actualiza solo el código; tus cambios en el editor de Shopify se mantienen." /> : null}
+        {theme.outdated ? <Notice tone="info" icon="refresh" title="Hay cambios del tema por aplicar" body="Se actualiza solo el código; tus cambios en el editor de Shopify se mantienen." /> : null}
+        {theme.updateError ? <Notice tone="warning" icon="refresh" title="No pudimos comprobar la actualización del tema" body={theme.updateError} /> : null}
         <div className="flex flex-wrap gap-2">
           {theme.previewUrl ? (
             <Button href={theme.previewUrl} target="_blank" rel="noopener noreferrer" icon="eye">

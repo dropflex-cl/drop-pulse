@@ -23,6 +23,7 @@ import {
   type RemoteFile,
 } from "./kit";
 import { zip } from "./zip";
+import { hasThemeChanges, knownKitVersion, themeUpdateProblem } from "./kit-compatibility";
 
 export type ThemeStatus = "installing" | "preview" | "published" | "failed";
 
@@ -159,8 +160,7 @@ export async function assertLandingVariantTheme(
   if (
     !installed?.theme_gid ||
     installed.shop_domain !== conn.shop_domain ||
-    installed.status !== "published" ||
-    installed.kit_version !== kit.version
+    installed.status !== "published"
   ) {
     throw new PublishError(
       "Actualiza y publica el tema de DropFlex antes de publicar variantes por ángulo y hook.",
@@ -493,19 +493,20 @@ async function updateSettings(
 }
 
 /** Sube solo el código que cambió (y repone lo del comerciante que falte), de a 50 archivos. */
-export async function updateTheme(
+async function prepareThemeUpdate(
   conn: ShopifyConnection,
-  kit: Kit = readKit(),
-): Promise<ThemeUpdateResult> {
-  const inst = await getThemeInstallation(conn.user_id);
+  inst: ThemeInstallation,
+  kit: Kit,
+) {
   if (!inst?.theme_gid)
     throw new PublishError("Primero instala el tema de DropFlex.");
-  const plan = planUpdate(
-    kit.files,
-    await remoteFiles(conn, inst.theme_gid),
-    kitHistory,
-  );
+  if (inst.shop_domain !== conn.shop_domain)
+    throw new PublishError("Instala el tema en la tienda conectada antes de actualizarlo.");
+  const remote = await remoteFiles(conn, inst.theme_gid);
+  const plan = planUpdate(kit.files, remote, kitHistory);
   const byPath = new Map(kit.files.map((f) => [f.path, f]));
+  const problem = themeUpdateProblem(kit, inst.kit_version, remote, plan);
+  if (problem) return { plan, byPath, problem };
   const productTemplate = "templates/product.json";
   if (
     !plan.upsert.includes(productTemplate) &&
@@ -525,6 +526,26 @@ export async function updateTheme(
       plan.upsert.push(productTemplate);
     }
   }
+  // Una transición también es una escritura; no aplicarla desde un servidor anterior.
+  return { plan, byPath, problem: themeUpdateProblem(kit, inst.kit_version, remote, plan) };
+}
+
+/** La pantalla y la escritura usan el mismo plan de diferencias reales, sin aplicar cambios. */
+export async function getThemeUpdateStatus(conn: ShopifyConnection, inst: ThemeInstallation, kit: Kit = readKit()) {
+  const { plan, problem } = await prepareThemeUpdate(conn, inst, kit);
+  return { outdated: !problem && hasThemeChanges(plan), updateError: problem };
+}
+
+/** Verificar de nuevo antes de la primera mutación; una respuesta antigua de la UI no autoriza retrocesos. */
+export async function updateTheme(
+  conn: ShopifyConnection,
+  kit: Kit = readKit(),
+): Promise<ThemeUpdateResult> {
+  const inst = await getThemeInstallation(conn.user_id);
+  if (!inst?.theme_gid) throw new PublishError("Primero instala el tema de DropFlex.");
+  const { plan, byPath, problem } = await prepareThemeUpdate(conn, inst, kit);
+  if (problem) throw new PublishError(problem);
+  if (!knownKitVersion(kit, inst.kit_version)) return { upserted: 0, restored: 0, removed: 0 };
 
   // Primero el código y al final los archivos del comerciante: un template nuevo puede usar un bloque
   // que llega en esta misma actualización.

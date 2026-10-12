@@ -1,0 +1,2162 @@
+{
+  "versions": [
+    "052c33fa56",
+    "076ba84837",
+    "092d4cf066",
+    "0f68674411",
+    "117e4ac046",
+    "12342e393a",
+    "16043552cd",
+    "19c336a3ca",
+    "19dde7e7ba",
+    "245efbded4",
+    "249317a3d5",
+    "27c5c7d1b5",
+    "2937337531",
+    "2dc0ac4699",
+    "311d4e887b",
+    "35854ffc60",
+    "372fe05d87",
+    "405cf25ceb",
+    "4e0c838db4",
+    "4f6f7181ed",
+    "530ad712fe",
+    "543d8ef370",
+    "546a426dde",
+    "57e1b7042e",
+    "5bf644ea62",
+    "5c8a3b6386",
+    "6c9d696afa",
+    "7a6bfcc352",
+    "7cf556f476",
+    "7e016fd0aa",
+    "8426aaa3f7",
+    "85ae109a21",
+    "865a63ecaf",
+    "899caab73f",
+    "89eb698cc4",
+    "8e31e5e2b7",
+    "94cfda5d06",
+    "9adffaeac6",
+    "9b72b86bb5",
+    "9bc9a38332",
+    "9d7a0f126d",
+    "a10fd1956b",
+    "a7ad088b1b",
+    "aa43948962",
+    "ab002b8d61",
+    "b392934dbf",
+    "b6d9a4abfa",
+    "bcfa366d87",
+    "bf105f2360",
+    "c05da5bd18",
+    "c59c445081",
+    "c908cdd4d1",
+    "cc5a24c9fa",
+    "d04256d76a",
+    "db0a0e3742",
+    "e0d2a3e1c9",
+    "e279718eb6",
+    "e4b7966cd3",
+    "e53ede6b0c",
+    "e554157efa",
+    "e6358a8ce2",
+    "e8e4c40b69",
+    "eb9f015ea9",
+    "ecf698cae6",
+    "f06ed6fc52",
+    "f1aae22961",
+    "f4b1f58758",
+    "faaba09899",
+    "fdf8a066c6",
+    "ff4aa42d26"
+  ],
+  "codeChecksums": {
+    "assets/accordion-custom.js": [
+      "241e881e29c64e3ad23423f16b23d77a"
+    ],
+    "assets/anchored-popover.js": [
+      "4f5928a8aab6e7d8e0c992a2cab78e13"
+    ],
+    "assets/announcement-bar.js": [
+      "36e29e5d660e823c068596f03a9c23c7"
+    ],
+    "assets/auto-close-details.js": [
+      "b43336b12161ce9b1742f7907323e160"
+    ],
+    "assets/base.css": [
+      "28da65db6aee4e16fc66132753aee5be"
+    ],
+    "assets/blog-posts-list.js": [
+      "564ae49090a7cb44a94999c68ca28ff0"
+    ],
+    "assets/cart-discount.js": [
+      "cfe6d054f730dd7da929615e2d29cb43"
+    ],
+    "assets/cart-drawer.js": [
+      "21e8e08648a818130f76a78db227127a"
+    ],
+    "assets/cart-icon.js": [
+      "1939b0aff30fb84bb2b406d3fe30f1f6"
+    ],
+    "assets/cart-note.js": [
+      "83efac45cc9c26d3092899a3f004d40d"
+    ],
+    "assets/collection-links.js": [
+      "35e9f90d34fa1d1a6b98ebac278640de"
+    ],
+    "assets/comparison-slider.js": [
+      "cbad3e1ec1ead981058cd0972dd67d56"
+    ],
+    "assets/component-cart-items.js": [
+      "142e62847e7f78cd1aab3db450ae6a6a"
+    ],
+    "assets/component-cart-quantity-selector.js": [
+      "c7d753e6ac16cf3129e48ac8304945dc"
+    ],
+    "assets/component-quantity-selector.js": [
+      "ea14224c3b4c8350b116ee90d25476ea"
+    ],
+    "assets/component.js": [
+      "834feeca91801d25741cf3615ce08f68"
+    ],
+    "assets/copy-to-clipboard.js": [
+      "49f0850481d5bc7a1bc798d49825ece9"
+    ],
+    "assets/df-comparison-table.js": [
+      "1799dea3ef889a4d5c0339dc4ec26f66"
+    ],
+    "assets/df-components.css": [
+      "03289481a1ba8aba6e615baec1635e6b",
+      "0cffcd402fabc6466834665f84581bdb",
+      "1c8a594a9e8af2f8eeeedd05822dbd6f",
+      "22269a773cb2136546436cc3d71e890e",
+      "2f964b8125532a026a7d4eb7592feba8",
+      "5651a874919acd51f5e25136feb58717",
+      "8baddb704a9952f6ae6d00a8323af0ff",
+      "9a8d144c430f3f5a2b7faaf75bf8cd95",
+      "cb8081e4f079a479b68a40b6de99aad4",
+      "d9c3f4d750b539e8ed8c57ad32fc0849",
+      "ef68a761009487d245c73d4171e76731"
+    ],
+    "assets/df-downsell.js": [
+      "36694ff1f246479d59447c732ba494d1",
+      "534be60ba60bda61c2026b14c34631b9",
+      "97b54a717b9b39598f45770c3a8875dd",
+      "a7391d38b0a5c995206c67069cda9ac5"
+    ],
+    "assets/df-event.js": [
+      "018a7c78b6728bc0f52eacdc109a095b",
+      "7b45f4a7bcba5ca66bae42ea25421692",
+      "a7203a095fd736280b7f6f94ac2cbf98",
+      "f3774a61520cc7abcfcd62a531534321",
+      "f591e829a9951aa0f84192edbd4efd81"
+    ],
+    "assets/df-faq-and-text.js": [
+      "8967f7bfd49229b3254a917cff027f1d"
+    ],
+    "assets/df-gallery.js": [
+      "98de300fd3499843c50a2b43a9c0741b"
+    ],
+    "assets/df-geist-400.woff2": [
+      "34fdf7e852ee448b052ded627c7e60f0"
+    ],
+    "assets/df-geist-500.woff2": [
+      "c7f6683032a0c0721f9401d14015d3b1"
+    ],
+    "assets/df-geist-600.woff2": [
+      "7ad8a04a3bf212f6332037cc58a83c93"
+    ],
+    "assets/df-google-logo.svg": [
+      "feaa6afe599f2840408005bb5d90691a"
+    ],
+    "assets/df-google-rating.js": [
+      "20ad4ba8c378f71d8bb7a44d12d19141",
+      "865ce98f84d0e9f82c8c5c8190470320"
+    ],
+    "assets/df-insta-story.js": [
+      "0a28826a58ea20ed043d8176c4c7cf72",
+      "d6727e765ca58adfa49a5934beba7e2c"
+    ],
+    "assets/df-inventory.js": [
+      "05be596ccaacaf76108410bc633dfb2c",
+      "29c9a0ff5aef9b16ae2a965957c5cbe5",
+      "5ab3cdf3e6492b8fd8a3a07e6142c677",
+      "e9f65d39c0235adee7212ceb77bdf39e"
+    ],
+    "assets/df-motion.js": [
+      "6e3d92ec1493bc865cd2e90a3177d5c2"
+    ],
+    "assets/df-pack-offers.js": [
+      "18a1ffb9d5fbed9f86e701eb25a4df25",
+      "66157d508585597779c8678f3a165fb6",
+      "74c3b1b3beba486316ba0894234c8497",
+      "879ebccc1ff225ba41e1c078b31f7a94",
+      "ed31fd3d6ceeed20338e28bed6b6b287"
+    ],
+    "assets/df-price.js": [
+      "1fc922c8b7b324f2aeb077c631fce3fd",
+      "3867334833de329c7ee786b756bf1585",
+      "6e5cfdf722ddc899ace176e3c54e5ffb",
+      "90343223861ff92ac9aa3b787c1aba0c",
+      "f859570abda40305c409ef9759cf70e7"
+    ],
+    "assets/df-review-popup.js": [
+      "d0c958c1ce119cefc954c06edb901845"
+    ],
+    "assets/df-review-slider.js": [
+      "7c5979fb9b7338d02fe1eacd3f64beec",
+      "fc153b2455795698cfb201d9f7edff0c"
+    ],
+    "assets/df-review-stars.js": [
+      "33d189c1c854530aff163791d6f3485e",
+      "c5bc0f7c2bd4995b7bf3ba8f3578b0a0"
+    ],
+    "assets/df-review-state.js": [
+      "8d839fce1769f58cdb73de2816314b47"
+    ],
+    "assets/df-review-wall.js": [
+      "a5f15f76517f8cef9ec8dd380ebe9af6",
+      "b31d9594a17ff96822b28cba79edb6f6"
+    ],
+    "assets/df-rich-pdp.css": [
+      "e288b793dc68ebb92132fce011f69e3a"
+    ],
+    "assets/df-rich-pdp.js": [
+      "8fd7995b1ed84357d774e8bac079c075"
+    ],
+    "assets/df-scrolling-benefits.js": [
+      "91c6a380f0fd35087f2e4cc202f2d9da"
+    ],
+    "assets/df-shipping-timeline.js": [
+      "5ff369331239309fd0fc2d1bc9d68cdc",
+      "9c75c1e200f324377bf78463e7bec37a",
+      "e8f2c46d99ab900de6bad3d5644fb894",
+      "ff92067d2523f9d8c58a3192b123b680"
+    ],
+    "assets/df-slider.js": [
+      "6604cc47fd0daad3fccd5bfd25b71152",
+      "b62efb484b22fa724da7c8ff4b814c48"
+    ],
+    "assets/df-social-proof.js": [
+      "5540b89de16bba23b5a45980a9fdf9ab",
+      "655b07aad2c6bed04dca283db5286e1c"
+    ],
+    "assets/df-stats-with-image.js": [
+      "5619b714f08addfe97f9ff2939b6cbda"
+    ],
+    "assets/df-ugc-slider.js": [
+      "2aae1975146b17994c14c456bf3259a3",
+      "e4acc3e9b67900864a035e7b6d906736"
+    ],
+    "assets/dialog.js": [
+      "b435152b36e4d3b5b6ad860a3ce5b430"
+    ],
+    "assets/disclosures-summary-fit.js": [
+      "3a76c2da3062069c5b2a8f19ec9904af"
+    ],
+    "assets/drag-zoom-wrapper.js": [
+      "a66f2f57d1067174bca2b5366794f4ec"
+    ],
+    "assets/events.js": [
+      "d9c6c62859cbae376b783d532e75ecb1"
+    ],
+    "assets/facets.js": [
+      "c3d1344be3719b968b8046b70b3d1ecf"
+    ],
+    "assets/floating-panel.js": [
+      "87c74c2ebc952af8ea1f7faa1464452b"
+    ],
+    "assets/fly-to-cart.js": [
+      "3bf08b479ba8020740c5e67bd1979d2f"
+    ],
+    "assets/focus.js": [
+      "93cef08f7646c03390b98ca3fc207854"
+    ],
+    "assets/gift-card-recipient-form.js": [
+      "c58a5f84d981238595321795a34b3405"
+    ],
+    "assets/global.d.ts": [
+      "f55e53f7b77ad869fa4abb6d89a7db9e"
+    ],
+    "assets/header-actions.js": [
+      "a793bcff12ac62cd390d03c26c4f2042"
+    ],
+    "assets/header-drawer.js": [
+      "867d4e68d35fa5aed6e0f8ad22dd65c8"
+    ],
+    "assets/header-menu.js": [
+      "830ad1b4bd435dbad3bf7c2ae88e55ce"
+    ],
+    "assets/header.js": [
+      "a7653a32872c2392bd6ad7cdde49a9f7"
+    ],
+    "assets/icon-account.svg": [
+      "1e855a77e052c31df6a5d22194edf694"
+    ],
+    "assets/icon-add-to-cart.svg": [
+      "0e09f334225e6a8aa3a5e96cea7b993c"
+    ],
+    "assets/icon-arrow.svg": [
+      "831f4e75081de201a6758bd34d45fd74"
+    ],
+    "assets/icon-available.svg": [
+      "c7158f81354c551e37c5f4f9f17df493"
+    ],
+    "assets/icon-caret.svg": [
+      "5bded8e71340ce25b38d10187a977ff7"
+    ],
+    "assets/icon-cart.svg": [
+      "e1f5aa72b798185e87f3be07a94a3770"
+    ],
+    "assets/icon-checkmark-burst.svg": [
+      "9eb9d263753155260498c08644a9d433"
+    ],
+    "assets/icon-checkmark.svg": [
+      "1646af15d45cd9e5859b01d80165b143"
+    ],
+    "assets/icon-chevron-left.svg": [
+      "c472e27024b5c4d8f8bce49a7aac8209"
+    ],
+    "assets/icon-chevron-right.svg": [
+      "f1b9ea6a660c438e62a4cef28d005e5f"
+    ],
+    "assets/icon-close-menu.svg": [
+      "2e8c791303ff720186fabad601c5490d"
+    ],
+    "assets/icon-close.svg": [
+      "1b2adb1c84dfde67b215a566e2274cac"
+    ],
+    "assets/icon-delete.svg": [
+      "dde7b45b21c4c2d2819c4ff3c1cbac7d"
+    ],
+    "assets/icon-discount.svg": [
+      "ea990ccb99e936cdde646f6562de08eb"
+    ],
+    "assets/icon-double-chevron.svg": [
+      "1917a728286096d88afbb26b279c712a"
+    ],
+    "assets/icon-error.svg": [
+      "c369491713254f68872e43e7889de942"
+    ],
+    "assets/icon-external.svg": [
+      "19e2558780266d6637429939c302a4ae"
+    ],
+    "assets/icon-filter.svg": [
+      "bea699b5cbc47b72d1537ace7cfae340"
+    ],
+    "assets/icon-filters-close.svg": [
+      "080e74e8f59a8e5bd14d39863fb75492"
+    ],
+    "assets/icon-grid-default.svg": [
+      "0eb7421c035185e6fbf333e245091a57"
+    ],
+    "assets/icon-grid-dense.svg": [
+      "203697fbe7b0c0b48ab82db1bf20bb84"
+    ],
+    "assets/icon-info.svg": [
+      "4c82e1dca7c2992fabe83f2b04e7e17a"
+    ],
+    "assets/icon-inventory.svg": [
+      "7ed9c605d7cfe070e8782c71bdc96ae2"
+    ],
+    "assets/icon-menu.svg": [
+      "d331a711063220dbe768034c39a0f6a3"
+    ],
+    "assets/icon-minus.svg": [
+      "a3f8d7735085ca1a83f087e76121717b"
+    ],
+    "assets/icon-one-col-mobile.svg": [
+      "9cc1c4909945839b8bed088bc67d8e41"
+    ],
+    "assets/icon-orders.svg": [
+      "5f86dad381b83b9f8afbbcccdb065774"
+    ],
+    "assets/icon-pause.svg": [
+      "fd8cf8622cf673bd1303a8bd1976c589"
+    ],
+    "assets/icon-play.svg": [
+      "2d5bc5f773c5dddad854c04f8156c98a"
+    ],
+    "assets/icon-plus.svg": [
+      "b3bae609a9c0ff912f741df742b15ee5"
+    ],
+    "assets/icon-reset.svg": [
+      "6cd93f497a974fb225c2456a285a0c55"
+    ],
+    "assets/icon-search.svg": [
+      "8ab51bfda98c32759048d3160a266ec7"
+    ],
+    "assets/icon-shopify.svg": [
+      "5a15cd438f2fd1b20b28cd68f830fc65"
+    ],
+    "assets/icon-unavailable.svg": [
+      "03eba9e012e44e212c7703d07bbda6a3"
+    ],
+    "assets/icon-warning.svg": [
+      "ef29d51730e2cdf32c1e3e0d02437084"
+    ],
+    "assets/jsconfig.json": [
+      "450c4f13d26ea64c467b526969fe0a90"
+    ],
+    "assets/jumbo-text.js": [
+      "ee78e17089874e28bb475faba9ece982"
+    ],
+    "assets/layered-slideshow.js": [
+      "82e74c5aea054fc0549dd3c54f56f00c"
+    ],
+    "assets/local-pickup.js": [
+      "07c4dac1d4fe9a3657c419c2c2c950f8"
+    ],
+    "assets/localization.js": [
+      "5585ad12a777858f7fa584b3e95d9c79"
+    ],
+    "assets/marquee.js": [
+      "f877892dbd228aefa281f07ff8ab6d59"
+    ],
+    "assets/media-gallery.js": [
+      "3e432f478f1776a606fc57fb2197017e"
+    ],
+    "assets/media.js": [
+      "9fd65e7acccc9dd15820811a8e63ff06"
+    ],
+    "assets/money-formatting.js": [
+      "a9c1d3504564a192ed1200ba196728c4"
+    ],
+    "assets/morph.js": [
+      "6ee063fb6beeb3f6a1cd8efe82d71a83"
+    ],
+    "assets/overflow-list.css": [
+      "1cf842b1ac615414465b03cef1b4ab61"
+    ],
+    "assets/overflow-list.js": [
+      "54f56aefcf501e7e103ad2414a0458bc"
+    ],
+    "assets/package.json": [
+      "d0707362e90f00edd12435e9d3b9d71c"
+    ],
+    "assets/page-view-event.js": [
+      "5b2509093afc663c28929110b728a78c"
+    ],
+    "assets/paginated-list-aspect-ratio.js": [
+      "da60f1118ea83c20921660241f1e2a67"
+    ],
+    "assets/paginated-list.js": [
+      "1be3498d4d84a917732a9126c39921a2"
+    ],
+    "assets/performance.js": [
+      "713cb2de96983008f8a722cef196a656"
+    ],
+    "assets/popover-polyfill.js": [
+      "260275a9bc513a0b076d6644adff5e51"
+    ],
+    "assets/predictive-search.js": [
+      "e3f7ad0bbbee13d649365eaf95cdf3c8"
+    ],
+    "assets/price-per-item.js": [
+      "463d305db1ae9616defd6ae073bf11b4"
+    ],
+    "assets/product-card.js": [
+      "491507d09fb6cb7431c4eb25cd9626f6"
+    ],
+    "assets/product-custom-property.js": [
+      "03ac05d7b3f0483956dabaf9569c3f9f"
+    ],
+    "assets/product-form.js": [
+      "f68671e1d3000bdbc4bb960f52e84a14"
+    ],
+    "assets/product-hotspot.js": [
+      "6f8aa1b7fffbbb43563e406a80e594fb"
+    ],
+    "assets/product-inventory.js": [
+      "523618fbff60bcd61af7e60841522632"
+    ],
+    "assets/product-price.js": [
+      "a321eacdcd059957c851ab7735cf0f24"
+    ],
+    "assets/product-recommendations.js": [
+      "76700c518b031c12eed747379efdcfdd"
+    ],
+    "assets/product-sku.js": [
+      "ca1a72c536af41e484b3608e1c2d489f"
+    ],
+    "assets/qr-code-generator.js": [
+      "7f2a1555f006ebdc3a240d5a8d3eb6a3"
+    ],
+    "assets/qr-code-image.js": [
+      "c85630daefa5fdd4f76cb0fabb2834b8"
+    ],
+    "assets/quick-add.js": [
+      "cdf460690955e8da4ffc72583965b0a8"
+    ],
+    "assets/quick-order-list.js": [
+      "fc46c898a795b3b47e3442d6a2b43d2c"
+    ],
+    "assets/recently-viewed-products.js": [
+      "c9b3d78dee56c21afcf4e71a38d6fce4"
+    ],
+    "assets/results-list.js": [
+      "eaab45b0ec0b2ce69a3c9ad5473bdff1"
+    ],
+    "assets/rte-formatter.js": [
+      "311f4bdf60b5f14da1576286f901b9e8"
+    ],
+    "assets/scroll-container.js": [
+      "fa951fb4ce116d3de82ed40ea26c213c"
+    ],
+    "assets/scrolling.js": [
+      "01c6f3773a37753244c8aabcf4511ccb"
+    ],
+    "assets/search-page-input.js": [
+      "c3230e0c9e844cdb49c2478b41d870c3"
+    ],
+    "assets/section-hydration.js": [
+      "84579a04e279c719e83ee93e3843ffb3"
+    ],
+    "assets/section-renderer.js": [
+      "977392399ccc950464f8d3c616243475"
+    ],
+    "assets/show-more.js": [
+      "24aa393a67d6d6f950b12dd92a857556"
+    ],
+    "assets/slideshow.js": [
+      "4df345c62dd7496bec67b4ec6cd45917"
+    ],
+    "assets/standard-actions-override.js": [
+      "c522fac7904268366e0ae5a6eb2edf57"
+    ],
+    "assets/standard-actions.d.ts": [
+      "90672b378531a71714ecc9174224c6dd"
+    ],
+    "assets/standard-events.d.ts": [
+      "8f96fbf3ba80773a84f5efb93f7b2633"
+    ],
+    "assets/sticky-add-to-cart.js": [
+      "2a3db0e52eb2187ec266e6329255729c"
+    ],
+    "assets/template-giftcard.css": [
+      "9f78487cab736097f5836ee99ff5ef33"
+    ],
+    "assets/theme-drawer.js": [
+      "de56cec70a25809f1f492efafca95146"
+    ],
+    "assets/theme-editor.js": [
+      "fbfb2ceba38667676a5dd4f61475f4b1"
+    ],
+    "assets/utilities.js": [
+      "254a9349079832ba23468263d45d2b5b"
+    ],
+    "assets/variant-picker.js": [
+      "3afe3d34b4fbaf687c7d81fb9ba45bb1"
+    ],
+    "assets/variant-resolution.js": [
+      "c9bf75826bde2ea4a97cecdce469f50a"
+    ],
+    "assets/video-background.js": [
+      "f307b002b76a76fe544bae5eb479f07b"
+    ],
+    "assets/view-event-elements.d.ts": [
+      "4ef622955559a78a7a23ae7f57415d87"
+    ],
+    "assets/view-event-elements.js": [
+      "8ff82cbd34993d786143f41c53b51005"
+    ],
+    "assets/view-transitions.js": [
+      "23c26263985a726a136f02255ec3422c"
+    ],
+    "assets/volume-pricing-info.js": [
+      "77834a0dcf407a5b64659e799481cb0b"
+    ],
+    "assets/volume-pricing.js": [
+      "d7a310b5d1380edc88020562eeb0422e"
+    ],
+    "assets/zoom-dialog.js": [
+      "b5a8867b3e888dd548323ff5857d03ae"
+    ],
+    "blocks/_accordion-row.liquid": [
+      "4a8f09cbd0dc4bdd3be155c863dd91d6"
+    ],
+    "blocks/_announcement.liquid": [
+      "8b60b517f7a7a045a07adac365d188c8"
+    ],
+    "blocks/_blog-post-card.liquid": [
+      "59b0516efab712920faa1d5bac3288bc"
+    ],
+    "blocks/_blog-post-content.liquid": [
+      "d9ea1595c9be59ef41c9828afc85ed87"
+    ],
+    "blocks/_blog-post-description.liquid": [
+      "89dc3b465391f3ee3a5b6b79bb1f15c2"
+    ],
+    "blocks/_blog-post-featured-image.liquid": [
+      "f68212f2b1a9a110d56a54083f773103"
+    ],
+    "blocks/_blog-post-image.liquid": [
+      "f67242f61c9d9b0fa2614b8167bcc41f"
+    ],
+    "blocks/_blog-post-info-text.liquid": [
+      "6a10cb1bdaeff7c8b7f08241b2c867fd"
+    ],
+    "blocks/_blog-post-title.liquid": [
+      "50ea04b4d43f9adf990cf9d5fa31902f"
+    ],
+    "blocks/_card.liquid": [
+      "352839a31d80aa191ca9daf8d6e83f4d"
+    ],
+    "blocks/_carousel-content.liquid": [
+      "5a86d1f196ee545c3d6a2dea90dc2675"
+    ],
+    "blocks/_cart-products.liquid": [
+      "b2391450c7acd9076a9dc1db6244c3f7"
+    ],
+    "blocks/_cart-summary.liquid": [
+      "d935a70e4dfa4ccc8fdd6401c2c47b06"
+    ],
+    "blocks/_cart-title.liquid": [
+      "37863233c3ae914951eaa4793a1b29e2"
+    ],
+    "blocks/_collection-card-image.liquid": [
+      "7191a02692c1f6ab6680a65c795ca1ad"
+    ],
+    "blocks/_collection-card.liquid": [
+      "14a104207b4810037b7eab3d24dfb328"
+    ],
+    "blocks/_collection-image.liquid": [
+      "c387423c09bd5a316d79db972e40b143"
+    ],
+    "blocks/_collection-info.liquid": [
+      "e1e34784756e9bbda3115a1a9ac4452a"
+    ],
+    "blocks/_collection-link.liquid": [
+      "52299082f7964a52b46ec29ee9dea61d"
+    ],
+    "blocks/_content-without-appearance.liquid": [
+      "52e3b60842cf827924116a94cdcbca4b"
+    ],
+    "blocks/_content.liquid": [
+      "a9df8fa4ac87b1c95499ae4cf90575ba"
+    ],
+    "blocks/_divider.liquid": [
+      "d5fcfa7610089a201a106caaf5fa3c4d"
+    ],
+    "blocks/_featured-blog-posts-card.liquid": [
+      "f389ef729c92af1587890b2ed3c3dfc7"
+    ],
+    "blocks/_featured-blog-posts-image.liquid": [
+      "e1a7d3be7c21a4fcc8cab9eaeb1d88d1"
+    ],
+    "blocks/_featured-blog-posts-title.liquid": [
+      "f39c9da1469378d579d10c03b343065c"
+    ],
+    "blocks/_featured-product-gallery.liquid": [
+      "f196eeda6503f58b6d07104b14efef76"
+    ],
+    "blocks/_featured-product-information-carousel.liquid": [
+      "27c8cce89e521ee5ae9bd3b955474bc7"
+    ],
+    "blocks/_featured-product-price.liquid": [
+      "c6b07b71d3ae915ca8b960297e3f5243"
+    ],
+    "blocks/_featured-product.liquid": [
+      "46038938ca370446b159d1c9b7ad0036"
+    ],
+    "blocks/_footer-social-icons.liquid": [
+      "6783574d4a2754761aefe441de798636"
+    ],
+    "blocks/_header-logo.liquid": [
+      "017e800f0bfe3db4d71af680123f9edb",
+      "087d7b2d5657ea4633f94de705904c6d",
+      "30a3a5b81e13ed7aa96eb40792e34442",
+      "db94fa860cb64a2e634069ec9f650796"
+    ],
+    "blocks/_header-menu.liquid": [
+      "014383a57535bbb403981967a7e85f72"
+    ],
+    "blocks/_heading.liquid": [
+      "e0ed1ca47ddb883f99ba31db24e89a54"
+    ],
+    "blocks/_hotspot-product.liquid": [
+      "9fed39152e2d2efc79198eef44a50bf2"
+    ],
+    "blocks/_image.liquid": [
+      "7fcf25e23c348583f17dd2c3137ac31c"
+    ],
+    "blocks/_inline-collection-title.liquid": [
+      "137fc70a372347de14a03baab375b72f"
+    ],
+    "blocks/_inline-text.liquid": [
+      "3b4f4bf7d4325c4727660ab9d3f89298"
+    ],
+    "blocks/_layered-slide.liquid": [
+      "0d890c43ddedf469ac85a6cb9078ae3a"
+    ],
+    "blocks/_marquee.liquid": [
+      "e7a57b298208278e91e07a61ec0a5c8d"
+    ],
+    "blocks/_media-without-appearance.liquid": [
+      "d38911df7ab2caf00a884614b735b7dd"
+    ],
+    "blocks/_product-card-gallery.liquid": [
+      "76c95ce9edb7f4c54cc7ae119474137b"
+    ],
+    "blocks/_product-card-group.liquid": [
+      "092d12f0142ade58319e35ba2dca870c"
+    ],
+    "blocks/_product-card.liquid": [
+      "259da138b00f7110fefdc4063c98fa93"
+    ],
+    "blocks/_product-details.liquid": [
+      "d10b317cd8b98bffaccb79290e7b53c2"
+    ],
+    "blocks/_product-list-button.liquid": [
+      "028d3c15e79bd16f7f1ab3e2292fd3da"
+    ],
+    "blocks/_product-list-content.liquid": [
+      "cb7a57506ac05cceec7b5b9b1f1d2e6a"
+    ],
+    "blocks/_product-list-text.liquid": [
+      "4dcf2fb8c38d3c65e7ca085539742ec6"
+    ],
+    "blocks/_product-media-gallery.liquid": [
+      "32b2bfa676665da95bf53afe6138e049",
+      "9688f2f7f2a2cfc9c2e5eff05a2409de"
+    ],
+    "blocks/_search-input.liquid": [
+      "d76facbaeb1188dd1203429a31b5e413"
+    ],
+    "blocks/_slide.liquid": [
+      "903e196872d5e781201f11e07203ce0d"
+    ],
+    "blocks/_social-link.liquid": [
+      "c8a1fb6f19cddeb0f37cda2c0c0db0fa"
+    ],
+    "blocks/accelerated-checkout.liquid": [
+      "5cf129008c5d52b7d41356cb55b3e6bb"
+    ],
+    "blocks/accordion.liquid": [
+      "6f214e55135f307e75ca79928fb16cfe"
+    ],
+    "blocks/add-to-cart.liquid": [
+      "53a64fd12a773a61b1d5da92a10249a4"
+    ],
+    "blocks/button.liquid": [
+      "0b20126e4fa7e0d53793056c5abbc91c"
+    ],
+    "blocks/buy-buttons.liquid": [
+      "535ded58b508e9e8d6e07ff32b81d183",
+      "b2ab6a45ba4a3bf716eef2b1bcac878b",
+      "b40bb8d01fd02dd3e2e84d4155895eed",
+      "f97aac72aa13471e9ab05496e71572dc"
+    ],
+    "blocks/collection-card.liquid": [
+      "8bcdb32f5ea5e8228bbd974949bf40a9"
+    ],
+    "blocks/collection-title.liquid": [
+      "d2feba1f80b1d37b04f7ee9b633f07aa"
+    ],
+    "blocks/comparison-slider.liquid": [
+      "095042084624085b58503617d3f7507f"
+    ],
+    "blocks/contact-form-submit-button.liquid": [
+      "83c9d43ccbc38ccc680315a8e9a40cd5"
+    ],
+    "blocks/contact-form.liquid": [
+      "18bbe608ef37e81b582a2c43607ec2c6"
+    ],
+    "blocks/custom-liquid.liquid": [
+      "ff3549a1c3293462c357c788b1d9fb6a"
+    ],
+    "blocks/df-benefit-double-box.liquid": [
+      "17ac66a99c4acf83fa567055eaaafcfd",
+      "220127e2df09641afc55a646c0fb5b57",
+      "22c5e20d1b0549db0808ac900835e30f",
+      "38a6e95afdd459589bf3982892360a34",
+      "768e4c4e1c03cb648a2dc392a580391b",
+      "82e9ed5df363ebe90ef3d4ff80481f92",
+      "904d25ed035cc442247dd9a4b49242e2",
+      "c9ec9477cf0c0616e4edcf90d9421def",
+      "efb3967e22710b68b4e6bca40fbd7e4e",
+      "fb7105e9278ab0f47a49b0c2c8d5dd0d"
+    ],
+    "blocks/df-benefit-usps.liquid": [
+      "3155b3e769b71cf4a4aff02aa5e5c723",
+      "72c16804f57ecbf7cefd93b8b479d762",
+      "77f01f1308dfd96723f81e55e5bd4f36",
+      "7da29c9aab89e4e43482d9f1be399f2a",
+      "a89707a49cbfd6e7ba6316d98f562b8c",
+      "abd80f197517fb8314c8798e34590be1"
+    ],
+    "blocks/df-event-badges.liquid": [
+      "7b9c5dc574d9dee429ec0e38aa49c3d1"
+    ],
+    "blocks/df-gallery-benefits.liquid": [
+      "9f07e1cbbc1acdcc8678325a706e6a31"
+    ],
+    "blocks/df-gif-strip.liquid": [
+      "6ca089f2ec0b9191afefc34388cd2a91",
+      "ad75fb2b51c35ef8ec56de00fcdccce2",
+      "bd501d5d71702097a9f9727e1cc64a09",
+      "bda281aafa3a7f4d396772adc3ed1aca",
+      "c716885864c7a911f8414976e610e956",
+      "d43e3357d8fe24462c82b961e8755699"
+    ],
+    "blocks/df-google-rating.liquid": [
+      "02e7a532f4b32615601985d26f9539ff"
+    ],
+    "blocks/df-hype-badge.liquid": [
+      "2247dc135ee3fd024bd6c1184212c4dc",
+      "91021bb9b54ad17537c4f22c5326e2fc",
+      "92b939ba28c6c68c4fb8e8a20726e6d7",
+      "c27c102270d1839f5b131838d981a0a4",
+      "ed9335c34679bfaa450f961c9c0af5b0"
+    ],
+    "blocks/df-inventory.liquid": [
+      "0779835605e1a9dbc26ab0aac4aff8d7",
+      "2e123ac6e77058b589ead3f8076e0a5f",
+      "452a9f982e63c7dfd7675e04bfe03f8a",
+      "513451b5f4f780cc93dd6e5fabf809cc",
+      "6144cc746c7e4815452e8ac80e769485",
+      "6ac42ddb5d911104e685f7bd0b4e48c1",
+      "a8803a916c055fc718b826e0d64aba56",
+      "b62081b213f058ac26b253a6ce196d35",
+      "b643a71c090527aaafa2a991ebb2c6ea",
+      "d27abef7e141701ae12c249105f8bb54",
+      "de3046b55b4d7374820b13382bdb5dd3",
+      "eccbc12f4dd73a32f668df693d703cb7"
+    ],
+    "blocks/df-pack-offers.liquid": [
+      "0984544d22c5b120300a357e72b653d4",
+      "252c0ecd3e293ed8c872bf998c86ab6e",
+      "39204ef13d0e2d230b5b2ea954eeb36d",
+      "3bbcfbab540e76b3024b1bd4b8bad5df",
+      "47371e536b7c7496a73e6a76c9017fce",
+      "57250279a925dacc04ceed995b7c9e38",
+      "c2c0a8592bf19319e5f146c23c1eeda9",
+      "ccc40aad94200d8652859d5da6fd8512",
+      "e5a7866ef43e00fa185f4f6eb36fcdaf"
+    ],
+    "blocks/df-price.liquid": [
+      "1bf83d364ca06d0ea96ba0f2d997693a",
+      "32da96901d85d4707c30e4504bc05156",
+      "5a82e3b78b61253277530533a474ff36",
+      "c498e56d6c685266a51b6881fd340d5d",
+      "d2698bd43b372f2c4d13b0367bcbbb65"
+    ],
+    "blocks/df-review-slider.liquid": [
+      "08c945d90f65fb2b0aa99dd9f6f8d490",
+      "2bd9d42d6939afa605d13a18534c9832",
+      "33797b1c339d6338732ec542bfd51071",
+      "3b03d875ee5f0b74d32cdc488cbc2d9b",
+      "3bd2968913b00d471a1ce7364e4e57ce",
+      "3cf4498d05d285e882ff72111bc1b6d8",
+      "555ac61be092352c46083115c447ba0b",
+      "58c0046c27173b8a554eaaafcddd9d76",
+      "58f36accc38e6feff3637d8a86aa7286",
+      "8bc67365531bf12a1522acbc7202767c",
+      "96151ac9e889f8263294feb765d2daca",
+      "9c94b30a6b7d7b468d7cdcdbbdd61795",
+      "b8ffae1c920b39ce178ed04b8ec0b57b",
+      "f86f3dd40a0eb32b261d7f4030ffd6ea"
+    ],
+    "blocks/df-review-stars.liquid": [
+      "0643b46e741cabdc5647721925347268",
+      "12ea7015bbab7c8c8ccb0277ea34f544",
+      "27f7a67a4cc3fc8a0c476cdc74f0bf23",
+      "3d8716934cf917e69cbfe365ee0f5879",
+      "46212034a90ebe0920fa76104a25a50a",
+      "4b38bebea46e44c9de56b8adea504682",
+      "4f50605a59d9060ddba2864a3994a0d6",
+      "52359f9ad0df0010a9e30732ecd5e7ab",
+      "5c5233500d80b7692361726f35163939",
+      "6312f71170f3cefc03a7f8cf009d17c6",
+      "6af30ff1ece97b91688d903ded0280c9",
+      "701e72efc7d17dc2ba86385c249fae11",
+      "c9670f795c70aab08ff02a601f0f1772",
+      "e60edf40fc52d4213a1b8be5f5d59df4"
+    ],
+    "blocks/df-shipping-timeline.liquid": [
+      "0ab41631c8ed43737c802f30c35ac4a1",
+      "162a682c6214dc560012477db6dc4a9d",
+      "18ac9152831e9f37df9aa88c5ecc05b0",
+      "36852428df8ab948fc9f676ea28a68d5",
+      "56fcad02844c6a52c545ad22e0523995",
+      "76d34436f44eaa14aaeea5a0e3d264f6",
+      "87557332cef6e50cbe36381255ec887b",
+      "a2959660158f3f257e2c775792b6ba75",
+      "b85bda98128358086ddd54797841ba1d",
+      "bbbb368b444ab5d8371068446cc4d848",
+      "f34576ec2c09bcc2729b73a65b862126",
+      "f83562eeb3bafd15bf72c9bf60521746"
+    ],
+    "blocks/df-social-badge.liquid": [
+      "5c92fa7cca24904e2564c57790adb9fa"
+    ],
+    "blocks/df-social-proof.liquid": [
+      "0df67bf52a25bc13e39174223e60a78f",
+      "1fafb066b8570945dab21933d93bb424",
+      "9d9d8f50fb58277f9e9195d74a93f3d9",
+      "9f80c30bcabbe7936c3a92930328954c",
+      "dd2ca1e7dd28ef047459322d72b54753",
+      "ea541d0a88b8209ecd8291271ffe557b"
+    ],
+    "blocks/df-subtitle.liquid": [
+      "5460cc3d2781a8f82c3662361310e476",
+      "5efc605c9febee19e63d68884c063782",
+      "c5a79022fcb4ef6a63fa7fca1d21db42",
+      "e1d4e16f3f93682dd6bb694724e1bce2"
+    ],
+    "blocks/df-title.liquid": [
+      "05a794039266dde9a57d139cd5934eb1",
+      "3685f3d5c4c42fcf1636ede370807a5b"
+    ],
+    "blocks/df-trust-note.liquid": [
+      "29e135f33aab81de6e3969a758b55f3b",
+      "ef709673e7f9ae8553d805a0179fe0cf"
+    ],
+    "blocks/df-ugc-slider.liquid": [
+      "21f67a207f14f3fc7eab723bc0204c0a",
+      "659b49463eae7a9635b1c0eac6c917ba",
+      "76a7c1cdc3a6958bda2740f1066be082",
+      "78abaabb0cc79274162ea057fa5006d7",
+      "7c6469586f152d17d996b5dfbb515887",
+      "895a10aa924dab92fc0e4569a510fa48",
+      "961ff432795c1928b9105e63008c6fbd",
+      "cc9ee605e55e4c938b00d8de17b61be9",
+      "eca159bdb8bfc06e1b9c0ae3873bf435",
+      "fe6b07c60204d69472152ebcc6598f8a"
+    ],
+    "blocks/disclosures.liquid": [
+      "401b1fbf731eea8fa99ed884ef6cc53f"
+    ],
+    "blocks/email-signup.liquid": [
+      "9487cfee2c1a75cf8a7747825244c698"
+    ],
+    "blocks/featured-collection.liquid": [
+      "9f74a2a84a9ea3105b7cec356a69b978"
+    ],
+    "blocks/filters.liquid": [
+      "8e567edf719853a45609210392af0d95"
+    ],
+    "blocks/follow-on-shop.liquid": [
+      "4b98f8847161b49e85d8fd1fb6af0492"
+    ],
+    "blocks/footer-copyright.liquid": [
+      "6a5808cc8d090504b5b0a7fd49ff72b1"
+    ],
+    "blocks/footer-policy-list.liquid": [
+      "3e41ad562680ab86a65215fd5d45db59"
+    ],
+    "blocks/group.liquid": [
+      "9811078921b6cb998eef7bdac4616f73"
+    ],
+    "blocks/icon.liquid": [
+      "36c242987b848b2337cc90f55d43cdc2"
+    ],
+    "blocks/image.liquid": [
+      "fa72014a14447f9f3cc2484f85137d34"
+    ],
+    "blocks/jumbo-text.liquid": [
+      "e0b691db85dc7324dce0516859fa0b53"
+    ],
+    "blocks/logo.liquid": [
+      "5f431c05ac0de1fa45cf4fcd0c73010f"
+    ],
+    "blocks/menu.liquid": [
+      "611585fbed0a372d8f382517ea1e363d"
+    ],
+    "blocks/page-content.liquid": [
+      "2891c6251675e12da2355e317360060c"
+    ],
+    "blocks/page.liquid": [
+      "f109d6a6886187ce5f7967fc0c48dae6"
+    ],
+    "blocks/payment-icons.liquid": [
+      "71f7796625a70b143a18090911120419"
+    ],
+    "blocks/popup-link.liquid": [
+      "116b96deaf6d49772454918d17c9eb19"
+    ],
+    "blocks/price.liquid": [
+      "54c90df3fd6ada0289b51f0b18f4eb98"
+    ],
+    "blocks/product-card.liquid": [
+      "7b76a8dc41f863fb01f68d1552644ee2"
+    ],
+    "blocks/product-custom-property.liquid": [
+      "79e83d9a9413123854a9f3a21976621e"
+    ],
+    "blocks/product-description.liquid": [
+      "30c8ec9b147be0cc1d10d2d6dd3ecc3a"
+    ],
+    "blocks/product-inventory.liquid": [
+      "696781184c1602ebd95e3734037fc942"
+    ],
+    "blocks/product-recommendations.liquid": [
+      "e18908a63084db699b3a9d21c2aefe5c"
+    ],
+    "blocks/product-title.liquid": [
+      "cd223cddea37961335ca8b614a8f406e"
+    ],
+    "blocks/quantity.liquid": [
+      "728bfd581d02959f964c13a407835787"
+    ],
+    "blocks/review.liquid": [
+      "56ca62842e99e75ee843ae40986c4370"
+    ],
+    "blocks/sku.liquid": [
+      "291e1ac4a38e0c14a80b55e28746c94b"
+    ],
+    "blocks/social-links.liquid": [
+      "86742abe84d26799261aed39d9e0ba90"
+    ],
+    "blocks/spacer.liquid": [
+      "4ae59ec43e21e73c769b0b366417a8ba"
+    ],
+    "blocks/swatches.liquid": [
+      "645fd45ced58ac9cd19ed9d93d9a3ad9"
+    ],
+    "blocks/text.liquid": [
+      "8de85933da7e65b4e328086e95f153de"
+    ],
+    "blocks/variant-picker.liquid": [
+      "7cfee3eb533f010f576ed529008ab2c6"
+    ],
+    "blocks/video.liquid": [
+      "2a59a7bf4607144d3e6f95f3e2e79f58"
+    ],
+    "config/settings_schema.json": [
+      "0c8f19f013442b957fa03d37a3216dc1",
+      "31f960ec0e84c2723671df741b361f79",
+      "460efd6df1fd95aa2a7152ec0cba1b99",
+      "53543af4cc327461a1e11ce37938fb59",
+      "60a590340a897cd097ad0e88487fa2b3",
+      "81bc33db2d06eeb902ba13d10f937ae5",
+      "a75aed12b390106b354e01a90f8b64f2",
+      "be89ed9fca2171c6adb17c8d59a7ab7b",
+      "d561cb5c9061482e27396ade26fc581b",
+      "dc60885b30959f5b2e228c6ca7e65617",
+      "ea25e939b21cd23097e5ac1230e776c3"
+    ],
+    "layout/password.liquid": [
+      "d3f5d7be88a15862654d821d7a84efd7"
+    ],
+    "layout/theme.liquid": [
+      "00c8171bf7046ca93dacaa0254a2ea34",
+      "1f952692c4c5f86e04c4ec6e86339d9c",
+      "70d2d0750ed0088152efff591efcf2e4",
+      "7436f195e74064b7db6bb905032649f0",
+      "947ba131bc2ce02b49e60d4e79e4959f",
+      "a0e7b759ad8e760cac04f6a62e8d351d",
+      "b597165a19f51affa24f13cfe42a0cdd",
+      "c3050df21b66190432d5709d2c9c3218",
+      "d72b024f04e59d96ee6ff346fa8278fd"
+    ],
+    "locales/ar.json": [
+      "edb1a06d592e34044ba30aa707fe4a56"
+    ],
+    "locales/ar.schema.json": [
+      "bce7d6bbae72b5fe06f3ffd42d556fbb"
+    ],
+    "locales/bg.json": [
+      "f15482b7deb42e943eba0d4a0b22007c"
+    ],
+    "locales/cs.json": [
+      "83047c728a0cf9ba1cf2d500048e2cf8"
+    ],
+    "locales/cs.schema.json": [
+      "f6071045908fb7583c2547d6f758673d"
+    ],
+    "locales/da.json": [
+      "ff349d8b34a3029e3d771c4d439c7867"
+    ],
+    "locales/da.schema.json": [
+      "86aaf279374ecadd3d82257850e86dab"
+    ],
+    "locales/de.json": [
+      "b8b92d4e05436c48b62dcf92c1f1adef"
+    ],
+    "locales/de.schema.json": [
+      "8bc9312496c27789d3901b1718ac70c0"
+    ],
+    "locales/el.json": [
+      "d855f3a3fda0eeeeba6b1beee5fcf70d"
+    ],
+    "locales/en.default.json": [
+      "72bb9d0cec3bf3243c43c166f31def59"
+    ],
+    "locales/en.default.schema.json": [
+      "be91ef0ad61a37647a4a928ff48e9b6b"
+    ],
+    "locales/es.json": [
+      "b37d56b93db75ad5aba9e75ada513153"
+    ],
+    "locales/es.schema.json": [
+      "6bb3d238cd630e81b1a2e0bea1d1cd7b"
+    ],
+    "locales/fi.json": [
+      "15a65df575f6822925c46b6f7cde643f"
+    ],
+    "locales/fi.schema.json": [
+      "59a18fbbaa80b9b5bd03f13d2a0865be"
+    ],
+    "locales/fr.json": [
+      "7d0a55f4179513d01f9b8d7d021d2406"
+    ],
+    "locales/fr.schema.json": [
+      "b2daa7148a1ae4d211bb9dfdd8c78fdf"
+    ],
+    "locales/he.json": [
+      "4cbb175eddcf6ad531d46777c602b55a"
+    ],
+    "locales/he.schema.json": [
+      "d9f2e783fb5f2cca349bc005c64ac029"
+    ],
+    "locales/hr.json": [
+      "1ed2ae4ec006e555fecc4fed62729871"
+    ],
+    "locales/hu.json": [
+      "e0ef97d4a086a963725339c5cfd92779"
+    ],
+    "locales/id.json": [
+      "b684998fcbe5a316dfcca388d4bc1da9"
+    ],
+    "locales/it.json": [
+      "86d7cb9009be642babd01962f623b050"
+    ],
+    "locales/it.schema.json": [
+      "60750887fbd5dd0bdad4ac7f8ae94c39"
+    ],
+    "locales/ja.json": [
+      "05fe1046df2558a4fd5c96141cdc25aa"
+    ],
+    "locales/ja.schema.json": [
+      "937df56b7b4ecdb1029b32add189be82"
+    ],
+    "locales/ko.json": [
+      "214042f1046a3064e6ac3033e8a369e0"
+    ],
+    "locales/ko.schema.json": [
+      "c0661fab145ccd5dc89da519bef54564"
+    ],
+    "locales/lt.json": [
+      "03dbca8f9ab4d746f2867ad603ceb176"
+    ],
+    "locales/nb.json": [
+      "935a63c616d1a5841cb29d54bfc13448"
+    ],
+    "locales/nb.schema.json": [
+      "c15faf8baaf3cf003bc1fdd61943d4c3"
+    ],
+    "locales/nl.json": [
+      "e8413ba43f75b7e75d6850a0b4af1eda"
+    ],
+    "locales/nl.schema.json": [
+      "d0d7f1af37fe7643d90e43c42a16161e"
+    ],
+    "locales/pl.json": [
+      "f9836ad66a23fb66be2d57b71e20a9ea"
+    ],
+    "locales/pl.schema.json": [
+      "951b1de5bb20a83e877596c9a238dc60"
+    ],
+    "locales/pt-BR.json": [
+      "e956856d558b800dd748bea5ac4854be"
+    ],
+    "locales/pt-BR.schema.json": [
+      "78945aebeff1bb4f001a1226a579fb27"
+    ],
+    "locales/pt-PT.json": [
+      "b6a67f78cc31747145e4f97f9c81c136"
+    ],
+    "locales/pt-PT.schema.json": [
+      "16509c7275726b71a5791063e2d420db"
+    ],
+    "locales/ro.json": [
+      "f1ef80763866bd2f003235cd95e469f8"
+    ],
+    "locales/ru.json": [
+      "463d7a915be0234efe5fd4f28dae5b69"
+    ],
+    "locales/sk.json": [
+      "0a7ca9d921cf77dccbf7ad83680299a5"
+    ],
+    "locales/sl.json": [
+      "3996ac9c2b441b0c2dcea9e903fe5d2a"
+    ],
+    "locales/sv.json": [
+      "1892db62d15e5d87372269ed3394ff1e"
+    ],
+    "locales/sv.schema.json": [
+      "a8a3b5bfe835d9b69c1209d787575ab8"
+    ],
+    "locales/th.json": [
+      "1bf810a3527363298506e20eecc7d38b"
+    ],
+    "locales/th.schema.json": [
+      "0523bd7c83cfca31dde00911bc50be15"
+    ],
+    "locales/tr.json": [
+      "56f3a7aa908b50887472414588284ff5"
+    ],
+    "locales/tr.schema.json": [
+      "2008d0864ecbfa10ddd9400b69f6d28b"
+    ],
+    "locales/ur.json": [
+      "3988021e90445efdd93673afacc5fbb2"
+    ],
+    "locales/ur.schema.json": [
+      "40d99e2be83f7ba4f14923caaf6c38e8"
+    ],
+    "locales/vi.json": [
+      "031ded56b1b893c7d78354593a8e75cb"
+    ],
+    "locales/zh-CN.json": [
+      "4fe65475fb83abf8990b109204a30eb8"
+    ],
+    "locales/zh-CN.schema.json": [
+      "a64759614f6ab2cee3eb88b82b4bc795"
+    ],
+    "locales/zh-TW.json": [
+      "cfdb079ede97f7b4f40dba606a0ff21d"
+    ],
+    "locales/zh-TW.schema.json": [
+      "5e5b5e95713a4732384f8c1a9613de97"
+    ],
+    "sections/_blocks.liquid": [
+      "87afc124862205057698ab4a26924613"
+    ],
+    "sections/carousel.liquid": [
+      "b1086d54741b7643ef0462237502d6b5"
+    ],
+    "sections/cart-drawer-section.liquid": [
+      "9f42c443489b580e8a3a86b9e2e197c7"
+    ],
+    "sections/collection-links.liquid": [
+      "a3e41c8680f68f5645c625f752b97dc8"
+    ],
+    "sections/collection-list.liquid": [
+      "558525a4a66d429ef01efb6f79a780cf"
+    ],
+    "sections/custom-liquid.liquid": [
+      "f860a17415890515311b99a9bd3a268e"
+    ],
+    "sections/df-before-after.liquid": [
+      "8b8b04ca0cc5d29ddc2a06194a9ef88f"
+    ],
+    "sections/df-comparison-table.liquid": [
+      "0ff47bba037ff2aff352fbcb6c4db93b",
+      "1d0221d821cac5200edc705b4b66c4a6",
+      "1fa831d2012eb272c95a93d47d0674e7",
+      "26735f31efa023892f2185aa3baf9d61",
+      "645f38aede4405afb5cbcb7936fadf40",
+      "7c7e9a838c59675008df47b8c3eb7d31",
+      "9f2fb91b3441b5fdc70f720508b289c0",
+      "b533ec35b7d1f575a3e75d01418f8410",
+      "da292ca6506287339a45de2956c23e22"
+    ],
+    "sections/df-customer-stories.liquid": [
+      "234b441f698a21a17bc0d56f3345b02c"
+    ],
+    "sections/df-expert-endorsement.liquid": [
+      "8b7a0213fd3c3c4f9b4e2fb1a534f6c0"
+    ],
+    "sections/df-faq-and-text.liquid": [
+      "163704b949638bffa37bb79487708b5d",
+      "1efa0488007872cdc4631321ab548e11",
+      "41bef6a4a09adb89d1bcfed5e82ce5f2",
+      "4d11da4df077d7a74eb6cedf46635ed9",
+      "907e13d0137053aaa564160ae38a4411",
+      "aeeb0d5aaa5513716d23dadbbc3aed15",
+      "c7a1ccd573df638904fbc7b5c5112b79",
+      "fd10c5938714f976914dc96ad128933f"
+    ],
+    "sections/df-guarantee.liquid": [
+      "d141dce6bbb603fa977e27e2d3d70e81"
+    ],
+    "sections/df-image-with-benefits.liquid": [
+      "183544507c37b314592d46cc317832d6",
+      "4d16d03314221b34049111a27332f6d5",
+      "7015a2e3cd19e4a1f8d4a70a1ff8faef",
+      "7bbb60ed0c48f26d8fb9aa679d9b7a55",
+      "b3e0279668a1207e69e4de9b9802febc",
+      "e4e913654d220cf5f8acbbc4ef52637b",
+      "eb4b38d9d30e1cf8a269e195e384a95e",
+      "ebce9a8da27bccd2904a363f9cdca6fc",
+      "fa4bc56fde6babc48ac3e5f2a3441915",
+      "fff23ef724a1dbf85108572cd2be7fed"
+    ],
+    "sections/df-insta-story.liquid": [
+      "143e0ea9185f116bfa7fb1baa23bbbab",
+      "2dee60333f7d7a76df391c4647644276",
+      "5616b4942a7c6ab751c5f0b2b60d7e18",
+      "70cf9240b01552d5b135d2450f5f0660",
+      "7136696aaf3a784f7f6d2263502aae0d",
+      "83ac4045f30dba170561484cfc67b383",
+      "ae5d26dad339beb5c366492748369516",
+      "c68624a136013cb8f846551e258f3546",
+      "e9d063ba94431fa6cf5bb77447e3adea"
+    ],
+    "sections/df-mechanism.liquid": [
+      "32691359ae8bd657f42d96d97336f43b"
+    ],
+    "sections/df-offer-summary.liquid": [
+      "181349c2e63529a312b1d72b464a6919"
+    ],
+    "sections/df-pain-block.liquid": [
+      "02dc8e812859447af882a5b203dcc776",
+      "737fcdb1bb9b1c684b3d73e2658bf976",
+      "a6d16ece7e1d793e389d5de60b79094b",
+      "cabe0921a6a32be5891eb0b2e0f090a4",
+      "cbf5ebda6b3232dc78d5da5b6ab0ac58"
+    ],
+    "sections/df-product-includes.liquid": [
+      "fe21367b7ac1cbc9a456106add6c13ff"
+    ],
+    "sections/df-results-timeline.liquid": [
+      "a08327d5c61231a5a0c52dc62cf92d3c"
+    ],
+    "sections/df-review-wall.liquid": [
+      "1baed78da7cf7a1e25896787738bdb5e",
+      "2fd4d3ca87217e783060fff118c16d66",
+      "363c4c31384fe492f5c683f5005867b9",
+      "39a7bc8dda091806c8296da5106eb2a9",
+      "625eefb6dee607f5041440d4bdbec63d",
+      "64c40cb4cb8c6c847ff12f40c2ffb9a7",
+      "8e89620e3fef10330b40c948d90d6d31",
+      "bc89acb4dc3a4b9b754178835a5041d2",
+      "f28d086f606b960ef071fafd5eb398ad"
+    ],
+    "sections/df-scrolling-benefits.liquid": [
+      "060472d2d2b8510fd85bc8751243f54b",
+      "115e9580ccf104f57d93d567d5e85cc6",
+      "36ae5b78722843eab5fe5a6e48b916e5",
+      "52feca2634a861d9adb6699effba559b",
+      "7a827b42f9eec915534561e67aa1fb4c",
+      "8d7be46c82a9b7d52f22d4ad95dabe2f",
+      "c1d4247e84419d972fa29aedf4530fe1"
+    ],
+    "sections/df-stats-with-image.liquid": [
+      "2fe1ee74c0d1e898e1373159c467ab3d",
+      "3c9c26c2c65bd719093cb6a315192e1e",
+      "3e9d288131bb3026d36673a37cd6f289",
+      "52591c673aa04996707ca278c5f41c28",
+      "84acd07faf70a8ca146d093350b992ee",
+      "a2d9f32e047260cd04378d4f767ff3d0",
+      "b33ca30bd34b99ba07849d856ad9e10f",
+      "bccfd8a730b478342330e1609642fce1",
+      "d50a4c08d599ff33cfc1e45382132213",
+      "e277b2bd2339a34b655b7c5a4d3bdb9e",
+      "e6df9a4a2ee146d165f48b90cb8288ab"
+    ],
+    "sections/df-usage-steps.liquid": [
+      "4718b4b75ad25b7af18f81569275221a"
+    ],
+    "sections/df-use-cases.liquid": [
+      "d5215f985d6a103e8b0c9837afcb9fbd"
+    ],
+    "sections/divider.liquid": [
+      "62a295ba0a8e503e2aeb72aa50394fca"
+    ],
+    "sections/featured-blog-posts.liquid": [
+      "8601e19d9751fcab5fa55e00fbffa1f9"
+    ],
+    "sections/featured-product-information.liquid": [
+      "4951b52bef092a26df7366b6066ff13c"
+    ],
+    "sections/featured-product.liquid": [
+      "5a38be3358625360f4c180aef923733c"
+    ],
+    "sections/footer-utilities.liquid": [
+      "3ed089c8973cda3132d1d75a41bc2458"
+    ],
+    "sections/footer.liquid": [
+      "7fcf2ac03a9c89427dfb7c774f40fcc3"
+    ],
+    "sections/header-announcements.liquid": [
+      "71aa108b1783a02d49608239fdcb513a"
+    ],
+    "sections/header.liquid": [
+      "08c8815866fef305b4478b92ca30e42e",
+      "9bf4757554230c23f55b4fcca38ea29b"
+    ],
+    "sections/hero.liquid": [
+      "84ce8a323c378c38beeefd07598e21f7"
+    ],
+    "sections/layered-slideshow.liquid": [
+      "8fde1bfa6aa91fa110965192359a37a6"
+    ],
+    "sections/logo.liquid": [
+      "53e95340a2bc781cceb703c2ca3df378"
+    ],
+    "sections/main-404.liquid": [
+      "1557ac6e3fa67777457a859a38de013d"
+    ],
+    "sections/main-blog-post.liquid": [
+      "8750fdadfa316b4dafc1b742ab74e0c4"
+    ],
+    "sections/main-blog.liquid": [
+      "a85f56e58849ac8320cc0738ed52358f"
+    ],
+    "sections/main-cart.liquid": [
+      "e75c39a766e55bb841213b3a63c3c8b7"
+    ],
+    "sections/main-collection-list.liquid": [
+      "2966e0072a47f9375c5751b2ea821a88"
+    ],
+    "sections/main-collection.liquid": [
+      "dcdadbad205dcc4a8ee82dacc95d5e8f"
+    ],
+    "sections/main-page.liquid": [
+      "0c217bd3bbb0d1be7d6ee85fd3668337"
+    ],
+    "sections/marquee.liquid": [
+      "2e2406fcc06ff42cc00d338eb4f594b0"
+    ],
+    "sections/media-with-content.liquid": [
+      "a8caba4ac3fd2d89b414c291f15e19ed"
+    ],
+    "sections/password-footer.liquid": [
+      "b6bd4b69c0a2450477040da43f3e8108"
+    ],
+    "sections/password.liquid": [
+      "fc832b1fe1b322f0f5e2fd05e0f23c06"
+    ],
+    "sections/predictive-search-empty.liquid": [
+      "fb3b2c70237c87004b88fc68d1103155"
+    ],
+    "sections/predictive-search.liquid": [
+      "99b1a0246361fccaf2585bf5aba629d4"
+    ],
+    "sections/product-hotspots.liquid": [
+      "da74e51f268421858bd2a12c9f99a826"
+    ],
+    "sections/product-information.liquid": [
+      "80f0cf3d2644771de699b4a13e267939",
+      "abfc3e263a20568aa5ec135f5bd4d4d3"
+    ],
+    "sections/product-list.liquid": [
+      "61018779cd7b83363f5ed5322ea2b09b"
+    ],
+    "sections/product-recommendations.liquid": [
+      "7df4ca919909c63cff288c90767036fb"
+    ],
+    "sections/quick-order-list.liquid": [
+      "7e429c2d46cbd90713b37305572d921d"
+    ],
+    "sections/search-header.liquid": [
+      "0e72d0284f3a395f501ab97cc198c8ee"
+    ],
+    "sections/search-results.liquid": [
+      "fdf24ff34b5764cc4e2181218ef013b0"
+    ],
+    "sections/section-rendering-product-card.liquid": [
+      "fc866e3a77dac15b4beeca7376b76c4c"
+    ],
+    "sections/section.liquid": [
+      "feaaf40c11d1b350c317de82e4b9be03"
+    ],
+    "sections/slideshow.liquid": [
+      "da00b7d1a684d27f3d03aadeed56a180"
+    ],
+    "snippets/accordion-custom-component.liquid": [
+      "4c6df600d897ee748151dd90aea12877"
+    ],
+    "snippets/accordion-styles.liquid": [
+      "a275664a3b9e8efab56e4150a89fe845"
+    ],
+    "snippets/add-to-cart-button-styles.liquid": [
+      "ef9bd8b90577050ace42a42f6f56c4d4"
+    ],
+    "snippets/add-to-cart-button.liquid": [
+      "003ded1fc56ef860c9dbbca2a6589fee"
+    ],
+    "snippets/background-media.liquid": [
+      "962d5f34d952ef81d02d17a4663edff4"
+    ],
+    "snippets/bento-grid.liquid": [
+      "24a9c789775237682fa9a8aca72044c6"
+    ],
+    "snippets/blog-comment-form.liquid": [
+      "f817281d5f38d81c6eb2d0ddff560e3a"
+    ],
+    "snippets/border-override.liquid": [
+      "2d0d527aaad446aee427cc980e8646e7"
+    ],
+    "snippets/brightness-opacities.liquid": [
+      "7a956c2d35174c3294606dbfcb38e60f"
+    ],
+    "snippets/button-custom-styles.liquid": [
+      "729acd4774fa7cac866c0654274119c8"
+    ],
+    "snippets/button.liquid": [
+      "80c54884187607f9e01f3ed7530937c4"
+    ],
+    "snippets/buy-buttons-styles.liquid": [
+      "4c20a11c3e60c1738387b3ce90604091"
+    ],
+    "snippets/card-gallery.liquid": [
+      "838c633570c3cc398c280282c7f2a43c"
+    ],
+    "snippets/card-hover-effect-styles.liquid": [
+      "2bb6add95881cec8a16470549f470124"
+    ],
+    "snippets/cart-bubble.liquid": [
+      "2525d01fd5d70782d8cc869738778921"
+    ],
+    "snippets/cart-disclosure-tooltip.liquid": [
+      "6eb9d344f5e8904f02cf577000d79791"
+    ],
+    "snippets/cart-drawer.liquid": [
+      "dfd8749128e0df636aa672ac91b39358"
+    ],
+    "snippets/cart-items-component.liquid": [
+      "6ea61e6ee36d933ec5de94b76c8dd64a"
+    ],
+    "snippets/cart-products.liquid": [
+      "c3a34f45601738a97bbe93d4e38d938e"
+    ],
+    "snippets/cart-summary.liquid": [
+      "0be85f9fd2bb928077a93f5f7f195a6d"
+    ],
+    "snippets/cart-typography-styles.liquid": [
+      "6f43fb0c349fb0c27c9a4b9a2fda1b97"
+    ],
+    "snippets/chat-drawer.liquid": [
+      "0474ee8ad6e9f68ed51291f337cfa125"
+    ],
+    "snippets/checkbox-styles.liquid": [
+      "bee1d096065635c07e8c5a481dd80757"
+    ],
+    "snippets/checkbox.liquid": [
+      "3e0c5eb78c58f036cc521f5ca12a44fa"
+    ],
+    "snippets/collection-card.liquid": [
+      "a2f3940ce285dc96e249c1613f3eb9e2"
+    ],
+    "snippets/collection-wrapper-styles.liquid": [
+      "fbf4c7e97d83fa1223e6ec757bf81aa4"
+    ],
+    "snippets/color-palette.liquid": [
+      "1b9c815e8ea7ee9a11f5568fe95aa0ad"
+    ],
+    "snippets/contrast-override.liquid": [
+      "7e9411582ba1c28431df1ab85a93121e"
+    ],
+    "snippets/deferred-media-product-model-styles.liquid": [
+      "7c89f35508d09a39f474cb58decf91d5"
+    ],
+    "snippets/deferred-media-video-styles.liquid": [
+      "552b2bc17e4d18c511774199a8bf6562"
+    ],
+    "snippets/df-accent-vars.liquid": [
+      "c534e0dae638bb828915390b809c98fb"
+    ],
+    "snippets/df-before-after-content.liquid": [
+      "feb27d172cab6446ea798fed04d1ee2a"
+    ],
+    "snippets/df-benefit-double-box-content.liquid": [
+      "0d2f7db8d506efe786e5a49851ac7772",
+      "72260ad16f90e9e740dee33f65ca6078"
+    ],
+    "snippets/df-benefit-usps-content.liquid": [
+      "dca127e3b5e85b05a88a67ad6e047aa4"
+    ],
+    "snippets/df-brand-logo.liquid": [
+      "9c8d4ff1c6a35cfcab90b6535dae1de0",
+      "c531879e08a523c9cfb7f669d2826f14"
+    ],
+    "snippets/df-comparison-table-cell.liquid": [
+      "f64f37234c571847833d8c8440af3e6c"
+    ],
+    "snippets/df-comparison-table-content.liquid": [
+      "90bb8b46557cbe1525fb5b39d2b25054"
+    ],
+    "snippets/df-component-empty.liquid": [
+      "69b85bac6ebb487739465d0dc18961eb",
+      "b3067df7220879139190778611bd329c",
+      "fb351c1368b168b0dfb1173b4202dc5f"
+    ],
+    "snippets/df-customer-stories-content.liquid": [
+      "f72782c021666888957c187a65b246d8"
+    ],
+    "snippets/df-design-system.liquid": [
+      "23daffdfbe132cd043198b1b3a633b41",
+      "28344483567d9fae8eec78ff8f958cdc",
+      "39be8e226875b2e0ce27fc60c2b5a27e",
+      "41c19859663588c0cc887eaecff90a8e",
+      "4d27d6894871c294730ae17ea98f212b",
+      "8e091762656bd6def424fa03cc23186d",
+      "978c5afbaeae8786fa252051310d3ff4",
+      "b7c18c3044dff5642ffb40086fc64bf3",
+      "ce68b57cdeb4dd5e2d23e021add285fd",
+      "e8db7e05f1911584b5cde505b23a2208",
+      "eaa1e6bd65c25bd24ca10805c69ffafc",
+      "effe6b1024cfdb04ed95cfb5f14e8037"
+    ],
+    "snippets/df-downsell.liquid": [
+      "6bb97d54910c2e0f71bcd6d07f16d16d",
+      "7bc0df02460884c8646bde1cd00e94b8",
+      "a88a7bef8867893d37bd4cf2ffebead0",
+      "e71ff8de12892965229bacd799adac84"
+    ],
+    "snippets/df-easysell.liquid": [
+      "172e560f4934f83877c6431efca7b7e8",
+      "3021de9ead22bfb22b3f474b65c6cac1",
+      "576045c3889c3785ac9e65ab5395c639",
+      "6c9070591f573868dd1722502556959f",
+      "93b4144914d64d156b1f4a8ddea24a06",
+      "97389b7d15efca3550cfcbdbec986a92"
+    ],
+    "snippets/df-event-badge.liquid": [
+      "04c29650f4ab0b2f7d8e00fcb011b47e"
+    ],
+    "snippets/df-event-bar.liquid": [
+      "0d677a1dca2ffd60d47796ee2f69e152",
+      "1bc0e2afed6ea386e4e2cc72a11f74af",
+      "8066c01af821d9040ab8942fad18b6ee",
+      "acc72127c6675a13cd70775ad1ec01d0",
+      "b3ed3b71bef1be333f09023f84d4ecc4",
+      "f6b4cf0b82f4b0d400484de5294222fc",
+      "fc40159698233b3ca1f38d47621e65c9"
+    ],
+    "snippets/df-event-countdown.liquid": [
+      "02e55afa69f1e5e49f7fa76780833e82",
+      "1f66ecb3abb08aaa746a147ca1fe8455"
+    ],
+    "snippets/df-event-decor.liquid": [
+      "38602496206757487af2fcf0a1c19b48"
+    ],
+    "snippets/df-event-head.liquid": [
+      "64956e24ea5cde785a57290d4a94e39d"
+    ],
+    "snippets/df-event-pick.liquid": [
+      "d18e9a06d5db031253526aa8d5758a9a"
+    ],
+    "snippets/df-event-ticker.liquid": [
+      "940c93829ca5621ac6dcab379d2f78c0"
+    ],
+    "snippets/df-expert-endorsement-content.liquid": [
+      "f988872022b7d1e48ea352eefb1b7326"
+    ],
+    "snippets/df-faq-and-text-content.liquid": [
+      "c798ca2bdd71394aeef4face142f580c"
+    ],
+    "snippets/df-gallery-benefits-content.liquid": [
+      "938f6c796908956911fe88f4eb7ddbf2",
+      "b0fb899f88b929ddbc7ebde5996c88e0"
+    ],
+    "snippets/df-gallery-benefits.liquid": [
+      "45138963d364a25538f780ba69d4adcd",
+      "5bec29c7f5e559805d23d6412badffbd",
+      "7165d7247105595b55e9e0f80a00200a",
+      "d54dd180148ed8e4b38ede5362e71d72",
+      "fdcb584abe97b7d0c300bc0cdf8aa373"
+    ],
+    "snippets/df-gallery.liquid": [
+      "a173af5107c8378b083ebd4f382f7adf"
+    ],
+    "snippets/df-gif-strip-content.liquid": [
+      "2a12b2b3c44e06b6dcda0c0b40f636bb",
+      "dd8f30c7d4d9293e6069d1dcab077f49"
+    ],
+    "snippets/df-google-rating.liquid": [
+      "7c406dd210a27397ea7e843db4b6173a",
+      "8211e61730e4969e6d5eefaa79c2342c",
+      "d28ff53be412650c63d73dab7431fd60",
+      "f48d7ccda7e5f69b8a653504074084b3"
+    ],
+    "snippets/df-guarantee-content.liquid": [
+      "41bc1529874c37cbf2d8dd0769b63a20"
+    ],
+    "snippets/df-icon.liquid": [
+      "5b51a637a1799d891f29113a05505d99"
+    ],
+    "snippets/df-image-with-benefits-content.liquid": [
+      "6efc19c8b4b25d6a846d90f82eaaa436",
+      "bc3098262e616ef2712125dad0f2c8ba"
+    ],
+    "snippets/df-image-with-benefits-item.liquid": [
+      "696855492f4d18e594b65dc7a3d559aa",
+      "6a4591d737aa15951e7d930a5c168494"
+    ],
+    "snippets/df-insta-story-content.liquid": [
+      "19b5fb5bd14117442bf46ea4d6908a3f",
+      "b13f313a694faf9ce140e9232916b87b"
+    ],
+    "snippets/df-inventory-content.liquid": [
+      "062c705970ada2f9cae34ceecb9a745e",
+      "0cd353c53f1fb44d468983720fd26293",
+      "2536239d09715ca04beebedef5b54456"
+    ],
+    "snippets/df-landing-mode.liquid": [
+      "cc39010ac80efa3acbd24d1581063a27"
+    ],
+    "snippets/df-landing-redirect.liquid": [
+      "f5d19496bd8844f0609cea2d09c2cc5d"
+    ],
+    "snippets/df-landing-selector.liquid": [
+      "16ffec7c749ee9562f205ee0649d820e",
+      "5ad3c546bba31a5fb836a5b0e054b8f0",
+      "ec217a924676887a2f5ddffb0d85ef68"
+    ],
+    "snippets/df-mechanism-content.liquid": [
+      "153d5581d49c74662d0c2570377394bb"
+    ],
+    "snippets/df-offer-summary-content.liquid": [
+      "aebc549c25a604217d74e4d9e348d9ad"
+    ],
+    "snippets/df-pack-offers-content.liquid": [
+      "6c77c366ca35a20b8d5080dd78818903"
+    ],
+    "snippets/df-pain-block-content.liquid": [
+      "7758082316d32100f2c088fa40b9f912"
+    ],
+    "snippets/df-pdp-experience.liquid": [
+      "041b8094b668cc324eb11342e4dcd8af",
+      "4224badd3dfc11e95955834615d08ea2",
+      "9975ce59cdc2f56adb404398d20d6e22",
+      "9b40fe50a1ca1ba9266490313d3d1d7e",
+      "d01cc94e8b4693ccf69383b8dedff1ae",
+      "d515f2b3888aeb25694122aa0b54b51c"
+    ],
+    "snippets/df-product-includes-content.liquid": [
+      "b24b7bf604b1fb6c0e95256a5afd8471"
+    ],
+    "snippets/df-purchase-supports.liquid": [
+      "164ba6e0cf7aa01979ca4dea307bc3dd",
+      "27892238d6396820704cebbc21285ea1",
+      "282bbd94696e54d73ff949f2e5f18d66"
+    ],
+    "snippets/df-results-timeline-content.liquid": [
+      "a4bfaa2346e6d7802e8af0ca899a3cb8"
+    ],
+    "snippets/df-review-popup.liquid": [
+      "5ca018ce88bc2edfc36bc34781300722",
+      "ea74cc26f1419d7c766362fc3683867a"
+    ],
+    "snippets/df-review-proof.liquid": [
+      "311cc4d6ec2b5b7f4502a7cdd840c10f"
+    ],
+    "snippets/df-review-slider-content.liquid": [
+      "180d7a4bf28c244945c37a1b618a1583",
+      "839b52e5ba19930ba172f36e602af7e2",
+      "8474d79bff6e6935a0cabd2296018987",
+      "87815316b25c0e0bdc0686f5dbdbc5e2"
+    ],
+    "snippets/df-review-stars-content.liquid": [
+      "564269f5639aff81aeed56b0eb42350c",
+      "a0f2fe80caa6e82dc9aae520d7b72203",
+      "a8808202e3b356be0b53361af04edc55",
+      "e4ebcfc7907e9f2fe39a2f135d41d4c0"
+    ],
+    "snippets/df-review-wall-content.liquid": [
+      "040d238448e4eb3304a9e0717e22f0c2",
+      "4f0169fb9ecf1269e735ef530e22e966",
+      "a009eeffc17f6eb39c8a7c1aa22e09d7"
+    ],
+    "snippets/df-rich-pdp-content.liquid": [
+      "67e83ff6a7fbd43319c50494228d7f5a",
+      "cc50588c291b0a049251a97726ced8d6"
+    ],
+    "snippets/df-rich-pdp-image.liquid": [
+      "a52b62ebe8818efd493d067609d4eafd",
+      "e33f9572d7edfebe6dc25dd2280c1809"
+    ],
+    "snippets/df-scrolling-benefits-content.liquid": [
+      "f11d581b3a593c8551db9eedc53379e0"
+    ],
+    "snippets/df-scrolling-benefits-item.liquid": [
+      "cf02531b4e6012d8c7471a35c1afb078"
+    ],
+    "snippets/df-shipping-timeline-content.liquid": [
+      "4e68d76cdd783c4848c6bb622efe690b",
+      "817ef64d03947be21475ce667430b189"
+    ],
+    "snippets/df-stars.liquid": [
+      "d1b93be43bae1b31ea4115f666922426"
+    ],
+    "snippets/df-stats-with-image-content.liquid": [
+      "93dc1f7699cec996585208e7f20cab86",
+      "a8e74f2ba18d975835b79a1922ed8780",
+      "e0490286c6c8a9b8ab176203ea8e0213"
+    ],
+    "snippets/df-stats-with-image-image.liquid": [
+      "7ef77dd3a6c363e718c77659bd272e08",
+      "e4019945378e53cffc0d63f5ea627c86"
+    ],
+    "snippets/df-subtitle-content.liquid": [
+      "48748e7e31558c090b9b37da3e5d0d35"
+    ],
+    "snippets/df-title-content.liquid": [
+      "50fb5279eecb09d541aa883110177f3e"
+    ],
+    "snippets/df-ugc-slider-card.liquid": [
+      "b1eec9e6e6331cac3e256b05c9980f92",
+      "e6485daf24ad36969d691a42aedd2402"
+    ],
+    "snippets/df-ugc-slider-content.liquid": [
+      "0eb535e601f2aa5a04865a6f1ea8fd3b",
+      "3f149f4ae6c9cef0e77c8face1cf6c29",
+      "cf4bb0b703f2fbcd6ba2e0f186e3066c"
+    ],
+    "snippets/df-usage-steps-content.liquid": [
+      "46c2468ba8559e3f019c8de9140beb59"
+    ],
+    "snippets/df-use-cases-content.liquid": [
+      "cd35a1266cbdc214116fbd6959435482"
+    ],
+    "snippets/dialog-styles.liquid": [
+      "a9070363d004a465f11023b17c11f7fc"
+    ],
+    "snippets/divider.liquid": [
+      "5f1fa11325b6b07e419bbfec597012fc"
+    ],
+    "snippets/editorial-blog-grid.liquid": [
+      "53b34706bb2e3ac75a12b18be783c14c"
+    ],
+    "snippets/editorial-collection-grid.liquid": [
+      "22d25f31eb46b35273f33b64e2ed6834"
+    ],
+    "snippets/editorial-product-grid.liquid": [
+      "f303b9a073245caa8d06c41961ff7fe7"
+    ],
+    "snippets/filter-remove-buttons.liquid": [
+      "47b9770e8481910e6486882016f18eb3"
+    ],
+    "snippets/fly-to-cart-styles.liquid": [
+      "b426bd7d5b04fe92c5afd3240370a7b0"
+    ],
+    "snippets/fonts.liquid": [
+      "2a131f1693e01691c2595ce5c0f61d45",
+      "2cd0a8aafb82cd2377799df7f1eebd6b"
+    ],
+    "snippets/format-price.liquid": [
+      "419b4f00361f3d1d43d2b4287456cf97"
+    ],
+    "snippets/gap-style.liquid": [
+      "183f35396f4b7fe54eceecc8270271bd"
+    ],
+    "snippets/gift-card-recipient-button-custom-styles.liquid": [
+      "eae5dc2b8885e89afd1126d86f76408d"
+    ],
+    "snippets/gift-card-recipient-form-styles.liquid": [
+      "1d4881c5ba9cf01c539a7ad6d4dfe267"
+    ],
+    "snippets/gift-card-recipient-form.liquid": [
+      "a8d259df9c3fd11882ce7a7f467bd55e"
+    ],
+    "snippets/grid-density-controls.liquid": [
+      "989ef6cf346befab8304eefa2ea4ded8"
+    ],
+    "snippets/group.liquid": [
+      "fa461ecee498323636a4195975a50058"
+    ],
+    "snippets/header-actions.liquid": [
+      "49f215dc41159fd2276160c54c180831",
+      "8d96555a63c18abbb83d0aee85ddfc75",
+      "b91377a42ca718969574500d760fd8e0"
+    ],
+    "snippets/header-drawer.liquid": [
+      "c4b09506a972c9cd741f242d329f6151"
+    ],
+    "snippets/header-row.liquid": [
+      "585d2adb5f70a0eead98502639af1a31"
+    ],
+    "snippets/icon-or-image.liquid": [
+      "b812a996f71059b206718dae4edddbb8"
+    ],
+    "snippets/icon.liquid": [
+      "bae5a7489642235f437f8072be3b7c56"
+    ],
+    "snippets/image.liquid": [
+      "e6e159595a30e79d5a6177a72a28f544"
+    ],
+    "snippets/input-custom-styles.liquid": [
+      "e4695ee314c2bb399701539703d59733"
+    ],
+    "snippets/jumbo-text.liquid": [
+      "dd9e6c61e1451addc585158fa3e8e631"
+    ],
+    "snippets/layout-panel-style.liquid": [
+      "f848fa18ac93d053be9a93faa65f0562"
+    ],
+    "snippets/link-featured-image.liquid": [
+      "e2940eab7d461bb798c17e12d287f55c"
+    ],
+    "snippets/list-filter.liquid": [
+      "6844582b68b79a8bd609eab29dcdc4b8"
+    ],
+    "snippets/localization-form.liquid": [
+      "d7e662306be4963213da57cca89f1675"
+    ],
+    "snippets/measure-header-heights.liquid": [
+      "96d661ae5f65af63406d26e2e2de2ad2"
+    ],
+    "snippets/media.liquid": [
+      "6955c25fee6138974a3d7f7fe2c2e073"
+    ],
+    "snippets/mega-menu-list.liquid": [
+      "08f67f8291b82b678ef431563b4686b7"
+    ],
+    "snippets/menu-font-styles.liquid": [
+      "4b7cf5feb174bf9ac1324000c1ddb283"
+    ],
+    "snippets/meta-tags.liquid": [
+      "383d9fc1618ee4c4c0f326e08543a34a"
+    ],
+    "snippets/overflow-list.liquid": [
+      "c136517f488a102a20acda832c064513"
+    ],
+    "snippets/overlay.liquid": [
+      "72cac4e3a191df0ca4dfc011c097135d"
+    ],
+    "snippets/pagination-controls.liquid": [
+      "d1629787bb805d0ecb061322c436a2b2"
+    ],
+    "snippets/password-layout-styles.liquid": [
+      "49f921e184c44a06c9736a99fe391b6b"
+    ],
+    "snippets/payment-terms-styles.liquid": [
+      "c8c6e28a601f827e1c295a64e000e15b"
+    ],
+    "snippets/pills-styles.liquid": [
+      "a8c74825f479f0181e54e1c53b51b71c"
+    ],
+    "snippets/predictive-search-empty-state.liquid": [
+      "b09b2c0b2de7eafd0f5a8db85547f022"
+    ],
+    "snippets/predictive-search-products-list.liquid": [
+      "a6bf88f90e1d9e30eb9a14c31a4f7e6e"
+    ],
+    "snippets/predictive-search-resource-carousel.liquid": [
+      "25b94f0cb923a7adcea358d7815750e5"
+    ],
+    "snippets/predictive-search-styles.liquid": [
+      "a089f0dcae352fd44d7901c03428c82a"
+    ],
+    "snippets/price-filter.liquid": [
+      "903257ea40f5f94dd80f1c3e4203344e"
+    ],
+    "snippets/price-styles.liquid": [
+      "357de9e03ddc6c0d58f9c64e3974e7a2"
+    ],
+    "snippets/price.liquid": [
+      "336099ea1f20451962cc97223c1fe2d7"
+    ],
+    "snippets/product-badges-styles.liquid": [
+      "9fc512401e2685db299f9f666c3c643d"
+    ],
+    "snippets/product-card-gallery-zoom-details-styles.liquid": [
+      "8d0b25b5dedf6f7f855d3a61a396282a"
+    ],
+    "snippets/product-card-styles.liquid": [
+      "24b805d8e63b663cb3040d1521d5af95"
+    ],
+    "snippets/product-card.liquid": [
+      "6ad2100de127c0192bf1bb38ff90cee9"
+    ],
+    "snippets/product-grid.liquid": [
+      "9339f0eccdf37c9656672ac0d8d39f24"
+    ],
+    "snippets/product-information-content.liquid": [
+      "12220bcd49dd419fcafca503b5c8c53a",
+      "3cd2ffad259b978fd88dc799740873f1",
+      "8ee6c6a11f8cab25d90409e1d8fa29b7"
+    ],
+    "snippets/product-media-container-styles.liquid": [
+      "0dd335837373e05a8b18fa6efde6492e"
+    ],
+    "snippets/product-media-gallery-content-styles.liquid": [
+      "0add5f9395d68ddd57cbe8fca356a8ac"
+    ],
+    "snippets/product-media-gallery-content.liquid": [
+      "078b0673d5326f09ce655b07e1fdcf6e",
+      "5695d3c8ecb87a8aaa50e8a055064a44",
+      "65b48a0b39f14a82bb1aa3c807b8b23b"
+    ],
+    "snippets/product-media.liquid": [
+      "e9ef07008a067cda7f8d410ad61b7c53"
+    ],
+    "snippets/product-recommendations-styles.liquid": [
+      "6f3f06a6057aa212c62d5aacc674bacb"
+    ],
+    "snippets/quantity-selector-styles.liquid": [
+      "e9ad599e45efda31ce762401cd5884ee"
+    ],
+    "snippets/quantity-selector.liquid": [
+      "a5a355c34170f6f4f391d24656148e41"
+    ],
+    "snippets/quick-add-modal-styles.liquid": [
+      "480bb92dd4e4ce94a6caf970e3c99813"
+    ],
+    "snippets/quick-add-modal.liquid": [
+      "d40cb8934ce23f318ea9d41cda68a2e2"
+    ],
+    "snippets/quick-add-styles.liquid": [
+      "d8b9b5db671b0048f06ebeca25998224"
+    ],
+    "snippets/quick-add.liquid": [
+      "cdbed60ebac7dd1a39e0e1fefd3829a4"
+    ],
+    "snippets/resolve-custom-hover.liquid": [
+      "c1fa43ddae4322073c1cfca65f044a5c"
+    ],
+    "snippets/resource-card.liquid": [
+      "805489347952686b2d8798aa471f8efb"
+    ],
+    "snippets/resource-image.liquid": [
+      "526d04b4d09cc685d0ca79c288f99869"
+    ],
+    "snippets/resource-list-carousel.liquid": [
+      "bbd2e6a863e72fef15d86453efeb018e"
+    ],
+    "snippets/resource-list-styles.liquid": [
+      "773a7d8df1178d4fdada0fdf4a6f26fe"
+    ],
+    "snippets/resource-list.liquid": [
+      "0265ba997309b9626f02da13b10a8b7b"
+    ],
+    "snippets/scripts.liquid": [
+      "55634242e748643cb008dd7c83d2b378"
+    ],
+    "snippets/search-modal.liquid": [
+      "59c4d82b5ef8f8c1d7e5c250a2988a62"
+    ],
+    "snippets/search.liquid": [
+      "b46551a97ccd3d59867591fd9e51782f"
+    ],
+    "snippets/section.liquid": [
+      "934b2c812a65cb462ef62c0d5f48a5eb"
+    ],
+    "snippets/size-style.liquid": [
+      "c0fbd03d4efa1c4436ef53bf7e205d41"
+    ],
+    "snippets/skip-to-content-link.liquid": [
+      "3b3514de6eb1ad5d3f8ea3fe0990535b"
+    ],
+    "snippets/sku.liquid": [
+      "83da9ae0d16ec76f7467cddccb8d8221"
+    ],
+    "snippets/slideshow-arrow.liquid": [
+      "26c6b0084986fb38bed0bc05dfda4b4e"
+    ],
+    "snippets/slideshow-arrows.liquid": [
+      "7ad3f957e4564d18ee9418db74d6780c"
+    ],
+    "snippets/slideshow-controls.liquid": [
+      "5c0c4d37a1ce5c8c0838ed0f0dad258d"
+    ],
+    "snippets/slideshow-slide.liquid": [
+      "6aa233e5c095b441f4f1cfa7778a37da"
+    ],
+    "snippets/slideshow-styles.liquid": [
+      "8f4adc7f645c44a2bdfa50babeb9daac"
+    ],
+    "snippets/slideshow.liquid": [
+      "09d453ed9a485e431b0be6f93ec5dd04",
+      "f3312e21bb910ed5cb7265ab1e1c53a7"
+    ],
+    "snippets/sorting.liquid": [
+      "95837dca2df9394be853e1f4e8d49867"
+    ],
+    "snippets/spacing-padding.liquid": [
+      "4968ba0834938346c7d60b4565367086"
+    ],
+    "snippets/spacing-style.liquid": [
+      "786f80211926b582b2761a7658089c9a"
+    ],
+    "snippets/strikethrough-variant.liquid": [
+      "8b2c63c020bf0d1ceabcfbd69a321428"
+    ],
+    "snippets/stylesheets.liquid": [
+      "225482ed969debae3891c08113a254be"
+    ],
+    "snippets/submenu-font-styles.liquid": [
+      "4f714050ef9801c55854b02f2759ccf8"
+    ],
+    "snippets/summary-icon-styles.liquid": [
+      "cf01cc0d1a35b37cee48f28503251c0c"
+    ],
+    "snippets/swatch-styles.liquid": [
+      "6db9876ccf04ee7cb08957cb34bb33a3"
+    ],
+    "snippets/swatch.liquid": [
+      "0a58fdd65cddb87d312c714c5204f8a8"
+    ],
+    "snippets/tax-info.liquid": [
+      "35280b09225478d2c0e61856166fe863"
+    ],
+    "snippets/text-block-styles.liquid": [
+      "1f99f7c7f683140d7dc0b858de34eaaa"
+    ],
+    "snippets/text-component-shimmer-styles.liquid": [
+      "e8318cc9486b8a581394d024715e2c10"
+    ],
+    "snippets/text.liquid": [
+      "d35094c843bc12d5080e43d86abfbd82"
+    ],
+    "snippets/theme-drawer-header.liquid": [
+      "033316b26c556ac2bed04fb5bb17cc61"
+    ],
+    "snippets/theme-drawer-styles.liquid": [
+      "efee7293dc12610f2639cddbc0bc8f26"
+    ],
+    "snippets/theme-drawer.liquid": [
+      "003a4c2e15b5e2ee147c87ed3bac2293"
+    ],
+    "snippets/theme-editor.liquid": [
+      "41f2f32fb706a477465ee1a6f3a662e2"
+    ],
+    "snippets/theme-styles-variables.liquid": [
+      "38440a652a14bb7cc13e3606f29c949b"
+    ],
+    "snippets/typography-style.liquid": [
+      "8eabb9e03295dd257ac1e8257c0540b0"
+    ],
+    "snippets/unit-price.liquid": [
+      "3821d667f407534928dde09c4d80d418"
+    ],
+    "snippets/util-autofill-img-size-attr.liquid": [
+      "12c4d01df9c686cd185f98bb78eb2681"
+    ],
+    "snippets/util-mega-menu-img-sizes-attr.liquid": [
+      "3f28cdbf257160e748c4a309df5e9f43"
+    ],
+    "snippets/util-palette-hover-shift.liquid": [
+      "36c87ba028a2b4d000a9a755caedf7d9"
+    ],
+    "snippets/util-product-grid-card-size.liquid": [
+      "1163abe791719bdb1a88f8d5aa46a380"
+    ],
+    "snippets/util-product-media-sizes-attr.liquid": [
+      "727e3fef09c35eccfbf1276a86ee128c"
+    ],
+    "snippets/variant-button-custom-styles.liquid": [
+      "7f73812e33b47884b11fb7c236693caa"
+    ],
+    "snippets/variant-main-picker.liquid": [
+      "a011f11cc9d2cba01505b116e711aa25"
+    ],
+    "snippets/variant-picker-styles.liquid": [
+      "fcbea77bd1b63b6ab4a85ad78d6ab8e4"
+    ],
+    "snippets/variant-swatches.liquid": [
+      "ceb2402000f9c55aca3d9f9db391e9ee"
+    ],
+    "snippets/video-background-styles.liquid": [
+      "40caed0c50733b8b0a463956e02b3753"
+    ],
+    "snippets/video-placeholder-styles.liquid": [
+      "3a85eb27227f4636e90c1493a758dfd4"
+    ],
+    "snippets/video.liquid": [
+      "2829ed6d8101867ba40fc03c9e97254e"
+    ],
+    "snippets/view-transition-opt-in.liquid": [
+      "82efc6c7aed5ad1c8077fe620baccc86"
+    ],
+    "snippets/volume-pricing-info.liquid": [
+      "6bdf0528bed0c840eaf69fbe8a137c55"
+    ]
+  }
+}

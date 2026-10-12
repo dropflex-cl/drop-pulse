@@ -51,3 +51,9 @@ Los avisos conservan los títulos de la tabla histórica. Los campos de datos ba
 ## Asignaciones de imágenes vigentes
 
 En Imágenes, «Imágenes guardadas en el chat» muestra cada archivo disponible con «Asignada a:» y sus destinos actuales (nombre de componente, espacio y posición), o «Sin asignar». «Usar en» y «Usar imagen» permiten añadir un uso explícito. Una imagen usada por un componente no se presenta como pendiente de asignación. Portada y galería conservan su selección y orden independientes. Se conservan los usos en distintas variantes, descartes y secciones ocultas.
+
+## Actualización del tema
+
+En Publicación, «Hay cambios del tema por aplicar» y «Actualizar tema» se muestran cuando el plan real de archivos y transiciones contiene cambios seguros. «Se actualiza solo el código; tus cambios en el editor de Shopify se mantienen.» explica su alcance. Una huella diferente no se anuncia como una versión nueva.
+
+Si no se puede verificar, mostrar «No pudimos comprobar la actualización del tema». Para código desconocido: «La tienda tiene código que esta versión de la app no reconoce. Recarga la app para comprobar si hay una actualización disponible.» Para una consulta fallida: «No pudimos consultar los archivos del tema en Shopify. Intenta de nuevo en unos minutos.» No ofrecer la acción de actualización hasta comprobarla.

@@ -771,6 +771,7 @@ export interface PublishState {
     error?: string;
     previewUrl?: string;
     outdated: boolean;
+    updateError?: string;
   };
   /** Lo que falta en DropFlex para publicar (ficha, portada, galería, precio). */
   missing: string[];
