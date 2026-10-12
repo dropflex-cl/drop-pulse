@@ -39,6 +39,18 @@ Si faltan los nuevos IDs o sus contratos en el cliente, actualiza las herramient
 
 Si estas tools aún no aparecen en el cliente, actualiza el catálogo de la conexión antes de usar esos destinos; no simules el guardado. El conteo de contratos se obtiene del reporte y no de una lista copiada en esta skill.
 
+## Actualizar con imágenes existentes
+
+Ante «actualiza la PDP con estas nuevas imágenes», trabaja con los archivos que el usuario señala. Este pedido autoriza su guardado y asignación; no solicita crear ni editar sus píxeles. Aplica esta ruta antes del recorrido de generación, aunque las imágenes se hayan creado con ChatGPT en un turno anterior.
+
+1. Recupera `list_visual_assets` y pagina si hace falta. Si el archivo indicado ya está en DropFlex, reutiliza su `asset_id`; no vuelvas a ingerirlo ni prepares otra generación. No confundas una pieza de la misma familia con el archivo elegido.
+2. Lee los destinos y asignaciones vigentes con `get_component_generation_context` o `get_gallery_content`, según el alcance. El nombre de la tool de contexto no obliga a generar. Conserva variantes, posiciones, secciones ocultas y usos no afectados. Si varios destinos posibles cambian materialmente el pedido y el contexto no permite resolverlo, concreta solo esa decisión.
+3. Para un archivo del chat que aún no esté guardado, recupera el plan y la toma correspondientes. Si faltan, guarda únicamente la metadata necesaria con las tools visuales existentes y `generation_required: false` para la toma que importa ese archivo. `prepare_visual_iteration` registra la transferencia y su procedencia; no obliga a ejecutar el generador. La referencia canónica que requiere esa metadata se obtiene del contexto; importar los bytes existentes no exige adjuntarla al generador ni repetir «Usar referencia y continuar».
+4. Adjunta cada archivo existente al parámetro nativo `file` de `ingest_chatgpt_visual_asset`. Consulta `get_visual_ingestion_status` hasta `succeeded` y recupera el `asset_id`. Las alternativas HTTPS y ticket requieren acceso real a los bytes, como se explica en transferencia. Si no puedes obtener el archivo, informa qué archivo falta y pide adjuntarlo una sola vez. No llames al generador de imágenes para recuperar, descargar, convertir o guardar un archivo existente.
+5. Usa `bind_visual_asset` para los destinos pedidos. No reescribas el copy para cambiar solo imágenes. Comprueba las asignaciones vigentes; informa guardado y asignación por separado de publicación. Publica únicamente con autorización Shopify vigente.
+
+Si el chat muestra «Something went wrong while generating your image» sin una respuesta de las tools de DropFlex, no lo presentes como error confirmado del MCP. Consulta `get_visual_transfer_history` y distingue ejecución de tools, transferencia e ingestión de una generación externa. Un fallo de generación no demuestra que falló un guardado, y un archivo visible en el chat no demuestra que se haya guardado.
+
 ## Identidad y plan visual
 
 `get_visual_generation_context` devuelve referencia canónica, capacidades, dependencias y registros paginados. Los planes pueden ser resúmenes: usa `get_visual_generation_plan` y pagina `shots.items` para tomas completas.
