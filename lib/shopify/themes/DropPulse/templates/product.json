@@ -251,6 +251,7 @@
             },
             "review_stars": {
               "type": "df-review-stars",
+              "disabled": true,
               "settings": {
                 "compact": true,
                 "star_size": 16,

@@ -343,7 +343,7 @@ export function withPdpIntro(
     const review = badges.blocks![reviewIds[0]];
     blocks[reviewId] = {
       ...review,
-      ...(badges.disabled === true ? { disabled: true } : {}),
+      ...(badges.disabled === true || defaults.blocks.review_stars.disabled === true ? { disabled: true } : {}),
       settings: {
         ...review.settings,
         ...defaults.blocks.review_stars.settings,

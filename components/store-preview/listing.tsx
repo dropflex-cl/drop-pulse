@@ -87,7 +87,6 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
       <GalleryPreview facts={facts} />
       <div className="df-listing-preview__details">
         <GoogleRatingPreview facts={facts} />
-        {slots?.top}
         {facts.policies.cod ? <p className="df df-hype-badge df-hype-badge--solid"><span className="df-hype-badge__text">Pagas al recibir</span></p> : null}
         <h1 className="df df-heading df-title" style={{ marginBlock: `${px(title.margin_top)} ${px(title.margin_bottom)}` }}>{content.title || facts.productName}</h1>
         {content.short_description ? <p className="df df-subtitle" style={{ "--df-subtitle-size": px(subtitle.text_size), marginBlock: `${px(subtitle.margin_top)} ${px(subtitle.margin_bottom)}` } as React.CSSProperties}>{content.short_description}</p> : null}

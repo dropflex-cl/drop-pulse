@@ -156,9 +156,9 @@ instalarse una vez en las notificaciones de la tienda. Detalle en `docs/shopify-
 
 ## Orden de la ficha inicial
 
-La galería conserva foto principal y miniaturas. La columna de compra sigue: valoración compartida en Google, resumen compacto de reseñas del producto, badges, título, bajada, tres beneficios y packs. Precio y condiciones comerciales quedan después de los packs y antes del botón. La prueba social con avatares se conserva al final de la ficha, después de los videos.
+La galería conserva foto principal y miniaturas. La columna de compra sigue: valoración compartida en Google, badges, título, bajada, tres beneficios y packs. Precio y condiciones comerciales quedan después de los packs y antes del botón. La prueba social con avatares precede al carrusel de reseñas.
 
-Google y los beneficios son bloques independientes que reutilizan los snippets existentes; `buy-buttons` conserva el formulario y el estado técnico de reseñas, sin repetir esos elementos. `review-stars` usa por defecto una fila de estrellas, nota y cantidad; el ajuste `compact` permite recuperar la presentación extensa sin cambiar el texto guardado. Los badges del evento conservan fechas y descuentos reales y siguen el precio del pack elegido.
+Google y los beneficios son bloques independientes que reutilizan los snippets existentes; `buy-buttons` conserva el formulario y el estado técnico de reseñas, sin repetir esos elementos. `review-stars` queda apagado en el template inicial: su nota y cantidad siguen alimentando Google y los demás bloques. El comerciante puede volver a mostrar el bloque desde el editor. El ícono de Google mide 20 px (`space-5` de `design-system/tokens.json`). Los badges del evento conservan fechas y descuentos reales y siguen el precio del pack elegido.
 
 Al actualizar un tema instalado, `withPdpIntro` reconoce la ficha anterior del kit y aplica este orden una sola vez. Conserva los ajustes comerciales, los bloques personalizados y las desactivaciones; una ficha ya migrada no se reordena otra vez. La versión del kit incluye esta transición para ofrecer «Actualizar tema» aunque sus archivos Liquid ya estén al día.
 

@@ -10,6 +10,8 @@ El editor de Pasos de uso utiliza el mismo selector «Presentación», con «Pas
 
 El estado vacío de Reseñas describe el carrusel: «Todavía no hay reseñas en este carrusel.» No afirma que el producto carezca de reseñas cuando otros bloques ya muestran opiniones. La cantidad agregada y los items elegidos para el carrusel son datos distintos.
 
+La ficha de tienda muestra una sola valoración agregada en el encabezado, dentro de Google. Su ícono mide 20 px (`space-5`); la fila independiente de estrellas queda apagada en el template inicial para evitar repetir nota y cantidad. Los datos de `review-stars` se conservan como fuente compartida de valoración.
+
 En la ficha de tienda, opiniones y carrusel forman una composición editorial sin cajas, bordes ni padding exterior. El resumen comienza en el mismo eje izquierdo que la cita, con texto de 14 px (`text-small` de `reference/bundle.css`) y tres miniaturas de 32 px (`space-8`) a la derecha. Las miniaturas priorizan fotos reales y completan con íconos neutros, manteniendo el orden guardado dentro de cada grupo. La cita usa 14 px, color de texto y letra normal; debajo, autor y estrellas comparten una fila secundaria con avatar de 24 px (`space-6`), texto caption de 12 px y separación de 8 px (`space-2`). Los dots circulares de 8 px se alinean a la izquierda, a 8 px de la fila de autor, con 24 px entre centros y botones de 24 × 44 px para la paginación compacta solicitada. No hay flechas, contador, pausa ni autoplay.
 
 1. **Primero lo que te toca.** Cada pantalla responde “¿qué tengo que decidir aquí?” antes que “¿qué hay aquí?”. Lo que bloquea ventas o gasta dinero va arriba; lo que avanza solo, abajo o escondido.

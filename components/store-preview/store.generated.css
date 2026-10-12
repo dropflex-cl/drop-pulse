@@ -1783,9 +1783,9 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 }
 
 /* _landing/snippets/df-google-rating.liquid */
-/* space-1/2/6, type-label/caption y size-touch de design-system/tokens.json. */
+/* space-1/2/5, type-label/caption y size-touch de design-system/tokens.json. */
 .df-google-rating { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; border: 1px dashed var(--df-hairline); border-radius: var(--df-radius-sm); padding: 4px 8px; font-size: 14px; line-height: 20px; }
-.df-google-rating > svg, .df-google-rating > img { width: 24px; height: 24px; flex: none; }
+.df-google-rating > svg, .df-google-rating > img { width: 20px; height: 20px; flex: none; }
 .df-google-rating a { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 44px; color: inherit; text-decoration: none; }
 .df-google-rating__count { color: var(--df-muted); font-size: 12px; }
 
