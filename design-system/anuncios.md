@@ -53,3 +53,16 @@ Cada conjunto o anuncio tiene una decisión: Esperando (con la barra de cuánto 
 ## Valores de las plantillas
 
 Los valores de las reglas en estas pantallas (1× CPA o 48 h para esperar, 1,5× sin ventas para pausar, ≤0,8× por 3 días y +20 % para escalar, tope de $60.000) son **ejemplos editables**. Las plantillas del sistema deben cargar los valores definidos en la especificación del motor.
+
+
+## Carruseles
+
+Un carrusel cuenta como un creativo con 2 a 10 tarjetas cuadradas o verticales 4:5. Se muestra completo en un visor horizontal con desplazamiento y posición de tarjeta. En móvil cada tarjeta ocupa el ancho disponible. Usa los mismos espacios, bordes, controles y área táctil del configurador.
+
+Acciones: «Crea un carrusel», «Edita las tarjetas», «Usa este carrusel», «Quita del anuncio». Guardar deja disponible la pieza, sin elegirla ni publicarla. El editor en drawer incluye nombre, formato, texto principal, botón y tarjetas. Cada tarjeta tiene título del anuncio, descripción, enlace opcional, escena e imagen; «Mueve antes» y «Mueve después» conservan el orden explícito. «Deja fuera de uso» conserva la tarjeta y su archivo; «Recupera la tarjeta» revierte esa decisión. «Guarda el carrusel» es la única acción primaria del editor.
+
+La ayuda dice «Guarda tus tarjetas y elige después si las usas en un anuncio». Si falta una imagen, «Falta asignar la imagen». Los errores de contenido indican qué falta. El estado incompleto de una tarjeta no se representa como procesamiento de Meta. CBO dinámico conserva los carruseles como anuncios independientes en conjuntos sin contenido dinámico. No mezclar las tarjetas dentro de DCO.
+
+El editor permite desplegar «Dirección artística» (Paleta, Tipografía, Iluminación, Fotografía, Continuidad entre tarjetas) y «Textos dentro de la imagen». Cambiar esas instrucciones conserva el archivo actual: la ayuda dice «Editar el texto guarda la instrucción para una próxima imagen». Incluye «Añade un texto», «Quita este texto», «Añade una tarjeta» y «Cancela la edición». La biblioteca sigue disponible si falta Meta o una página publicable; solo la creación de campañas depende de esos requisitos.
+
+La vista horizontal admite foco y desplazamiento con teclado. «Deja el carrusel fuera de uso» y «Recupera el carrusel» editan la decisión de la pieza completa. «Quita la imagen» borra su asignación conservando el archivo disponible. Los botones Guardar y Cancelar quedan fuera del área desplazable del drawer, con área segura inferior.

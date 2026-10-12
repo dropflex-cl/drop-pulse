@@ -26,7 +26,7 @@ describe("DropFlex · importación de skill MCP", () => {
     const session = await connect();
     try {
       const tools = await session.client.listTools();
-      for (const name of ["get_component_generation_context", "get_pdp_completion_report"]) {
+      for (const name of ["get_component_generation_context", "get_pdp_completion_report", "get_ad_carousels"]) {
         expect(tools.tools.find(t => t.name === name)).toMatchObject({ annotations: { readOnlyHint: true } });
       }
       expect(session.client.getInstructions()).toContain("tarea argumental distinta");

@@ -142,7 +142,7 @@ export function prepareIteration(state: VisualState, input: { plan_ref: VisualRe
 }
 export const targetKey = (target: VisualTarget): string => target.type === "gallery_shot" ? `gallery:${target.slot}${target.slot === "gallery" ? ":" + target.position : ""}` : target.type === "landing_section" ?
   `landing:${target.experience_id}:${target.content_variant_key}:${target.section_key}:${target.component}:${target.slot}` : target.type === "landing_component" ? `component:${target.component}:${target.content_variant_key}:${target.slot}:${target.position}` : target.type === "creative_concept" ?
-  `creative:${target.concept_id}:${target.ratio}` : `ugc:${target.script_id}:${target.video_shot_id}:${target.slot}`;
+  `creative:${target.concept_id}:${target.ratio}` : target.type === "ad_carousel_card" ? `carousel:${target.carousel_id}:${target.card_key}:${target.ratio}` : `ugc:${target.script_id}:${target.video_shot_id}:${target.slot}`;
 export function targetDependency(state: VisualState, target: VisualTarget, etag: string): VisualDependency {
   void etag;
   const key = targetKey(target), found = state.targets.find(t => t.key === key);
@@ -193,7 +193,7 @@ export function prepareVisualReview(state: VisualState, input: { record_id: stri
     const target = record.payload.target as VisualTarget, found = state.targets.find(t => t.key === targetKey(target));
     if (!found) invalidVisual("El destino ya no existe. Elige otro espacio.", "VALIDATION_ERROR");
     const file = state.files.find(f => f.id === asset.payload.file_id);
-    const ratio = target.type === "creative_concept" ? target.ratio : target.type === "gallery_shot" ? SLOT_RATIO[slotKind(target.slot)!] : ["landing_component", "landing_section"].includes(target.type) ? ((found.value as { detail?: { slot?: { ratio?: string } } }).detail?.slot?.ratio ?? null) : null;
+    const ratio = ["creative_concept", "ad_carousel_card"].includes(target.type) ? (target as { ratio: string }).ratio : target.type === "gallery_shot" ? SLOT_RATIO[slotKind(target.slot)!] : ["landing_component", "landing_section"].includes(target.type) ? ((found.value as { detail?: { slot?: { ratio?: string } } }).detail?.slot?.ratio ?? null) : null;
     if (!file) invalidVisual("El archivo no está disponible.", "VALIDATION_ERROR");
     if (ratio) { const [w, h] = ratio.split(":").map(Number); if (Math.abs(file.width / file.height - w / h) > 0.02) invalidVisual("Crea y revisa un encuadre con el formato del destino antes de usarlo.", "VALIDATION_ERROR"); }
     // Acknowledged asset validity advances this use, preserving original asset provenance.

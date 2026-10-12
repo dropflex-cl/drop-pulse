@@ -346,7 +346,8 @@ export interface Assumptions {
 /** Un creativo subido por el comerciante (bucket ad-media). */
 export interface AdMedia {
   id: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "carousel";
+  carousel?: import("./ads/carousel").AdCarousel;
   name: string;
   /** URL firmada para mostrarlo. */
   url: string;

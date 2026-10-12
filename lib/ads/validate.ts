@@ -10,7 +10,8 @@ export type ConfigSectionKey = (typeof CONFIG_SECTIONS)[number];
 
 export interface MediaFacts {
   id: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "carousel";
+  error?: string | null;
   status: "uploading" | "processing" | "ready" | "error";
 }
 
@@ -57,11 +58,15 @@ export function launchProblems(structure: Structure, launch: LaunchConfig, engin
   // Creativos
   const byId = new Map(facts.media.map((m) => [m.id, m]));
   const chosen = launch.creatives.map((id) => byId.get(id)).filter((m): m is MediaFacts => !!m);
+  if (chosen.length !== launch.creatives.length) set("creatives", "Un creativo ya no está disponible. Elige los archivos nuevamente.");
+  const incomplete = chosen.find(m => m.kind === "carousel" && m.status !== "ready");
+  if (incomplete) set("creatives", incomplete.error ?? "Completa las tarjetas del carrusel.");
   if (chosen.length === 0) set("creatives", "Sube al menos un creativo.");
   else if (chosen.some((m) => m.status === "uploading")) set("creatives", "Espera a que terminen de subir los creativos.");
   else if (chosen.some((m) => m.status === "error")) set("creatives", "Quita los creativos con error.");
-  if (structure === "cbo" && launch.cbo_ads === "dco" && chosen.length > MAX_DCO_MEDIA) set("creatives", `El anuncio dinámico lleva hasta ${MAX_DCO_MEDIA} creativos.`);
-  if (adsetCount(structure, launch) > MAX_ADSETS) set("creatives", `Son ${adsetCount(structure, launch)} conjuntos: el máximo es ${MAX_ADSETS}. Quita creativos o públicos.`);
+  if (structure === "cbo" && launch.cbo_ads === "dco" && chosen.filter(m => m.kind !== "carousel").length > MAX_DCO_MEDIA) set("creatives", `El anuncio dinámico lleva hasta ${MAX_DCO_MEDIA} creativos.`);
+  const sets = adsetCount(structure, launch) * (structure === "cbo" && launch.cbo_ads === "dco" && chosen.some(m => m.kind === "carousel") && chosen.some(m => m.kind !== "carousel") ? 2 : 1);
+  if (sets > MAX_ADSETS) set("creatives", `Son ${sets} conjuntos: el máximo es ${MAX_ADSETS}. Quita creativos o públicos.`);
 
   // Lo que dice el esquema, campo a campo.
   const parsed = launchSchema.safeParse(launch);

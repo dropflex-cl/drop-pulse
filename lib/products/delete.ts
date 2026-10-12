@@ -54,7 +54,7 @@ async function removeFiles(userId: string, productId: string) {
   // Creativos de anuncios (bucket ad-media, docs/spec-anuncios.md §8).
   const { data: media, error: mediaError } = await db.from("ad_media").select("storage_path").eq("user_id", userId).eq("product_id", productId);
   if (mediaError) throw new Error(`Leer creativos de ${productId}: ${mediaError.message}`);
-  const adPaths = [...new Set([...(await storedPaths(userId, productId, AD_MEDIA_BUCKET)), ...(media ?? []).map((m) => m.storage_path as string)])];
+  const adPaths = [...new Set([...(await storedPaths(userId, productId, AD_MEDIA_BUCKET)), ...(media ?? []).map((m) => m.storage_path as string).filter(Boolean)])];
   for (let i = 0; i < adPaths.length; i += REMOVE_BATCH) {
     const { error: rmError } = await db.storage.from(AD_MEDIA_BUCKET).remove(adPaths.slice(i, i + REMOVE_BATCH));
     if (rmError) throw new Error(`Borrar creativos de ${productId}: ${rmError.message}`);

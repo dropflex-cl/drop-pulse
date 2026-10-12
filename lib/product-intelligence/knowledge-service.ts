@@ -1,3 +1,6 @@
+import { carouselTools } from "./carousel-schemas";
+import { createCarouselExecutor } from "./carousel-service";
+import type { CarouselRepository } from "./repository";
 import { serverRevision } from "./current-content";
 import { shopifyAutomationTools } from "./shopify-automation-schemas";
 import { createShopifyAutomationExecutor } from "./shopify-automation";
@@ -41,13 +44,17 @@ import { parseContextRead } from "./context";
 import type { UgcRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = [...shopifyAutomationTools, "list_products", ...visualTools, ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "validate_ugc_script_timing", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = [...carouselTools, ...shopifyAutomationTools, "list_products", ...visualTools, ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "validate_ugc_script_timing", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
 /** Adaptador común para UI/MCP. Los textos se guardan sin IA; generate_ugc encola renders con permiso explícito. */
-export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository & VisualRepository & ShopifyAutomationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void, wakeVisual?: (id: string) => void, wakePublish?: (id: string) => void): DomainExecutor {
+export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<CarouselRepository & ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository & VisualRepository & ShopifyAutomationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void, wakeVisual?: (id: string) => void, wakePublish?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     command = { ...command, input: parseToolInput(command.tool, command.input) } as typeof command;
     requireScopes(principal, toolScopes[command.tool]);
+    if (carouselTools.includes(command.tool as typeof carouselTools[number])) {
+      if (!repository.loadCarousel || !repository.commitCarousel) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración de carruseles.");
+      return createCarouselExecutor(repository as CarouselRepository, identity)(principal, command, signal);
+    }
     if (command.tool === "validate_ugc_script_timing") {
       // La lectura común verifica dueño y grant vigente, sin pedir contexto completo ni guardar la propuesta.
       const input = command.input;

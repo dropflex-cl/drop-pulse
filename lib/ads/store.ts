@@ -1,3 +1,5 @@
+import { resolveCarousels } from "./carousel-store";
+import type { AdCarousel, CarouselContent } from "./carousel";
 import { selectVariant } from "@/lib/copy/variants";
 import "server-only";
 import { randomUUID } from "node:crypto";
@@ -32,6 +34,7 @@ export function fail(what: string, error: { message: string } | null) {
 }
 
 export interface CampaignRow {
+  media_snapshot?: MediaRow[] | null;
   id: string;
   user_id: string;
   product_id: string;
@@ -70,7 +73,10 @@ export interface MediaRow {
   id: string;
   user_id: string;
   product_id: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "carousel";
+  carousel_etag?: string | null;
+  carousel_content?: CarouselContent | null;
+  carousel?: AdCarousel;
   name: string;
   /** El ángulo de testeo del que sale (creativos de la etapa Creativos); null en los subidos a mano. */
   angle_slot?: number | null;
@@ -352,18 +358,21 @@ export async function listMediaRows(userId: string, productId: string): Promise<
     if (concept?.family === CHAT_FAMILY) formats.set(a.ad_media_id, "chat");
   }
   for (const v of (videos.data ?? []) as { ad_media_id: string; format: string }[]) formats.set(v.ad_media_id, v.format === "mascot" ? "mascot" : "ugc");
-  return ((media.data ?? []) as MediaRow[]).map((m) => ({ ...m, format: formats.get(m.id) ?? null }));
+  return resolveCarousels(((media.data ?? []) as MediaRow[]).map((m) => ({ ...m, format: formats.get(m.id) ?? null })));
 }
 
 export async function toAdMedia(rows: MediaRow[]): Promise<AdMedia[]> {
   if (!rows.length) return [];
-  const { data } = await adminClient().storage.from(AD_MEDIA_BUCKET).createSignedUrls(rows.map((r) => r.storage_path), SIGNED_URL_TTL_S);
+  if (rows.some(r => r.kind === "carousel" && !r.carousel)) rows = await resolveCarousels(rows);
+  const paths = rows.map(r => r.storage_path).filter(Boolean);
+  const { data } = paths.length ? await adminClient().storage.from(AD_MEDIA_BUCKET).createSignedUrls(paths, SIGNED_URL_TTL_S) : { data: [] };
   const urls = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
   return rows.map((r) => ({
     id: r.id,
     kind: r.kind,
     name: r.name,
-    url: urls.get(r.storage_path) ?? "",
+    url: r.carousel?.cards.find(c => c.url)?.url ?? urls.get(r.storage_path) ?? "",
+    carousel: r.carousel,
     ratio: r.ratio,
     angleSlot: r.angle_slot ?? null,
     format: r.format ?? null,
@@ -448,12 +457,20 @@ export async function confirmMedia(
 /** Quita un creativo que ninguna campaña lanzada usa. */
 export async function deleteMedia(userId: string, productId: string, mediaId: string) {
   const db = adminClient();
-  const { data } = await db.from("ad_media").select("id, storage_path").eq("user_id", userId).eq("product_id", productId).eq("id", mediaId).maybeSingle();
+  const { data } = await db.from("ad_media").select("id, storage_path, kind").eq("user_id", userId).eq("product_id", productId).eq("id", mediaId).maybeSingle();
   if (!data) throw new ProductApiError("No encontramos ese creativo.", 404);
   const { count } = await db.from("ads").select("id", { count: "exact", head: true }).eq("media_id", mediaId);
   if ((count ?? 0) > 0) throw new ProductApiError("Este creativo está en una campaña lanzada: no se puede quitar.", 409);
-  const rm = await db.storage.from(AD_MEDIA_BUCKET).remove([data.storage_path as string]);
-  if (rm.error) throw new Error(`Borrar el archivo: ${rm.error.message}`);
+  const carousels = await db.from("ad_media").select("carousel_content").eq("user_id", userId).eq("product_id", productId).eq("kind", "carousel");
+  fail("Leer los carruseles", carousels.error);
+  if (carousels.data?.some(r => (r.carousel_content as CarouselContent).cards.some(c => c.media_id === mediaId))) throw new ProductApiError("Esta imagen está asignada a un carrusel. Quita su asignación antes de eliminarla.", 409);
+  const launching = await db.from("ad_campaigns").select("launch, media_snapshot").eq("user_id", userId).eq("product_id", productId).in("status", ["launching", "paused", "active", "archived"]);
+  fail("Leer los lanzamientos", launching.error);
+  if (launching.data?.some(r => (r.launch as LaunchConfig).creatives.includes(mediaId) || (r.media_snapshot as MediaRow[] | null)?.some(m => m.carousel_content?.cards.some(c => c.media_id === mediaId)))) throw new ProductApiError("Este archivo está en una campaña creada o en curso. Conserva la imagen para sus anuncios.", 409);
+  if (data.storage_path) {
+    const rm = await db.storage.from(AD_MEDIA_BUCKET).remove([data.storage_path as string]);
+    if (rm.error) throw new Error(`Borrar el archivo: ${rm.error.message}`);
+  }
   fail("Borrar el creativo", (await db.from("ad_media").delete().eq("id", mediaId)).error);
 }
 

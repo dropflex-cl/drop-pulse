@@ -1,5 +1,6 @@
 // Datos de ejemplo de la etapa Anuncios (PantallasAnuncios1 y AnunciosEscritorio1): el corrector de
 // postura con 3 creativos, como AdCreatives y AD_TREE de design-system/reference/bundle.js.
+import { carouselFixture } from "@/lib/ads/carousel-fixtures";
 import { buildPreset } from "@/lib/ads/presets";
 import { productImage } from "@/lib/mock/images";
 import { productPresentation } from "@/lib/products/presentation";
@@ -34,7 +35,11 @@ const NEW_TEXTS = {
 export function fixture(state: string): ProductAds {
   const pageDone = state !== "locked";
   const pos = productPresentation({ content: { hasContent: pageDone, missing: pageDone ? [] : ["Guarda la ficha del producto"], stale: false } });
-  const media = state === "empty" ? [] : MEDIA;
+  const carousel = carouselFixture();
+  const sample: AdMedia = { id: "00000000-0000-4000-8000-000000000004", kind: "carousel", name: "Carrusel de prueba", url: productImage(3, 1), ratio: "4:5", angleSlot: null, format: null, durationS: null, status: "ready", error: null,
+    carousel: { id: "00000000-0000-4000-8000-000000000004", content: carousel, etag: "a".repeat(64), ready: true, problem: null,
+      cards: carousel.cards.map((c, i) => ({ ...c, storage_path: "fixture.jpg", width: 800, height: 1000, size_bytes: 100, problem: null, url: productImage(i, 1) })) } };
+  const media = state === "empty" ? [] : state === "carousel" ? [...MEDIA, sample] : MEDIA;
   const preset = buildPreset("impulso", { country: "CL", currency: "CLP", cpaLimit: 6000, creatives: media.map((m) => m.id), texts: TEXTS });
   if (state === "ready" || state === "launching" || state === "failed") preset.launch.min_age = 23;
   return {

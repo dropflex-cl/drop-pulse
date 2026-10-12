@@ -9,7 +9,7 @@ export const SKILLS_EXTENSION = "io.modelcontextprotocol/skills";
 export const OPTIMIZATION_SKILL_URI = "skill://dropflex/optimize-product/SKILL.md";
 export const EBOOK_SKILL_URI = "skill://dropflex/create-gift-ebook/SKILL.md";
 const packages = [
-  { name: "optimize-product", files: ["SKILL.md", "agents/openai.yaml", "references/strategy-and-hooks.md", "references/production.md", "references/ugc-writing.md"] },
+  { name: "optimize-product", files: ["SKILL.md", "agents/openai.yaml", "references/strategy-and-hooks.md", "references/production.md", "references/ugc-writing.md", "references/carousel-ads.md"] },
   { name: "create-gift-ebook", files: ["SKILL.md", "agents/openai.yaml", "references/pdf-production.md", "scripts/build_ebook.py"] },
 ] as const;
 const skillRoot = join(process.cwd(), "plugins/dropflex-optimizer/skills");

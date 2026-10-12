@@ -8,7 +8,7 @@ import type { Structure } from "./schemas";
 export type MediaFormat = "ugc" | "mascot" | "chat" | null;
 
 export interface NamingMedia {
-  kind: "image" | "video";
+  kind: "image" | "video" | "carousel";
   format?: MediaFormat;
 }
 
@@ -23,6 +23,7 @@ const PRODUCT_MAX = 50;
 const SEP = " | ";
 
 export function creativeType(m: NamingMedia): string {
+  if (m.kind === "carousel") return "Carrusel";
   if (m.kind === "video") return m.format === "ugc" ? "Video UGC" : m.format === "mascot" ? "Video mascota" : "Video";
   return m.format === "chat" ? "Chat WhatsApp" : "Imagen";
 }

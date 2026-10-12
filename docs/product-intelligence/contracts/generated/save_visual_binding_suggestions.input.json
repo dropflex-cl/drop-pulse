@@ -28,6 +28,40 @@
               "properties": {
                 "type": {
                   "type": "string",
+                  "const": "ad_carousel_card"
+                },
+                "carousel_id": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "card_key": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "ratio": {
+                  "type": "string",
+                  "enum": [
+                    "1:1",
+                    "4:5"
+                  ]
+                },
+                "slot": {
+                  "type": "string",
+                  "const": "image"
+                }
+              },
+              "required": [
+                "type",
+                "carousel_id",
+                "card_key",
+                "ratio",
+                "slot"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
                   "const": "gallery_shot"
                 },
                 "shot_key": {

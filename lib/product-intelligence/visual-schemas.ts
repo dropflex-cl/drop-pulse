@@ -34,6 +34,7 @@ export const visualPlanSchema = z.strictObject({ name: text.max(120), strategy_i
     palette: text, lighting: text, photography_style: text, typography: text.nullable(), mood: text, consistency_notes: text }),
   shots: z.array(visualShotSchema).min(1).max(VISUAL_LIMITS.shots).refine(v => new Set(v.map(s => s.shot_key)).size === v.length) });
 export const visualTargetSchema = z.discriminatedUnion("type", [
+  z.strictObject({ type: z.literal("ad_carousel_card"), carousel_id: visualUuid, card_key: key, ratio: z.enum(["1:1", "4:5"]), slot: z.literal("image") }),
   z.strictObject({ type: z.literal("gallery_shot"), shot_key: key, slot: z.string().regex(/^(cover|gallery|benefit-[a-z0-9_-]{1,64})$/), position: z.number().int().min(1).max(GALLERY_MAX).nullable() }),
   z.strictObject({ type: z.literal("landing_section"), experience_id: visualUuid, content_variant_key: key, section_key: key, component: key, slot: key }),
   z.strictObject({ type: z.literal("landing_component"), component: z.enum(LANDING_COMPONENT_IDS as [string, ...string[]]), content_variant_key: key, slot: key, position: z.number().int().min(1).max(10) }),

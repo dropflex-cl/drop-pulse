@@ -325,3 +325,6 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* .df-mtile.r-4x5 en design-system/reference/bundle.css */
+@utility aspect-portrait-ad { aspect-ratio: 4 / 5; }

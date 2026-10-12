@@ -1,7 +1,7 @@
 ---
 name: optimize-product
-description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.7.6"}
+description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; También desarrolla y guarda carruseles publicitarios solicitados. No sincroniza tiendas, configura integraciones ni lanza campañas.
+metadata: {"version": "1.7.7"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -109,3 +109,7 @@ Conserva la procedencia de archivos y referencias cuando exista. Fuentes externa
 Usa el idioma del mercado; en español, tuteo neutro. Presenta una decisión principal por turno y una recomendación. Resume qué quedó guardado, qué falta decidir y qué sigue. Evita JSON e IDs salvo que ayuden a resolver un problema. Distingue «contenido guardado», «publicación en curso» y «publicado en Shopify»; no declares terminado si faltan archivos necesarios o requisitos concretos.
 
 Invocaciones: «Optimiza la aspiradora y ayúdame a elegir el hook primario», «Dame otros hooks del ángulo elegido», «Retoma la PDP», «La foto cambia el mango: corrige esa toma».
+
+## Carruseles publicitarios
+
+Si el usuario pide analizar, generar, subir o editar un carrusel para Ads, sigue [references/carousel-ads.md](references/carousel-ads.md). Usa `get_ad_carousels` para recuperar el contrato y las piezas vigentes y `save_ad_carousel` para guardar sus tarjetas, escenas, textos y decisiones. Cada imagen usa la base real y se ingiere por el flujo visual existente; la app muestra el mismo carrusel. Guardarlo no elige una campaña ni publica en Meta.

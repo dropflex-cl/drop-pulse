@@ -39,6 +39,7 @@ import { COUNTRIES, countryName } from "@/lib/market";
 import { productHref } from "@/lib/routes";
 import type { AdMedia, AdTemplate, ProductAds } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { CarouselLibrary } from "./ads-carousel";
 import { EngineRules, engineSummary } from "./ads-engine";
 
 // Etapa Anuncios: el configurador de lanzamiento (PantallasAnuncios1 y PantallasAnunciosEscritorio1,
@@ -402,8 +403,8 @@ export function AdsScreen({ data }: { data: ProductAds }) {
 
   // ---------------------------------------------------------------- Lanzar
   const total = dailyTotal(cfg.structure, cfg.launch);
-  const sets = adsetCount(cfg.structure, cfg.launch);
-  const problems = launchProblems(cfg.structure, cfg.launch, cfg.engine, { media: [...media.map((m) => ({ id: m.id, kind: m.kind, status: m.status }))], spendCap, currency });
+  const sets = adsetCount(cfg.structure, cfg.launch) * (cfg.structure === "cbo" && cfg.launch.cbo_ads === "dco" && chosen.some(m => m.kind === "carousel") && chosen.some(m => m.kind !== "carousel") ? 2 : 1);
+  const problems = launchProblems(cfg.structure, cfg.launch, cfg.engine, { media: [...media.map((m) => ({ id: m.id, kind: m.kind, status: m.status, error: m.error }))], spendCap, currency });
   const hasUploads = uploads.some((u) => !u.error);
   if (hasUploads && !problems.creatives) problems.creatives = "Espera a que terminen de subir los creativos.";
 
@@ -443,7 +444,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
       cfg.structure === "abo"
         ? `${chosen.length} ${chosen.length === 1 ? "listo" : "listos"} → ${sets} ${sets === 1 ? "conjunto" : "conjuntos"}`
         : cfg.launch.cbo_ads === "dco"
-          ? `1 anuncio dinámico con ${chosen.length} creativos · ${sets} ${sets === 1 ? "conjunto" : "conjuntos"}`
+          ? `Creativos dinámicos y carruseles independientes · ${sets} ${sets === 1 ? "conjunto" : "conjuntos"}`
           : `${chosen.length} anuncios en ${sets} ${sets === 1 ? "conjunto" : "conjuntos"}`,
     audience: `${countries} · ${cfg.launch.min_age}+ · ${cfg.launch.audiences.map(audienceText).join(" + ")}`,
     budget: `${money(cfg.launch.budget, currency)} ${cfg.structure === "abo" ? "por conjunto" : "/día en la campaña"} · empieza ${start}`,
@@ -465,12 +466,12 @@ export function AdsScreen({ data }: { data: ProductAds }) {
 
   // Lo mismo que creará el lanzador (lib/ads/plan.ts), con los nombres que tendrá en Meta y la fecha de hoy.
   const plan = useMemo(
-    () => planLaunch(cfg.structure, cfg.launch, chosen.map((m) => ({ id: m.id, name: m.name, kind: m.kind, format: m.format, angle_slot: m.angleSlot })), { product: product.name, date: creationDate(new Date(), timezone) }),
+    () => planLaunch(cfg.structure, cfg.launch, chosen.map((m) => ({ id: m.id, name: m.name, kind: m.kind, format: m.format, angle_slot: m.angleSlot, carousel_content: m.carousel?.content })), { product: product.name, date: creationDate(new Date(), timezone) }),
     [cfg.structure, cfg.launch, chosen, product.name, timezone],
   );
   const tree: TreeAdset[] = useMemo(() => {
     const budget = money(cfg.launch.budget, currency);
-    const kindOf = new Map(chosen.map((m) => [m.id, m.kind]));
+    const kindOf = new Map(chosen.map((m) => [m.id, m.kind === "carousel" ? "image" as const : m.kind]));
     const aud = (a: LaunchConfig["audiences"][number]) => `${cfg.launch.countries.join(", ")} · ${cfg.launch.min_age}+ · ${a.kind === "open" ? "abierto" : "intereses"}`;
     return plan.adsets.map((s) => ({
       name: s.name,
@@ -495,7 +496,10 @@ export function AdsScreen({ data }: { data: ProductAds }) {
     return (
       <div className="flex flex-col">
         <TopBar back={product.name} backHref={`/products/${product.id}`} title="Anuncios" subtitle="Lanzar campaña" className="lg:hidden" />
-        <div className="px-4 pt-6 lg:px-8 lg:max-w-content">
+        <div className="flex flex-col gap-4 px-4 pt-6 lg:px-8 lg:max-w-content">
+          <CarouselLibrary productId={product.id} media={media} selected={cfg.launch.creatives}
+            onMedia={m => setMedia(list => list.some(v => v.id === m.id) ? list.map(v => v.id === m.id ? m : v) : [...list, m])}
+            onChoose={id => setLaunch({ creatives: cfg.launch.creatives.includes(id) ? cfg.launch.creatives.filter(v => v !== id) : [...cfg.launch.creatives, id] })} />
           <EmptyState
             icon="lock"
             title={toSettings ? "Conecta Meta Ads" : "Termina la página del producto"}
@@ -570,7 +574,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
             onDragEnd={() => setDragging(null)}
             className={cn(dragging === m.id && "opacity-60")}
           >
-            <CreativeSlot
+            {m.kind === "carousel" ? <div className="flex items-center justify-between gap-2 rounded-md border border-border p-3"><span className="text-label">{m.name} · Carrusel</span><Button onClick={() => setLaunch({ creatives: cfg.launch.creatives.filter(id => id !== m.id) })}>Quita del anuncio</Button></div> : <CreativeSlot
               name={m.name}
               type={m.kind}
               src={m.url}
@@ -602,7 +606,7 @@ export function AdsScreen({ data }: { data: ProductAds }) {
                   </button>
                 ) : null
               }
-            />
+            />}
           </li>
         ))}
         {uploads.map((u) => (
@@ -618,6 +622,10 @@ export function AdsScreen({ data }: { data: ProductAds }) {
           </li>
         ))}
       </ul>
+      <CarouselLibrary productId={product.id} media={media} selected={cfg.launch.creatives}
+        onMedia={m => setMedia(list => list.some(v => v.id === m.id) ? list.map(v => v.id === m.id ? m : v) : [...list, m])}
+        onChoose={id => setLaunch({ creatives: cfg.launch.creatives.includes(id) ? cfg.launch.creatives.filter(v => v !== id) : [...cfg.launch.creatives, id] })} />
+      {media.filter(m => m.kind !== "carousel" && !cfg.launch.creatives.includes(m.id)).map(m => <Button key={m.id} onClick={() => setLaunch({ creatives: [...cfg.launch.creatives, m.id] })}>Usa {m.name}</Button>)}
       <label className="flex min-h-touch cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-input px-4 py-4 text-center focus-within:ring-2 focus-within:ring-ring hover:bg-accent">
         <input
           type="file"

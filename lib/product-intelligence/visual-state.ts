@@ -1,4 +1,5 @@
 import "server-only";
+import { carouselContentSchema } from "@/lib/ads/carousel";
 import { z } from "zod";
 import sharp from "sharp";
 import { GALLERY_MAX, slotKind } from "@/lib/page-images/catalog";
@@ -15,7 +16,7 @@ import { createVisualUrlSigner, stateVisualSigner } from "./visual-url-signer";
 import { VISUAL_LIMITS, type VisualTarget } from "./visual-schemas";
 
 const row = z.record(z.string(), z.unknown());
-const sourceSchema = z.object({ page_images: z.array(row).default([]), references: z.array(z.object({ id: z.string(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable().optional(),
+const sourceSchema = z.object({ ad_carousels: z.array(z.object({ id: z.string().uuid(), content: carouselContentSchema })).default([]), page_images: z.array(row).default([]), references: z.array(z.object({ id: z.string(), storage_path: z.string().nullable(), url: z.string().nullable(), mime_type: z.string().nullable().optional(),
   is_base: z.boolean(), is_cover: z.boolean(), excluded: z.boolean() })), gallery: z.array(row), gallery_shots: z.array(row), creative_concepts: z.array(row), scripts: z.array(row), video_shots: z.array(row),
   pdp: z.object({ plans: z.array(persuasionRecordSchema), experiences: z.array(experienceRecordSchema), landing: componentLandingSchema }) });
 const sourceRead = z.object({ source: sourceSchema, knowledge: z.unknown().optional(), knowledge_projection: z.object({
@@ -95,6 +96,8 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
         section_key: section.section_key, component: section.component, slot: slot.key }, { section: { ...section, images: undefined, asset_refs: undefined, manual_overrides: undefined }, variant: { ...variant, images: undefined }, slot });
     }
   }
+  for (const carousel of src.ad_carousels) for (const card of carousel.content.cards) addTarget({ type: "ad_carousel_card", carousel_id: carousel.id, card_key: card.key, ratio: carousel.content.ratio, slot: "image" },
+    { name: carousel.content.name, art: carousel.content.art, card: { ...card, asset_id: undefined, media_id: undefined }, ratio: carousel.content.ratio });
   for (const c of src.creative_concepts) for (const ratio of ["1:1", "9:16"] as const) addTarget({ type: "creative_concept", concept_id: String(c.id), ratio, slot: "image" }, { concept: c.payload, input: c.input, ratio });
   for (const s of src.video_shots.filter(s => !s.superseded_at && ["keyframe", "b_roll"].includes(String(s.kind)))) {
     const script = src.scripts.find(r => r.id === s.script_id);
@@ -105,6 +108,6 @@ export async function hydrateVisualState(raw: unknown, principal: Principal, pro
   state.knowledge = { product: read.currentSnapshot.catalog, context: read.currentSnapshot.context, pricing: read.currentSnapshot.pricing, policies: read.currentSnapshot.settings,
     landing: src.pdp.landing, media: { selected_gifs: src.page_images.filter(i => i.slot === "gifs" && i.is_selected === true && !i.discarded_at && i.render_status === "succeeded" && i.storage_path).map(i => i.id),
       available_video_scripts: src.scripts.filter(s => s.final_storage_path && s.final_status !== "rejected").map(s => s.id) }, strategy: selected ? strategyResponse(selected, read, productId) : null, graph, persuasion_plans: src.pdp.plans, landing_experiences: src.pdp.experiences,
-    gallery_requirements: src.gallery.map(r => ({ id: r.id, payload: r.payload })), creative_concepts: src.creative_concepts.map(c => ({ id: c.id, payload: c.payload })) };
+    ad_carousels: src.ad_carousels, gallery_requirements: src.gallery.map(r => ({ id: r.id, payload: r.payload })), creative_concepts: src.creative_concepts.map(c => ({ id: c.id, payload: c.payload })) };
   return state;
 }

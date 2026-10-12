@@ -36,6 +36,7 @@ export interface DraftBody {
 const q = (from: string | null) => (from ? `?from=${encodeURIComponent(from)}` : "");
 
 export const adsApi = {
+  saveCarousel: (productId: string, body: { carousel_id: string | null; idempotency_key?: string; expected_etag?: string; content: import("./carousel").CarouselContent }) => call<{ media: AdMedia }>(`/api/products/${productId}/ads/carousels`, "PUT", body),
   state: (productId: string, from: string | null) => call<Omit<ProductAds, "product">>(`/api/products/${productId}/ads${q(from)}`),
   saveDraft: (productId: string, draft: DraftBody, from: string | null) => call<{ id: string; updatedAt: string }>(`/api/products/${productId}/ads/draft${q(from)}`, "PUT", draft),
   launch: (productId: string, from: string | null) => call<{ campaignId: string }>(`/api/products/${productId}/ads/launch${q(from)}`, "POST", {}),

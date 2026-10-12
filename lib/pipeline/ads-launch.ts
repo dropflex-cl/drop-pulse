@@ -1,3 +1,5 @@
+import { resolveCarousels } from "@/lib/ads/carousel-store";
+import { activeCarouselCards } from "@/lib/ads/carousel";
 import { assertVisualMediaPublishable } from "@/lib/product-intelligence/visual-publication";
 import { contextAccess, contextDatabaseError } from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
@@ -6,7 +8,7 @@ import "server-only";
 import { ugcDestination } from "@/lib/ads/ugc-link";
 import { adsContext, AD_MEDIA_BUCKET, fail, getCampaignRow, getDraft, listMediaRows, type CampaignRow, type MediaRow } from "@/lib/ads/store";
 import { createAd, createAdset, createCampaign, createCreative, getAdAccount, lifetimeImpressions, setStartTime, setStatus, uploadImage, uploadVideo, videoStatus, videoThumbnailHash, waitVideoReady } from "@/lib/ads/meta/adapter";
-import { buildTargeting, dynamicCreative, needsDynamicCreative, singleCreative, type UploadedMedia } from "@/lib/ads/meta/payloads";
+import { buildTargeting, carouselCreative, type UploadedCarousel, dynamicCreative, needsDynamicCreative, singleCreative, type UploadedMedia } from "@/lib/ads/meta/payloads";
 import { creationDate } from "@/lib/ads/naming";
 import { planLaunch, planSteps } from "@/lib/ads/plan";
 import { nextMorning } from "@/lib/ads/schedule";
@@ -61,7 +63,7 @@ export async function startLaunch(userId: string, productId: string, sourceCampa
   if (!draft) throw new ProductApiError("No hay una campaña por lanzar. Recarga la página.", 404);
   if (draft.status === "launching") throw new ProductApiError("La campaña ya se está creando.", 409);
 
-  const problems = launchProblems(draft.structure, draft.launch, draft.engine, { media: media.map((m) => ({ id: m.id, kind: m.kind, status: m.status })), spendCap: ctx.spendCap, currency: ctx.currency });
+  const problems = launchProblems(draft.structure, draft.launch, draft.engine, { media: media.map((m) => ({ id: m.id, kind: m.kind, status: m.status, error: m.error })), spendCap: ctx.spendCap, currency: ctx.currency });
   const first = Object.values(problems)[0];
   if (first) throw new ProductApiError(first, 422);
   if (!launchSchema.safeParse(draft.launch).success || !engineSchema.safeParse(draft.engine).success) throw new ProductApiError("Revisa la configuración: hay valores que no son válidos.", 422);
@@ -69,7 +71,7 @@ export async function startLaunch(userId: string, productId: string, sourceCampa
   // Solo un lanzamiento: el cambio de estado es condicional.
   const { data, error } = await adminClient()
     .from("ad_campaigns")
-    .update({ status: "launching", error: null, progress: { step: "Preparando", done: 0, total: 1 }, meta_objects: [], ad_account_id: ctx.meta!.ad_account_id, updated_at: now() })
+    .update({ status: "launching", media_snapshot: media.filter(m => draft.launch.creatives.includes(m.id)), error: null, progress: { step: "Preparando", done: 0, total: 1 }, meta_objects: [], ad_account_id: ctx.meta!.ad_account_id, updated_at: now() })
     .eq("id", draft.id)
     .eq("status", "draft")
     .select("*")
@@ -97,6 +99,7 @@ async function rollback(token: string, objects: MetaObject[]): Promise<MetaObjec
 
 /** Sube un medio a la cuenta, o reusa lo que ya está ahí. */
 async function ensureMedia(token: string, accountId: string, m: MediaRow, deadline: number): Promise<UploadedMedia> {
+  if (m.kind === "carousel") throw new Error("Las tarjetas se suben individualmente.");
   const db = adminClient();
   const sameAccount = m.ad_account_id === accountId;
   if (m.kind === "image") {
@@ -141,6 +144,7 @@ export async function runLaunch(campaignId: string): Promise<void> {
     const product = await getProductRow(c.user_id, c.product_id);
     if (!product) throw new Error("El producto ya no existe.");
     const ctx = await adsContext(c.user_id, product);
+    if (!ctx.metaReady || ctx.meta?.ad_account_id !== c.ad_account_id) throw new Error("La cuenta de Meta cambió. Revisa la configuración y crea la campaña otra vez.");
     const meta = ctx.meta!;
     const accountId = meta.ad_account_id!;
     const account = await getAdAccount(token, accountId);
@@ -153,7 +157,11 @@ export async function runLaunch(campaignId: string): Promise<void> {
     if (!link) throw new Error(NO_URL);
 
     const allMedia = await listMediaRows(c.user_id, c.product_id);
-    const media = c.launch.creatives.map((id) => allMedia.find((m) => m.id === id)).filter((m): m is MediaRow => !!m);
+    const frozenRows = allMedia.map(current => c.media_snapshot?.find(m => m.id === current.id && m.kind === "carousel") ?? current);
+    const resolved = await resolveCarousels(frozenRows);
+    const media = c.launch.creatives.map(id => resolved.find(m => m.id === id)).filter((m): m is MediaRow => !!m);
+    const missing = launchProblems(c.structure, c.launch, c.engine, { media, spendCap: ctx.spendCap, currency: c.currency });
+    if (Object.keys(missing).length) throw new Error(Object.values(missing)[0]);
     // Los nombres llevan la fecha de hoy en la cuenta: al rehacer o recrear, la del nuevo lanzamiento.
     const plan = planLaunch(c.structure, c.launch, media, { product: product.title, date: creationDate(new Date(), account.timezone) });
     for (const set of plan.adsets) for (const ad of set.ads) ugcDestination(link, media.filter((m) => ad.mediaIds.includes(m.id)));
@@ -178,11 +186,22 @@ export async function runLaunch(campaignId: string): Promise<void> {
     done++;
 
     // 2. Los medios (se reusan si ya están en la cuenta).
-    const uploaded = new Map<string, UploadedMedia>();
+    const uploaded = new Map<string, UploadedMedia | UploadedCarousel>();
     const deadline = Date.now() + VIDEO_DEADLINE_MS;
     for (const m of media) {
       await progress(m.kind === "video" ? `Subiendo y procesando «${m.name}»` : `Subiendo «${m.name}»`);
-      uploaded.set(m.id, await ensureMedia(token, accountId, m, deadline));
+      if (m.kind === "carousel") {
+        if (!m.carousel?.ready) throw new Error(m.carousel?.problem ?? "Completa el carrusel antes de crear el anuncio.");
+        const cards: UploadedCarousel["cards"] = [];
+        for (const card of activeCarouselCards(m.carousel.cards)) {
+          if (card.problem || !card.storage_path) throw new Error(card.problem ?? "Falta una imagen del carrusel.");
+          const image = await db.storage.from(AD_MEDIA_BUCKET).download(card.storage_path);
+          if (image.error || !image.data) throw new Error("Una imagen del carrusel ya no está disponible. Asígnala de nuevo.");
+          const imageHash = await uploadImage(token, accountId, Buffer.from(await image.data.arrayBuffer()).toString("base64"));
+          cards.push({ imageHash, headline: card.headline, description: card.description, link: card.link });
+        }
+        uploaded.set(m.id, { kind: "carousel", cards, primaryText: m.carousel.content.primary_text, cta: m.carousel.content.cta, ratio: m.carousel.content.ratio });
+      } else uploaded.set(m.id, await ensureMedia(token, accountId, m, deadline));
       done++;
     }
 
@@ -191,7 +210,7 @@ export async function runLaunch(campaignId: string): Promise<void> {
     const setRows: { id: string; name: string; meta: string; ads: { name: string; meta: string; creative: string; mediaId: string | null; copy: unknown }[]; budget: number | null; audience: unknown; position: number }[] = [];
     for (const [i, s] of plan.adsets.entries()) {
       await progress(`Creando ${s.label}`);
-      const dynamic = s.ads.some((a) => needsDynamicCreative(a.mediaIds.length, { primaryTexts: a.primaryTexts, headlines: a.headlines }));
+      const dynamic = s.ads.some((a) => a.mediaIds.every(id => uploaded.get(id)?.kind !== "carousel") && needsDynamicCreative(a.mediaIds.length, { primaryTexts: a.primaryTexts, headlines: a.headlines }));
       const adsetId = await createAdset(token, { accountId, campaignId: metaCampaignId, name: s.name, targeting: buildTargeting(c.launch, s.audience), pixelId: meta.pixel_id!, dailyBudget: s.dailyBudget, currency: c.currency, startTime, dynamic });
       objects.push({ level: "adset", id: adsetId });
       done++;
@@ -200,10 +219,12 @@ export async function runLaunch(campaignId: string): Promise<void> {
         const mediaList = a.mediaIds.map((id) => uploaded.get(id)!).filter(Boolean);
         const adLink = ugcDestination(link, media.filter((m) => a.mediaIds.includes(m.id)));
         const text = { primaryTexts: a.primaryTexts, headlines: a.headlines, description: c.launch.description, link: adLink, cta: c.launch.cta };
-        const payload =
-          mediaList.length === 1 && a.primaryTexts.length === 1 && a.headlines.length === 1
-            ? singleCreative(a.name, meta.page_id!, mediaList[0], { primaryText: a.primaryTexts[0], headline: a.headlines[0], description: c.launch.description, link: adLink, cta: c.launch.cta })
-            : dynamicCreative(a.name, meta.page_id!, mediaList, text);
+        const carousel = mediaList.find((m): m is UploadedCarousel => m.kind === "carousel");
+        const ordinary = mediaList.filter((m): m is UploadedMedia => m.kind !== "carousel");
+        const payload = carousel ? carouselCreative(a.name, meta.page_id!, carousel, adLink) :
+          ordinary.length === 1 && a.primaryTexts.length === 1 && a.headlines.length === 1
+            ? singleCreative(a.name, meta.page_id!, ordinary[0], { primaryText: a.primaryTexts[0], headline: a.headlines[0], description: c.launch.description, link: adLink, cta: c.launch.cta })
+            : dynamicCreative(a.name, meta.page_id!, ordinary, text);
         const creativeId = await createCreative(token, accountId, payload);
         objects.push({ level: "creative", id: creativeId });
         done++;
@@ -211,7 +232,7 @@ export async function runLaunch(campaignId: string): Promise<void> {
         const adId = await createAd(token, { accountId, adsetId, creativeId, name: a.name });
         objects.push({ level: "ad", id: adId });
         done++;
-        ads.push({ name: a.label, meta: adId, creative: creativeId, mediaId: a.mediaIds.length === 1 ? a.mediaIds[0] : null, copy: text });
+        ads.push({ name: a.label, meta: adId, creative: creativeId, mediaId: a.mediaIds.length === 1 ? a.mediaIds[0] : null, copy: carousel ? { ...text, primaryTexts: [carousel.primaryText], cta: carousel.cta, carousel: media.find(m => m.id === a.mediaIds[0])?.carousel_content } : text });
       }
       setRows.push({ id: "", name: s.label, meta: adsetId, ads, budget: s.dailyBudget, audience: s.audience, position: i });
     }

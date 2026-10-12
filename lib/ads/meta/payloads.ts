@@ -89,3 +89,25 @@ export function dynamicCreative(name: string, pageId: string, media: UploadedMed
 export function needsDynamicCreative(mediaCount: number, text: Pick<AdText, "primaryTexts" | "headlines">): boolean {
   return mediaCount > 1 || text.primaryTexts.length > 1 || text.headlines.length > 1;
 }
+
+export interface UploadedCarousel {
+  kind: "carousel";
+  primaryText: string;
+  cta: string;
+  ratio: "1:1" | "4:5";
+  cards: { imageHash: string; headline: string; description: string; link: string | null }[];
+}
+
+/** El orden elegido se envía intacto; Meta no reordena ni agrega una tarjeta de página. */
+export function carouselCreative(name: string, pageId: string, media: UploadedCarousel, link: string): CreativePayload {
+  if (media.cards.length < 2 || media.cards.length > 10) throw new Error("El carrusel necesita entre 2 y 10 tarjetas.");
+  return { name, url_tags: URL_TAGS, object_story_spec: { page_id: pageId, link_data: {
+    link, message: media.primaryText, multi_share_optimized: false, multi_share_end_card: false,
+    ...(media.ratio === "4:5" ? { use_flexible_image_aspect_ratio: true } : {}),
+    call_to_action: { type: media.cta, value: { link } },
+    child_attachments: media.cards.map(c => ({ image_hash: c.imageHash, name: c.headline,
+      ...(c.description ? { description: c.description } : {}), link: c.link ?? link,
+      call_to_action: { type: media.cta, value: { link: c.link ?? link } },
+    })),
+  } } };
+}

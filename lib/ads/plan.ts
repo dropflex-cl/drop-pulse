@@ -5,7 +5,8 @@
 // - ABO: un conjunto por creativo (y por público); un anuncio por conjunto con UN medio y UN texto.
 //   Cada creativo toma un texto principal distinto, en orden (Impulso: «cambiando video y copy»).
 // - CBO `one_per_creative`: cada conjunto (uno por público) lleva un anuncio por creativo.
-// - CBO `dco`: cada conjunto lleva UN anuncio dinámico con todos los medios y textos.
+// - CBO `dco`: imágenes/videos van en un anuncio dinámico; los carruseles conservan sus tarjetas
+//   en conjuntos independientes sin contenido dinámico, para cada público.
 //
 // Cada objeto lleva dos nombres: `name`, el de Meta (lib/ads/naming.ts: producto, estructura, tipo de
 // creativo y fecha), y `label`, lo que lo distingue de sus hermanos, que es lo que muestra DropFlex.
@@ -44,7 +45,7 @@ const baseName = (name: string) => name.replace(/\.[a-z0-9]+$/i, "").slice(0, 60
 const pick = <T,>(list: T[], i: number) => list[i % list.length];
 const audienceLabel = (a: Audience) => (a.kind === "open" ? "Abierto" : `Intereses: ${a.interests.map((i) => i.name).slice(0, 2).join(", ")}`);
 
-type PlanMedia = { id: string; name: string; kind: "image" | "video"; format?: MediaFormat; angle_slot?: number | null };
+type PlanMedia = { id: string; name: string; kind: "image" | "video" | "carousel"; carousel_content?: { primary_text: string } | null; format?: MediaFormat; angle_slot?: number | null };
 
 /**
  * El texto principal de un creativo: el de SU ángulo (primary_texts va en orden de slot, lib/ads/texts.ts)
@@ -64,7 +65,7 @@ export function planLaunch(structure: Structure, launch: LaunchConfig, media: Pl
     name: unitName(n, [m], baseName(m.name)),
     label: baseName(m.name),
     mediaIds: [m.id],
-    primaryTexts: [textFor(launch.primary_texts, m, i)],
+    primaryTexts: [m.kind === "carousel" && m.carousel_content ? m.carousel_content.primary_text : textFor(launch.primary_texts, m, i)],
     headlines: [pick(launch.headlines, i)],
   });
 
@@ -79,17 +80,24 @@ export function planLaunch(structure: Structure, launch: LaunchConfig, media: Pl
     return { name, campaignBudget: null, adsets };
   }
 
-  const dynamic = `Dinámico · ${creatives.length} creativos`;
+  const singles = creatives.filter(m => m.kind !== "carousel");
+  const carousels = creatives.filter(m => m.kind === "carousel");
+  const dynamic = `Dinámico · ${singles.length} creativos`;
   const ads: PlannedAd[] =
     launch.cbo_ads === "dco"
-      ? [{ name: unitName(n, creatives, dynamic), label: dynamic, mediaIds: creatives.map((m) => m.id), primaryTexts: [...launch.primary_texts], headlines: [...launch.headlines] }]
+      ? [...(singles.length ? [{ name: unitName(n, singles, dynamic), label: dynamic, mediaIds: singles.map((m) => m.id), primaryTexts: [...launch.primary_texts], headlines: [...launch.headlines] }] : []), ...carousels.map(single)]
       : creatives.map(single);
   return {
     name,
     campaignBudget: launch.budget,
-    adsets: launch.audiences.map((a, i) => {
-      const label = `Conjunto ${i + 1} · ${audienceLabel(a)}`;
-      return { name: unitName(n, creatives, label), label, audience: a, dailyBudget: null, ads: ads.map((ad) => ({ ...ad, mediaIds: [...ad.mediaIds] })) };
+    adsets: launch.audiences.flatMap((a, i) => {
+      const groups = launch.cbo_ads === "dco" && singles.length && carousels.length
+        ? [ads.filter(ad => ad.mediaIds.some(id => singles.some(m => m.id === id))), ads.filter(ad => ad.mediaIds.some(id => carousels.some(m => m.id === id)))] : [ads];
+      return groups.map((group, j) => {
+        const label = `Conjunto ${i + 1} · ${audienceLabel(a)}${groups.length > 1 ? j === 0 ? " · Dinámico" : " · Carruseles" : ""}`;
+        const groupMedia = creatives.filter(m => group.some(ad => ad.mediaIds.includes(m.id)));
+        return { name: unitName(n, groupMedia, label), label, audience: a, dailyBudget: null, ads: group.map(ad => ({ ...ad, mediaIds: [...ad.mediaIds] })) };
+      });
     }),
   };
 }
