@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.7.3"}
+metadata: {"version": "1.7.4"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -63,6 +63,12 @@ Sin dirección elegida, presenta hasta cinco ángulos distintos con un hook cada
 Pide una elección concreta y espera antes de escribir contenido dependiente. Acepta número, edición, combinación compatible o petición de otras opciones. Si ya eligió un hook en esta conversación, utiliza esa decisión sin volver a preguntarla. «Otros hooks» conserva el ángulo cuando pide nuevas entradas del mismo argumento; si cuestiona dolor, motivación, persuasión o capacidad de captar atención, revisa también el diagnóstico y el ángulo, sin seleccionar una nueva dirección por tu cuenta.
 
 Después de elegir, confirma hook exacto, ángulo, promesa sostenible y oferta. Persiste la elección siguiendo [el contrato de hooks](references/strategy-and-hooks.md). No existe una entidad independiente `primary_hook_id`; no inventes campos ni tools.
+
+## Guiones UGC
+
+Antes de proponer conceptos o redactar un guion, lee [la escritura UGC](references/ugc-writing.md). Recupera la estrategia con `get_product_strategy({product_id, include: "execution"})` y el contrato con `get_ugc_content({product_id, include_contract: true})`. Parte de la dirección elegida y establece la cadena situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta. Cada escena debe avanzar ese mismo argumento: repetir el hook al comienzo no basta si después cambias la razón de compra por una rutina genérica.
+
+Comprueba la continuidad comercial y las palabras por escena antes de mostrar el guion, incluso cuando el usuario pida solo una propuesta sin guardar. Esta preparación es trabajo editorial del chat, no un plan que el comerciante deba aprobar ni una nueva entidad del MCP. «No guardes» conserva el trabajo en la conversación; proponer un guion no autoriza generar clips ni publicar.
 
 ## Página e imágenes
 

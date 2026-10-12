@@ -2,6 +2,14 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
+## Escritura UGC y continuidad argumental · 1.7.4
+
+Caso observado: una propuesta abría con el hook elegido sobre apariencia de cansancio, pero su desarrollo cambiaba a una rutina incompleta y autocuidado genérico. Dos líneas tampoco cabían en el tiempo asignado. La skill ahora recupera `get_product_strategy` con `include: "execution"` y el contrato UGC, establece situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta, y comprueba que cada escena avance esa misma razón de compra. La cadena es trabajo editorial, no seis escenas obligatorias ni otra aprobación del comerciante.
+
+La nueva referencia `references/ugc-writing.md` distingue variantes de apertura de cambios de motivación, exige conectar características y demostración con el beneficio, y revisa palabras/segundo por toma antes de mostrar una propuesta. Conserva los límites de las instrucciones del usuario: «no guardes» permite lecturas y respuesta en el chat, sin writers ni dry runs. No solicita clips, publicaciones ni otra IA para la revisión editorial.
+
+Se sincronizan ambos manifiestos y la skill en 1.7.4. La allowlist de recursos MCP incluye la nueva referencia; no cambian tools, schemas, permisos, contratos de Shopify ni migraciones. Las comprobaciones de distribución y cliente se registran en `plugin-release-1.7.4.json` después de la publicación. Un release y sus pruebas de transporte no demuestran por sí solos la calidad de una respuesta conversacional nueva.
+
 ## Versión publicada · 1.7.0
 
 El plugin privado [DropFlex · Optimización](https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa) se actualizó a 1.7.0, release `pluginrel_6acc365595cc8191b6f295eb554819c1`. El push a `main` había actualizado la fuente, pero el registro del plugin seguía en 1.6.4. La actualización remota y su lectura posterior verificaron los once archivos: cambiaron ambos manifiestos, la skill y su referencia de producción; los otros siete, la conexión, identidad, presentación y audiencia permanecen iguales. [Evidencia del release](plugin-release-1.7.0.json).
