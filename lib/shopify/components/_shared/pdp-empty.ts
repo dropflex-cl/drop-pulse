@@ -54,7 +54,7 @@ export const PDP_EMPTY_STATES: Record<
   },
   "review-stars": {
     heading: "Opiniones de compradores",
-    body: "Todavía no hay suficientes reseñas publicadas.",
+    body: "Todavía no hay reseñas publicadas.",
     icon: "star",
   },
   "benefit-usps": {
@@ -84,7 +84,7 @@ export const PDP_EMPTY_STATES: Record<
   },
   "review-slider": {
     heading: "Experiencias de compradores",
-    body: "Todavía no hay suficientes reseñas publicadas.",
+    body: "Todavía no hay reseñas publicadas.",
     icon: "users",
   },
   "ugc-slider": {
@@ -119,7 +119,7 @@ export const PDP_EMPTY_STATES: Record<
   },
   "review-wall": {
     heading: "Opiniones de compradores",
-    body: "Todavía no hay suficientes reseñas publicadas.",
+    body: "Todavía no hay reseñas publicadas.",
     icon: "star",
   },
   "comparison-table": {
