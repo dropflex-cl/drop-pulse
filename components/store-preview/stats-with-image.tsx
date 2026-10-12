@@ -6,6 +6,7 @@ import {
   tokenValues,
   type StoreFacts,
 } from "@/lib/store-preview/facts";
+import { contentReview, type ReviewContent } from "@/lib/store-preview/review-content";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -27,7 +28,10 @@ interface Content {
   cta_label?: string;
   rating_label?: string;
   review_id?: string;
-  stats?: { fact?: Fact; label?: string }[];
+  testimonial?: ReviewContent;
+  rating?: number;
+  count?: number;
+  stats?: { fact?: Fact; value?: string; label?: string }[];
 }
 
 /** Como `split: '**'` del Liquid, pero solo la primera parte destacada lleva `mark`. */
@@ -82,21 +86,21 @@ export function StatsWithImagePreview({
   const ratingLabel = content.rating_label || String(s.rating_label ?? "");
   const reviewId = content.review_id || String(s.review_id ?? "");
 
-  // Calificación real, solo con suficientes reseñas.
+  const ratingFacts = { ...facts, rating: content.rating ?? facts.rating, count: content.count ?? facts.count };
   const hasRating =
-    (facts.rating ?? 0) > 0 && facts.count >= Number(s.min_reviews);
+    (ratingFacts.rating ?? 0) > 0 && ratingFacts.count > 0;
   const showRating =
     Boolean(s.show_rating) && hasRating && Boolean(ratingLabel);
   // Con pocas reseñas, la proporción en vez de la plantilla con {count}.
-  const proof = reviewProof(facts.reviews);
+  const proof = content.rating === undefined && content.count === undefined ? reviewProof(facts.reviews) : "";
   const ratingLine = proof
-    ? `${tokenValues(facts).rating.value} de 5 · ${proof}`
-    : fill(ratingLabel, facts);
+    ? `${tokenValues(ratingFacts).rating.value} de 5 · ${proof}`
+    : fill(ratingLabel, ratingFacts);
 
   // Testimonio real, elegido por id (tal cual, recortado a 240).
   const review =
-    s.show_testimonial && reviewId
-      ? facts.reviews.find((r) => r.id === reviewId)
+    s.show_testimonial
+      ? contentReview(content.testimonial ?? { review_id: reviewId }, facts.reviews, 0)
       : undefined;
 
   // Fotos: las elegidas para el collage; si no, las del producto (hasta max_images).
@@ -118,7 +122,7 @@ export function StatsWithImagePreview({
     ? (content.stats ?? [])
         .slice(0, 3)
         .map((st) => ({
-          value: statValue(st?.fact, facts, hasRating),
+          value: st.value ?? statValue(st?.fact, ratingFacts, hasRating),
           label: st?.label || "",
         }))
         .filter((st) => st.value && st.label)
@@ -162,7 +166,7 @@ export function StatsWithImagePreview({
           {showRating && (
             <div className="df-stats-with-image__rating">
               <span aria-hidden>
-                <DfStars rating={facts.rating ?? 0} size="1.125rem" />
+                <DfStars rating={ratingFacts.rating ?? 0} size="1.125rem" />
               </span>
               <p className="df-stats-with-image__rating-text">{ratingLine}</p>
             </div>
@@ -213,7 +217,7 @@ export function StatsWithImagePreview({
                   <p>{`«${truncate(review.body.trim(), 240)}»`}</p>
                 </blockquote>
                 <figcaption className="df-stats-with-image__review-meta">
-                  <DfStars rating={review.rating} size="0.875rem" />
+                  {review.rating > 0 && <DfStars rating={review.rating} size="0.875rem" />}
                   <span className="df-stats-with-image__author">
                     {review.author}
                   </span>

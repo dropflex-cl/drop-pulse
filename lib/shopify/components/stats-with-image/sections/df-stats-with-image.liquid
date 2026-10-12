@@ -325,7 +325,10 @@
   "name": "DropFlex · Hero y cifras",
   "tag": "section",
   "disabled_on": {
-    "groups": ["header", "footer"]
+    "groups": [
+      "header",
+      "footer"
+    ]
   },
   "settings": [
     {
@@ -380,8 +383,14 @@
       "id": "image_position",
       "label": "Fotos en escritorio",
       "options": [
-        { "value": "left", "label": "A la izquierda" },
-        { "value": "right", "label": "A la derecha" }
+        {
+          "value": "left",
+          "label": "A la izquierda"
+        },
+        {
+          "value": "right",
+          "label": "A la derecha"
+        }
       ],
       "default": "left"
     },
@@ -399,7 +408,7 @@
       "type": "checkbox",
       "id": "show_rating",
       "label": "Mostrar calificación",
-      "info": "Solo aparece con reseñas reales suficientes.",
+      "info": "Usa la calificación del contenido o un resumen disponible.",
       "default": true
     },
     {
@@ -408,15 +417,6 @@
       "label": "Texto de la calificación",
       "info": "{rating} y {count} los llena la tienda.",
       "default": "{rating} de 5 según {count} reseñas"
-    },
-    {
-      "type": "range",
-      "id": "min_reviews",
-      "label": "Reseñas mínimas",
-      "min": 1,
-      "max": 50,
-      "step": 1,
-      "default": 5
     },
     {
       "type": "text",

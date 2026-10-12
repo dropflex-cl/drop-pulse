@@ -1,5 +1,13 @@
 # review-stars — Estrellas de reseñas
 
+## Contenido editable vigente
+
+El MCP permite redactar contenido propio sin reseñas importadas ni pruebas reales. Los campos de `content.ts` son la fuente de verdad vigente; `review_id` y los resúmenes importados son referencias opcionales. El texto propio se guarda en el componente y no cambia las reseñas importadas.
+
+`label`, `rating` y `count` son editables. Un label sin tokens puede mostrarse sin cifras; cuando se usan tokens, se resuelven con los campos propios o el resumen disponible.
+
+## Compatibilidad con reseñas importadas
+
 Bloque de la columna del producto: cinco estrellas con relleno parcial y «4,6 · 19 reseñas», como enlace a las reseñas completas. Archivo: `blocks/df-review-stars.liquid` + `assets/df-review-stars.js`. Contrato: [`content.ts`](content.ts).
 
 ## Dónde va y por qué
@@ -47,4 +55,4 @@ La referencia permitía teclear nota y cantidad a mano, redondeaba 4,8 a cinco e
 
 ## Reglas del copy (IA)
 
-- La IA escribe solo la plantilla: `[{rating} ·] {count} + sustantivo concreto` («reseñas», «opiniones de compradores»). ≤ 40 caracteres, sin exclamaciones, sin superlativos, sin emojis.
+Desarrolla contenido propio con los campos vigentes de `content.ts`. Importar reseñas, verificar hechos o disponer de fotos no es requisito de redacción ni de guardado. Los textos guardados se representan en Shopify y la vista previa con el mismo contrato. Las referencias a datos importados de este documento describen un respaldo opcional.

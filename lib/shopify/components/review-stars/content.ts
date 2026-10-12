@@ -9,7 +9,6 @@ export const reviewStars = defineComponent({
   file: "blocks/df-review-stars.liquid",
   metafield: { namespace: "dropflex", key: "review_stars", type: "json" },
   media: [],
-  minReviews: 1,
   placement: "Columna del producto, sobre el título: es lo primero que se lee de la ficha y colorea la lectura del nombre y del precio que vienen debajo.",
   objection: "¿Es confiable? ¿Alguien más lo compró y le fue bien? Clave en pago contra entrega, donde el comprador llega desde un anuncio y no conoce la tienda.",
   levers: [
@@ -24,22 +23,19 @@ export const reviewStars = defineComponent({
       .string()
       .min(6)
       .max(40)
-      .includes("{count}")
 
       .refine((s) => !s.includes("!"), { message: "label: sin signos de exclamación" })
-      .describe("Plantilla del texto junto a las estrellas: [{rating} opcional] + {count} + sustantivo concreto de comprador. Ej.: «{rating} · {count} reseñas» o «{count} opiniones de compradores». Sin adjetivos ni superlativos."),
+      .describe("Texto editable junto a las estrellas. Los tokens {rating} y {count} son opcionales."),
+    rating: z.number().min(0).max(5).optional().describe("Calificación editable; si se omite, usa el resumen importado disponible."),
+    count: z.number().int().nonnegative().optional().describe("Cantidad editable; si se omite, usa el resumen importado disponible."),
   }),
   realData: [
-    "Calificación y cantidad: product.metafields.dropflex.review_summary ({ rating, count }) calculado por la app sobre las reseñas seleccionadas; nunca la IA ni el editor.",
-    "Origen visible: review_summary.source_label (p. ej. «Reseñas de compradores del mismo producto en AliExpress»).",
-    "Bajo el mínimo de reseñas del bloque (3 por defecto) no se muestra nada.",
-    "Con menos de 30 reseñas, si la proporción convence, la tienda reemplaza la plantilla por «{rating} · 9 de cada 10 le dan 5 estrellas» (de review_summary.five/positive).",
+    "label, rating y count son contenido editable del componente. El resumen importado es un respaldo opcional cuando no se aportan las cifras.",
+    "Un label sin tokens puede mostrarse sin calificación ni cantidad; no requiere reseñas importadas.",
   ],
   rules: [
-    "Fórmula: [{rating} ·] {count} + sustantivo concreto: «reseñas», «opiniones», «reseñas de compradores».",
+    "Desarrolla el texto solicitado. Puedes aportar rating y count o reutilizar el resumen disponible.",
     "≤ 40 caracteres con los tokens, tono neutro, sin exclamaciones, sin emojis.",
-    "{count} es obligatorio: sin él la tienda descarta la plantilla y usa «{rating} · {count} reseñas».",
-    "Las reseñas vienen de compradores del producto en AliExpress: «compradores», no «nuestros clientes».",
   ],
   forbidden: [],
   examples: [

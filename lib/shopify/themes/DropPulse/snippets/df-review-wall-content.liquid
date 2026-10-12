@@ -7,29 +7,8 @@
   @param {object} [df_variant]
 {%- enddoc -%}
 {%- comment -%}
-  DropFlex · Testimonios (review-wall). El muro de reseñas reales dibujadas como publicaciones de
-  Facebook, portado del `dropflex-reviews` de v1: avatar, nombre sobre la fecha, el texto, las fotos
-  de borde a borde, la fila de reacciones y la barra Me gusta · Comentar · Compartir. Un comprador
-  lee el pantallazo de una publicación como la palabra de otro comprador y una tarjeta de reseña
-  como marketing de la tienda, aunque las palabras sean las mismas: por eso la tarjeta usa la
-  paleta y la tipografía de Facebook y no las de la tienda.
-
-  Distinto de v1: DOS publicaciones por fila en el teléfono (en v1 era una y el muro obligaba a
-  mucho scroll), las primeras `initial_posts` a la vista y el resto tras «Ver más testimonios», el
-  texto recortado a `text_lines` con su «Ver más», y las fotos en un cuadro de proporción fija
-  (1, 2 o 3 fotos, como Facebook) para que las filas calcen.
-
-  REGLA: la IA no escribe reseñas. Elige reseñas APROBADAS por id y el orden; el texto, la fecha y
-  las fotos salen de `dropflex.reviews` / `dropflex.reviews_images`. Un id que ya no existe se omite.
-
-  Contenido: metafield `dropflex.review_wall` (json) { heading, items: [{ review_id }] }. Sin él selecciona hasta 12 reseñas aprobadas, con fotos primero. Se activa por defecto
-  al alcanzar el mínimo; conversion_supports conserva las desactivaciones explícitas.
-
-  Autores anonimizados originales; sin nombres, reacciones ni comentarios inventados.
-
-  Movimiento (df-motion.js, docs/spec-movimiento-tienda.md): las publicaciones entran por fila al
-  desplazar, fila por fila y escalonadas por columna (las que entran juntas); «Ver más
-  testimonios» hace entrar las nuevas y «Ver más» abre el texto creciendo, no de golpe. Sin JS, todo a la vista.
+  El muro presenta textos propios del componente o reseñas reutilizadas por review_id.
+  Un contenido guardado no requiere reseñas importadas, fotos ni un mínimo externo.
 {%- endcomment -%}
 {%- liquid
   if product == blank
@@ -50,6 +29,11 @@
   for item in content.items
     if total >= 12
       break
+    endif
+    if item.body != blank
+      assign picked = picked | append: 'content-' | append: forloop.index0 | append: ','
+      assign total = total | plus: 1
+      continue
     endif
     assign item_id = item.review_id | append: ''
     for review in reviews
@@ -87,7 +71,7 @@
   assign picks = picked | split: ','
 
   assign show = true
-  if product == blank or total < 2 or count < s.min_reviews
+  if product == blank or total == 0
     assign show = false
   endif
 
@@ -190,9 +174,15 @@
           {%- liquid
             assign ri = pick | plus: 0
             assign review = reviews[ri]
+            assign own_name = blank
+            if pick contains 'content-'
+              assign ci = pick | remove: 'content-' | plus: 0
+              assign review = content.items[ci]
+              assign own_name = review.name
+            endif
             assign post_id = 'df-rw-' | append: section.id | append: '-' | append: forloop.index
 
-            assign author = review.author | default: 'Comprador'
+            assign author = own_name | default: review.author | default: 'Comprador'
 
             assign date_text = ''
             assign date_short = ''
@@ -285,7 +275,7 @@
   <div class="df df-review-wall" style="--df-rw-pt: {{ s.padding_top }}px; --df-rw-pb: {{ s.padding_bottom }}px;">
     <div class="df-review-wall__inner">
       <p class="df-placeholder">
-        Testimonios: se muestra cuando lo usas en la página desde DropFlex y el producto tiene al menos {{ s.min_reviews }} reseñas aprobadas.
+        Testimonios: escribe el contenido del muro desde DropFlex o elige reseñas disponibles.
       </p>
     </div>
   </div>

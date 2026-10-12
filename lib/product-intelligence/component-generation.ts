@@ -10,13 +10,13 @@ import type { VisualState } from "./visual-domain";
 // Cada contrato cumple una tarea distinta dentro de la dirección comercial elegida.
 export const COMPONENT_ARGUMENTS: Record<string, string> = {
   listing: "Presenta el producto y la promesa central del hook con su oferta principal.",
-  "review-stars": "Resume la valoración agregada real para reducir la incertidumbre inicial.",
+  "review-stars": "Presenta el texto de valoración y las cifras solicitadas; puede reutilizar un resumen disponible.",
   "benefit-usps": "Explica ventajas concretas que hacen adecuado el producto para esta necesidad.",
   inventory: "Comunica disponibilidad actual y sus condiciones sin inventar urgencia.",
   "shipping-timeline": "Resuelve cuándo y cómo llega el pedido con la logística vigente.",
   "benefit-double-box": "Reduce dos fricciones de compra con condiciones comerciales concretas.",
   "gif-strip": "Demuestra visualmente una acción del producto que hace creíble su utilidad.",
-  "review-slider": "Selecciona reseñas existentes que respondan dudas puntuales de esta dirección.",
+  "review-slider": "Redacta voces que respondan dudas puntuales de esta dirección o reutiliza reseñas por ID.",
   "ugc-slider": "Muestra el uso en una escena cotidiana, con un guion coherente con el hook.",
   "scrolling-benefits": "Recuerda ventajas de compra en mensajes breves que acompañan el recorrido.",
   "pain-block": "Desarrolla el problema cotidiano reconocido por el hook y su consecuencia.",
@@ -25,13 +25,13 @@ export const COMPONENT_ARGUMENTS: Record<string, string> = {
   "use-cases": "Describe situaciones específicas en las que esta solución encaja.",
   "before-after": "Contrasta la situación inicial y la deseada, indicando la naturaleza de la representación.",
   "stats-with-image": "Hace tangible la magnitud del beneficio con datos contextualizados y su imagen.",
-  "results-timeline": "Ordena las expectativas de uso y resultados en el tiempo sin inventar plazos.",
+  "results-timeline": "Desarrolla las expectativas de uso y resultados en el tiempo.",
   "usage-steps": "Reduce el esfuerzo percibido con instrucciones simples y concretas.",
   "product-includes": "Explica qué recibe el comprador y el valor de cada elemento incluido.",
   "insta-story": "Desarrolla una secuencia visual de descubrimiento, uso y beneficio.",
-  "customer-stories": "Narra una situación y su resolución; distingue relato ilustrativo de testimonio real.",
-  "review-wall": "Presenta variedad de experiencias existentes para mostrar coincidencias entre compradores.",
-  "expert-endorsement": "Explica un criterio experto pertinente; distingue explicación editorial de respaldo real.",
+  "customer-stories": "Narra situaciones y su resolución con textos propios o reseñas reutilizadas.",
+  "review-wall": "Desarrolla experiencias variadas y concretas con textos propios o reseñas reutilizadas.",
+  "expert-endorsement": "Desarrolla una perspectiva experta pertinente con nombre, credencial y declaración editables.",
   "comparison-table": "Compara alternativas por criterios que importan al comprador de este hook.",
   guarantee: "Reduce el riesgo percibido con la garantía y las condiciones vigentes.",
   "faq-and-text": "Resuelve objeciones aún abiertas con respuestas directas y específicas.",
@@ -88,7 +88,8 @@ export function componentGenerationContext(state: VisualState, component: string
       "Antes de editar variantes, lee get_landing_content para conservar su contenido completo. Guarda textos con save_landing_content respetando este schema. No publiques ni generes imágenes por el solo hecho de guardar.",
       "Para una imagen solicitada, traduce el argumento a una escena y mensaje propios del slot, con su ratio y posición. Inspecciona y adjunta la imagen base real al generador; conserva identidad, envase y proporciones.",
       "Prepara la toma con prepare_visual_iteration, ingiere el archivo y consulta su estado. Selecciona el destino landing_component exacto con bind_visual_asset; cada posición conserva las demás imágenes.",
-      "GIF y video requieren sus medios específicos; una imagen fija no los completa. Reseñas existentes se reutilizan por ID; una ilustración generada no se presenta como evidencia real."],
+      "Desarrolla reseñas e historias con los campos propios del schema. Los IDs de reseñas importadas y la evidencia son referencias opcionales; no dejes textos pendientes por carecer de ellos.",
+      "GIF y video necesitan archivos reproducibles de su tipo. Los archivos pueden ser generados o subidos; no necesitan procedencia manual. Si falta el archivo, guarda el texto o guion solicitado y reporta únicamente el medio faltante."],
   };
 }
 
@@ -103,7 +104,7 @@ export function pdpCompletionReport(state: VisualState) {
       const requestedVideos = videoIds.success ? videoIds.data.script_ids ?? k.media.available_video_scripts : [];
       const mediaPending = component === "gif-strip" && !k.media.selected_gifs.length ? ["gifs"]
         : component === "ugc-slider" && (!requestedVideos.length || requestedVideos.some(id => !k.media.available_video_scripts.includes(id))) ? ["videos"]
-        : ["review-stars", "review-slider", "review-wall"].includes(component) && !k.landing.review_count ? ["reviews"] : [];
+        : [];
       return { key: v.key, media_pending: mediaPending, angle_id: v.angle_id, hook_id: v.hook_id,
         content_state: !row || isEmpty(v.content) ? "missing" : parsed.success ? "complete" : "invalid",
         missing_fields: parsed.success || isEmpty(v.content) ? [] : parsed.error.issues.slice(0, 10).map(i => ({ field: i.path.join("."), message: i.message })),
@@ -124,6 +125,7 @@ export function pdpCompletionReport(state: VisualState) {
       images_pending: active.filter(c => c.variants.some(v => v.unavailable_images.length || v.image_slots.some(s => s.missing))).map(c => c.component) },
     limitations: ["La validación del contrato no certifica calidad, argumentos distintos ni alineación semántica: revísalos con get_component_generation_context.",
       "Los slots opcionales pueden usar el respaldo del tema; no obligan a generar. Los requisitos de GIF, video y datos operativos se consultan en sus herramientas.",
+      "La falta de reseñas importadas o evidencia no deja contenido pendiente. Textos propios y medios generados son compatibles; media_pending identifica archivos faltantes, sin exigir pruebas reales.",
       "Este reporte no publica ni sustituye preparePublish. Las secciones ocultas y descartadas se conservan."],
   };
 }

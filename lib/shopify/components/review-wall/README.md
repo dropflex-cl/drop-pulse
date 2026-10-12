@@ -1,5 +1,13 @@
 # review-wall — Reseñas con fotos
 
+## Contenido editable vigente
+
+El MCP permite redactar contenido propio sin reseñas importadas ni pruebas reales. Los campos de `content.ts` son la fuente de verdad vigente; `review_id` y los resúmenes importados son referencias opcionales. El texto propio se guarda en el componente y no cambia las reseñas importadas.
+
+Cada item admite `body`, `name` y `rating` opcional, o `review_id` para reutilizar una reseña. Se muestra desde un item, sin mínimo de reseñas externas ni fotos obligatorias.
+
+## Compatibilidad con reseñas importadas
+
 Muro de reseñas aprobadas con autores anonimizados, fechas y fotos originales. No fabrica
 identidades, reacciones, comentarios ni acciones sociales.
 

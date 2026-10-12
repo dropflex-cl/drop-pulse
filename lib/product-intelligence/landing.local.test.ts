@@ -698,11 +698,22 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
               stories: [{ title: "Todo a mano", name: "Andrea", body: "Ahora encuentro mis útiles fácilmente y aprovecho mejor mi escritorio." }],
             },
           },
-          { component: "review-wall", content: component("review-wall").examples[0] },
+          { component: "review-wall", content: { heading: "Voces en el día a día", items: [
+            { body: "Ahora encuentro mis útiles al preparar mi escritorio.", name: "Andrea" },
+            { body: "Aprovecho el espacio al tener cada cosa en su lugar.", name: "Luis" },
+          ] } },
+          { component: "review-slider", content: { items: [
+            { body: "Mantengo las herramientas a mano cuando comienzo una tarea.", name: "Ana", rating: 4.5 },
+            { excerpt: "Me resulta más simple organizar mi escritorio cada mañana.", name: "Pedro" },
+          ] } },
+          { component: "review-stars", content: { label: "{rating} · {count} opiniones", rating: 4.7, count: 12 } },
+          { component: "stats-with-image", content: { ...(component("stats-with-image").examples[0] as Record<string, unknown>), review_id: undefined,
+            rating: 4.7, count: 12, testimonial: { body: "Ahora tengo cada útil en un compartimento propio.", name: "Andrea" }, stats: [{ value: "2 minutos", label: "para preparar tu mesa" }],
+          } },
         ],
       };
       expect(await count("product_reviews")).toBe(0);
-      expect(await call("save_landing_content", request)).toMatchObject({ ok: true });
+      expect(await call("save_landing_content", JSON.parse(JSON.stringify(request)))).toMatchObject({ ok: true });
       const rows = (await checked(db.from("page_components")
         .select("component,content").eq("product_id", product)
         .in("component", request.entries.map(entry => entry.component))
@@ -710,6 +721,11 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")(
       for (const entry of request.entries) {
         expect(rows.find(row => row.component === entry.component)?.content).toEqual(entry.content);
       }
+      expect(await count("product_reviews")).toBe(0);
+      const metafields = productMetafields({ listing, reviews: [], packs: [], accent: null, gallery: [],
+        components: rows.map(row => ({ id: row.component, content: row.content, images: {} })),
+      }, new Map());
+      expect(JSON.stringify(metafields)).toContain("Andrea");
     });
     it("producto en borrado impide replay y cascada borra propuestas/receipts", async () => {
       expect((await read()).data.context_stale).toBe(false);

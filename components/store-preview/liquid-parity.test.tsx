@@ -99,6 +99,22 @@ function visualTree(html: string, id: string) {
 }
 
 describe("contrato visual Liquid → React", () => {
+  const ownContent = [
+    { id: "review-slider", content: { items: [{ body: "Encuentro cada útil fácilmente en mi escritorio.", name: "Ana", rating: 4.5 }, { excerpt: "La rutina de trabajo ahora es mucho más simple.", name: "Luis" }] } },
+    { id: "review-wall", content: { heading: "En el escritorio de cada día", items: [{ body: "Me gusta tener las herramientas a mano al trabajar.", name: "Ana" }, { body: "Aprovecho mejor el espacio en mi mesa.", name: "Luis" }] } },
+    { id: "review-stars", content: { label: "{rating} · {count} opiniones", rating: 4.7, count: 12 } },
+    { id: "review-stars", content: { label: "Opiniones sobre el producto" } },
+    { id: "stats-with-image", content: { ...(CATALOG.find(c => c.id === "stats-with-image")!.examples[0] as Record<string, unknown>), review_id: undefined,
+      rating: 4.7, count: 12, testimonial: { body: "Mantengo mis útiles ordenados y los encuentro fácilmente.", name: "Ana" }, stats: [{ value: "2 minutos", label: "para preparar tu espacio" }] } },
+  ];
+  it.each(ownContent)("$id: muestra contenido propio sin reseñas importadas", async ({ id, content }) => {
+    const Preview = PREVIEWS[id];
+    const liquid = await liquidMarkup(id, content, EMPTY_FACTS, {});
+    const react = renderToStaticMarkup(<Preview content={content} facts={EMPTY_FACTS} images={{}} />);
+    expect(visualTree(react, id)).toEqual(visualTree(liquid, id));
+    expect(react).not.toContain("data-df-empty");
+    expect(liquid).not.toContain("data-df-empty");
+  });
   for (const [name, f] of Object.entries({ normal: facts, sinAhorro: { ...facts, compareAt: undefined, packs: facts.packs?.map(p => ({ ...p, compareAt: undefined, support: undefined })) }, agotado: { ...facts, inventory: { available: false } } })) {
     it(`packs: ${name}, mismo marcado y medidas que el bloque Shopify`, async () => {
       expect(visualTree(renderToStaticMarkup(<PackOffersPreview packs={f.packs ?? []} facts={f} />), "pack-offers"))

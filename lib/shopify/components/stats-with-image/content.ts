@@ -1,5 +1,6 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
+import { reviewItem } from "../_shared/review-content";
 
 // La escala («de 5», «/5») no es un hecho: se permite. Todo otro número es un token.
 const boldPairs = (s: string) => (s.match(/\*\*/g) ?? []).length / 2;
@@ -62,9 +63,11 @@ export const statsWithImage = defineComponent({
       .string()
       .min(10)
       .max(48)
-      .includes("{rating}")
 
-      .describe("Plantilla de la línea de calificación con {rating} y, si quieres, {count}. Ej.: «{rating} de 5 según {count} reseñas». Nunca «pedidos»."),
+      .describe("Línea de calificación editable. {rating} y {count} son tokens opcionales."),
+    rating: z.number().min(0).max(5).optional(),
+    count: z.number().int().nonnegative().optional(),
+    testimonial: reviewItem.optional().describe("Texto propio con body, name y rating opcionales, o reseña reutilizada por review_id."),
     review_id: z
       .string()
       .min(1)
@@ -73,32 +76,31 @@ export const statsWithImage = defineComponent({
     stats: z
       .array(
         z.object({
-          fact: z.enum(STAT_FACTS).describe("Dato real que pone el valor: rating, review_count, return_days, warranty_months o delivery_days_max."),
+          fact: z.enum(STAT_FACTS).optional().describe("Fuente operativa opcional del valor, cuando no se escribe value."),
+          value: z.string().trim().regex(/^[^<>]*$/, "Escribe texto plano, sin HTML.").min(1).max(32).optional().describe("Cifra o valor editable del contenido; no requiere un hecho verificado."),
           label: z
             .string()
             .min(4)
             .max(32)
 
             .describe("Qué significa la cifra, sin el número. Ej.: «días para cambiarlo»."),
-        }),
+        }).refine(item => Boolean(item.fact || item.value), { message: "Escribe value o elige la fuente fact." }),
       )
       .max(3)
       .optional()
-      .describe("0 a 3 cifras. Solo hechos que la tienda tiene (se ocultan si falta el dato)."),
+      .describe("0 a 3 cifras con value propio o fact para reutilizar un dato operativo."),
   }),
   realData: [
-    "Calificación y cantidad: dropflex.review_summary (rating, count, source_label). La línea solo aparece con el mínimo de reseñas del editor, y la fuente siempre se muestra.",
-    "Con menos de 30 reseñas, si la proporción convence, la tienda reemplaza rating_label por «{rating} de 5 · 9 de cada 10 le dan 5 estrellas» (de review_summary.five/positive).",
-    "Testimonio: la reseña seleccionada de dropflex.reviews con ese id (autor enmascarado, calificación, país), mostrada tal cual y recortada a 240 caracteres.",
+    "rating, count y testimonial permiten contenido propio. review_id y review_summary son referencias opcionales para reutilizar datos importados.",
     "Cifras: rating y review_count de review_summary; return_days y warranty_months de shop.metafields.dropflex.policies; delivery_days_max = preparación + tránsito máximo de shop.metafields.dropflex.logistics.",
-    "Fotos: ajustes del editor → dropflex.stats_with_image_images → imágenes del producto. Nunca imágenes que muestren resultados que el producto no logra.",
+    "Fotos: ajustes del editor → dropflex.stats_with_image_images → imágenes del producto; admite imágenes de referencia o generadas.",
   ],
   rules: [
     "Título: [verbo de invitación o resultado] + [beneficio concreto] + **destacado** (marca o palabra-beneficio), una sola parte destacada.",
     "Descripción: 80 a 220 caracteres; para quién + mecanismo real + resultado esperado; máximo una **negrita**.",
     "Razones: 3 (2 a 4), atributo del producto → beneficio, ≤ 48 caracteres, sin punto final.",
     "Botón: acción + bajo riesgo en pago contra entrega, ≤ 24 caracteres.",
-    "Calificación: solo plantilla con {rating} y {count}; hablar de «reseñas» u «opiniones», nunca de «pedidos» o «clientes».",
+    "Desarrolla las cifras y el testimonio solicitados con los campos propios; no exige reseñas importadas ni evidencia documental.",
     "Tuteo, español neutro, frases cortas, sin emojis ni mayúsculas sostenidas.",
   ],
   forbidden: [],

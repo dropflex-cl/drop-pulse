@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.7.0"}
+metadata: {"version": "1.7.1"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -36,7 +36,7 @@ En este flujo de optimización, no busques, consultes ni cites leyes locales, re
 
 Si buscas información en internet, hazlo exclusivamente para complementar información del producto: características, materiales, funcionamiento, medidas, compatibilidad, instrucciones de uso, documentación del fabricante o proveedor y comparaciones de productos. No amplíes esas búsquedas a legislación ni cumplimiento normativo. Registra las fuentes relevantes y distingue datos documentados de hipótesis; continúa la construcción de la PDP con lo disponible.
 
-La libertad creativa abarca argumentos, tono, jerarquía, oferta y experimentación. Desarrolla el contenido solicitado sin exigir pruebas reales, hechos verificados, reseñas aprobadas ni material manual. Las fuentes y estados de investigación son procedencia opcional, no requisitos de guardado o uso. No dejes bloques vacíos por falta de evidencia.
+La libertad creativa abarca argumentos, tono, jerarquía, oferta y experimentación. Desarrolla el contenido solicitado sin exigir pruebas reales, hechos verificados, reseñas aprobadas ni material manual. Las fuentes y estados de investigación son procedencia opcional, no requisitos de guardado o uso. No dejes bloques vacíos por falta de evidencia. Redacta reseñas y testimonios con los campos propios del contrato: `body`, `name` y `rating` opcional; `review_id` solo reutiliza una reseña existente. Si una conversación anterior dejó estos textos pendientes por exigir medios reales, retoma con el contrato vigente y complétalos. Para GIF o video, guarda el texto o guion y desarrolla el archivo cuando esté solicitado: que falte un archivo reproducible es una tarea de medios, no un requisito de evidencia ni de procedencia manual.
 
 ## Recuperar y continuar
 

@@ -10,13 +10,17 @@ import type { PreviewProps } from "./types";
 
 interface Content {
   label?: string;
+  rating?: number;
+  count?: number;
 }
 
 export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-stars");
-  const rating = Math.min(5, Math.max(0, facts.rating ?? 0));
-  const count = facts.count;
-  if (rating <= 0 || count < 1)
+  const rating = Math.min(5, Math.max(0, content.rating ?? facts.rating ?? 0));
+  const count = content.count ?? facts.count;
+  const template = content.label || String(s.label ?? "");
+  const ownLabel = Boolean(content.label && !/\{(rating|count)\}/.test(content.label));
+  if ((rating <= 0 || count < 1) && !ownLabel)
     return <PdpEmptyPreview component="review-stars" />;
 
   // Igual que el Liquid: 4.6 → «4,6», 5 → «5,0»; 1234 → «1.234».
@@ -27,11 +31,10 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
       ? `${Math.floor(count / 1000)}.${String(count % 1000).padStart(3, "0")}`
       : String(count);
 
-  const template = content.label || String(s.label ?? "");
   // Con pocas reseñas, la proporción; una plantilla sin {count} escribiría la cantidad a mano: la
   // tienda la descarta.
-  const proof = reviewProof(facts.reviews);
-  const label = s.compact
+  const proof = content.rating === undefined && content.count === undefined ? reviewProof(facts.reviews) : "";
+  const label = ownLabel ? template : s.compact
     ? `${ratingText} · ${countText} reseñas`
     : proof
     ? `${ratingText} · ${countText} reseñas · ${proof}`
@@ -44,15 +47,15 @@ export function ReviewStarsPreview({ content, facts }: PreviewProps<Content>) {
         )
       : `${ratingText} · ${countText} reseñas`;
 
-  const aria = `Calificación ${ratingText} de 5, basada en ${countText} reseñas`;
+  const aria = rating > 0 ? `Calificación ${ratingText} de 5, basada en ${countText} reseñas` : label;
   const anchor = String(s.anchor ?? "")
     .replace(/#/g, "")
     .trim();
   const inner = (
     <>
-      <span aria-hidden className="df-review-stars__stars">
+      {rating > 0 && <span aria-hidden className="df-review-stars__stars">
         <DfStars rating={rating} size={px(s.star_size)} />
-      </span>
+      </span>}
       {s.show_text ? (
         <span className="df-review-stars__label" aria-hidden>
           {label}

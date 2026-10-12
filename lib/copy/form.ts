@@ -27,6 +27,7 @@ export type FormField =
     }
   | { kind: "fact"; key: string; label: string; optional: boolean }
   | { kind: "review"; key: string; label: string; optional: boolean }
+  | { kind: "number"; key: string; label: string; optional: boolean; min?: number; max?: number; step: number | "any" }
   | {
       kind: "cell";
       key: string;
@@ -64,6 +65,10 @@ export const FIELD_LABELS: Record<string, string> = {
   name: "Nombre",
   credential: "Credencial",
   quote: "Declaración",
+  rating: "Calificación",
+  count: "Cantidad",
+  testimonial: "Testimonio",
+  value: "Valor",
   heading: "Título",
   moments: "Momentos",
   slot: "Orden",
@@ -281,14 +286,14 @@ function field(
     }
     case "number": {
       // Un entero chico con mínimo y máximo (el ángulo de un momento): se elige de una lista.
-      let js: { minimum?: number; maximum?: number } = {};
+      let js: { minimum?: number; maximum?: number; type?: string } = {};
       try {
         js = toJSONSchema(schema, { unrepresentable: "any" }) as typeof js;
       } catch {}
       const lo = js.minimum ?? 1;
       const hi = js.maximum ?? lo;
-      if (hi - lo > 10)
-        throw new Error(`form: número sin rango chico en ${key}`);
+      if (js.type !== "integer" || js.maximum === undefined || hi - lo > 10)
+        return { kind: "number", key, label, optional, min: js.minimum, max: js.maximum, step: js.type === "integer" ? 1 : "any" };
       const options = Array.from({ length: hi - lo + 1 }, (_, i) =>
         String(lo + i),
       ).map((v) => ({ value: v, label: key === "slot" ? `Momento ${v}` : v }));
@@ -306,6 +311,8 @@ export function emptyValue(f: FormField): unknown {
     case "review":
     case "fact":
       return "";
+    case "number":
+      return f.optional ? undefined : f.min ?? 0;
     case "icon":
       return "check";
     case "choice":

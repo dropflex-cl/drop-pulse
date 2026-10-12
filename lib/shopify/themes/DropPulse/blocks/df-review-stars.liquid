@@ -102,22 +102,12 @@
       "type": "text",
       "id": "label",
       "label": "Texto junto a las estrellas",
-      "info": "Respaldo del metafield dropflex.review_stars. {count} es obligatorio; {rating} es opcional.",
+      "info": "Respaldo de dropflex.review_stars. Los tokens {count} y {rating} son opcionales.",
       "default": "{rating} · {count} reseñas"
     },
     {
       "type": "header",
       "content": "Reglas"
-    },
-    {
-      "type": "range",
-      "id": "min_reviews",
-      "label": "Mínimo de reseñas",
-      "info": "Con menos reseñas aprobadas, el bloque no se muestra.",
-      "min": 1,
-      "max": 20,
-      "step": 1,
-      "default": 3
     },
     {
       "type": "text",
@@ -145,9 +135,18 @@
       "id": "alignment",
       "label": "Alineación",
       "options": [
-        { "value": "left", "label": "Izquierda" },
-        { "value": "center", "label": "Centro" },
-        { "value": "right", "label": "Derecha" }
+        {
+          "value": "left",
+          "label": "Izquierda"
+        },
+        {
+          "value": "center",
+          "label": "Centro"
+        },
+        {
+          "value": "right",
+          "label": "Derecha"
+        }
       ],
       "default": "left"
     },

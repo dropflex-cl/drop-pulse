@@ -6,20 +6,10 @@
   @param {object} [content]
   @param {object} [df_variant]
 {%- enddoc -%}
-{%- doc -%}
-  DropFlex · Carrusel de reseñas (review-slider). Bloque de la columna del producto, bajo el
-  botón: una reseña real a la vez (foto, nombre enmascarado, estrellas, extracto) que rota sola.
-
-  REGLA: la IA no escribe reseñas. Elige reseñas APROBADAS por su id y puede acortarlas o
-  traducirlas (excerpt_mode); autor, calificación, fecha, país y fotos salen siempre de
-  `dropflex.reviews` / `dropflex.reviews_images`. Un id que ya no existe se omite. Un extracto
-  que no es textual lo dice («Resumida», «Traducida») y abre el texto completo.
-
-  Contenido: metafield `dropflex.review_slider` (json)
-    { heading?, items: [{ review_id, excerpt, excerpt_mode: verbatim|condensed|translated }] }
-  → solo las reseñas guardadas en este contenido y que siguen disponibles.
-  Con menos reseñas que el mínimo del bloque (review_summary.count) no se dibuja nada.
-{%- enddoc -%}
+{%- comment -%}
+  Textos propios del componente o reseñas reutilizadas por review_id.
+  Nombre, cuerpo y calificación propios son editables; la procedencia es opcional.
+{%- endcomment -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
   # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
@@ -35,7 +25,11 @@
   assign total = 0
   for pick in content.items
     assign matched = reviews | where: 'id', pick.review_id | first
-    if matched != blank
+    assign authored_excerpt = false
+    if pick.review_id == blank and pick.excerpt != blank
+      assign authored_excerpt = true
+    endif
+    if matched != blank or pick.body != blank or authored_excerpt
       assign total = total | plus: 1
     endif
   endfor
@@ -101,14 +95,16 @@
         {%- assign shown = 0 -%}
         {%- for pick in content.items -%}
         {%- assign review = reviews | where: 'id', pick.review_id | first -%}
-        {%- if review != blank -%}
+        {%- assign authored_excerpt = false -%}
+        {%- if pick.review_id == blank and pick.excerpt != blank -%}{%- assign authored_excerpt = true -%}{%- endif -%}
+        {%- if review != blank or pick.body != blank or authored_excerpt -%}
         {%- assign shown = shown | plus: 1 -%}
           {%- liquid
-            assign author = review.author | default: 'Comprador'
-            assign body = review.body
+            assign author = pick.name | default: review.author | default: 'Comprador'
+            assign body = pick.body | default: review.body | default: pick.excerpt
             assign excerpt = pick.excerpt | default: body
             assign mode = pick.excerpt_mode | default: 'verbatim'
-            assign r_rating = review.rating | default: 5 | plus: 0
+            assign r_rating = pick.rating | default: review.rating | default: 0 | plus: 0
             assign r_from = review.image_from | plus: 0
             assign r_photos = review.image_count | plus: 0
             assign photo = nil
@@ -118,7 +114,7 @@
             assign stars_label = r_rating | append: ' de 5 estrellas' | replace: '.', ','
           -%}
           <div
-            class="df-review-slider__card" data-review-id="{{ review.id | escape }}"
+            class="df-review-slider__card" data-review-id="{% if review.id != blank %}{{ review.id | escape }}{% else %}authored-{{ forloop.index0 }}{% endif %}"
             role="group"
             aria-roledescription="reseña"
             aria-label="{{ shown }} de {{ total }}"
@@ -140,7 +136,7 @@
             <div class="df-review-slider__body">
               <p class="df-review-slider__meta">
                 <span class="df-review-slider__author">{{ author | escape }}</span>
-                {%- render 'df-stars', rating: r_rating, size: '0.875rem', label: stars_label -%}
+                {%- if r_rating > 0 -%}{%- render 'df-stars', rating: r_rating, size: '0.875rem', label: stars_label -%}{%- endif -%}
               </p>
               <blockquote class="df-review-slider__text">
                 <p>{{ excerpt | escape }}</p>

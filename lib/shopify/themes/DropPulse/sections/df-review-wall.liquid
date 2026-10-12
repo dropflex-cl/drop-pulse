@@ -555,7 +555,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "Reseñas aprobadas en DropFlex dibujadas como publicaciones de Facebook. La selección y el título pueden venir de DropFlex. Sin una selección propia muestra reseñas aprobadas automáticamente al alcanzar el mínimo."
+      "content": "Muestra textos propios guardados desde DropFlex o reseñas reutilizadas por su ID."
     },
     {
       "type": "product",
@@ -585,16 +585,6 @@
     },
     {
       "type": "range",
-      "id": "min_reviews",
-      "label": "Mínimo de reseñas",
-      "info": "Con menos reseñas aprobadas, la sección no se muestra.",
-      "min": 2,
-      "max": 20,
-      "step": 1,
-      "default": 4
-    },
-    {
-      "type": "range",
       "id": "initial_posts",
       "label": "Publicaciones a la vista",
       "info": "El resto aparece con el botón para ver más.",
@@ -607,7 +597,8 @@
       "type": "checkbox",
       "id": "show_rating",
       "label": "Mostrar la calificación promedio",
-      "default": true
+      "default": true,
+      "info": "Usa la calificación del contenido o un resumen disponible."
     },
     {
       "type": "checkbox",

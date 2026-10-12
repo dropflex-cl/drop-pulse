@@ -14,6 +14,23 @@ function contextFixture() {
   return f;
 }
 describe("Contexto de cada componente desde el tema y el hook", () => {
+  it("desarrolla reseñas propias sin marcarlas pendientes por falta de importación", () => {
+    const f = contextFixture();
+    const knowledge = f.state.knowledge as { landing: { rows: { component: string; content: unknown }[] } };
+    for (const component of ["review-slider", "review-wall"]) {
+      knowledge.landing.rows.find(row => row.component === component)!.content = {
+        heading: "Una rutina más organizada", items: [{ body: "Encuentro mis útiles fácilmente al trabajar.", name: "Ana" }, { body: "Mantengo cada herramienta cerca de mi escritorio.", name: "Luis" }],
+      };
+      const context = componentGenerationContext(f.state, component);
+      expect(context.component.rules.join(" ")).not.toMatch(/nunca redactar|Solo elegir ids|Solo seleccionar ids/);
+      expect(context.instructions.join(" ")).toContain("campos propios");
+    }
+    const report = pdpCompletionReport(f.state);
+    for (const component of ["review-slider", "review-wall"]) {
+      expect(report.summary.content_pending).not.toContain(component);
+      expect(report.summary.media_pending).not.toContain(component);
+    }
+  });
   it("cubre el catálogo completo con tareas argumentales distintas y contratos nativos", () => {
     const f = contextFixture(), ids = ["listing", ...CATALOG.map(c => c.id)];
     expect(Object.keys(COMPONENT_ARGUMENTS).sort()).toEqual([...ids].sort());
@@ -38,7 +55,8 @@ describe("Contexto de cada componente desde el tema y el hook", () => {
     const before = JSON.stringify(f.state), result = pdpCompletionReport(f.state);
     expect(result.summary.content_pending).toEqual(expect.arrayContaining(["listing", "mechanism", "pain-block"]));
     expect(result.summary.content_pending).not.toContain("use-cases");
-    expect(result.summary.media_pending).toEqual(expect.arrayContaining(["gif-strip", "ugc-slider", "review-slider"]));
+    expect(result.summary.media_pending).toEqual(expect.arrayContaining(["gif-strip", "ugc-slider"]));
+    expect(result.summary.media_pending).not.toContain("review-slider");
     expect(result.summary.images_pending).toContain("insta-story");
     expect(result.components.find(c => c.component === "pain-block")!.variants[0].missing_fields.length).toBeGreaterThan(0);
     expect(result.components.find(c => c.component === "guarantee")!.discarded).toBe(true);

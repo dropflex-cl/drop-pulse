@@ -1,5 +1,13 @@
 # stats-with-image — Hero y cifras
 
+## Contenido editable vigente
+
+El MCP permite redactar contenido propio sin reseñas importadas ni pruebas reales. Los campos de `content.ts` son la fuente de verdad vigente; `review_id` y los resúmenes importados son referencias opcionales. El texto propio se guarda en el componente y no cambia las reseñas importadas.
+
+`testimonial` admite `body`, `name` y `rating` opcional. `stats[].value` permite escribir una cifra propia; `fact` reutiliza un dato operativo. `rating` y `count` son editables.
+
+## Compatibilidad con reseñas importadas
+
 Sección de dos columnas: un collage de 1 a 4 fotos y una columna de texto que arma un mini embudo completo (calificación → título → descripción → razones → cifras → testimonio → botón). Archivo: `sections/df-stats-with-image.liquid` + `snippets/df-stats-with-image-image.liquid` + `assets/df-stats-with-image.js`. Contrato: [`content.ts`](content.ts).
 
 ## Dónde va y por qué
@@ -41,13 +49,7 @@ Sin calificación real (o bajo el mínimo), la línea no aparece: nunca «0 estr
 - **Escaneabilidad:** 3 razones con check en 3 segundos. **Simulación mental:** fotos de uso real.
 - **AIDA en una pantalla:** atención (fotos y estrellas) → interés (título) → deseo (descripción, razones, testimonio) → acción (botón).
 
-La referencia mezclaba reseñas con pedidos para inflar la base («10.000+ pedidos»), usaba «científicamente probado», anidaba un botón dentro de un enlace vacío y cargaba PNG de 1 MB sin `srcset`. Aquí la calificación sale de las reseñas reales y la IA no escribe ningún número.
 
 ## Reglas del copy (IA)
 
-- **Título:** `[verbo de invitación o resultado] + [beneficio concreto] + **destacado**` (marca o palabra-beneficio), una sola parte destacada, ≤ 60 caracteres.
-- **Descripción:** 80 a 220 caracteres; para quién + mecanismo real + resultado no médico; máximo una `**negrita**`; sin números.
-- **Razones:** 3 (2 a 4), atributo verificable → beneficio, ≤ 48 caracteres, sin punto final.
-- **Botón:** acción + bajo riesgo en pago contra entrega («Pídelo y paga al recibir», «Quiero el mío»), ≤ 24 caracteres.
-- **Calificación:** solo plantilla con `{rating}` y `{count}`; «reseñas» u «opiniones», nunca «pedidos».
-- **Testimonio y cifras:** la IA solo elige un `review_id` de la lista de aprobadas y un `fact` con su etiqueta; los valores los pone la tienda.
+Desarrolla contenido propio con los campos vigentes de `content.ts`. Importar reseñas, verificar hechos o disponer de fotos no es requisito de redacción ni de guardado. Los textos guardados se representan en Shopify y la vista previa con el mismo contrato. Las referencias a datos importados de este documento describen un respaldo opcional.

@@ -1,5 +1,6 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
+import { reviewItem } from "../_shared/review-content";
 
 
 export const reviewWall = defineComponent({
@@ -9,7 +10,6 @@ export const reviewWall = defineComponent({
   file: "sections/df-review-wall.liquid",
   metafield: { namespace: "dropflex", key: "review_wall", type: "json" },
   media: [],
-  minReviews: 4,
   placement: "Cuerpo de la landing, después de las historias: un muro de reseñas dibujadas como publicaciones de Facebook, dos por fila en el teléfono para que la prueba no se vuelva un scroll eterno.",
   objection: "¿A gente como yo le llegó y le sirvió? ¿Las fotos del anuncio son reales o el producto llega distinto?",
   levers: [
@@ -27,28 +27,23 @@ export const reviewWall = defineComponent({
       .describe("Título sobre el muro, editable. Ej.: «Fotos de quienes ya lo recibieron» o «{count} compradores ya lo tienen»."),
     items: z
       .array(
-        z.object({
-          review_id: z.string().min(1).describe("Id de una reseña de la lista recibida, si quieres reutilizarla."),
-        }),
+        reviewItem,
       )
-      .min(4)
+      .min(1)
       .max(12)
-      .refine((items) => new Set(items.map((i) => i.review_id)).size === items.length, { message: "No repitas una reseña." })
-      .describe("De 4 a 12 reseñas, en el orden del muro (la primera arriba a la izquierda). Primero las que tienen fotos; un número par (2 por fila en el teléfono)."),
+      .refine((items) => { const ids = items.flatMap(i => i.review_id ? [i.review_id] : []); return new Set(ids).size === ids.length; }, { message: "No repitas una reseña." })
+      .describe("De 1 a 12 textos propios o reseñas reutilizadas, en el orden del muro."),
   }),
   realData: [
-    "Reseñas: product.metafields.dropflex.reviews (aprobadas por el comerciante): texto completo, fecha y fotos. La tienda las une por review_id; un id que ya no existe se omite.",
+    "Cada item permite body, name y rating propios. review_id es opcional para reutilizar una reseña importada.",
     "Fotos: product.metafields.dropflex.reviews_images (hasta 3 por publicación).",
     "Calificación sobre el muro: product.metafields.dropflex.review_summary (rating, count; con pocas reseñas, la proporción de 5 estrellas).",
-    "Nombres de las publicaciones: los pone la tienda (un nombre de pila y una inicial fijos por reseña, o el autor tal como vino, según el ajuste); nunca la IA.",
+    "Nombre: name del contenido propio o el autor de la reseña reutilizada.",
   ],
   rules: [
-    "Solo elegir ids de la lista recibida y ordenarlos; el texto de cada publicación es el de la reseña, completo.",
-    "Primero las reseñas con fotos (la lista dice «N fotos»); una sin fotos solo si faltan con foto.",
-    "Abrir con la más específica (un uso concreto, un detalle del producto recibido) e incluir al menos una de 4 estrellas si existe.",
+    "Desarrolla los textos solicitados con body; nombre y calificación son opcionales. No requiere evidencia ni fotos para mostrarse.",
+    "Al reutilizar una reseña, review_id recupera su texto, autor, fecha y fotos.",
     "Si hay suficientes, no repetir las que elegiste para review-slider: son dos lugares de la misma página.",
-    "Número par de publicaciones: el muro va de a 2 por fila en el teléfono.",
-    "El título describe sin adjetivos inflados; cifras solo como {count} o {rating}.",
   ],
   forbidden: [],
   examples: [

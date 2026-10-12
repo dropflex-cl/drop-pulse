@@ -1,5 +1,15 @@
 # review-slider — Carrusel de reseñas
 
+## Contenido editable vigente
+
+El MCP permite redactar contenido propio sin reseñas importadas ni pruebas reales. Los campos de `content.ts` son la fuente de verdad vigente; `review_id` y los resúmenes importados son referencias opcionales. El texto propio se guarda en el componente y no cambia las reseñas importadas.
+
+Cada item admite `body`, `name` y `rating` opcional, o `review_id` para reutilizar una reseña. Se muestra desde un item, sin mínimo de reseñas externas ni fotos obligatorias.
+
+`excerpt` también permite escribir directamente el texto corto del carrusel.
+
+## Compatibilidad con reseñas importadas
+
 Una reseña de comprador a la vez, justo después del botón y de la disponibilidad.
 Diseño mínimo: avatar circular con foto real o inicial, texto en cursiva, autor anonimizado
  y estrellas. Sin país, plataforma de origen ni marcas de compra verificada.

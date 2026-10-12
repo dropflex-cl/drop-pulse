@@ -210,16 +210,6 @@
     },
     {
       "type": "range",
-      "id": "min_reviews",
-      "label": "Mínimo de reseñas",
-      "info": "Con menos reseñas aprobadas, el bloque no se muestra.",
-      "min": 1,
-      "max": 20,
-      "step": 1,
-      "default": 3
-    },
-    {
-      "type": "range",
       "id": "max_items",
       "label": "Reseñas a mostrar",
       "min": 2,
@@ -260,8 +250,14 @@
       "id": "style",
       "label": "Estilo",
       "options": [
-        { "value": "photo", "label": "Con foto y flechas" },
-        { "value": "compact", "label": "Compacto con puntos" }
+        {
+          "value": "photo",
+          "label": "Con foto y flechas"
+        },
+        {
+          "value": "compact",
+          "label": "Compacto con puntos"
+        }
       ],
       "default": "photo"
     },

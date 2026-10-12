@@ -1,5 +1,6 @@
 import * as z from "zod/v4";
 import { defineComponent } from "../define";
+import { reviewFields } from "../_shared/review-content";
 
 
 export const reviewSlider = defineComponent({
@@ -9,7 +10,6 @@ export const reviewSlider = defineComponent({
   file: "blocks/df-review-slider.liquid",
   metafield: { namespace: "dropflex", key: "review_slider", type: "json" },
   media: [],
-  minReviews: 1,
   placement: "Columna del producto, justo bajo el botón de compra: la voz de otro comprador aparece en el instante de la duda final, en muy poco alto (una reseña a la vez).",
   objection: "¿Y si no es como en las fotos, llega mal o es de mala calidad? En pago contra entrega: ¿vale la pena comprometerme a recibirlo y pagarlo?",
   levers: [
@@ -30,32 +30,32 @@ export const reviewSlider = defineComponent({
     items: z
       .array(
         z.object({
-          review_id: z.string().min(1).describe("Id de una reseña de la lista recibida, si quieres reutilizarla."),
+          ...reviewFields,
           excerpt: z
             .string()
             .min(20)
             .max(110)
-            .describe("La oración más específica del original con las palabras del autor (50–90 caracteres ideal), primera persona. Puedes editar el extracto para el argumento solicitado."),
+            .optional()
+            .describe("Extracto editable que aparece en el carrusel. Puedes escribirlo directamente sin importar reseñas."),
           excerpt_mode: z
             .enum(["verbatim", "condensed", "translated"])
+            .optional()
             .describe("verbatim = copia exacta; condensed = acortada sin cambiar el sentido; translated = traducida (y quizá acortada) al español neutro."),
-        }),
+        }).refine(item => Boolean(item.review_id || item.body || item.excerpt), { message: "Escribe el texto o elige una reseña por su ID." }),
       )
-      .min(2)
+      .min(1)
       .max(8)
-      .describe("De 2 a 8 reseñas, en orden de aparición. Prioriza las que responden objeciones (calidad, talla, plazo, uso) e incluye al menos una de 4 estrellas si existe."),
+      .describe("De 1 a 8 textos propios o reseñas reutilizadas, en orden de aparición."),
   }),
   realData: [
-    "Reseñas: product.metafields.dropflex.reviews (items aprobados por el comerciante): autor enmascarado, calificación, texto, fecha, país y fotos. La tienda las une por review_id; un id inexistente se omite.",
+    "Cada item permite body, name y rating propios. review_id es opcional para reutilizar una reseña importada.",
     "Fotos: product.metafields.dropflex.reviews_images (reviews_images[image_from…]); la primera es el avatar.",
-    "Mínimo de reseñas y origen visible: product.metafields.dropflex.review_summary (count, source_label).",
+    "Los tokens {count} y {rating} consultan review_summary cuando se usan; no son requisitos del texto propio.",
   ],
   rules: [
-    "Solo seleccionar ids de la lista recibida y extraer; nunca redactar una reseña.",
-    "Extracto: la oración más específica, con las palabras del autor. Si se traduce, tuteo neutro; si se acorta, sin cambiar el sentido.",
-    "Marcar con honestidad excerpt_mode: la tienda muestra «Resumida» o «Traducida» y el texto completo.",
-    "Incluir al menos una de 4 estrellas si existe: una muestra 100 % perfecta sesga.",
-    "El título, si va, describe sin adjetivos inflados; cifras solo como {count} o {rating}.",
+    "Desarrolla los textos solicitados con body o excerpt; nombre y calificación son opcionales. No requiere evidencia ni material manual.",
+    "Al reutilizar una reseña, review_id recupera sus datos y excerpt permite editar su extracto.",
+    "Cada texto responde una duda concreta del comprador y aporta un detalle distinto.",
   ],
   forbidden: [],
   examples: [

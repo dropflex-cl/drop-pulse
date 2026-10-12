@@ -1,4 +1,5 @@
 import { fill, type StoreReview } from "@/lib/store-preview/facts";
+import { contentReview, type ReviewContent } from "@/lib/store-preview/review-content";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon, DfStars } from "./primitives";
 import type { PreviewProps } from "./types";
@@ -6,9 +7,7 @@ import type { PreviewProps } from "./types";
 // blocks/df-review-slider.liquid en su primer estado: la primera reseña a la vista, sin rotar (el
 // autoplay y la pausa son del JS). Con menos reseñas que el mínimo, el aviso del editor.
 
-interface Item {
-  review_id?: string;
-  excerpt?: string;
+interface Item extends ReviewContent {
   excerpt_mode?: "verbatim" | "condensed" | "translated";
 }
 
@@ -25,8 +24,8 @@ interface Pick {
 
 export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("review-slider");
-  const picks: Pick[] = (content.items ?? []).flatMap(item => {
-    const review = facts.reviews.find(r => r.id === item.review_id);
+  const picks: Pick[] = (content.items ?? []).flatMap((item, index) => {
+    const review = contentReview(item, facts.reviews, index);
     return review ? [{ review, excerpt: item.excerpt || review.body, mode: item.excerpt_mode ?? "verbatim" }] : [];
   });
   const total = picks.length;
@@ -87,7 +86,7 @@ export function ReviewSliderPreview({ content, facts }: PreviewProps<Content>) {
                 <div className="df-review-slider__body">
                   <p className="df-review-slider__meta">
                     <span className="df-review-slider__author">{author}</span>
-                    <DfStars rating={review.rating || 5} size="0.875rem" />
+                    {review.rating > 0 && <DfStars rating={review.rating} size="0.875rem" />}
                   </p>
                   <blockquote className="df-review-slider__text">
                     <p>{excerpt}</p>

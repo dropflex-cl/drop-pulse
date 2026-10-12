@@ -191,7 +191,7 @@ export function pageProblems(
   }
 
   for (const [id, value] of parts) {
-    const used = reviewIdsIn(id, value);
+    const used = reviewIdsIn(id, value).filter(Boolean);
     if (new Set(used).size < used.length)
       problems.push(`${id}: repetiste una reseña.`);
   }

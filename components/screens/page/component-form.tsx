@@ -169,6 +169,28 @@ function FieldView({
     );
   }
   switch (field.kind) {
+    case "number":
+      return (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={id} className="text-label">
+            {name}{field.optional && <span className="font-normal text-muted-foreground"> (opcional)</span>}
+          </Label>
+          <input
+            id={id}
+            type="number"
+            inputMode={field.step === 1 ? "numeric" : "decimal"}
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            className={cn(control, "h-control")}
+            value={typeof value === "number" ? value : ""}
+            onChange={e => set(e.target.value === "" ? undefined : Number(e.target.value))}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+          />
+          <ErrorText id={errorId} message={error} />
+        </div>
+      );
     case "text": {
       const text = typeof value === "string" ? value : "";
       const count = [...text.trim()].length;

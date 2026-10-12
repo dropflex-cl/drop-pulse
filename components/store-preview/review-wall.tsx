@@ -1,5 +1,6 @@
 import { PdpEmptyPreview } from "./pdp-empty";
 import { fill, reviewProof, type StoreReview } from "@/lib/store-preview/facts";
+import { contentReview, type ReviewContent } from "@/lib/store-preview/review-content";
 import { wallAuthor, wallDate } from "@/lib/store-preview/review-wall";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfStars } from "./primitives";
@@ -10,7 +11,7 @@ import type { PreviewProps } from "./types";
 
 interface Content {
   heading?: string;
-  items?: { review_id?: string }[];
+  items?: ReviewContent[];
 }
 
 const THIS_YEAR = String(new Date().getFullYear());
@@ -40,12 +41,12 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
 
   // Como la tienda: las reseñas elegidas, en su orden; un id que no existe se omite.
   const picks: { review: StoreReview; ri: number }[] = [];
-  for (const item of content.items ?? []) {
+  for (const [index, item] of (content.items ?? []).entries()) {
     if (picks.length >= 12) break;
     const ri = item?.review_id
       ? facts.reviews.findIndex((r) => r.id === item.review_id)
       : -1;
-    const review = facts.reviews[ri];
+    const review = contentReview(item, facts.reviews, index);
     if (review && (review.body || review.photos.length))
       picks.push({ review, ri });
   }
@@ -62,7 +63,7 @@ export function ReviewWallPreview({ content, facts }: PreviewProps<Content>) {
     picks.push(...ordered.slice(0, 12));
   }
 
-  if (picks.length < 2 || facts.count < Number(s.min_reviews)) {
+  if (!picks.length) {
     return <PdpEmptyPreview component="review-wall" />;
   }
 

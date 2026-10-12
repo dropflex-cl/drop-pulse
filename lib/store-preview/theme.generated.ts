@@ -195,7 +195,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
   "product-includes": {},
   "results-timeline": {},
   "review-slider": {
-    "min_reviews": 3,
     "max_items": 5,
     "min_rating": 4,
     "only_with_photo": false,
@@ -211,7 +210,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "compact": true,
     "show_text": true,
     "label": "{rating} · {count} reseñas",
-    "min_reviews": 3,
     "anchor": "resenas",
     "scroll_offset": 80,
     "alignment": "left",
@@ -223,7 +221,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
   "review-wall": {
     "heading": "Lo que dicen quienes ya lo tienen",
     "more_label": "Ver más testimonios",
-    "min_reviews": 4,
     "initial_posts": 6,
     "show_rating": true,
     "show_date": true,
@@ -293,7 +290,6 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "mobile_image_first": true,
     "show_rating": true,
     "rating_label": "{rating} de 5 según {count} reseñas",
-    "min_reviews": 5,
     "heading": "Descubre por qué **les encanta**",
     "bullet_1": "Diseño que se adapta a ti",
     "bullet_2": "Materiales para uso diario",

@@ -6,22 +6,10 @@
   @param {object} [content]
   @param {object} [df_variant]
 {%- enddoc -%}
-{%- doc -%}
-  DropFlex · Estrellas de reseñas (review-stars). Bloque de la columna del producto, sobre el
-  título: 5 estrellas con relleno parcial + «4,6 · 19 reseñas». Es un
-  enlace a las reseñas completas (ancla del ajuste `anchor`).
-
-  REGLA: la calificación y la cantidad salen SOLO de las reseñas aprobadas (metafield de la app
-  `dropflex.review_summary`). No hay modo manual: sin resumen, o con menos reseñas que el mínimo
-  del bloque, no se dibuja nada (nunca «0 reseñas»). 4,6 se dibuja como 4,6 (relleno al 92 %),
-  nunca redondeado a 5.
-
-  Contenido (texto): metafield `dropflex.review_stars` (json) → si falta, el texto del bloque.
-    { label } con los tokens {count} (obligatorio) y {rating}.
-    Con menos de 30 reseñas, si la proporción convence, la plantilla cede a «4,7 · 9 de cada 10
-    le dan 5 estrellas» (snippets/df-review-proof).
-  Datos reales: product.metafields.dropflex.review_summary = { rating, count, five, positive }.
-{%- enddoc -%}
+{%- comment -%}
+  Label, rating y count editables; review_summary es un respaldo opcional.
+  Un label sin tokens puede mostrarse sin reseñas importadas.
+{%- endcomment -%}
 {%- liquid
   # closest.product: el producto de la ficha. Sin ajuste «product» propio: si el bloque tuviera uno
   # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
@@ -30,11 +18,19 @@
   # content llega de la variante seleccionada (o del objeto legacy).
   assign summary = product.metafields.dropflex.review_summary.value
 
-  assign rating = summary.rating | default: 0 | plus: 0 | at_least: 0 | at_most: 5
-  assign count = summary.count | default: 0 | plus: 0
+  assign rating = content.rating | default: summary.rating | default: 0 | plus: 0 | at_least: 0 | at_most: 5
+  assign count = content.count | default: summary.count | default: 0 | plus: 0
 
+  assign own_label = false
+  if content.label != blank
+    unless content.label contains '{count}' or content.label contains '{rating}'
+      assign own_label = true
+    endunless
+  endif
   assign show = true
-  if product == blank or rating <= 0 or count < 1
+  if product == blank
+    assign show = false
+  elsif own_label == false and rating <= 0 or own_label == false and count < 1
     assign show = false
   endif
 
@@ -55,10 +51,14 @@
 
     # Con pocas reseñas la proporción convence más que la cantidad (snippets/df-review-proof).
     capture proof
-      render 'df-review-proof', summary: summary
+      if content.rating == nil and content.count == nil
+        render 'df-review-proof', summary: summary
+      endif
     endcapture
     assign label = content.label | default: s.label
-    if s.compact
+    if own_label
+      assign label = content.label
+    elsif s.compact
       assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas'
     elsif proof != blank
       assign label = rating_text | append: ' · ' | append: count_text | append: ' reseñas · ' | append: proof
@@ -70,6 +70,9 @@
     endif
 
     assign aria = 'Calificación ' | append: rating_text | append: ' de 5, basada en ' | append: count_text | append: ' reseñas'
+    if rating <= 0
+      assign aria = label
+    endif
     assign anchor = s.anchor | remove: '#' | strip | handleize
     if anchor != blank
       assign aria = aria | append: '. Ir a las reseñas'
@@ -95,9 +98,9 @@
     {%- else -%}
       <p class="df-review-stars__row" role="img" aria-label="{{ aria | escape }}">
     {%- endif -%}
-      <span aria-hidden="true" class="df-review-stars__stars">
+      {%- if rating > 0 -%}<span aria-hidden="true" class="df-review-stars__stars">
         {%- render 'df-stars', rating: rating, size: star_size, label: aria -%}
-      </span>
+      </span>{%- endif -%}
       {%- if s.show_text -%}
         <span class="df-review-stars__label" aria-hidden="true">{{ label | escape }}</span>
       {%- endif -%}
@@ -111,6 +114,6 @@
 {%- elsif request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}
   <div class="df df-placeholder" {{ block.shopify_attributes }}>
-    Estrellas de reseñas: se muestran cuando el producto tiene al menos {{ s.min_reviews }} reseñas aprobadas en DropFlex.
+    Estrellas de reseñas: escribe el contenido del bloque o reutiliza un resumen disponible.
   </div>
 {%- endif -%}

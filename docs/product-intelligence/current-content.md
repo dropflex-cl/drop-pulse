@@ -122,6 +122,16 @@ La fuente actual del plugin incluye estos cambios en 1.6.4. La migración se apl
 
 Verificación: 1.321 pruebas generales, 90 pruebas de integración local y 75 regresiones de los módulos finales; contratos, tokens, TypeScript y lint de los archivos modificados correctos. La compilación con webpack terminó correctamente. Turbopack encontró una restricción de puertos del entorno; el lint global mantiene errores en archivos del tema y otros módulos ajenos a esta retirada.
 
+## Corrección de las restricciones residuales de reseñas en 1.7.0
+
+La primera retirada dejó dos carencias: los contratos de review-slider/review-wall seguían pidiendo IDs importados y prohibían redactar reseñas; el nuevo reporte de 1.7.0 marcaba estos componentes con medios pendientes cuando `review_count` era cero. El contexto de generación también pedía experiencias existentes y conservar una distinción de prueba real. La skill declaraba libertad de contenido, pero el contrato y el reporte todavía inducían a dejarlo pendiente.
+
+1.7.1 permite `body`, `name` y `rating` opcional en review-slider/review-wall, conservando `review_id` como referencia opcional. El slider acepta también `excerpt` propio. review-stars permite label, rating y count editables; stats-with-image añade testimonial y valores de cifras propios. Estos datos se guardan en el componente, sin modificar las reseñas importadas ni su resumen global. UI, Liquid, preview y publicación consumen los mismos campos; desaparecen los mínimos de importación y los controles obsoletos del tema.
+
+get_component_generation_context describe estas opciones y get_pdp_completion_report deja de exigir reseñas importadas como medios. GIF y video siguen necesitando archivos reproducibles de su formato, de origen manual o generado; un archivo faltante no impide redactar ni guardar el texto o guion. La versión fuente y los manifiestos del plugin pasan a 1.7.1; no hay migración nueva porque las columnas JSON vigentes ya persisten los campos.
+
+Verificación: 1.335 pruebas generales, 15 de integración local, paridad Liquid/React con contenido propio sin reseñas importadas, contratos exportados, TypeScript, lint de los archivos modificados, tokens y compilación con webpack. Theme Check inspeccionó 457 archivos sin errores; conserva 45 advertencias. No se generaron medios ni se publicaron productos o campañas.
+
 
 ## Argumentos e imágenes por componente
 
