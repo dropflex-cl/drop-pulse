@@ -1,0 +1,57 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.2",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "release_id": "pluginrel_6acc4524a22881918be2c4449bf44b66",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "098480756f4ce1b92b4e553d142fd611f0dc2d61",
+  "checks": {
+    "source_in_main": true,
+    "source_pushed_to_origin_main": true,
+    "production": {
+      "status": "Ready",
+      "environment": "Production",
+      "current": true,
+      "domain": "drop-pulse.vercel.app",
+      "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/9oc9ETBVEhRx6mHxJF9wVRCqXfAn",
+      "commit": "0984807",
+      "verified_in": "Vercel deployment details"
+    },
+    "new_database_migration_required": false,
+    "theme_or_mcp_tool_contract_changes": false,
+    "read_back": true,
+    "changed_files_match_source": true,
+    "preserved_identity_connection_audience_and_other_files": true,
+    "packaged_files": 11,
+    "validation": {
+      "skill_creator_quick_validate": "passed",
+      "mcp_skill_import_tests": 14,
+      "pi_contracts": "passed",
+      "diff_check": "passed"
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "installed_version_visible": "1.7.2",
+      "new_image_direction_visible_in_skill_details": true,
+      "imported_tools_checked_by_name_and_description": [
+        "get_component_generation_context",
+        "get_pdp_completion_report",
+        "get_visual_generation_context",
+        "get_visual_reference_image",
+        "save_visual_generation_plan",
+        "prepare_visual_iteration",
+        "ingest_chatgpt_visual_asset",
+        "bind_visual_asset"
+      ],
+      "new_chat_behavior_checked": false,
+      "production_tools_list_directly_checked": false
+    }
+  },
+  "limits": [
+    "El cambio es de instrucciones y versión; no modifica schemas MCP, contratos Shopify ni datos del comerciante.",
+    "El catálogo importado se inspeccionó después del refresco. No se realizó una llamada tools/list directa con OAuth desde el terminal.",
+    "La prueba visual que eligió el comerciante es previa a esta distribución; no se generó otro lote ni se verificó el comportamiento en un chat nuevo.",
+    "Abrir un chat nuevo con el plugin para cargar la skill 1.7.2; no se afirma que una conversación abierta haya recargado sus instrucciones."
+  ]
+}
