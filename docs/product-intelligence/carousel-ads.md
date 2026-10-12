@@ -34,6 +34,16 @@ Verificación local realizada:
 
 ## Estado de distribución
 
+### Corrección de dirección artística · 1.7.8
+
+La captura del comerciante se apartó de la dirección elegida: serif decorativa, dorado ornamental, iconos y mucha información en la apertura. Las piezas locales elegidas usan titulares blancos en sans serif gruesa, bandas marino, una fotografía dominante, una idea por tarjeta y pie constante. No se pudo inspeccionar el prompt interno de la generación mostrada: esto acredita un desvío visual, no su causa exacta.
+
+La guía del carrusel ahora exige leer la dirección visual común y traducir la referencia a jerarquía, composición, materialidad, continuidad y ritmo. Incluye el ejemplo SADOER y lleva estos detalles al prompt ejecutado, además del plan guardado. Inspecciona la primera imagen antes de continuar y no convierte una desviación en ancla de estilo; conserva la necesidad de pedido explícito para regenerar, sin añadir QA pagado ni aprobaciones. Los manifiestos y la skill están en 1.7.8.
+
+El commit `54d63cb` se verificó en main/origin/main y Vercel Ready en producción. El plugin existente tiene release `pluginrel_6acd23b378788191a737b8e4ee6308da`; readback y paquete coinciden. Pasaron validación de skill y 14 pruebas de entrega; los contratos MCP no cambiaron. Refresh tools terminó y se inspeccionaron las dos tools de carrusel. No se generaron imágenes para probar esta versión: la mejora visual y la carga/invocación desde una conversación nueva quedan pendientes. [Evidencia y límites](plugin-release-1.7.8.json).
+
+### Entrega del soporte de carrusel · 1.7.7
+
 El commit `51c6b8d` está en `main` y `origin/main`. Vercel confirmó ese commit en producción con estado Ready y dominio `drop-pulse.vercel.app`; el runtime conserva `gru1::gru1`. El dry-run del proyecto Supabase `oukcswnfrzroxgwqmujf` identificó únicamente `20261219000000_ad_carousels.sql`, que se aplicó correctamente; un segundo dry-run confirmó que no quedan migraciones pendientes.
 
 El plugin existente conserva su identidad y conexión. La versión distribuida 1.7.7 tiene release `pluginrel_6acd1bb2883c8191885846f7a7cb25d1`; el readback verificó archivos y manifiestos contra la fuente. Refresh tools terminó después del despliegue y el catálogo importado de ChatGPT muestra `get_ad_carousels` y `save_ad_carousel` con sus descripciones vigentes. El servidor local respondió tools/list por ambos transportes con los contratos actuales; no se realizó una consulta HTTP OAuth independiente a tools/list de producción.

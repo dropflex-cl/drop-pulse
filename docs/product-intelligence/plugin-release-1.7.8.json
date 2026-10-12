@@ -1,0 +1,68 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.8",
+  "release_id": "pluginrel_6acd23b378788191a737b8e4ee6308da",
+  "previous_release_id": "pluginrel_6acd1bb2883c8191885846f7a7cb25d1",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "54d63cb56110a2905abcc35dd3761cf31d508704",
+  "problem": "La captura aportada usa serif decorativa, dorado ornamental, iconos y mayor densidad; las piezas SADOER elegidas usan sans serif muy gruesa blanca, bandas marino, fotografía dominante y pie discreto. El prompt anterior resumió la dirección y la guía del carrusel no exigía leer/concretar la guía visual común. No se inspeccionó el prompt interno de esa generación; el efecto causal no está demostrado.",
+  "change": "Routing visual explícito, traducción de referencia a jerarquía/composición/materialidad/continuidad/ritmo, ejemplo elegido SADOER, dirección completa en resolved_instruction y generador, inspección de primera pieza y ancla de estilo sin QA/reintentos ni aprobaciones automáticas.",
+  "checks": {
+    "main_and_origin_main_match": true,
+    "production": {
+      "status": "Ready",
+      "commit": "54d63cb",
+      "environment": "Production",
+      "domain": "drop-pulse.vercel.app",
+      "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/EigKDRS3cdMdkH1GrG19oTEN3MuG",
+      "verified_in": "Vercel deployment details"
+    },
+    "database": {
+      "project_ref": "oukcswnfrzroxgwqmujf",
+      "new_migration_required": false,
+      "dry_run": {
+        "upToDate": true,
+        "migrations": []
+      }
+    },
+    "plugin": {
+      "overlay_files": 4,
+      "files_after": 13,
+      "read_back": true,
+      "changed_files_match_source": true,
+      "identity_app_connection_permissions_and_foreign_files_preserved": true
+    },
+    "validation": {
+      "skill_creator": "passed",
+      "mcp_skill_delivery_tests": 14,
+      "package": "generated",
+      "diff_check": "passed"
+    },
+    "server": {
+      "local_tools_list_verified": true,
+      "tools": 70,
+      "contracts_unchanged": true,
+      "contracts_sha256": "6993de64bf470b867ce57ce2dd0bcb3081fd38d34687f79e7c9cc6226865de35",
+      "authenticated_production_tools_list_directly_checked": false
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "imported_tools_verified": [
+        "get_ad_carousels",
+        "save_ad_carousel"
+      ],
+      "new_conversation_checked": false
+    }
+  },
+  "limits": [
+    "No se generaron imágenes nuevas ni se comprobó el resultado visual con esta versión.",
+    "Queda pendiente cargar la versión 1.7.8 en una conversación nueva e invocar get_ad_carousels; este chat conserva el catálogo anterior.",
+    "La inspección productiva del catálogo viene de Refresh tools; no es una consulta HTTP OAuth independiente tools/list."
+  ],
+  "merchant_effects": {
+    "image_generations": 0,
+    "paid_retries": 0,
+    "product_writes": 0,
+    "meta_campaigns": 0
+  }
+}
