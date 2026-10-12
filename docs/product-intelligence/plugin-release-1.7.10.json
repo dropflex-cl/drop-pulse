@@ -1,0 +1,95 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.10",
+  "release_id": "pluginrel_6acd2d57c84c81919ba725945fa09934",
+  "previous_release_id": "pluginrel_6acd2b7fab708191ad6b5c57602f4019",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commits": [
+    "4e77db27b305a34503979460874356165e52c064",
+    "848a7030b02fc6ae5b234aadf6179faba42f794c"
+  ],
+  "request": "El comerciante no debe aportar referencias visuales de estilo; le quita tiempo.",
+  "change": "Sistema artístico textual predeterminado en la entrada de skill y guía: foto editorial a sangre, titular blanco sans serif geométrica muy gruesa sobre bandas oscuras, márgenes/una idea/pie constantes, escenas variadas y precio reservado a oferta. Sin buscar, mostrar o solicitar imágenes de inspiración. La base real del producto sigue obteniéndose por MCP para conservar identidad.",
+  "checks": {
+    "main_and_origin_main_match": true,
+    "production": {
+      "status": "Ready",
+      "environment": "Production",
+      "commit": "848a703",
+      "domain": "drop-pulse.vercel.app",
+      "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/67AXzG2M7txPk8cJ25bywWqXKseN",
+      "verified_in": "Vercel deployment details",
+      "function_region": "gru1::gru1"
+    },
+    "database": {
+      "project_ref": "oukcswnfrzroxgwqmujf",
+      "new_migration_required": false,
+      "dry_run": {
+        "upToDate": true,
+        "migrations": []
+      }
+    },
+    "plugin": {
+      "overlay_files": 4,
+      "files_after": 13,
+      "read_back": true,
+      "changed_files_match_source": true,
+      "identity_app_connection_permissions_and_foreign_files_preserved": true
+    },
+    "validation": {
+      "skill_creator": "passed",
+      "mcp_skill_delivery_tests": 14,
+      "package": "generated and checked",
+      "diff_check": "passed"
+    },
+    "server": {
+      "local_tools_list_verified": true,
+      "tools": 70,
+      "contracts_unchanged": true,
+      "contracts_sha256": "6993de64bf470b867ce57ce2dd0bcb3081fd38d34687f79e7c9cc6226865de35",
+      "authenticated_production_tools_list_directly_checked": false
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "imported_tools_verified": [
+        "get_ad_carousels",
+        "save_ad_carousel"
+      ],
+      "new_conversation": {
+        "url": "https://chatgpt.com/c/6acd2dbf-3628-83e9-8482-3ad5fccb9191",
+        "skill_version_reported": "1.7.10",
+        "tool_activity_observed": "Retrieved active advertising carousels and current contracts",
+        "tool_result_reported_ok": true,
+        "full_contract_reported": true,
+        "carousels_returned": 0,
+        "style_reported": [
+          "fotografía editorial a sangre",
+          "sans serif geométrica muy gruesa blanca sobre bandas oscuras arriba a la izquierda",
+          "una idea por tarjeta, márgenes amplios y pie constante",
+          "base real por MCP; sin imágenes de inspiración externas"
+        ],
+        "style_references_requested": false,
+        "inspiration_image_examples_displayed": false,
+        "scope": "read-only delivery and textual art direction"
+      }
+    },
+    "regression": {
+      "intermediate_version": "1.7.9",
+      "release_id": "pluginrel_6acd2b7fab708191ad6b5c57602f4019",
+      "source_commit": "4e77db2",
+      "conversation": "https://chatgpt.com/c/6acd2c41-2b28-83e9-b8c4-3ecbb98ee571",
+      "result": "version and read tool passed; unsolicited inspiration images and generic style summary failed intended experience",
+      "response": "Move essential art rules into skill entrypoint and explicitly omit inspiration searches/examples, including when describing style."
+    }
+  },
+  "limits": [
+    "No se generaron imágenes nuevas: la prueba confirma carga, lectura y dirección textual, no calidad ni fidelidad del resultado visual.",
+    "La inspección productiva del catálogo procede de Refresh tools y la invocación del cliente; no se realizó tools/list por HTTP OAuth independiente."
+  ],
+  "merchant_effects": {
+    "image_generations": 0,
+    "paid_retries": 0,
+    "product_writes": 0,
+    "meta_campaigns": 0
+  }
+}

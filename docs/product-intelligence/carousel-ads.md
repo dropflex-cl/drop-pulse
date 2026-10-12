@@ -34,6 +34,14 @@ Verificación local realizada:
 
 ## Estado de distribución
 
+### Dirección autónoma sin ejemplos · 1.7.10
+
+El comerciante pidió no tener que adjuntar una referencia artística. El estilo ahora se define de forma textual en la entrada de la skill y en la guía: fotografía editorial a sangre, titulares blancos en sans serif geométrica muy gruesa sobre bandas oscuras, una idea por tarjeta, pie constante, escenas variadas y precio reservado para la oferta. La paleta se deriva del producto. No solicita, busca ni muestra imágenes de inspiración; solo incorpora otra dirección si el comerciante la pide. La base real del producto se obtiene por MCP para conservar su identidad.
+
+Una prueba con 1.7.9 confirmó la lectura y versión, pero mostró ejemplos de inspiración no solicitados y describió el estilo de forma genérica. La corrección final 1.7.10 lleva las reglas esenciales a la entrada principal y omite esos ejemplos también al explicar el estilo. El commit `848a703` se verificó en main/origin/main y Vercel Ready en producción; el plugin tiene release `pluginrel_6acd2d57c84c81919ba725945fa09934`. Readback, manifiestos, paquete, validación de skill y 14 pruebas de entrega coinciden. No cambian contratos MCP ni migraciones.
+
+Refresh tools terminó y el catálogo importado conserva ambas tools de carrusel. Una conversación nueva cargó 1.7.10 e invocó `get_ad_carousels`; devolvió el contrato y cero piezas del producto SADOER. La respuesta describió el sistema concreto sin pedir adjuntos ni mostrar inspiración externa. No se generaron imágenes ni se modificaron productos: esta prueba verifica carga, lectura y dirección textual, no calidad del próximo resultado visual. [Evidencia del ensayo y distribución](plugin-release-1.7.10.json).
+
 ### Corrección de dirección artística · 1.7.8
 
 La captura del comerciante se apartó de la dirección elegida: serif decorativa, dorado ornamental, iconos y mucha información en la apertura. Las piezas locales elegidas usan titulares blancos en sans serif gruesa, bandas marino, una fotografía dominante, una idea por tarjeta y pie constante. No se pudo inspeccionar el prompt interno de la generación mostrada: esto acredita un desvío visual, no su causa exacta.
