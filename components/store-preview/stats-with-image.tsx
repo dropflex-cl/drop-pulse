@@ -118,7 +118,9 @@ export function StatsWithImagePreview({
         .slice(0, 3)
         .map((st) => ({
           value: st.value ?? statValue(st?.fact, ratingFacts, hasRating),
-          label: st?.fact === "review_count" && !st.label.includes("hoy") ? `${st.label} hoy` : st.label,
+          label: st.label
+            ? st.fact === "review_count" && !st.label.includes("hoy") ? `${st.label} hoy` : st.label
+            : "",
         }))
         .filter((st) => st.value && st.label)
     : [];

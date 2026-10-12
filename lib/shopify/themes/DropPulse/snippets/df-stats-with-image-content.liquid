@@ -172,7 +172,7 @@
             assign value = stat.value
           endif
           assign label = stat.label | escape
-          if stat.fact == 'review_count'
+          if stat.fact == 'review_count' and label != blank
             unless label contains 'hoy'
               assign label = label | append: ' hoy'
             endunless
