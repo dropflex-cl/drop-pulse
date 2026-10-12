@@ -2,7 +2,7 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
-## Escritura UGC y continuidad argumental · 1.7.5
+## Escritura UGC y continuidad argumental · 1.7.6
 
 Caso observado: una propuesta abría con el hook elegido sobre apariencia de cansancio, pero su desarrollo cambiaba a una rutina incompleta y autocuidado genérico. Dos líneas tampoco cabían en el tiempo asignado. La skill ahora recupera `get_product_strategy` con `include: "execution"` y el contrato UGC, establece situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta, y comprueba que cada escena avance esa misma razón de compra. La cadena es trabajo editorial, no seis escenas obligatorias ni otra aprobación del comerciante.
 
@@ -10,7 +10,9 @@ La nueva referencia `references/ugc-writing.md` distingue variantes de apertura 
 
 La prueba conversacional de 1.7.4 confirmó lecturas y carga, pero entregó una propuesta genérica con conteos incorrectos. La revisión 1.7.5 lleva el control a la skill principal: recuperar producto y oferta, reescribir debilidades antes de entregar, mostrar palabras y ritmo de cada línea, y comprobar la tensión completa de la apertura sin esquivar su límite con puntuación. No exige seis escenas ni deja la explicación o el pack como mejoras para después.
 
-Se sincronizan ambos manifiestos y la skill en 1.7.5. La allowlist de recursos MCP incluye la nueva referencia; no cambian tools, schemas, permisos, contratos de Shopify ni migraciones. Las comprobaciones de distribución y cliente se registran en `plugin-release-1.7.5.json` después de la publicación. Un release y sus pruebas de transporte no demuestran por sí solos la calidad de una respuesta conversacional nueva.
+La prueba de 1.7.5 ya leyó producto y oferta y mostró una tabla, pero afirmó 84 palabras donde el contador canónico da 79. La tool de lectura `validate_ugc_script_timing` en 1.7.6 comprueba el texto exacto y la apertura completa, usando los límites y contadores vigentes. Devuelve conteos, ritmo por toma, suma, problemas por campo y alcance `timing_only`. No guarda la propuesta, no necesita plan de producción ni permiso de escritura, no llama a proveedores y no certifica persuasión ni duración real del montaje. La skill debe corregir y volver a comprobar antes de entregar, usando los números devueltos. «No guardes» permite esta lectura y sigue prohibiendo writers, incluso con `dry_run`.
+
+Se sincronizan ambos manifiestos y la skill en 1.7.6. La allowlist de recursos MCP incluye la nueva referencia; se exportan input/output de la nueva lectura y se conserva el scope de lectura existente. No cambian contratos de Shopify ni migraciones. Las comprobaciones de distribución y cliente se registran en `plugin-release-1.7.6.json` después de la publicación. Un release y sus pruebas de transporte no demuestran por sí solos la calidad de una respuesta conversacional nueva.
 
 ## Versión publicada · 1.7.0
 

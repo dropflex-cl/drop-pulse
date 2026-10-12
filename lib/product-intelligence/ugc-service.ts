@@ -26,6 +26,7 @@ import { parseToolInput, parseToolOutput } from "./validation";
 import type { JsonValue, ToolInputs, ToolOutputs } from "./schemas";
 
 export const UGC_RULES = [
+  "Antes de mostrar una propuesta, usa validate_ugc_script_timing con apertura completa y líneas exactas; copia sus conteos y corrige problemas. Es solo lectura, incluso con no guardes. No certifica continuidad comercial ni valida el plan de producción.",
   "Escribe lines y plan en el chat; el servidor arma K1 y las claves de tomas y valida duración, voz, apertura, montos y forma de mascota.",
   "Los hechos aprobados, las hipótesis y la estrategia seleccionada siguen separados. Seleccionar no demuestra un ganador.",
   "Usa solo pruebas y precios vigentes. Sin testimonios inventados, experto ficticio, edad dicha ni resultados propios de la persona de IA.",

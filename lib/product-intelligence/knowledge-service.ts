@@ -36,16 +36,24 @@ import { createLandingExecutor } from "./landing-service";
 import { createPackLabelsExecutor } from "./pack-labels-service";
 import type { PackLabelsRepository } from "./repository";
 import { createUgcExecutor } from "./ugc-service";
+import { checkUgcTiming } from "./ugc-timing";
+import { parseContextRead } from "./context";
 import type { UgcRepository } from "./repository";
 import type { LandingRepository } from "./repository";
 
-export const PERSISTED_INTELLIGENCE_TOOLS = [...shopifyAutomationTools, "list_products", ...visualTools, ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
+export const PERSISTED_INTELLIGENCE_TOOLS = [...shopifyAutomationTools, "list_products", ...visualTools, ...persuasionTools, ...contentTools, ...learningTools, "generate_gallery_images", "get_gallery_generation_status","get_product_context", "save_product_context", "save_product_analysis", "patch_product_analysis", "save_research", "set_product_strategy", "get_product_strategy", "get_landing_content", "save_landing_content", "get_pack_labels", "save_pack_labels", "get_ugc_content", "validate_ugc_script_timing", "save_ugc_content", "generate_ugc", "get_generation_status", "get_ugc_montage"] as const;
 /** Adaptador común para UI/MCP. Los textos se guardan sin IA; generate_ugc encola renders con permiso explícito. */
 export function createProductIntelligenceExecutor(repository: KnowledgeRepository & Partial<ProductListRepository & LandingRepository & PackLabelsRepository & UgcRepository & ContentRepository & LearningRepository & GalleryGenerationRepository & PersuasionRepository & VisualRepository & ShopifyAutomationRepository>, identity?: DelegatedIdentity, cursorSecret = process.env.OAUTH_STATE_SECRET ?? "", wakeUgc?: (id: string) => void, wakeGallery?: (id: string) => void, wakeVisual?: (id: string) => void, wakePublish?: (id: string) => void): DomainExecutor {
   const context = createContextExecutor(repository, identity);
   return async (principal, command, signal) => {
     command = { ...command, input: parseToolInput(command.tool, command.input) } as typeof command;
     requireScopes(principal, toolScopes[command.tool]);
+    if (command.tool === "validate_ugc_script_timing") {
+      // La lectura común verifica dueño y grant vigente, sin pedir contexto completo ni guardar la propuesta.
+      const input = command.input;
+      const read = parseContextRead(await repository.loadKnowledge({ p_access: contextAccess(principal, identity), p_product_id: input.product_id }, signal));
+      return parseToolOutput(command.tool, { ok: true, product_id: input.product_id, revision: read.current_revision, request_id: randomUUID(), data: checkUgcTiming(input) });
+    }
     if (command.tool === "review_visual_record") {
       if (!repository.loadVisual || !repository.commitVisual || !repository.visualOperation) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Falta la migración visual.");
       return reviewVisualRecord(repository as VisualRepository, principal, command.input, signal, identity, true);

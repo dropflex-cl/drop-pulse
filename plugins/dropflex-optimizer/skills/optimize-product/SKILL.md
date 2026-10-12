@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; no para sincronizar tiendas, configurar integraciones ni lanzar campañas.
-metadata: {"version": "1.7.5"}
+metadata: {"version": "1.7.6"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -70,7 +70,7 @@ Antes de proponer conceptos o redactar un guion, lee [la escritura UGC](referenc
 
 Revisa y corrige antes de entregar: explicación que conecte una característica o uso concreto con el beneficio buscado, objeción pertinente y oferta específica del pack vigente. Si detectas que sigue genérico, reescríbelo; no entregues esa debilidad como una mejora para después. Usa lo disponible sin inventar resultados. Una descripción de aplicación sencilla o «no es magia» por sí solas no desarrollan la razón de compra.
 
-Cuenta las palabras reales de cada línea y calcula palabras ÷ segundos. Muestra ese conteo y ritmo junto a la duración por escena; comprueba también suma y límites del contrato. Nunca declares «cabe» ni un ritmo máximo sin esa cuenta. La apertura completa debe comunicar la tensión en los primeros 3 segundos y caber en 9 palabras: dividirla con un punto o una pregunta no permite dejar la mitad significativa fuera. Corrige los excesos antes de mostrar la propuesta, incluso sin guardado. Esta preparación es trabajo editorial del chat, no un plan que el comerciante deba aprobar ni una nueva entidad del MCP. «No guardes» conserva el trabajo en la conversación; proponer un guion no autoriza generar clips ni publicar.
+Antes de entregar, llama `validate_ugc_script_timing` con `product_id`, `format`, `hook: {spoken, screen}` y `a_roll: [{line, seconds}]` del texto exacto. Es solo lectura: comprueba palabras, ritmo por escena, suma y límites sin guardar ni gastar. Corrige los problemas y vuelve a comprobar; muestra los conteos devueltos por esa lectura, no cifras estimadas por el modelo. Si cambias una línea o sus segundos, vuelve a comprobarla. La apertura completa debe comunicar la tensión en los primeros 3 segundos y caber en 9 palabras: dividirla con un punto o una pregunta no permite dejar la mitad significativa fuera. Si la tool no está disponible, continúa la propuesta editorial indicando que el cálculo no está comprobado y pide refrescar la conexión; no sustituyas la lectura por un writer con `dry_run`. Esta preparación es trabajo editorial del chat, no un plan que el comerciante deba aprobar ni una nueva entidad del MCP. «No guardes» conserva el trabajo en la conversación; proponer un guion no autoriza generar clips ni publicar.
 
 ## Página e imágenes
 

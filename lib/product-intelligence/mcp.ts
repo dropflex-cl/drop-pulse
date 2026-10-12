@@ -93,6 +93,8 @@ const descriptions: Record<ToolName, string> = {
     "Actualiza el consejo de uso vigente con referencias opcionales, conservando descartes. Guardar lo deja disponible sin llamada de IA.",
   get_ugc_content:
     "Lee guiones UGC vigentes, medios existentes y contratos reales para escribir guion y plan en el chat. La concurrencia es interna.",
+  validate_ugc_script_timing:
+    "Comprueba una propuesta UGC sin guardarla: recibe formato, apertura completa y líneas exactas con segundos; devuelve conteos reales, ritmo por toma, suma, límites y campos a corregir. Solo lectura, sin dry_run, proveedores, gasto ni publicación. No certifica continuidad comercial ni sustituye validar el plan al guardarlo.",
   save_ugc_content:
     "Actualiza el guion y plan vigentes del chat, con estrategia, ángulo y hook. Conserva medios y decisiones existentes sin aprobación adicional. No inicia generación de pago ni publica.",
   get_ugc_montage:

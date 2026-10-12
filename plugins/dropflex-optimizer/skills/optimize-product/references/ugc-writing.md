@@ -39,7 +39,7 @@ Corrige estas debilidades antes de presentar la propuesta. No entregues un guion
 
 ## Comprobar tiempos antes de mostrar
 
-Cuenta las palabras del texto exacto de cada línea, usando palabras separadas por espacios, y divídelas por sus segundos. No estimes el conteo por intuición ni inventes un máximo global. Revisa el contrato vigente, incluso si solo vas a responder en el chat. Como referencia del contrato actual:
+Comprueba el texto exacto con `validate_ugc_script_timing({product_id, format, hook: {spoken, screen}, a_roll: [{line, seconds}]})` antes de mostrarlo. Envía la apertura completa que comunica la tensión, no solo su primera pregunta. Esta tool usa el contador y límites canónicos del video; devuelve palabras, ritmo y problemas por campo. Es una lectura sin guardado, `dry_run`, proveedores ni gasto: puede usarse aunque el comerciante diga «no guardes». No estimes el conteo por intuición ni inventes un máximo global. Revisa el contrato vigente, incluso si solo vas a responder en el chat. Como referencia del contrato actual:
 
 - UGC con persona: 4–6 tomas habladas, 4–8 segundos cada una y 24–32 segundos hablados en total. Mascota: 3–5 tomas y 20–26 segundos, con el mismo rango por toma.
 - Escribe con margen, alrededor de 2,7 palabras por segundo; el máximo aceptado es 3. Si una escena excede el máximo, acorta la línea o redistribuye su tiempo dentro de los límites. No declares una duración que el texto no puede cumplir.
@@ -48,7 +48,7 @@ Cuenta las palabras del texto exacto de cada línea, usando palabras separadas p
 
 Ejemplo: 20 palabras en 5 segundos son 4 palabras por segundo y no caben. En ese tiempo, el máximo es 15; para una voz con margen, apunta a unas 13. Revisa cada toma: un promedio global aceptable puede esconder dos escenas imposibles de decir.
 
-Al presentar un guion, muestra duración por escena, texto hablado exacto, palabras, palabras/segundo, imagen/acción y texto en pantalla cuando corresponda. Comprueba que los conteos corresponden a esas mismas líneas, suma las duraciones y compara cada ritmo con el máximo; acorta o redistribuye cualquier exceso antes de mostrarlo. La función argumental debe ser comprensible. Los tiempos son previstos; al montar, CapCut usa las duraciones reales de los clips. El cierre añadido puede alargar el archivo final frente a la suma de voz: no confundas ambas duraciones.
+Al presentar un guion, muestra duración por escena, texto hablado exacto, palabras, palabras/segundo, imagen/acción y texto en pantalla cuando corresponda. Usa los conteos devueltos por la tool para esas mismas líneas; redondea solo la presentación del ritmo, sin cambiar el valor para aprobarlo. Si `data.valid` es falso, acorta o redistribuye y vuelve a comprobar; si editas una línea o sus segundos después de validar, repite la lectura. El resultado `scope: "timing_only"` no certifica continuidad argumental, claims ni plan de tomas. Si falta la tool, entrega lo independiente indicando que los tiempos no están comprobados y pide refrescar la conexión; no llames writers como sustituto. La función argumental debe ser comprensible. Los tiempos son previstos; al montar, CapCut usa las duraciones reales de los clips. El cierre añadido puede alargar el archivo final frente a la suma de voz: no confundas ambas duraciones.
 
 ## Revisar y guardar según el pedido
 

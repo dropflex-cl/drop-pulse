@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { scriptLinesSchema, ugcPlanSchema, mascotPlanSchema } from "@/lib/video/schemas";
+import { ugcTimingReport } from "./ugc-timing";
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }), etag = z.string().regex(/^[a-f0-9]{64}$/);
 const selector = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/);
 /** Dirección de arte abierta; los tiempos y efectos se resuelven con los clips reales en el Mac. */
@@ -32,6 +33,7 @@ export function ugcOutputs<E extends z.ZodType>(error: E) {
   const fail = z.strictObject({ ok: z.literal(false), request_id: uuid, error });
   const base = { ok: z.literal(true), product_id: uuid, revision: z.number().int().nonnegative(), request_id: uuid };
   return {
+    timing: z.union([fail, z.strictObject({ ...base, data: ugcTimingReport })]),
     get: z.union([fail, z.strictObject({ ...base, data: z.strictObject({ ugc_etag: etag, scripts: z.array(z.record(z.string(), z.unknown())).max(24), next_cursor: z.string().nullable(), truncated: z.boolean(),
       contract: z.record(z.string(), z.unknown()).nullable(), rules: z.array(z.string()), next_action: z.string() }) })]),
     save: z.union([fail, z.strictObject({ ...base, data: z.strictObject({ applied: z.boolean(), dry_run: z.boolean(), script_id: uuid.nullable(),

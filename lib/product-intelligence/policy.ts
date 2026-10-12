@@ -48,7 +48,7 @@ export const toolScopes: Record<ToolName, readonly PiScope[]> = {
   get_gallery_content: ["product_intelligence:read"], save_gallery_content: ["product_intelligence:read", "product_intelligence:write"],
   get_event_content: ["product_intelligence:read"], save_event_content: ["product_intelligence:read", "product_intelligence:write"],
   get_usage_tip: ["product_intelligence:read"], save_usage_tip: ["product_intelligence:read", "product_intelligence:write"],
-  get_ugc_content: ["product_intelligence:read"], get_ugc_montage: ["product_intelligence:read"], save_ugc_content: ["product_intelligence:read", "product_intelligence:write"],
+  get_ugc_content: ["product_intelligence:read"], validate_ugc_script_timing: ["product_intelligence:read"], get_ugc_montage: ["product_intelligence:read"], save_ugc_content: ["product_intelligence:read", "product_intelligence:write"],
   get_pack_labels: ["product_intelligence:read"], save_pack_labels: ["product_intelligence:write"],
   get_landing_content: ["product_intelligence:read"], save_landing_content: ["product_intelligence:write"],
   get_product_context: ["product_intelligence:read"], get_product_strategy: ["product_intelligence:read"], get_generation_status: ["product_intelligence:read"],

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { listProductsInput, listProductsOutput } from "./product-list-schemas";
 import { getPackLabelsInput, savePackLabelsInput, packLabelsOutputs } from "./pack-labels-schemas";
 import { getUgcInput, saveUgcInput, getUgcMontageInput, ugcOutputs } from "./ugc-schemas";
+import { ugcTimingInput } from "./ugc-timing";
 import { getLandingInput, saveLandingInput, landingOutputs } from "./landing-schemas";
 
 function isHttpsUrl(value: string): boolean {
@@ -1562,7 +1563,7 @@ export const inputSchemas = {
   ...shopifyAutomationInputs,
   list_products: listProductsInput,
   ...visualInputSchemas, ...persuasionInputSchemas, ...contentInputSchemas, ...learningInputSchemas, ...galleryGenerationInputs,
-  get_ugc_content: getUgcInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
+  get_ugc_content: getUgcInput, validate_ugc_script_timing: ugcTimingInput, save_ugc_content: saveUgcInput, get_ugc_montage: getUgcMontageInput,
   get_pack_labels: getPackLabelsInput, save_pack_labels: savePackLabelsInput,
   "get_landing_content": getLandingInput,
   "save_landing_content": saveLandingInput,
@@ -1584,7 +1585,7 @@ export const outputSchemas = {
   ...shopifyAutomationOutputs(errorSchema),
   list_products: listProductsOutput(errorSchema),
   ...visualOutputs(errorSchema), ...persuasionOutputs(errorSchema), ...contentOutputs(errorSchema), ...learningOutputs(errorSchema), ...galleryGenerationOutputs(errorSchema),
-  get_ugc_content: ugcOutputSchemas.get, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
+  get_ugc_content: ugcOutputSchemas.get, validate_ugc_script_timing: ugcOutputSchemas.timing, save_ugc_content: ugcOutputSchemas.save, get_ugc_montage: ugcOutputSchemas.montage,
   get_pack_labels: packOutputs.get, save_pack_labels: packOutputs.save,
   "get_landing_content": landingOutputSchemas.get,
   "save_landing_content": landingOutputSchemas.save,
