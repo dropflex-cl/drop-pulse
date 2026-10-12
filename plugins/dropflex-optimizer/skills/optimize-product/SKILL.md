@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; También desarrolla y guarda carruseles publicitarios solicitados. No sincroniza tiendas, configura integraciones ni lanza campañas.
-metadata: {"version": "1.7.7"}
+metadata: {"version": "1.7.8"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -112,4 +112,4 @@ Invocaciones: «Optimiza la aspiradora y ayúdame a elegir el hook primario», �
 
 ## Carruseles publicitarios
 
-Si el usuario pide analizar, generar, subir o editar un carrusel para Ads, sigue [references/carousel-ads.md](references/carousel-ads.md). Usa `get_ad_carousels` para recuperar el contrato y las piezas vigentes y `save_ad_carousel` para guardar sus tarjetas, escenas, textos y decisiones. Cada imagen usa la base real y se ingiere por el flujo visual existente; la app muestra el mismo carrusel. Guardarlo no elige una campaña ni publica en Meta.
+Si el usuario pide analizar, generar, subir o editar un carrusel para Ads, lee [references/carousel-ads.md](references/carousel-ads.md), incluida su dirección artística, y [la dirección visual](references/production.md#dirección-visual-para-pago-contra-entrega). Traduce la referencia o las piezas que ya le gustaron a composición, tipografía y densidad concretas; «premium» o los colores del empaque no bastan. Conserva esa dirección en la instrucción real de cada imagen. Usa `get_ad_carousels` para recuperar el contrato y las piezas vigentes y `save_ad_carousel` para guardar sus tarjetas, escenas, textos y decisiones. Cada imagen usa la base real y se ingiere por el flujo visual existente; la app muestra el mismo carrusel. Guardarlo no elige una campaña ni publica en Meta.
