@@ -203,7 +203,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "autoplay_delay": 5,
     "text_lines": 2,
     "show_date": false,
-    "margin_top": 16,
+    "margin_top": 0,
     "margin_bottom": 0
   },
   "review-stars": {
