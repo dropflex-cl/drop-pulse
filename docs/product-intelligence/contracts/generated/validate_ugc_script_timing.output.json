@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "request_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "VALIDATION_ERROR",
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "INVALID_REFERENCE",
+                "DEPENDENCY_IN_USE",
+                "REVISION_CONFLICT",
+                "ARTIFACT_CONFLICT",
+                "IDEMPOTENCY_KEY_REUSED",
+                "PAYLOAD_TOO_LARGE",
+                "RESPONSE_TOO_LARGE",
+                "SCHEMA_VERSION_UNSUPPORTED",
+                "RATE_LIMITED",
+                "CURSOR_EXPIRED",
+                "CURSOR_INVALID",
+                "EXECUTION_NOT_READY",
+                "INTEGRATION_NOT_CONNECTED",
+                "GENERATION_IN_PROGRESS",
+                "PROVIDER_RECONCILIATION_REQUIRED",
+                "INTERNAL_ERROR"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "object",
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "current_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "expected_artifact_etag": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "current_artifact_etag": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "missing_fields": {
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "fields": {
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema2"
+                  }
+                },
+                "reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "operation_index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 49
+                },
+                "retry_after_seconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "operation_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                  "format": "uuid"
+                },
+                "max_bytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "next_action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8192
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "details"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ok",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "product_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "request_id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "valid": {
+              "type": "boolean"
+            },
+            "scope": {
+              "type": "string",
+              "const": "timing_only"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "ugc",
+                "mascot"
+              ]
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "shots_min": {
+                  "type": "number"
+                },
+                "shots_max": {
+                  "type": "number"
+                },
+                "seconds_min": {
+                  "type": "number"
+                },
+                "seconds_max": {
+                  "type": "number"
+                },
+                "total_min": {
+                  "type": "number"
+                },
+                "total_max": {
+                  "type": "number"
+                },
+                "words_per_second_max": {
+                  "type": "number"
+                },
+                "words_per_second_target": {
+                  "type": "number"
+                },
+                "hook_words_max": {
+                  "type": "number"
+                },
+                "screen_words_max": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "shots_min",
+                "shots_max",
+                "seconds_min",
+                "seconds_max",
+                "total_min",
+                "total_max",
+                "words_per_second_max",
+                "words_per_second_target",
+                "hook_words_max",
+                "screen_words_max"
+              ],
+              "additionalProperties": false
+            },
+            "shots": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "line": {
+                    "type": "string"
+                  },
+                  "seconds": {
+                    "type": "number"
+                  },
+                  "words": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "words_per_second": {
+                    "type": "number"
+                  },
+                  "max_words": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "within_duration": {
+                    "type": "boolean"
+                  },
+                  "within_rate": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "key",
+                  "line",
+                  "seconds",
+                  "words",
+                  "words_per_second",
+                  "max_words",
+                  "within_duration",
+                  "within_rate"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "hook": {
+              "type": "object",
+              "properties": {
+                "spoken_words": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "screen_words": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "within_spoken_limit": {
+                  "type": "boolean"
+                },
+                "within_screen_limit": {
+                  "type": "boolean"
+                },
+                "opens_first_line": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "spoken_words",
+                "screen_words",
+                "within_spoken_limit",
+                "within_screen_limit",
+                "opens_first_line"
+              ],
+              "additionalProperties": false
+            },
+            "total": {
+              "type": "object",
+              "properties": {
+                "seconds": {
+                  "type": "number"
+                },
+                "words": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "words_per_second": {
+                  "type": "number"
+                },
+                "within_duration": {
+                  "type": "boolean"
+                },
+                "within_shot_count": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "seconds",
+                "words",
+                "words_per_second",
+                "within_duration",
+                "within_shot_count"
+              ],
+              "additionalProperties": false
+            },
+            "problems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "next_action": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "valid",
+            "scope",
+            "format",
+            "limits",
+            "shots",
+            "hook",
+            "total",
+            "problems",
+            "next_action"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ok",
+        "product_id",
+        "revision",
+        "request_id",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "format": "uuid"
+    },
+    "__schema1": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "type": "object"
+}

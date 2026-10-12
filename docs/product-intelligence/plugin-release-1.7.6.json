@@ -1,0 +1,147 @@
+{
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "version": "1.7.6",
+  "scope": "USER",
+  "discoverability": "PRIVATE",
+  "release_id": "pluginrel_6acc63c0379481918d999949d1508485",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commits": [
+    "c919e3c34d4c4d7d1783379944539c14c47c69a9",
+    "bb2e5b4848ab0c415f31e56150e7c1ebeda43701",
+    "80f0524b6a36965b37028f7ac42f957311a7be4f"
+  ],
+  "change": "Cadena argumental previa al guion y escenas dentro de la misma motivación, desde producto, estrategia y oferta vigentes; lectura determinista del texto exacto para comprobar palabras, ritmo y tiempos.",
+  "checks": {
+    "source_in_main": true,
+    "source_pushed_to_origin_main": true,
+    "production": {
+      "status": "Ready",
+      "environment": "Production",
+      "domain": "drop-pulse.vercel.app",
+      "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/BpFP3PR89dMJa4PUEvzuq7DtxjKJ",
+      "commit": "80f0524",
+      "verified_in": "Vercel deployment details",
+      "function_region": "gru1"
+    },
+    "new_database_migration_required": false,
+    "theme_or_mcp_schema_changes": "MCP input/output added; no Shopify schema change",
+    "mcp_resource_added": "skill://dropflex/optimize-product/references/ugc-writing.md",
+    "read_back": true,
+    "changed_files_match_source": true,
+    "preserved_identity_connection_audience_and_other_files": true,
+    "validation": {
+      "tests": 47,
+      "suites": 5,
+      "skill_creator": "passed",
+      "typecheck": "passed",
+      "scoped_lint": "passed",
+      "pi_contracts": "passed; 68 input/output pairs",
+      "build": "passed with webpack",
+      "diff_check": "passed"
+    },
+    "server": {
+      "authenticated_tools_list_directly_checked": false,
+      "local_protocol_tools_list_tests": "passed",
+      "production_catalog_observed_through_client_refresh": true
+    },
+    "client": {
+      "refresh_tools_completed": true,
+      "imported_tools_verified": [
+        "validate_ugc_script_timing",
+        "get_product_context",
+        "get_product_strategy",
+        "get_ugc_content"
+      ],
+      "new_timing_description": "Read-only; exact words, per-shot rates, total, limits and fields to correct; no dry_run, providers, cost, publication or semantic certification",
+      "new_conversation": {
+        "url": "https://chatgpt.com/c/6acc64a5-d408-83e9-95ac-2f4cac582028",
+        "skill_version_reported": "1.7.6",
+        "tool_invocation_observed": "Validating UGC Script Timing",
+        "tool_result_reported_ok": true
+      }
+    },
+    "overlay_files": 4,
+    "mcp_tool_added": "validate_ugc_script_timing"
+  },
+  "conversational_regression": {
+    "initial_version": "1.7.4",
+    "initial_chat_url": "https://chatgpt.com/c/6acc5c2d-d44c-83ea-bf1f-741343f381c6",
+    "read_tool_invocations_observed": true,
+    "reads_reported_ok": true,
+    "product_revision_at_read": 72,
+    "result": "failed",
+    "issues": [
+      "Desarrollo y cierre genéricos, reconocidos por el propio modelo como punto mejorable para después.",
+      "Ritmo declarado 2,8 palabras/s sin conteo por línea; varias líneas exceden 3 palabras/s.",
+      "El hook comunicaba su tensión después de la pregunta inicial de tres palabras; esa puntuación no hace que la apertura completa cumpla el límite.",
+      "Incluyó imágenes de otros productos que no fueron solicitadas."
+    ],
+    "response": "1.7.5 lleva la recuperación de contexto y oferta y la revisión con conteo a la skill principal, exige corregir antes de entregar y aclara el límite de la apertura completa.",
+    "final_version_test": {
+      "version": "1.7.6",
+      "url": "https://chatgpt.com/c/6acc64a5-d408-83e9-95ac-2f4cac582028",
+      "skill_version_reported": "1.7.6",
+      "read_context_and_strategy_reported": true,
+      "timing_tool_activity_observed": true,
+      "words_by_shot": [
+        8,
+        11,
+        11,
+        11,
+        14
+      ],
+      "seconds_by_shot": [
+        4,
+        6,
+        7,
+        7,
+        7
+      ],
+      "total_words": 55,
+      "total_seconds": 31,
+      "independent_canonical_counter_matches": true,
+      "followup_exact_lines_check": {
+        "ok": true,
+        "valid": true,
+        "scope": "timing_only",
+        "problems": [],
+        "product_revision_reported": 72
+      },
+      "result": "passed loading, callable read tool and exact timing; semantic quality remains editorial",
+      "editorial_observations": [
+        "Conserva la discrepancia descanso/apariencia y desarrolla cuidado específico, uso y oferta de pack.",
+        "La objeción aparece como duda de aplicación; su fuerza comercial sigue siendo juicio editorial.",
+        "El chat seleccionó el pack comercial vigente y excluyó la oferta pendiente de creación en Shopify."
+      ],
+      "writes_or_paid_generation_requested": false
+    },
+    "intermediate_version_test": {
+      "version": "1.7.5",
+      "url": "https://chatgpt.com/c/6acc5e42-ef04-83e9-a408-ebd7377da7a3",
+      "product_and_strategy_reads_reported": true,
+      "words_claimed": [
+        16,
+        16,
+        17,
+        17,
+        18
+      ],
+      "words_actual": [
+        15,
+        15,
+        16,
+        16,
+        17
+      ],
+      "total_words_claimed": 84,
+      "total_words_actual": 79,
+      "result": "failed exact counting; timing limits themselves fit",
+      "response": "1.7.6 añade lectura determinista validate_ugc_script_timing y exige usar sus números para las mismas líneas antes de entregar."
+    }
+  },
+  "limits": [
+    "No se extrajeron credenciales del navegador ni se ejecutó una consulta HTTP OAuth independiente tools/list; la evidencia productiva del catálogo procede del refresco y de su inspección en ChatGPT.",
+    "Las duraciones del guion son previstas. Medir los clips y montar en CapCut requiere medios y un pedido aparte.",
+    "Una prueba conversacional no garantiza todas las respuestas del modelo; las pruebas de transporte comprueban entrega y contratos, no calidad persuasiva."
+  ]
+}
