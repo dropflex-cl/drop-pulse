@@ -1,0 +1,99 @@
+{
+  "version": "1.7.21",
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acda4e8c4a08191babffb867a44fa4f",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "f67c5b6c9f1f37b863c3c515bd94308bd3b9d374",
+  "polish_commit": "8e46c568604d115bad3c1e1a0ce9f50393d71947",
+  "main_and_origin_verified": true,
+  "production": {
+    "status": "Ready",
+    "environment": "Production",
+    "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/J4sD9Hv8aFxNLhcYQpbiEWrkNmSc",
+    "commit": "8e46c56",
+    "region": "gru1::gru1",
+    "get_landing_content_new_fields_verified": true
+  },
+  "migrations": {
+    "required": false
+  },
+  "contract": {
+    "component": "shipping-timeline",
+    "new_optional_fields": {
+      "heading": "8–60 caracteres sin cifras ni tokens",
+      "parcel_label": "3–20 caracteres sin cifras ni tokens"
+    },
+    "legacy_content_preserved": true,
+    "real_seconds": true,
+    "dates_from_real_logistics": true,
+    "preview_runtime": "Mismo asset canónico que Shopify",
+    "cod": "Cero adelanto solo si policy=cod está activo; moneda de la tienda; títulos y cuerpos vigentes",
+    "template_order": "Precio junto al título; ticket y reaseguro antes del botón existente",
+    "migration": "Transición solo desde el orden conocido; conserva ajustes, apagados, bloques ajenos y órdenes personalizados"
+  },
+  "readback": {
+    "files_verified": 5,
+    "files_in_release": 14,
+    "manifests": true,
+    "skill": true,
+    "production_reference": true,
+    "app_connection_preserved": true,
+    "unrelated_files_preserved": true
+  },
+  "client": {
+    "refresh_tools_completed": true,
+    "imported_tools_verified": [
+      "get_landing_content",
+      "get_component_generation_context",
+      "get_pdp_completion_report",
+      "save_landing_content"
+    ],
+    "new_conversation": {
+      "url": "https://chatgpt.com/c/6acda61f-a5f8-83e9-8a24-55a19afc7b04",
+      "skill_version_reported": "1.7.21",
+      "calls_reported_ok": [
+        "get_landing_content:shipping-timeline",
+        "get_component_generation_context:shipping-timeline",
+        "get_landing_content:benefit-double-box",
+        "get_pdp_completion_report"
+      ],
+      "optional_fields_and_limits_reported": true,
+      "existing_components_reported_complete": true,
+      "product_revision": 96,
+      "scope": "read-only"
+    }
+  },
+  "server": {
+    "authenticated_tools_list_http_directly_checked": false,
+    "catalog_evidence": "Refresh tools completado y catálogo importado comprobado por nombres/descripciones; contratos recuperados por MCP de producción y en conversación nueva"
+  },
+  "shopify": {
+    "url": "https://datazo.cl/products/pack-2-contorno-ojos-caviar-sadoer",
+    "shop_domain": "qs060z-e7.myshopify.com",
+    "theme_id": "188903719139",
+    "kit_version": "39ce18c65b",
+    "update_action": "Actualizar tema existente publicado",
+    "width": 375,
+    "ticket": true,
+    "seconds_running": true,
+    "old_steps": false,
+    "text_wrap": "balance",
+    "accent": "#1f4bd8",
+    "zero_advance": true,
+    "order_verified": "ticket < COD < botón",
+    "overflow": false
+  },
+  "validation": {
+    "targeted_tests": 451,
+    "typecheck": "passed",
+    "eslint": "passed",
+    "theme_check": "passed; 42 advertencias preexistentes, sin errores",
+    "contracts": "regenerados y validados",
+    "browser": "320/375/960 px y accents azul/verde/amarillo: 9 combinaciones sin errores JS, overflow ni violaciones WCAG AA",
+    "motion": "Tres animaciones, una vez, 2.6 s, bajo el pliegue; detención con salida/hover/foco/pestaña oculta; estático con movimiento reducido"
+  },
+  "verified_at": "2026-10-13T03:35:28Z",
+  "limits": [
+    "La consulta HTTP directa autenticada a tools/list no se realizó. No se extrajeron credenciales del navegador; el catálogo se verificó mediante Refresh tools, detalles de la conexión y lecturas en conversación nueva."
+  ]
+}
