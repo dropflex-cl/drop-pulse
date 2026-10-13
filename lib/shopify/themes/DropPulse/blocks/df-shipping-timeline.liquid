@@ -23,6 +23,7 @@
 
 {% stylesheet %}
   .df-shipping-timeline {
+    /* Compacto: type-title (20), section móvil (24); geometría derivada de space-4/5/6/8/12. */
     --df-st-scene: var(--df-accent);
     --df-st-track: color-mix(in srgb, var(--df-on-accent) 24%, transparent);
     --df-st-duration: calc(var(--df-dur-reveal) * 5 + var(--df-dur-base));
@@ -31,28 +32,28 @@
   .df-shipping-timeline [hidden], .df-shipping-timeline__countdown[data-pending] { display: none; }
   .df-shipping-timeline p { margin: 0; }
   .df-shipping-timeline__ticket { overflow: hidden; border-radius: var(--df-radius-lg); background: var(--df-accent); color: var(--df-on-accent); }
-  .df-shipping-timeline__ticket-top { padding: var(--df-gap) var(--df-gap) 0; }
+  .df-shipping-timeline__ticket-top { padding: calc(var(--df-gap) * .75) var(--df-gap) 0; }
   .df-shipping-timeline__eyebrow { display: flex; align-items: center; gap: calc(var(--df-gap) / 2); font-size: .75rem; line-height: 1.4; font-weight: 500; text-transform: uppercase; }
   .df-shipping-timeline__eyebrow .df-icon { width: 18px; height: 18px; }
-  .df-shipping-timeline__headline { margin: calc(var(--df-gap) / 2) 0 0; font-family: var(--df-font-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.1; letter-spacing: -.025em; overflow-wrap: anywhere; text-wrap: balance; color: inherit; }
-  .df-shipping-timeline__countdown { display: grid; gap: calc(var(--df-gap) / 2); margin-top: var(--df-gap); }
-  .df-shipping-timeline__clock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--df-gap) / 2); max-width: 280px; }
+  .df-shipping-timeline__headline { margin: calc(var(--df-gap) / 2) 0 0; font-family: var(--df-font-heading); font-size: 1.25rem; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; overflow-wrap: anywhere; text-wrap: balance; color: inherit; }
+  .df-shipping-timeline__countdown { display: grid; gap: calc(var(--df-gap) / 2); margin-top: calc(var(--df-gap) * .75); }
+  .df-shipping-timeline__clock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--df-gap) / 2); max-width: 240px; }
   .df-shipping-timeline__unit { display: grid; justify-items: center; min-width: 0; padding: calc(var(--df-gap) / 2) calc(var(--df-gap) / 4); border-radius: var(--df-radius-sm); background: var(--df-bg); color: var(--df-accent-ink); }
-  .df-shipping-timeline__unit strong { font-size: 2rem; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .df-shipping-timeline__unit strong { font-size: 1.5rem; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; }
   .df-shipping-timeline__unit > span { font-size: .75rem; line-height: 1.4; }
   .df-shipping-timeline__colon { display: none; }
   .df-shipping-timeline__cutoff { font-size: .75rem; line-height: 1.4; }
-  .df-shipping-timeline__route { position: relative; height: 126px; margin-inline: var(--df-gap); overflow: hidden; animation-duration: var(--df-st-duration); transition-timing-function: var(--df-ease-standard); }
-  .df-shipping-timeline__rail { position: absolute; inset-inline: 0; bottom: 22px; height: 3px; background: var(--df-st-track); }
+  .df-shipping-timeline__route { position: relative; height: 96px; margin-inline: var(--df-gap); overflow: hidden; animation-duration: var(--df-st-duration); transition-timing-function: var(--df-ease-standard); }
+  .df-shipping-timeline__rail { position: absolute; inset-inline: 0; bottom: 16px; height: 3px; background: var(--df-st-track); }
   .df-shipping-timeline__rail-fill { position: absolute; inset: 0; background: var(--df-on-accent); opacity: .5; transform-origin: left center; }
-  .df-shipping-timeline__origin, .df-shipping-timeline__home { position: absolute; bottom: 38px; }
+  .df-shipping-timeline__origin, .df-shipping-timeline__home { position: absolute; bottom: 24px; }
   .df-shipping-timeline__origin { inset-inline-start: 0; }
   .df-shipping-timeline__home { inset-inline-end: 0; }
-  .df-shipping-timeline__origin .df-icon, .df-shipping-timeline__home .df-icon { width: 24px; height: 24px; }
-  .df-shipping-timeline__parcel { position: absolute; inset-inline-start: calc(50% - 44px); bottom: 23px; width: 88px; height: 82px; border-radius: var(--df-radius-sm); background: color-mix(in srgb, var(--df-accent) 24%, var(--df-bg)); color: var(--df-accent-ink); rotate: -8deg; }
-  .df-shipping-timeline__parcel::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 33px; width: 20px; background: color-mix(in srgb, var(--df-accent) 43%, var(--df-bg)); }
-  .df-shipping-timeline__parcel > span { position: absolute; inset-inline: 8px; bottom: 12px; padding: calc(var(--df-gap) / 3); background: var(--df-bg); border-radius: var(--df-radius-sm); font-size: .75rem; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
-  .df-shipping-timeline__dates { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--df-gap); padding: var(--df-gap); background: var(--df-accent-soft); color: var(--df-fg); }
+  .df-shipping-timeline__origin .df-icon, .df-shipping-timeline__home .df-icon { width: 20px; height: 20px; }
+  .df-shipping-timeline__parcel { position: absolute; inset-inline-start: calc(50% - 36px); bottom: 16px; width: 72px; height: 56px; border-radius: var(--df-radius-sm); background: color-mix(in srgb, var(--df-accent) 24%, var(--df-bg)); color: var(--df-accent-ink); rotate: -8deg; }
+  .df-shipping-timeline__parcel::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 28px; width: 16px; background: color-mix(in srgb, var(--df-accent) 43%, var(--df-bg)); }
+  .df-shipping-timeline__parcel > span { position: absolute; inset-inline: 4px; bottom: 8px; padding: calc(var(--df-gap) / 4); background: var(--df-bg); border-radius: var(--df-radius-sm); font-size: .75rem; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
+  .df-shipping-timeline__dates { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--df-gap); padding: calc(var(--df-gap) * .75) var(--df-gap); background: var(--df-accent-soft); color: var(--df-fg); }
   .df-shipping-timeline__dates:not(:has([data-df-ship-date])) { grid-template-columns: 1fr; }
   .df-shipping-timeline__dates::before, .df-shipping-timeline__dates::after { content: ''; position: absolute; top: -8px; width: 16px; height: 16px; border-radius: var(--df-radius-pill); background: var(--df-bg); }
   .df-shipping-timeline__dates::before { inset-inline-start: -8px; }

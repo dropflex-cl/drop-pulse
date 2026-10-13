@@ -33,7 +33,9 @@ export function storeAssets(): { path: string; bytes: Buffer }[] {
     path: join(ROOT, "public", "store-preview", name),
     bytes: readFileSync(join(COMPONENTS, "_landing", "assets", name)),
   })), { path: join(ROOT, "public", "store-preview", "df-shipping-timeline.js"),
-    bytes: readFileSync(join(COMPONENTS, "shipping-timeline", "assets", "df-shipping-timeline.js")) }];
+    bytes: readFileSync(join(COMPONENTS, "shipping-timeline", "assets", "df-shipping-timeline.js")) },
+    { path: join(ROOT, "public", "store-preview", "df-purchase-cta.js"),
+    bytes: readFileSync(join(COMPONENTS, "_landing", "assets", "df-purchase-cta.js")) }];
 }
 
 /** Valores de la tienda instalada; no usar los tokens de la app ni los fallbacks portables. */

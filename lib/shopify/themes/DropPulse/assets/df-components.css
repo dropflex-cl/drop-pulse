@@ -684,3 +684,65 @@ df-landing-content > [data-df-active] { display: contents; }
 
 /* Las cifras compartidas sin nota permanecen ocultas hasta elegir una variante con valoración. */
 [data-df-rating-group][hidden], .df-stats-with-image__rating[hidden] { display: none !important; }
+
+/* CTA de compra: type-title y space-4/6; alto = space-12 + space-4 del design system. */
+.df-purchase-cta {
+  --df-cta-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--df-cta-height);
+  padding: 16px 24px;
+  border: 0;
+  border-radius: var(--df-radius);
+  background: var(--df-accent);
+  color: var(--df-on-accent);
+  font-family: var(--df-font-body);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  font-weight: 600;
+  text-align: center;
+  text-wrap: balance;
+}
+
+:is(.df-purchase-cta, #es-popup-button)[data-df-es-motion] {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --df-cta-reveal: var(--df-dur-reveal, 480ms);
+  --df-cta-base: var(--df-dur-base, 200ms);
+  --df-cta-ease: var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+:is(.df-purchase-cta, #es-popup-button)[data-df-es-motion]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, currentColor 35%, transparent) 50%, transparent 70%);
+  translate: -120% 0;
+}
+
+:is(.df-purchase-cta, #es-popup-button)[data-df-es-shine] {
+  animation: df-cta-pulse calc(var(--df-cta-reveal) + var(--df-cta-base)) var(--df-cta-ease) both !important;
+}
+
+:is(.df-purchase-cta, #es-popup-button)[data-df-es-shine]::after {
+  animation: df-cta-shine calc(var(--df-cta-reveal) * 2) var(--df-cta-ease) both;
+}
+
+@keyframes df-cta-pulse { 40% { scale: 1.025; } }
+@keyframes df-cta-shine { to { translate: 120% 0; } }
+
+:root[data-df-motion='off'] :is(.df-purchase-cta, #es-popup-button)[data-df-es-shine],
+:root[data-df-motion='off'] :is(.df-purchase-cta, #es-popup-button)[data-df-es-shine]::after {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.df-purchase-cta, #es-popup-button)[data-df-es-shine],
+  :is(.df-purchase-cta, #es-popup-button)[data-df-es-shine]::after { animation: none !important; }
+}

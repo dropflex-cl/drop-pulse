@@ -2,6 +2,8 @@
 
 Ticket después del botón de compra existente y su línea de confianza: titular, contador del próximo corte con horas, minutos y segundos reales, paquete ilustrativo y dos fechas estimadas. Debajo, benefit-double-box destaca COD con cero adelanto. El precio principal permanece junto al título y protagoniza la oferta antes del despacho; el ticket no añade precio ni otro CTA. Su diseño y animación se conservan. Colores derivados exclusivamente de `--df-accent`, `--df-accent-ink`, `--df-on-accent` y `--df-accent-soft`; la línea mezcla el accent con el fondo. Los ajustes antiguos `time_color` e `icon_style` siguen en el schema por compatibilidad, pero no sustituyen el accent.
 
+La presentación compacta mantiene todos los datos y textos: titular de 20 px, cifras de 24 px y ruta ilustrada de 96 px, con caja de 72 × 56 px y padding reducido. Reduce la superficie del ticket para dejar la jerarquía al precio y botón. El CSS canónico genera la misma composición en React; logística, contratos y runtime del despacho no cambian.
+
 ## Contenido vigente y compatibilidad
 
 Contrato canónico: [content.ts](content.ts). Los nuevos campos son opcionales:

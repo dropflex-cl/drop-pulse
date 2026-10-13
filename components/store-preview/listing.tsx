@@ -8,6 +8,7 @@ import type { PreviewProps } from "./types";
 import { GalleryPreview } from "./gallery";
 import { ProductBenefitsPreview } from "./product-benefits";
 import { GoogleRatingPreview } from "./purchase-supports";
+import { PurchaseCtaRuntime } from "./purchase-cta-runtime";
 
 // La ficha sigue templates/product.json: galería, Google, título, precio, bajada y packs;
 // luego botón y apoyos, tres beneficios y reseñas. Repite el marcado de los bloques de
@@ -108,7 +109,8 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
           <PackOffersPreview heading={content.offer_line} packs={packs} facts={facts} />
         ) : null}
         {slots?.afterPrice}
-        <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Pídelo ahora y paga al recibir</div>
+        <div className="df df-purchase-cta" data-df-purchase-cta="">Pídelo ahora y paga al recibir</div>
+        <PurchaseCtaRuntime />
         <PurchaseConfidencePreview facts={facts} />
         {slots?.afterTrust}
         {slots?.afterButton}

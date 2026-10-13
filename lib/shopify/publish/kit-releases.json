@@ -87,6 +87,7 @@
     "f4b1f58758",
     "f9f3aa1b14",
     "faaba09899",
+    "fad61f525d",
     "fdf8a066c6",
     "ff4aa42d26"
   ],
@@ -152,6 +153,7 @@
       "1c8a594a9e8af2f8eeeedd05822dbd6f",
       "22269a773cb2136546436cc3d71e890e",
       "2f964b8125532a026a7d4eb7592feba8",
+      "429499cc40210a3cbd41da44890a6021",
       "5651a874919acd51f5e25136feb58717",
       "8baddb704a9952f6ae6d00a8323af0ff",
       "9a8d144c430f3f5a2b7faaf75bf8cd95",
@@ -221,6 +223,9 @@
       "6e5cfdf722ddc899ace176e3c54e5ffb",
       "90343223861ff92ac9aa3b787c1aba0c",
       "f859570abda40305c409ef9759cf70e7"
+    ],
+    "assets/df-purchase-cta.js": [
+      "8871c38182b77ef9b1332b1360480de2"
     ],
     "assets/df-review-popup.js": [
       "d0c958c1ce119cefc954c06edb901845"
@@ -928,7 +933,8 @@
       "b85bda98128358086ddd54797841ba1d",
       "bbbb368b444ab5d8371068446cc4d848",
       "f34576ec2c09bcc2729b73a65b862126",
-      "f83562eeb3bafd15bf72c9bf60521746"
+      "f83562eeb3bafd15bf72c9bf60521746",
+      "fc9de2a295e6181cbca3b51d96b3da5e"
     ],
     "blocks/df-social-badge.liquid": [
       "5c92fa7cca24904e2564c57790adb9fa"
@@ -1659,7 +1665,8 @@
       "576045c3889c3785ac9e65ab5395c639",
       "6c9070591f573868dd1722502556959f",
       "93b4144914d64d156b1f4a8ddea24a06",
-      "97389b7d15efca3550cfcbdbec986a92"
+      "97389b7d15efca3550cfcbdbec986a92",
+      "97bfa523e9e0afc640e7bb250b9f76b7"
     ],
     "snippets/df-event-badge.liquid": [
       "04c29650f4ab0b2f7d8e00fcb011b47e"
