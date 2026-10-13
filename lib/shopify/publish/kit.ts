@@ -87,7 +87,7 @@ export function readKit(dir = KIT_DIR): Kit {
   // Esta transición también debe ofrecer Actualizar tema cuando el código ya está al día.
   const kit = {
     files,
-    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1\npdp-dispatch-ticket:1\npdp-offer-first:1`)).slice(0, 10),
+    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1\npdp-dispatch-ticket:1\npdp-offer-first:2`)).slice(0, 10),
   };
   if (dir === KIT_DIR) memo = kit;
   return kit;
@@ -475,7 +475,7 @@ export function withPdpDispatchTicket(remote: string): string | null {
 }
 
 /** Oferta y CTA antes del ticket, solo desde la composición anterior reconocible del kit. */
-export function withPdpOfferFirst(remote: string): string | null {
+export function withPdpOfferFirst(remote: string, repairInitialRelease = false): string | null {
   let data;
   try { data = parseThemeJson(remote); }
   catch (error) { if (error instanceof SyntaxError) return null; throw error; }
@@ -490,12 +490,25 @@ export function withPdpOfferFirst(remote: string): string | null {
       const blocks = details.blocks;
       const own = details.block_order.filter(id => previous.includes(blocks[id]?.type));
       const types = own.map(id => blocks[id].type);
+      const price = own.find(id => blocks[id].type === "df-price");
+      // La primera distribución ya movió el botón pero Shopify materializó el default antiguo.
+      // Solo esa versión instalada puede reparar una ficha ya migrada; los ajustes futuros se respetan.
+      if (repairInitialRelease && price && blocks[price].settings?.price_size === 28 &&
+          details.block_order.some(id => blocks[id]?.type === "df-purchase-confidence") &&
+          JSON.stringify(types) === JSON.stringify(next.filter(type => types.includes(type)))) {
+        blocks[price].settings!.price_size = 48;
+        changed = true;
+        continue;
+      }
       // Omisiones expresas siguen omitidas; duplicados y composiciones personalizadas no se migran.
       if (["df-title", "df-price", "buy-buttons", "df-shipping-timeline"].some(type => !types.includes(type))) continue;
       if (new Set(types).size !== types.length) continue;
       if (JSON.stringify(types) !== JSON.stringify(previous.filter(type => types.includes(type)))) continue;
       const group = own.find(id => blocks[id].type === "group");
       if (group && (!blocks[group].blocks || Object.values(blocks[group].blocks!).some(b => !["df-event-badges", "df-hype-badge", "df-social-badge"].includes(b.type)))) continue;
+      // 28 era el default de la ficha anterior, persistido por Shopify al abrir el editor.
+      // Otros tamaños explícitos conservan su valor; una ficha ya migrada no vuelve a cambiarlo.
+      if (price && blocks[price].settings?.price_size === 28) blocks[price].settings!.price_size = 48;
       const ids = new Map(own.map(id => [blocks[id].type, id]));
       const ordered = next.flatMap(type => ids.has(type) ? [ids.get(type)!] : []);
       const moving = new Set(own);

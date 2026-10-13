@@ -18,6 +18,25 @@ import {
 } from "./kit";
 
 describe("kit del tema", () => {
+  it("migra el default de precio materializado por Shopify una vez y conserva tamaños personalizados", () => {
+    for (const size of [28, 32, 40]) {
+      const data = JSON.parse(readFileSync(join(KIT_DIR, "templates/product.json"), "utf8"));
+      const details = data.sections.main.blocks["product-details"];
+      details.blocks.price.settings.price_size = size;
+      expect(withPdpOfferFirst(JSON.stringify(data))).toBeNull();
+      const repaired = withPdpOfferFirst(JSON.stringify(data), true);
+      if (size === 28) {
+        const result = JSON.parse(repaired!);
+        expect(result.sections.main.blocks["product-details"].blocks.price.settings.price_size).toBe(48);
+        expect(withPdpOfferFirst(JSON.stringify(result), true)).toBeNull();
+      } else expect(repaired).toBeNull();
+      details.block_order = details.block_order.filter((id: string) => !["purchase_confidence", "shipping_timeline", "benefit_double_box"].includes(id));
+      delete details.blocks.purchase_confidence;
+      details.block_order.splice(details.block_order.indexOf("buy_buttons"), 0, "shipping_timeline", "benefit_double_box");
+      const migrated = JSON.parse(withPdpOfferFirst(JSON.stringify(data))!);
+      expect(migrated.sections.main.blocks["product-details"].blocks.price.settings.price_size).toBe(size === 28 ? 48 : size);
+    }
+  });
   it("lleva la oferta antes del ticket sin perder ajustes, apagados, omisiones ni bloques propios", () => {
     const data = JSON.parse(readFileSync(join(KIT_DIR, "templates/product.json"), "utf8"));
     expect(withPdpOfferFirst(JSON.stringify(data))).toBeNull();

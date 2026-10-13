@@ -524,7 +524,7 @@ async function prepareThemeUpdate(
     const reviewOrder = remote ? withPdpReviewOrder(sections ?? intro ?? remote) : null;
     const hierarchy = remote ? withPdpPurchaseHierarchy(reviewOrder ?? sections ?? intro ?? remote) : null;
     const dispatchTicket = remote ? withPdpDispatchTicket(hierarchy ?? reviewOrder ?? sections ?? intro ?? remote) : null;
-    const offerFirst = remote ? withPdpOfferFirst(dispatchTicket ?? hierarchy ?? reviewOrder ?? sections ?? intro ?? remote) : null;
+    const offerFirst = remote ? withPdpOfferFirst(dispatchTicket ?? hierarchy ?? reviewOrder ?? sections ?? intro ?? remote, inst.kit_version === "a8da9b0aa3") : null;
     const merged = offerFirst ?? dispatchTicket ?? hierarchy ?? reviewOrder ?? sections ?? intro;
     if (merged) {
       byPath.set(productTemplate, {
