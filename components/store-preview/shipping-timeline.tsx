@@ -200,21 +200,19 @@ export function ShippingTimelinePreview({
         <div className="df-shipping-timeline__ticket-top">
         <p className="df-shipping-timeline__eyebrow"><DfIcon name="truck" /> {content.countdown_label || String(s.countdown_label || "Próximo despacho")}</p>
         <h3 className="df-shipping-timeline__headline">{content.heading || String(s.ticket_heading || "Que el próximo lleve el tuyo")}</h3>
+        <div className="df-shipping-timeline__route" aria-hidden="true">
+          <span className="df-shipping-timeline__rail"><span className="df-shipping-timeline__rail-fill" /></span>
+          <span className="df-shipping-timeline__parcel"><span>{content.parcel_label || String(s.parcel_label || "Tu pedido")}</span></span>
+        </div>
       <div className="df-shipping-timeline__countdown" data-df-countdown="" data-pending="">
         <p className="df-shipping-timeline__clock" data-df-clock="">
-          <span className="df-shipping-timeline__unit"><strong data-df-hours="">—</strong><span>horas</span></span>
+          <span className="df-shipping-timeline__unit"><strong data-df-hours="">—</strong><span aria-hidden="true">h</span><span className="df-visually-hidden">horas</span></span>
           <span className="df-shipping-timeline__colon" aria-hidden="true">:</span>
-          <span className="df-shipping-timeline__unit"><strong data-df-minutes="">—</strong><span>minutos</span></span>
-          <span className="df-shipping-timeline__unit"><strong data-df-seconds="">—</strong><span>segundos</span></span>
+          <span className="df-shipping-timeline__unit"><strong data-df-minutes="">—</strong><span aria-hidden="true">min</span><span className="df-visually-hidden">minutos</span></span>
+          <span className="df-shipping-timeline__unit"><strong data-df-seconds="">—</strong><span aria-hidden="true">s</span><span className="df-visually-hidden">segundos</span></span>
         </p>
         <p className="df-shipping-timeline__cutoff" data-df-cutoff="">{cutoffTemplate.replaceAll("{cutoff}", `${inSentence(today)}, ${cutoffTime}`)}</p>
       </div>
-        </div>
-        <div className="df-shipping-timeline__route" aria-hidden="true">
-          <span className="df-shipping-timeline__rail"><span className="df-shipping-timeline__rail-fill" /></span>
-          <span className="df-shipping-timeline__origin"><DfIcon name="package" /></span>
-          <span className="df-shipping-timeline__parcel"><span>{content.parcel_label || String(s.parcel_label || "Tu pedido")}</span></span>
-          <span className="df-shipping-timeline__home"><DfIcon name="home" /></span>
         </div>
         <div className="df-shipping-timeline__dates" aria-hidden="true">
           {s.show_ship_date ? <div><p>{label(dispatchTemplate, "{ship}")}</p><strong data-df-ship-date="">{fmtWeekday.format(new Date(ship * DAY))}</strong></div> : null}

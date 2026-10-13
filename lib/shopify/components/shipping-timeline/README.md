@@ -1,8 +1,8 @@
 # shipping-timeline — Despacho y entrega
 
-Ticket después del botón de compra existente y su línea de confianza: titular, contador del próximo corte con horas, minutos y segundos reales, paquete ilustrativo y dos fechas estimadas. Debajo, benefit-double-box destaca COD con cero adelanto. El precio principal permanece junto al título y protagoniza la oferta antes del despacho; el ticket no añade precio ni otro CTA. Su diseño y animación se conservan. Colores derivados exclusivamente de `--df-accent`, `--df-accent-ink`, `--df-on-accent` y `--df-accent-soft`; la línea mezcla el accent con el fondo. Los ajustes antiguos `time_color` e `icon_style` siguen en el schema por compatibilidad, pero no sustituyen el accent.
+Ticket después del botón de compra existente y su línea de confianza: titular, contador del próximo corte con horas, minutos y segundos reales, paquete ilustrativo y dos fechas estimadas. Debajo, benefit-double-box destaca COD con cero adelanto. El precio principal permanece junto al título y protagoniza la oferta antes del despacho; el ticket no añade precio ni otro CTA. El ticket mantiene su identidad gráfica con un paquete pequeño al costado del encabezado. Colores derivados exclusivamente de `--df-accent`, `--df-accent-ink`, `--df-on-accent` y `--df-accent-soft`; la línea mezcla el accent con el fondo. Los ajustes antiguos `time_color` e `icon_style` siguen en el schema por compatibilidad, pero no sustituyen el accent.
 
-La presentación compacta mantiene todos los datos y textos: titular de 20 px, cifras de 24 px y ruta ilustrada de 96 px, con caja de 72 × 56 px y padding reducido. Reduce la superficie del ticket para dejar la jerarquía al precio y botón. El CSS canónico genera la misma composición en React; logística, contratos y runtime del despacho no cambian.
+La presentación «Ticket compacto» mantiene todos los datos y textos: titular de 16 px, cifras de 20 px con unidades abreviadas en una sola fila y fechas de 14 px. Las unidades completas siguen disponibles para lectores de pantalla. El paquete de 56 px comparte las filas del encabezado; su altura crece si la etiqueta guardada necesita más líneas, sin recortar contenido. Desaparece la escena independiente del recorrido y sus íconos de origen/destino. Reduce la superficie del ticket para dejar la jerarquía al precio y botón. Liquid y React tienen el mismo marcado y CSS; los contratos, la persistencia, el MCP, la skill y la logística conservan sus datos y requisitos.
 
 ## Contenido vigente y compatibilidad
 
@@ -33,7 +33,7 @@ Cuenta regresiva solo si existe plantilla con `{time}` y faltan hasta 24 horas. 
 
 ## Movimiento y accesibilidad
 
-Un recorrido de 2,6 s derivado de tokens (`reveal × 5 + base`): paquete (`translate`, `rotate`, `scale`), línea (`scale`) y fechas (`translate`). Una vez al estar al 50 % visible, solo si estaba bajo el pliegue. No representa un pedido ya hecho ni tracking. Se detiene con hover, foco, pestaña oculta, salida de pantalla, resize y desconexión. Movimiento reducido, tema con `df_motion=off` y editor dejan el estado estático. Ningún bucle, dependencia o solicitud de red.
+Un movimiento de 1,16 s derivado de tokens (`reveal × 2 + base`): paquete (`translate`, `rotate`), línea (`scale`) y fechas (`translate`). El paquete sube solo 4 px y vuelve a su posición; no atraviesa el texto ni sale del ticket compacto. Una vez al estar al 50 % visible, solo si estaba bajo el pliegue. No representa un pedido ya hecho ni tracking. Se detiene con hover, foco, pestaña oculta, salida de pantalla, resize y desconexión. Movimiento reducido, tema con `df_motion=off` y editor dejan el estado estático. Ningún bucle, dependencia o solicitud de red.
 
 El dibujo es decorativo; el titular, corte y rangos contienen la misma información como texto. El contador no tiene `aria-live` para evitar anuncios cada segundo. Texto mínimo de 12 px y accent con el contraste que proporciona `df-accent-vars`.
 

@@ -23,7 +23,7 @@ function mount(instant: string, config: Record<string, unknown> = {}, motion = {
     animations.push(animation);
     return { cancel: () => { animation.cancelled = true; } } as Animation;
   };
-  const styles = { direction: "ltr", animationDuration: "2.6s", transitionTimingFunction: "ease",
+  const styles = { direction: "ltr", animationDuration: "1.16s", transitionTimingFunction: "ease",
     getPropertyValue: (key: string) => key === "--df-dur-base" ? "200ms" : "ease" };
   class ClockDate extends Date { static now() { return now; } }
   class Intersection { constructor(callback: (entries: { isIntersecting: boolean; intersectionRatio: number }[]) => void) { intersections.push(callback); } observe() {} disconnect() {} }
@@ -90,7 +90,11 @@ describe("tarjeta de despacho: reloj real y recorrido único", () => {
     const page = mount("2026-10-12T15:00:00Z");
     page.enter(); page.resize(); page.enter();
     expect(page.animations).toHaveLength(3);
-    expect(page.animations.every(animation => animation.options.duration === 2600 && !animation.cancelled)).toBe(true);
+    expect(page.animations.every(animation => animation.options.duration === 1160 && !animation.cancelled)).toBe(true);
+    // El paquete pequeño no se desplaza por encima del texto ni fuera de su espacio.
+    const parcel = page.animations[0];
+    expect(parcel.frames.every(frame => String(frame.translate).startsWith("0 "))).toBe(true);
+    expect(parcel.frames.every(frame => Math.abs(parseFloat(String(frame.translate).split(" ")[1])) <= 4)).toBe(true);
     page.exit();
     expect(page.animations.every(animation => animation.cancelled)).toBe(true);
     page.enter();

@@ -8,7 +8,7 @@
 {%- enddoc -%}
 {%- doc -%}
   DropFlex · Despacho y entrega (shipping-timeline). Contador del próximo corte,
-  ticket con fechas estimadas y paquete ilustrativo, antes del botón existente.
+  ticket con fechas estimadas y paquete ilustrativo, después del botón existente.
 
   REGLA: plazos, hora de corte, feriados y zona horaria salen de la logística REAL de la tienda.
   Las fechas y la cuenta regresiva se calculan en df-shipping-timeline.js con el reloj de la
@@ -142,21 +142,19 @@
       <div class="df-shipping-timeline__ticket-top">
         <p class="df-shipping-timeline__eyebrow">{% render 'df-icon', name: 'truck' %} {{ t_countdown_label | escape }}</p>
         <h3 class="df-shipping-timeline__headline">{{ t_heading | escape }}</h3>
+        <div class="df-shipping-timeline__route" aria-hidden="true">
+          <span class="df-shipping-timeline__rail"><span class="df-shipping-timeline__rail-fill"></span></span>
+          <span class="df-shipping-timeline__parcel"><span>{{ t_parcel_label | escape }}</span></span>
+        </div>
         <div class="df-shipping-timeline__countdown" data-df-countdown data-pending>
           <p class="df-shipping-timeline__clock" data-df-clock>
-            <span class="df-shipping-timeline__unit"><strong data-df-hours>—</strong><span>horas</span></span>
+            <span class="df-shipping-timeline__unit"><strong data-df-hours>—</strong><span aria-hidden="true">h</span><span class="df-visually-hidden">horas</span></span>
             <span class="df-shipping-timeline__colon" aria-hidden="true">:</span>
-            <span class="df-shipping-timeline__unit"><strong data-df-minutes>—</strong><span>minutos</span></span>
-            <span class="df-shipping-timeline__unit"><strong data-df-seconds>—</strong><span>segundos</span></span>
+            <span class="df-shipping-timeline__unit"><strong data-df-minutes>—</strong><span aria-hidden="true">min</span><span class="df-visually-hidden">minutos</span></span>
+            <span class="df-shipping-timeline__unit"><strong data-df-seconds>—</strong><span aria-hidden="true">s</span><span class="df-visually-hidden">segundos</span></span>
           </p>
           <p class="df-shipping-timeline__cutoff" data-df-cutoff></p>
         </div>
-      </div>
-      <div class="df-shipping-timeline__route" aria-hidden="true">
-        <span class="df-shipping-timeline__rail"><span class="df-shipping-timeline__rail-fill"></span></span>
-        <span class="df-shipping-timeline__origin">{% render 'df-icon', name: 'package' %}</span>
-        <span class="df-shipping-timeline__parcel"><span>{{ t_parcel_label | escape }}</span></span>
-        <span class="df-shipping-timeline__home">{% render 'df-icon', name: 'home' %}</span>
       </div>
       <div class="df-shipping-timeline__dates" aria-hidden="true">
         {%- if s.show_ship_date -%}<div><p>{{ t_dispatch_label | escape }}</p><strong data-df-ship-date>{{ handling }} {{ days_word }}</strong></div>{%- endif -%}

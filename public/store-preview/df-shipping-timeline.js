@@ -278,7 +278,7 @@ if (!customElements.get('df-shipping-timeline')) {
       if (!duration) return;
       const options = { duration, easing: style.transitionTimingFunction, fill: 'none' };
       this.motion = [
-        this.truck.animate([{ translate: '-80px 10px', rotate: '-16deg', scale: '.86' }, { translate: '0 -12px', rotate: '3deg', scale: '1.06', offset: .66 }, { translate: '0 0', rotate: '-8deg', scale: '1' }], options),
+        this.truck.animate([{ translate: '0 0', rotate: '-8deg' }, { translate: '0 -4px', rotate: '-3deg', offset: .35 }, { translate: '0 0', rotate: '-11deg', offset: .7 }, { translate: '0 0', rotate: '-8deg' }], options),
         this.line.animate([{ scale: '0 1' }, { scale: '1 1' }], options),
         this.calendar.animate([{ translate: '0 0', offset: 0 }, { translate: '0 0', offset: 0.78 }, { translate: '0 -4px', offset: 0.9 }, { translate: '0 0', offset: 1 }], options),
       ];
