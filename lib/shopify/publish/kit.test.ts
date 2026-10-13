@@ -11,10 +11,34 @@ import {
   readKit,
   withEasySellOn,
   withPdpIntro,
+  withPdpPurchaseHierarchy,
   withPdpReviewOrder,
 } from "./kit";
 
 describe("kit del tema", () => {
+  it("migra la jerarquía anterior conservando ajustes, bloques ajenos y apagados, una sola vez", () => {
+    const kit = readFileSync(join(KIT_DIR, "templates/product.json"), "utf8");
+    const remote = JSON.parse(kit);
+    const details = remote.sections.main.blocks["product-details"];
+    details.block_order = ["google_rating", "review_stars", "stars_row", "title", "subtitle", "gallery_benefits", "pack_offers", "divider", "price", "inventory", "benefit_usps", "buy_buttons", "payment_icons", "shipping_timeline", "social_proof", "review_slider"];
+    details.blocks.stars_row.blocks.social_badge.settings.views = "200k+";
+    details.blocks.gallery_benefits.disabled = true;
+    details.blocks.custom = { type: "text", settings: { text: "Nota propia" } };
+    details.block_order.push("custom");
+    const before = structuredClone(details.blocks);
+    const result = JSON.parse(withPdpPurchaseHierarchy(JSON.stringify(remote))!);
+    const next = result.sections.main.blocks["product-details"];
+    expect(next.blocks).toEqual(before);
+    expect(next.block_order.slice(0, 13)).toEqual(["google_rating", "review_stars", "title", "price", "subtitle", "pack_offers", "benefit_usps", "buy_buttons", "inventory", "payment_icons", "divider", "gallery_benefits", "stars_row"]);
+    expect(next.block_order.at(-1)).toBe("custom");
+    expect(withPdpPurchaseHierarchy(JSON.stringify(result))).toBeNull();
+    details.block_order.reverse();
+    expect(withPdpPurchaseHierarchy(JSON.stringify(remote))).toBeNull();
+    details.block_order.reverse();
+    details.block_order = details.block_order.filter((id: string) => id !== "gallery_benefits");
+    delete details.blocks.gallery_benefits;
+    expect(withPdpPurchaseHierarchy(JSON.stringify(remote))).toBeNull();
+  });
   it("lee el tema del repo con los archivos que Shopify exige", () => {
     const kit = readKit();
     const paths = kit.files.map((f) => f.path);

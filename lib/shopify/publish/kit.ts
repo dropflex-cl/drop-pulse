@@ -87,7 +87,7 @@ export function readKit(dir = KIT_DIR): Kit {
   // Esta transición también debe ofrecer Actualizar tema cuando el código ya está al día.
   const kit = {
     files,
-    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1`)).slice(0, 10),
+    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1`)).slice(0, 10),
   };
   if (dir === KIT_DIR) memo = kit;
   return kit;
@@ -411,6 +411,41 @@ export function withPdpIntro(
     if (error instanceof SyntaxError) return null;
     throw error;
   }
+}
+
+/** Acerca título y precio en la ficha reconocible del kit; nunca recupera bloques ni cambia ajustes. */
+export function withPdpPurchaseHierarchy(remote: string): string | null {
+  let data;
+  try { data = parseThemeJson(remote); }
+  catch (error) { if (error instanceof SyntaxError) return null; throw error; }
+  if (!data?.sections) return null;
+  let changed = false;
+  const previous = ["df-google-rating", "df-review-stars", "group", "df-title", "df-subtitle", "df-gallery-benefits", "df-pack-offers", "_divider", "df-price", "df-benefit-usps", "buy-buttons", "payment-icons"];
+  const next = ["df-google-rating", "df-review-stars", "df-title", "df-price", "df-subtitle", "df-pack-offers", "df-benefit-usps", "buy-buttons", "df-inventory", "payment-icons", "_divider", "df-gallery-benefits", "group"];
+  for (const main of Object.values(data.sections) as ProductBlock[]) {
+    if (main.type !== "product-information") continue;
+    for (const details of Object.values(main.blocks ?? {})) {
+      if (details.type !== "_product-details" || !details.blocks || !Array.isArray(details.block_order)) continue;
+      const blocks = details.blocks;
+      const ids = new Map<string, string>();
+      for (const type of next) {
+        const matches = details.block_order.filter(id => blocks[id]?.type === type);
+        if (matches.length === 1) ids.set(type, matches[0]);
+      }
+      if (next.some(type => !ids.has(type))) continue;
+      const badges = blocks[ids.get("group")!];
+      if (!badges.blocks || Object.values(badges.blocks).some(b => !["df-event-badges", "df-hype-badge", "df-social-badge"].includes(b.type))) continue;
+      // Solo el orden anterior conocido. Personalizaciones posteriores y bloques eliminados se conservan.
+      const old = details.block_order.filter(id => previous.includes(blocks[id]?.type)).map(id => blocks[id].type);
+      if (JSON.stringify(old) !== JSON.stringify(previous)) continue;
+      const moving = new Set(ids.values());
+      const ordered = next.map(type => ids.get(type)!);
+      let position = 0;
+      details.block_order = details.block_order.map(id => moving.has(id) ? ordered[position++] : id);
+      changed = true;
+    }
+  }
+  return changed ? JSON.stringify(data) : null;
 }
 
 /** Invierte el grupo anterior de reseñas del kit sin tocar ajustes ni órdenes personalizados. */

@@ -36,6 +36,72 @@ const clean = (path: string) =>
   );
 
 describe("listing: nombre, bajada y SEO independientes", () => {
+  it("comparte la jerarquía del template: título y precio juntos, beneficios bajo la compra", () => {
+    const template = JSON.parse(
+      readFileSync(
+        "lib/shopify/themes/DropPulse/templates/product.json",
+        "utf8",
+      ),
+    );
+    const details = template.sections.main.blocks["product-details"];
+    const types = details.block_order.map(
+      (id: string) => details.blocks[id].type,
+    );
+    expect(types[types.indexOf("df-title") + 1]).toBe("df-price");
+    expect(types.indexOf("df-gallery-benefits")).toBeGreaterThan(
+      types.indexOf("buy-buttons"),
+    );
+    expect(types.indexOf("group")).toBeGreaterThan(
+      types.indexOf("df-gallery-benefits"),
+    );
+    const facts: StoreFacts = {
+      productName: listing.title,
+      price: 24990,
+      currency: "CLP",
+      reviews: [],
+      rating: null,
+      count: 0,
+      policies: { cod: true, free_shipping: true },
+      logistics: null,
+    };
+    const doc = parseHTML(
+      renderToStaticMarkup(
+        createElement(ListingPreview, {
+          content: {
+            ...listing,
+            gallery_benefits: [
+              { icon: "eye", text: "Cuidado del contorno" },
+              { icon: "droplet", text: "Con ácido hialurónico" },
+              { icon: "package", text: "Dos tubos" },
+            ],
+          },
+          facts,
+          images: {},
+          slots: {
+            afterButton: createElement("div", { id: "stock" }),
+            afterBenefits: createElement("div", { id: "shipping" }),
+          },
+        }),
+      ),
+    ).document;
+    expect(
+      doc
+        .querySelector("h1")
+        ?.nextElementSibling?.classList.contains("df-price"),
+    ).toBe(true);
+    const body = doc.querySelector(".df-listing-preview__details")!;
+    const children = Array.from(body.children);
+    const benefits = children.findIndex((el) =>
+      el.classList.contains("df-gallery-benefits-host"),
+    );
+    expect(benefits).toBeGreaterThan(
+      children.findIndex((el) => el.id === "stock"),
+    );
+    expect(benefits).toBeLessThan(
+      children.findIndex((el) => el.id === "shipping"),
+    );
+    expect(body.textContent).toContain("Pídelo ahora y paga al recibir");
+  });
   it("expone las mismas reglas en catálogo, contexto y schema de escritura MCP sin invalidar la ficha anterior", () => {
     const f = visualFixture();
     f.state.knowledge = {

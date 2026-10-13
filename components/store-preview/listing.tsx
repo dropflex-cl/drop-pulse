@@ -9,8 +9,8 @@ import { GalleryPreview } from "./gallery";
 import { ProductBenefitsPreview } from "./product-benefits";
 import { GoogleRatingPreview } from "./purchase-supports";
 
-// La ficha sigue templates/product.json: galería, Google, reseñas, badges, título, bajada,
-// tres beneficios y packs; luego precio, condiciones y botón. Repite el marcado de los bloques de
+// La ficha sigue templates/product.json: galería, Google, título, precio, bajada y packs;
+// luego botón y apoyos, tres beneficios y reseñas. Repite el marcado de los bloques de
 // lib/shopify/components/_landing para que el CSS generado del tema lo dibuje igual.
 
 export function PackOffersPreview({ heading: requested, packs, facts }: { heading?: string; packs: StorePack[]; facts: StoreFacts }) {
@@ -88,16 +88,17 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
       <div className="df-listing-preview__details">
         <GoogleRatingPreview facts={facts} />
         <h1 className="df df-heading df-title" style={{ marginBlock: `${px(title.margin_top)} ${px(title.margin_bottom)}` }}>{content.title || facts.productName}</h1>
+        <PricePreview facts={facts} />
         {content.short_description ? <p className="df df-subtitle" style={{ "--df-subtitle-size": px(subtitle.text_size), marginBlock: `${px(subtitle.margin_top)} ${px(subtitle.margin_bottom)}` } as React.CSSProperties}>{content.short_description}</p> : null}
-        <ProductBenefitsPreview benefits={content.gallery_benefits} />
         {packs.length > 1 ? (
           <PackOffersPreview heading={content.offer_line} packs={packs} facts={facts} />
         ) : null}
-        <div className="df-listing-preview__divider"><hr /></div>
-        <PricePreview facts={facts} />
         {slots?.afterPrice}
-        <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Pedir y pagar en casa</div>
+        <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Pídelo ahora y paga al recibir</div>
         {slots?.afterButton}
+        <div className="df-listing-preview__divider"><hr /></div>
+        <ProductBenefitsPreview benefits={content.gallery_benefits} />
+        {slots?.afterBenefits}
       </div>
     </div>
   );

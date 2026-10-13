@@ -40,7 +40,7 @@ export const listingSchema = z.object({
         text: plain("gallery_benefits.text")
           .pipe(z.string().trim().min(3).max(42))
           .describe(
-            "Beneficio principal del producto en una frase corta, legible antes de los packs. Ej.: «Se ajusta a tu cuerpo». Sin precios ni políticas de la tienda.",
+            "Beneficio principal del producto en una frase corta, legible bajo el botón de compra. Ej.: «Se ajusta a tu cuerpo». Sin precios ni políticas de la tienda.",
           ),
       }),
     )
@@ -53,7 +53,7 @@ export const listingSchema = z.object({
     )
     .optional()
     .describe(
-      "Tres beneficios principales, distintos y respaldados por los hechos del producto, en orden de importancia. Se muestran antes del selector de packs con el acento del producto. Inclúyelos al crear la ficha; opcional para conservar fichas anteriores.",
+      "Tres beneficios principales, distintos y respaldados por los hechos del producto, en orden de importancia. Se muestran bajo el botón de compra con el acento del producto. Inclúyelos al crear la ficha; opcional para conservar fichas anteriores.",
     ),
   offer_line: plain("offer_line")
     .pipe(z.string().min(10).max(90))
@@ -91,7 +91,7 @@ export const LISTING_RULES = [
   "short_description desarrolla el beneficio principal del hook en una sola frase y con un dato concreto. Prefiere 40–120 caracteres; el máximo compatible sigue siendo 160. No repitas title ni gallery_benefits.",
   "short_name es la etiqueta breve para anuncios, carrito y otros apoyos; no sustituye el H1. seo_title y seo_description son los campos independientes para Google.",
   "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",
-  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy.",
+  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales bajo el botón de compra, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). No repitas esa lista en benefit-usps. Usa get_product_context/get_product_strategy.",
   "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
   "Lee el listing vigente antes de editar y conserva los demás campos, variantes por ángulo/hook, imágenes omitidas, selección, orden y visibilidad. Cambiar estas instrucciones no reescribe ni invalida el contenido existente; guardar no publica.",
 ];
@@ -100,6 +100,6 @@ export const LISTING_RULES = [
 export const LISTING_INFO = {
   name: "Ficha del producto",
   placement:
-    "Nombre breve del producto como H1, beneficio del hook en la bajada y precio operativo; tres beneficios de apoyo y textos independientes para Google.",
+    "Nombre breve como H1, precio inmediatamente debajo y beneficio del hook en la bajada; tres beneficios de apoyo bajo el botón de compra y textos independientes para Google.",
   objection: "¿Qué es, sirve para lo que necesito y cuánto me cuesta?",
 };

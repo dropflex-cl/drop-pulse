@@ -18,10 +18,10 @@ export function EffectivePagePreview({ page, selection, accent }: { page: Produc
     return <Preview key={component.id} content={component.content} facts={facts} images={images} />;
   };
   const slots: Partial<Record<ListingSlot, React.ReactNode>> = {};
-  for (const slot of ["top", "afterPrice", "afterButton"] as const) {
+  for (const slot of ["top", "afterPrice", "afterButton", "afterBenefits"] as const) {
     const components = resolved.components.filter(c => pagePlacement(c.id) === "hero" && (LISTING_SLOTS[c.id] ?? "afterButton") === slot);
     const nodes = components.map(draw);
-    if (slot === "afterButton") {
+    if (slot === "afterBenefits") {
       const reviews = components.findIndex(c => c.id === "review-slider");
       const videos = components.findIndex(c => c.id === "ugc-slider");
       nodes.splice(reviews >= 0 ? reviews : videos >= 0 ? videos : nodes.length, 0, <SocialProofPreview key="social-proof" facts={facts} />);
