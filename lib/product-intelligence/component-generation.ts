@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { pdpRating } from "@/lib/copy/pdp-rating";
 import { CATALOG, componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
-import { listingSchema, LISTING_INFO } from "@/lib/copy/listing";
+import { listingSchema, LISTING_INFO, LISTING_RULES } from "@/lib/copy/listing";
 import { strictSchema } from "@/lib/copy/page-schema";
 import { contentVariants, imagePickSchema } from "@/lib/copy/variants";
 import { componentCapabilityCatalog } from "./component-capabilities";
@@ -10,7 +10,7 @@ import type { VisualState } from "./visual-domain";
 
 // Cada contrato cumple una tarea distinta dentro de la dirección comercial elegida.
 export const COMPONENT_ARGUMENTS: Record<string, string> = {
-  listing: "Presenta el producto y la promesa central del hook con su oferta principal.",
+  listing: "Identifica el producto con un nombre breve y presenta el beneficio central del hook en la bajada, junto a su oferta principal.",
   "review-stars": "Presenta el texto de valoración y las cifras solicitadas; puede reutilizar un resumen disponible.",
   "benefit-usps": "Explica ventajas concretas que hacen adecuado el producto para esta necesidad.",
   inventory: "Comunica disponibilidad actual y sus condiciones sin inventar urgencia.",
@@ -74,7 +74,7 @@ export function componentGenerationContext(state: VisualState, component: string
       argument_job: COMPONENT_ARGUMENTS[component], objection: native?.objection ?? LISTING_INFO.objection,
       placement: native?.placement ?? LISTING_INFO.placement, capability: componentCapabilityCatalog().find(c => c.component === component),
       schema: JSON.parse(JSON.stringify(z.toJSONSchema(contentSchema(component), { target: "draft-7", unrepresentable: "any" }))),
-      rules: native?.rules ?? [], forbidden: native?.forbidden ?? [], real_data: native?.realData ?? ["Precio y packs, variantes, disponibilidad y políticas vigentes"],
+      rules: native?.rules ?? LISTING_RULES, forbidden: native?.forbidden ?? [], real_data: native?.realData ?? ["Precio y packs, variantes, disponibilidad y políticas vigentes"],
       media: native?.media ?? [], image_slots: componentImageSlots(component, variant.content) },
     current: { enabled: row?.enabled ?? true, status: row?.status ?? "missing", variant: { ...variant, images: variant.images ?? row?.images ?? [] }, variants: variants.map(v => ({ key: v.key, angle_id: v.angle_id, hook_id: v.hook_id })) },
     other_arguments: ["listing", ...CATALOG.map(c => c.id)].filter(id => id !== component).map(id => {

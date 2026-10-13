@@ -6,7 +6,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { CATALOG, componentById } from "@/lib/shopify/components/catalog";
-import { LISTING_INFO, listingSchema } from "@/lib/copy/listing";
+import { LISTING_INFO, LISTING_RULES, listingSchema } from "@/lib/copy/listing";
 import { strictSchema } from "@/lib/copy/page-schema";
 import { contentVariants } from "@/lib/copy/variants";
 import { pageProblems } from "@/lib/copy/page-schema";
@@ -161,11 +161,7 @@ export function createLandingExecutor(
                   ...c.rules,
                   'Todos los componentes están visibles por defecto. El estado {state: "empty"} es opcional; desarrolla el contenido solicitado sin exigir evidencia. Puedes enviar un array de hasta 12 variantes: key, angle_id, hook_id, content e images opcionales. Incluye default con IDs null. URL: df_angle y df_hook. Cada variante se revisa como parte del componente.',
                 ]
-              : [
-                  "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",
-                  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto antes del selector de packs, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy.",
-                  "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
-                ],
+              : LISTING_RULES,
             forbidden: c?.forbidden ?? [
               "HTML.",
             ],

@@ -12,6 +12,16 @@ Usa `get_pdp_planning_context` y `get_angle_persuasion_plan` cuando el pedido re
 
 `get_landing_experience` recupera variantes, selección, visibilidad y orden. Usa `save_landing_experience` solo para los cambios solicitados en esa experiencia, sobre variantes y destinos existentes. No crees ni actives otra experiencia para desbloquear un guardado o reemplazar selecciones anteriores. El plan vigente es editable y su cambio no desactiva la experiencia. Crea únicamente destinos faltantes necesarios para el uso pedido.
 
+## Nombre visible y bajada del producto
+
+El H1 no se construye concatenando nombre y slogan. Lee `get_landing_content` con `component: "listing"` y consulta `get_component_generation_context` para el hook y la oferta vigentes. Guarda el objeto o las variantes completos mediante `save_landing_content`, conservando campos, imágenes omitidas, selección y visibilidad no afectados.
+
+- `title`: nombre visible y título nativo de Shopify; tipo de producto, marca/modelo y cantidad del pack si aplica. Prefiere 35–55 caracteres, sin añadir una promesa después de `|`. El máximo compatible sigue siendo 70.
+- `short_description`: una sola frase con el beneficio del hook y un dato concreto, preferiblemente 40–120 caracteres (máximo compatible 160). El argumento comercial va aquí, sin repetir el nombre ni los beneficios de las tarjetas.
+- `short_name`: etiqueta breve para apoyos, anuncios o carrito; no es el H1. `seo_title` y `seo_description` son campos independientes para Google.
+
+Ejemplo de nombre: «Pack 2 Contorno de Ojos Caviar SADOER». Ejemplo de bajada: «Un paso de cuidado para el contorno de ojos, con caviar y ácido hialurónico». Revisa los datos reales del producto antes de reutilizar el ejemplo. No cambies la ficha existente solo por actualizar estas instrucciones ni recortes el texto con CSS: edita explícitamente los campos pedidos. Guardar no mueve bloques, publica productos ni genera archivos. El precio y el ahorro siguen saliendo de la oferta canónica, no de `title`.
+
 ## PDP completa y contenido faltante
 
 El catálogo actual tiene 26 componentes de conversión y `listing`: 27 contratos en total. Descúbrelos con `get_component_catalog` y `get_landing_content`; sus schemas vigentes mandan. Las nuevas secciones son `mechanism`, `use-cases`, `before-after`, `results-timeline`, `usage-steps`, `product-includes`, `customer-stories`, `expert-endorsement`, `guarantee` y `offer-summary`.

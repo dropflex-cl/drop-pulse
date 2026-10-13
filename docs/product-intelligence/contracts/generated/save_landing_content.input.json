@@ -961,7 +961,7 @@
       "type": "object",
       "properties": {
         "title": {
-          "description": "Título del producto: qué es y el resultado o el dolor que resuelve, desde el DIFERENCIADOR (la página es común a los ángulos). Sin mayúsculas sostenidas ni palabras sueltas de SEO.",
+          "description": "Nombre visible del producto (H1 y título nativo de Shopify): qué es, marca o modelo y cantidad del pack cuando corresponda. Breve y reconocible; apunta a 35–55 caracteres, máximo compatible de 70. Sin slogan, dolor, promesa añadida tras una barra ni palabras de SEO. Desarrolla el beneficio del hook en short_description; seo_title es independiente.",
           "$ref": "#/$defs/__schema2"
         },
         "short_name": {
@@ -969,7 +969,7 @@
           "$ref": "#/$defs/__schema3"
         },
         "short_description": {
-          "description": "Una o dos frases bajo el título: el resultado y el dato que lo sostiene.",
+          "description": "Bajada separada del nombre: una sola frase breve con el beneficio principal del hook y un dato concreto del producto. Apunta a 40–120 caracteres; máximo compatible de 160. No repitas el título ni los tres gallery_benefits. Sin HTML ni una introducción larga en forma de pregunta.",
           "$ref": "#/$defs/__schema4"
         },
         "gallery_benefits": {

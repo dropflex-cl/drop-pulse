@@ -19,7 +19,7 @@ export const listingSchema = z.object({
   title: plain("title")
     .pipe(z.string().min(10).max(70))
     .describe(
-      "Título del producto: qué es y el resultado o el dolor que resuelve, desde el DIFERENCIADOR (la página es común a los ángulos). Sin mayúsculas sostenidas ni palabras sueltas de SEO.",
+      "Nombre visible del producto (H1 y título nativo de Shopify): qué es, marca o modelo y cantidad del pack cuando corresponda. Breve y reconocible; apunta a 35–55 caracteres, máximo compatible de 70. Sin slogan, dolor, promesa añadida tras una barra ni palabras de SEO. Desarrolla el beneficio del hook en short_description; seo_title es independiente.",
     ),
   short_name: plain("short_name")
     .pipe(z.string().min(3).max(30))
@@ -29,7 +29,7 @@ export const listingSchema = z.object({
   short_description: plain("short_description")
     .pipe(z.string().min(40).max(160))
     .describe(
-      "Una o dos frases bajo el título: el resultado y el dato que lo sostiene.",
+      "Bajada separada del nombre: una sola frase breve con el beneficio principal del hook y un dato concreto del producto. Apunta a 40–120 caracteres; máximo compatible de 160. No repitas el título ni los tres gallery_benefits. Sin HTML ni una introducción larga en forma de pregunta.",
     ),
   gallery_benefits: z
     .array(
@@ -85,10 +85,21 @@ export const LISTING_FIELDS: Record<keyof Listing, string> = {
   seo_description: "Descripción para Google",
 };
 
+/** Reglas compartidas por catálogo MCP, lectura y contexto de generación. */
+export const LISTING_RULES = [
+  "title identifica el producto: tipo, marca o modelo y cantidad del pack cuando corresponda. Es el H1 y el título nativo de Shopify. Prefiere 35–55 caracteres; el máximo compatible sigue siendo 70. No añadas slogans, dolor ni una promesa después de una barra.",
+  "short_description desarrolla el beneficio principal del hook en una sola frase y con un dato concreto. Prefiere 40–120 caracteres; el máximo compatible sigue siendo 160. No repitas title ni gallery_benefits.",
+  "short_name es la etiqueta breve para anuncios, carrito y otros apoyos; no sustituye el H1. seo_title y seo_description son los campos independientes para Google.",
+  "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",
+  "Al crear la ficha, escribe gallery_benefits: los tres beneficios principales del producto, en orden de importancia, cada uno con icon y text (hasta 42 caracteres). Usa get_product_context/get_product_strategy.",
+  "Son beneficios del producto, no envío, pago, garantías ni descuentos de la tienda. Cada variante de listing puede tener sus propios beneficios; la tienda aplica el acento del producto.",
+  "Lee el listing vigente antes de editar y conserva los demás campos, variantes por ángulo/hook, imágenes omitidas, selección, orden y visibilidad. Cambiar estas instrucciones no reescribe ni invalida el contenido existente; guardar no publica.",
+];
+
 /** Cómo se describe la ficha en el prompt y en la pantalla. */
 export const LISTING_INFO = {
   name: "Ficha del producto",
   placement:
-    "Tres beneficios principales antes del selector de packs; título y bajada arriba del precio; textos para Google.",
+    "Nombre breve del producto como H1, beneficio del hook en la bajada y precio operativo; tres beneficios de apoyo y textos independientes para Google.",
   objection: "¿Qué es, sirve para lo que necesito y cuánto me cuesta?",
 };

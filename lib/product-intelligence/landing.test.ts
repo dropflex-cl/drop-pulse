@@ -8,6 +8,7 @@ import { createLandingExecutor, validateLandingProposal } from "./landing-servic
 import { productPresentation } from "@/lib/products/presentation";
 import { contextFixture } from "./test-fixtures";
 import { DEFAULT_ACCENT } from "@/lib/copy/accent";
+import { LISTING_RULES } from "@/lib/copy/listing";
 
 const id = randomUUID();
 const owner: Principal = {
@@ -79,6 +80,7 @@ describe("PI · contenido de Shopify desde chat", () => {
     legacy.loadLanding.mockClear(); legacy.loadPageAccent.mockClear();
     const after = await createLandingExecutor(projected)(owner, command, AbortSignal.timeout(1000));
     expect({ ...after as object, request_id: null }).toEqual({ ...before as object, request_id: null });
+    if (component === "listing") expect(after).toMatchObject({ data: { contract: { rules: LISTING_RULES } } });
     expect(projected.readLandingComponent).toHaveBeenCalledWith(expect.objectContaining({ p_component: component }), expect.any(AbortSignal));
     expect(legacy.loadLanding).not.toHaveBeenCalled(); expect(legacy.loadPageAccent).not.toHaveBeenCalled();
   });

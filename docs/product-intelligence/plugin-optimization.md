@@ -2,6 +2,14 @@
 
 La fuente está en `plugins/dropflex-optimizer`. El plugin `dropflex-optimizer` contiene `optimize-product` y reutiliza la conexión registrada de DropFlex mediante `.app.json`; no guarda claves ni reemplaza OAuth. La conexión mapeada es la existente del autor, `asdk_app_6ac9921774708191bc0177abe77337f7`, verificada en la configuración de ChatGPT con el endpoint `https://drop-pulse.vercel.app/api/mcp`. Para otra conexión registrada, actualiza ese mapping con el ID real; no lo inventes ni lo uses como credencial.
 
+## Nombre visible, bajada y SEO · fuente 1.7.16
+
+El H1 consume `listing.title` desde `page_components.content`, también publicado como título nativo de Shopify. La bajada consume `short_description`; Google recibe `seo_title` y `seo_description`. El contrato anterior pedía incluir resultado o dolor en el título y favorecía nombres largos con slogans. Se corrige esa instrucción en `lib/copy/listing.ts`, compartida por `get_landing_content`, `get_component_catalog`, `get_component_generation_context` y el schema de `save_landing_content`: el título identifica producto, marca/modelo y pack; la bajada desarrolla el beneficio del hook en una frase. `short_name` conserva su función de apoyo.
+
+Se mantienen los campos, límites compatibles, variantes y contenido guardado; no hay migraciones, recortes de CSS ni cambio automático del orden o título de una tienda. La skill fuente explica cómo recuperar y guardar el objeto vigente sin perder otros campos. Ambos manifiestos y la skill se sincronizan en 1.7.16; el paquete regenerado contiene catorce archivos y conserva conexión y demás skills.
+
+Verificación: 134 pruebas unitarias de contratos, contenido y publicación; 10 de integración en Supabase local; TypeScript y lint. Las pruebas recorren escritura MCP → contenido vigente → `preparePublish` → payload y metafields → Liquid y preview React, incluidas variantes. La lectura MCP, el catálogo y el contexto comparten las mismas reglas. Esto verifica la fuente y el paquete, no la distribución: el último readback remoto observado sigue en 1.7.10. Quedan separados y pendientes el release privado 1.7.16, el refresco del catálogo del cliente y la carga en una conversación nueva.
+
 ## Escritura UGC y continuidad argumental · 1.7.6
 
 Caso observado: una propuesta abría con el hook elegido sobre apariencia de cansancio, pero su desarrollo cambiaba a una rutina incompleta y autocuidado genérico. Dos líneas tampoco cabían en el tiempo asignado. La skill ahora recupera `get_product_strategy` con `include: "execution"` y el contrato UGC, establece situación de compra → motivación → beneficio → explicación o demostración → objeción → oferta, y comprueba que cada escena avance esa misma razón de compra. La cadena es trabajo editorial, no seis escenas obligatorias ni otra aprobación del comerciante.

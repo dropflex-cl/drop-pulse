@@ -46,7 +46,7 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Contenido vigente · Supabase
   afterAll(async () => { if (owner) { await db.storage.from("page-media").remove([path]); await checked(db.auth.admin.deleteUser(owner.userId)); } }, 20000);
   it("guardar MCP deja el texto disponible sin aprobaciones ni parámetros técnicos", async () => {
     await call("save_landing_content", { schema_version: "1.1", entries: [{ component: "listing", content: listing }, { component: "pain-block", content: CATALOG.find(c => c.id === "pain-block")!.examples[0] }] });
-    expect((await preparePublish(owner.userId, product)).input.listing.title).toBe(listing.title);
+    expect((await preparePublish(owner.userId, product)).input.listing).toMatchObject({ title: listing.title, short_description: listing.short_description, seo_title: listing.seo_title, seo_description: listing.seo_description });
     expect((await row("listing")).status).toBe("approved"); // Estado antiguo compatible, sin decisión adicional.
   });
   it("asignar una imagen existente la hace publicable sin identidad, plan ni revisión de binding", async () => {

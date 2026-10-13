@@ -163,3 +163,7 @@ Google y los beneficios son bloques independientes que reutilizan los snippets e
 Al actualizar un tema instalado, `withPdpIntro` reconoce la ficha anterior del kit y aplica este orden una sola vez. Conserva los ajustes comerciales, los bloques personalizados y las desactivaciones; una ficha ya migrada no se reordena otra vez. La versión del kit incluye esta transición para ofrecer «Actualizar tema» aunque sus archivos Liquid ya estén al día.
 
 Las miniaturas de `df-social-proof` priorizan las reseñas con foto real entre las elegibles (4 o 5 estrellas). Recorren todas las reseñas antes de limitar a tres, conservan su orden dentro de cada grupo y usan íconos neutros solo si faltan fotos para completar. Esta prioridad visual no cambia el orden guardado ni el carrusel.
+
+### Nombre y argumento de la ficha
+
+`listing.title` es el nombre visible del H1 y el título nativo de Shopify; no concatena una promesa. `listing.short_description` es la bajada independiente para el beneficio del hook. `short_name` es una etiqueta de apoyo, no un reemplazo del H1; `seo_title` y `seo_description` se publican en SEO. Contrato, límites y reglas compartidas: `lib/copy/listing.ts`; MCP los expone en catálogo, lectura y contexto de generación. Los límites anteriores y las variantes guardadas se conservan. Este ajuste de instrucciones no cambia por sí solo el contenido ni el orden del tema.

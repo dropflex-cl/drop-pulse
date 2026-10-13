@@ -1,4 +1,5 @@
 import { DEFAULT_CONVERSION_SUPPORTS } from "@/lib/shopify/conversion-supports";
+import { LISTING_RULES } from "@/lib/copy/listing";
 import { CATALOG } from "@/lib/shopify/components/catalog";
 import type { PersuasionJob } from "./persuasion-schemas";
 
@@ -296,7 +297,7 @@ export function componentCapabilityCatalog() {
       min_reviews: 0,
       available: true,
       image_slots: native?.imageSlots ?? [],
-      rules: native?.rules ?? [],
+      rules: native?.rules ?? LISTING_RULES,
       forbidden: native?.forbidden ?? [],
     };
   });
