@@ -51,7 +51,7 @@ const FORMAT: Record<VideoFormat, { option: string; short: string; noun: string;
     short: "Persona",
     noun: "persona",
     title: "Un UGC de ~30 s para este ángulo",
-    body: "Una persona de IA habla a cámara. El chat propone las tomas habladas, las de apoyo, los textos en pantalla y el cierre, desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.",
+    body: "Una persona de IA habla a cámara. El chat propone las tomas habladas y de apoyo desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.",
     guard: "La persona muestra el producto. No dice ser clienta ni cuenta resultados propios.",
     character: "la persona sola y define su cara",
   },
@@ -169,7 +169,7 @@ export function VideosPanel({
   }
 
   const refresh = <Button size="sm" loading={busy === "refresh"} disabled={Boolean(busy)} onClick={() => run("refresh", () => productsApi.videos(productId), "No pudimos actualizar los guiones.")}>Actualizar guiones</Button>;
-  if (!state.cards.length) return <EmptyState icon="text" title="Crea el guion en el chat" body="Escribe el guion y el plan de tomas en el chat conectado a DropFlex. Al guardarlos, podrás revisarlos y aprobarlos aquí." action={refresh}>{error ? <p role="alert" className="text-caption text-destructive">{error}</p> : null}</EmptyState>;
+  if (!state.cards.length) return <EmptyState icon="text" title="Crea el guion en el chat" body="Escribe el guion y el plan de tomas en el chat conectado a DropFlex. Al guardarlos, podrás revisarlos aquí." action={refresh}>{error ? <p role="alert" className="text-caption text-destructive">{error}</p> : null}</EmptyState>;
   void aiConnected;
 
   const group = (c: VideoCardView) => c.executionKey ?? `legacy-${c.slot}`;
@@ -294,8 +294,8 @@ function NextStep({ card, current, file }: { card: VideoCardView; current: numbe
       <p className="text-caption text-muted-foreground">{why}</p>
     </>
   );
-  if (current === 1) return head("Siguiente: imágenes clave", "Se habilita al aprobar el guion. Revisas manos, cara y producto antes de pagar los clips.");
-  if (current === 2) return head("Siguiente: clips", `Se habilita cuando apruebes todas las imágenes clave. Los ${total} clips cuestan ${localCost(card.cost.clips)} y tardan de 3 a 6 minutos.`);
+  if (current === 1) return head("Siguiente: imágenes clave", "Guarda el guion en el chat. Revisa manos, cara y producto antes de generar los clips.");
+  if (current === 2) return head("Siguiente: clips", `Se habilita cuando estén disponibles las imágenes clave. Los ${total} clips cuestan ${localCost(card.cost.clips)} y tardan de 3 a 6 minutos.`);
   if (current === 3)
     return (
       <>
@@ -466,16 +466,11 @@ function ScriptStep({
 }) {
   const [editing, setEditing] = useState(false);
   const [lines, setLines] = useState(() => Object.fromEntries(p.a_roll.map((a) => [a.key, a.line])));
-  const [beats, setBeats] = useState(() => p.text_beats.map((t) => t.text));
-  const [endCard, setEndCard] = useState({ title: p.end_card.title, subtitle: p.end_card.subtitle, cta: p.end_card.cta });
   const [saving, setSaving] = useState(false);
   const timeline = scriptTimeline(p);
-  const clipsStarted = card.clips.length > 0;
 
   function cancel() {
     setLines(Object.fromEntries(p.a_roll.map((a) => [a.key, a.line])));
-    setBeats(p.text_beats.map((t) => t.text));
-    setEndCard({ title: p.end_card.title, subtitle: p.end_card.subtitle, cta: p.end_card.cta });
     setEditing(false);
   }
 
@@ -485,12 +480,10 @@ function ScriptStep({
       onState(
         await productsApi.editScript(productId, scriptId, {
           a_roll: p.a_roll.map((a) => ({ key: a.key, line: lines[a.key], delivery: a.delivery })),
-          text_beats: beats.map((text) => ({ text })),
-          end_card: endCard,
         }, card.script?.artifactEtag),
       );
       setEditing(false);
-      notify(clipsStarted ? "Guion guardado: las tomas que cambiaste se generan de nuevo" : "Guion guardado");
+      notify("Guion guardado");
     } catch (e) {
       onError(errorText(e, "No pudimos guardar el guion."));
     } finally {
@@ -525,28 +518,12 @@ function ScriptStep({
           label={`Toma ${t.n}`}
           kind={t.kind === "a_roll" ? "talk" : "broll"}
           time={t.kind === "a_roll" ? `${t.start}–${(t.start ?? 0) + (t.seconds ?? 0)} s` : `${t.cut} s`}
-          line={t.kind === "a_roll" ? (lines[t.key] ?? t.line) : `Imagen de apoyo cuando dice «${t.anchor}»`}
-          onscreen={t.beats.length ? t.beats.map((i) => beats[i]) : undefined}
+          line={t.kind === "a_roll" ? (lines[t.key] ?? t.line) : `Imagen de apoyo cerca de cuando dice «${t.anchor}»`}
           editing={editing}
-          changed={editing && clipsStarted && t.kind === "a_roll" && lines[t.key] !== t.line}
           lineMax={220}
-          onscreenMax={80}
           onLineChange={(v) => setLines((l) => ({ ...l, [t.key]: v }))}
-          onOnscreenChange={(i, v) => setBeats((b) => b.map((x, j) => (j === t.beats[i] ? v : x)))}
         />
       ))}
-      <div className="flex flex-col gap-1.5 rounded-lg border bg-card px-3 py-2.5">
-        <b className="text-small font-semibold">Cierre</b>
-        {editing ? (
-          <div className="flex flex-col gap-2">
-            <Field label="Nombre" value={endCard.title} maxLength={40} onValueChange={(v) => setEndCard((c) => ({ ...c, title: v }))} />
-            <Field label="Línea" value={endCard.subtitle} maxLength={60} onValueChange={(v) => setEndCard((c) => ({ ...c, subtitle: v }))} />
-            <Field label="Botón" value={endCard.cta} maxLength={20} onValueChange={(v) => setEndCard((c) => ({ ...c, cta: v }))} />
-          </div>
-        ) : (
-          <p className="text-small">{`${p.end_card.title} · ${p.end_card.subtitle} · ${p.end_card.cta}`}</p>
-        )}
-      </div>
       <ScriptGuard>{FORMAT[format].guard}</ScriptGuard>
       {p.compliance_notes.length && !editing ? (
         <details className="text-caption text-muted-foreground">

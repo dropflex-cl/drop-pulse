@@ -1,118 +1,62 @@
-// Material para montaje local con Python/FFmpeg; v2 conserva datos editoriales históricos. Puro.
-
+// Paquete de montaje local vigente. El lector Python mantiene compatibilidad con v1/v2.
 import { PACKAGE_VERSION, montageName, opensWithInsert, type VideoFormat, type VideoOpeningShot } from "./catalog";
 import type { UgcScript } from "./schemas";
-import type { z } from "zod";
-import type { ugcEditingBriefSchema } from "@/lib/product-intelligence/ugc-schemas";
-
-export type UgcEditingBrief = z.infer<typeof ugcEditingBriefSchema>;
 
 export interface MontagePackage {
   version: number;
-  /** Nombre de los archivos (montageName): el paquete se descarga como <name>.json y el script arma <name>.mp4. */
   name: string;
   product: { id: string; title: string };
   angle: { slot: number; title: string };
-  /** Persona o mascota: un ángulo puede tener los dos videos. */
   format: VideoFormat;
   language: string;
-  /** Acento histórico: el montaje simple no añade subtítulos. */
-  accent_color: string;
-  /** Marca histórica conservada para clientes anteriores; el montaje simple no la dibuja. */
-  watermark: string | null;
-  /** Si hay insert, su B-roll comienza en el cuadro 0; sin texto ni zoom añadido. */
+  /** El inserto de apertura comienza en el cuadro 0, sin texto ni zoom añadido. */
   opening: { shot: VideoOpeningShot; insert: string | null } | null;
-  /** Aspecto histórico conservado; el montaje simple no aplica filtros de imagen o sonido. */
-  look: "phone" | "clean";
   a_roll: { key: string; line: string; seconds: number; url: string }[];
   b_roll: { key: string; anchor: string; cut_s: number; url: string }[];
-  text_beats: { anchor: string; until: string | null; text: string }[];
-  end_card: { image_url: string; title: string; subtitle: string; cta: string; small_print: string[] };
   expires_at: string;
-  /** IDs duraderos para recuperar enlaces y subir el final al mismo guion. */
+  /** IDs duraderos para renovar enlaces y devolver el final al mismo guion. */
   source?: { script_id: string; artifact_etag: string };
-  /** Brief compatible; el montaje simple no añade sus capas editoriales. */
-  editing_brief?: UgcEditingBrief | null;
 }
 
 export interface PackageInput {
-  product: { id: string; title: string };
-  angle: { slot: number; title: string };
+  product: MontagePackage["product"];
+  angle: MontagePackage["angle"];
   language: string;
-  accentColor: string | null;
   format?: VideoFormat;
   executionKey?: string;
-  watermark?: string | null;
   script: UgcScript;
-  /** URL firmada de cada clip listo, por clave (A1…, B1…). */
   clipUrls: Map<string, string>;
-  endCardImageUrl: string;
   expiresAt: string;
   source?: MontagePackage["source"];
-  editingBrief?: UgcEditingBrief | null;
 }
 
-/** Amarillo de la POC: se ve sobre piel y fondos claros con borde negro. */
-export const DEFAULT_ACCENT = "#F2C230";
-
-/**
- * El texto de la marca de agua: el dominio propio de la tienda (sin «www.»). Sin dominio propio, el
- * nombre de la tienda, porque «x.myshopify.com» se ve provisorio; y si tampoco hay nombre, ese dominio.
- */
-export function watermarkText(host: string | null | undefined, shopName: string | null | undefined): string | null {
-  const h = host?.trim().toLowerCase().replace(/^www\./, "") || null;
-  const name = shopName?.trim() || null;
-  if (h && !h.endsWith(".myshopify.com")) return h;
-  return name ?? h;
-}
-
-/** La apertura del guion para el montaje: qué B-roll va en el segundo 0, si abre con un inserto. */
 export function openingOf(script: UgcScript): MontagePackage["opening"] {
-  const o = script.opening;
-  if (!o) return null;
-  const b1 = script.b_roll[0];
-  return { shot: o.shot, insert: opensWithInsert(o.shot) && b1 && b1.keyframe === o.keyframe ? b1.key : null };
+  const opening = script.opening;
+  if (!opening) return null;
+  const first = script.b_roll[0];
+  return { shot: opening.shot, insert: opensWithInsert(opening.shot) && first && first.keyframe === opening.keyframe ? first.key : null };
 }
 
-/** Falta un clip: el paquete no se arma hasta que estén todos. */
 export class PackageNotReady extends Error {}
 
-/**
- * El acento de la página sirve si es claro: los subtítulos llevan borde negro, y una palabra oscura
- * sobre borde negro no se lee. Si no, el amarillo.
- */
-export function captionAccent(hex: string | null): string {
-  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return DEFAULT_ACCENT;
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.4 ? hex.toUpperCase() : DEFAULT_ACCENT;
-}
-
-export function buildPackage(p: PackageInput): MontagePackage {
+/** Solo archivos y datos que consume el montaje: las capas históricas quedan en el guion. */
+export function buildPackage(input: PackageInput): MontagePackage {
   const url = (key: string) => {
-    const u = p.clipUrls.get(key);
-    if (!u) throw new PackageNotReady(`Falta el clip ${key}.`);
-    return u;
+    const value = input.clipUrls.get(key);
+    if (!value) throw new PackageNotReady(`Falta el clip ${key}.`);
+    return value;
   };
   return {
     version: PACKAGE_VERSION,
-    name: montageName(p.product.title, p.angle.slot, p.format ?? "ugc", p.executionKey),
-    product: p.product,
-    angle: p.angle,
-    format: p.format ?? "ugc",
-    language: p.language,
-    accent_color: captionAccent(p.accentColor),
-    watermark: p.watermark ?? null,
-    opening: openingOf(p.script),
-    look: (p.format ?? "ugc") === "mascot" ? "clean" : "phone",
-    a_roll: p.script.a_roll.map((a) => ({ key: a.key, line: a.line, seconds: a.seconds, url: url(a.key) })),
-    b_roll: p.script.b_roll.map((b) => ({ key: b.key, anchor: b.anchor, cut_s: b.cut_s, url: url(b.key) })),
-    text_beats: p.script.text_beats.map((t) => ({ anchor: t.anchor, until: t.until, text: t.text })),
-    end_card: { image_url: p.endCardImageUrl, ...p.script.end_card },
-    expires_at: p.expiresAt,
-    ...(p.source ? { source: p.source } : {}),
-    ...(p.editingBrief !== undefined ? { editing_brief: p.editingBrief } : {}),
+    name: montageName(input.product.title, input.angle.slot, input.format ?? "ugc", input.executionKey),
+    product: input.product,
+    angle: input.angle,
+    format: input.format ?? "ugc",
+    language: input.language,
+    opening: openingOf(input.script),
+    a_roll: input.script.a_roll.map((a) => ({ key: a.key, line: a.line, seconds: a.seconds, url: url(a.key) })),
+    b_roll: input.script.b_roll.map((b) => ({ key: b.key, anchor: b.anchor, cut_s: b.cut_s, url: url(b.key) })),
+    expires_at: input.expiresAt,
+    ...(input.source ? { source: input.source } : {}),
   };
 }

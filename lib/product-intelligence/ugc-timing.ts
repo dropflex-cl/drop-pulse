@@ -6,16 +6,16 @@ import { A_ROLL_SECONDS_MIN, A_ROLL_SECONDS_MAX, FORMAT_LIMITS, WORDS_PER_SECOND
 export const ugcTimingInput = z.strictObject({
   product_id: z.string().uuid(),
   format: z.enum(["ugc", "mascot"]),
-  hook: z.strictObject({ spoken: z.string().trim().min(1).max(256), screen: z.string().trim().min(1).max(160) }),
+  hook: z.strictObject({ spoken: z.string().trim().min(1).max(256), screen: z.string().trim().max(160).optional().meta({ deprecated: true }) }),
   a_roll: z.array(z.strictObject({ line: z.string().trim().min(1).max(500), seconds: z.number().positive().max(120) })).min(1).max(12),
 });
 export const ugcTimingReport = z.strictObject({
   valid: z.boolean(),
   scope: z.literal("timing_only"),
   format: z.enum(["ugc", "mascot"]),
-  limits: z.strictObject({ shots_min: z.number(), shots_max: z.number(), seconds_min: z.number(), seconds_max: z.number(), total_min: z.number(), total_max: z.number(), words_per_second_max: z.number(), words_per_second_target: z.number(), hook_words_max: z.number(), screen_words_max: z.number() }),
+  limits: z.strictObject({ shots_min: z.number(), shots_max: z.number(), seconds_min: z.number(), seconds_max: z.number(), total_min: z.number(), total_max: z.number(), words_per_second_max: z.number(), words_per_second_target: z.number(), hook_words_max: z.number(), screen_words_max: z.number().meta({ deprecated: true }).describe("Límite histórico informativo; no condiciona valid.") }),
   shots: z.array(z.strictObject({ key: z.string(), line: z.string(), seconds: z.number(), words: z.number().int(), words_per_second: z.number(), max_words: z.number().int(), within_duration: z.boolean(), within_rate: z.boolean() })),
-  hook: z.strictObject({ spoken_words: z.number().int(), screen_words: z.number().int(), within_spoken_limit: z.boolean(), within_screen_limit: z.boolean(), opens_first_line: z.boolean() }),
+  hook: z.strictObject({ spoken_words: z.number().int(), screen_words: z.number().int().meta({ deprecated: true }), within_spoken_limit: z.boolean(), within_screen_limit: z.boolean().meta({ deprecated: true }).describe("Dato histórico informativo; no condiciona valid."), opens_first_line: z.boolean() }),
   total: z.strictObject({ seconds: z.number(), words: z.number().int(), words_per_second: z.number(), within_duration: z.boolean(), within_shot_count: z.boolean() }),
   problems: z.array(z.strictObject({ field: z.string(), message: z.string() })),
   next_action: z.string(),
@@ -38,10 +38,9 @@ export function checkUgcTiming(input: z.infer<typeof ugcTimingInput>): z.infer<t
   const withinCount = shots.length >= limits.aRollMin && shots.length <= limits.aRollMax;
   if (!withinTotal) problems.push({ field: "a_roll", message: `La voz suma ${seconds} s; debe sumar de ${limits.totalMin} a ${limits.totalMax}.` });
   if (!withinCount) problems.push({ field: "a_roll", message: `Hay ${shots.length} tomas; deben ser de ${limits.aRollMin} a ${limits.aRollMax}.` });
-  const hookWords = words(input.hook.spoken), screenWords = wordCount(input.hook.screen), openingWords = words(shots[0].line);
+  const hookWords = words(input.hook.spoken), screenWords = wordCount(input.hook.screen ?? ""), openingWords = words(shots[0].line);
   const opens = hookWords.length > 0 && hookWords.every((word, i) => word === openingWords[i]);
   if (hookWords.length > SPOKEN_MAX_WORDS) problems.push({ field: "hook.spoken", message: `La apertura completa tiene ${hookWords.length} palabras; máximo ${SPOKEN_MAX_WORDS} para 3 s. Cuenta también lo que sigue a una pregunta si completa la tensión.` });
-  if (screenWords > ON_SCREEN_MAX_WORDS) problems.push({ field: "hook.screen", message: `El texto inicial tiene ${screenWords} palabras; máximo ${ON_SCREEN_MAX_WORDS}.` });
   if (!opens) problems.push({ field: "a_roll.0.line", message: "A1 debe empezar con la apertura hablada enviada, sin frases anteriores." });
   return {
     valid: problems.length === 0, scope: "timing_only", format: input.format,

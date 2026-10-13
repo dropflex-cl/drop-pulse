@@ -10,6 +10,10 @@
   "additionalProperties": false,
   "$defs": {
     "__schema0": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "__schema1": {
       "type": "object",
       "properties": {
         "line": {
@@ -52,14 +56,12 @@
           "maxLength": 256
         },
         "screen": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 160
+          "deprecated": true,
+          "$ref": "#/$defs/__schema0"
         }
       },
       "required": [
-        "spoken",
-        "screen"
+        "spoken"
       ],
       "additionalProperties": false
     },
@@ -68,7 +70,7 @@
       "maxItems": 12,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema0"
+        "$ref": "#/$defs/__schema1"
       }
     }
   }

@@ -1,4 +1,5 @@
 // Cliente tipado de /api/products/* (para componentes "use client").
+import type { ScriptEdit } from "@/lib/video/schemas";
 import type { PackLabel } from "@/lib/pricing/labels-schemas";
 import type { ImageProvider, ImageProviderChoice, ImageStage } from "@/lib/image-provider";
 import type { PricingForm } from "@/lib/pricing/plan";
@@ -111,7 +112,7 @@ export const productsApi = {
   // Pestaña Videos (docs/spec-video-ugc.md): cada acción devuelve el estado completo de la pestaña.
   videos: (id: string) => call<VideosState>(`/${id}/videos`),
   scriptAction: (id: string, scriptId: string, action: "approve" | "unapprove" | "keyframes" | "approve_keyframes" | "clips", expectedEtag?: string) => send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action, expected_artifact_etag: expectedEtag, idempotency_key: crypto.randomUUID() }),
-  editScript: (id: string, scriptId: string, edit: { a_roll: { key: string; line: string; delivery: string }[]; text_beats: { text: string }[]; end_card: { title: string; subtitle: string; cta: string } }, expectedEtag?: string) =>
+  editScript: (id: string, scriptId: string, edit: ScriptEdit, expectedEtag?: string) =>
     send<VideosState>("PATCH", `/${id}/videos/${scriptId}`, { action: "edit", edit, expected_artifact_etag: expectedEtag }),
   shotAction: (id: string, shotId: string, action: "approve" | "reject" | "reopen" | "regenerate" | "recover", expectedEtag?: string, shotUpdatedAt?: string) => send<VideosState>("PATCH", `/${id}/videos/shots/${shotId}`, { action, expected_artifact_etag: expectedEtag, expected_shot_updated_at: shotUpdatedAt, idempotency_key: crypto.randomUUID() }),
   reconcileVideoShot: (id: string, shotId: string, expectedEtag: string | undefined, shotUpdatedAt: string | undefined, requestId?: string, confirmNotSent = false) => send<VideosState>("PATCH", `/${id}/videos/shots/${shotId}`, { action: "reconcile", expected_artifact_etag: expectedEtag, expected_shot_updated_at: shotUpdatedAt, request_id: requestId, confirm_not_sent: confirmNotSent }),

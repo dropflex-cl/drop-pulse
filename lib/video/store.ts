@@ -200,15 +200,21 @@ export function toShotView(s: ShotRow, src?: string): VideoShotView {
 
 const keyOrder = (a: string, b: string) => a[0].localeCompare(b[0]) || Number(a.slice(1)) - Number(b.slice(1));
 
-/** En qué paso está: lo que falta decide qué muestra la tarjeta. */
+/** Solo las tomas requeridas disponibles: no depende de imágenes clave históricas. */
+export function hasReadyClips(payload: UgcScript, clips: ShotRow[]): boolean {
+  const needed = [...payload.a_roll.map((a) => a.key), ...payload.b_roll.map((b) => b.key)];
+  return payload.a_roll.length > 0 && needed.every((key) => clips.some((clip) =>
+    clip.key === key && clip.kind !== "keyframe" && clip.render_status === "succeeded" && clip.storage_path && clip.status !== "rejected"));
+}
+
+/** Lo que falta decide qué muestra la tarjeta; un final existente sigue disponible. */
 export function videoStep(script: ScriptRow | undefined, keyframes: ShotRow[], clips: ShotRow[]): VideoStep {
   const p = script?.payload;
   if (!script || !p || script.status !== "succeeded") return "script";
+  if (script.final_storage_path) return "final";
+  if (hasReadyClips(p, clips)) return "montage";
   const kfDone = p.keyframes.every((k) => keyframes.some((s) => s.key === k.key && s.render_status === "succeeded" && s.status !== "rejected"));
-  if (!kfDone) return "keyframes";
-  const needed = [...p.a_roll.map((a) => a.key), ...p.b_roll.map((b) => b.key)];
-  if (!needed.every((k) => clips.some((s) => s.key === k && s.render_status === "succeeded"))) return "clips";
-  return script.final_storage_path ? "final" : "montage";
+  return kfDone ? "clips" : "keyframes";
 }
 
 export async function toCardView(slot: AngleSlot, angleName: string, format: VideoFormat, script: ScriptRow | undefined, shots: ShotRow[]): Promise<VideoCardView> {

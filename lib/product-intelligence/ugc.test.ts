@@ -33,6 +33,19 @@ describe("UGC desde chat", () => {
     expect(() => prepareUgcShots(script, "keyframes", ["A1"])).toThrow("etapa");
     expect(() => prepareUgcShots(script, "clips", ["A7"])).toThrow("etapa");
   });
+  it("guarda sin capas editoriales y conserva las antiguas al omitirlas", () => {
+    const old = ugcInputFixture(), previous = buildChatUgc(old, pricing);
+    const input = parseToolInput("save_ugc_content", JSON.parse(JSON.stringify({ ...old, hook: { ...old.hook, screen: undefined }, content: { ...old.content,
+      lines: { ...old.content.lines, end_card: undefined }, plan: { ...old.content.plan, text_beats: undefined }, editing_brief: undefined } })));
+    expect(input.hook.screen).toBeUndefined();
+    const fresh = buildChatUgc(input, pricing);
+    expect(fresh.text_beats).toEqual([]);
+    expect(fresh.a_roll).toEqual(previous.a_roll);
+    const edited = buildChatUgc(input, pricing, previous);
+    expect(edited.text_beats).toEqual(previous.text_beats);
+    expect(edited.end_card).toEqual(previous.end_card);
+    expect(parseToolInput("save_ugc_content", { ...input, content: { ...input.content, editing_brief: { objective: "Solo clips" } } }).content.editing_brief).toEqual({ objective: "Solo clips" });
+  });
   it("separa escritura del chat y render; estimación solo de las tomas solicitadas", () => {
     expect(() => parseToolInput("generate_ugc", { ...ugcInputFixture(), stage: "script" })).toThrow();
     const { payload } = fixture(), script = { payload, format: "ugc", input: { market: { language: "es" } } } as unknown as ScriptRow & { payload: typeof payload };
@@ -40,12 +53,12 @@ describe("UGC desde chat", () => {
     expect(one.shots).toHaveLength(1); expect(all.estimated_usd).toBeCloseTo(one.estimated_usd*3);
     expect(prepareUgcShots(script, "clips", ["A1", "B1"]).shots.map((s) => s.kind)).toEqual(["a_roll", "b_roll"]);
   });
-  it("conserva la tríada del hook en el plan y distingue archivos de ejecuciones", () => {
+  it("conserva la apertura hablada y visual del hook y distingue archivos de ejecuciones", () => {
     const { input } = fixture(); input.content.plan.opening.first_motion = "A different motion.";
     expect(() => buildChatUgc(input, pricing)).toThrow("first_motion");
     expect(montageName("Organizador", 1, "ugc", "hook-a")).not.toBe(montageName("Organizador", 1, "ugc", "hook-b"));
-    const another = ugcInputFixture(); another.content.plan.text_beats[0].text = "Otro texto";
-    expect(() => buildChatUgc(another, pricing)).toThrow("screen");
+    const another = ugcInputFixture(); another.content.plan.text_beats![0].text = "Otro texto";
+    expect(() => buildChatUgc(another, pricing)).not.toThrow();
   });
   it("preserva otros params, usa ángulo/hook por anuncio y rechaza mezclarlos", () => {
     const p = (hook: string) => ({ ugc_provenance: { landing_angle_id: "desk", landing_hook_id: hook } });

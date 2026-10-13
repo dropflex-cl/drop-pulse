@@ -35,14 +35,21 @@ describe("UGC · comprobación de tiempos sin guardado", () => {
     input.a_roll[1].seconds = 6;
     expect(checkUgcTiming(input).valid).toBe(true);
   });
-  it("cuenta la apertura completa aunque tenga dos frases y detecta texto en pantalla excesivo", () => {
+  it("cuenta la apertura completa y no bloquea por texto histórico en pantalla", () => {
     const input = proposal(); input.hook = { spoken: "¿Dormiste muy bien? Pero tu mirada todavía se ve cansada.", screen: "Dormiste muy bien pero la mirada sigue cansada" };
     input.a_roll[0].line = input.hook.spoken;
     const report = checkUgcTiming(input);
     expect(report.hook).toMatchObject({ spoken_words: 10, screen_words: 8, within_spoken_limit: false, within_screen_limit: false });
     expect(report.problems.map(problem => problem.field)).toContain("hook.spoken");
+    expect(report.problems.map(problem => problem.field)).not.toContain("hook.screen");
     input.a_roll[0].line = "Mira. " + input.hook.spoken;
     expect(checkUgcTiming(input).hook.opens_first_line).toBe(false);
+  });
+  it("comprueba guiones sin screen y conserva compatibilidad sin exigirlo", () => {
+    const original = proposal();
+    const input = ugcTimingInput.parse({ ...original, hook: { spoken: original.hook.spoken } });
+    expect(checkUgcTiming(input)).toMatchObject({ valid: true, hook: { screen_words: 0 } });
+    expect(checkUgcTiming({ ...input, hook: { ...input.hook, screen: "Un texto antiguo con demasiadas palabras que no se muestra" } }).valid).toBe(true);
   });
   it("usa los límites vigentes del formato y separa duración por toma y suma", () => {
     const input = proposal(); input.format = "mascot";

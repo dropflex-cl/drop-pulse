@@ -13,9 +13,6 @@ import { adminClient } from "@/lib/integrations/admin";
 import { HiggsfieldError, requestStatus, submit, uploadImage, type RequestState } from "@/lib/integrations/higgsfield/client";
 import { failedMessage } from "@/lib/integrations/higgsfield/failure";
 import { higgsfieldKey, markHiggsfieldInvalid } from "@/lib/integrations/higgsfield/connection";
-import { shopifyQuery } from "@/lib/integrations/shopify/client";
-import { getShopifyConnection } from "@/lib/integrations/shopify/connection";
-import { SHOP_DOMAIN_QUERY, type ShopDomainQuery } from "@/lib/integrations/shopify/queries";
 import type { Market } from "@/lib/market";
 import { optimizeForAds } from "@/lib/media/optimize";
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -34,12 +31,12 @@ import {
   type VideoFormat,
 } from "@/lib/video/catalog";
 import { seedanceCostUsd } from "@/lib/video/cost";
-import { PackageNotReady, buildPackage, watermarkText, type MontagePackage } from "@/lib/video/package";
+import { PackageNotReady, buildPackage, type MontagePackage } from "@/lib/video/package";
 import { aRollRequest, bRollRequest, keyframeRefs, keyframeRequest, type ShotRequest } from "@/lib/video/render";
 import {
   type UgcScript,
 } from "@/lib/video/schemas";
-import { getScriptRow, getShotRow, isShotRecoverable, latestByKey, shotsFor, videoStep, type ScriptRow, type ShotRow } from "@/lib/video/store";
+import { getScriptRow, getShotRow, isShotRecoverable, latestByKey, shotsFor, hasReadyClips, type ScriptRow, type ShotRow } from "@/lib/video/store";
 import { download, toJpeg } from "./images";
 import { OptimizeError } from "./errors";
 
@@ -163,8 +160,8 @@ export async function startClips(userId: string, productId: string, scriptId: st
   if (s.source === "mcp_chat") throw new OptimizeError("Genera este video con el servicio compartido de UGC.", 409);
   const shots = await shotsFor(userId, [s.id]);
   const latest = [...latestByKey(shots).values()];
-  const step = videoStep(s, latest.filter((x) => x.kind === "keyframe"), latest.filter((x) => x.kind !== "keyframe"));
-  if (step === "script" || step === "keyframes") throw new OptimizeError("Aprueba todas las imágenes clave antes de generar los clips.", 409);
+  const referencesReady = s.payload.keyframes.every((k) => latest.some((shot) => shot.kind === "keyframe" && shot.key === k.key && shot.render_status === "succeeded" && shot.status !== "rejected"));
+  if (!referencesReady) throw new OptimizeError("Faltan imágenes clave disponibles para generar los clips.", 409);
   const keys = missingKeys([...s.payload.a_roll.map((a) => a.key), ...s.payload.b_roll.map((b) => b.key)], shots);
   if (!keys.length) return [];
   if ((await dailyShots(userId, ["a_roll", "b_roll"])) + keys.length > DAILY_CLIPS) throw new OptimizeError(`Llegaste al máximo de ${DAILY_CLIPS} clips en 24 horas. Vuelve mañana.`, 429);
@@ -464,62 +461,30 @@ export async function syncVideos(userId: string, productId: string): Promise<voi
 
 // ---------------------------------------------------------------- 4. Paquete de montaje
 
-/** La marca de agua del video: el dominio de la tienda. Si Shopify no responde, el nombre guardado al conectar. */
-async function storeWatermark(userId: string): Promise<string | null> {
-  const conn = await getShopifyConnection(userId);
-  if (!conn) return null;
-  try {
-    const { shop } = await shopifyQuery<ShopDomainQuery>(conn, SHOP_DOMAIN_QUERY);
-    return watermarkText(shop.primaryDomain?.host, shop.name);
-  } catch (e) {
-    console.error("[video] leer el dominio de la tienda", e);
-    return watermarkText(null, conn.shop_name);
-  }
-}
-
 export async function montagePackage(userId: string, productId: string, scriptId: string): Promise<MontagePackage> {
   const s = await readyScript(userId, productId, scriptId);
-  if (s.source === "mcp_chat") {
-    const { data, error } = await adminClient().rpc("pi_load_ugc", { p_access: finalAccess(userId), p_product_id: productId });
-    if (error) throw contextDatabaseError(error);
-    checkArtifact(s.provenance?.context_stamp as string, data?.stamp);
-  }
   const shots = [...latestByKey(await shotsFor(userId, [s.id])).values()];
-  const step = videoStep(s, shots.filter((x) => x.kind === "keyframe"), shots.filter((x) => x.kind !== "keyframe"));
-  if (step !== "montage" && step !== "final") throw new OptimizeError("Faltan clips por generar.", 409);
-  const clips = shots.filter((x) => x.kind !== "keyframe" && x.render_status === "succeeded" && x.storage_path);
+  if (!hasReadyClips(s.payload, shots)) throw new OptimizeError("Faltan clips disponibles para montar. Revisa las tomas habladas y de apoyo.", 409);
+  const clips = shots.filter((x) => x.kind !== "keyframe" && x.render_status === "succeeded" && x.storage_path && x.status !== "rejected");
   const db = adminClient();
   const signed = await db.storage.from(CREATIVES_BUCKET).createSignedUrls(clips.map((c) => c.storage_path!), PACKAGE_TTL_S);
   fail("Firmar los clips", signed.error);
   const clipUrls = new Map<string, string>();
   clips.forEach((c, i) => signed.data?.[i]?.signedUrl && clipUrls.set(c.key, signed.data[i].signedUrl));
-  const [product, base, watermark] = await Promise.all([
-    db.from("products").select("title, page_accent_color").eq("id", productId).eq("user_id", userId).single(),
-    baseImage(userId, productId, s.input.base_reference_image_id as string | undefined),
-    storeWatermark(userId),
-  ]);
+  const product = await db.from("products").select("title").eq("id", productId).eq("user_id", userId).single();
   fail("Leer el producto", product.error);
-  let endCardImageUrl = base?.url ?? "";
-  if (base?.storagePath) {
-    const long = await db.storage.from(REFERENCES_BUCKET).createSignedUrl(base.storagePath, PACKAGE_TTL_S);
-    if (long.data) endCardImageUrl = long.data.signedUrl;
-  }
   const input = s.input as ScriptInput;
   try {
     return buildPackage({
       product: { id: productId, title: (product.data?.title as string) ?? "" },
       angle: { slot: s.angle_slot, title: input.angle_name ?? "" },
       language: input.market?.language ?? "es",
-      accentColor: (product.data?.page_accent_color as string | null) ?? null,
       format: scriptFormat(s),
       executionKey: s.execution_key ?? undefined,
-      watermark,
       script: s.payload,
       clipUrls,
-      endCardImageUrl,
       expiresAt: new Date(Date.now() + PACKAGE_TTL_S * 1000).toISOString(),
       source: { script_id: s.id, artifact_etag: s.artifact_etag },
-      editingBrief: s.input.editing_brief as import("@/lib/video/package").UgcEditingBrief | null | undefined,
     });
   } catch (e) {
     if (e instanceof PackageNotReady) throw new OptimizeError(e.message, 409);

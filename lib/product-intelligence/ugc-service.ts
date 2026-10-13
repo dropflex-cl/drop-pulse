@@ -34,6 +34,7 @@ export const UGC_RULES = [
   "Guardar desde el MCP deja el guion disponible; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
   "Con content.keyframe_source=external, guardar crea destinos K para subir y asignar imágenes por las herramientas visuales MCP, sin render. content.editing_brief se conserva como dato compatible; el montaje simple no añade las capas editoriales que describa.",
   "Para generar otras escenas con personaje pide K1 primero, o inclúyelo en el mismo lote. Los clips requieren las imágenes clave utilizadas, disponibles y sin descarte.",
+  "El guion vigente necesita voz, imágenes clave y clips de apoyo. hook.screen, text_beats, end_card y editing_brief son compatibilidad opcional: no los desarrolles para este montaje ni los uses para bloquear un guardado.",
   "get_ugc_montage devuelve el paquete para scripts/ugc-montage.py: une clips hablados y de apoyo, conserva toda la voz original y no añade captions, textos, música, efectos, marca de agua ni cierre. dropflex-capcut está deprecada. Subir el MP4, elegir su uso y publicar son acciones separadas.",
 ];
 type Read = { revision: number; stamp: string; ugc_etag: string; scripts: ScriptRow[]; shots: ShotRow[]; operation: Operation | null; operation_script?: ScriptRow | null };
@@ -54,12 +55,14 @@ function scriptIn(read: Read, scriptId: string): ScriptRow & { payload: UgcScrip
 function openingFor(input: ToolInputs["save_ugc_content"]): OpeningInput {
   return { hooks: [{ index: 0, spoken: input.hook.spoken, shot: input.hook.opening_shot }] };
 }
-export function buildChatUgc(input: ToolInputs["save_ugc_content"], pricing: NonNullable<ReturnType<typeof storedPricingPlan>>) {
+export function buildChatUgc(input: ToolInputs["save_ugc_content"], pricing: NonNullable<ReturnType<typeof storedPricingPlan>>, previous?: UgcScript | null) {
   if (input.content.lines.hook_source !== 0) throw new ProductIntelligenceError("VALIDATION_ERROR", "hook_source debe ser 0: el gancho enviado para este video.");
   const payload = assembleScript(input.content.lines, input.content.plan, input.content.format, input.hook.opening_shot);
+  // Omitir capas históricas no borra los datos guardados por clientes anteriores.
+  if (previous && input.content.plan.text_beats === undefined) payload.text_beats = previous.text_beats;
+  if (previous && input.content.lines.end_card === undefined) payload.end_card = previous.end_card;
   const problems = scriptProblems(payload, pricing, input.content.format, openingFor(input));
   if (payload.opening?.first_motion.trim() !== input.hook.first_motion.trim()) problems.push("La apertura del plan debe conservar first_motion del gancho.");
-  if (payload.text_beats[0]?.text.trim() !== input.hook.screen.trim()) problems.push("El primer texto en pantalla debe ser screen del gancho.");
   if (problems.length) throw new ProductIntelligenceError("VALIDATION_ERROR", problems[0], { fields: problems.slice(0, 20) });
   return payload;
 }
@@ -185,9 +188,11 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
       if (!product.ok) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Confirma el mercado del producto.");
       const references = imagesForGeneration([...knowledge.currentSnapshot.images].sort((a,b) => a.position-b.position));
       if (!references[0]) throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Elige una imagen base del producto.");
-      prepared = { payload: buildChatUgc(query, plan), input: { market: product.data.product.market, pricing: plan, labels: knowledge.currentSnapshot.pack_labels?.status === "approved" ? knowledge.currentSnapshot.pack_labels.payload : null,
+      const previous = read.scripts.find((s) => s.execution_key === query.execution_key && s.format === query.content.format);
+      const brief = query.content.editing_brief ?? previous?.input.editing_brief;
+      prepared = { payload: buildChatUgc(query, plan, previous?.payload), input: { market: product.data.product.market, pricing: plan, labels: knowledge.currentSnapshot.pack_labels?.status === "approved" ? knowledge.currentSnapshot.pack_labels.payload : null,
         angle_name: `${angle.name} · ${query.hook.spoken}`, appearance: isAppearanceCategory(knowledge.currentSnapshot.context?.category ?? ""), base_reference_image_id: references[0].id,
-        strategy_snapshot: strategy.snapshot, editing_brief: query.content.editing_brief ?? null, keyframe_source: query.content.keyframe_source ?? "higgsfield" } };
+        strategy_snapshot: strategy.snapshot, ...(brief !== undefined ? { editing_brief: brief } : {}), keyframe_source: query.content.keyframe_source ?? "higgsfield" } };
     } else {
       const script = scriptIn(read, query.script_id); checkArtifact(query.expected_artifact_etag, script.artifact_etag);
       if (script.source !== "mcp_chat") throw new ProductIntelligenceError("EXECUTION_NOT_READY", "Guarda una versión desde el chat antes de generar por MCP.");
@@ -219,7 +224,7 @@ export async function reviewUgc(repository: UgcRepository, principal: Principal,
   let payload = script.payload;
   if (action === "edit") {
     const parsed = scriptEditSchema.safeParse(edit);
-    if (!parsed.success) throw new ProductIntelligenceError("VALIDATION_ERROR", "Revisa las líneas y los textos del guion.");
+    if (!parsed.success) throw new ProductIntelligenceError("VALIDATION_ERROR", "Revisa las líneas del guion.");
     payload = applyScriptEdit(payload, parsed.data);
     const pricing = script.input.pricing as Parameters<typeof scriptProblems>[1];
     const problems = scriptProblems(payload, pricing, script.format);

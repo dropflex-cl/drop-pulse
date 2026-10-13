@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PricingPlan } from "@/lib/pricing/plan";
 import { A_ROLL_ENDPOINT, B_ROLL_ENDPOINT, KEYFRAME_ENDPOINT, MASCOT_BODIES, fileSlug, montageName, wordCount } from "./catalog";
 import { scriptCost, seedanceCostUsd } from "./cost";
-import { DEFAULT_ACCENT, PackageNotReady, buildPackage, captionAccent, watermarkText } from "./package";
+import { PackageNotReady, buildPackage } from "./package";
 import { aRollRequest, bRollRequest, isAppearanceCategory, keyframeRefs, keyframeRequest, voiceBlock } from "./render";
 import {
   applyScriptEdit,
@@ -79,12 +79,12 @@ describe("scriptProblems", () => {
     expect(scriptProblems(script(), pricing)).toEqual([]);
   });
 
-  it("no deja decir precios ni números en dígitos", () => {
+  it("permite precios en palabras y exige voz sin dígitos", () => {
     const s = script();
     s.a_roll[4].line = "Tres por cincuenta y cinco mil novecientos noventa.";
-    expect(scriptProblems(s, pricing).join(" ")).toMatch(/monto/);
+    expect(scriptProblems(s, pricing)).toEqual([]);
     s.a_roll[4].line = "Llévate 3 y paga al recibir.";
-    expect(scriptProblems(s, pricing).join(" ")).toMatch(/monto/);
+    expect(scriptProblems(s, pricing).join(" ")).toMatch(/número en dígitos/);
   });
 
   it("controla el largo por segundo y el total", () => {
@@ -123,7 +123,7 @@ describe("scriptProblems", () => {
     s.b_roll[1].key = "B7";
     const p = scriptProblems(s, pricing).join(" ");
     expect(p).toMatch(/«reloj», que nadie dice/);
-    expect(p).toMatch(/«fallas», que nadie dice/);
+    expect(p).not.toMatch(/«fallas», que nadie dice/);
     expect(p).toMatch(/debe llamarse B2/);
   });
 
@@ -136,16 +136,16 @@ describe("scriptProblems", () => {
     expect(p).toMatch(/K5 no la usa ninguna toma/);
   });
 
-  it("controla los montos de los textos en pantalla", () => {
+  it("no valida montos de textos históricos que no se muestran", () => {
     const s = script();
     s.text_beats[2].text = "Hoy $9.990";
-    expect(scriptProblems(s, pricing).join(" ")).toMatch(/monto/);
+    expect(scriptProblems(s, pricing)).toEqual([]);
   });
 
-  it("los textos en pantalla tampoco le hablan del cuerpo a quien mira", () => {
+  it("los textos históricos no condicionan el guion hablado", () => {
     const s = script();
     s.text_beats[1].text = "TUS ARRUGAS";
-    expect(scriptProblems(s, pricing).join(" ")).toMatch(/texto en pantalla 2 .* le habla a quien mira/);
+    expect(scriptProblems(s, pricing)).toEqual([]);
   });
 });
 
@@ -213,12 +213,12 @@ describe("scriptProblems: la apertura del gancho", () => {
     expect(scriptProblems(s, pricing).join(" ")).not.toMatch(/primera frase/);
   });
 
-  it("el primer texto en pantalla se lee desde el primer segundo", () => {
+  it("la apertura no requiere ni valida texto en pantalla", () => {
     const s = generated();
-    s.text_beats[0] = { ...s.text_beats[0], anchor: "errores" };
-    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/primeras 5 palabras de A1/);
-    s.text_beats[0] = { anchor: "maquillas", until: null, text: "MAQUILLAJE EN SIETE MINUTOS ANTES DEL TRABAJO" };
-    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/tiene 7 palabras; el del gancho va hasta 6/);
+    s.text_beats = [];
+    expect(scriptProblems(s, pricing, "ugc", opening)).toEqual([]);
+    s.text_beats = [{ anchor: "inexistente", until: null, text: "UN TEXTO HISTÓRICO CON MÁS DE SEIS PALABRAS" }];
+    expect(scriptProblems(s, pricing, "ugc", opening)).toEqual([]);
   });
 
   it("A1 abre con la primera frase del gancho, sin contexto antes", () => {
@@ -241,7 +241,9 @@ describe("scriptProblems: la apertura del gancho", () => {
   it("el pago contra entrega no va en el gancho", () => {
     const s = generated();
     s.text_beats[0] = { anchor: "maquillas", until: null, text: "PAGAS AL RECIBIR" };
-    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no van en el texto del gancho/);
+    expect(scriptProblems(s, pricing, "ugc", opening)).toEqual([]);
+    s.a_roll[0].line = "Pagas al recibir. Mira esto.";
+    expect(scriptProblems(s, pricing, "ugc", opening).join(" ")).toMatch(/no van en el gancho/);
   });
 });
 
@@ -295,7 +297,7 @@ describe("guion en dos pasos: lo que se dice y las tomas", () => {
     const bad = lines();
     bad.a_roll[0] = { ...bad.a_roll[0], line: "Tengo cuarenta y dos y pago 27.990." };
     const p = lineProblems(linesAsScript(bad), pricing).join(" ");
-    expect(p).toMatch(/número o un monto/);
+    expect(p).toMatch(/número en dígitos/);
     expect(p).toMatch(/edad a la persona de IA/);
     // Las tomas no se revisan en este paso.
     expect(p).not.toMatch(/imagen clave/);
@@ -364,6 +366,15 @@ describe("edición", () => {
     expect(changedLines(before, after)).toEqual(["A5"]);
   });
 
+  it("editar solo voz conserva textos y cierre antiguos sin volver a validarlos", () => {
+    const before = script();
+    before.end_card.title = "Histórico $9.990";
+    const after = applyScriptEdit(before, { a_roll: [{ key: "A5", line: before.a_roll[4].line, delivery: "" }] });
+    expect(after.text_beats).toEqual(before.text_beats);
+    expect(after.end_card).toEqual(before.end_card);
+    expect(scriptProblems(after, pricing)).toEqual([]);
+    expect(changedLines(before, after)).toEqual([]);
+  });
   it("words normaliza tildes y signos", () => {
     expect(words("¿Lo que cambié? ¡Veinte segundos!")).toEqual(["lo", "que", "cambie", "veinte", "segundos"]);
   });
@@ -466,38 +477,34 @@ describe("paquete de montaje", () => {
     product: { id: "p1", title: "Deep Collagen" },
     angle: { slot: 3, title: "Cuando la base se mete en las líneas" },
     language: "es",
-    accentColor: null,
-    endCardImageUrl: "https://x/base.jpg",
     expiresAt: "2026-09-27T00:00:00Z",
   };
   const urls = new Map(["A1", "A2", "A3", "A4", "A5", "B1", "B2"].map((k) => [k, `https://x/${k}.mp4`]));
 
-  it("lleva cada clip con su URL, los textos y el cierre", () => {
+  it("lleva los clips con su URL sin capas editoriales", () => {
     const p = buildPackage({ ...base, script: script(), clipUrls: urls });
-    expect(p.version).toBe(2);
+    expect(p.version).toBe(3);
     expect(p.opening).toBeNull();
-    expect(p.look).toBe("phone");
     expect(p.a_roll.map((a) => a.url)).toHaveLength(5);
     expect(p.b_roll[0]).toMatchObject({ anchor: "minutos", cut_s: 1.2, url: "https://x/B1.mp4" });
-    expect(p.end_card).toMatchObject({ image_url: "https://x/base.jpg", cta: "Comprar" });
     // Sin rótulo de dramatización ni de animación (decisión del comerciante, 2026-10-01).
     expect(p).not.toHaveProperty("label");
-    expect(p.accent_color).toBe(DEFAULT_ACCENT);
+    for (const field of ["text_beats", "end_card", "accent_color", "watermark", "look", "editing_brief"]) expect(p).not.toHaveProperty(field);
   });
-  it("lleva referencias del guion y dirección de arte sin fijar una timeline de Remotion", () => {
-    const source={script_id:"script-fixture",artifact_etag:"a".repeat(64)},editingBrief={objective:"Mostrar orden",art_direction:"Macro y tipografía",pacing:"Ágil",captions:"Legibles",sound:"Voz primero"};
-    const p=buildPackage({...base,script:script(),clipUrls:urls,source,editingBrief});
-    expect(p.source).toEqual(source);expect(p.editing_brief).toEqual(editingBrief);
+  it("lleva procedencia para renovar enlaces sin capas editoriales", () => {
+    const source={script_id:"script-fixture",artifact_etag:"a".repeat(64)};
+    const p=buildPackage({...base,script:script(),clipUrls:urls,source});
+    expect(p.source).toEqual(source);
     expect(p).not.toHaveProperty("scenes");expect(p.a_roll[0].line).toBe(script().a_roll[0].line);
   });
 
-  it("lleva la apertura: el inserto del gancho si abre con uno, y el aspecto por formato", () => {
+  it("lleva el inserto de apertura sin filtros de montaje", () => {
     const s = script();
     s.opening = { hook_source: 0, shot: "pov_hands", keyframe: "K3", first_motion: "x" };
     expect(buildPackage({ ...base, script: s, clipUrls: urls }).opening).toEqual({ shot: "pov_hands", insert: "B1" });
     s.opening = { hook_source: 1, shot: "selfie_talk", keyframe: "K1", first_motion: "x" };
     expect(buildPackage({ ...base, script: s, clipUrls: urls }).opening).toEqual({ shot: "selfie_talk", insert: null });
-    expect(buildPackage({ ...base, format: "mascot", script: s, clipUrls: urls }).look).toBe("clean");
+    expect(buildPackage({ ...base, format: "mascot", script: s, clipUrls: urls })).not.toHaveProperty("look");
   });
 
   it("dice su formato y se llama por el producto, el formato y el ángulo", () => {
@@ -514,26 +521,13 @@ describe("paquete de montaje", () => {
     expect(fileSlug("¡¡!!")).toBe("video");
   });
 
-  it("lleva la marca de agua: el dominio propio, o el nombre si la tienda solo tiene .myshopify.com", () => {
-    expect(buildPackage({ ...base, watermark: "tutienda.cl", script: script(), clipUrls: urls }).watermark).toBe("tutienda.cl");
-    expect(buildPackage({ ...base, script: script(), clipUrls: urls }).watermark).toBeNull();
-    expect(watermarkText("www.TuTienda.cl", "Tu Tienda")).toBe("tutienda.cl");
-    expect(watermarkText("tu-tienda.myshopify.com", "Tu Tienda")).toBe("Tu Tienda");
-    expect(watermarkText("tu-tienda.myshopify.com", "  ")).toBe("tu-tienda.myshopify.com");
-    expect(watermarkText(null, null)).toBeNull();
-  });
-
   it("no se arma sin todos los clips", () => {
     const partial = new Map(urls);
     partial.delete("B2");
     expect(() => buildPackage({ ...base, script: script(), clipUrls: partial })).toThrow(PackageNotReady);
   });
 
-  it("usa el acento de la página solo si es claro", () => {
-    expect(captionAccent("#1e3a8a")).toBe(DEFAULT_ACCENT);
-    expect(captionAccent("#7dd3fc")).toBe("#7DD3FC");
-    expect(captionAccent("nope")).toBe(DEFAULT_ACCENT);
-  });
+
 });
 
 // KeraPass (POC mascota 2026-09-26): el guion que se generó y el usuario aprobó (voz «perfecta»).

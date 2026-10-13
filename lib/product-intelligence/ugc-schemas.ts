@@ -3,14 +3,14 @@ import { scriptLinesSchema, ugcPlanSchema, mascotPlanSchema } from "@/lib/video/
 import { ugcTimingReport } from "./ugc-timing";
 const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).meta({ format: "uuid" }), etag = z.string().regex(/^[a-f0-9]{64}$/);
 const selector = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/);
-/** Dirección de arte abierta; los tiempos y efectos se resuelven con los clips reales en el Mac. */
+/** Brief histórico: se conserva para clientes anteriores; el montaje no añade sus capas. */
 export const ugcEditingBriefSchema = z.strictObject({
-  objective: z.string().trim().min(1).max(1000),
-  art_direction: z.string().trim().min(1).max(2000),
-  pacing: z.string().trim().min(1).max(1000),
-  captions: z.string().trim().min(1).max(1000),
-  sound: z.string().trim().min(1).max(1000),
-});
+  objective: z.string().trim().max(1000).optional(),
+  art_direction: z.string().trim().max(2000).optional(),
+  pacing: z.string().trim().max(1000).optional(),
+  captions: z.string().trim().max(1000).optional(),
+  sound: z.string().trim().max(1000).optional(),
+}).meta({ deprecated: true });
 export const getUgcInput = z.strictObject({ product_id: uuid, script_id: uuid.optional(), execution_key: selector.optional(), include_contract: z.boolean().default(false), page_size: z.number().int().min(1).max(24).default(12), cursor: z.string().max(200).optional() });
 /** K1, A1… y B1… se construyen en código. El chat aporta redacción y planificación. */
 export const chatUgcContent = z.discriminatedUnion("format", [
@@ -22,7 +22,7 @@ export const saveUgcInput = z.strictObject({ product_id: uuid, schema_version: z
   idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{8,128}$/).optional().default(() => crypto.randomUUID()), dry_run: z.boolean().default(false),
   execution_key: selector, strategy_id: uuid, angle_id: uuid, angle_slot: z.number().int().min(1).max(3),
   landing_angle_id: selector, landing_hook_id: selector,
-  hook: z.strictObject({ spoken: z.string().trim().min(1).max(256), screen: z.string().trim().min(1).max(160),
+  hook: z.strictObject({ spoken: z.string().trim().min(1).max(256), screen: z.string().trim().max(160).optional().meta({ deprecated: true }).describe("Compatibilidad: texto histórico; no se muestra ni condiciona el guardado."),
     delivery: z.enum(["confiding", "intrigued", "surprised", "indignant", "deadpan", "playful"]),
     opening_shot: z.enum(["selfie_talk", "pov_hands", "problem_scene", "product_in_place", "mirror", "mascot_scene"]),
     first_motion: z.string().trim().min(1).max(1000) }),

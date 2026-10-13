@@ -24,7 +24,6 @@
       "landing_hook_id": "lost-pencil",
       "hook": {
         "spoken": "¿Otra vez buscando ese lápiz?",
-        "screen": "¿Dónde está ese lápiz?",
         "delivery": "intrigued",
         "opening_shot": "selfie_talk",
         "first_motion": "The person leans toward the phone."
@@ -65,12 +64,6 @@
               "acting": "Points to the desk."
             }
           ],
-          "end_card": {
-            "title": "Organizador",
-            "subtitle": "Pagas al recibir",
-            "cta": "Comprar",
-            "small_print": []
-          },
           "compliance_notes": []
         },
         "plan": {
@@ -126,18 +119,6 @@
               "anchor": "organizador",
               "cut_s": 1.5,
               "motion": "The phone moves down toward the desk."
-            }
-          ],
-          "text_beats": [
-            {
-              "anchor": "lápiz",
-              "until": null,
-              "text": "¿Dónde está ese lápiz?"
-            },
-            {
-              "anchor": "pack",
-              "until": null,
-              "text": "Elige tu pack"
             }
           ]
         }

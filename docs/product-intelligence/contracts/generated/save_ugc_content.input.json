@@ -25,6 +25,10 @@
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
     },
     "__schema2": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "__schema3": {
       "type": "object",
       "properties": {
         "format": {
@@ -35,25 +39,25 @@
           "type": "object",
           "properties": {
             "format_fit": {
-              "$ref": "#/$defs/__schema3"
-            },
-            "speaker": {
               "$ref": "#/$defs/__schema4"
             },
-            "hook_source": {
+            "speaker": {
               "$ref": "#/$defs/__schema5"
             },
-            "hook_why": {
-              "$ref": "#/$defs/__schema7"
+            "hook_source": {
+              "$ref": "#/$defs/__schema6"
             },
-            "a_roll": {
+            "hook_why": {
               "$ref": "#/$defs/__schema8"
             },
+            "a_roll": {
+              "$ref": "#/$defs/__schema9"
+            },
             "end_card": {
-              "$ref": "#/$defs/__schema10"
+              "$ref": "#/$defs/__schema11"
             },
             "compliance_notes": {
-              "$ref": "#/$defs/__schema12"
+              "$ref": "#/$defs/__schema13"
             }
           },
           "required": [
@@ -62,7 +66,6 @@
             "hook_source",
             "hook_why",
             "a_roll",
-            "end_card",
             "compliance_notes"
           ],
           "additionalProperties": false
@@ -97,19 +100,19 @@
               ]
             },
             "opening": {
-              "$ref": "#/$defs/__schema14"
-            },
-            "keyframes": {
               "$ref": "#/$defs/__schema15"
             },
+            "keyframes": {
+              "$ref": "#/$defs/__schema16"
+            },
             "a_roll": {
-              "$ref": "#/$defs/__schema17"
+              "$ref": "#/$defs/__schema18"
             },
             "b_roll": {
-              "$ref": "#/$defs/__schema19"
+              "$ref": "#/$defs/__schema20"
             },
             "text_beats": {
-              "$ref": "#/$defs/__schema21"
+              "$ref": "#/$defs/__schema22"
             }
           },
           "required": [
@@ -118,13 +121,12 @@
             "opening",
             "keyframes",
             "a_roll",
-            "b_roll",
-            "text_beats"
+            "b_roll"
           ],
           "additionalProperties": false
         },
         "editing_brief": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema25"
         },
         "keyframe_source": {
           "type": "string",
@@ -141,7 +143,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema3": {
+    "__schema4": {
       "type": "object",
       "properties": {
         "recommended": {
@@ -164,14 +166,14 @@
         "why"
       ]
     },
-    "__schema4": {
+    "__schema5": {
       "type": "string",
       "description": "En español, para el plan de tomas: quién habla (UGC: alguien de quien compra, su edad aparente y su rol) o qué es el personaje (mascota: lo que tiene el problema, personificado)."
     },
-    "__schema5": {
+    "__schema6": {
       "anyOf": [
         {
-          "$ref": "#/$defs/__schema6"
+          "$ref": "#/$defs/__schema7"
         },
         {
           "type": "null"
@@ -179,23 +181,23 @@
       ],
       "description": "El index del gancho de GANCHOS DEL ÁNGULO con que abre A1, o null si ninguno servía."
     },
-    "__schema6": {
+    "__schema7": {
       "type": "integer",
       "minimum": -9007199254740991,
       "maximum": 9007199254740991
     },
-    "__schema7": {
+    "__schema8": {
       "type": "string",
       "description": "Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."
     },
-    "__schema8": {
+    "__schema9": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema9"
+        "$ref": "#/$defs/__schema10"
       },
       "description": "Las tomas habladas, en orden (A1, A2…)."
     },
-    "__schema9": {
+    "__schema10": {
       "type": "object",
       "properties": {
         "seconds": {
@@ -206,7 +208,7 @@
         },
         "line": {
           "type": "string",
-          "description": "Lo que dice, exactamente, en el idioma del mercado. Números en palabras. NUNCA un precio ni un monto."
+          "description": "Lo que dice, exactamente, en el idioma del mercado. Números y precios en palabras, usando la oferta vigente."
         },
         "delivery": {
           "type": "string",
@@ -224,27 +226,28 @@
         "acting"
       ]
     },
-    "__schema10": {
+    "__schema11": {
+      "deprecated": true,
+      "description": "Compatibilidad: tarjeta histórica; no se muestra ni se exige para montar.",
+      "$ref": "#/$defs/__schema12"
+    },
+    "__schema12": {
       "type": "object",
       "properties": {
         "title": {
-          "type": "string",
-          "description": "El nombre del producto."
+          "type": "string"
         },
         "subtitle": {
-          "type": "string",
-          "description": "Una línea: la razón para comprar hoy (p. ej., «Pagas al recibir»)."
+          "type": "string"
         },
         "cta": {
-          "type": "string",
-          "description": "El botón: «Comprar»."
+          "type": "string"
         },
         "small_print": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema11"
-          },
-          "description": "Letra chica obligatoria (tipo de piel, prueba en una zona pequeña, etc.)."
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -254,20 +257,17 @@
         "small_print"
       ]
     },
-    "__schema11": {
-      "type": "string"
-    },
-    "__schema12": {
+    "__schema13": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema13"
+        "$ref": "#/$defs/__schema14"
       },
       "description": "Para el comerciante: qué cuidar al montar y publicar. Nunca un rótulo de IA, dramatización ni animación."
     },
-    "__schema13": {
+    "__schema14": {
       "type": "string"
     },
-    "__schema14": {
+    "__schema15": {
       "type": "object",
       "properties": {
         "keyframe": {
@@ -284,14 +284,14 @@
         "first_motion"
       ]
     },
-    "__schema15": {
+    "__schema16": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema16"
+        "$ref": "#/$defs/__schema17"
       },
       "description": "Desde K2, una por cada escena distinta de las tomas habladas y el B-roll (hasta K9)."
     },
-    "__schema16": {
+    "__schema17": {
       "type": "object",
       "properties": {
         "key": {
@@ -335,14 +335,14 @@
         "prompt"
       ]
     },
-    "__schema17": {
+    "__schema18": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema18"
+        "$ref": "#/$defs/__schema19"
       },
       "description": "Una por toma hablada, en el mismo orden."
     },
-    "__schema18": {
+    "__schema19": {
       "type": "object",
       "properties": {
         "keyframe": {
@@ -359,14 +359,14 @@
         "motion"
       ]
     },
-    "__schema19": {
+    "__schema20": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema20"
+        "$ref": "#/$defs/__schema21"
       },
       "description": "Hasta 10 insertos cortos sobre la voz; al menos uno por toma hablada."
     },
-    "__schema20": {
+    "__schema21": {
       "type": "object",
       "properties": {
         "keyframe": {
@@ -375,7 +375,7 @@
         },
         "anchor": {
           "type": "string",
-          "description": "UNA palabra de alguna línea, escrita igual: el B-roll entra justo cuando se dice."
+          "description": "UNA palabra de alguna línea, escrita igual: el B-roll entra aproximadamente en esa parte del guion."
         },
         "cut_s": {
           "type": "number",
@@ -393,84 +393,89 @@
         "motion"
       ]
     },
-    "__schema21": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema22"
-      },
-      "description": "Los textos grandes en pantalla, en orden: el del gancho, cada idea y la oferta al final."
-    },
     "__schema22": {
-      "type": "object",
-      "properties": {
-        "anchor": {
-          "type": "string",
-          "description": "UNA palabra de alguna línea, escrita igual: el texto aparece cuando se dice."
-        },
-        "until": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/__schema23"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Palabra de una línea donde se quita, o null (hasta el siguiente texto)."
-        },
-        "text": {
-          "type": "string",
-          "description": "El texto grande en pantalla, en el idioma del mercado: 2 a 6 palabras (el de la oferta puede ir en 2 líneas)."
-        }
-      },
-      "required": [
-        "anchor",
-        "until",
-        "text"
-      ]
+      "deprecated": true,
+      "description": "Compatibilidad: textos históricos; el montaje no los muestra ni los exige.",
+      "$ref": "#/$defs/__schema23"
     },
     "__schema23": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "anchor": {
+            "type": "string",
+            "description": "UNA palabra de alguna línea, escrita igual: el texto aparece cuando se dice."
+          },
+          "until": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/__schema24"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Palabra de una línea donde se quita, o null (hasta el siguiente texto)."
+          },
+          "text": {
+            "type": "string",
+            "description": "El texto grande en pantalla, en el idioma del mercado: 2 a 6 palabras (el de la oferta puede ir en 2 líneas)."
+          }
+        },
+        "required": [
+          "anchor",
+          "until",
+          "text"
+        ]
+      }
     },
     "__schema24": {
+      "type": "string"
+    },
+    "__schema25": {
       "type": "object",
       "properties": {
         "objective": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1000
+          "$ref": "#/$defs/__schema26"
         },
         "art_direction": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 2000
+          "$ref": "#/$defs/__schema27"
         },
         "pacing": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1000
+          "$ref": "#/$defs/__schema28"
         },
         "captions": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1000
+          "$ref": "#/$defs/__schema29"
         },
         "sound": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1000
+          "$ref": "#/$defs/__schema30"
         }
       },
-      "required": [
-        "objective",
-        "art_direction",
-        "pacing",
-        "captions",
-        "sound"
-      ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "deprecated": true
     },
-    "__schema25": {
+    "__schema26": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "__schema27": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "__schema28": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "__schema29": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "__schema30": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "__schema31": {
       "type": "object",
       "properties": {
         "format": {
@@ -481,25 +486,25 @@
           "type": "object",
           "properties": {
             "format_fit": {
-              "$ref": "#/$defs/__schema3"
-            },
-            "speaker": {
               "$ref": "#/$defs/__schema4"
             },
-            "hook_source": {
+            "speaker": {
               "$ref": "#/$defs/__schema5"
             },
-            "hook_why": {
-              "$ref": "#/$defs/__schema7"
+            "hook_source": {
+              "$ref": "#/$defs/__schema6"
             },
-            "a_roll": {
+            "hook_why": {
               "$ref": "#/$defs/__schema8"
             },
+            "a_roll": {
+              "$ref": "#/$defs/__schema9"
+            },
             "end_card": {
-              "$ref": "#/$defs/__schema10"
+              "$ref": "#/$defs/__schema11"
             },
             "compliance_notes": {
-              "$ref": "#/$defs/__schema12"
+              "$ref": "#/$defs/__schema13"
             }
           },
           "required": [
@@ -508,7 +513,6 @@
             "hook_source",
             "hook_why",
             "a_roll",
-            "end_card",
             "compliance_notes"
           ],
           "additionalProperties": false
@@ -554,19 +558,19 @@
               ]
             },
             "opening": {
-              "$ref": "#/$defs/__schema14"
-            },
-            "keyframes": {
               "$ref": "#/$defs/__schema15"
             },
+            "keyframes": {
+              "$ref": "#/$defs/__schema16"
+            },
             "a_roll": {
-              "$ref": "#/$defs/__schema17"
+              "$ref": "#/$defs/__schema18"
             },
             "b_roll": {
-              "$ref": "#/$defs/__schema19"
+              "$ref": "#/$defs/__schema20"
             },
             "text_beats": {
-              "$ref": "#/$defs/__schema21"
+              "$ref": "#/$defs/__schema22"
             }
           },
           "required": [
@@ -574,13 +578,12 @@
             "opening",
             "keyframes",
             "a_roll",
-            "b_roll",
-            "text_beats"
+            "b_roll"
           ],
           "additionalProperties": false
         },
         "editing_brief": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema25"
         },
         "keyframe_source": {
           "type": "string",
@@ -662,9 +665,9 @@
           "maxLength": 256
         },
         "screen": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 160
+          "deprecated": true,
+          "description": "Compatibilidad: texto histórico; no se muestra ni condiciona el guardado.",
+          "$ref": "#/$defs/__schema2"
         },
         "delivery": {
           "type": "string",
@@ -696,7 +699,6 @@
       },
       "required": [
         "spoken",
-        "screen",
         "delivery",
         "opening_shot",
         "first_motion"
@@ -706,10 +708,10 @@
     "content": {
       "oneOf": [
         {
-          "$ref": "#/$defs/__schema2"
+          "$ref": "#/$defs/__schema3"
         },
         {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema31"
         }
       ]
     }

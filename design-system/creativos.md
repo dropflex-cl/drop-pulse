@@ -108,7 +108,7 @@ Arriba: la cabecera del ángulo (`AngleGroup headerOnly`, con «Ver secundario»
 | 3.2 Esperar | `EmptyState busy` «Escribiendo el guion» y aviso al terminar (V0) |
 | 3.3 Reintentar | `EmptyState tone="error"` con **Reintentar** (V0) |
 | 3.4 format_fit | `Notice tone="info"` sobre el guion: «Este ángulo rinde más como imagen», «pide una persona real», «rinde más con una mascota animada» o «rinde más con una persona». Informa, no bloquea (V1). Cuando recomienda el otro formato de video, debajo del aviso: **Escribir como mascota · ≈ $X** o **Escribir con persona · ≈ $X** (escribe ese video y pasa a él; este guion se queda) o, si ese video ya existe, **Ver el video con mascota** / **con persona** |
-| 3.5 Editar | `ScriptShot` por toma: hablada (lo que dice) o de apoyo (lo que se ve), el texto en pantalla y el cierre. Si ya había clips, la toma cambiada muestra «Se genera de nuevo» (V1) |
+| 3.5 Editar | `ScriptShot` por toma: hablada (lo que dice) o de apoyo (lo que se ve), sin campos de texto en pantalla ni tarjeta de cierre. Guardar conserva los clips existentes y no genera de nuevo (V1) |
 | 3.6 Aprobar / otro | **Aprobar guion** (principal), **Editar**, **Otro guion · ≈ $25**. Desaprobar vuelve al guion editable |
 | 3.7 Imágenes clave | **Generar la que falta · ≈ $X** (o todas, la primera vez) (V2) |
 | 3.9 Decidir | Aprobar o descartar en cada tile, **Aprobar todas (N)**, **Volver a revisar** y **Pedir otra** (V2) |
@@ -154,3 +154,7 @@ El avance dice «Paquete JSON + montaje local». El siguiente paso dice «Une lo
 Remotion está retirado: no hay Player ni controles para proponer o exportar en el servidor. Higgsfield continúa generando los clips pedidos explícitamente y DropFlex conserva su estado. Con keyframes externos, el chat guarda los destinos de toma y asigna imágenes subidas antes de generar clips.
 
 Los destinos externos preparados se muestran como imágenes faltantes, sin estado de error. El aviso dice **Sube las imágenes desde el chat** y «Asigna cada imagen a su toma. Cuando estén listas, podrás generar los clips. También puedes pedir las imágenes a Higgsfield.»
+
+El editor UGC vigente muestra únicamente las tomas habladas y de apoyo. Los textos en pantalla y la tarjeta de cierre históricos se conservan en los datos, pero no se muestran ni se editan en este flujo. Guardar dice «Guion guardado» y no promete regenerar clips. La toma de apoyo se describe como «Imagen de apoyo cerca de cuando dice “[palabra]”», porque su ancla es aproximada. Con los clips listos, Montaje está disponible aunque falten sus imágenes clave originales; un video final existente conserva su acceso.
+
+La presentación de Persona dice «Una persona de IA habla a cámara. El chat propone las tomas habladas y de apoyo desde el desarrollo del ángulo, tu cliente ideal y tu diferenciador.» El estado vacío indica «Al guardarlos, podrás revisarlos aquí.» Las ayudas de imágenes clave y clips dicen «Guarda el guion en el chat. Revisa manos, cara y producto antes de generar los clips.» y «Se habilita cuando estén disponibles las imágenes clave.» La edición no muestra «Se genera de nuevo».

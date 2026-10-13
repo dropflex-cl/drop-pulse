@@ -199,7 +199,9 @@
                   "type": "number"
                 },
                 "screen_words_max": {
-                  "type": "number"
+                  "type": "number",
+                  "deprecated": true,
+                  "description": "Límite histórico informativo; no condiciona valid."
                 }
               },
               "required": [
@@ -274,13 +276,16 @@
                 "screen_words": {
                   "type": "integer",
                   "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
+                  "maximum": 9007199254740991,
+                  "deprecated": true
                 },
                 "within_spoken_limit": {
                   "type": "boolean"
                 },
                 "within_screen_limit": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "deprecated": true,
+                  "description": "Dato histórico informativo; no condiciona valid."
                 },
                 "opens_first_line": {
                   "type": "boolean"

@@ -24,10 +24,10 @@ describe("scriptTimeline", () => {
     expect(scriptTimeline(script).map((t) => `${t.n}:${t.key}`)).toEqual(["1:A1", "2:B2", "3:A2", "4:B1", "5:B3"]);
   });
 
-  it("suma los segundos de las habladas y reparte los textos en pantalla", () => {
+  it("suma los segundos hablados sin proyectar los textos históricos", () => {
     const [a1, , a2] = scriptTimeline(script);
     expect([a1.start, a1.seconds, a2.start]).toEqual([0, 6, 6]);
-    expect(a1.beats).toEqual([0]);
-    expect(a2.beats).toEqual([1, 2]);
+    expect(a1).not.toHaveProperty("beats");
+    expect(a2).not.toHaveProperty("beats");
   });
 });

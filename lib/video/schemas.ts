@@ -1,10 +1,10 @@
 // Salida estructurada del guionista UGC y sus reglas (docs/spec-video-ugc.md §3). Claves en inglés;
-// lo que dice la persona y lo que se lee en pantalla, en el idioma del mercado; lo que va a los
+// lo que dice la persona, en el idioma del mercado; lo que va a los
 // modelos de imagen y video, en inglés. Puro.
 
 import * as z from "zod/v4";
 import { claimProblems } from "@/lib/creatives/schemas";
-import { ON_SCREEN_MAX_WORDS, SPOKEN_MAX_WORDS, wordCount } from "./catalog";
+import { SPOKEN_MAX_WORDS } from "./catalog";
 import { COD_IN_HOOK, RESULT_TIMELINE, riskyShape, SECOND_PERSON_BODY, studioWord } from "@/lib/hooks/policy";
 export { riskyShape };
 import type { PricingPlan } from "@/lib/pricing/plan";
@@ -55,7 +55,7 @@ export const MASCOT_PROMPT_VERSION = 11;
 
 const lineOut = z.object({
   seconds: z.number().int().describe(`${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX}. Cuenta las palabras: máximo ${String(WORDS_PER_SECOND_PROMPT).replace(".", ",")} por segundo.`),
-  line: z.string().describe("Lo que dice, exactamente, en el idioma del mercado. Números en palabras. NUNCA un precio ni un monto."),
+  line: z.string().describe("Lo que dice, exactamente, en el idioma del mercado. Números y precios en palabras, usando la oferta vigente."),
   delivery: z.string().describe("En inglés: cómo lo dice (qué palabra remarca, qué tono en cada frase)."),
   acting: z.string().describe("En inglés: gestos y expresión mientras habla."),
 });
@@ -72,17 +72,14 @@ export const scriptLinesSchema = z.object({
   hook_why: z.string().describe("Para el comerciante, una frase: por qué el gancho detiene el scroll de su cliente."),
   a_roll: z.array(lineOut).describe("Las tomas habladas, en orden (A1, A2…)."),
   end_card: z.object({
-    title: z.string().describe("El nombre del producto."),
-    subtitle: z.string().describe("Una línea: la razón para comprar hoy (p. ej., «Pagas al recibir»)."),
-    cta: z.string().describe("El botón: «Comprar»."),
-    small_print: z.array(z.string()).describe("Letra chica obligatoria (tipo de piel, prueba en una zona pequeña, etc.)."),
-  }),
+    title: z.string(), subtitle: z.string(), cta: z.string(), small_print: z.array(z.string()),
+  }).optional().meta({ deprecated: true }).describe("Compatibilidad: tarjeta histórica; no se muestra ni se exige para montar."),
   compliance_notes: z.array(z.string()).describe("Para el comerciante: qué cuidar al montar y publicar. Nunca un rótulo de IA, dramatización ni animación."),
 });
 export type ScriptLines = z.infer<typeof scriptLinesSchema>;
 
 // ---------------------------------------------------------------- 2. El plan de tomas (paso video_plan)
-// Encaja el guion ya validado en imágenes clave, cámaras, B-roll y textos en pantalla. K1 (el personaje
+// Encaja el guion ya validado en imágenes clave, cámaras y B-roll. K1 (el personaje
 // solo) lo arma el código; la apertura sale del gancho elegido.
 
 const keyframe = z.object({
@@ -96,7 +93,7 @@ const keyframe = z.object({
 
 const bRoll = z.object({
   keyframe: z.string().describe("La imagen clave de la que parte el clip (K2…; nunca K1)."),
-  anchor: z.string().describe("UNA palabra de alguna línea, escrita igual: el B-roll entra justo cuando se dice."),
+  anchor: z.string().describe("UNA palabra de alguna línea, escrita igual: el B-roll entra aproximadamente en esa parte del guion."),
   cut_s: z.number().describe(`Segundos que tapa la toma hablada: ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX}.`),
   motion: z.string().describe("En inglés: qué se mueve en el clip (acción concreta y corta, cámara)."),
 });
@@ -115,7 +112,7 @@ const planShots = {
   keyframes: z.array(keyframe).describe(`Desde K2, una por cada escena distinta de las tomas habladas y el B-roll (hasta K${KEYFRAMES_MAX}).`),
   a_roll: z.array(z.object({ keyframe: z.string().describe("La imagen clave de la que parte (K1… con el personaje)."), motion: z.string().describe("En inglés: cámara y movimiento.") })).describe("Una por toma hablada, en el mismo orden."),
   b_roll: z.array(bRoll).describe(`Hasta ${B_ROLL_MAX} insertos cortos sobre la voz; al menos uno por toma hablada.`),
-  text_beats: z.array(textBeat).describe("Los textos grandes en pantalla, en orden: el del gancho, cada idea y la oferta al final."),
+  text_beats: z.array(textBeat).optional().meta({ deprecated: true }).describe("Compatibilidad: textos históricos; el montaje no los muestra ni los exige."),
 };
 
 export const ugcPlanSchema = z.object({
@@ -165,7 +162,7 @@ export interface UgcScript {
   a_roll: UgcARoll[];
   b_roll: UgcBRoll[];
   text_beats: z.infer<typeof textBeat>[];
-  end_card: ScriptLines["end_card"];
+  end_card: NonNullable<ScriptLines["end_card"]>;
   compliance_notes: string[];
 }
 
@@ -197,8 +194,8 @@ export function assembleScript(lines: ScriptLines, plan: UgcPlan | MascotPlan, f
     keyframes: [characterKeyframe(format), ...plan.keyframes.filter((k) => k.key !== CHARACTER_KEY)],
     a_roll: lines.a_roll.map((l, i) => ({ key: `A${i + 1}`, keyframe: plan.a_roll[i]?.keyframe ?? "", seconds: l.seconds, line: l.line, delivery: l.delivery, acting: l.acting, motion: plan.a_roll[i]?.motion ?? "" })),
     b_roll: plan.b_roll.map((b, i) => ({ ...b, key: `B${i + 1}` })),
-    text_beats: plan.text_beats,
-    end_card: lines.end_card,
+    text_beats: plan.text_beats ?? [],
+    end_card: lines.end_card ?? { title: "", subtitle: "", cta: "", small_print: [] },
     compliance_notes: lines.compliance_notes,
   };
 }
@@ -215,16 +212,16 @@ export function linesAsScript(lines: ScriptLines): UgcScript {
     a_roll: lines.a_roll.map((l, i) => ({ ...l, key: `A${i + 1}`, keyframe: "", motion: "" })),
     b_roll: [],
     text_beats: [],
-    end_card: lines.end_card,
+    end_card: lines.end_card ?? { title: "", subtitle: "", cta: "", small_print: [] },
     compliance_notes: lines.compliance_notes,
   };
 }
 
-/** Lo que el comerciante cambia de un guion: las líneas y cómo se dicen, y los textos en pantalla. */
+/** Edición de la voz; las capas históricas siguen aceptándose por compatibilidad. */
 export const scriptEditSchema = z.object({
   a_roll: z.array(z.object({ key: z.string(), line: z.string().trim().min(1).max(220), delivery: z.string().trim().max(300) })).min(1),
-  text_beats: z.array(z.object({ text: z.string().trim().min(1).max(80) })),
-  end_card: z.object({ title: z.string().trim().min(1).max(40), subtitle: z.string().trim().min(1).max(60), cta: z.string().trim().min(1).max(20) }),
+  text_beats: z.array(z.object({ text: z.string().trim().min(1).max(80) })).optional().meta({ deprecated: true }),
+  end_card: z.object({ title: z.string().trim().min(1).max(40), subtitle: z.string().trim().min(1).max(60), cta: z.string().trim().min(1).max(20) }).optional().meta({ deprecated: true }),
 });
 export type ScriptEdit = z.infer<typeof scriptEditSchema>;
 
@@ -242,8 +239,8 @@ export function words(line: string): string[] {
 
 export const wordKey = (w: string) => words(w)[0] ?? "";
 
-/** Un monto hablado: dígitos o cifras en palabras. Seedance los pronuncia mal y el precio va en pantalla. */
-const SPOKEN_AMOUNT = /\d|\b(mil|miles|millones?|pesos|d[oó]lares|reais|reales|soles|bol[ií]vares|quetzales|colones|guaran[ií]es)\b/i;
+/** La voz recibe cifras escritas en palabras para evitar pronunciaciones ambiguas. */
+const SPOKEN_DIGITS = /\d/;
 
 /** Una persona de IA que afirma su edad («tengo cuarenta y dos»): la presenta como alguien real. */
 const OWN_AGE = /\btengo\s+(\d+|veinti\w*|treinta|cuarenta|cincuenta|sesenta|setenta)\b|\b(mis|a mis)\s+(\d+|treinta|cuarenta|cincuenta|sesenta)\b/i;
@@ -255,8 +252,8 @@ export function firstSentence(line: string): string {
 
 /**
  * Lo que está mal en lo que se dice (el paso del guion): cuántas tomas y cuánto duran, las palabras por
- * segundo, montos, segunda persona, plazos, la edad de la persona de IA, palabras que la voz pronuncia
- * mal, el cierre y, al generar (`opening`), que A1 abra con el gancho elegido.
+ * segundo, dígitos, segunda persona, plazos, la edad de la persona de IA, palabras que la voz pronuncia
+ * mal y, al generar (`opening`), que A1 abra con el gancho elegido.
  */
 export function lineProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc", opening?: OpeningInput): string[] {
   const problems: string[] = [];
@@ -269,7 +266,7 @@ export function lineProblems(s: UgcScript, pricing: PricingPlan, format: VideoFo
     if (!Number.isInteger(a.seconds) || a.seconds < A_ROLL_SECONDS_MIN || a.seconds > A_ROLL_SECONDS_MAX) problems.push(`${at} dura ${a.seconds} s; debe durar de ${A_ROLL_SECONDS_MIN} a ${A_ROLL_SECONDS_MAX}.`);
     const n = words(a.line).length;
     if (n > a.seconds * WORDS_PER_SECOND_MAX) problems.push(`${at} tiene ${n} palabras para ${a.seconds} s (máximo ${Math.floor(a.seconds * WORDS_PER_SECOND_MAX)}): acórtala o dale más segundos.`);
-    if (SPOKEN_AMOUNT.test(a.line)) problems.push(`${at} dice un número o un monto («${a.line}»): los precios van solo en pantalla y los números, en palabras.`);
+    if (SPOKEN_DIGITS.test(a.line)) problems.push(`${at} dice un número en dígitos («${a.line}»): escribe los números y precios en palabras para la voz.`);
     if (SECOND_PERSON_BODY.test(a.line))
       problems.push(
         format === "mascot"
@@ -281,17 +278,16 @@ export function lineProblems(s: UgcScript, pricing: PricingPlan, format: VideoFo
     for (const m of MISPRONOUNCED) if (words(a.line).includes(m.word)) problems.push(`${at} usa «${m.word}», que la voz pronuncia mal: usa ${m.instead}.`);
     problems.push(...claimProblems(a.line, pricing, `${at}: `));
   });
-  for (const t of [s.end_card.title, s.end_card.subtitle, s.end_card.cta, ...s.end_card.small_print]) problems.push(...claimProblems(t, pricing, "El cierre: "));
   if (opening) problems.push(...hookLineProblems(s, opening));
   return problems;
 }
 
 /**
  * Lo que está mal en las tomas (el plan): imágenes clave, la silueta de la mascota, de qué imagen parte
- * cada toma, el B-roll y los textos anclados a palabras dichas y, al generar (`opening`), la apertura y
+ * cada toma, el B-roll anclado a palabras dichas y, al generar (`opening`), la apertura y
  * el aspecto de teléfono del UGC.
  */
-export function planProblems(s: UgcScript, pricing: PricingPlan, format: VideoFormat = "ugc", opening?: OpeningInput): string[] {
+export function planProblems(s: UgcScript, _pricing: PricingPlan, format: VideoFormat = "ugc", opening?: OpeningInput): string[] {
   const problems: string[] = [];
   const who = format === "mascot" ? "al personaje" : "a la persona";
   const kfKeys = s.keyframes.map((k) => k.key);
@@ -317,7 +313,7 @@ export function planProblems(s: UgcScript, pricing: PricingPlan, format: VideoFo
     else if (!k.uses_character) problems.push(`${at} es hablada: su imagen clave (${a.keyframe}) tiene que mostrar ${who}.`);
   });
 
-  // B-roll y textos anclados a palabras dichas.
+  // B-roll anclado a palabras dichas.
   const spoken = new Set(s.a_roll.flatMap((a) => words(a.line)));
   if (s.b_roll.length > B_ROLL_MAX) problems.push(`Trae ${s.b_roll.length} B-roll; el máximo es ${B_ROLL_MAX}.`);
   s.b_roll.forEach((b, i) => {
@@ -327,14 +323,6 @@ export function planProblems(s: UgcScript, pricing: PricingPlan, format: VideoFo
     if (b.cut_s < B_ROLL_CUT_MIN || b.cut_s > B_ROLL_CUT_MAX) problems.push(`${at} tapa ${b.cut_s} s; debe ser de ${B_ROLL_CUT_MIN} a ${B_ROLL_CUT_MAX}.`);
     if (b.keyframe === CHARACTER_KEY) problems.push(`${at} parte de ${CHARACTER_KEY}: los B-roll parten de su propia imagen clave.`);
     else if (!kf.has(b.keyframe)) problems.push(`${at} parte de ${b.keyframe}, que no está en keyframes.`);
-  });
-  s.text_beats.forEach((t, i) => {
-    const at = `El texto en pantalla ${i + 1} («${t.text}»)`;
-    if (!spoken.has(wordKey(t.anchor))) problems.push(`${at} se ancla a «${t.anchor}», que nadie dice.`);
-    if (t.until && !spoken.has(wordKey(t.until))) problems.push(`${at} se quita en «${t.until}», que nadie dice.`);
-    if (RESULT_TIMELINE.test(t.text)) problems.push(`${at} promete un plazo de resultado: quítalo.`);
-    if (SECOND_PERSON_BODY.test(t.text)) problems.push(`${at} le habla a quien mira de su cuerpo, su edad o su salud: usa primera persona o «las que…».`);
-    problems.push(...claimProblems(t.text, pricing, `${at}: `));
   });
 
   if (opening) {
@@ -393,7 +381,7 @@ function hookLineProblems(s: UgcScript, input: OpeningInput): string[] {
   if (n > SPOKEN_MAX_WORDS) problems.push(`La primera frase de A1 («${opening}») tiene ${n} palabras: el gancho cabe en 3 s, máximo ${SPOKEN_MAX_WORDS}.`);
   if (hook?.spoken && !opensWithHook(a1.line, hook.spoken))
     problems.push(`La primera frase de A1 («${opening}») no es la del gancho («${firstSentence(hook.spoken)}»): A1 abre con esa frase, adaptada a la voz, sin nada antes.`);
-  if (COD_IN_HOOK.test(opening)) problems.push("El pago contra entrega y el envío gratis no van en el gancho: van en la oferta del final y en el cierre.");
+  if (COD_IN_HOOK.test(opening)) problems.push("El pago contra entrega y el envío gratis no van en el gancho: desarrolla la oferta en las líneas posteriores.");
   return problems;
 }
 
@@ -431,14 +419,6 @@ function openingProblems(s: UgcScript, format: VideoFormat): string[] {
     if (k && o.shot === "product_in_place" && !k.uses_product) problems.push(`Abre con product_in_place: ${o.keyframe} muestra el producto (uses_product true).`);
   }
 
-  const first = s.text_beats[0];
-  if (!first) problems.push("Falta el primer texto en pantalla: el del gancho.");
-  else {
-    const head = words(a1.line).slice(0, HOOK_BEAT_MAX_WORD);
-    if (!head.includes(wordKey(first.anchor))) problems.push(`El primer texto en pantalla («${first.text}») se ancla a «${first.anchor}»: tiene que aparecer en una de las primeras ${HOOK_BEAT_MAX_WORD} palabras de A1 para leerse sin sonido desde el primer segundo.`);
-    if (wordCount(first.text) > ON_SCREEN_MAX_WORDS) problems.push(`El primer texto en pantalla («${first.text}») tiene ${wordCount(first.text)} palabras; el del gancho va hasta ${ON_SCREEN_MAX_WORDS}.`);
-    if (COD_IN_HOOK.test(first.text)) problems.push("El pago contra entrega y el envío gratis no van en el texto del gancho: van en la oferta del final y en el cierre.");
-  }
   return problems;
 }
 
@@ -475,7 +455,7 @@ export function applyScriptEdit(s: UgcScript, edit: ScriptEdit): UgcScript {
       const e = byKey.get(a.key);
       return e ? { ...a, line: e.line, delivery: e.delivery || a.delivery } : a;
     }),
-    text_beats: s.text_beats.map((t, i) => (edit.text_beats[i] ? { ...t, text: edit.text_beats[i].text } : t)),
+    text_beats: s.text_beats.map((t, i) => (edit.text_beats?.[i] ? { ...t, text: edit.text_beats[i].text } : t)),
     end_card: { ...s.end_card, ...edit.end_card },
   };
 }

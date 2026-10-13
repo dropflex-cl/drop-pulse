@@ -2,13 +2,13 @@
 
 `scripts/ugc-montage.py` es el montaje vigente. La skill `dropflex-capcut` está deprecada y no se selecciona automáticamente. Remotion y el worker de render siguen retirados.
 
-1. Recupera `get_ugc_montage` o descarga el paquete JSON desde Videos. Acepta v1/v2, el paquete directo y sobres MCP (`data.package` o `structuredContent.data.package`). Los enlaces duran 24 h; recuperarlos de nuevo no genera clips.
+1. Recupera `get_ugc_montage` o descarga el paquete JSON desde Videos. Acepta v1/v2/v3, el paquete directo y sobres MCP (`data.package` o `structuredContent.data.package`). Los enlaces duran 24 h; recuperarlos de nuevo no genera clips.
 2. Ejecuta `python3 scripts/ugc-montage.py paquete.json --out video.mp4`. Requiere Python 3.9+, FFmpeg y FFprobe. La skill de optimización incluye una copia del script para tareas locales sin el repositorio.
 3. Entrega un solo MP4 H.264/AAC, vertical 720×1280, 24 fps, con los clips hablados completos en el orden del paquete y su voz original. El script normaliza dimensiones y audio para unir fuentes distintas, sin recortar la voz ni modificar su volumen. Conserva el encuadre con bandas cuando la proporción difiere; no añade zoom.
 4. Los clips de apoyo sustituyen la imagen durante `cut_s`, manteniendo la voz debajo y descartando su audio. `anchor` los ubica aproximadamente según las palabras del guion, sin Whisper ni IA. El inserto declarado en `opening.insert` comienza en el cuadro 0. No hay sincronización precisa palabra por palabra. La duración se limita a los cuadros disponibles y al espacio de voz restante; si no cabe un clip o su ancla no existe, falla con el dato que debe corregirse.
 5. Sube el MP4 en Video final para revisarlo. Subir, elegir su uso y publicar siguen siendo acciones distintas; el montaje no usa proveedores ni gasta créditos.
 
-No añade captions, subtítulos, textos, cierre, música, marca de agua, efectos, grano ni filtros de teléfono. Conserva los campos antiguos del contrato v2 como datos compatibles, pero ignora `text_beats`, `end_card`, `accent_color`, `watermark`, `look` y las sugerencias de capas en `editing_brief`. Un texto necesario para entender el anuncio debe estar en la voz o en los clips. El script no elimina textos o música ya incrustados en un archivo de origen.
+No añade captions, subtítulos, textos, cierre, música, marca de agua, efectos, grano ni filtros de teléfono. El paquete v3 omite las capas editoriales. Los guiones guardados conservan sus campos históricos y el lector admite v1/v2, pero ignora `text_beats`, `end_card`, `accent_color`, `watermark`, `look` y las sugerencias de capas en `editing_brief`. Un texto necesario para entender el anuncio debe estar en la voz o en los clips. El script no elimina textos o música ya incrustados en un archivo de origen.
 
 `seconds` representa una duración prevista, no un recorte de la toma hablada. La salida dura la suma de los clips hablados reales, con un ajuste de hasta un cuadro por toma para normalizar a 24 fps; no suma una tarjeta final. No transcribe, no crea imágenes de texto y no mezcla pistas adicionales. Una toma hablada sin audio produce un error.
 
@@ -23,3 +23,5 @@ python3 scripts/test-ugc-montage.py
 npm run pi:contracts
 npx vitest run lib/video/video.test.ts lib/product-intelligence/ugc.local.test.ts lib/product-intelligence/mcp-skills.test.ts
 ```
+
+El guardado nuevo puede omitir `hook.screen`, `content.plan.text_beats`, `content.lines.end_card` y `content.editing_brief`. Se aceptan como campos deprecados para clientes anteriores y se conservan al omitirlos en una edición. Su contenido no condiciona validación de voz, apertura o tiempos. El editor muestra solo tomas habladas y de apoyo. Los precios se pueden mencionar en palabras desde la oferta vigente. La descarga y la navegación al montaje comprueban los clips reales no descartados, sin requerir sus imágenes clave históricas, una conexión Shopify ni una imagen para una tarjeta final. Un video final existente sigue disponible. No requiere una migración: el contenido se conserva en el JSON vigente y no se borran filas ni archivos.

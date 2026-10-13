@@ -99,8 +99,8 @@ export const FINAL_MAX_BYTES = 100 * 1024 * 1024;
 export const FINAL_SECONDS_MIN = 10;
 export const FINAL_SECONDS_MAX = 60;
 
-/** Versión del paquete de montaje (scripts/ugc-montage.py la valida). 2: la apertura (`opening`) y el aspecto (`look`). */
-export const PACKAGE_VERSION = 2;
+/** Paquete vigente: v3 contiene clips, apertura y procedencia, sin capas editoriales. */
+export const PACKAGE_VERSION = 3;
 
 export type ShotKind = "keyframe" | "a_roll" | "b_roll";
 

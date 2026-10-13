@@ -85,11 +85,11 @@ class MontageTest(unittest.TestCase):
             self.assertGreater(energy(frequency), 200)
             self.assertLess(energy(990), energy(frequency) / 30)
 
-    def test_legacy_layers_ignored_and_v1_accepted(self):
+    def test_legacy_layers_ignored_and_v3_accepted(self):
         clean = copy.deepcopy(self.pkg)
         for key in ['text_beats', 'end_card', 'watermark', 'accent_color', 'look', 'editing_brief']:
             clean.pop(key)
-        clean['version'] = 1
+        clean['version'] = 3
         clean_path = self.folder / 'clean.mp4'
         path = self.folder / 'wrapped.json'
         path.write_text(json.dumps({'structuredContent': {'data': {'package': clean}}}))
@@ -125,6 +125,7 @@ class MontageTest(unittest.TestCase):
         finally:
             self.output = original
         pkg['b_roll'] = []
+        pkg['version'] = 1
         output = self.folder / 'spoken.mp4'
         montage.montage(pkg, self.folder, self.work, output, 25)
         self.assertAlmostEqual(montage.probe(output)['duration'], 4, delta=.06)

@@ -86,6 +86,23 @@ local("UGC · persistencia y cola local", () => {
     await expect(call("save_ugc_content",{...i,landing_hook_id:"other"})).rejects.toMatchObject({code:"IDEMPOTENCY_KEY_REUSED"});
     await saved();expect(await count("video_scripts")).toBe(1);expect((await read()).data.scripts).toHaveLength(1);
   });
+  it("edita solo voz y tomas conservando las capas históricas y los clips existentes",async()=>{
+    const i=await input(),brief={captions:"Histórico",sound:"Histórico"};
+    const initial=await call("save_ugc_content",{...i,content:{...i.content,editing_brief:brief}});
+    if(!initial.ok||!initial.data.script_id)throw initial;
+    const id=initial.data.script_id;
+    const before=(await checked(db.from("video_scripts").select("payload").eq("id",id).single())).data!;
+    await checked(db.from("video_shots").insert({user_id:owner.userId,product_id:product,script_id:id,key:"A1",kind:"a_roll",endpoint:"test",input:{},render_status:"succeeded",status:"approved",storage_path:`${owner.userId}/${product}/existing.mp4`}));
+    const next=await input();
+    const command=JSON.parse(JSON.stringify({...next,hook:{...next.hook,screen:undefined},content:{...next.content,lines:{...next.content.lines,end_card:undefined},plan:{...next.content.plan,text_beats:undefined}}}));
+    expect(await call("save_ugc_content",command)).toMatchObject({ok:true,data:{script_id:id}});
+    const after=(await checked(db.from("video_scripts").select("payload,input").eq("id",id).single())).data!;
+    expect(after.payload.text_beats).toEqual(before.payload.text_beats);
+    expect(after.payload.end_card).toEqual(before.payload.end_card);
+    expect(after.input.editing_brief).toEqual(brief);
+    expect((await checked(db.from("video_shots").select("storage_path,status").eq("script_id",id))).data).toEqual([expect.objectContaining({storage_path:`${owner.userId}/${product}/existing.mp4`,status:"approved"})]);
+    expect(await count("ai_generations")).toBe(0);expect(await count("pi_ugc_operations")).toBe(0);
+  });
   it("prepara keyframes externos y guarda dirección de arte sin proveedores ni cola",async()=>{
     const i=await input(),brief={objective:"Detener el scroll",art_direction:"Tipografía grande y detalles del producto",pacing:"Ágil",captions:"Legibles",sound:"Voz primero"};
     const command={...i,content:{...i.content,keyframe_source:"external",editing_brief:brief}};

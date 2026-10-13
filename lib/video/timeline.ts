@@ -1,5 +1,4 @@
-// El guion como lo lee el comerciante: las tomas en el orden en que se ven, con su tiempo, sus textos
-// en pantalla y el número de toma que usan los clips. Puro, con tests.
+// El guion vigente: tomas habladas y de apoyo, tiempos previstos y claves de clips. Puro.
 import { wordKey, words, type UgcScript } from "./schemas";
 
 export interface TimelineShot {
@@ -18,8 +17,6 @@ export interface TimelineShot {
   anchor?: string;
   /** De apoyo: segundos que tapa. */
   cut?: number;
-  /** Índices de text_beats que aparecen durante esta toma hablada. */
-  beats: number[];
 }
 
 /** La toma hablada que dice la palabra (sin tildes ni mayúsculas); si ninguna, la última. */
@@ -31,13 +28,12 @@ function owner(s: UgcScript, anchor: string): number {
 
 /**
  * Las tomas en orden: cada hablada seguida de sus insertos de apoyo (los que se disparan con una de sus
- * palabras). Los textos en pantalla quedan en la toma que dice su palabra.
+ * palabras). Los textos históricos no se proyectan al montaje vigente.
  *
  * @example
  * scriptTimeline(guion).map((t) => `${t.n}:${t.key}`) // → ["1:A1", "2:B1", "3:A2", …]
  */
 export function scriptTimeline(s: UgcScript): TimelineShot[] {
-  const beatOwner = s.text_beats.map((b) => owner(s, b.anchor));
   const bOwner = s.b_roll.map((b) => owner(s, b.anchor));
   const out: TimelineShot[] = [];
   let t = 0;
@@ -50,11 +46,10 @@ export function scriptTimeline(s: UgcScript): TimelineShot[] {
       seconds: a.seconds,
       start: t,
       line: a.line,
-      beats: beatOwner.flatMap((o, j) => (o === i ? [j] : [])),
     });
     t += a.seconds;
     s.b_roll.forEach((b, j) => {
-      if (bOwner[j] === i) out.push({ key: b.key, kind: "b_roll", n: out.length + 1, keyframe: b.keyframe, line: b.anchor, anchor: b.anchor, cut: b.cut_s, beats: [] });
+      if (bOwner[j] === i) out.push({ key: b.key, kind: "b_roll", n: out.length + 1, keyframe: b.keyframe, line: b.anchor, anchor: b.anchor, cut: b.cut_s });
     });
   });
   return out;

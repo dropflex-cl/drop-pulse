@@ -2,7 +2,7 @@
 """Une clips UGC en un MP4 con video y la voz original, sin capas añadidas.
 
 Uso: python3 scripts/ugc-montage.py paquete.json [--out video.mp4] [--work carpeta]
-Requisitos: Python 3.9+, ffmpeg y ffprobe. Acepta paquetes v1/v2 y sobres MCP.
+Requisitos: Python 3.9+, ffmpeg y ffprobe. Acepta paquetes v1/v2/v3 y sobres MCP.
 Conserva completos los clips hablados, en orden. Los clips de apoyo reemplazan
 su imagen durante cut_s, sin usar su audio ni interrumpir la voz. Las anclas se
 ubican aproximadamente por el texto del guion; no se transcribe ni se invoca IA.
@@ -22,7 +22,7 @@ import unicodedata
 import urllib.request
 from pathlib import Path
 
-PACKAGE_VERSIONS = (1, 2)
+PACKAGE_VERSIONS = (1, 2, 3)
 W, H, FPS = 720, 1280, 24
 
 
@@ -155,7 +155,7 @@ def concat_file(paths: list[Path], destination: Path) -> None:
 
 def montage(pkg: dict, base: Path, work: Path, output: Path, crf: int) -> None:
     if pkg.get("version") not in PACKAGE_VERSIONS:
-        fail("El script acepta paquetes versión 1 o 2. Recupera el paquete vigente.")
+        fail("El script acepta paquetes versión 1, 2 o 3. Recupera el paquete vigente.")
     if not pkg.get("a_roll"):
         fail("El paquete necesita al menos un clip hablado.")
     work.mkdir(parents=True, exist_ok=True)
