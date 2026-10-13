@@ -36,7 +36,7 @@ import { scriptTimeline, type TimelineShot } from "@/lib/video/timeline";
 // Pestaña Videos de Creativos (design-system/creativos.md › 3, docs/spec-video-ugc.md §2): por ángulo, un
 // video con persona (UGC de ~30 s) y otro con mascota animada (~25 s), cada uno con su propio avance en 5
 // pasos. Guion (centavos) → imágenes clave (se aprueban una a una) → clips (lo caro) → montaje en el
-// equipo del comerciante con CapCut → video final, que al aprobarlo pasa a Anuncios. Arriba, el
+// equipo del comerciante con Python/FFmpeg → video final, que al aprobarlo pasa a Anuncios. Arriba, el
 // ángulo, el formato y los pasos; abajo, el paso que toca. En escritorio: los pasos a la izquierda, el
 // trabajo al centro y el paso siguiente a la derecha.
 
@@ -278,7 +278,7 @@ function stepNotes(card: VideoCardView): (string | undefined)[] {
     !s ? "Por escribir" : s.status === "queued" || s.status === "running" ? "Escribiendo…" : !p ? "No se pudo escribir" : `Guardado · ${p.a_roll.length + p.b_roll.length} tomas`,
     p ? `${kfOk} de ${p.keyframes.length} disponibles` : undefined,
     card.clips.length ? `${clipsDone} de ${clipsTotal} listos${card.clips.some(busyShot) ? " · 3 a 6 min" : ""}` : undefined,
-    "Paquete JSON + CapCut local",
+    "Paquete JSON + montaje local",
     card.final?.src ? (card.final.status === "aprobado" ? "En Anuncios" : "Por aprobar") : "Sube el MP4 montado",
   ];
 }
@@ -303,7 +303,7 @@ function NextStep({ card, current, file }: { card: VideoCardView; current: numbe
         <MontagePackage clips={total} file={file} disabled />
       </>
     );
-  if (current === 4) return head("Siguiente: video final", "Exporta el MP4 desde CapCut y súbelo. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.");
+  if (current === 4) return head("Siguiente: video final", "Une los clips en tu computador y sube el MP4. Al aprobarlo pasa a Anuncios, en el conjunto de este ángulo.");
   return card.final?.status === "aprobado"
     ? head("Listo", `El video está en Anuncios, en el conjunto del ángulo ${card.slot}.`)
     : head("Último paso", "Aprueba el video para mandarlo a Anuncios.");

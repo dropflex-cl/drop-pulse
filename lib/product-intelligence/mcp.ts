@@ -100,7 +100,7 @@ const descriptions: Record<ToolName, string> = {
   save_ugc_content:
     "Actualiza el guion y plan vigentes del chat, con estrategia, ángulo y hook. Conserva medios y decisiones existentes sin aprobación adicional. No inicia generación de pago ni publica.",
   get_ugc_montage:
-    "Recupera clips, voz, cierre, dirección de arte y referencias del guion para editar con la skill local dropflex-capcut. URLs válidas 24 horas; no renderiza ni llama a proveedores.",
+    "Recupera el paquete de clips hablados y de apoyo para unirlos localmente con Python/FFmpeg en un MP4 con voz original, sin captions ni capas añadidas. URLs válidas 24 horas; no renderiza ni llama a proveedores.",
   get_pack_labels:
     "Consulta precio, etiquetas vigentes de packs y su contrato para editarlas en el chat.",
   save_pack_labels:

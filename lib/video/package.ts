@@ -1,4 +1,4 @@
-// Material para la edición local en CapCut; v2 conserva los lectores históricos. Puro.
+// Material para montaje local con Python/FFmpeg; v2 conserva datos editoriales históricos. Puro.
 
 import { PACKAGE_VERSION, montageName, opensWithInsert, type VideoFormat, type VideoOpeningShot } from "./catalog";
 import type { UgcScript } from "./schemas";
@@ -16,20 +16,13 @@ export interface MontagePackage {
   /** Persona o mascota: un ángulo puede tener los dos videos. */
   format: VideoFormat;
   language: string;
-  /** Color de la palabra activa en los subtítulos (el acento de la página, o el de DropFlex). */
+  /** Acento histórico: el montaje simple no añade subtítulos. */
   accent_color: string;
-  /**
-   * Marca de agua (el dominio de la tienda) que el script mueve por el video para que otra tienda no
-   * pueda reusarlo recortando una esquina. Null si no se pudo leer: el script avisa.
-   */
+  /** Marca histórica conservada para clientes anteriores; el montaje simple no la dibuja. */
   watermark: string | null;
-  /**
-   * La apertura (docs/spec-video-detener-scroll.md §3.6): el script pone el primer texto en pantalla
-   * desde el cuadro 0 y, si abre con un inserto, ese B-roll en el segundo 0; si abre con la cara, un
-   * zoom de entrada. Null en los guiones de antes.
-   */
+  /** Si hay insert, su B-roll comienza en el cuadro 0; sin texto ni zoom añadido. */
   opening: { shot: VideoOpeningShot; insert: string | null } | null;
-  /** El aspecto del montaje: `phone` (el UGC, imagen y audio de teléfono) o `clean` (la mascota). */
+  /** Aspecto histórico conservado; el montaje simple no aplica filtros de imagen o sonido. */
   look: "phone" | "clean";
   a_roll: { key: string; line: string; seconds: number; url: string }[];
   b_roll: { key: string; anchor: string; cut_s: number; url: string }[];
@@ -38,7 +31,7 @@ export interface MontagePackage {
   expires_at: string;
   /** IDs duraderos para recuperar enlaces y subir el final al mismo guion. */
   source?: { script_id: string; artifact_etag: string };
-  /** Sugerencias abiertas; no restringen la edición a un catálogo de composiciones. */
+  /** Brief compatible; el montaje simple no añade sus capas editoriales. */
   editing_brief?: UgcEditingBrief | null;
 }
 

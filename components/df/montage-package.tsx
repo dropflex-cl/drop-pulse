@@ -10,7 +10,7 @@ export interface MontagePackageProps {
   disabled?: boolean;
 }
 
-/** Material para la skill local de edición en CapCut (.df-montage). */
+/** Material para el montaje local con Python/FFmpeg (.df-montage). */
 export function MontagePackage({ clips, href, file, disabled }: MontagePackageProps) {
   return (
     <section aria-label="Paquete de montaje" className="flex flex-col gap-3 rounded-lg border bg-card p-3.5">
@@ -18,7 +18,7 @@ export function MontagePackage({ clips, href, file, disabled }: MontagePackagePr
         <Icon name="box" className="text-muted-foreground" />
         <div className="flex flex-col text-label font-normal text-muted-foreground">
           <b className="text-body font-semibold text-foreground">Paquete de montaje</b>
-          {`${clips} ${clips === 1 ? "clip" : "clips"} · textos en pantalla · cierre`}
+          {`${clips} ${clips === 1 ? "clip" : "clips"} · video y voz`}
         </div>
       </div>
       <p className="flex items-start gap-1 text-caption text-muted-foreground">
@@ -36,8 +36,8 @@ export function MontagePackage({ clips, href, file, disabled }: MontagePackagePr
       )}
       <div className="flex flex-col gap-1">
         <span className="text-label">En tu computador</span>
-        <p className="text-caption text-muted-foreground">Abre el JSON en una tarea local de ChatGPT Work con la skill dropflex-capcut. La skill prepara los clips y guía la edición en CapCut: cortes, títulos, subtítulos y sonido.</p>
-        <span className="text-caption text-muted-foreground">Exporta el MP4 vertical y súbelo aquí para revisarlo. Usa música y efectos con licencia para anuncios.</span>
+        <p className="text-caption text-muted-foreground">Abre el JSON en una tarea local de ChatGPT Work o Codex y pide unir los clips hablados y de apoyo en un solo video con la voz original.</p>
+        <span className="text-caption text-muted-foreground">El montaje no añade subtítulos, textos, música ni efectos. Sube el MP4 aquí para revisarlo.</span>
       </div>
     </section>
   );

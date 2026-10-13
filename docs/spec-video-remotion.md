@@ -1,6 +1,6 @@
 # Remotion retirado
 
-Remotion y su worker se retiraron a favor de [edición local en CapCut](spec-video-capcut.md). No desplegar el Dockerfile ni ejecutar los comandos antiguos de worker.
+Remotion y su worker se retiraron a favor de [montaje local con Python/FFmpeg](spec-video-montage.md). No desplegar el Dockerfile ni ejecutar los comandos antiguos de worker.
 
 Se retiraron el Player, la dirección creativa de pago en el servidor, sus rutas, scripts y dependencias. El paquete UGC, la generación en Higgsfield y la subida/revisión del video final continúan.
 

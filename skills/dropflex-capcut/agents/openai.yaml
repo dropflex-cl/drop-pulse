@@ -1,0 +1,5 @@
+interface:
+  display_name: "DropFlex CapCut (deprecada)"
+  short_description: "Flujo retirado; usa el montaje con Python y FFmpeg"
+policy:
+  allow_implicit_invocation: false

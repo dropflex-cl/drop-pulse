@@ -1,5 +1,7 @@
 # Videos que detienen el scroll: el gancho manda en la apertura y el UGC parece de teléfono
 
+> Las instrucciones de montaje con zooms, textos, subtítulos y aspecto de teléfono son históricas. El [montaje vigente](spec-video-montage.md) une clips con voz original sin capas añadidas.
+
 > La revisión automática de imágenes con IA y sus reintentos pagados se retiraron el 2026-10-11. Las referencias a QA visual en este documento son históricas; no describen un flujo disponible. Las imágenes se revisan y eligen por decisión del comerciante.
 
 > Estado: **implementado** (2026-10-01, rama `feat/video-apertura-impl`, sobre `feat/video-apertura`, que trae el agente de ganchos). Verificado con tests puros (`lib/hooks/hooks.test.ts`, `lib/video/video.test.ts`) y el montaje con clips sintéticos (inserto, cara, mascota y un paquete versión 1). Pendiente: una corrida real con un producto (guion, imágenes clave y clips con la clave de Higgsfield).

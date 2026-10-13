@@ -32,9 +32,9 @@ export const UGC_RULES = [
   "Usa solo pruebas y precios vigentes. Sin testimonios inventados, experto ficticio, edad dicha ni resultados propios de la persona de IA.",
   "hook es la entrada de este video, una hipótesis vinculada al ángulo. landing_angle_id y landing_hook_id son los selectores URL df_angle/df_hook: usa los mismos en save_landing_content.",
   "Guardar desde el MCP deja el guion disponible; generate_ugc genera solo las shot_keys solicitadas. dry_run valida y estima sin proveedores.",
-  "Con content.keyframe_source=external, guardar crea destinos K para subir y asignar imágenes por las herramientas visuales MCP, sin render. content.editing_brief guarda dirección de arte abierta para CapCut local.",
+  "Con content.keyframe_source=external, guardar crea destinos K para subir y asignar imágenes por las herramientas visuales MCP, sin render. content.editing_brief se conserva como dato compatible; el montaje simple no añade las capas editoriales que describa.",
   "Para generar otras escenas con personaje pide K1 primero, o inclúyelo en el mismo lote. Los clips requieren las imágenes clave utilizadas, disponibles y sin descarte.",
-  "get_ugc_montage devuelve el material de origen y la dirección de arte guardada. La skill local dropflex-capcut prepara y edita en CapCut; exporta y sube el MP4 a DropFlex, para usarlo o publicarlo con autorización propia.",
+  "get_ugc_montage devuelve el paquete para scripts/ugc-montage.py: une clips hablados y de apoyo, conserva toda la voz original y no añade captions, textos, música, efectos, marca de agua ni cierre. dropflex-capcut está deprecada. Subir el MP4, elegir su uso y publicar son acciones separadas.",
 ];
 type Read = { revision: number; stamp: string; ugc_etag: string; scripts: ScriptRow[]; shots: ShotRow[]; operation: Operation | null; operation_script?: ScriptRow | null };
 type Operation = { id: string; script_id: string; stage: "keyframes" | "clips"; status: "queued" | "running" | "succeeded" | "failed" | "reconciling" | "cancelled";
@@ -167,7 +167,7 @@ export function createUgcExecutor(repository: KnowledgeRepository & UgcRepositor
     if (tool === "get_ugc_montage") {
       const query = parseToolInput(tool, command.input), script = scriptIn(read, query.script_id);
       checkArtifact(query.expected_artifact_etag, script.artifact_etag);
-      return parseToolOutput(tool, { ...base, data: { package: await montagePackage(principal.userId, input.product_id, script.id), next_action: "Guarda el paquete JSON y ábrelo con la skill local dropflex-capcut. Edita en CapCut, exporta el MP4 y súbelo en Creativos > Videos > Video final; elige su uso en Anuncios." } });
+      return parseToolOutput(tool, { ...base, data: { package: await montagePackage(principal.userId, input.product_id, script.id), next_action: "Guarda el paquete JSON y ejecuta python3 scripts/ugc-montage.py paquete.json en una tarea local con Python y FFmpeg. Une los clips con la voz original, sin captions ni capas añadidas. Sube el MP4 en Creativos > Videos > Video final; elige su uso en Anuncios." } });
     }
     const query = tool === "save_ugc_content" ? parseToolInput(tool, command.input) : parseToolInput("generate_ugc", command.input);
     let prepared: Record<string, unknown>;

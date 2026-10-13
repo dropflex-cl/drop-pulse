@@ -6,6 +6,10 @@ from zipfile import ZIP_DEFLATED, ZipFile
 root = Path(__file__).resolve().parents[1]
 plugin = root / "plugins/dropflex-optimizer"
 manifest = json.loads((plugin / "plugin.json").read_text())
+# Copia distribuible generada desde el montaje canónico del repositorio.
+montage = plugin / "skills/optimize-product/scripts/ugc-montage.py"
+montage.parent.mkdir(parents=True, exist_ok=True)
+montage.write_bytes((root / "scripts/ugc-montage.py").read_bytes())
 files = [plugin / "plugin.json", plugin / ".app.json"]
 compatibility = plugin / ".codex-plugin/plugin.json"
 if compatibility.exists():

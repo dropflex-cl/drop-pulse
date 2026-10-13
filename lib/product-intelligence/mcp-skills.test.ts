@@ -82,7 +82,7 @@ describe("DropFlex · importación de skill MCP", () => {
     ], forbids: [/Si cambian el hook.*concilia/, /permite renovar la autorización/] },
     { name: "UGC conserva medios y usa montaje local", path: "references/production.md", requires: [
       /conservando medios existentes/, /Keyframes externos crean solo destinos faltantes/,
-      /montaje se realiza localmente con CapCut/, /No uses el worker Remotion retirado/,
+      /montaje se realiza localmente con Python\/FFmpeg/, /No uses el worker Remotion retirado/,
       /Generar clips de pago requiere un pedido explícito/,
     ], forbids: [/Renderizar video sigue un flujo separado con permisos, aprobación/] },
   ])("la skill servida respeta el flujo vigente: $name", async scenario => {
