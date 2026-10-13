@@ -4348,7 +4348,7 @@ a.df-review-stars__row:focus-visible {
 .df-shipping-timeline__ticket-top { padding: var(--df-gap) var(--df-gap) 0; }
 .df-shipping-timeline__eyebrow { display: flex; align-items: center; gap: calc(var(--df-gap) / 2); font-size: .75rem; line-height: 1.4; font-weight: 500; text-transform: uppercase; }
 .df-shipping-timeline__eyebrow .df-icon { width: 18px; height: 18px; }
-.df-shipping-timeline__headline { margin: calc(var(--df-gap) / 2) 0 0; font-family: var(--df-font-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.1; letter-spacing: -.025em; overflow-wrap: anywhere; color: inherit; }
+.df-shipping-timeline__headline { margin: calc(var(--df-gap) / 2) 0 0; font-family: var(--df-font-heading); font-size: 1.75rem; font-weight: 700; line-height: 1.1; letter-spacing: -.025em; overflow-wrap: anywhere; text-wrap: balance; color: inherit; }
 .df-shipping-timeline__countdown { display: grid; gap: calc(var(--df-gap) / 2); margin-top: var(--df-gap); }
 .df-shipping-timeline__clock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--df-gap) / 2); max-width: 280px; }
 .df-shipping-timeline__unit { display: grid; justify-items: center; min-width: 0; padding: calc(var(--df-gap) / 2) calc(var(--df-gap) / 4); border-radius: var(--df-radius-sm); background: var(--df-bg); color: var(--df-accent-ink); }
