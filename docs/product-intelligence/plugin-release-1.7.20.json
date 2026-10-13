@@ -1,0 +1,83 @@
+{
+  "version": "1.7.20",
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acd8cbce29c81918a82e15be92af624",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "a0be68146543687b6fada2469c9030e3206ceb26",
+  "source_and_remote_branch_verified": true,
+  "production": {
+    "status": "Ready",
+    "environment": "Production",
+    "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/DbGWEXi4iX2PngbXU3CURkBYZeRg",
+    "commit": "a0be681",
+    "region": "gru1::gru1",
+    "get_landing_content": "ok: true; contrato con los cuatro campos opcionales",
+    "get_component_generation_context": "ok: true; contrato gráfico vigente",
+    "benefit_double_box": "Regla de garantías compactas presente en el contrato de producción"
+  },
+  "migrations": { "required": false },
+  "contract": {
+    "component": "shipping-timeline",
+    "optional_fields": ["countdown_label", "arrival_template", "cutoff_template", "dispatch_template"],
+    "legacy_content_preserved": true,
+    "tokens": "{cutoff}: día y hora reales; {arrive}: primera entrega posible; {ship}: despacho estimado",
+    "preview_runtime": "El preview de React carga el mismo archivo JavaScript del tema",
+    "colors": "accent del producto, tinta y fondos derivados"
+  },
+  "readback": {
+    "manifests": true,
+    "skill": true,
+    "production_reference": true,
+    "app_connection_preserved": true,
+    "unrelated_file_inventory_preserved": true,
+    "files_verified": 5,
+    "files_in_release": 14
+  },
+  "client": {
+    "refresh_tools_completed": true,
+    "imported_tools_verified": ["get_landing_content", "get_component_generation_context", "get_pdp_completion_report", "save_landing_content"],
+    "new_conversation": {
+      "url": "https://chatgpt.com/c/6acd8ddd-807c-83ea-b08a-4a059462b11c",
+      "skill_version_reported": "1.7.20",
+      "tools_reported_ok": ["get_landing_content", "get_component_generation_context", "get_pdp_completion_report"],
+      "tool_activity_observed": "Crafted and audited Shopify shipping timeline components",
+      "optional_fields_reported": true,
+      "existing_shipping_component_reported_complete": true,
+      "product_revision": 96,
+      "scope": "read-only"
+    }
+  },
+  "server": {
+    "authenticated_production_tools_list_directly_checked": false,
+    "unauthenticated_tools_list_http": 401,
+    "catalog_evidence": "Refresh tools completado; nombres y descripciones comprobados en los detalles de la conexión. Contratos recuperados por tools MCP en producción y en conversación nueva."
+  },
+  "shopify": {
+    "shop_domain": "qs060z-e7.myshopify.com",
+    "theme_id": "188903719139",
+    "update_action": "Actualizar tema desde la publicación del producto; se conserva el tema publicado",
+    "public_url": "https://datazo.cl/products/pack-2-contorno-ojos-caviar-sadoer",
+    "mobile_verified": true,
+    "width": 375,
+    "calendar_present": true,
+    "old_steps_present": false,
+    "countdown_running": true,
+    "accent": "#1f4bd8",
+    "trust_titles": ["Paga cuando recibas", "Envío sin costo"],
+    "horizontal_overflow": false
+  },
+  "validation": {
+    "targeted_tests_passed": 431,
+    "typecheck": "passed",
+    "eslint_changed_files": "passed",
+    "shopify_check": "passed; 42 advertencias preexistentes, sin errores",
+    "contracts": "regenerados y validados",
+    "browser": "9 combinaciones: 320, 375 y 960 px; accents azul, verde y amarillo; cero errores JS, desbordamientos o violaciones WCAG AA",
+    "motion": "Recorrido único de 2.6 s al entrar bajo el pliegue; reducido, editor y animación desactivada conservan el estado estático",
+    "data_path": "discovery → validación y writer vigente → serialización de publicación → paridad Liquid/React"
+  },
+  "verified_at": "2026-10-13T01:50:00Z",
+  "limits": [
+    "tools/list HTTP directo requiere OAuth y respondió 401 sin credenciales. No se extrajeron credenciales del navegador; se verificó el catálogo importado tras Refresh tools y llamadas de lectura en una sesión nueva."
+  ]
+}
