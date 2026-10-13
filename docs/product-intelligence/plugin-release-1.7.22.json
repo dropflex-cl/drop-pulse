@@ -1,0 +1,72 @@
+{
+  "version": "1.7.22",
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acdae4dc4ec8191bc103261b3bf04f8",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "68a6e86de755673536977c5fa088facd10f1d79b",
+  "price_migration_commit": "c53224e846b498b7d24416dd6dd2b6e4bcfd3b33",
+  "main_and_origin_verified": true,
+  "production": {
+    "status": "Ready",
+    "environment": "Production",
+    "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/GboUTZpJYH7F4yM2Rk1EFygCkapx",
+    "commit": "c53224e",
+    "component_context_placement_verified": true
+  },
+  "migrations": { "database_required": false, "theme_required": true },
+  "contract": {
+    "fields_changed": false,
+    "placement_changed": "Oferta, botón COD y confianza antes del ticket",
+    "confidence_source": "shop.metafields.dropflex.policies: COD y envío gratuito activos, sin copy ni fields nuevos",
+    "preview": "LISTING_SLOTS.afterTrust, marcado compartido de precio y confianza, CSS generado del tema",
+    "dispatch_visual_and_runtime_unchanged": true,
+    "price_default": "48px; migra el default heredado de 28 una vez, conserva otros tamaños personalizados",
+    "merchant_content_and_product_revision_preserved": true
+  },
+  "readback": {
+    "files_verified": 5,
+    "files_in_release": 14,
+    "manifests_and_skill_version": true,
+    "connection_and_presentation_preserved": true,
+    "unrelated_paths_preserved": true
+  },
+  "client": {
+    "refresh_tools_completed": true,
+    "imported_tools_verified": ["get_component_generation_context", "get_pdp_completion_report", "get_landing_content", "save_landing_content"],
+    "new_conversation": {
+      "url": "https://chatgpt.com/c/6acdaf19-35ec-83e9-bd45-d9e732e5051c",
+      "skill_version_reported": "1.7.22",
+      "calls_reported_ok": ["skills__list", "skills__read:optimize-product", "get_component_generation_context:shipping-timeline", "get_pdp_completion_report"],
+      "order_reported": "Título y precio, oferta y packs, botón COD, confianza, ticket",
+      "product_revision": 96,
+      "scope": "read-only"
+    }
+  },
+  "server": {
+    "authenticated_tools_list_http_directly_checked": false,
+    "catalog_evidence": "Refresh tools completo, nombres y descripciones importados comprobados, contexto de producción invocable y sesión nueva comprobada"
+  },
+  "shopify": {
+    "url": "https://datazo.cl/products/pack-2-contorno-ojos-caviar-sadoer",
+    "theme_id": "188903719139",
+    "button_before_confidence_before_ticket_verified": true,
+    "price_48px_verified": true,
+    "kit_version": "4a27096b0b",
+    "widths_verified": [320, 375, 1280],
+    "overflow": false,
+    "ticket_and_seconds_preserved": true,
+    "cod_form_opens": true,
+    "test_order_submitted": false
+  },
+  "verified_at": "2026-10-13T04:15:00Z",
+  "validation": {
+    "targeted_tests": 254,
+    "additional_migration_checks": 34,
+    "typecheck": "passed",
+    "eslint": "passed",
+    "theme_check": "passed; 42 advertencias preexistentes sin errores",
+    "contracts": "regenerados y validados, sin nuevos campos",
+    "skill_validator": "passed",
+    "browser": "320/375/960 px, accents azul/verde/amarillo: sin overflow, errores JS ni violaciones WCAG AA; precio dinámico al elegir pack y sin ahorro probado"
+  }
+}
