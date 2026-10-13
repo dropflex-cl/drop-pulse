@@ -12,3 +12,7 @@ usa `gift_title` o «Guía de [producto]», `gift_cover` o un ícono de regalo, 
 La tarjeta y su ubicación son permanentes. Los textos históricos de IA no determinan el regalo
 ni las políticas. Configuración y entrega por confirmación del pedido:
 [`docs/shopify-purchase-supports.md`](../../../../docs/shopify-purchase-supports.md).
+
+## Presentación compacta junto al despacho
+
+La UI muestra las dos condiciones como una fila de íconos y títulos, sin fondo, borde ni relleno de tarjetas. Cada título abre su descripción con `details`/`summary` nativos y un área táctil de 44 px. Los textos completos, tokens, políticas y variantes siguen guardados y disponibles; no se cambia el contrato de datos. Los íconos usan el accent del producto con `df-accent-vars`. Liquid y React conservan el mismo marcado.

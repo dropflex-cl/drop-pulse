@@ -29,10 +29,11 @@ export const TS_OUT = join(ROOT, "lib", "store-preview", "theme.generated.ts");
 const THEME = join(ROOT, "lib", "shopify", "themes", "DropPulse");
 
 export function storeAssets(): { path: string; bytes: Buffer }[] {
-  return ["df-geist-400.woff2", "df-geist-500.woff2", "df-geist-600.woff2", "df-google-logo.svg"].map(name => ({
+  return [...["df-geist-400.woff2", "df-geist-500.woff2", "df-geist-600.woff2", "df-google-logo.svg"].map(name => ({
     path: join(ROOT, "public", "store-preview", name),
     bytes: readFileSync(join(COMPONENTS, "_landing", "assets", name)),
-  }));
+  })), { path: join(ROOT, "public", "store-preview", "df-shipping-timeline.js"),
+    bytes: readFileSync(join(COMPONENTS, "shipping-timeline", "assets", "df-shipping-timeline.js")) }];
 }
 
 /** Valores de la tienda instalada; no usar los tokens de la app ni los fallbacks portables. */

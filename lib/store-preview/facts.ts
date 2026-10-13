@@ -78,6 +78,8 @@ export interface StoreFacts {
     saturdayDispatch?: boolean;
     saturdayDelivery?: boolean;
     businessDaysOnly?: boolean;
+    timezone?: string;
+    holidays?: string[];
     /** Ciudad del tránsito y días extra a regiones (Ajustes › Envíos). */
     city?: string | null;
     extra?: number;

@@ -1,73 +1,36 @@
-# shipping-timeline — Envío
+# shipping-timeline — Despacho y entrega
 
-Bloque de la columna del producto: una línea «Pide dentro de 3 h 05 min y sale hoy» y tres hitos (Pedido → Despachado → Entregado) con fechas reales, unidos por una línea: sólida en el acento hasta el despacho y punteada hasta la entrega. Archivo: `blocks/df-shipping-timeline.liquid` + `assets/df-shipping-timeline.js`. Contrato: [`content.ts`](content.ts).
+Tarjeta gráfica bajo el botón de compra: contador grande del próximo corte, llegada estimada junto a un calendario y recorrido ilustrativo del camión hasta una casa. Reemplaza los tres hitos. Colores derivados exclusivamente de `--df-accent`, `--df-accent-ink`, `--df-on-accent` y `--df-accent-soft`; la línea mezcla el accent con el fondo. Los ajustes antiguos `time_color` e `icon_style` siguen en el schema por compatibilidad, pero no sustituyen el accent.
 
-## Dónde va y por qué
+## Contenido vigente y compatibilidad
 
-Bajo el botón de compra. Es el reaseguro para quien duda con el dedo sobre el botón: convierte «envío rápido» en fechas concretas y suma un plazo de corte real («si pides dentro de…»). Complementa a `inventory` (entre precio y botón), que ya dice el plazo en días.
+Contrato canónico: [content.ts](content.ts). Los nuevos campos son opcionales:
 
-## Anatomía
+- `countdown_label`: etiqueta sobre el contador, 3–40 caracteres.
+- `arrival_template`: 12–60 caracteres; incluye `{arrive}` y usa «desde» para indicar la primera fecha posible.
+- `cutoff_template`: 12–60 caracteres; incluye `{cutoff}`, día y hora locales del próximo corte.
+- `dispatch_template`: 12–60 caracteres; incluye `{ship}` para el despacho estimado.
 
-Igual en móvil y escritorio:
+Todos rechazan cifras escritas y tokens ajenos a su campo. Fechas, cifras del contador y calendario se calculan con la logística; la IA no los inventa. Defaults del bloque: «El próximo despacho cierra en», «Recíbelo desde {arrive}», «Confirma antes de {cutoff}», «Despacho estimado: {ship}».
 
-1. **Título** (opcional), centrado, 14 px: el tiempo en negrita con el acento del producto (o verde, ajuste). Se reserva su línea hasta que el JS lo llena.
-2. **Tres hitos** en una grilla de 3 columnas (`<ol>`): círculo de 56 px (60 px en escritorio) con ícono de línea (`cart`, `truck`, `package`) o imagen propia; etiqueta 13 px semibold; subtexto 12 px atenuado (hito 1: «Hoy»; hito 2: día de despacho; hito 3: rango de entrega y, opcional, una nota como «pagas al recibir»).
-3. **Conector** detrás de los círculos, del centro del primero al centro del último: punteado, con el tramo Pedido → Despachado sólido en el acento (lo que ya está en marcha). Con «Línea animada», ese tramo se dibuja una vez al entrar en pantalla (600 ms) y el hito 2 hace un pequeño pop; después queda quieto.
+`countdown_template`, `closed_template` y los campos `node_*` se conservan para clientes y contenido anterior. No se recuperan variantes descartadas, selecciones, archivos o secciones ocultas. La frase legacy se conserva como texto accesible; las tres columnas dejan de mostrarse. La nota de pago `node_delivered_sub_suffix` permanece guardada, pero el reaseguro lo presenta `benefit-double-box`, sin duplicación visual.
 
-Círculos neutros (`--df-surface`) o con el acento suave (`--df-accent-soft` + `--df-accent-ink`).
+El contrato se descubre desde `get_component_catalog`, `get_landing_content` y `get_component_generation_context`; `save_landing_content` valida y persiste el mismo contenido vigente. `get_pdp_completion_report` mantiene completos los contenidos anteriores porque los nuevos campos son opcionales. El payload `dropflex.shipping_timeline` y la vista previa leen esa misma variante.
 
-## Datos
+## Datos reales
 
-| Origen | Qué |
-|---|---|
-| Metafield `dropflex.shipping_timeline` (IA) | `countdown_template`, `closed_template?`, `node_ordered_label`, `node_ordered_sub`, `node_shipped_label`, `node_delivered_label`, `node_delivered_sub_suffix?` |
-| Ajustes del bloque | los mismos textos como respaldo (campo a campo); logística de respaldo; mostrar contador, fecha del hito 2, formato de fecha, color del contador, estilo de círculos, íconos propios, línea animada, márgenes |
-| `shop.metafields.dropflex.logistics` (real) | `handling_days`, `transit_days_min`, `transit_days_max`, `cutoff_hour`, `timezone`, `business_days_only`, `saturday_delivery`, `holidays` |
-| Navegador (real) | la hora actual, convertida a la zona de la tienda |
+`shop.metafields.dropflex.logistics`: preparación, tránsito mínimo y máximo, corte, zona IANA, feriados, días hábiles, despacho y reparto en sábado, ciudad principal, tránsito máximo de esa ciudad y días extra a regiones. Publicar requiere logística completa; no se sustituyen datos operativos con el ejemplo del editor.
 
-Tokens: `{time}` (tiempo hasta el corte, «3 h 05 min»), `{arrive}` (primer día de entrega en la ciudad principal, con artículo: «mañana», «el martes») y `{ship}` (día de despacho: «hoy», «mañana», «el viernes», «el 26 sept»). El título habla de la llegada: a quien compra le importa cuándo lo tiene, no cuándo sale; «despachamos el martes» sonaba lejano aunque llegara el miércoles.
+El reloj del navegador se convierte a la zona de la tienda. El algoritmo usa días de calendario, salta días de cierre y feriados y resuelve DST al convertir el corte en un instante. Pasado el corte, recalcula el siguiente día operativo, despacho y entrega. No promete que el retraso sea siempre un día natural.
 
-## Comportamiento
+`{time}` expresa tiempo restante; `{arrive}` primera llegada posible con artículo; `{ship}` despacho estimado; `{cutoff}` día y hora del cierre de pedidos. Con corte cero, el plazo se indica como medianoche del siguiente día. Rangos y etiquetas de destinos siguen visibles: el calendario principal no representa una fecha universal para regiones. El componente no lee una dirección del formulario ni inventa una geolocalización.
 
-- **Todo se calcula en el navegador** (la página puede venir cacheada). Liquid deja la logística en un `<script type="application/json">` y un texto sin JS («2 a 6 días hábiles») que el JS reemplaza por fechas.
-- **Fechas de calendario, no timestamps:** cada día es un entero; sumar uno es «mañana» aunque ese día cambie el horario (Chile cambia en abril y septiembre). Solo la cuenta regresiva convierte día + hora de la tienda a un instante, resolviendo la hora inexistente del cambio de horario.
-- **Algoritmo** (funciones puras al inicio del JS):
-  - día del pedido = hoy; pasado el corte, mañana; y luego el siguiente día hábil (sin feriados y, en modo hábil, sin fin de semana).
-  - despacho = pedido + días de preparación hábiles (0 = el mismo día).
-  - entrega = despacho + tránsito mínimo … despacho + tránsito máximo, contando días de reparto (nunca domingo ni feriado; sábado solo si el courier reparte). Un solo modelo, sin el «colchón» doble de la referencia.
-  - corte = la hora de corte del día del pedido; con corte 0, la medianoche que lo cierra.
-- **Cuenta regresiva viva**, refrescada al cambio de cada minuto (no cada segundo) y al volver a la pestaña; al vencer recalcula: el despacho pasa al siguiente día hábil. Solo se muestra si el corte llega dentro de 24 h; si no (fin de semana, feriado, pasado el corte del viernes) usa el texto sin contador («Pide hoy y lo despachamos el lunes») o se oculta. Nunca un contador sin corte real.
-- Fechas en el idioma de la tienda (`es-CL`): «hoy», «mañana», el día de la semana si cae esta semana (o siempre día y mes, ajuste), rangos «30 de sept al 3 de oct».
-- Accesibilidad: `<ol>` de tres `<li>`, íconos `aria-hidden`, textos de 12 px o más; el contador no está en `aria-live` (cambiaría cada minuto) y un resumen oculto dice «Entrega estimada entre el 30 de septiembre y el 3 de octubre». La cifra del contador hace un fundido corto al cambiar el minuto. `prefers-reduced-motion` y el ajuste «Animaciones de DropFlex» dejan la línea dibujada y quieta ([`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)).
-- Varias instancias: cada una lee solo su propio JSON. Sin fetch ni dependencias.
+Cuenta regresiva solo si existe plantilla con `{time}` y faltan hasta 24 horas. Fuera de esa ventana se conserva el calendario y los rangos sin urgencia. Se actualiza cada minuto, al vencer el corte y al volver a la pestaña. No hay conteo por segundo ni reinicio artificial. Sin JS se muestran plazos operativos y el contador queda oculto.
 
-## Psicología de venta
+## Movimiento y accesibilidad
 
-- **Objeción:** «¿cuándo me llega?» (la primera en pago contra entrega, por el miedo a esperas de semanas) y «lo compro después».
-- **Especificidad y *future pacing*:** una fecha concreta hace imaginar el día en que se tiene el producto.
-- **Urgencia legítima:** el corte es real; pedir después cuesta un día. Aversión a la pérdida sin mentir.
-- **Fluidez:** tres pasos e íconos universales, un vistazo.
-- **Proceso visible:** el tramo que se dibuja hasta el despacho señala una operación profesional y baja el riesgo percibido de una tienda desconocida.
-- **Compromiso:** «Pedido · Hoy» ya pone al comprador en el paso 1.
+Un recorrido de 2,6 s derivado de tokens (`reveal × 5 + base`): camión (`translate`), línea (`scale`), check (`scale`) y calendario (`translate`). Una vez al estar al 50 % visible, solo si estaba bajo el pliegue. No representa un pedido ya hecho ni tracking. Se detiene con hover, foco, pestaña oculta, salida de pantalla, resize y desconexión. Movimiento reducido, tema con `df_motion=off` y editor dejan el estado estático. Ningún bucle, dependencia o solicitud de red.
 
-La referencia calculaba una sola vez (el contador no avanzaba), con la hora del navegador en vez de la de la tienda, fechas en inglés, sin feriados, con un nombre de ajuste invertido para los fines de semana y un «colchón» sumado dos veces. Aquí: hora de la tienda, contador vivo, feriados y días hábiles, un solo modelo de plazos.
+Calendario y dibujo son decorativos; el titular, corte y rangos contienen la misma información como texto. El contador no tiene `aria-live` para evitar anuncios cada minuto. Texto mínimo de 12 px y accent con el contraste que proporciona `df-accent-vars`.
 
-## Reglas del copy (IA)
-
-- `countdown_template`: «[verbo imperativo] dentro de {time} y recíbelo desde {arrive}», ≤ 50 caracteres, `{time}` obligatorio. `{arrive}` siempre con «desde» (es el primer día posible). `{ship}` solo como dato secundario.
-- `closed_template`: invitación sin urgencia con `{arrive}`, ≤ 50.
-- Etiquetas: 1-2 palabras en secuencia (≤ 12; el hito 3 ≤ 14). `node_delivered_sub_suffix` (≤ 20): refuerzo del pago contra entrega, solo si está activo.
-- Tuteo, sin emojis, sin exclamaciones en las etiquetas.
-
-## Despacho los sábados y plazo de regiones
-
-Ajustes › Envíos y políticas, publicado en `dropflex.logistics`:
-
-- **`saturday_dispatch`:** con «solo días hábiles», el sábado cuenta para preparar y despachar; el domingo nunca. Pedido antes del corte (ej.: 9 h) con 0 días de preparación: sale el mismo día; después, el siguiente día de despacho.
-- **`main_city` + `regions_extra_days`:** el tránsito rige en esa ciudad y el resto del país suma esos días de entrega. El hito «En tu puerta» muestra dos fechas: «Santiago: 26 sept» y «Regiones: 29 – 30 sept» (texto del ajuste `regions_label`). `transit_days_max` ya viene con el plazo de regiones, así que los demás componentes («llega en {min} a {max} días») son verdad en todo el país; la línea de tiempo usa `main_city_transit_max` para la ciudad.
-
-## Configuración obligatoria
-
-La entrega es un apoyo permanente: no se puede desactivar desde DropFlex y las exclusiones antiguas no la ocultan. Preparación, tránsito mínimo y máximo y hora de corte son obligatorios en Ajustes › Envíos y políticas. Publicar exige la logística completa; no se inventan plazos a partir del perfil de ejemplo del editor.
-
-Si falta texto aprobado o el contenido está marcado como vacío, el bloque usa sus textos de respaldo y calcula las fechas con la logística real. La vista previa aplica el mismo requisito. El componente no lee la dirección del formulario de compra.
+React usa el mismo marcado/CSS y carga el asset canónico del reloj y la animación desde `/store-preview/df-shipping-timeline.js`, copiado por `npm run shopify:components`. La logística del preview conserva zona horaria y feriados del payload efectivo.

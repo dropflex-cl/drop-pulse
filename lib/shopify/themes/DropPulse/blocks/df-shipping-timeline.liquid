@@ -23,166 +23,47 @@
 
 {% stylesheet %}
   .df-shipping-timeline {
-    --df-st-circle: 56px;
-    --df-st-time: var(--df-accent-ink);
+    --df-st-scene: var(--df-accent-soft);
+    --df-st-track: color-mix(in srgb, var(--df-accent) 24%, var(--df-bg));
+    --df-st-duration: calc(var(--df-dur-reveal) * 5 + var(--df-dur-base));
     display: grid;
-    gap: 16px;
-  }
-
-  .df-shipping-timeline--time-positive {
-    --df-st-time: var(--df-positive);
-  }
-
-  .df-shipping-timeline__title {
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    text-align: center;
-    text-wrap: balance;
-  }
-
-  .df-shipping-timeline__title[data-pending] {
-    visibility: hidden;
-  }
-
-  .df-shipping-timeline__title[hidden] {
-    display: none;
-  }
-
-  .df-shipping-timeline__time {
-    color: var(--df-st-time);
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .df-shipping-timeline__steps {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  /* Conector punteado entre el centro del primer y del último círculo, detrás de ellos. */
-  .df-shipping-timeline__steps::before {
-    content: '';
-    position: absolute;
-    top: calc(var(--df-st-circle) / 2 - 1px);
-    left: calc(100% / 6);
-    right: calc(100% / 6);
-    height: 2px;
-    background: linear-gradient(90deg, var(--df-muted) 50%, transparent 0) 0 0 / 12px 2px repeat-x;
-    opacity: 0.6;
-  }
-
-  /* «Línea animada»: el tramo Pedido → Despachado va en el acento, sólido (lo que ya está en marcha)
-     y el resto punteado (lo que falta). df-shipping-timeline.js lo dibuja una sola vez al entrar en
-     pantalla y el hito 2 hace un pequeño pop; después todo queda quieto (nunca un bucle). Sin JS o
-     con movimiento reducido se ve el estado final. */
-  .df-shipping-timeline--animate .df-shipping-timeline__steps::after {
-    content: '';
-    position: absolute;
-    top: calc(var(--df-st-circle) / 2 - 1px);
-    left: calc(100% / 6);
-    width: calc(100% / 3);
-    height: 2px;
-    border-radius: 1px;
-    background: var(--df-accent);
-    transform-origin: left center;
-  }
-
-  .df-shipping-timeline--animate.is-armed .df-shipping-timeline__steps::after {
-    transform: scaleX(0);
-  }
-
-  .df-shipping-timeline--animate.is-run .df-shipping-timeline__steps::after {
-    transform: scaleX(1);
-    transition: transform 600ms var(--df-ease-standard, cubic-bezier(0.2, 0, 0, 1));
-  }
-
-  .df-shipping-timeline--animate.is-run .df-shipping-timeline__step:nth-child(2) .df-shipping-timeline__circle {
-    animation: df-shipping-timeline-pop 240ms var(--df-ease-enter, cubic-bezier(0, 0, 0, 1)) 560ms backwards;
-  }
-
-  @keyframes df-shipping-timeline-pop {
-    from { transform: scale(0.88); }
-  }
-
-  .df-shipping-timeline__step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
+    gap: var(--df-gap);
     min-width: 0;
-    text-align: center;
   }
-
-  .df-shipping-timeline__circle {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    place-items: center;
-    width: var(--df-st-circle);
-    height: var(--df-st-circle);
-    margin-bottom: 6px;
-    border-radius: 50%;
-    background: var(--df-surface);
-    color: var(--df-fg);
+  .df-shipping-timeline [hidden] { display: none; }
+  .df-shipping-timeline__countdown[data-pending] { display: none; }
+  .df-shipping-timeline p { margin: 0; }
+  .df-shipping-timeline__eyebrow {
+    display: flex; align-items: center; gap: calc(var(--df-gap) / 2);
+    font-size: .875rem; line-height: 1.4; color: var(--df-muted);
   }
-
-  .df-shipping-timeline--icons-accent .df-shipping-timeline__circle {
-    background: var(--df-accent-soft);
-    color: var(--df-accent-ink);
-  }
-
-  .df-shipping-timeline__circle .df-icon {
-    width: 26px;
-    height: 26px;
-  }
-
-  .df-shipping-timeline__img {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-  }
-
-  .df-shipping-timeline__label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-  }
-
-  .df-shipping-timeline__sub {
-    font-size: 0.75rem;
-    line-height: 1.35;
-    color: var(--df-muted);
-    text-wrap: balance;
-  }
-
-  .df-shipping-timeline__suffix {
-    color: var(--df-fg);
-    font-weight: 500;
-  }
-
-  @media (min-width: 750px) {
-    .df-shipping-timeline {
-      --df-st-circle: 60px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .df-shipping-timeline--animate.is-armed .df-shipping-timeline__steps::after {
-      transform: none;
-    }
-
-    .df-shipping-timeline--animate.is-run .df-shipping-timeline__step:nth-child(2) .df-shipping-timeline__circle {
-      animation: none;
-    }
-  }
+  .df-shipping-timeline__eyebrow .df-icon { width: 18px; height: 18px; color: var(--df-accent-ink); }
+  .df-shipping-timeline__countdown { display: grid; gap: calc(var(--df-gap) / 2); }
+  .df-shipping-timeline__clock { display: flex; align-items: baseline; gap: calc(var(--df-gap) / 2); }
+  .df-shipping-timeline__unit { display: inline-flex; align-items: baseline; gap: calc(var(--df-gap) / 3); }
+  .df-shipping-timeline__unit strong { font-size: 2.5rem; line-height: 1.1; font-weight: 700; letter-spacing: -.025em; font-variant-numeric: tabular-nums; color: var(--df-accent-ink); }
+  .df-shipping-timeline__unit > span { font-size: .875rem; color: var(--df-muted); }
+  .df-shipping-timeline__colon { font-size: 1.75rem; color: var(--df-st-track); }
+  .df-shipping-timeline__cutoff { font-size: .875rem; line-height: 1.4; color: var(--df-muted); }
+  .df-shipping-timeline__scene { padding: var(--df-gap); border-radius: var(--df-radius-lg); background: var(--df-st-scene); }
+  .df-shipping-timeline__scene-head { display: flex; justify-content: space-between; align-items: center; gap: var(--df-gap); }
+  .df-shipping-timeline__arrival { min-width: 0; }
+  .df-shipping-timeline__headline { margin: calc(var(--df-gap) / 3) 0 0; font-family: var(--df-font-heading); font-size: 1.5rem; font-weight: var(--df-font-heading-weight); line-height: 1.15; letter-spacing: -.02em; overflow-wrap: anywhere; color: var(--df-fg); }
+  .df-shipping-timeline__calendar { flex: none; display: grid; width: 80px; background: var(--df-bg); color: var(--df-fg); border-radius: var(--df-radius-sm); overflow: hidden; text-align: center; }
+  .df-shipping-timeline__calendar-top { padding: calc(var(--df-gap) / 3); background: var(--df-accent); color: var(--df-on-accent); font-size: .75rem; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
+  .df-shipping-timeline__calendar strong { padding-top: calc(var(--df-gap) / 3); font-size: 2.5rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .df-shipping-timeline__calendar-month { padding-bottom: calc(var(--df-gap) / 2); font-size: .75rem; line-height: 1.4; text-transform: uppercase; color: var(--df-muted); }
+  .df-shipping-timeline__route { position: relative; height: 72px; margin-top: var(--df-gap); animation-duration: var(--df-st-duration); transition-timing-function: var(--df-ease-standard); }
+  .df-shipping-timeline__rail { position: absolute; inset-inline: 8px 24px; top: 48px; height: 3px; background: var(--df-st-track); border-radius: var(--df-radius-pill); }
+  .df-shipping-timeline__rail-fill { position: absolute; inset: 0; border-radius: inherit; background: var(--df-accent); transform-origin: left center; }
+  .df-shipping-timeline__truck { position: absolute; inset-inline-start: 0; top: 16px; display: grid; place-items: center; width: 44px; height: 36px; color: var(--df-accent-ink); background: var(--df-st-scene); translate: var(--df-st-travel, 0px) 0; }
+  .df-shipping-timeline__truck .df-icon, .df-shipping-timeline__home .df-icon, .df-shipping-timeline__img { width: 36px; height: 36px; object-fit: contain; }
+  .df-shipping-timeline__home { position: absolute; inset-inline-end: 0; top: 8px; color: var(--df-accent-ink); background: var(--df-st-scene); }
+  .df-shipping-timeline__check { position: absolute; inset-inline-end: 7px; bottom: 0; display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--df-radius-pill); background: var(--df-accent); color: var(--df-on-accent); }
+  .df-shipping-timeline__check .df-icon { width: 14px; height: 14px; }
+  .df-shipping-timeline__dispatch { font-size: .75rem; line-height: 1.4; color: var(--df-muted); }
+  .df-shipping-timeline__destinations { display: grid; gap: calc(var(--df-gap) / 3); margin-top: var(--df-gap); }
+  .df-shipping-timeline__destination { font-size: .875rem; line-height: 1.4; color: var(--df-fg); }
 {% endstylesheet %}
 
 {% schema %}
@@ -198,6 +79,10 @@
       "type": "header",
       "content": "Textos"
     },
+    { "type": "text", "id": "countdown_label", "label": "Etiqueta del contador", "default": "El próximo despacho cierra en" },
+    { "type": "text", "id": "arrival_text", "label": "Titular de entrega", "default": "Recíbelo desde {arrive}", "info": "{arrive} se calcula con la logística real." },
+    { "type": "text", "id": "cutoff_text", "label": "Confirmación antes del corte", "default": "Confirma antes de {cutoff}", "info": "{cutoff} incluye el día y la hora locales." },
+    { "type": "text", "id": "dispatch_text", "label": "Despacho estimado", "default": "Despacho estimado: {ship}" },
     {
       "type": "text",
       "id": "countdown_text",
@@ -408,8 +293,8 @@
     {
       "type": "checkbox",
       "id": "animate_line",
-      "label": "Línea animada",
-      "info": "El tramo hasta el despacho se dibuja una vez, al aparecer en pantalla.",
+      "label": "Recorrido animado",
+      "info": "Camión, recorrido y calendario se animan una vez al entrar en pantalla. No representa seguimiento de un pedido.",
       "default": true
     },
     {

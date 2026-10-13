@@ -42,7 +42,7 @@ export const benefitDoubleBox = defineComponent({
     "Reversión de riesgo: el cambio o la garantía traslada el riesgo del comprador a la tienda.",
     "Pago diferido: pagar al recibir reduce el dolor de pagar y la desconfianza hacia una tienda nueva.",
     "Autoridad prestada: los logos reales de medios de pago transfieren confianza (solo si están activos).",
-    "Formato sello: dos tarjetas gemelas se leen como garantías formales, más que una lista.",
+    "Reaseguro compacto: dos garantías con ícono y título; el comprador puede desplegar cómo funciona cada una.",
     "Cobertura completa: pago (antes de la compra) + cambio (después) cubren todo el recorrido.",
   ],
   content: z.object({
@@ -56,6 +56,7 @@ export const benefitDoubleBox = defineComponent({
   ],
   rules: [
     "Título = el hecho (qué); descripción = cómo te protege (por qué). La descripción no repite el título.",
+    "Los títulos forman una fila compacta bajo la entrega; la descripción se muestra al desplegar cada garantía. El título debe entenderse sin abrirla.",
     "Tono calmado y seguro, tuteo, sin exclamaciones ni emojis.",
     "Nombres de marcas de pago (Mercado Pago, Webpay) solo si están activos en la tienda.",
     "No repetir lo que dice benefit-usps (sobre el botón): aquí pago y garantía, allá envío, origen y soporte.",

@@ -103,6 +103,19 @@ describe("vistas previas de los componentes", () => {
             expect(html).not.toContain("vendidos esta semana");
             continue;
           }
+          if (c.id === "shipping-timeline") {
+            const document = parseHTML(html).document;
+            expect(document.querySelector(".df-shipping-timeline__calendar")).not.toBeNull();
+            expect(document.querySelector(".df-shipping-timeline__truck")).not.toBeNull();
+            expect(document.querySelector(".df-shipping-timeline__steps")).toBeNull();
+            const texts = JSON.parse(document.querySelector("[data-df-texts]")!.textContent);
+            const native = example as { countdown_template: string; arrival_template?: string; cutoff_template?: string; dispatch_template?: string };
+            expect(texts.countdown).toBe(native.countdown_template);
+            expect(texts.arrival).toBe(native.arrival_template ?? "Recíbelo desde {arrive}");
+            expect(texts.cutoff).toBe(native.cutoff_template ?? "Confirma antes de {cutoff}");
+            expect(texts.dispatch).toBe(native.dispatch_template ?? "Despacho estimado: {ship}");
+            continue;
+          }
           if (c.id === "review-slider") {
             for (const item of (example as { items: { review_id: string; excerpt: string }[] }).items) {
               if (MANY_REVIEWS.reviews.some(r => r.id === item.review_id)) expect(html).toContain(escape(item.excerpt));

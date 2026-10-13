@@ -19,7 +19,7 @@ export function previewFacts(input: PublishInput, urls: Record<string, string>, 
       return_days: policies?.return_days, warranty_months: policies?.warranty_months, whatsapp: policies?.whatsapp },
     logistics: logistics ? { min: logistics.handling_days + logistics.transit_days_min, max: logistics.handling_days + logistics.transit_days_max,
       handling: logistics.handling_days, cutoff: logistics.cutoff_hour, saturdayDispatch: logistics.saturday_dispatch,
-      saturdayDelivery: logistics.saturday_delivery, businessDaysOnly: logistics.business_days_only, city: logistics.main_city ?? null, extra: logistics.regions_extra_days ?? 0 } : null,
+      saturdayDelivery: logistics.saturday_delivery, businessDaysOnly: logistics.business_days_only, timezone: logistics.timezone, holidays: logistics.holidays, city: logistics.main_city ?? null, extra: logistics.regions_extra_days ?? 0 } : null,
     gifs: (input.components.find(c => c.id === "gif-strip")?.images.gifs ?? []).flatMap(key => urls[key] ? [urls[key]] : []),
   };
 }

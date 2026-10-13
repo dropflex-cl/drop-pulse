@@ -3,6 +3,7 @@ import { EXAMPLE, fill } from "@/lib/store-preview/facts";
 import { px, settingsOf } from "@/lib/store-preview/settings";
 import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
+import { ShippingTimelineRuntime } from "./shipping-timeline-runtime";
 
 // blocks/df-shipping-timeline.liquid como queda después de assets/df-shipping-timeline.js, en el
 // estado con cuenta regresiva: se simula que faltan EXAMPLE.time para el corte del próximo día
@@ -10,6 +11,10 @@ import type { PreviewProps } from "./types";
 // el JS. Los plazos salen de facts.logistics; sin logística completa no se calculan fechas.
 
 interface Content {
+  countdown_label?: string;
+  arrival_template?: string;
+  cutoff_template?: string;
+  dispatch_template?: string;
   countdown_template?: string;
   closed_template?: string;
   node_ordered_label?: string;
@@ -70,12 +75,9 @@ export function ShippingTimelinePreview({
   content = content ?? {};
 
   const tOrdered = content.node_ordered_label || String(s.ordered_label ?? "");
-  const tOrderedSub = content.node_ordered_sub || String(s.ordered_sub ?? "");
   const tShipped = content.node_shipped_label || String(s.shipped_label ?? "");
   const tDelivered =
     content.node_delivered_label || String(s.delivered_label ?? "");
-  const tSuffix =
-    content.node_delivered_sub_suffix || String(s.delivered_suffix ?? "");
   let tCountdown =
     s.show_countdown === false
       ? ""
@@ -110,15 +112,16 @@ export function ShippingTimelinePreview({
     : s.saturday_dispatch === true;
 
   // Calendario del JS (sin feriados: la vista previa no los conoce).
+  const holidays = new Set((L.holidays ?? []).map(date => Date.parse(`${date}T00:00:00Z`) / DAY));
   const weekday = (d: number) => new Date(d * DAY).getUTCDay();
   const work = (d: number) =>
-    !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || shipSat));
+    !holidays.has(d) && (!biz || (weekday(d) !== 0 && (weekday(d) !== 6 || shipSat)));
   const deliver = (d: number) =>
-    !biz || (weekday(d) !== 0 && (weekday(d) !== 6 || sat));
+    !holidays.has(d) && (!biz || (weekday(d) !== 0 && (weekday(d) !== 6 || sat)));
 
   // «Hoy» simulado: el próximo día de despacho, antes del corte (así hay cuenta regresiva).
   const today = nextMatching(
-    todayIn(String(s.timezone || "America/Santiago")),
+    todayIn(L.timezone || String(s.timezone || "America/Santiago")),
     work,
   );
   const ship = addDays(today, handling, work);
@@ -172,83 +175,59 @@ export function ShippingTimelinePreview({
     .replaceAll("{arrive}", inSentence(from))
     .split("{time}");
 
+  const arrivalTemplate = content.arrival_template || String(s.arrival_text || "Recíbelo desde {arrive}");
+  const dispatchTemplate = content.dispatch_template || String(s.dispatch_text || "Despacho estimado: {ship}");
+  const cutoffTemplate = content.cutoff_template || String(s.cutoff_text || "Confirma antes de {cutoff}");
+  const cutoffTime = dtf({ hour: "numeric", minute: "2-digit", hourCycle: "h23" }).format(new Date((L.cutoff ?? 0) * 36e5));
+  const config = { cutoff: L.cutoff, handling, tmin, tmax, biz, sat, shipSat, extra, city: city || "", holidays: L.holidays ?? [],
+    tz: L.timezone || String(s.timezone || "America/Santiago"), locale: LOCALE, format: s.date_format };
+  const texts = { countdown: tCountdown, closed: tClosed, arrival: arrivalTemplate, cutoff: cutoffTemplate, dispatch: dispatchTemplate,
+    summary_range: "Entrega estimada entre el {from} y el {to}", summary_single: "Entrega estimada el {from}", regions: regionsLabel };
+  const json = (value: unknown) => JSON.stringify(value).replaceAll("<", "\\u003c");
+
   return (
+    <>
     <df-shipping-timeline
-      className={`df df-shipping-timeline df-shipping-timeline--icons-${s.icon_style} df-shipping-timeline--time-${s.time_color}${s.animate_line ? " df-shipping-timeline--animate" : ""}`}
-      style={
-        {
-          marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}`,
-        } as React.CSSProperties
-      }
+      key={json({ config, texts })}
+      className={`df df-shipping-timeline${s.animate_line ? " df-shipping-timeline--animate" : ""}`}
+      style={{ marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}
     >
-      {template ? (
-        <p className="df-shipping-timeline__title" data-df-title="">
-          {fill(before, facts)}
-          {counting ? (
-            <>
-              <strong className="df-shipping-timeline__time">
-                {EXAMPLE.time}
-              </strong>
-              {fill(after, facts)}
-            </>
-          ) : null}
+      {template ? <p className="df-visually-hidden" data-df-title="">{fill(before, facts)}{counting ? <><strong className="df-shipping-timeline__time">{EXAMPLE.time}</strong>{fill(after, facts)}</> : null}</p> : null}
+      <div className="df-shipping-timeline__countdown" data-df-countdown="" data-pending="">
+        <p className="df-shipping-timeline__eyebrow"><DfIcon name="clock" /> {content.countdown_label || String(s.countdown_label || "El próximo despacho cierra en")}</p>
+        <p className="df-shipping-timeline__clock" data-df-clock="">
+          <span className="df-shipping-timeline__unit"><strong data-df-hours="">—</strong><span>horas</span></span>
+          <span className="df-shipping-timeline__colon" aria-hidden="true">:</span>
+          <span className="df-shipping-timeline__unit"><strong data-df-minutes="">—</strong><span>minutos</span></span>
         </p>
-      ) : null}
-
-      <ol className="df-shipping-timeline__steps">
-        <li className="df-shipping-timeline__step">
-          <span className="df-shipping-timeline__circle">
-            <DfIcon name="cart" />
-          </span>
-          <span className="df-shipping-timeline__label">
-            {fill(tOrdered, facts)}
-          </span>
-          <span className="df-shipping-timeline__sub">
-            {fill(tOrderedSub, facts)}
-          </span>
-        </li>
-        <li className="df-shipping-timeline__step">
-          <span className="df-shipping-timeline__circle">
-            <DfIcon name="truck" />
-          </span>
-          <span className="df-shipping-timeline__label">
-            {fill(tShipped, facts)}
-          </span>
-          {s.show_ship_date ? (
-            <span className="df-shipping-timeline__sub" data-df-ship="">
-              {capitalize(dayText(ship))}
-            </span>
-          ) : null}
-        </li>
-        <li className="df-shipping-timeline__step">
-          <span className="df-shipping-timeline__circle">
-            <DfIcon name="package" />
-          </span>
-          <span className="df-shipping-timeline__label">
-            {fill(tDelivered, facts)}
-          </span>
-          <span className="df-shipping-timeline__sub" data-df-delivery="">
-            {range}
-          </span>
-          {extra ? (
-            <span
-              className="df-shipping-timeline__sub"
-              data-df-delivery-regions=""
-            >
-              {`${regionsLabel}: ${rangeOf(regionsFrom, regionsTo)}`}
-            </span>
-          ) : null}
-          {tSuffix ? (
-            <span className="df-shipping-timeline__sub df-shipping-timeline__suffix">
-              {fill(tSuffix, facts)}
-            </span>
-          ) : null}
-        </li>
-      </ol>
-
-      <p className="df-visually-hidden" data-df-summary="">
-        {summary}
-      </p>
+        <p className="df-shipping-timeline__cutoff" data-df-cutoff="">{cutoffTemplate.replaceAll("{cutoff}", `${inSentence(today)}, ${cutoffTime}`)}</p>
+      </div>
+      <div className="df-shipping-timeline__scene">
+        <div className="df-shipping-timeline__scene-head">
+          <div className="df-shipping-timeline__arrival"><p className="df-shipping-timeline__eyebrow">Entrega estimada</p><h3 className="df-shipping-timeline__headline" data-df-arrival="">{arrivalTemplate.replaceAll("{arrive}", inSentence(from))}</h3></div>
+          <div className="df-shipping-timeline__calendar" aria-hidden="true">
+            <span className="df-shipping-timeline__calendar-top" data-df-calendar-weekday="">{fmtWeekday.format(new Date(from * DAY))}</span>
+            <strong data-df-calendar-date="">{new Date(from * DAY).getUTCDate()}</strong>
+            <span className="df-shipping-timeline__calendar-month" data-df-calendar-month="">{dtf({ month: "long" }).format(new Date(from * DAY))}</span>
+          </div>
+        </div>
+        <div className="df-shipping-timeline__route" aria-hidden="true">
+          <span className="df-shipping-timeline__rail"><span className="df-shipping-timeline__rail-fill" /></span>
+          <span className="df-shipping-timeline__truck"><DfIcon name="truck" /></span>
+          <span className="df-shipping-timeline__home"><DfIcon name="home" /></span>
+          <span className="df-shipping-timeline__check"><DfIcon name="check" /></span>
+        </div>
+        {s.show_ship_date ? <p className="df-shipping-timeline__dispatch" data-df-ship="">{dispatchTemplate.replaceAll("{ship}", inSentence(ship))}</p> : null}
+        <div className="df-shipping-timeline__destinations">
+          <p className="df-shipping-timeline__destination" data-df-delivery="">{range}</p>
+          {extra ? <p className="df-shipping-timeline__destination" data-df-delivery-regions="">{`${regionsLabel}: ${rangeOf(regionsFrom, regionsTo)}`}</p> : null}
+        </div>
+      </div>
+      <p className="df-visually-hidden" data-df-summary="">{summary}</p>
+      <script type="application/json" data-df-config="" dangerouslySetInnerHTML={{ __html: json(config) }} />
+      <script type="application/json" data-df-texts="" dangerouslySetInnerHTML={{ __html: json(texts) }} />
     </df-shipping-timeline>
+    <ShippingTimelineRuntime />
+    </>
   );
 }

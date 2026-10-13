@@ -12,5 +12,5 @@ export function BenefitDoubleBoxPreview({ content, facts }: PreviewProps<Content
       && (!text.includes("{return_days}") || (facts.policies.return_days ?? 0) > 0)
       && (!text.includes("{warranty_months}") || (facts.policies.warranty_months ?? 0) > 0);
   });
-  return cards.length ? <ul className="df df-benefit-double-box" role="list">{cards.map((c,i)=><li key={i} className="df-benefit-double-box__card"><DfIcon name={c.icon} /><strong>{fill(c.title,facts)}</strong><span>{fill(c.body,facts)}</span></li>)}</ul> : <PdpEmptyPreview component="benefit-double-box" />;
+  return cards.length ? <ul className="df df-benefit-double-box" role="list">{cards.map((c,i)=><li key={i} className="df-benefit-double-box__card"><details><summary><DfIcon name={c.icon} /><strong>{fill(c.title,facts)}</strong></summary><p>{fill(c.body,facts)}</p></details></li>)}</ul> : <PdpEmptyPreview component="benefit-double-box" />;
 }

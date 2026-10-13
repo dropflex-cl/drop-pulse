@@ -22,12 +22,19 @@ export const shippingTimeline = defineComponent({
   objection: "¿Cuándo me llega? (la duda número uno en pago contra entrega, por el miedo a esperas de semanas) y «lo pienso y compro después».",
   levers: [
     "Especificidad: fechas reales en vez de «envío rápido»; el comprador visualiza el día en que lo tiene en la mano.",
-    "Urgencia legítima: la hora de corte es real; pedir después mueve el despacho un día (aversión a perder un día, sin mentir).",
-    "Fluidez: tres pasos con íconos universales, se entiende de un vistazo.",
-    "Proceso visible: la línea en movimiento comunica una operación en marcha y profesional.",
-    "Compromiso: «Pedido · Hoy» pone al comprador ya en el primer paso.",
+    "Urgencia legítima: el contador corresponde al corte real; al vencer se recalculan despacho y entrega con días hábiles y feriados.",
+    "Jerarquía gráfica: contador destacado, calendario de la primera entrega posible y rangos por destino.",
+    "Recorrido ilustrativo: el camión viaja una sola vez hacia una casa; no representa seguimiento de un pedido existente.",
   ],
   content: z.object({
+    countdown_label: plain("countdown_label").pipe(z.string().min(3).max(40)).optional()
+      .describe("Etiqueta sobre el contador grande. Ej.: «El próximo despacho cierra en». No contiene fechas ni cifras."),
+    arrival_template: plain("arrival_template", ["arrive"]).pipe(z.string().min(12).max(60).includes("{arrive}")).optional()
+      .describe("Titular junto al calendario: primera entrega posible, con «desde {arrive}». Ej.: «Recíbelo desde {arrive}»."),
+    cutoff_template: plain("cutoff_template", ["cutoff"]).pipe(z.string().min(12).max(60).includes("{cutoff}")).optional()
+      .describe("Plazo para confirmar. {cutoff} es el día y hora reales del próximo corte en la zona de la tienda. Ej.: «Confirma antes de {cutoff}»."),
+    dispatch_template: plain("dispatch_template", ["ship"]).pipe(z.string().min(12).max(60).includes("{ship}")).optional()
+      .describe("Pie de la ruta ilustrada, con el despacho estimado real. Ej.: «Despacho estimado: {ship}»."),
     countdown_template: plain("countdown_template", TOKENS).pipe(z.string().min(12).max(50).includes("{time}"))
       .describe("[Verbo imperativo] dentro de {time} + [cuándo lo recibe, con {arrive}]. {time} = tiempo al corte; {arrive} = primer día de entrega ya con artículo («mañana», «el martes»); {ship} = día de despacho, solo si suma. Ej.: «Pide dentro de {time} y recíbelo desde {arrive}»."),
     closed_template: plain("closed_template", ["ship", "arrive"]).pipe(z.string().min(10).max(50)).optional()
@@ -46,17 +53,23 @@ export const shippingTimeline = defineComponent({
   realData: [
     "Días de preparación, tránsito mínimo y máximo, hora de corte, feriados, zona horaria, solo días hábiles y reparto en sábado: logística de la tienda (shop.metafields.dropflex.logistics); los ajustes del bloque son el respaldo.",
     "Fecha y hora actuales: el navegador, convertidas a la zona de la tienda (America/Santiago por defecto).",
-    "{time}, {ship}, {arrive} y las fechas de los hitos: calculados en df-shipping-timeline.js, nunca escritos.",
+    "{time}, {ship}, {arrive}, {cutoff}, calendario y rangos: calculados en df-shipping-timeline.js, nunca escritos. {cutoff} incluye día y hora locales del corte.",
   ],
   rules: [
     "Tuteo, cercano, sin mayúsculas sostenidas ni emojis; sin signos de exclamación en las etiquetas.",
     "countdown_template y closed_template: el título habla de cuándo lo recibe ({arrive}, siempre precedido de «desde»: es el primer día posible), no de cuándo se despacha. {ship} solo como dato secundario; no escribas «hoy» salvo que la preparación sea de cero días.",
     "Etiquetas de hito: 1-2 palabras que formen una secuencia narrativa (pedido → despacho → entrega).",
     "node_delivered_sub_suffix: solo si la tienda tiene pago contra entrega activo.",
+    "Tarjeta gráfica: countdown_label, arrival_template, cutoff_template y dispatch_template son opcionales; los textos de respaldo mantienen compatible el contenido guardado. arrival_template usa «desde {arrive}», nunca garantiza un día exacto.",
+    "Los campos node_* permanecen compatibles; ya no se presentan tres hitos ni un estado de pedido realizado. La animación es ilustrativa, sin seguimiento, escasez ni porcentajes inventados.",
   ],
   forbidden: [],
   examples: [
     {
+      countdown_label: "El próximo despacho cierra en",
+      arrival_template: "Recíbelo desde {arrive}",
+      cutoff_template: "Confirma antes de {cutoff}",
+      dispatch_template: "Despacho estimado: {ship}",
       countdown_template: "Pide dentro de {time} y recíbelo desde {arrive}",
       closed_template: "Pide hoy y recíbelo desde {arrive}",
       node_ordered_label: "Pedido",
