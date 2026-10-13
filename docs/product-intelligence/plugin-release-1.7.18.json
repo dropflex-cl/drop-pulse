@@ -1,0 +1,66 @@
+{
+  "version": "1.7.18",
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acd7ebcc1708191b94f9f1147dad420",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "0ea3f66edaae042274463c2fcf9b6eca994421a6",
+  "source_and_remote_branch_verified": true,
+  "production": {
+    "status": "Ready",
+    "environment": "Production",
+    "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/FxAfqqbjoDKAaS4v6vEvSggvfYXh",
+    "commit": "0ea3f66",
+    "discovery_http": 200,
+    "region": "gru1::gru1"
+  },
+  "migrations": {
+    "required": false
+  },
+  "readback": {
+    "manifests": true,
+    "skill": true,
+    "production_reference": true,
+    "ugc_writing_reference": true,
+    "montage_script": true,
+    "app_connection_preserved": true,
+    "unrelated_file_inventory_preserved": true
+  },
+  "verified_at": "2026-10-13T00:47:10Z",
+  "client": {
+    "refresh_tools_completed": true,
+    "imported_tools_verified": [
+      "get_ugc_content",
+      "save_ugc_content",
+      "get_ugc_montage",
+      "validate_ugc_script_timing"
+    ],
+    "montage_description": "Python/FFmpeg, clips hablados y de apoyo, voz original, sin captions ni capas añadidas",
+    "new_conversation": {
+      "url": "https://chatgpt.com/c/6acd7f70-7d28-83e8-825f-8ca054c561b0",
+      "skill_version_reported": "1.7.18",
+      "tool_activity_observed": "Reviewed UGC scripts and contracts and validated timing and pacing",
+      "get_ugc_content_reported_ok": true,
+      "historical_fields_optional_and_deprecated": true,
+      "timing_without_screen_reported_valid": true,
+      "seconds": 24,
+      "words": 46,
+      "problems": [],
+      "scope": "read-only",
+      "get_ugc_montage_invoked": false
+    }
+  },
+  "server": {
+    "authenticated_production_tools_list_directly_checked": false,
+    "unauthenticated_tools_list_http": 401,
+    "catalog_evidence": "Refresh tools y catálogo importado, comprobados por nombre/descripción; contratos comprobados en conversación nueva."
+  },
+  "merchant_effects": {
+    "generations": 0,
+    "product_writes": 0,
+    "publishing": 0
+  },
+  "limits": [
+    "La consulta HTTP directa a tools/list requiere OAuth y respondió 401 sin credenciales. No se extrajeron credenciales del navegador.",
+    "La prueba confirma carga de skill y contratos UGC; no generó ni montó un video nuevo."
+  ]
+}
