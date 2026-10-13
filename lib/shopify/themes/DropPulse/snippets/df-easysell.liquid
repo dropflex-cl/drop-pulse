@@ -34,9 +34,12 @@
   Se apaga con el ajuste `df_easysell` (o con todo el design system, `df_design_system`).
 {%- enddoc -%}
 {%- if settings.df_design_system != false and settings.df_easysell != false -%}
+  {{ 'df-easysell-bundles.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'df-easysell-bundles.js' | asset_url }}" defer></script>
   <script src="{{ 'df-purchase-cta.js' | asset_url }}" data-df-cta-motion="{% if settings.df_easysell_motion == false %}off{% else %}on{% endif %}" defer></script>
   {% style %}
     #easysell,
+    #easysell-embedded-bundles,
     .es-modal {
       --df-es-ink: var(--color-foreground, #15171c);
       --df-es-bg: var(--color-background, #ffffff);

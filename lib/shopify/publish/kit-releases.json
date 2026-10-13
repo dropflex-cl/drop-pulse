@@ -1,5 +1,6 @@
 {
   "versions": [
+    "0040663ff4",
     "052c33fa56",
     "076ba84837",
     "092d4cf066",
@@ -168,6 +169,12 @@
       "534be60ba60bda61c2026b14c34631b9",
       "97b54a717b9b39598f45770c3a8875dd",
       "a7391d38b0a5c995206c67069cda9ac5"
+    ],
+    "assets/df-easysell-bundles.css": [
+      "81e35ea6ced54ca84646c4780cad14d0"
+    ],
+    "assets/df-easysell-bundles.js": [
+      "bc87d2a85d3709f22d593c107e251ba9"
     ],
     "assets/df-event.js": [
       "018a7c78b6728bc0f52eacdc109a095b",
@@ -1667,6 +1674,7 @@
       "3021de9ead22bfb22b3f474b65c6cac1",
       "576045c3889c3785ac9e65ab5395c639",
       "6c9070591f573868dd1722502556959f",
+      "8a692ad127194299caddec53776f829c",
       "93b4144914d64d156b1f4a8ddea24a06",
       "97389b7d15efca3550cfcbdbec986a92",
       "97bfa523e9e0afc640e7bb250b9f76b7"

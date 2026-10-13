@@ -70,6 +70,36 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 - **Botón a todo el ancho:** EasySell oculta el «Agregar al carrito» del tema pero deja su contenedor, que en escritorio le quitaba media fila al botón de EasySell. El script marca ese contenedor vacío (`data-df-es-empty`) y el CSS lo saca de la fila.
 - El app embed de EasySell queda siempre encendido desde Publicar (`EASYSELL_EMBED` en `lib/shopify/publish/kit.ts`).
 
+### Bundles de productos de EasySell
+
+`assets/df-easysell-bundles.css` y `assets/df-easysell-bundles.js`, cargados por el mismo
+ajuste, adaptan el marcado `.es-b-standard-row` / `.es-b-card` tanto dentro del formulario
+como en `#easysell-embedded-bundles`. Son ofertas que combinan productos distintos,
+independientes de los packs por cantidad de `dropflex.offer`.
+
+- Todas las tarjetas usan el acento real del producto/botón para selección y foco; títulos
+  y precios en tinta, descripción en texto secundario y ahorro en verde. Los sellos conservan
+  su texto de EasySell con fondo suave y borde de acento. Los que ya anuncian «gratis» o
+  «regalo» destacan en una franja de acento a todo el ancho, con type-heading y texto en
+  mayúsculas, incluso sin seleccionar el pack. No se crean promociones ni afirmaciones
+  de popularidad; si cambia el texto del sello, también se actualiza su énfasis.
+- Misma lista compacta para los layouts horizontal y vertical, con cada imagen, nombre
+  completo y precio original. Los sellos quedan dentro de su tarjeta. No se recortan nombres.
+- «Ahorras $X» se deriva únicamente del precio y tachado de la cabecera de ESA oferta.
+  Representa el ahorro frente al precio normal, no la línea de descuento del formulario,
+  que puede usar precios actuales de los productos. Ante formato ambiguo o sin tachado
+  mayor, se omite la ayuda. No cambia ningún monto cobrado.
+- Radios accesibles en ambas superficies, con Espacio/Enter y flechas/Home/End sobre
+  el clic real de la tarjeta. Los cambios de `offer-selected`, los precios y los remontajes
+  de la app actualizan los atributos; nunca se cambia la preselección configurada.
+- No se mueve, sustituye ni oculta ninguna oferta o producto. Se conservan IDs, clases,
+  imágenes, textos, precios y manejadores. Solo separadores decorativos de la grilla vertical
+  quedan fuera del flujo. No se añade movimiento al formulario.
+
+No cambia contratos de metafields, catálogo, MCP, publicación ni datos guardados: EasySell
+sigue siendo la fuente y el motor de estas ofertas. La vista previa de React no simula la
+app externa; esta presentación se verifica con el marcado real de EasySell en una fixture.
+
 ## Oferta de salida (downsell)
 
 `snippets/df-downsell.liquid` + `assets/df-downsell.js` (al final del `<body>`, después de `df-easysell`) muestran el downsell de EasySell como el componente `DownsellOffer` del design system. Lo controla el ajuste `df_downsell`, encendido por defecto; los textos son ajustes del tema (`df_downsell_eyebrow`, `_title` con `{percent}`, `_trust`, `_cta`, `_decline`).

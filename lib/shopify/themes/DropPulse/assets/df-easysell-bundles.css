@@ -1,0 +1,275 @@
+/* EasySell: bundles de productos reales, tanto en la ficha como en el formulario.
+   design-system/tokens.json: space-1/2/3, radius-lg/md, type-caption/label/heading/title
+   y size-touch. Solo presentación; EasySell conserva sus nodos y clics. */
+:is(#easysell, #easysell-embedded-bundles) .es-b-preview-surface {
+  font-family: var(--df-ds-font, inherit) !important;
+  color: var(--df-es-ink);
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-preview-stack {
+  display: grid !important;
+  gap: 12px !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-row, .es-b-card) {
+  --eso-border-color: var(--df-es-accent) !important;
+  min-width: 0;
+  min-height: 44px;
+  padding: 12px !important;
+  margin: 0 !important;
+  border: 1px solid var(--df-es-border) !important;
+  border-radius: var(--df-es-card-radius) !important;
+  background: var(--df-es-bg) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-row, .es-b-card)[offer-selected]:not([offer-selected='false']) {
+  border-color: var(--df-es-accent) !important;
+  background: var(--df-es-accent-soft) !important;
+  box-shadow: inset 0 0 0 1px var(--df-es-accent) !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-row, .es-b-card):focus-visible {
+  outline: 2px solid var(--df-es-ring) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--df-es-bg) !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-header, .es-b-card-header) {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 0 !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .offer-radio {
+  flex: 0 0 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: 4px !important;
+  border: 1px solid var(--df-es-line) !important;
+  background: var(--df-es-bg) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) [offer-selected]:not([offer-selected='false']) > :is(.es-b-standard-header, .es-b-card-header) > .offer-radio {
+  border-color: var(--df-es-accent) !important;
+  box-shadow: inset 0 0 0 5px var(--df-es-accent) !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .offer-radio::before,
+:is(#easysell, #easysell-embedded-bundles) .offer-radio::after {
+  background: transparent !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-body, .es-b-card-header-content) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  flex: 1 !important;
+  gap: 8px !important;
+  align-items: start !important;
+  min-width: 0 !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-main, .es-b-card-copy) {
+  min-width: 0 !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-title, .es-b-card-title, .es-b-card-title span) {
+  color: var(--df-es-ink) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 22px !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-standard-label, .es-b-card-subtitle, .es-b-card-subtitle span) {
+  color: var(--df-es-muted) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 18px !important;
+  white-space: normal !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-price-value {
+  color: var(--df-es-ink) !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 26px !important;
+  white-space: nowrap;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-price-compare {
+  color: var(--df-es-muted) !important;
+  font-size: 12px !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-price-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 0 !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-price-stack[data-df-es-saving]::after {
+  content: attr(data-df-es-saving);
+  color: var(--df-es-positive);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* Sellos dentro de la tarjeta: no se montan sobre el borde de la opción anterior. */
+:is(#easysell, #easysell-embedded-bundles) .es-b-badge {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  width: fit-content !important;
+  max-width: 100%;
+  margin: 0 0 8px 0 !important;
+  padding: 4px 8px !important;
+  transform: none !important;
+  border-radius: var(--df-es-field-radius) !important;
+  background: var(--df-es-accent-soft) !important;
+  color: var(--df-es-accent) !important;
+  border: 1px solid var(--df-es-accent) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 18px !important;
+  text-transform: none !important;
+  white-space: normal !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-badge-star {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+}
+
+/* El regalo es una razón de compra: destaca aunque su pack todavía no esté seleccionado.
+   Texto existente de EasySell, sin crear ni cambiar promociones. type-heading y space-2/3. */
+:is(#easysell, #easysell-embedded-bundles) .es-b-badge[data-df-es-highlight='gift'] {
+  display: flex !important;
+  width: 100% !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  margin-bottom: 12px !important;
+  background: var(--df-es-accent) !important;
+  color: var(--df-es-on-accent) !important;
+  font-size: 16px !important;
+  line-height: 22px !important;
+  text-transform: uppercase !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-badge[data-df-es-highlight='gift'] .es-b-badge-star {
+  flex-basis: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Una misma lista para ambos layouts de EasySell; nombres completos, imágenes y precios intactos.
+   No se ocultan ofertas ni se sustituyen los nodos con los que la app mide sus impresiones. */
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-products-horizontal, .es-b-products-vertical) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+  padding: 8px !important;
+  border: 1px solid var(--df-es-hairline) !important;
+  border-radius: var(--df-es-field-radius) !important;
+  background: var(--df-es-bg) !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-products-list, .es-b-product-row, .es-b-product-row-content) {
+  min-width: 0 !important;
+  padding: 0 !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-product-row-main, .es-b-product-cell) {
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-product-image-wrap, .es-b-product-image) {
+  width: 44px !important;
+  height: 44px !important;
+  flex: 0 0 44px !important;
+  margin: 0 !important;
+  border-radius: var(--df-es-field-radius) !important;
+  object-fit: contain !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-product-row-title, .es-b-product-row-title span, .es-b-product-cell-title) {
+  color: var(--df-es-ink) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 16px !important;
+  margin: 0 !important;
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere;
+  text-align: left !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-products-horizontal, .es-b-products-vertical) .es-b-price-inline {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 0 !important;
+}
+
+/* EasySell limita el precio al 48 % de su celda. En la grilla compacta ese porcentaje
+   estrecha la celda y hace que los dígitos invadan el nombre del producto en móvil. */
+:is(#easysell, #easysell-embedded-bundles) .es-b-product-row-price {
+  max-width: none !important;
+  width: max-content !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-products-horizontal, .es-b-products-vertical) .es-b-price-value {
+  color: var(--df-es-muted) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 16px !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-plus-line, .es-b-products-separator) {
+  background: var(--df-es-hairline) !important;
+}
+
+/* Separadores decorativos de la grilla anterior, fuera del flujo sin tapar productos. */
+:is(#easysell, #easysell-embedded-bundles) :is(.es-b-plus-connector, .es-b-products-separator) {
+  position: absolute !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-plus-divider {
+  margin: 4px 0 !important;
+  height: 12px !important;
+}
+
+:is(#easysell, #easysell-embedded-bundles) .es-b-plus-icon {
+  width: 20px !important;
+  height: 20px !important;
+  background: var(--df-es-bg) !important;
+  color: var(--df-es-muted) !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+}
