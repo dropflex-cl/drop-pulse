@@ -183,6 +183,16 @@ describe("PI · contenido de Shopify desde chat", () => {
       JSON.stringify(publishedSchemas().save_landing_content.input),
     ).toContain("gallery_benefits");
   });
+  it("guarda urgencia manual y su ocultación sin agregar cantidad de stock", () => {
+    const current = CATALOG.find(c => c.id === "inventory")!.examples[0] as object;
+    for (const urgency_text of ["Últimas unidades disponibles", ""]) {
+      const entries = [{ component: "inventory", content: { ...current, urgency_text } }];
+      expect(parseToolInput("save_landing_content", { ...request(), entries })).toMatchObject({ entries });
+      expect(() => validateLandingProposal(raw(), entries)).not.toThrow();
+    }
+    const entries = [{ component: "inventory", content: { ...current, urgency_text: "a".repeat(49) } }];
+    expect(() => parseToolInput("save_landing_content", { ...request(), entries })).toThrow();
+  });
   it("lee un contrato por llamada con catálogo y datos reales", async () => {
     const repository = {
       loadLanding: vi.fn(async () => raw()),

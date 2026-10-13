@@ -84,6 +84,7 @@ export const FIELD_LABELS: Record<string, string> = {
   policy: "Depende de",
   requires: "Depende de",
   available_text: "Disponible",
+  urgency_text: "Mensaje de urgencia",
   limited_text: "Quedan pocas",
   sold_out_text: "Agotado",
   preorder_text: "Preventa",

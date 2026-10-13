@@ -13,7 +13,7 @@ export const inventory = defineComponent({
   file: "blocks/df-inventory.liquid",
   metafield: { namespace: "dropflex", key: "inventory", type: "json" },
   media: [],
-  placement: "Columna del producto, entre el precio y el botón: responde «¿lo tienen y cuándo llega?» justo cuando la mirada baja al botón.",
+  placement: "Columna del producto, bajo el botón: mensaje comercial de urgencia seguido de disponibilidad y entrega.",
   objection: "¿Está disponible? ¿Cuánto tarda? Y la postergación: «lo compro después».",
   levers: [
     "Reducción de incertidumbre: disponibilidad y plazo en una sola línea, sin buscar.",
@@ -22,6 +22,8 @@ export const inventory = defineComponent({
     "Escasez con número concreto (solo si es real): aversión a la pérdida + especificidad.",
   ],
   content: z.object({
+    urgency_text: z.string().max(48).optional()
+      .describe("Elemento comercial fijo bajo el botón, independiente del inventario. Ej.: «Últimas unidades disponibles». Omitido usa el texto del editor; vacío lo oculta. No reemplaza {qty} ni calcula cantidades."),
     available_text: noDigits("available_text").pipe(z.string().min(8).max(48))
       .describe("Estado positivo + promesa de entrega con {min} y {max} (días hábiles reales). Ej.: «En stock, recíbelo en {min} a {max} días hábiles»."),
     limited_text: noDigits("limited_text").pipe(z.string().min(8).max(40).includes("{qty}"))
@@ -37,6 +39,7 @@ export const inventory = defineComponent({
     "{min} y {max}: días de preparación + tránsito de la logística de la tienda (shop.metafields.dropflex.logistics).",
   ],
   rules: [
+    "urgency_text es texto comercial manual: se muestra sin consultar el stock. Vacío lo oculta; no modifica disponibilidad, cantidades ni logística.",
     "Tuteo, sin mayúsculas sostenidas, máximo un signo de exclamación y sin emojis: el punto ya es el ícono.",
     "Cada texto cabe en una línea a 375 px (≤ 48 caracteres con los tokens reemplazados).",
     "El texto de disponible combina estado y plazo o estado y pago contra entrega.",
@@ -44,6 +47,7 @@ export const inventory = defineComponent({
   forbidden: [],
   examples: [
     {
+      urgency_text: "Últimas unidades disponibles",
       available_text: "En stock, recíbelo en {min} a {max} días hábiles",
       limited_text: "Solo quedan {qty} unidades",
       sold_out_text: "Agotado, vuelve muy pronto",

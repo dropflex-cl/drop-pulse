@@ -14,6 +14,17 @@ function contextFixture() {
   return f;
 }
 describe("Contexto de cada componente desde el tema y el hook", () => {
+  it("descubre urgencia manual opcional sin convertirla en un requisito de stock", () => {
+    const f = contextFixture();
+    const context = componentGenerationContext(f.state, "inventory");
+    expect(context.component.schema).toMatchObject({ anyOf: expect.arrayContaining([
+      expect.objectContaining({ anyOf: expect.arrayContaining([
+        expect.objectContaining({ properties: expect.objectContaining({ urgency_text: expect.objectContaining({ type: "string", maxLength: 48 }) }) }),
+      ]) }),
+    ]) });
+    expect(context.component.rules.join(" ")).toContain("sin consultar el stock");
+    expect(pdpCompletionReport(f.state).summary.content_pending).not.toContain("inventory");
+  });
   it.each(["use-cases", "usage-steps"])("%s: descubre image_only y reporta su imagen requerida", id => {
     const slot = id === "use-cases" ? "cases" : "steps";
     const f = contextFixture();

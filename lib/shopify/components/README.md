@@ -8,7 +8,7 @@ Los patrones vienen del análisis funcional de una demo comercial (Sternify). **
 
 | Id | Tipo | Dónde va | Metafield (IA) | Datos reales |
 |---|---|---|---|---|
-| `inventory` | bloque | entre precio y botón | `dropflex.inventory` | inventario de la variante, logística |
+| `inventory` | bloque | bajo el botón | `dropflex.inventory` | mensaje comercial fijo; disponibilidad de la variante, logística |
 | `shipping-timeline` | bloque | bajo el botón | `dropflex.shipping_timeline` | logística, feriados, zona horaria |
 | `benefit-usps` | bloque | entre precio y botón | `dropflex.benefit_usps` | políticas reales de la tienda |
 | `benefit-double-box` | bloque | bajo el botón | `dropflex.benefit_double_box` | medios de pago y garantía reales |

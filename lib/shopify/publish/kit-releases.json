@@ -10,6 +10,7 @@
     "18f6739446",
     "19c336a3ca",
     "19dde7e7ba",
+    "1c8a38a37b",
     "245efbded4",
     "249317a3d5",
     "27c5c7d1b5",
@@ -149,6 +150,7 @@
       "5651a874919acd51f5e25136feb58717",
       "8baddb704a9952f6ae6d00a8323af0ff",
       "9a8d144c430f3f5a2b7faaf75bf8cd95",
+      "a780c6bd1c55411d25104d6747e8722a",
       "cb8081e4f079a479b68a40b6de99aad4",
       "d9c3f4d750b539e8ed8c57ad32fc0849",
       "ef68a761009487d245c73d4171e76731"
@@ -834,6 +836,7 @@
       "513451b5f4f780cc93dd6e5fabf809cc",
       "6144cc746c7e4815452e8ac80e769485",
       "6ac42ddb5d911104e685f7bd0b4e48c1",
+      "75a479550e71ff321bfe61039a1a847d",
       "a8803a916c055fc718b826e0d64aba56",
       "b62081b213f058ac26b253a6ce196d35",
       "b643a71c090527aaafa2a991ebb2c6ea",
@@ -1724,7 +1727,8 @@
     "snippets/df-inventory-content.liquid": [
       "062c705970ada2f9cae34ceecb9a745e",
       "0cd353c53f1fb44d468983720fd26293",
-      "2536239d09715ca04beebedef5b54456"
+      "2536239d09715ca04beebedef5b54456",
+      "b42c88e550ae5e1de87cbfdd6c4020f6"
     ],
     "snippets/df-landing-mode.liquid": [
       "cc39010ac80efa3acbd24d1581063a27"

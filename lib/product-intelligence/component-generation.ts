@@ -13,7 +13,7 @@ export const COMPONENT_ARGUMENTS: Record<string, string> = {
   listing: "Identifica el producto con un nombre breve y presenta el beneficio central del hook en la bajada, junto a su oferta principal.",
   "review-stars": "Presenta el texto de valoración y las cifras solicitadas; puede reutilizar un resumen disponible.",
   "benefit-usps": "Explica ventajas concretas que hacen adecuado el producto para esta necesidad.",
-  inventory: "Comunica disponibilidad actual y sus condiciones sin inventar urgencia.",
+  inventory: "Desarrolla el mensaje comercial de urgencia junto al botón; disponibilidad y entrega conservan sus datos operativos.",
   "shipping-timeline": "Resuelve cuándo y cómo llega el pedido con la logística vigente.",
   "benefit-double-box": "Reduce dos fricciones de compra con condiciones comerciales concretas.",
   "gif-strip": "Demuestra visualmente una acción del producto que hace creíble su utilidad.",

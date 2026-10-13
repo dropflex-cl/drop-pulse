@@ -133,6 +133,13 @@ describe("productSet", () => {
 });
 
 describe("metafields", () => {
+  it("publica urgencia manual y conserva el texto vacío que la oculta", () => {
+    for (const urgency_text of ["Últimas unidades disponibles", ""]) {
+      const content = { ...(example("inventory") as object), urgency_text };
+      const { set } = productMetafields(input({ components: [{ id: "inventory", content, images: {} }] }), gids);
+      expect(JSON.parse(set.find(m => m.key === "inventory")!.value)).toEqual(content);
+    }
+  });
   it("publica el contenido de cada componente en uso, sus fotos y los datos reales", () => {
     const { set } = productMetafields(input(), gids);
     const by = new Map(set.map((m) => [m.key, m]));

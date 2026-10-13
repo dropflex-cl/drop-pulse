@@ -43,7 +43,7 @@ const PITCH: Record<string, string> = {
     "¿Otros lo compraron y les fue bien? Estrellas junto al título.",
   "benefit-usps":
     "¿Cuánto sale el envío? ¿Pago antes? Lo que evita el riesgo, sobre el botón.",
-  inventory: "¿Lo tienen y cuándo llega? El stock real y el plazo.",
+  inventory: "Mensaje de urgencia junto al botón, disponibilidad y plazo de entrega.",
   "shipping-timeline": "¿Cuándo me llega? Las fechas de despacho y entrega.",
   "benefit-double-box":
     "¿Cómo pago y qué pasa si no me sirve? Dos tarjetas bajo el botón.",

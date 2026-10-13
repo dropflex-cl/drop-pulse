@@ -284,23 +284,6 @@ export function validatePersuasionPlan(
           "El asset no está disponible en este producto.",
         );
     }
-    const empty = context.rows.some(
-      (r) =>
-        r.component === section.selected_component &&
-        contentVariants(r.content).every((v) => isEmptyContent(v.content)),
-    );
-    if (
-      !empty &&
-      section.selected_component === "inventory" &&
-      !section.claim_keys.some((k) =>
-        plan.claims.some((c) => c.key === k && c.type === "scarcity"),
-      )
-    )
-      add(
-        "inventory_claim",
-        field,
-        "Declara y respalda la disponibilidad real; no crees escasez.",
-      );
   }
   for (const [i, belief] of plan.beliefs.entries()) {
     references(belief, `beliefs.${i}`);

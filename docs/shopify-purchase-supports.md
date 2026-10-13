@@ -61,6 +61,8 @@ No exige una ficha de Google configurada, importación, mínimos de reseñas, ev
 
 ## Alcance de la actualización
 
+Disponibilidad incorpora `inventory.urgency_text`: un mensaje comercial fijo en ámbar bajo el botón, con «Últimas unidades disponibles» como respaldo del editor. No depende de cantidades ni consulta stock. El MCP y la app lo editan en el JSON vigente `dropflex.inventory`; un texto vacío lo oculta. La fila de disponibilidad y plazo se conserva debajo. Publicar producto y actualizar tema siguen siendo acciones separadas.
+
 Actualizar el tema lleva los snippets, assets y el bloque `buy-buttons` a tiendas instaladas;
 conserva sus templates y ajustes. Los bloques anteriores de reseñas y disponibilidad se recolocan
 sin duplicarse. Las instalaciones nuevas ya traen la disponibilidad después del botón.

@@ -101,6 +101,24 @@ function visualTree(html: string, id: string) {
 }
 
 describe("contrato visual Liquid → React", () => {
+  it.each([
+    { quantity: 100, management: "shopify", urgency_text: undefined },
+    { quantity: 3, management: "shopify", urgency_text: "Últimas unidades disponibles" },
+    { quantity: 0, management: null, urgency_text: "Últimas unidades disponibles" },
+    { quantity: 100, management: "shopify", urgency_text: "" },
+  ])("urgencia manual: paridad sin depender de stock ($quantity, $management, $urgency_text)", async ({ quantity, management, urgency_text }) => {
+    const content = { ...(CATALOG.find(c => c.id === "inventory")!.examples[0] as object), urgency_text };
+    const f = { ...facts, inventory: { available: true, quantity, management, policy: "deny" } };
+    const Preview = PREVIEWS.inventory;
+    const liquid = await liquidMarkup("inventory", content, f, {});
+    const react = renderToStaticMarkup(<Preview content={content} facts={f} images={{}} />);
+    expect(visualTree(react, "inventory")).toEqual(visualTree(liquid, "inventory"));
+    for (const markup of [liquid, react]) {
+      const document = parseHTML(markup).document;
+      expect(document.querySelector(".df-inventory-urgency")?.textContent.trim() ?? "").toBe(urgency_text ?? "Últimas unidades disponibles");
+      expect(document.querySelector("df-inventory .df-inventory__text")).not.toBeNull();
+    }
+  });
   it("reseñas: recupera las ocho elegidas y conserva su orden, texto y fotos", async () => {
     const reviews = Array.from({ length: 8 }, (_, index) => ({ ...facts.reviews[index % facts.reviews.length], id: `review-${index}` }));
     const f = { ...facts, reviews, count: 8 };
@@ -126,7 +144,7 @@ describe("contrato visual Liquid → React", () => {
     const liquid = await liquidMarkup("social-proof", {}, facts, {});
     const react = renderToStaticMarkup(<SocialProofPreview facts={facts} />);
     expect(visualTree(react, "social-proof")).toEqual(visualTree(liquid, "social-proof"));
-    for (const markup of [liquid, react]) expect(parseHTML(markup).document.querySelector("strong")?.textContent).toBe(`${facts.count.toLocaleString("es-CL")} opiniones`);
+    for (const markup of [liquid, react]) expect(parseHTML(markup).document.querySelector("strong")?.textContent).toBe(`${facts.count.toLocaleString("es-CL")} opiniones hoy`);
   });
   it.each([0, 1, 2, 3, 4])("resumen de opiniones: prioriza %i fotos aunque lleguen después de reseñas sin foto", async photoCount => {
     const reviews = Array.from({ length: 3 + photoCount }, (_, index) => ({

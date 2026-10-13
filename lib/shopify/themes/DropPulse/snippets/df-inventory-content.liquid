@@ -24,6 +24,10 @@
   # vacío, closest.product lo tomaría a él primero y el bloque quedaría sin producto.
   assign product = closest.product | default: product
   assign s = block.settings
+  assign urgency_text = content.urgency_text
+  if urgency_text == nil
+    assign urgency_text = s.urgency_text
+  endif
   # content llega de la variante seleccionada (o del objeto legacy).
   assign threshold = s.low_stock_threshold | default: 10
   assign logistics = shop.metafields.dropflex.logistics.value
@@ -104,9 +108,15 @@
     assign text = text | replace: '{qty}', qty | replace: '{min}', days_min | replace: '{max}', days_max
   -%}
 
+  <div class="df df-inventory-group" style="{% render 'df-accent-vars', product: product %} --df-inventory-size: {{ s.text_size | default: 14 }}px; margin-block: {{ s.margin_top | default: 0 }}px {{ s.margin_bottom | default: 0 }}px;">
+    {%- if urgency_text != blank -%}
+      <p class="df-inventory-urgency">
+        <span class="df-inventory__dot" aria-hidden="true"></span>
+        <span>{{ urgency_text | escape }}</span>
+      </p>
+    {%- endif -%}
   <df-inventory
     class="df df-inventory df-inventory--{{ status }}{% if s.pulse %} df-inventory--pulse{% endif %}"
-    style="{% render 'df-accent-vars', product: product %} --df-inventory-size: {{ s.text_size | default: 14 }}px; margin-block: {{ s.margin_top | default: 0 }}px {{ s.margin_bottom | default: 0 }}px;"
     data-threshold="{{ threshold }}"
     data-show-quantity="true"
     data-show-untracked="true"
@@ -128,5 +138,6 @@
       }
     </script>
   </df-inventory>
+  </div>
 
 {%- endif -%}

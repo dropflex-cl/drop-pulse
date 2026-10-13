@@ -22,6 +22,12 @@ El H1 no se construye concatenando nombre y slogan. Lee `get_landing_content` co
 
 Ejemplo de nombre: «Pack 2 Contorno de Ojos Caviar SADOER». Ejemplo de bajada: «Un paso de cuidado para el contorno de ojos, con caviar y ácido hialurónico». Revisa los datos reales del producto antes de reutilizar el ejemplo. No cambies la ficha existente solo por actualizar estas instrucciones ni recortes el texto con CSS: edita explícitamente los campos pedidos. El template agrupa título y precio antes de la bajada y los packs. Las tres tarjetas de `gallery_benefits` van bajo el botón, como apoyo; no repitas sus textos en `benefit-usps`. TikTok es un apoyo debajo de esas tarjetas y su cifra la configura el comerciante en Shopify, nunca la inventa la IA. El botón que abre EasySell muestra solo su acción principal; su subtítulo comercial queda oculto. Guardar no mueve bloques, publica productos ni genera archivos. El precio y el ahorro siguen saliendo de la oferta canónica, no de `title`.
 
+## Urgencia junto al botón
+
+El componente `inventory` incluye `urgency_text`, un elemento comercial fijo de hasta 48 caracteres que se muestra en ámbar bajo el botón, antes de la disponibilidad. «Últimas unidades disponibles» es el texto de respaldo del tema. Es independiente del stock real: no necesita cantidades, no sustituye `{qty}` ni cambia al elegir otra variante de Shopify. Para ocultarlo, guarda `urgency_text: ""`; omitir el campo permite el respaldo del editor.
+
+Lee `get_component_generation_context({product_id, component: "inventory", content_variant_key: "default"})` y `get_landing_content` antes de editar. Guarda con `save_landing_content` el contenido vigente de `inventory`, añadiendo o cambiando solo `urgency_text`. Conserva `available_text`, `limited_text`, `sold_out_text`, `preorder_text`, variantes comerciales, imágenes y visibilidad. Los textos operativos de cantidad y entrega mantienen sus fuentes; el elemento comercial no modifica inventario, encola generaciones ni publica. Si el cliente aún no descubre el campo, actualiza su catálogo antes de guardarlo.
+
 ## PDP completa y contenido faltante
 
 El catálogo actual tiene 26 componentes de conversión y `listing`: 27 contratos en total. Descúbrelos con `get_component_catalog` y `get_landing_content`; sus schemas vigentes mandan. Las nuevas secciones son `mechanism`, `use-cases`, `before-after`, `results-timeline`, `usage-steps`, `product-includes`, `customer-stories`, `expert-endorsement`, `guarantee` y `offer-summary`.

@@ -154,6 +154,7 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_bottom": 48
   },
   "inventory": {
+    "urgency_text": "Últimas unidades disponibles",
     "available_text": "En stock, recíbelo en {min} a {max} días hábiles",
     "limited_text": "Solo quedan {qty} unidades",
     "sold_out_text": "Agotado, vuelve pronto",

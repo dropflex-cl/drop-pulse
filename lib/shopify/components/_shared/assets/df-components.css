@@ -610,6 +610,23 @@ df-landing-content > [data-df-active] { display: contents; }
 
 /* Disponibilidad permanente junto a la compra. */
 
+  .df-inventory-group {
+    display: grid;
+    gap: calc(var(--df-gap) / 2);
+  }
+
+  .df-inventory-urgency {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: var(--df-inventory-size, 14px);
+    line-height: 1.35;
+    font-weight: 600;
+    color: var(--df-warning);
+    --df-inventory-color: var(--df-warning);
+  }
+
   .df-inventory {
     display: flex;
     align-items: center;

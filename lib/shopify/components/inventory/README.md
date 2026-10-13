@@ -1,10 +1,16 @@
 # inventory — Disponibilidad
 
-Bloque de la columna del producto: un punto de estado que late y una línea de texto del mismo color. Archivo: `blocks/df-inventory.liquid` + `assets/df-inventory.js`. Contrato: [`content.ts`](content.ts).
+Bloque de la columna del producto: un mensaje comercial fijo en ámbar, seguido del punto de disponibilidad y su texto. Archivo: `blocks/df-inventory.liquid` + `assets/df-inventory.js`. Contrato: [`content.ts`](content.ts).
 
 ## Dónde va y por qué
 
-Entre el precio y el botón. El comprador acaba de ver el precio y evalúa si compra: la línea responde «¿lo tienen y cuándo llega?» justo cuando la mirada baja al botón, y en el estado de pocas unidades agrega urgencia en ese mismo punto.
+Bajo el botón. «Últimas unidades disponibles» introduce urgencia junto a la acción de compra; la siguiente línea conserva disponibilidad y plazo de entrega.
+
+## Mensaje comercial fijo
+
+`urgency_text` es texto editable e independiente del inventario: no consulta cantidades, no cambia al elegir variante de Shopify y no reemplaza `{qty}`. El editor del tema trae «Últimas unidades disponibles» como respaldo. El MCP descubre el campo con `get_component_generation_context` y lo guarda mediante `save_landing_content`, dentro de `inventory` y de su variante comercial. Un string vacío lo oculta; omitirlo conserva el comportamiento de respaldo. Las secciones ocultas y `{state: "empty"}` siguen respetándose.
+
+La fila es ámbar, con punto decorativo y texto seminegrita, sin animación ni contador. El estado operativo conserva por separado su algoritmo y logística. La vista previa usa el mismo texto y marcado; publicación lo lleva en el JSON `dropflex.inventory` sin transformar el mensaje en un número de stock.
 
 ## Anatomía
 
@@ -21,7 +27,7 @@ Igual en móvil y escritorio: una fila con un punto de 10 px (con un halo que se
 
 | Origen | Qué |
 |---|---|
-| Metafield `dropflex.inventory` (IA) | `available_text`, `limited_text`, `sold_out_text`, `preorder_text?` |
+| Metafield `dropflex.inventory` (IA) | `urgency_text?` comercial fijo; `available_text`, `limited_text`, `sold_out_text`, `preorder_text?` operativos |
 | Ajustes del bloque | los mismos textos como respaldo; umbral, mostrar cantidad, mostrar sin rastreo, punto animado, tamaño, márgenes |
 | Liquid (real) | `variant.available`, `inventory_quantity`, `inventory_management`, `inventory_policy` de cada variante |
 | `shop.metafields.dropflex.logistics` (real) | `handling_days`, `transit_days_min`, `transit_days_max` → tokens `{min}` y `{max}`; los ajustes del bloque son el respaldo |
@@ -44,7 +50,7 @@ Tokens: `{qty}` (cantidad real), `{min}` y `{max}` (días hábiles). Con «mostr
 - **Señal en vivo:** el punto que late sugiere un dato actualizado y el movimiento en la visión periférica lleva la mirada hacia el botón.
 - **Escasez real:** «Solo quedan 3» es aversión a la pérdida con especificidad. Solo es ética, y legal, si el número es real.
 
-La referencia escribía el número a mano («solo quedan 5» fijo) y ofrecía un estado «limitado» manual: escasez simulada. Aquí no existe esa opción.
+El mensaje comercial fijo es independiente de esos estados; no escribe ni modifica cantidades de inventario.
 
 ## Reglas del copy (IA)
 

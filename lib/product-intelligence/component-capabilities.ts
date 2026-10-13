@@ -78,7 +78,7 @@ const CAPABILITIES: readonly ComponentCapability[] = [
     1,
     "very_low",
     [],
-    ["live_inventory_only"],
+    ["manual_urgency_text", "live_availability_and_quantity"],
   ),
   cap(
     "shipping-timeline",
