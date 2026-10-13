@@ -60,7 +60,13 @@
    assign title = card.title | replace: '{return_days}', return_days | replace: '{warranty_months}', warranty_months | replace: '{threshold}', threshold | replace: '{min}', days_min | replace: '{max}', days_max
    assign body = card.body | replace: '{return_days}', return_days | replace: '{warranty_months}', warranty_months | replace: '{threshold}', threshold | replace: '{min}', days_min | replace: '{max}', days_max
   -%}
-  {%- if visible -%}<li class="df-benefit-double-box__card"><details><summary>{% render 'df-icon', name: card.icon %}<strong>{{ title | escape }}</strong></summary><p>{{ body | escape }}</p></details></li>{%- endif -%}
+  {%- if visible -%}
+    {%- if card.policy == 'cod' -%}
+      <li class="df-benefit-double-box__card df-benefit-double-box__card--cod"><span class="df-benefit-double-box__zero">{{ 0 | money_without_trailing_zeros }}</span><div><strong>{{ title | escape }}</strong><p>{{ body | escape }}</p></div></li>
+    {%- else -%}
+      <li class="df-benefit-double-box__card"><details><summary>{% render 'df-icon', name: card.icon %}<strong>{{ title | escape }}</strong></summary><p>{{ body | escape }}</p></details></li>
+    {%- endif -%}
+  {%- endif -%}
  {%- endfor -%}
 {%- endcapture -%}
 {%- if cards != blank -%}<ul class="df df-benefit-double-box" style="{% render 'df-accent-vars', product: product %}" role="list">{{ cards }}</ul>{%- endif -%}

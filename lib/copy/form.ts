@@ -57,6 +57,7 @@ export type FormField =
 export const FIELD_LABELS: Record<string, string> = {
   ...LISTING_FIELDS,
   display_mode: "Presentación",
+  parcel_label: "Etiqueta del paquete",
   image_alt: "Texto alternativo",
   fact_id: "Hecho relacionado",
   steps: "Pasos",

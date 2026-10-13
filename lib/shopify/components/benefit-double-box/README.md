@@ -16,3 +16,7 @@ ni las políticas. Configuración y entrega por confirmación del pedido:
 ## Presentación compacta junto al despacho
 
 La UI muestra las dos condiciones como una fila de íconos y títulos, sin fondo, borde ni relleno de tarjetas. Cada título abre su descripción con `details`/`summary` nativos y un área táctil de 44 px. Los textos completos, tokens, políticas y variantes siguen guardados y disponibles; no se cambia el contrato de datos. Los íconos usan el accent del producto con `df-accent-vars`. Liquid y React conservan el mismo marcado.
+
+## Ticket y pago contra entrega
+
+Antes del botón existente, tras shipping-timeline. Una tarjeta con policy=cod activo muestra cero adelanto, formateado en la moneda de la tienda, título y explicación visibles. No es un precio gratuito. La otra garantía sigue compacta y desplegable. Se conservan el contrato de dos tarjetas, condiciones reales, variantes y textos guardados.

@@ -1,4 +1,4 @@
-import { fill, policyActive } from "@/lib/store-preview/facts";
+import { fill, formatMoney, policyActive } from "@/lib/store-preview/facts";
 import { DfIcon } from "./primitives";
 import { PdpEmptyPreview } from "./pdp-empty";
 import type { PreviewProps } from "./types";
@@ -12,5 +12,7 @@ export function BenefitDoubleBoxPreview({ content, facts }: PreviewProps<Content
       && (!text.includes("{return_days}") || (facts.policies.return_days ?? 0) > 0)
       && (!text.includes("{warranty_months}") || (facts.policies.warranty_months ?? 0) > 0);
   });
-  return cards.length ? <ul className="df df-benefit-double-box" role="list">{cards.map((c,i)=><li key={i} className="df-benefit-double-box__card"><details><summary><DfIcon name={c.icon} /><strong>{fill(c.title,facts)}</strong></summary><p>{fill(c.body,facts)}</p></details></li>)}</ul> : <PdpEmptyPreview component="benefit-double-box" />;
+  return cards.length ? <ul className="df df-benefit-double-box" role="list">{cards.map((c,i)=>c.policy === "cod"
+    ? <li key={i} className="df-benefit-double-box__card df-benefit-double-box__card--cod"><span className="df-benefit-double-box__zero">{formatMoney(0, facts.currency)}</span><div><strong>{fill(c.title,facts)}</strong><p>{fill(c.body,facts)}</p></div></li>
+    : <li key={i} className="df-benefit-double-box__card"><details><summary><DfIcon name={c.icon} /><strong>{fill(c.title,facts)}</strong></summary><p>{fill(c.body,facts)}</p></details></li>)}</ul> : <PdpEmptyPreview component="benefit-double-box" />;
 }

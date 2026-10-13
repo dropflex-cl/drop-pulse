@@ -1,7 +1,7 @@
 ---
 name: optimize-product
 description: Optimiza o retoma un producto existente en DropFlex desde el chat. Ayuda a elegir y editar el hook primario, persiste la estrategia y desarrolla la PDP y sus imágenes mediante el MCP. Con autorización de publicación automática, la elección de hooks permite completar el contenido y publicar en Shopify desde el chat. Úsala también para cambiar hooks o continuar una optimización; También desarrolla y guarda carruseles publicitarios solicitados. No sincroniza tiendas, configura integraciones ni lanza campañas.
-metadata: {"version": "1.7.20"}
+metadata: {"version": "1.7.21"}
 ---
 
 # Optimizar un producto con DropFlex
@@ -84,7 +84,7 @@ Lee [la ejecución](references/production.md) cuando el pedido incluya PDP, imá
 
 Para el elemento comercial de urgencia junto al botón, `inventory.urgency_text` admite texto fijo como «Últimas unidades disponibles», sin consultar stock ni inventar una cantidad. Descubre su contrato y conserva los demás textos de disponibilidad y entrega al guardar. Sigue [urgencia junto al botón](references/production.md#urgencia-junto-al-botón).
 
-Para la tarjeta animada de entrega, lee `get_component_generation_context` de `shipping-timeline` y guarda sus textos opcionales con `save_landing_content`: etiqueta del contador, llegada, corte y despacho. Usa los tokens reales `{arrive}`, `{cutoff}` y `{ship}`; no escribas fechas, cifras, porcentajes ni una cuenta regresiva artificial. Conserva los campos legacy y variantes existentes. La animación y sus tonos salen del tema y del accent vigente, sin generar imágenes. Sigue [despacho gráfico y entrega](references/production.md#despacho-gráfico-y-entrega).
+Para la tarjeta animada de entrega, lee `get_component_generation_context` de `shipping-timeline` y guarda sus textos opcionales con `save_landing_content`: titular heading (8–60), etiqueta parcel_label (3–20), etiqueta del contador, llegada, corte y despacho. El ticket se ubica antes del botón COD existente; conserva el precio principal junto al título. La explicación de cero adelanto proviene de benefit-double-box y solo aparece con COD activo. Usa los tokens reales `{arrive}`, `{cutoff}` y `{ship}`; no escribas fechas, cifras, porcentajes ni una cuenta regresiva artificial. Conserva los campos legacy y variantes existentes. La animación y sus tonos salen del tema y del accent vigente, sin generar imágenes. Sigue [despacho gráfico y entrega](references/production.md#despacho-gráfico-y-entrega).
 
 En `use-cases` y `usage-steps`, si una imagen ya contiene todos los usos o instrucciones y sus explicaciones, usa el modo `image_only`: guarda `display_mode` e `image_alt` y conserva el archivo existente en `cases` o `steps`, posición 1, de esa variante. No repitas el mensaje con un título externo, acordeones, números, tarjetas o descripciones. Sigue [la presentación de usos e instrucciones](references/production.md#usos-con-el-mensaje-integrado-en-la-imagen).
 

@@ -11,6 +11,8 @@ import { ShippingTimelineRuntime } from "./shipping-timeline-runtime";
 // el JS. Los plazos salen de facts.logistics; sin logística completa no se calculan fechas.
 
 interface Content {
+  heading?: string;
+  parcel_label?: string;
   countdown_label?: string;
   arrival_template?: string;
   cutoff_template?: string;
@@ -111,7 +113,7 @@ export function ShippingTimelinePreview({
     ? L.saturdayDispatch === true
     : s.saturday_dispatch === true;
 
-  // Calendario del JS (sin feriados: la vista previa no los conoce).
+  // Calendario compartido con el JS, incluidos los feriados vigentes.
   const holidays = new Set((L.holidays ?? []).map(date => Date.parse(`${date}T00:00:00Z`) / DAY));
   const weekday = (d: number) => new Date(d * DAY).getUTCDay();
   const work = (d: number) =>
@@ -184,6 +186,7 @@ export function ShippingTimelinePreview({
   const texts = { countdown: tCountdown, closed: tClosed, arrival: arrivalTemplate, cutoff: cutoffTemplate, dispatch: dispatchTemplate,
     summary_range: "Entrega estimada entre el {from} y el {to}", summary_single: "Entrega estimada el {from}", regions: regionsLabel };
   const json = (value: unknown) => JSON.stringify(value).replaceAll("<", "\\u003c");
+  const label = (text: string, token: string) => text.replaceAll(token, "").replaceAll(":", "").trim();
 
   return (
     <>
@@ -193,36 +196,37 @@ export function ShippingTimelinePreview({
       style={{ marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}
     >
       {template ? <p className="df-visually-hidden" data-df-title="">{fill(before, facts)}{counting ? <><strong className="df-shipping-timeline__time">{EXAMPLE.time}</strong>{fill(after, facts)}</> : null}</p> : null}
+      <div className="df-shipping-timeline__ticket">
+        <div className="df-shipping-timeline__ticket-top">
+        <p className="df-shipping-timeline__eyebrow"><DfIcon name="truck" /> {content.countdown_label || String(s.countdown_label || "Próximo despacho")}</p>
+        <h3 className="df-shipping-timeline__headline">{content.heading || String(s.ticket_heading || "Que el próximo lleve el tuyo")}</h3>
       <div className="df-shipping-timeline__countdown" data-df-countdown="" data-pending="">
-        <p className="df-shipping-timeline__eyebrow"><DfIcon name="clock" /> {content.countdown_label || String(s.countdown_label || "El próximo despacho cierra en")}</p>
         <p className="df-shipping-timeline__clock" data-df-clock="">
           <span className="df-shipping-timeline__unit"><strong data-df-hours="">—</strong><span>horas</span></span>
           <span className="df-shipping-timeline__colon" aria-hidden="true">:</span>
           <span className="df-shipping-timeline__unit"><strong data-df-minutes="">—</strong><span>minutos</span></span>
+          <span className="df-shipping-timeline__unit"><strong data-df-seconds="">—</strong><span>segundos</span></span>
         </p>
         <p className="df-shipping-timeline__cutoff" data-df-cutoff="">{cutoffTemplate.replaceAll("{cutoff}", `${inSentence(today)}, ${cutoffTime}`)}</p>
       </div>
-      <div className="df-shipping-timeline__scene">
-        <div className="df-shipping-timeline__scene-head">
-          <div className="df-shipping-timeline__arrival"><p className="df-shipping-timeline__eyebrow">Entrega estimada</p><h3 className="df-shipping-timeline__headline" data-df-arrival="">{arrivalTemplate.replaceAll("{arrive}", inSentence(from))}</h3></div>
-          <div className="df-shipping-timeline__calendar" aria-hidden="true">
-            <span className="df-shipping-timeline__calendar-top" data-df-calendar-weekday="">{fmtWeekday.format(new Date(from * DAY))}</span>
-            <strong data-df-calendar-date="">{new Date(from * DAY).getUTCDate()}</strong>
-            <span className="df-shipping-timeline__calendar-month" data-df-calendar-month="">{dtf({ month: "long" }).format(new Date(from * DAY))}</span>
-          </div>
         </div>
         <div className="df-shipping-timeline__route" aria-hidden="true">
           <span className="df-shipping-timeline__rail"><span className="df-shipping-timeline__rail-fill" /></span>
-          <span className="df-shipping-timeline__truck"><DfIcon name="truck" /></span>
+          <span className="df-shipping-timeline__origin"><DfIcon name="package" /></span>
+          <span className="df-shipping-timeline__parcel"><span>{content.parcel_label || String(s.parcel_label || "Tu pedido")}</span></span>
           <span className="df-shipping-timeline__home"><DfIcon name="home" /></span>
-          <span className="df-shipping-timeline__check"><DfIcon name="check" /></span>
         </div>
-        {s.show_ship_date ? <p className="df-shipping-timeline__dispatch" data-df-ship="">{dispatchTemplate.replaceAll("{ship}", inSentence(ship))}</p> : null}
+        <div className="df-shipping-timeline__dates" aria-hidden="true">
+          {s.show_ship_date ? <div><p>{label(dispatchTemplate, "{ship}")}</p><strong data-df-ship-date="">{fmtWeekday.format(new Date(ship * DAY))}</strong></div> : null}
+          <div><p>{label(arrivalTemplate, "{arrive}")}</p><strong data-df-arrival-date="">{fmtWeekday.format(new Date(from * DAY))}</strong></div>
+        </div>
+      </div>
+      {s.show_ship_date ? <p className="df-visually-hidden" data-df-ship="">{dispatchTemplate.replaceAll("{ship}", inSentence(ship))}</p> : null}
+      <p className="df-visually-hidden" data-df-arrival="">{arrivalTemplate.replaceAll("{arrive}", inSentence(from))}</p>
         <div className="df-shipping-timeline__destinations">
           <p className="df-shipping-timeline__destination" data-df-delivery="">{range}</p>
           {extra ? <p className="df-shipping-timeline__destination" data-df-delivery-regions="">{`${regionsLabel}: ${rangeOf(regionsFrom, regionsTo)}`}</p> : null}
         </div>
-      </div>
       <p className="df-visually-hidden" data-df-summary="">{summary}</p>
       <script type="application/json" data-df-config="" dangerouslySetInnerHTML={{ __html: json(config) }} />
       <script type="application/json" data-df-texts="" dangerouslySetInnerHTML={{ __html: json(texts) }} />

@@ -18,15 +18,19 @@ export const shippingTimeline = defineComponent({
   file: "blocks/df-shipping-timeline.liquid",
   metafield: { namespace: "dropflex", key: "shipping_timeline", type: "json" },
   media: [],
-  placement: "Columna del producto, justo bajo el botón de compra: reaseguro para quien duda con el dedo sobre el botón, con fechas concretas y el plazo de corte del día.",
+  placement: "Columna del producto, antes del reaseguro COD y del botón existente: ticket del próximo despacho con corte real, paquete ilustrativo y fechas estimadas. Conserva el precio principal junto al título.",
   objection: "¿Cuándo me llega? (la duda número uno en pago contra entrega, por el miedo a esperas de semanas) y «lo pienso y compro después».",
   levers: [
     "Especificidad: fechas reales en vez de «envío rápido»; el comprador visualiza el día en que lo tiene en la mano.",
     "Urgencia legítima: el contador corresponde al corte real; al vencer se recalculan despacho y entrega con días hábiles y feriados.",
-    "Jerarquía gráfica: contador destacado, calendario de la primera entrega posible y rangos por destino.",
-    "Recorrido ilustrativo: el camión viaja una sola vez hacia una casa; no representa seguimiento de un pedido existente.",
+    "Jerarquía gráfica: ticket en el accent del producto, contador con segundos reales y fechas de despacho y primera entrega posible.",
+    "Paquete ilustrativo que entra en el próximo despacho una sola vez; no representa tracking ni una reserva de stock.",
   ],
   content: z.object({
+    heading: plain("heading").pipe(z.string().min(8).max(60)).optional()
+      .describe("Titular del ticket, sin cifras, fechas ni reservas. Ej.: «Que el próximo lleve el tuyo»."),
+    parcel_label: plain("parcel_label").pipe(z.string().min(3).max(20)).optional()
+      .describe("Etiqueta de la caja ilustrativa, sin datos operativos. Ej.: «Tu pedido»."),
     countdown_label: plain("countdown_label").pipe(z.string().min(3).max(40)).optional()
       .describe("Etiqueta sobre el contador grande. Ej.: «El próximo despacho cierra en». No contiene fechas ni cifras."),
     arrival_template: plain("arrival_template", ["arrive"]).pipe(z.string().min(12).max(60).includes("{arrive}")).optional()
@@ -61,11 +65,14 @@ export const shippingTimeline = defineComponent({
     "Etiquetas de hito: 1-2 palabras que formen una secuencia narrativa (pedido → despacho → entrega).",
     "node_delivered_sub_suffix: solo si la tienda tiene pago contra entrega activo.",
     "Tarjeta gráfica: countdown_label, arrival_template, cutoff_template y dispatch_template son opcionales; los textos de respaldo mantienen compatible el contenido guardado. arrival_template usa «desde {arrive}», nunca garantiza un día exacto.",
-    "Los campos node_* permanecen compatibles; ya no se presentan tres hitos ni un estado de pedido realizado. La animación es ilustrativa, sin seguimiento, escasez ni porcentajes inventados.",
+    "heading y parcel_label son opcionales. El ticket usa «Que el próximo lleve el tuyo» y «Tu pedido» como respaldo; no requiere imágenes ni otro botón de compra.",
+    "Los campos node_* y las plantillas anteriores permanecen compatibles; no se presentan hitos de pedido realizado. Las plantillas de despacho y llegada separan su etiqueta del token calculado. Animación ilustrativa sin tracking, reservas, escasez ni porcentajes inventados.",
   ],
   forbidden: [],
   examples: [
     {
+      heading: "Que el próximo lleve el tuyo",
+      parcel_label: "Tu pedido",
       countdown_label: "El próximo despacho cierra en",
       arrival_template: "Recíbelo desde {arrive}",
       cutoff_template: "Confirma antes de {cutoff}",

@@ -87,7 +87,7 @@ export function readKit(dir = KIT_DIR): Kit {
   // Esta transición también debe ofrecer Actualizar tema cuando el código ya está al día.
   const kit = {
     files,
-    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1`)).slice(0, 10),
+    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1\npdp-dispatch-ticket:1`)).slice(0, 10),
   };
   if (dir === KIT_DIR) memo = kit;
   return kit;
@@ -442,6 +442,32 @@ export function withPdpPurchaseHierarchy(remote: string): string | null {
       const ordered = next.map(type => ids.get(type)!);
       let position = 0;
       details.block_order = details.block_order.map(id => moving.has(id) ? ordered[position++] : id);
+      changed = true;
+    }
+  }
+  return changed ? JSON.stringify(data) : null;
+}
+
+/** Sitúa el ticket y el reaseguro COD antes del botón, solo desde el orden conocido del kit. */
+export function withPdpDispatchTicket(remote: string): string | null {
+  let data;
+  try { data = parseThemeJson(remote); }
+  catch (error) { if (error instanceof SyntaxError) return null; throw error; }
+  if (!data?.sections) return null;
+  let changed = false;
+  const previous = ["df-title", "df-price", "df-subtitle", "df-pack-offers", "df-benefit-usps", "buy-buttons", "df-inventory", "payment-icons", "_divider", "df-gallery-benefits", "group", "df-shipping-timeline", "df-benefit-double-box"];
+  for (const main of Object.values(data.sections) as ProductBlock[]) {
+    if (main.type !== "product-information") continue;
+    for (const details of Object.values(main.blocks ?? {})) {
+      if (details.type !== "_product-details" || !details.blocks || !Array.isArray(details.block_order)) continue;
+      const blocks = details.blocks, order = details.block_order;
+      const own = order.filter(id => previous.includes(blocks[id]?.type));
+      if (JSON.stringify(own.map(id => blocks[id].type)) !== JSON.stringify(previous)) continue;
+      const shipping = own.find(id => blocks[id].type === "df-shipping-timeline")!;
+      const cod = own.find(id => blocks[id].type === "df-benefit-double-box")!;
+      const next = order.filter(id => id !== shipping && id !== cod);
+      next.splice(next.findIndex(id => blocks[id].type === "buy-buttons"), 0, shipping, cod);
+      details.block_order = next;
       changed = true;
     }
   }

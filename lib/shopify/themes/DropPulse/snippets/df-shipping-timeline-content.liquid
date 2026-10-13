@@ -8,7 +8,7 @@
 {%- enddoc -%}
 {%- doc -%}
   DropFlex · Despacho y entrega (shipping-timeline). Contador del próximo corte,
-  calendario de llegada y recorrido ilustrativo del camión, bajo el botón.
+  ticket con fechas estimadas y paquete ilustrativo, antes del botón existente.
 
   REGLA: plazos, hora de corte, feriados y zona horaria salen de la logística REAL de la tienda.
   Las fechas y la cuenta regresiva se calculan en df-shipping-timeline.js con el reloj de la
@@ -90,6 +90,10 @@
   assign t_ordered_sub = content.node_ordered_sub | default: s.ordered_sub
   assign t_shipped = content.node_shipped_label | default: s.shipped_label
   assign t_delivered = content.node_delivered_label | default: s.delivered_label
+  assign t_heading = content.heading | default: s.ticket_heading | default: 'Que el próximo lleve el tuyo'
+  assign t_parcel_label = content.parcel_label | default: s.parcel_label | default: 'Tu pedido'
+  assign t_dispatch_label = content.dispatch_template | default: s.dispatch_text | default: 'Despacho estimado: {ship}' | replace: '{ship}', '' | remove: ':' | strip
+  assign t_arrival_label = content.arrival_template | default: s.arrival_text | default: 'Recíbelo desde {arrive}' | replace: '{arrive}', '' | remove: ':' | strip
   assign t_countdown_label = content.countdown_label | default: s.countdown_label | default: 'El próximo despacho cierra en'
   assign t_arrival = content.arrival_template | default: s.arrival_text | default: 'Recíbelo desde {arrive}'
   assign t_cutoff = content.cutoff_template | default: s.cutoff_text | default: 'Confirma antes de {cutoff}'
@@ -134,49 +138,39 @@
       <p class="df-visually-hidden" data-df-title>&nbsp;</p>
     {%- endif -%}
 
-    <div class="df-shipping-timeline__countdown" data-df-countdown data-pending>
-      <p class="df-shipping-timeline__eyebrow">{% render 'df-icon', name: 'clock' %} {{ t_countdown_label | escape }}</p>
-      <p class="df-shipping-timeline__clock" data-df-clock>
-        <span class="df-shipping-timeline__unit"><strong data-df-hours>—</strong><span>horas</span></span>
-        <span class="df-shipping-timeline__colon" aria-hidden="true">:</span>
-        <span class="df-shipping-timeline__unit"><strong data-df-minutes>—</strong><span>minutos</span></span>
-      </p>
-      <p class="df-shipping-timeline__cutoff" data-df-cutoff></p>
-    </div>
-    <div class="df-shipping-timeline__scene">
-      <div class="df-shipping-timeline__scene-head">
-        <div class="df-shipping-timeline__arrival">
-          <p class="df-shipping-timeline__eyebrow">Entrega estimada</p>
-          <h3 class="df-shipping-timeline__headline" data-df-arrival>Consulta las fechas de entrega</h3>
-        </div>
-        <div class="df-shipping-timeline__calendar" aria-hidden="true">
-          <span class="df-shipping-timeline__calendar-top" data-df-calendar-weekday>—</span>
-          <strong data-df-calendar-date>—</strong>
-          <span class="df-shipping-timeline__calendar-month" data-df-calendar-month>—</span>
+    <div class="df-shipping-timeline__ticket">
+      <div class="df-shipping-timeline__ticket-top">
+        <p class="df-shipping-timeline__eyebrow">{% render 'df-icon', name: 'truck' %} {{ t_countdown_label | escape }}</p>
+        <h3 class="df-shipping-timeline__headline">{{ t_heading | escape }}</h3>
+        <div class="df-shipping-timeline__countdown" data-df-countdown data-pending>
+          <p class="df-shipping-timeline__clock" data-df-clock>
+            <span class="df-shipping-timeline__unit"><strong data-df-hours>—</strong><span>horas</span></span>
+            <span class="df-shipping-timeline__colon" aria-hidden="true">:</span>
+            <span class="df-shipping-timeline__unit"><strong data-df-minutes>—</strong><span>minutos</span></span>
+            <span class="df-shipping-timeline__unit"><strong data-df-seconds>—</strong><span>segundos</span></span>
+          </p>
+          <p class="df-shipping-timeline__cutoff" data-df-cutoff></p>
         </div>
       </div>
       <div class="df-shipping-timeline__route" aria-hidden="true">
         <span class="df-shipping-timeline__rail"><span class="df-shipping-timeline__rail-fill"></span></span>
-        <span class="df-shipping-timeline__truck">
-          {%- if s.icon_shipped != blank -%}{{ s.icon_shipped | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '36px', alt: '', class: 'df-shipping-timeline__img' }}{%- else -%}{% render 'df-icon', name: 'truck' %}{%- endif -%}
-        </span>
-        <span class="df-shipping-timeline__home">
-          {%- if s.icon_delivered != blank -%}{{ s.icon_delivered | image_url: width: 112 | image_tag: widths: '56, 112', sizes: '36px', alt: '', class: 'df-shipping-timeline__img' }}{%- else -%}{% render 'df-icon', name: 'home' %}{%- endif -%}
-        </span>
-        <span class="df-shipping-timeline__check">{% render 'df-icon', name: 'check' %}</span>
+        <span class="df-shipping-timeline__origin">{% render 'df-icon', name: 'package' %}</span>
+        <span class="df-shipping-timeline__parcel"><span>{{ t_parcel_label | escape }}</span></span>
+        <span class="df-shipping-timeline__home">{% render 'df-icon', name: 'home' %}</span>
       </div>
-      {%- if s.show_ship_date -%}<p class="df-shipping-timeline__dispatch" data-df-ship>{{ t_shipped | escape }}: {{ handling }} {{ days_word }}</p>{%- endif -%}
-      <div class="df-shipping-timeline__destinations">
-        <p class="df-shipping-timeline__destination" data-df-delivery>
-          {%- if extra > 0 %}{{ city | escape }}: {% endif -%}
-          {%- if days_min == days_max -%}{{ days_min }}{%- else -%}{{ days_min }} a {{ days_max }}{%- endif %} {{ days_word -}}
-        </p>
-        {%- if extra > 0 -%}
-          <p class="df-shipping-timeline__destination" data-df-delivery-regions>
-            {{- t_regions | escape }}: {{ regions_min }} a {{ regions_max }} {{ days_word -}}
-          </p>
-        {%- endif -%}
+      <div class="df-shipping-timeline__dates" aria-hidden="true">
+        {%- if s.show_ship_date -%}<div><p>{{ t_dispatch_label | escape }}</p><strong data-df-ship-date>{{ handling }} {{ days_word }}</strong></div>{%- endif -%}
+        <div><p>{{ t_arrival_label | escape }}</p><strong data-df-arrival-date>{{ days_min }} a {{ days_max }} {{ days_word }}</strong></div>
       </div>
+    </div>
+    {%- if s.show_ship_date -%}<p class="df-visually-hidden" data-df-ship></p>{%- endif -%}
+    <p class="df-visually-hidden" data-df-arrival></p>
+    <div class="df-shipping-timeline__destinations">
+      <p class="df-shipping-timeline__destination" data-df-delivery>
+        {%- if extra > 0 %}{{ city | escape }}: {% endif -%}
+        {%- if days_min == days_max -%}{{ days_min }}{%- else -%}{{ days_min }} a {{ days_max }}{%- endif %} {{ days_word -}}
+      </p>
+      {%- if extra > 0 -%}<p class="df-shipping-timeline__destination" data-df-delivery-regions>{{ t_regions | escape }}: {{ regions_min }} a {{ regions_max }} {{ days_word }}</p>{%- endif -%}
     </div>
 
     <p class="df-visually-hidden" data-df-summary>

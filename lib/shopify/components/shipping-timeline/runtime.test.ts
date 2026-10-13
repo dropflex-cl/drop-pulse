@@ -9,6 +9,7 @@ function mount(instant: string, config: Record<string, unknown> = {}, motion = {
   const { window, document } = parseHTML("<html><body></body></html>");
   let now = Date.parse(instant);
   const animations: { frames: Keyframe[]; options: KeyframeAnimationOptions; cancelled: boolean }[] = [];
+  let nextTick = 0;
   const intersections: ((entries: { isIntersecting: boolean; intersectionRatio: number }[]) => void)[] = [];
   let resize: (() => void) | undefined;
   const reduced = { matches: motion.reduced, addEventListener() {}, removeEventListener() {} };
@@ -31,17 +32,17 @@ function mount(instant: string, config: Record<string, unknown> = {}, motion = {
   Object.assign(window, { IntersectionObserver: Intersection, ResizeObserver: Resize });
   runInNewContext(source, { window, document, HTMLElement, customElements: window.customElements, Intl, Date: ClockDate,
     IntersectionObserver: Intersection, ResizeObserver: Resize, MutationObserver: Mutation, getComputedStyle: () => styles,
-    setTimeout: () => 1, clearTimeout() {} });
+    setTimeout: (_callback: unknown, delay: number) => { nextTick = delay; return 1; }, clearTimeout() {} });
   const cfg = { cutoff: 13, handling: 1, tmin: 2, tmax: 3, biz: true, sat: false, shipSat: false,
     holidays: [], city: "Santiago", extra: 2, tz: "America/Santiago", locale: "es-CL", format: "weekday", ...config };
   const texts = { countdown: "Pide dentro de {time} y recíbelo desde {arrive}", closed: "Pide hoy y recíbelo desde {arrive}",
     arrival: "Recíbelo desde {arrive}", cutoff: "Confirma antes de {cutoff}", dispatch: "Despacho estimado: {ship}", regions: "Regiones" };
   const template = document.createElement("template");
   template.innerHTML = `<df-shipping-timeline class="df-shipping-timeline--animate"><p data-df-title></p>
-    <div data-df-countdown data-pending><p data-df-clock><b data-df-hours></b><b data-df-minutes></b></p><p data-df-cutoff></p></div>
+    <div data-df-countdown data-pending><p data-df-clock><b data-df-hours></b><b data-df-minutes></b><b data-df-seconds></b></p><p data-df-cutoff></p></div>
     <h3 data-df-arrival></h3><div class="df-shipping-timeline__calendar"><span data-df-calendar-weekday></span><b data-df-calendar-date></b><span data-df-calendar-month></span></div>
-    <div class="df-shipping-timeline__route"><span class="df-shipping-timeline__truck"></span><span class="df-shipping-timeline__rail-fill"></span><span class="df-shipping-timeline__check"></span></div>
-    <p data-df-ship></p><p data-df-delivery></p><p data-df-delivery-regions></p>
+    <div class="df-shipping-timeline__route"><span class="df-shipping-timeline__parcel"></span><span class="df-shipping-timeline__rail-fill"></span></div><div class="df-shipping-timeline__dates"></div>
+    <p data-df-ship></p><strong data-df-ship-date></strong><strong data-df-arrival-date></strong><p data-df-delivery></p><p data-df-delivery-regions></p>
     <script type="application/json" data-df-config>${JSON.stringify(cfg)}</script><script type="application/json" data-df-texts>${JSON.stringify(texts)}</script>
   </df-shipping-timeline>`;
   document.body.append(template.content);
@@ -49,7 +50,7 @@ function mount(instant: string, config: Record<string, unknown> = {}, motion = {
   const text = (selector: string) => el.querySelector(selector)?.textContent;
   return { el, text, animations, resize: () => resize?.(), enter: () => intersections.forEach(callback => callback([{ isIntersecting: true, intersectionRatio: 1 }])),
     exit: () => intersections.forEach(callback => callback([{ isIntersecting: false, intersectionRatio: 0 }])),
-    time: (instant: string) => { now = Date.parse(instant); el.render(); } };
+    time: (instant: string) => { now = Date.parse(instant); el.render(); }, nextTick: () => nextTick };
 }
 
 describe("tarjeta de despacho: reloj real y recorrido único", () => {
@@ -76,17 +77,24 @@ describe("tarjeta de despacho: reloj real y recorrido único", () => {
     const midnight = mount("2026-10-12T15:00:00Z", { cutoff: 0 });
     expect(midnight.text("[data-df-cutoff]")).toContain("mañana, 00:00");
     const near = mount("2026-10-12T15:59:50Z");
-    expect(near.text("[data-df-minutes]")).toBe("01");
+    expect(near.text("[data-df-minutes]")).toBe("00");
+    expect(near.text("[data-df-seconds]")).toBe("10");
+    near.time("2026-10-12T15:59:59Z");
+    expect(near.text("[data-df-seconds]")).toBe("01");
+    expect(near.nextTick()).toBeLessThanOrEqual(1050);
+    near.time("2026-10-12T16:00:00Z");
+    expect(near.text("[data-df-cutoff]")).toContain("mañana, 13:00");
+    expect(near.text("[data-df-arrival-date]")).toContain("16");
   });
   it("anima una vez al entrar, usa tokens y no la cancela el resize inicial", () => {
     const page = mount("2026-10-12T15:00:00Z");
     page.enter(); page.resize(); page.enter();
-    expect(page.animations).toHaveLength(4);
+    expect(page.animations).toHaveLength(3);
     expect(page.animations.every(animation => animation.options.duration === 2600 && !animation.cancelled)).toBe(true);
     page.exit();
     expect(page.animations.every(animation => animation.cancelled)).toBe(true);
     page.enter();
-    expect(page.animations).toHaveLength(4);
+    expect(page.animations).toHaveLength(3);
   });
   it.each([{ reduced: true, aboveFold: false }, { reduced: false, aboveFold: true }])("deja la escena estática con $reduced / sobre el pliegue $aboveFold", motion => {
     const page = mount("2026-10-12T15:00:00Z", {}, motion);

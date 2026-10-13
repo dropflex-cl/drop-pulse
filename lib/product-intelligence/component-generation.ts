@@ -14,7 +14,7 @@ export const COMPONENT_ARGUMENTS: Record<string, string> = {
   "review-stars": "Presenta el texto de valoración y las cifras solicitadas; puede reutilizar un resumen disponible.",
   "benefit-usps": "Explica ventajas concretas que hacen adecuado el producto para esta necesidad.",
   inventory: "Desarrolla el mensaje comercial de urgencia junto al botón; disponibilidad y entrega conservan sus datos operativos.",
-  "shipping-timeline": "Conecta el corte real con la primera entrega posible: contador, calendario y recorrido ilustrativo usan la logística vigente.",
+  "shipping-timeline": "Conecta el corte real con la primera entrega posible: ticket con contador de segundos, paquete ilustrativo y fechas estimadas antes del botón COD existente. Usa la logística vigente; no añade reservas ni otro CTA.",
   "benefit-double-box": "Reduce dos fricciones de compra con condiciones comerciales concretas.",
   "gif-strip": "Demuestra visualmente una acción del producto que hace creíble su utilidad.",
   "review-slider": "Redacta voces que respondan dudas puntuales de esta dirección o reutiliza reseñas por ID.",

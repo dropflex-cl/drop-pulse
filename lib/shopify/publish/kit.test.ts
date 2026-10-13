@@ -12,10 +12,33 @@ import {
   withEasySellOn,
   withPdpIntro,
   withPdpPurchaseHierarchy,
+  withPdpDispatchTicket,
   withPdpReviewOrder,
 } from "./kit";
 
 describe("kit del tema", () => {
+  it("lleva ticket y COD al botón desde el orden anterior sin alterar ajustes ni órdenes personalizados", () => {
+    const data = JSON.parse(readFileSync(join(KIT_DIR, "templates/product.json"), "utf8"));
+    const details = data.sections.main.blocks["product-details"];
+    expect(withPdpDispatchTicket(JSON.stringify(data))).toBeNull();
+    const previous = details.block_order.filter((id: string) => !["shipping_timeline", "benefit_double_box"].includes(id));
+    previous.splice(previous.indexOf("stars_row") + 1, 0, "shipping_timeline", "benefit_double_box");
+    details.block_order = previous;
+    details.blocks.shipping_timeline.disabled = true;
+    details.blocks.shipping_timeline.settings.margin_top = 12;
+    details.blocks.custom = { type: "text", settings: { text: "Nota propia" } };
+    details.block_order.push("custom");
+    const before = structuredClone(details.blocks);
+    const migrated = JSON.parse(withPdpDispatchTicket(JSON.stringify(data))!);
+    const next = migrated.sections.main.blocks["product-details"];
+    expect(next.blocks).toEqual(before);
+    const button = next.block_order.indexOf("buy_buttons");
+    expect(next.block_order.slice(button - 2, button)).toEqual(["shipping_timeline", "benefit_double_box"]);
+    expect(next.block_order.at(-1)).toBe("custom");
+    expect(withPdpDispatchTicket(JSON.stringify(migrated))).toBeNull();
+    details.block_order.reverse();
+    expect(withPdpDispatchTicket(JSON.stringify(data))).toBeNull();
+  });
   it("migra la jerarquía anterior conservando ajustes, bloques ajenos y apagados, una sola vez", () => {
     const kit = readFileSync(join(KIT_DIR, "templates/product.json"), "utf8");
     const remote = JSON.parse(kit);

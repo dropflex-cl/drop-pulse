@@ -246,7 +246,9 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
     "padding_bottom": 16
   },
   "shipping-timeline": {
-    "countdown_label": "El próximo despacho cierra en",
+    "ticket_heading": "Que el próximo lleve el tuyo",
+    "parcel_label": "Tu pedido",
+    "countdown_label": "Próximo despacho",
     "arrival_text": "Recíbelo desde {arrive}",
     "cutoff_text": "Confirma antes de {cutoff}",
     "dispatch_text": "Despacho estimado: {ship}",

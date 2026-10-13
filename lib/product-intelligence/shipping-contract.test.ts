@@ -10,7 +10,7 @@ import { PI_SCOPES } from "./policy";
 
 const product = randomUUID();
 const legacy = shippingTimeline.examples[1] as Record<string, unknown>;
-const graphic = { ...legacy, countdown_label: "El próximo despacho cierra en", arrival_template: "Recíbelo desde {arrive}",
+const graphic = { ...legacy, heading: "Que el próximo lleve el tuyo", parcel_label: "Tu pedido", countdown_label: "El próximo despacho cierra en", arrival_template: "Recíbelo desde {arrive}",
   cutoff_template: "Confirma antes de {cutoff}", dispatch_template: "Despacho estimado: {ship}" };
 
 describe("paridad del contrato de despacho gráfico", () => {
@@ -19,7 +19,7 @@ describe("paridad del contrato de despacho gráfico", () => {
     f.state.knowledge = { product: { title: "Producto" }, context: null, pricing: {}, policies: {}, graph: {}, strategy: null,
       landing: { rows: [{ component: "shipping-timeline", content: legacy, proposal: null, enabled: true, status: "approved", images: [] }], image_catalog: [], reviews: [], review_count: 0 } };
     const context = componentGenerationContext(f.state, "shipping-timeline");
-    for (const key of ["countdown_label", "arrival_template", "cutoff_template", "dispatch_template"]) {
+    for (const key of ["heading", "parcel_label", "countdown_label", "arrival_template", "cutoff_template", "dispatch_template"]) {
       expect(JSON.stringify(context.component.schema)).toContain(`"${key}"`);
     }
     expect(context.component.real_data.join(" ")).toContain("{cutoff}");
@@ -44,6 +44,8 @@ describe("paridad del contrato de despacho gráfico", () => {
     expect(JSON.parse(field.value)).toMatchObject(variants);
   });
   it.each([
+    { heading: "Quedan solo 3 cupos" },
+    { parcel_label: "Paquete {stock}" },
     { cutoff_template: "Confirma antes de mañana a las 13" },
     { cutoff_template: "Confirma antes de {stock}" },
     { arrival_template: "Recíbelo el viernes" },

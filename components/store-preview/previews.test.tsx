@@ -105,8 +105,9 @@ describe("vistas previas de los componentes", () => {
           }
           if (c.id === "shipping-timeline") {
             const document = parseHTML(html).document;
-            expect(document.querySelector(".df-shipping-timeline__calendar")).not.toBeNull();
-            expect(document.querySelector(".df-shipping-timeline__truck")).not.toBeNull();
+            expect(document.querySelector(".df-shipping-timeline__ticket")).not.toBeNull();
+            expect(document.querySelector(".df-shipping-timeline__parcel")).not.toBeNull();
+            expect(document.querySelector("[data-df-seconds]")).not.toBeNull();
             expect(document.querySelector(".df-shipping-timeline__steps")).toBeNull();
             const texts = JSON.parse(document.querySelector("[data-df-texts]")!.textContent);
             const native = example as { countdown_template: string; arrival_template?: string; cutoff_template?: string; dispatch_template?: string };

@@ -19,6 +19,7 @@ import {
   withEasySellOn,
   withPdpIntro,
   withPdpPurchaseHierarchy,
+  withPdpDispatchTicket,
   withPdpReviewOrder,
   withPdpSections,
   type Kit,
@@ -521,7 +522,8 @@ async function prepareThemeUpdate(
     const sections = remote ? withPdpSections(intro ?? remote, kitTemplate) : null;
     const reviewOrder = remote ? withPdpReviewOrder(sections ?? intro ?? remote) : null;
     const hierarchy = remote ? withPdpPurchaseHierarchy(reviewOrder ?? sections ?? intro ?? remote) : null;
-    const merged = hierarchy ?? reviewOrder ?? sections ?? intro;
+    const dispatchTicket = remote ? withPdpDispatchTicket(hierarchy ?? reviewOrder ?? sections ?? intro ?? remote) : null;
+    const merged = dispatchTicket ?? hierarchy ?? reviewOrder ?? sections ?? intro;
     if (merged) {
       byPath.set(productTemplate, {
         ...byPath.get(productTemplate)!,

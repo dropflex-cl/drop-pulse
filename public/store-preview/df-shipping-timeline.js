@@ -215,6 +215,9 @@ if (!customElements.get('df-shipping-timeline')) {
       this.clockEl = this.querySelector('[data-df-clock]');
       this.hoursEl = this.querySelector('[data-df-hours]');
       this.minutesEl = this.querySelector('[data-df-minutes]');
+      this.secondsEl = this.querySelector('[data-df-seconds]');
+      this.shipDateEl = this.querySelector('[data-df-ship-date]');
+      this.arrivalDateEl = this.querySelector('[data-df-arrival-date]');
       this.cutoffEl = this.querySelector('[data-df-cutoff]');
       this.arrivalEl = this.querySelector('[data-df-arrival]');
       this.calendarWeekdayEl = this.querySelector('[data-df-calendar-weekday]');
@@ -229,10 +232,9 @@ if (!customElements.get('df-shipping-timeline')) {
     /** Recorrido ilustrativo único; nunca representa un pedido ya confirmado. */
     armLine() {
       this.route = this.querySelector('.df-shipping-timeline__route');
-      this.truck = this.querySelector('.df-shipping-timeline__truck');
+      this.truck = this.querySelector('.df-shipping-timeline__parcel');
       this.line = this.querySelector('.df-shipping-timeline__rail-fill');
-      this.check = this.querySelector('.df-shipping-timeline__check');
-      this.calendar = this.querySelector('.df-shipping-timeline__calendar');
+      this.calendar = this.querySelector('.df-shipping-timeline__dates');
       if (!this.route || !this.truck) return;
       this.motion = [];
       this.restLine();
@@ -263,12 +265,7 @@ if (!customElements.get('df-shipping-timeline')) {
       this.addEventListener('focusin', this.stopLine);
     }
 
-    restLine() {
-      const direction = getComputedStyle(this).direction === 'rtl' ? -1 : 1;
-      this.routeWidth = this.route.clientWidth;
-      this.travel = direction * Math.max(0, this.route.clientWidth - 80);
-      this.style.setProperty('--df-st-travel', `${this.travel}px`);
-    }
+    restLine() { this.routeWidth = this.route.clientWidth; }
 
     stopLine = () => { this.motion?.forEach(animation => animation.cancel()); this.motion = []; };
     onMotionChange = () => { if (!canAnimate()) this.stopLine(); };
@@ -281,9 +278,8 @@ if (!customElements.get('df-shipping-timeline')) {
       if (!duration) return;
       const options = { duration, easing: style.transitionTimingFunction, fill: 'none' };
       this.motion = [
-        this.truck.animate([{ translate: '0 0' }, { translate: `${this.travel}px 0` }], options),
+        this.truck.animate([{ translate: '-80px 10px', rotate: '-16deg', scale: '.86' }, { translate: '0 -12px', rotate: '3deg', scale: '1.06', offset: .66 }, { translate: '0 0', rotate: '-8deg', scale: '1' }], options),
         this.line.animate([{ scale: '0 1' }, { scale: '1 1' }], options),
-        this.check.animate([{ scale: '0', offset: 0 }, { scale: '0', offset: 0.82 }, { scale: '1.15', offset: 0.94 }, { scale: '1', offset: 1 }], options),
         this.calendar.animate([{ translate: '0 0', offset: 0 }, { translate: '0 0', offset: 0.78 }, { translate: '0 -4px', offset: 0.9 }, { translate: '0 0', offset: 1 }], options),
       ];
     }
@@ -336,6 +332,8 @@ if (!customElements.get('df-shipping-timeline')) {
       const now = wallClock(this.clock, nowMs);
       const p = plan(now, this.cal);
       const t = this.texts;
+      if (this.shipDateEl) this.shipDateEl.textContent = capitalize(this.fmtWeekdayDate.format(new Date(p.ship * DAY)));
+      if (this.arrivalDateEl) this.arrivalDateEl.textContent = capitalize(this.fmtWeekdayDate.format(new Date(p.from * DAY)));
 
       if (this.shipEl) this.shipEl.textContent = (t.dispatch || 'Despacho estimado: {ship}').replaceAll('{ship}', this.dayInSentence(p.ship, p.today));
       const regions = this.cal.extra > 0;
@@ -366,12 +364,14 @@ if (!customElements.get('df-shipping-timeline')) {
       const counting = Boolean(t.countdown && left > 0 && left <= 24 * HOUR);
       if (this.countdownEl) { this.countdownEl.hidden = !counting; this.countdownEl.removeAttribute('data-pending'); }
       if (this.hoursEl && this.minutesEl && this.clockEl) {
-        const minutes = Math.max(1, Math.ceil(left / 6e4));
+        const seconds = Math.max(1, Math.ceil(left / 1000));
+        const minutes = this.secondsEl ? Math.floor(seconds / 60) : Math.max(1, Math.ceil(left / 6e4));
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         this.hoursEl.textContent = String(hours).padStart(2, '0');
         this.minutesEl.textContent = String(mins).padStart(2, '0');
-        this.clockEl.setAttribute('aria-label', `${hours} horas, ${mins} minutos`);
+        if (this.secondsEl) this.secondsEl.textContent = String(seconds % 60).padStart(2, '0');
+        this.clockEl.setAttribute('aria-label', hours + ' horas, ' + mins + ' minutos' + (this.secondsEl ? ', ' + (seconds % 60) + ' segundos' : ''));
       }
       const cutoffDay = this.dayInSentence(p.deadline.day, p.today);
       const cutoffTime = this.fmtTime.format(new Date(p.deadline.hour * HOUR));
@@ -403,8 +403,9 @@ if (!customElements.get('df-shipping-timeline')) {
       }
 
       // Siguiente refresco: al cambio de minuto o justo al vencer el corte, lo que llegue antes.
-      const toNextMinute = 6e4 - (nowMs % 6e4) + 50;
-      const delay = left > 0 ? Math.min(toNextMinute, left + 50) : toNextMinute;
+      const tick = counting && this.secondsEl ? 1000 : 6e4;
+      const toNextTick = tick - (nowMs % tick) + 50;
+      const delay = left > 0 ? Math.min(toNextTick, left + 50) : toNextTick;
       if (document.visibilityState !== 'hidden') this.timer = setTimeout(() => this.render(), delay);
     }
   }

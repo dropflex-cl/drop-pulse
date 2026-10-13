@@ -36,13 +36,13 @@ export const benefitDoubleBox = defineComponent({
   file: "blocks/df-benefit-double-box.liquid",
   metafield: { namespace: "dropflex", key: "benefit_double_box", type: "json" },
   media: [],
-  placement: "Columna del producto, bajo el botón de compra: reaseguro en el instante del clic, con las dos objeciones de más peso (cómo pago y qué pasa si no me sirve).",
+  placement: "Columna del producto, entre el ticket de despacho y el botón de compra: pago contra entrega destacado con cero adelanto y una segunda garantía real.",
   objection: "¿Cómo pago, es seguro pagar? y ¿qué pasa si no me sirve? Las dos últimas barreras de riesgo percibido.",
   levers: [
     "Reversión de riesgo: el cambio o la garantía traslada el riesgo del comprador a la tienda.",
     "Pago diferido: pagar al recibir reduce el dolor de pagar y la desconfianza hacia una tienda nueva.",
     "Autoridad prestada: los logos reales de medios de pago transfieren confianza (solo si están activos).",
-    "Reaseguro compacto: dos garantías con ícono y título; el comprador puede desplegar cómo funciona cada una.",
+    "Reaseguro COD: cero adelanto en la moneda de la tienda y explicación visible; la segunda garantía permanece compacta y desplegable.",
     "Cobertura completa: pago (antes de la compra) + cambio (después) cubren todo el recorrido.",
   ],
   content: z.object({
@@ -56,7 +56,7 @@ export const benefitDoubleBox = defineComponent({
   ],
   rules: [
     "Título = el hecho (qué); descripción = cómo te protege (por qué). La descripción no repite el título.",
-    "Los títulos forman una fila compacta bajo la entrega; la descripción se muestra al desplegar cada garantía. El título debe entenderse sin abrirla.",
+    "La política cod se muestra con cero adelanto y su descripción visible; solo si COD está activo. Las otras garantías son desplegables. No describe el producto como gratuito: el precio principal conserva su lugar junto al título.",
     "Tono calmado y seguro, tuteo, sin exclamaciones ni emojis.",
     "Nombres de marcas de pago (Mercado Pago, Webpay) solo si están activos en la tienda.",
     "No repetir lo que dice benefit-usps (sobre el botón): aquí pago y garantía, allá envío, origen y soporte.",
