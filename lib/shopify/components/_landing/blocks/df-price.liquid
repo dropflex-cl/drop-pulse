@@ -55,13 +55,15 @@
   >
     <script type="application/json" data-df-variants>{{ variants_json }}</script>
     <span class="df-price__now" data-df-now>{{ variant.price | money }}</span>
-    <span class="df-price__was" data-df-was-wrap{% if save <= 0 %} hidden{% endif %}>
-      <span class="df-visually-hidden">Precio normal</span>
-      <s data-df-was>{%- if save > 0 -%}{{ variant.compare_at_price | money }}{%- endif -%}</s>
+    <span class="df-price__details">
+      <span class="df-price__was" data-df-was-wrap{% if save <= 0 %} hidden{% endif %}>
+        <span class="df-visually-hidden">Precio normal</span>
+        <s data-df-was>{%- if save > 0 -%}{{ variant.compare_at_price | money }}{%- endif -%}</s>
+      </span>
+      {%- if s.show_badge -%}
+        <span class="df-price__badge" data-df-badge{% if save <= 0 %} hidden{% endif %}>{{ badge_text | escape }}</span>
+      {%- endif -%}
     </span>
-    {%- if s.show_badge -%}
-      <span class="df-price__badge" data-df-badge{% if save <= 0 %} hidden{% endif %}>{{ badge_text | escape }}</span>
-    {%- endif -%}
     {%- comment -%} Eventos (dropflex.event): etiqueta con el % real y cuenta regresiva hasta la fecha real. {%- endcomment -%}
   </df-price>
 {%- endif -%}
@@ -71,15 +73,25 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 12px;
+    gap: calc(var(--df-gap) / 2) var(--df-gap);
   }
 
   .df-price__now {
     font-family: var(--df-font-heading);
-    font-size: var(--df-price-size, 28px);
-    font-weight: 600;
+    /* type-store-price de design-system/tokens.json; el editor conserva medidas personalizadas. */
+    font-size: var(--df-price-size, 48px);
+    font-weight: var(--df-font-heading-weight);
     line-height: 1.15;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+    color: var(--df-accent-ink);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+
+  .df-price__details {
+    display: grid;
+    justify-items: start;
+    gap: calc(var(--df-gap) / 4);
   }
 
   .df-price__was {
@@ -94,7 +106,7 @@
     padding: 4px 10px;
     border-radius: var(--df-radius-pill);
     background: color-mix(in srgb, var(--df-positive) 10%, var(--df-bg));
-    color: var(--df-positive);
+    color: color-mix(in srgb, var(--df-positive) 90%, var(--df-fg));
     font-size: 13px;
     font-weight: 600;
     line-height: 1.2;
@@ -132,10 +144,10 @@
       "id": "price_size",
       "label": "Tamaño del precio",
       "min": 20,
-      "max": 40,
+      "max": 64,
       "step": 2,
       "unit": "px",
-      "default": 28
+      "default": 48
     },
     {
       "type": "range",

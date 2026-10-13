@@ -53,6 +53,7 @@
     "a10fd1956b",
     "a3361a8e29",
     "a7ad088b1b",
+    "a8da9b0aa3",
     "aa43948962",
     "ab002b8d61",
     "af4319ff8b",
@@ -866,8 +867,12 @@
       "1bf83d364ca06d0ea96ba0f2d997693a",
       "32da96901d85d4707c30e4504bc05156",
       "5a82e3b78b61253277530533a474ff36",
+      "b1a2b3a0395b2f91d4c90f9d2c2f3b99",
       "c498e56d6c685266a51b6881fd340d5d",
       "d2698bd43b372f2c4d13b0367bcbbb65"
+    ],
+    "blocks/df-purchase-confidence.liquid": [
+      "822d7eb79198c6098654d23053f93bae"
     ],
     "blocks/df-review-slider.liquid": [
       "08c945d90f65fb2b0aa99dd9f6f8d490",
@@ -948,6 +953,7 @@
     ],
     "blocks/df-title.liquid": [
       "05a794039266dde9a57d139cd5934eb1",
+      "3504be638b210c94cd89bc3a418ca9be",
       "3685f3d5c4c42fcf1636ede370807a5b"
     ],
     "blocks/df-trust-note.liquid": [

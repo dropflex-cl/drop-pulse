@@ -1436,15 +1436,25 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: calc(var(--df-gap) / 2) var(--df-gap);
 }
 
 .df-price__now {
   font-family: var(--df-font-heading);
-  font-size: var(--df-price-size, 28px);
-  font-weight: 600;
+  /* type-store-price de design-system/tokens.json; el editor conserva medidas personalizadas. */
+  font-size: var(--df-price-size, 48px);
+  font-weight: var(--df-font-heading-weight);
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  color: var(--df-accent-ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.df-price__details {
+  display: grid;
+  justify-items: start;
+  gap: calc(var(--df-gap) / 4);
 }
 
 .df-price__was {
@@ -1459,7 +1469,7 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
   padding: 4px 10px;
   border-radius: var(--df-radius-pill);
   background: color-mix(in srgb, var(--df-positive) 10%, var(--df-bg));
-  color: var(--df-positive);
+  color: color-mix(in srgb, var(--df-positive) 90%, var(--df-fg));
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
@@ -1467,6 +1477,24 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 
 .df-price [hidden] {
   display: none;
+}
+
+/* _landing/blocks/df-purchase-confidence.liquid */
+.df-purchase-confidence {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--df-gap) / 2);
+  margin: 0;
+  color: var(--df-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.df-purchase-confidence .df-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 /* _landing/blocks/df-social-badge.liquid */
@@ -1589,7 +1617,8 @@ html:not(.df-event-on) .df-product-event-badges { display: none; }
 
 /* _landing/blocks/df-title.liquid */
 .df-title {
-  font-size: clamp(1.625rem, 1.3rem + 1.1cqw, 2.25rem);
+  /* type-store-product-title de design-system/tokens.json, hasta type-hero-sm en escritorio. */
+  font-size: clamp(1.75rem, 1.5rem + 1.1cqw, 2.25rem);
   line-height: 1.15;
   letter-spacing: -0.02em;
   text-wrap: balance;

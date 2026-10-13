@@ -192,6 +192,10 @@
               },
               "block_order": []
             },
+            "purchase_confidence": {
+              "type": "df-purchase-confidence",
+              "settings": {}
+            },
             "payment_icons": {
               "type": "payment-icons",
               "settings": {
@@ -274,9 +278,10 @@
             "subtitle",
             "pack_offers",
             "benefit_usps",
+            "buy_buttons",
+            "purchase_confidence",
             "shipping_timeline",
             "benefit_double_box",
-            "buy_buttons",
             "inventory",
             "payment_icons",
             "divider",

@@ -189,11 +189,12 @@ export const SETTINGS: Record<string, Record<string, unknown>> = {
   "price": {
     "show_badge": true,
     "badge_label": "Ahorras {amount}",
-    "price_size": 28,
+    "price_size": 48,
     "margin_top": 0,
     "margin_bottom": 0
   },
   "product-includes": {},
+  "purchase-confidence": {},
   "results-timeline": {},
   "review-slider": {
     "max_items": 5,

@@ -1,6 +1,6 @@
 # shipping-timeline — Despacho y entrega
 
-Ticket antes del botón de compra existente: titular, contador del próximo corte con horas, minutos y segundos reales, paquete ilustrativo y dos fechas estimadas. Debajo, benefit-double-box destaca COD con cero adelanto. El precio principal permanece junto al título; el ticket no añade precio ni otro CTA. Reemplaza los tres hitos. Colores derivados exclusivamente de `--df-accent`, `--df-accent-ink`, `--df-on-accent` y `--df-accent-soft`; la línea mezcla el accent con el fondo. Los ajustes antiguos `time_color` e `icon_style` siguen en el schema por compatibilidad, pero no sustituyen el accent.
+Ticket después del botón de compra existente y su línea de confianza: titular, contador del próximo corte con horas, minutos y segundos reales, paquete ilustrativo y dos fechas estimadas. Debajo, benefit-double-box destaca COD con cero adelanto. El precio principal permanece junto al título y protagoniza la oferta antes del despacho; el ticket no añade precio ni otro CTA. Su diseño y animación se conservan. Colores derivados exclusivamente de `--df-accent`, `--df-accent-ink`, `--df-on-accent` y `--df-accent-soft`; la línea mezcla el accent con el fondo. Los ajustes antiguos `time_color` e `icon_style` siguen en el schema por compatibilidad, pero no sustituyen el accent.
 
 ## Contenido vigente y compatibilidad
 

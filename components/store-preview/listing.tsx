@@ -65,18 +65,32 @@ export function PricePreview({ facts }: { facts: StoreFacts }) {
   const save = facts.compareAt && facts.compareAt > facts.price ? facts.compareAt - facts.price : 0;
   const template = String(s.badge_label || "Ahorras {amount}");
   const badge = template.replaceAll("{amount}", formatMoney(save, facts.currency)).replaceAll("{percent}", String(facts.compareAt ? Math.round(save * 100 / facts.compareAt) : 0));
-  return <df-price className="df df-price" style={{ "--df-price-size": px(s.price_size), marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}>
+  return <df-price className="df df-price" data-badge={template} data-show-badge={String(s.show_badge)} style={{ "--df-price-size": px(s.price_size), marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties}>
     <span className="df-price__now" data-df-now="">{formatMoney(facts.price, facts.currency)}</span>
-    <span className="df-price__was" data-df-was-wrap="" hidden={save <= 0}>
-      <span className="df-visually-hidden">Precio normal</span><s data-df-was="">{save > 0 ? formatMoney(facts.compareAt!, facts.currency) : null}</s>
+    <span className="df-price__details">
+      <span className="df-price__was" data-df-was-wrap="" hidden={save <= 0}>
+        <span className="df-visually-hidden">Precio normal</span><s data-df-was="">{save > 0 ? formatMoney(facts.compareAt!, facts.currency) : null}</s>
+      </span>
+      {s.show_badge ? <span className="df-price__badge" data-df-badge="" hidden={save <= 0}>{badge}</span> : null}
     </span>
-    {s.show_badge ? <span className="df-price__badge" data-df-badge="" hidden={save <= 0}>{badge}</span> : null}
   </df-price>;
 }
 
 export interface ListingPreviewProps extends PreviewProps<Partial<Listing>> {
   /** Los bloques en uso, ya dibujados, en su lugar de la ficha (LISTING_SLOTS). */
   slots?: Partial<Record<ListingSlot, ReactNode>>;
+}
+
+/** Mismas políticas reales y marcado que df-purchase-confidence; no es contenido generado. */
+export function PurchaseConfidencePreview({ facts }: { facts: StoreFacts }) {
+  const { cod, free_shipping: freeShipping } = facts.policies;
+  if (!cod && !freeShipping) return null;
+  return <p className="df df-purchase-confidence">
+    <DfIcon name="shield" />
+    {cod ? <span>Sin adelantos</span> : null}
+    {cod && freeShipping ? <span aria-hidden="true">·</span> : null}
+    {freeShipping ? <span>Envío sin costo</span> : null}
+  </p>;
 }
 
 export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
@@ -95,6 +109,8 @@ export function ListingPreview({ content, facts, slots }: ListingPreviewProps) {
         ) : null}
         {slots?.afterPrice}
         <div className="grid h-12 place-items-center rounded-(--df-radius) bg-(--df-accent) text-small font-semibold text-(--df-on-accent)">Pídelo ahora y paga al recibir</div>
+        <PurchaseConfidencePreview facts={facts} />
+        {slots?.afterTrust}
         {slots?.afterButton}
         <div className="df-listing-preview__divider"><hr /></div>
         <ProductBenefitsPreview benefits={content.gallery_benefits} />

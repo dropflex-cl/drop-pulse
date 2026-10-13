@@ -18,7 +18,7 @@ export const shippingTimeline = defineComponent({
   file: "blocks/df-shipping-timeline.liquid",
   metafield: { namespace: "dropflex", key: "shipping_timeline", type: "json" },
   media: [],
-  placement: "Columna del producto, antes del reaseguro COD y del botón existente: ticket del próximo despacho con corte real, paquete ilustrativo y fechas estimadas. Conserva el precio principal junto al título.",
+  placement: "Columna del producto, después del botón COD existente y su línea de confianza, antes del reaseguro COD: ticket del próximo despacho con corte real, paquete ilustrativo y fechas estimadas. Título y precio protagonizan la oferta antes del ticket.",
   objection: "¿Cuándo me llega? (la duda número uno en pago contra entrega, por el miedo a esperas de semanas) y «lo pienso y compro después».",
   levers: [
     "Especificidad: fechas reales en vez de «envío rápido»; el comprador visualiza el día en que lo tiene en la mano.",

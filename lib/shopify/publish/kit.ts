@@ -87,7 +87,7 @@ export function readKit(dir = KIT_DIR): Kit {
   // Esta transición también debe ofrecer Actualizar tema cuando el código ya está al día.
   const kit = {
     files,
-    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1\npdp-dispatch-ticket:1`)).slice(0, 10),
+    version: md5(Buffer.from(`${code}\npdp-intro:1\npdp-review-order:1\npdp-purchase-hierarchy:1\npdp-dispatch-ticket:1\npdp-offer-first:1`)).slice(0, 10),
   };
   if (dir === KIT_DIR) memo = kit;
   return kit;
@@ -468,6 +468,51 @@ export function withPdpDispatchTicket(remote: string): string | null {
       const next = order.filter(id => id !== shipping && id !== cod);
       next.splice(next.findIndex(id => blocks[id].type === "buy-buttons"), 0, shipping, cod);
       details.block_order = next;
+      changed = true;
+    }
+  }
+  return changed ? JSON.stringify(data) : null;
+}
+
+/** Oferta y CTA antes del ticket, solo desde la composición anterior reconocible del kit. */
+export function withPdpOfferFirst(remote: string): string | null {
+  let data;
+  try { data = parseThemeJson(remote); }
+  catch (error) { if (error instanceof SyntaxError) return null; throw error; }
+  if (!data?.sections) return null;
+  let changed = false;
+  const previous = ["df-title", "df-price", "df-subtitle", "df-pack-offers", "df-benefit-usps", "df-shipping-timeline", "df-benefit-double-box", "buy-buttons", "df-inventory", "payment-icons", "_divider", "df-gallery-benefits", "group"];
+  const next = ["df-title", "df-price", "df-subtitle", "df-pack-offers", "df-benefit-usps", "buy-buttons", "df-shipping-timeline", "df-benefit-double-box", "df-inventory", "payment-icons", "_divider", "df-gallery-benefits", "group"];
+  for (const main of Object.values(data.sections) as ProductBlock[]) {
+    if (main.type !== "product-information") continue;
+    for (const details of Object.values(main.blocks ?? {})) {
+      if (details.type !== "_product-details" || !details.blocks || !Array.isArray(details.block_order)) continue;
+      const blocks = details.blocks;
+      const own = details.block_order.filter(id => previous.includes(blocks[id]?.type));
+      const types = own.map(id => blocks[id].type);
+      // Omisiones expresas siguen omitidas; duplicados y composiciones personalizadas no se migran.
+      if (["df-title", "df-price", "buy-buttons", "df-shipping-timeline"].some(type => !types.includes(type))) continue;
+      if (new Set(types).size !== types.length) continue;
+      if (JSON.stringify(types) !== JSON.stringify(previous.filter(type => types.includes(type)))) continue;
+      const group = own.find(id => blocks[id].type === "group");
+      if (group && (!blocks[group].blocks || Object.values(blocks[group].blocks!).some(b => !["df-event-badges", "df-hype-badge", "df-social-badge"].includes(b.type)))) continue;
+      const ids = new Map(own.map(id => [blocks[id].type, id]));
+      const ordered = next.flatMap(type => ids.has(type) ? [ids.get(type)!] : []);
+      const moving = new Set(own);
+      let position = 0;
+      details.block_order = details.block_order.map(id => moving.has(id) ? ordered[position++] : id);
+      // Reutiliza una nota ya existente, incluso apagada. Nunca reemplaza otro bloque con el mismo id.
+      let confidence = Object.keys(blocks).find(id => blocks[id].type === "df-purchase-confidence");
+      const confidenceOmitted = confidence && !details.block_order.includes(confidence);
+      if (!confidence) {
+        confidence = "purchase_confidence";
+        while (blocks[confidence]) confidence += "_";
+        blocks[confidence] = { type: "df-purchase-confidence", settings: {} };
+      }
+      if (!confidenceOmitted) {
+        details.block_order = details.block_order.filter(id => id !== confidence);
+        details.block_order.splice(details.block_order.indexOf(ids.get("buy-buttons")!) + 1, 0, confidence);
+      }
       changed = true;
     }
   }

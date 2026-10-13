@@ -116,13 +116,14 @@ El header (`blocks/_header-logo.liquid`) lo dibuja en lugar de `settings.logo` c
 | `df-hype-badge` | Opcional, antes del título; apagado en el template inicial | Etiqueta con el acento del producto. «Pagas al recibir» solo con COD activo; queda apagada para no repetir la información bajo el botón. Texto personalizado del editor. «Stock bajo» se agrega solo si la variante de 1 unidad sigue su inventario en Shopify y le quedan pocas (umbral en el editor): nunca escasez inventada. Estilo borde o relleno |
 | `df-event-badges` | Bajo las tarjetas de beneficios | Evento vigente y descuento real de la variante o pack elegido |
 | `df-social-proof` | Antes del carrusel de reseñas | Fotos de reseñas aprobadas con 4 o 5 estrellas y la cantidad editable compartida de `dropflex.review_summary`; sin caja, fondo, borde ni padding exterior; sin mínimos ni requisito de fotos/importación |
-| `df-title` | El título | El nombre del producto como `<h1>` (el del tema es un `<p>`), 26 px en móvil y 36 px en escritorio |
+| `df-title` | El título | El nombre completo del producto como `<h1>` (el del tema es un `<p>`), 28 px en móvil y hasta 36 px en escritorio |
 | `df-subtitle` | Bajo el precio | `dropflex.subtitle`: la descripción corta de la ficha aprobada |
 | `df-price` | Inmediatamente bajo el título | Precio y precio tachado de la variante elegida, más el ahorro calculado. Con packs, los del pack elegido (evento `df:pack`). Al cambiar, el monto nuevo sube 4 px con un fundido y el sello de ahorro hace un pequeño pop (200 ms); nunca un contador de cifras |
 | `df-social-badge` | Bajo las tarjetas de beneficios | Píldora con el logo de TikTok (o un ícono) y una cifra de redes («Viral en TikTok: {views} vistas»). La cifra la escribe el comerciante en el editor (ajuste `views`), nunca la IA; sin cifra no se muestra |
 | `df-gallery-benefits` | Bajo el botón de compra | Tres beneficios del listing elegido |
 | `df-pack-offers` | Bajo la bajada, antes del botón | Una tarjeta por pack de `dropflex.offer` (1, 2 y 3 unidades) con su precio, su tachado y sus textos. Se muestra solo si EasySell cobra cada pack igual (ver abajo). La elegida lleva una marca (círculo con check que entra en 200 ms) y la tarjeta se hunde al tocarla |
 | `df-trust-note` | Bajo la galería en computador y bajo el botón en teléfono (ajuste `visibility`) | Una política real de la tienda (pago al recibir, cambios, garantía). Si la política no está activa, no se muestra |
+| `df-purchase-confidence` | Inmediatamente bajo el botón | Línea discreta con «Sin adelantos» solo con COD activo y «Envío sin costo» solo con envío gratuito activo; deriva las políticas compartidas, sin contenido de IA ni ajustes de copy |
 
 ## Packs: la variante de 1 unidad × N
 
@@ -156,7 +157,7 @@ instalarse una vez en las notificaciones de la tienda. Detalle en `docs/shopify-
 
 ## Orden de la ficha inicial
 
-La galería conserva foto principal y miniaturas. La columna de compra sigue: valoración compartida en Google, título, precio con ahorro, bajada y packs; después la acción principal y sus apoyos. Los tres beneficios y el badge de TikTok quedan bajo el botón. La prueba social con avatares precede al carrusel de reseñas.
+La galería conserva foto principal y miniaturas. La columna de compra sigue: valoración compartida en Google, título, precio con ahorro, bajada y packs; después el botón COD y la línea discreta de confianza. El ticket de despacho y benefit-double-box siguen debajo, con su diseño y animación intactos. El precio usa el accent legible y 48 px por defecto (type-store-price); tachado y ahorro forman una columna secundaria. El editor conserva tamaños personalizados. Los tres beneficios y el badge de TikTok quedan bajo el botón. La prueba social con avatares precede al carrusel de reseñas.
 
 Google y los beneficios son bloques independientes que reutilizan los snippets existentes; `buy-buttons` conserva el formulario y el estado técnico de reseñas, sin repetir esos elementos. `review-stars` queda apagado en el template inicial: su nota y cantidad siguen alimentando Google y los demás bloques. El comerciante puede volver a mostrar el bloque desde el editor. El ícono de Google mide 20 px (`space-5` de `design-system/tokens.json`). Los badges del evento conservan fechas y descuentos reales y siguen el precio del pack elegido.
 
@@ -169,3 +170,5 @@ Las miniaturas de `df-social-proof` priorizan las reseñas con foto real entre l
 `listing.title` es el nombre visible del H1 y el título nativo de Shopify; no concatena una promesa. `listing.short_description` es la bajada independiente para el beneficio del hook. `short_name` es una etiqueta de apoyo, no un reemplazo del H1; `seo_title` y `seo_description` se publican en SEO. Contrato, límites y reglas compartidas: `lib/copy/listing.ts`; MCP los expone en catálogo, lectura y contexto de generación. Los límites anteriores y las variantes guardadas se conservan. Este ajuste de instrucciones no cambia por sí solo el contenido ni el orden del tema.
 
 `withPdpPurchaseHierarchy` migra una sola vez el orden anterior reconocible del kit, preservando ajustes, bloques personalizados y desactivaciones. No recupera bloques eliminados ni reordena composiciones personalizadas. El botón de EasySell que abre el formulario oculta su subtítulo comercial y conserva su acción y eventos.
+
+`withPdpOfferFirst` continúa la migración del ticket anterior: lleva el botón antes del despacho y añade la confianza operativa bajo él. Reconoce el orden anterior, conserva omisiones, ajustes y bloques personalizados y no vuelve a ordenar una ficha ya migrada. `LISTING_SLOTS.afterTrust` coloca entrega y doble tarjeta después de la confianza y antes de disponibilidad también en React. Título, oferta y políticas conservan sus contratos MCP vigentes; solo cambia la tarea de composición devuelta por `get_component_generation_context`.

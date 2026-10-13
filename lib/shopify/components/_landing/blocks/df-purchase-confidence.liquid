@@ -1,0 +1,43 @@
+{%- doc -%}
+  Reaseguro discreto bajo el botón. Solo afirma políticas activas; no requiere textos de IA.
+{%- enddoc -%}
+{%- assign policies = shop.metafields.dropflex.policies.value -%}
+{%- if policies.cod == true or policies.free_shipping == true -%}
+  {{ 'df-components.css' | asset_url | stylesheet_tag }}
+  <p class="df df-purchase-confidence" style="{% render 'df-accent-vars', product: closest.product %}" {{ block.shopify_attributes }}>
+    {% render 'df-icon', name: 'shield' %}
+    {%- if policies.cod == true -%}<span>Sin adelantos</span>{%- endif -%}
+    {%- if policies.cod == true and policies.free_shipping == true -%}<span aria-hidden="true">·</span>{%- endif -%}
+    {%- if policies.free_shipping == true -%}<span>Envío sin costo</span>{%- endif -%}
+  </p>
+{%- endif -%}
+
+{% stylesheet %}
+  .df-purchase-confidence {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: calc(var(--df-gap) / 2);
+    margin: 0;
+    color: var(--df-muted);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .df-purchase-confidence .df-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "DropFlex · Compra segura",
+  "tag": null,
+  "settings": [
+    { "type": "paragraph", "content": "Bajo el botón: sin adelantos y envío sin costo, solo cuando esas políticas están activas en DropFlex." }
+  ],
+  "presets": [{ "name": "DropFlex · Compra segura" }]
+}
+{% endschema %}

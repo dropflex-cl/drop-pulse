@@ -16,13 +16,13 @@ import { textsOf } from "./page-schema";
  * título, entre el precio y el botón, o bajo el botón. «Tu página» lo usa para dibujar la ficha
  * como la tienda. Las secciones van siempre después, en el orden del catálogo.
  */
-export type ListingSlot = "top" | "afterPrice" | "afterButton" | "afterBenefits";
+export type ListingSlot = "top" | "afterPrice" | "afterTrust" | "afterButton" | "afterBenefits";
 export const LISTING_SLOTS: Record<string, ListingSlot> = {
   "review-stars": "top",
   "benefit-usps": "afterPrice",
   inventory: "afterButton",
-  "shipping-timeline": "afterPrice",
-  "benefit-double-box": "afterPrice",
+  "shipping-timeline": "afterTrust",
+  "benefit-double-box": "afterTrust",
   "gif-strip": "afterBenefits",
   "review-slider": "afterBenefits",
   "ugc-slider": "afterBenefits",

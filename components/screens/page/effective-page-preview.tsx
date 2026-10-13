@@ -18,7 +18,7 @@ export function EffectivePagePreview({ page, selection, accent }: { page: Produc
     return <Preview key={component.id} content={component.content} facts={facts} images={images} />;
   };
   const slots: Partial<Record<ListingSlot, React.ReactNode>> = {};
-  for (const slot of ["top", "afterPrice", "afterButton", "afterBenefits"] as const) {
+  for (const slot of ["top", "afterPrice", "afterTrust", "afterButton", "afterBenefits"] as const) {
     const components = resolved.components.filter(c => pagePlacement(c.id) === "hero" && (LISTING_SLOTS[c.id] ?? "afterButton") === slot);
     const nodes = components.map(draw);
     if (slot === "afterBenefits") {

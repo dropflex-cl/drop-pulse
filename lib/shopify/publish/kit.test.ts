@@ -13,10 +13,57 @@ import {
   withPdpIntro,
   withPdpPurchaseHierarchy,
   withPdpDispatchTicket,
+  withPdpOfferFirst,
   withPdpReviewOrder,
 } from "./kit";
 
 describe("kit del tema", () => {
+  it("lleva la oferta antes del ticket sin perder ajustes, apagados, omisiones ni bloques propios", () => {
+    const data = JSON.parse(readFileSync(join(KIT_DIR, "templates/product.json"), "utf8"));
+    expect(withPdpOfferFirst(JSON.stringify(data))).toBeNull();
+    const details = data.sections.main.blocks["product-details"];
+    details.block_order = details.block_order.filter((id: string) => !["shipping_timeline", "benefit_double_box", "purchase_confidence", "gallery_benefits"].includes(id));
+    delete details.blocks.purchase_confidence;
+    delete details.blocks.gallery_benefits;
+    details.block_order.splice(details.block_order.indexOf("buy_buttons"), 0, "shipping_timeline", "benefit_double_box");
+    details.blocks.shipping_timeline.disabled = true;
+    details.blocks.shipping_timeline.settings.margin_top = 12;
+    details.blocks.price.settings.price_size = 32;
+    details.blocks.stars_row.blocks.social_badge.settings.views = "200k+";
+    details.blocks.custom = { type: "text", settings: { text: "Nota propia" } };
+    details.block_order.push("custom");
+    const before = structuredClone(details.blocks);
+    const migrated = JSON.parse(withPdpOfferFirst(JSON.stringify(data))!);
+    const next = migrated.sections.main.blocks["product-details"];
+    for (const [id, block] of Object.entries(before)) expect(next.blocks[id]).toEqual(block);
+    expect(next.blocks.gallery_benefits).toBeUndefined();
+    const button = next.block_order.indexOf("buy_buttons");
+    expect(next.block_order.slice(button, button + 5)).toEqual(["buy_buttons", "purchase_confidence", "shipping_timeline", "benefit_double_box", "inventory"]);
+    expect(next.block_order.at(-1)).toBe("custom");
+    expect(withPdpOfferFirst(JSON.stringify(migrated))).toBeNull();
+    details.block_order.reverse();
+    expect(withPdpOfferFirst(JSON.stringify(data))).toBeNull();
+  });
+
+  it("no recupera una confianza omitida ni pierde otro bloque con el mismo identificador", () => {
+    for (const omitted of [true, false]) {
+      const data = JSON.parse(readFileSync(join(KIT_DIR, "templates/product.json"), "utf8"));
+      const details = data.sections.main.blocks["product-details"];
+      details.block_order = details.block_order.filter((id: string) => !["purchase_confidence", "shipping_timeline", "benefit_double_box"].includes(id));
+      details.block_order.splice(details.block_order.indexOf("buy_buttons"), 0, "shipping_timeline", "benefit_double_box");
+      if (!omitted) {
+        details.blocks.purchase_confidence = { type: "text", settings: { text: "Personalizado" } };
+        details.block_order.push("purchase_confidence");
+      }
+      const result = JSON.parse(withPdpOfferFirst(JSON.stringify(data))!).sections.main.blocks["product-details"];
+      if (omitted) expect(result.block_order).not.toContain("purchase_confidence");
+      else {
+        expect(result.blocks.purchase_confidence.settings.text).toBe("Personalizado");
+        expect(result.blocks.purchase_confidence_.type).toBe("df-purchase-confidence");
+      }
+    }
+  });
+
   it("lleva ticket y COD al botón desde el orden anterior sin alterar ajustes ni órdenes personalizados", () => {
     const data = JSON.parse(readFileSync(join(KIT_DIR, "templates/product.json"), "utf8"));
     const details = data.sections.main.blocks["product-details"];
