@@ -24,10 +24,10 @@ La prueba `pdp-writing.local.test.ts` recorre contratos descubiertos por MCP →
 - 415 pruebas de contratos, contexto, protocolo, importación de skills, componentes, previews y payload aprobadas.
 - 11 pruebas de integración con Supabase local aprobadas, incluido el recorrido de la POC.
 - Contratos exportados: 70 pares; validación de schemas y límites correcta.
-- Compilación con webpack correcta; TypeScript y lint se comprueban antes del commit.
+- Compilación con webpack, TypeScript y lint correctos.
 - JSON/YAML del paquete y versiones de skill/manifiestos validados. Paquete fuente de 15 archivos.
 - Theme Check: 460 archivos, sin errores; 42 advertencias previas.
 
 La prueba de proyecciones históricas `read-projections.local.test.ts` conserva un fallo `source_equal` reproducido en el commit anterior `de1940c` con la misma base local. No se cambia su SQL ni sus assertions en esta modificación editorial.
 
-La evidencia de distribución debe registrar por separado commit en main/origin, despliegue, release del plugin, catálogo anunciado/importado y una conversación nueva. El paquete local por sí solo no acredita que la conexión use la nueva orientación.
+La evidencia de distribución está en `plugin-release-1.7.23.json`: commit en main/origin y producción, release y readback del plugin, Refresh tools, descripción importada y conversación nueva con lecturas correctas. Se distingue la comprobación de tools/list con SDK local de la evidencia del catálogo importado y del contexto de producción; no se realizó una petición HTTP autenticada directa de tools/list a producción.

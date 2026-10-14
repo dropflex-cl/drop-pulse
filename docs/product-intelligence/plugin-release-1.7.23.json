@@ -1,0 +1,86 @@
+{
+  "version": "1.7.23",
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6acfc7aaf81c8191bd7bcdf970cb2ab1",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commit": "df6ccd856eb71b4277f53bf6ad0e8d66c33030d2",
+  "main_and_origin_verified": true,
+  "production": {
+    "status": "Ready",
+    "environment": "Production",
+    "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/GnesVgHDqME6oTeZSmH19m1Esmgk",
+    "commit": "df6ccd8",
+    "runtime_component_context_verified": true,
+    "http_status": 200,
+    "region": "gru1"
+  },
+  "migrations": {
+    "database_required": false,
+    "theme_required": false
+  },
+  "contract": {
+    "fields_changed": false,
+    "limits_and_media_changed": false,
+    "writers_changed": false,
+    "editorial_direction": "Ficha resumida y cuerpo argumental refuerzan una transformación central desde escenas, explicación, demostración, facilidad, objeciones y oferta.",
+    "benefit_usps_job": "Políticas de compra; gallery_benefits conserva los beneficios del producto.",
+    "skill_resource": "skill://dropflex/optimize-product/references/pdp-writing.md",
+    "merchant_content_and_decisions_preserved": true
+  },
+  "readback": {
+    "files_verified": 6,
+    "files_in_release": 15,
+    "manifests_and_skill_version": true,
+    "connection_and_presentation_preserved": true,
+    "unrelated_inventory_preserved": true,
+    "archive_matches_source": true
+  },
+  "server": {
+    "catalog_announcement_evidence": "Descripción nueva importada por la conexión después de Refresh tools; contexto de producción devuelve las instrucciones nuevas. tools/list verificado además con el SDK oficial local.",
+    "authenticated_tools_list_http_directly_checked": false,
+    "catalog_names_and_description_verified": [
+      "get_component_generation_context",
+      "get_pdp_completion_report",
+      "get_component_catalog",
+      "get_landing_content",
+      "save_landing_content"
+    ]
+  },
+  "client": {
+    "refresh_tools_completed": true,
+    "imported_component_context_description": "Desarrolla una PDP con ficha resumida y cuerpo argumental, reforzando la transformación central desde escenas y explicaciones específicas sin duplicación literal.",
+    "new_conversation": {
+      "url": "https://chatgpt.com/c/6acfc837-e4ec-83e9-ae74-b64407cf49f8",
+      "skill_version_reported": "1.7.23",
+      "calls_reported_ok": [
+        "skills__list",
+        "skills__read:optimize-product",
+        "skills__read:pdp-writing.md",
+        "get_component_generation_context:benefit-usps",
+        "get_component_generation_context:mechanism",
+        "get_pdp_completion_report"
+      ],
+      "product_revision": 122,
+      "scope": "read-only",
+      "screenshot": "output/pdp-writing-release/new-session-proof.jpg"
+    }
+  },
+  "validation": {
+    "targeted_tests": 415,
+    "local_integration_tests": 11,
+    "poc_flow": "MCP contract discovery → local save → preparePublish/effective content → native React preview → publication metafields",
+    "typecheck": "passed",
+    "eslint": "passed",
+    "build_webpack": "passed",
+    "contracts": "70 pairs exported and validated; no new data fields",
+    "theme_check": "460 files; no errors, 42 preexisting warnings",
+    "skill_package": "JSON/YAML, versions and server resource reads validated",
+    "baseline_failure": {
+      "suite": "read-projections.local.test.ts",
+      "assertion": "source_equal",
+      "reproduced_in_commit": "de1940c",
+      "unchanged": true
+    }
+  },
+  "verified_at": "2026-10-14 18:25:51 UTC"
+}
