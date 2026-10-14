@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpItem } from "../_shared/pdp-content";
 export const mechanism = defineComponent({
@@ -27,7 +28,7 @@ export const mechanism = defineComponent({
   ],
   placement:
     "Así funciona: después de la demostración y antes del cierre de compra.",
-  objection: "Consulta las características de este producto antes de elegirlo.",
+  objection: "¿Por qué este formato me ayuda a conseguir el cambio que busco?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -37,39 +38,39 @@ export const mechanism = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Entiende qué hace cada parte",
-      items: [
-        {
-          title: "El mecanismo principal",
-          body: "La función descrita en la descripción del producto explica cómo trabaja el equipo.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-        {
-          title: "El complemento de uso",
-          body: "Los accesorios cumplen la función indicada por el fabricante.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-      ],
-    },
-    {
-      heading: "Conoce el mecanismo del producto",
-      items: [
-        {
-          title: "El mecanismo principal",
-          body: "La función descrita en la descripción del producto explica cómo trabaja el equipo.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-        {
-          title: "El complemento de uso",
-          body: "Los accesorios cumplen la función indicada por el fabricante.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-      ],
-    },
-  ],
+  {
+    "heading": "Encuentra cada útil sin revolver la mesa",
+    "items": [
+      {
+        "title": "Un lugar para cada cosa",
+        "body": "Los compartimentos separan lápices y útiles para que encuentres lo que necesitas sin apartar lo demás."
+      },
+      {
+        "title": "Todo cerca de tu mano",
+        "body": "Mantén los útiles juntos sobre el escritorio: cambia de tarea sin levantarte a buscarlos."
+      }
+    ]
+  },
+  {
+    "heading": "El cuidado va justo donde lo necesitas",
+    "items": [
+      {
+        "title": "Directo a la uña",
+        "body": "El gotero lleva el tónico a la uña y la cutícula. Así puedes atender esa zona que suele quedar fuera del cuidado diario."
+      },
+      {
+        "title": "Jengibre y cúrcuma",
+        "body": "Una fórmula de cuidado con jengibre y cúrcuma para uñas y cutículas: atención específica para esa zona que hoy prefieres ocultar."
+      },
+      {
+        "title": "Sin sensación pegajosa",
+        "body": "Su textura ligera se absorbe rápido. Aplica, masajea y continúa con tus actividades sin dejar el cuidado para después."
+      }
+    ]
+  }
+],
 });

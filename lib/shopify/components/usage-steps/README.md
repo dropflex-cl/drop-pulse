@@ -13,3 +13,8 @@ El contenido no requiere evidencia ni aprobación de hechos. `fact_id` es proced
 Cuando una imagen ya contiene todas las instrucciones, guarda `display_mode: "image_only"` e `image_alt` (8–500 caracteres de texto plano que transmitan los pasos). Asigna el archivo a `steps`, posición 1, en su variante. Solo se imprime esa imagen, abierta, a todo el ancho disponible y sin recortar: no hay título, números, tarjetas ni textos externos.
 
 En este modo, `heading` y `steps` son opcionales. Se conservan si ya existen, igual que las imágenes adicionales, variantes, descartes, orden y visibilidad. Sin `display_mode`, o con `steps`, sigue el formato anterior: título y 2–5 pasos, con fotos opcionales. El modo Solo imagen requiere un archivo elegido y disponible; sin él, preview y tema muestran el estado vacío y la preparación de publicación informa el requisito. Cambiar el modo no genera imágenes ni publica. MCP, editor, reporte, página efectiva, preview y payload Shopify comparten este contrato; no necesita migración porque utiliza el contenido JSON y el destino existentes.
+
+
+## Dirección editorial vigente
+
+Desarrolla la transformación del hook desde la función de esta sección. El titular comunica una razón para seguir leyendo; las escenas, explicaciones y objeciones refuerzan el mismo motivo de compra, sin duplicación literal. Consulta [la escritura de PDP](../../../../plugins/dropflex-optimizer/skills/optimize-product/references/pdp-writing.md). Los ejemplos de `content.ts` son ilustraciones editoriales de productos concretos, no datos de otro producto. Los campos, límites, medios y decisiones vigentes se conservan.

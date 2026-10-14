@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpItem } from "../_shared/pdp-content";
 
@@ -42,52 +43,49 @@ export const useCases = defineComponent({
   ],
   placement:
     "Elige cómo lo usarías: después de la demostración y antes del cierre de compra.",
-  objection: "Consulta si este producto se adapta al uso que buscas.",
+  objection: "¿En qué momento de mi vida aprovecharía esta solución?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: useCasesSchema,
   realData: [
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
     "Si una infografía ya explica todos los usos, guarda display_mode: image_only e image_alt y asigna esa imagen a cases, posición 1. Requiere un archivo elegido; no muestra heading, títulos, descripciones ni acordeones.",
     "Sin display_mode, o con accordion, conserva el formato anterior: heading y entre 2 y 5 cases obligatorios; fotos opcionales. Cambiar de modo conserva textos, imágenes, variantes y visibilidad.",
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Encuentra el uso que necesitas",
-      cases: [
-        {
-          title: "En casa",
-          body: "Úsalo en las superficies compatibles que indica el fabricante.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-        {
-          title: "En tu rutina",
-          body: "Guarda el equipo según las indicaciones después de cada uso.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-      ],
-    },
-    {
-      display_mode: "image_only",
-      image_alt: "Tres usos del organizador: en casa, durante el trabajo y al guardar las herramientas después de usarlas.",
-    },
-    {
-      heading: "Conoce los usos del producto",
-      cases: [
-        {
-          title: "En casa",
-          body: "Úsalo en las superficies compatibles que indica el fabricante.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-        {
-          title: "En tu rutina",
-          body: "Guarda el equipo según las indicaciones después de cada uso.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-      ],
-    },
-  ],
+  {
+    "heading": "Sigue con tu tarea sin buscar tus útiles",
+    "cases": [
+      {
+        "title": "Cuando trabajas en el escritorio",
+        "body": "Deja lápices y útiles juntos para encontrarlos al tomar una nota, sin interrumpir lo que estabas haciendo."
+      },
+      {
+        "title": "Cuando cambias de actividad",
+        "body": "Separa los útiles por compartimento y toma el que necesitas al pasar de escribir a dibujar."
+      }
+    ]
+  },
+  {
+    "display_mode": "accordion",
+    "heading": "Para las uñas que hoy prefieres ocultar",
+    "cases": [
+      {
+        "title": "Cuando eliges zapatos cerrados",
+        "body": "Si la apariencia de tus uñas te hace dejar las sandalias guardadas, empieza por darles un cuidado localizado."
+      },
+      {
+        "title": "Cuando notas resequedad",
+        "body": "Incluye uñas y cutículas en tu cuidado: suelen pasar desapercibidas hasta que se ven resecas o descuidadas."
+      },
+      {
+        "title": "Cuando también miras tus manos",
+        "body": "Lleva esa misma atención a las uñas de las manos. El gotero permite concentrar la aplicación en cada zona."
+      }
+    ]
+  }
+],
 });

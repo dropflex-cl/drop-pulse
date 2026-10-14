@@ -1,0 +1,253 @@
+{
+  "source": "POC editorial acordada; datos y testimonio de la referencia no verificados independientemente",
+  "primary_direction": {
+    "hook": "Vuelve a mostrar tus pies con confianza",
+    "buying_situation": "Elegir zapatos cerrados o esconder los pies por la apariencia de las uñas.",
+    "desired_change": "Dejar de posponer el cuidado de las uñas que hoy se prefieren ocultar.",
+    "solution_logic": "Cuidado localizado con un tónico de jengibre y cúrcuma, aplicable con gotero sobre uñas y cutículas.",
+    "scope": "Aspiración de apariencia y confianza; no promesa de curación ni de un plazo de resultados."
+  },
+  "rows": [
+    {
+      "component": "listing",
+      "content": {
+        "title": "AntiHongos Pro · Tónico de jengibre para uñas",
+        "short_name": "AntiHongos Pro",
+        "short_description": "Cuida las uñas que hoy prefieres ocultar con un tónico de jengibre y cúrcuma de aplicación localizada.",
+        "gallery_benefits": [
+          {
+            "icon": "droplet",
+            "text": "Hidrata uñas y cutículas"
+          },
+          {
+            "icon": "sparkles",
+            "text": "Cuida su apariencia"
+          },
+          {
+            "icon": "target",
+            "text": "Aplica justo donde lo necesitas"
+          }
+        ],
+        "offer_line": "Un tónico por $29.990 · Paga al recibir",
+        "seo_title": "Tónico de jengibre y cúrcuma para cuidar tus uñas",
+        "seo_description": "Cuida la apariencia de tus uñas con AntiHongos Pro, un tónico de aplicación localizada con jengibre y cúrcuma. Paga al recibir."
+      }
+    },
+    {
+      "component": "benefit-usps",
+      "content": {
+        "items": [
+          {
+            "icon": "cash",
+            "text": "Pagas al recibir en casa",
+            "policy": "cod"
+          },
+          {
+            "icon": "truck",
+            "text": "Envío sin costo",
+            "policy": "free_shipping"
+          },
+          {
+            "icon": "target",
+            "text": "Precio claro al pedir",
+            "policy": "none"
+          }
+        ]
+      }
+    },
+    {
+      "component": "review-slider",
+      "content": {
+        "heading": "Una opinión publicada por la tienda",
+        "items": [
+          {
+            "name": "Carolina · Testimonio de la referencia",
+            "body": "Muy fácil de aplicar. Mis uñas se ven mucho más cuidadas."
+          }
+        ]
+      }
+    },
+    {
+      "component": "pain-block",
+      "content": {
+        "heading": "¿Tus uñas deciden qué zapatos usas?",
+        "moments": [
+          {
+            "slot": 1,
+            "title": "Las sandalias siguen guardadas",
+            "text": "Me gustan las sandalias, pero al mirar mis uñas termino eligiendo los mismos zapatos cerrados."
+          },
+          {
+            "slot": 2,
+            "title": "Los pies siempre cubiertos",
+            "text": "Cuando toca quitarse los zapatos, busco cómo dejar los pies cubiertos. Me incomoda que alguien mire mis uñas."
+          },
+          {
+            "slot": 3,
+            "title": "Otra vez lo dejo para después",
+            "text": "Veo las uñas resecas y con aspecto descuidado, pero pasan los días y sigo sin dedicarles un cuidado específico."
+          }
+        ],
+        "bridge": "Empieza por el cuidado que has postergado: un tónico que aplicas directamente sobre uñas y cutículas."
+      }
+    },
+    {
+      "component": "mechanism",
+      "content": {
+        "heading": "El cuidado va justo donde lo necesitas",
+        "items": [
+          {
+            "title": "Directo a la uña",
+            "body": "El gotero lleva el tónico a la uña y la cutícula. Así puedes atender esa zona que suele quedar fuera del cuidado diario."
+          },
+          {
+            "title": "Jengibre y cúrcuma",
+            "body": "Una fórmula de cuidado con jengibre y cúrcuma para uñas y cutículas: atención específica para esa zona que hoy prefieres ocultar."
+          },
+          {
+            "title": "Sin sensación pegajosa",
+            "body": "Su textura ligera se absorbe rápido. Aplica, masajea y continúa con tus actividades sin dejar el cuidado para después."
+          }
+        ]
+      }
+    },
+    {
+      "component": "image-with-benefits",
+      "content": {
+        "heading": "¿Por qué elegir AntiHongos Pro?",
+        "benefits": [
+          {
+            "icon": "target",
+            "title": "Aplicación precisa",
+            "body": "El gotero te permite aplicar el tónico sobre la uña y la cutícula que quieres cuidar."
+          },
+          {
+            "icon": "droplet",
+            "title": "Cuidado hidratante",
+            "body": "Dedica atención a las uñas y cutículas resecas que suelen quedar fuera del cuidado diario."
+          },
+          {
+            "icon": "feather",
+            "title": "Textura ligera",
+            "body": "Se absorbe rápidamente para que puedas continuar sin una sensación pegajosa en las uñas."
+          },
+          {
+            "icon": "hand",
+            "title": "Manos y pies",
+            "body": "El mismo formato sirve para dedicar cuidado localizado a las uñas de manos y pies."
+          }
+        ]
+      }
+    },
+    {
+      "component": "use-cases",
+      "content": {
+        "display_mode": "accordion",
+        "heading": "Para las uñas que hoy prefieres ocultar",
+        "cases": [
+          {
+            "title": "Cuando eliges zapatos cerrados",
+            "body": "Si la apariencia de tus uñas te hace dejar las sandalias guardadas, empieza por darles un cuidado localizado."
+          },
+          {
+            "title": "Cuando notas resequedad",
+            "body": "Incluye uñas y cutículas en tu cuidado: suelen pasar desapercibidas hasta que se ven resecas o descuidadas."
+          },
+          {
+            "title": "Cuando también miras tus manos",
+            "body": "Lleva esa misma atención a las uñas de las manos. El gotero permite concentrar la aplicación en cada zona."
+          }
+        ]
+      }
+    },
+    {
+      "component": "usage-steps",
+      "content": {
+        "display_mode": "steps",
+        "heading": "Empieza a cuidarlas sin complicarte",
+        "steps": [
+          {
+            "title": "Limpia y seca",
+            "body": "Prepara la uña y la cutícula: limpia la zona y sécala antes de aplicar el tónico."
+          },
+          {
+            "title": "Aplica y masajea",
+            "body": "Usa el gotero sobre la uña y la cutícula. Masajea suavemente y respeta la cantidad indicada en el envase."
+          },
+          {
+            "title": "Mantén el cuidado",
+            "body": "Deja el frasco junto a tus productos de cuidado y sigue la frecuencia del envase para mantener la constancia."
+          }
+        ]
+      }
+    },
+    {
+      "component": "product-includes",
+      "content": {
+        "heading": "Recibe el tónico y empieza por tus uñas",
+        "items": [
+          {
+            "title": "Tónico con gotero",
+            "body": "Recibes un tónico de jengibre y cúrcuma con gotero para aplicar el cuidado directamente sobre uñas y cutículas."
+          }
+        ]
+      }
+    },
+    {
+      "component": "guarantee",
+      "content": {
+        "heading": "Empieza sin adelantar el pago",
+        "body": "Elige tu tónico, confirma tu pedido y paga cuando llegue a tu casa. El envío gratuito acompaña tu compra."
+      }
+    },
+    {
+      "component": "faq-and-text",
+      "content": {
+        "eyebrow": "Antes de pedir",
+        "heading": "Resuelve tus dudas y empieza el cuidado",
+        "heading_highlight": "tus dudas",
+        "cta_label": "Pedir y pagar al recibir",
+        "items": [
+          {
+            "topic": "pago_cod",
+            "question": "¿Tengo que pagar antes de recibirlo?",
+            "answer": "No. La tienda ofrece pago al recibir: confirma tu pedido y paga cuando llegue a tu domicilio."
+          },
+          {
+            "topic": "envio",
+            "question": "¿El envío tiene un costo adicional?",
+            "answer": "No. Tu pedido incluye envío gratis. Revisa la cobertura y el plazo de tu dirección al pedir."
+          },
+          {
+            "topic": "uso",
+            "question": "¿Cómo lo aplico en mis uñas?",
+            "answer": "Con el gotero, sobre la uña y la cutícula limpias y secas. Masajea suavemente y sigue la cantidad y frecuencia indicadas en el envase."
+          },
+          {
+            "topic": "cuidado",
+            "question": "¿Me deja las uñas pegajosas?",
+            "answer": "No. Su textura ligera se absorbe rápido para que puedas seguir con tus actividades después de aplicarlo."
+          },
+          {
+            "topic": "resultados",
+            "question": "¿Qué puedo esperar del cuidado?",
+            "answer": "Hidratación y cuidado de la apariencia de uñas y cutículas con uso constante. Observa cómo responde esa zona al mantener el cuidado; los resultados varían entre personas."
+          },
+          {
+            "topic": "garantia",
+            "question": "¿Dónde reviso la garantía de mi pedido?",
+            "answer": "En las condiciones de la tienda. Revisa su alcance y contacta a su equipo si necesitas ayuda con el producto recibido."
+          }
+        ]
+      }
+    },
+    {
+      "component": "offer-summary",
+      "content": {
+        "heading": "Deja de posponer el cuidado de tus uñas",
+        "body": "Empieza por esas uñas que hoy prefieres ocultar. Elige AntiHongos Pro y dedica el cuidado directamente a uñas y cutículas.",
+        "cta_label": "Pedir mi AntiHongos Pro"
+      }
+    }
+  ]
+}

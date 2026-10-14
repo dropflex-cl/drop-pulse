@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpFact } from "../_shared/pdp-content";
 export const expertEndorsement = defineComponent({
@@ -53,23 +54,21 @@ export const expertEndorsement = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Una perspectiva sobre el producto",
-      name: "Nombre del profesional",
-      credential: "Organización de espacios",
-      quote:
-        "Tener tus herramientas a mano hace más simple comenzar cada tarea.",
-    },
-    {
-      heading: "Conoce la opinión del profesional",
-      name: "Nombre del profesional",
-      credential: "Organización de espacios",
-      quote:
-        "Un escritorio ordenado te ayuda a aprovechar mejor tu espacio de trabajo.",
-    },
-  ],
+  {
+    "heading": "Ordenar sirve cuando encuentras lo que buscas",
+    "name": "Perspectiva editorial de ejemplo",
+    "credential": "Organización de espacios",
+    "quote": "Separar los útiles por tipo facilita reconocer dónde está cada cosa. El organizador debe quedar cerca de donde los utilizas."
+  },
+  {
+    "heading": "El cuidado empieza por prestar atención",
+    "name": "Perspectiva editorial de ejemplo",
+    "credential": "Cuidado de uñas y cutículas",
+    "quote": "Dedica cuidado a la zona que observas reseca o descuidada. La aplicación localizada permite atender uñas y cutículas sin extender el producto a todo el pie."
+  }
+],
 });

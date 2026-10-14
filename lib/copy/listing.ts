@@ -88,6 +88,7 @@ export const LISTING_FIELDS: Record<keyof Listing, string> = {
 /** Reglas compartidas por catálogo MCP, lectura y contexto de generación. */
 export const LISTING_RULES = [
   "title identifica el producto: tipo, marca o modelo y cantidad del pack cuando corresponda. Es el H1 y el título nativo de Shopify. Prefiere 35–55 caracteres; el máximo compatible sigue siendo 70. No añadas slogans, dolor ni una promesa después de una barra.",
+  "La ficha resume la venta: el nombre identifica el producto y la bajada conecta el cambio deseado con un detalle concreto. No reduzcas la motivación del hook a incorporar una categoría a la rutina.",
   "short_description desarrolla el beneficio principal del hook en una sola frase y con un dato concreto. Prefiere 40–120 caracteres; el máximo compatible sigue siendo 160. No repitas title ni gallery_benefits.",
   "short_name es la etiqueta breve para anuncios, carrito y otros apoyos; no sustituye el H1. seo_title y seo_description son los campos independientes para Google.",
   "Texto plano. La frase de oferta usa el precio real y cierra con el pago al recibir.",

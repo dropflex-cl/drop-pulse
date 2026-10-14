@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpBody, pdpFact } from "../_shared/pdp-content";
 export const beforeAfter = defineComponent({
@@ -62,21 +63,21 @@ export const beforeAfter = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Mira la diferencia",
-      before_label: "Antes del uso",
-      after_label: "Después del uso",
-      body: "Compara el espacio antes y después de organizar tus útiles.",
-    },
-    {
-      heading: "Compara el antes y el después",
-      before_label: "Antes del uso",
-      after_label: "Después del uso",
-      body: "Observa cómo cambia tu escritorio con todo en su lugar.",
-    },
-  ],
+  {
+    "heading": "De útiles dispersos a cada cosa en su lugar",
+    "before_label": "Todo mezclado en la mesa",
+    "after_label": "Cada útil en su compartimento",
+    "body": "La comparación representa la misma mesa y los mismos útiles, antes y después de separarlos en el organizador."
+  },
+  {
+    "heading": "Imagina dedicar cuidado a esas uñas",
+    "before_label": "Uñas con aspecto descuidado",
+    "after_label": "Apariencia de uñas cuidadas",
+    "body": "Representación de la apariencia que se busca con el cuidado. El contraste visual desarrolla la misma dirección de la página."
+  }
+],
 });

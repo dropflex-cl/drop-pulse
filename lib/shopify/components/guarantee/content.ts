@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpBody } from "../_shared/pdp-content";
 export const guarantee = defineComponent({
@@ -18,18 +19,18 @@ export const guarantee = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
     "Los precios, ahorros, pago, envío, devoluciones y garantía se leen de datos publicados. No escribir números ni nuevas políticas en el texto.",
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Compra con las condiciones claras",
-      body: "Revisa las condiciones de pago, cambios y garantía disponibles para tu compra.",
-    },
-    {
-      heading: "Conoce las condiciones de tu compra",
-      body: "Revisa las condiciones de pago, cambios y garantía disponibles para tu compra.",
-    },
-  ],
+  {
+    "heading": "Haz tu pedido con las condiciones claras",
+    "body": "Elige el producto y revisa las condiciones vigentes antes de confirmar. Aquí tienes el pago y el envío de tu pedido."
+  },
+  {
+    "heading": "Empieza sin adelantar el pago",
+    "body": "Elige tu tónico, confirma tu pedido y paga cuando llegue a tu casa. El envío gratuito acompaña tu compra."
+  }
+],
 });

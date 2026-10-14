@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading } from "../_shared/pdp-content";
 export const customerStories = defineComponent({
@@ -11,7 +12,7 @@ export const customerStories = defineComponent({
   imageSlots: [],
   placement:
     "Experiencias de compradores: después de la demostración y antes del cierre de compra.",
-  objection: "Todavía no hay experiencias de compradores publicadas.",
+  objection: "¿Cómo se vive el cambio en una situación parecida a la mía?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -41,23 +42,29 @@ export const customerStories = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Lo que cuentan quienes lo usan",
-      stories: [
-        { title: "En la rutina diaria", review_id: "rv_8812" },
-        { title: "Una compra para la familia", review_id: "rv_1244" },
-      ],
-    },
-    {
-      heading: "Conoce otras experiencias de compradores",
-      stories: [
-        { title: "En la rutina diaria", review_id: "rv_8812" },
-        { title: "Una compra para la familia", review_id: "rv_1244" },
-      ],
-    },
-  ],
+  {
+    "heading": "De buscar cada lápiz a tenerlo al alcance",
+    "stories": [
+      {
+        "title": "Una nota sin perder el hilo",
+        "body": "Antes apartaba papeles para encontrar un lápiz. Ahora lo dejo en su compartimento y lo tomo al escribir una nota.",
+        "name": "Muestra editorial de organización"
+      }
+    ]
+  },
+  {
+    "heading": "Una aplicación que cabe en el día",
+    "stories": [
+      {
+        "title": "Sin dejar el cuidado para después",
+        "body": "Dejo el frasco junto a mis productos de cuidado. El gotero me permite concentrar la aplicación en uñas y cutículas.",
+        "name": "Muestra editorial de cuidado"
+      }
+    ]
+  }
+],
 });

@@ -57,6 +57,7 @@ export const imageWithBenefits = defineComponent({
     "{count}: la cantidad de beneficios que se muestran.",
   ],
   rules: [
+    "Sostén la transformación central del hook: cada escena o beneficio explica otra parte de esa venta, sin exigir una motivación independiente ni duplicar párrafos.",
     "Cada beneficio cubre un eje distinto; no repetir la misma idea con otras palabras.",
     "Al menos una tarjeta nombra el ingrediente, material o mecanismo que hace la diferencia del producto (su diferenciador).",
     "Título: 2 o 3 palabras, sustantivo + adjetivo concreto, sin punto final.",

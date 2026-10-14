@@ -22,6 +22,17 @@ async function connect() {
 }
 
 describe("DropFlex · importación de skill MCP", () => {
+  it("sirve la referencia editorial enlazada por la skill y conserva lecturas sin efectos", async () => {
+    const session = await connect();
+    try {
+      const main = await session.client.readResource({ uri: OPTIMIZATION_SKILL_URI });
+      expect(main.contents[0]).toMatchObject({ text: expect.stringContaining("references/pdp-writing.md") });
+      const uri = "skill://dropflex/optimize-product/references/pdp-writing.md";
+      const reference = await session.client.readResource({ uri });
+      expect(reference.contents[0]).toMatchObject({ uri, text: await readFile(join(root, "optimize-product/references/pdp-writing.md"), "utf8") });
+      expect(session.execute).not.toHaveBeenCalled();
+    } finally { await session.close(); }
+  });
   it("descubre contexto por componente y reporte paginado como lecturas sin efectos", async () => {
     const session = await connect();
     try {
@@ -29,7 +40,7 @@ describe("DropFlex · importación de skill MCP", () => {
       for (const name of ["get_component_generation_context", "get_pdp_completion_report", "get_ad_carousels"]) {
         expect(tools.tools.find(t => t.name === name)).toMatchObject({ annotations: { readOnlyHint: true } });
       }
-      expect(session.client.getInstructions()).toContain("tarea argumental distinta");
+      expect(session.client.getInstructions()).toContain("transformación central");
       expect(session.execute).not.toHaveBeenCalled();
     } finally { await session.close(); }
   });

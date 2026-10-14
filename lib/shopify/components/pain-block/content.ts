@@ -46,6 +46,7 @@ export const painBlock = defineComponent({
     }),
   realData: ["Ninguno: es solo texto. No lleva cifras, plazos ni tokens de la tienda."],
   rules: [
+    "Sostén la transformación central del hook: cada escena o beneficio explica otra parte de esa venta, sin exigir una motivación independiente ni duplicar párrafos.",
     "Primera persona («me lavo la cara y a media mañana…») o tercera («quienes ya usan crema…»); nunca la segunda persona para describir el problema.",
     "Cada momento sale del argumento de venta (el momento de su ángulo); nada de contexto inventado.",
     "Cada momento sostiene el ángulo activo. Usa slot 1, 2 y 3 para ordenar, sin mezclar mensajes de otras variantes.",

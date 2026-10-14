@@ -90,7 +90,7 @@ export const visualInputSchemas = {
 export type VisualTool = keyof typeof visualInputSchemas;
 export const visualTools = Object.keys(visualInputSchemas) as VisualTool[];
 export const visualDescriptions: Record<VisualTool, string> = {
-  get_component_generation_context: "Lee producto vigente, hook primario, tarea argumental propia, contratos del tema, contenido vecino y destinos de imágenes por variante, slot y posición. Incluye la valoración compartida editable de review-stars; no exige datos reales ni importación. Prepara textos y escenas distintos dentro de la misma dirección. No genera, guarda ni publica.",
+  get_component_generation_context: "Lee producto vigente, hook primario, tarea editorial, contratos del tema, contenido vecino y destinos de imágenes por variante, slot y posición. Incluye la valoración compartida editable de review-stars; no exige datos reales ni importación. Desarrolla una PDP con ficha resumida y cuerpo argumental, reforzando la transformación central desde escenas y explicaciones específicas sin duplicación literal. No genera, guarda ni publica.",
   get_pdp_completion_report: "Audita todos los componentes y variantes vigentes: contenido ausente o inválido, imágenes elegidas y faltantes, medios específicos y secciones ocultas o descartadas. No certifica alineación semántica ni sustituye la preparación de publicación.",
   record_visual_transfer_event: "Registra un evento técnico del cliente sin cambiar revisiones, aprobación ni demostrar que el generador recibió la referencia. No envíes URLs ni tokens.",
   get_visual_transfer_history: "Lee los últimos 50 eventos de transferencia, separando reportes del cliente de resultados del servidor. No confirma uso de referencia por el generador.",

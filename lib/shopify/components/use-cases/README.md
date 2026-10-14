@@ -13,3 +13,8 @@ El contenido no requiere evidencia ni aprobación de hechos. `fact_id` es proced
 Si la imagen ya contiene los usos y sus explicaciones, guarda `display_mode: "image_only"` e `image_alt` (8–500 caracteres de texto plano con el mensaje de la imagen). Asigna el archivo existente a `cases`, posición 1, en la variante correspondiente. Solo se imprime esa imagen, abierta y sin recorte: no se duplica el heading, no hay acordeones, tarjetas, títulos ni descripciones externas. Requiere al menos una imagen disponible; sin ella muestra el estado vacío y la preparación de publicación informa el archivo faltante.
 
 `heading` y `cases` se pueden omitir en este modo. Si ya existen, se conservan y no se renderizan. Las demás imágenes elegidas se conservan, aunque solo la primera es visible. El modo anterior (`accordion`, o sin `display_mode`) exige título y 2–5 usos y admite fotos opcionales. Cambiar el modo no genera archivos ni modifica selección, orden, variantes, descartes o visibilidad. Los contratos MCP, reporte, editor, preview y publicación comparten el requisito de imagen del modo vigente.
+
+
+## Dirección editorial vigente
+
+Desarrolla la transformación del hook desde la función de esta sección. El titular comunica una razón para seguir leyendo; las escenas, explicaciones y objeciones refuerzan el mismo motivo de compra, sin duplicación literal. Consulta [la escritura de PDP](../../../../plugins/dropflex-optimizer/skills/optimize-product/references/pdp-writing.md). Los ejemplos de `content.ts` son ilustraciones editoriales de productos concretos, no datos de otro producto. Los campos, límites, medios y decisiones vigentes se conservan.

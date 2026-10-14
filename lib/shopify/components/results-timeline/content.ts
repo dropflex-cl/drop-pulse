@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpBody, pdpFact } from "../_shared/pdp-content";
 export const resultsTimeline = defineComponent({
@@ -41,43 +42,46 @@ export const resultsTimeline = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Conoce la evolución",
-      stages: [
-        {
-          title: "Prepara el uso",
-          body: "Sigue las instrucciones de preparación antes de comenzar a usarlo.",
-          label: "Al empezar",
-        },
-        {
-          title: "Revisa el resultado",
-          body: "Observa el cambio y adapta la rutina a tus necesidades.",
-          label: "Después de usarlo",
-        },
-      ],
-      footnote:
-        "La experiencia depende de las condiciones de uso y de cada persona.",
-    },
-    {
-      heading: "Conoce las etapas del uso",
-      stages: [
-        {
-          title: "Prepara el uso",
-          body: "Sigue las instrucciones de preparación antes de comenzar a usarlo.",
-          label: "Al empezar",
-        },
-        {
-          title: "Revisa el resultado",
-          body: "Observa el cambio y adapta la rutina a tus necesidades.",
-          label: "Después de usarlo",
-        },
-      ],
-      footnote:
-        "La experiencia depende de las condiciones de uso y de cada persona.",
-    },
-  ],
+  {
+    "heading": "Que encontrar cada cosa se vuelva habitual",
+    "stages": [
+      {
+        "label": "Al organizar",
+        "title": "Separa lo que estaba mezclado",
+        "body": "Distribuye los útiles por compartimento y deja el organizador al alcance de tu mano."
+      },
+      {
+        "label": "En la próxima tarea",
+        "title": "Toma el útil que necesitas",
+        "body": "Busca en su compartimento sin apartar todo lo que hay en la mesa."
+      },
+      {
+        "label": "Al terminar",
+        "title": "Conserva ese lugar",
+        "body": "Devuelve cada útil a su compartimento para que la siguiente tarea empiece sin búsqueda."
+      }
+    ],
+    "footnote": "El ejemplo describe el uso del organizador; adapta las etapas al producto y al cambio buscado."
+  },
+  {
+    "heading": "Empieza por las uñas que hoy prefieres ocultar",
+    "stages": [
+      {
+        "label": "Al empezar",
+        "title": "Dedica atención a esa zona",
+        "body": "Aplica el tónico sobre uñas y cutículas limpias y secas, siguiendo las indicaciones del envase."
+      },
+      {
+        "label": "Con uso constante",
+        "title": "Observa su apariencia",
+        "body": "Presta atención a la hidratación y apariencia de uñas y cutículas al mantener el cuidado."
+      }
+    ],
+    "footnote": "La respuesta varía entre personas; las etapas describen el cuidado sin fijar un plazo de resultados."
+  }
+],
 });

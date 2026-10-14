@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpItem } from "../_shared/pdp-content";
 export const productIncludes = defineComponent({
@@ -27,7 +28,7 @@ export const productIncludes = defineComponent({
   ],
   placement:
     "Qué incluye tu compra: después de la demostración y antes del cierre de compra.",
-  objection: "Confirma aquí el contenido del paquete antes de comprar.",
+  objection: "¿Qué recibo y cómo me ayuda cada elemento?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -37,39 +38,27 @@ export const productIncludes = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Todo lo que viene en tu paquete",
-      items: [
-        {
-          title: "Equipo principal",
-          body: "El equipo que aparece en la descripción del producto viene incluido en tu compra.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-        {
-          title: "Accesorios de uso",
-          body: "Los accesorios indicados en el contenido del paquete acompañan al equipo.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-      ],
-    },
-    {
-      heading: "Conoce el contenido de tu compra",
-      items: [
-        {
-          title: "Equipo principal",
-          body: "El equipo que aparece en la descripción del producto viene incluido en tu compra.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-        {
-          title: "Accesorios de uso",
-          body: "Los accesorios indicados en el contenido del paquete acompañan al equipo.",
-          fact_id: "00000000-0000-4000-8000-000000000001",
-        },
-      ],
-    },
-  ],
+  {
+    "heading": "Un lugar propio para los útiles de tu mesa",
+    "items": [
+      {
+        "title": "Organizador de escritorio",
+        "body": "Sus compartimentos reúnen los útiles que antes quedaban repartidos por la mesa. Colócalo al alcance de tu mano."
+      }
+    ]
+  },
+  {
+    "heading": "Recibe el tónico y empieza por tus uñas",
+    "items": [
+      {
+        "title": "Tónico con gotero",
+        "body": "Recibes un tónico de jengibre y cúrcuma con gotero para aplicar el cuidado directamente sobre uñas y cutículas."
+      }
+    ]
+  }
+],
 });

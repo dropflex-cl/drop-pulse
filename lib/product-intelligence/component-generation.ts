@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PDP_WRITING_INSTRUCTIONS } from "@/lib/shopify/components/_shared/pdp-writing";
 import { pdpRating } from "@/lib/copy/pdp-rating";
 import { CATALOG, componentById, componentImageSlots } from "@/lib/shopify/components/catalog";
 import { listingSchema, LISTING_INFO, LISTING_RULES } from "@/lib/copy/listing";
@@ -12,7 +13,7 @@ import type { VisualState } from "./visual-domain";
 export const COMPONENT_ARGUMENTS: Record<string, string> = {
   listing: "Identifica el producto con un nombre breve y presenta el beneficio central del hook en la bajada, junto a su oferta principal.",
   "review-stars": "Presenta el texto de valoración y las cifras solicitadas; puede reutilizar un resumen disponible.",
-  "benefit-usps": "Explica ventajas concretas que hacen adecuado el producto para esta necesidad.",
+  "benefit-usps": "Reduce fricciones de compra con pago, envío y condiciones vigentes; no repite los beneficios del producto de gallery_benefits.",
   inventory: "Desarrolla el mensaje comercial de urgencia junto al botón; disponibilidad y entrega conservan sus datos operativos.",
   "shipping-timeline": "Conecta el corte real con la primera entrega posible: ticket con contador de segundos, paquete ilustrativo y fechas estimadas después del botón COD existente y su línea de confianza. Título y precio protagonizan la oferta antes del ticket. Usa la logística vigente; no añade reservas ni otro CTA.",
   "benefit-double-box": "Reduce dos fricciones de compra con condiciones comerciales concretas.",
@@ -22,12 +23,12 @@ export const COMPONENT_ARGUMENTS: Record<string, string> = {
   "scrolling-benefits": "Recuerda ventajas de compra en mensajes breves que acompañan el recorrido.",
   "pain-block": "Desarrolla el problema cotidiano reconocido por el hook y su consecuencia.",
   "image-with-benefits": "Conecta características visibles con beneficios distintos para el comprador.",
-  mechanism: "Explica cómo funciona el producto y por qué permite el beneficio presentado.",
-  "use-cases": "Describe situaciones específicas en las que esta solución encaja.",
+  mechanism: "Conecta una característica o acción con su funcionamiento comprensible y utilidad para el problema del hook; el ingrediente solo no explica el resultado.",
+  "use-cases": "Sitúa la transformación del hook en momentos concretos en los que el comprador se imagina aprovechando esta solución.",
   "before-after": "Contrasta la situación inicial y la deseada, indicando la naturaleza de la representación.",
   "stats-with-image": "Hace tangible la magnitud del beneficio con datos contextualizados y su imagen.",
   "results-timeline": "Desarrolla las expectativas de uso y resultados en el tiempo.",
-  "usage-steps": "Reduce el esfuerzo percibido con instrucciones simples y concretas.",
+  "usage-steps": "Reduce el esfuerzo percibido con acciones y objetos concretos, sosteniendo la transformación sin sustituirla por una rutina genérica.",
   "product-includes": "Explica qué recibe el comprador y el valor de cada elemento incluido.",
   "insta-story": "Desarrolla una secuencia visual de descubrimiento, uso y beneficio.",
   "customer-stories": "Narra situaciones y su resolución con textos propios o reseñas reutilizadas.",
@@ -87,7 +88,7 @@ export function componentGenerationContext(state: VisualState, component: string
       instructions: "La nota agregada debe estar entre 4,4 y 4,9, inclusive. Lee get_landing_content de review-stars y guarda rating/count allí con save_landing_content. Google, Hero, muro, UGC y FAQ leen esa misma valoración. No exige importación, evidencia ni configuración de Google. Conserva las variantes y selecciones existentes." },
     canonical_reference: canonicalReference(state), targets,
     available_images: k.landing.image_catalog, available_reviews: k.landing.reviews, media: k.media,
-    instructions: ["Desarrolla un argumento propio de este componente desde primary_direction.hook y la información vigente del producto. Consulta other_arguments para evitar repetir titulares y razones.",
+    instructions: [...PDP_WRITING_INSTRUCTIONS,
       "La variante default sigue el hook primario. Conserva la dirección específica de variantes comerciales existentes y los usos, imágenes omitidas y secciones ocultas.",
       "Antes de editar variantes, lee get_landing_content para conservar su contenido completo. Guarda textos con save_landing_content respetando este schema. No publiques ni generes imágenes por el solo hecho de guardar.",
       "Para una imagen solicitada, traduce el argumento a una escena y mensaje propios del slot, con su ratio y posición. Inspecciona y adjunta la imagen base real al generador; conserva identidad, envase y proporciones.",
@@ -129,7 +130,7 @@ export function pdpCompletionReport(state: VisualState) {
       content_pending: active.filter(c => c.variants.some(v => v.content_state !== "complete")).map(c => c.component),
       media_pending: active.filter(c => c.variants.some(v => v.media_pending.length)).map(c => c.component),
       images_pending: active.filter(c => c.variants.some(v => v.unavailable_images.length || v.image_slots.some(s => s.missing))).map(c => c.component) },
-    limitations: ["La validación del contrato no certifica calidad, argumentos distintos ni alineación semántica: revísalos con get_component_generation_context.",
+    limitations: ["La validación del contrato no certifica continuidad comercial, calidad ni alineación semántica: revísalos con get_component_generation_context.",
       "Los slots opcionales pueden usar el respaldo del tema; no obligan a generar. Los requisitos de GIF, video y datos operativos se consultan en sus herramientas.",
       "La falta de reseñas importadas o evidencia no deja contenido pendiente. Textos propios y medios generados son compatibles; media_pending identifica archivos faltantes, sin exigir pruebas reales.",
       "Este reporte no publica ni sustituye preparePublish. Las secciones ocultas y descartadas se conservan."],

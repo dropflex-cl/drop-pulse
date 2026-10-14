@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { PDP_COMPONENT_COPY_RULES } from "../_shared/pdp-writing";
 import { defineComponent } from "../define";
 import { pdpHeading, pdpBody } from "../_shared/pdp-content";
 export const offerSummary = defineComponent({
@@ -11,8 +12,7 @@ export const offerSummary = defineComponent({
   imageSlots: [],
   placement:
     "Elige tu pack: después de la demostración y antes del cierre de compra.",
-  objection:
-    "Consulta el precio y las opciones de compra en la ficha del producto.",
+  objection: "¿Qué opción elijo para empezar a resolver lo que me trajo aquí?",
   levers: ["Claridad visual", "Reducción de incertidumbre", "Valor respaldado"],
   content: z.object({
     heading: pdpHeading,
@@ -27,20 +27,20 @@ export const offerSummary = defineComponent({
     "Contenido vigente del producto, imágenes disponibles y referencias opcionales. Precios y políticas salen de los datos comerciales.",
   ],
   rules: [
-    "Una idea principal por sección, textos cortos y concretos para móvil.",
+    ...PDP_COMPONENT_COPY_RULES,
     "Los precios, ahorros, pago, envío, devoluciones y garantía se leen de datos publicados. No escribir números ni nuevas políticas en el texto.",
   ],
   forbidden: [],
   examples: [
-    {
-      heading: "Elige la opción para tu compra",
-      body: "Compara las opciones disponibles y revisa el precio de cada pack.",
-      cta_label: "Elegir mi pack",
-    },
-    {
-      heading: "Conoce las opciones de tu compra",
-      body: "Compara las opciones disponibles y revisa el precio de cada pack.",
-      cta_label: "Elegir mi pack",
-    },
-  ],
+  {
+    "heading": "Que buscar tus útiles deje de interrumpirte",
+    "body": "Elige la opción que necesitas y dale un lugar a lo que usas cada día. Revisa tu oferta y confirma tu pedido.",
+    "cta_label": "Pedir mi organizador"
+  },
+  {
+    "heading": "Deja de posponer el cuidado de tus uñas",
+    "body": "Empieza por esas uñas que hoy prefieres ocultar. Elige AntiHongos Pro y dedica el cuidado directamente a uñas y cutículas.",
+    "cta_label": "Pedir mi AntiHongos Pro"
+  }
+],
 });
