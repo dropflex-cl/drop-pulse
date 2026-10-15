@@ -4,83 +4,43 @@ import { ICON_PATHS } from "@/lib/store-preview/theme.generated";
 import { DfIcon } from "./primitives";
 import type { PreviewProps } from "./types";
 
-// blocks/df-gif-strip.liquid: una fila por GIF con su línea arriba y su texto abajo. El GIF N lleva
-// el texto N: con 3 GIF subidos se ven los 3 primeros textos, como en la tienda. Sin GIF (la tienda
-// no dibuja el bloque) se muestran los textos con un marco vacío, para poder revisarlos.
-
 interface Content {
-  gifs?: {
-    heading?: string;
-    text?: string;
-    bullets?: { icon?: string; text?: string }[];
-  }[];
+  gifs?: { heading?: string; text?: string; bullets?: { icon?: string; text?: string }[] }[];
 }
 
+/** Misma lista de demostraciones visibles que df-gif-strip-content.liquid. */
 export function GifStripPreview({ content, facts }: PreviewProps<Content>) {
   const s = settingsOf("gif-strip");
   const gifs = (facts.gifs ?? []).slice(0, 5);
-  const items = content.gifs ?? [];
-  const rows = gifs.map((src, i) => ({ src, item: items[i] }));
-  if (!rows.length) return <PdpEmptyPreview component="gif-strip" />;
-
-  return (
-    <div
-      className="df df-gif-strip"
-      style={
-        {
-          "--df-gif-radius": px(s.radius),
-          marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}`,
-        } as React.CSSProperties
-      }
-    >
-      {s.heading ? (
-        <p className="df-heading df-gif-strip__heading">{String(s.heading)}</p>
-      ) : null}
-      <ul className="df-gif-strip__list" role="list">
-        {rows.map(({ src, item }, i) => {
-          return (
-            <li key={i} className="df-gif-strip__item">
-              <figure className="df-gif-strip__figure">
-                {item?.heading ? (
-                  <p className="df-gif-strip__lead">{item.heading}</p>
-                ) : null}
-                <span
-                  className="df-gif-strip__frame"
-                  style={src ? undefined : { aspectRatio: "4 / 3" }}
-                >
-                  {src ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage; animado (sin optimizar)
-                    <img src={src} alt="" loading="lazy" decoding="async" />
-                  ) : null}
-                </span>
-                {item?.bullets?.length ? (
-                  <figcaption className="df-gif-strip__caption">
-                    <ul className="df-gif-strip__bullets" role="list">
-                      {item.bullets.map((line, j) => (
-                        <li key={j} className="df-gif-strip__bullet">
-                          {/* Un ícono desconocido cae a «check», como el Liquid. */}
-                          <DfIcon
-                            name={
-                              line.icon && ICON_PATHS[line.icon]
-                                ? line.icon
-                                : "check"
-                            }
-                          />
-                          <span>{line.text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </figcaption>
-                ) : item?.text ? (
-                  <figcaption className="df-gif-strip__caption">
-                    {item.text}
-                  </figcaption>
-                ) : null}
-              </figure>
-            </li>
-          );
-        })}
-      </ul>
+  if (!gifs.length) return <PdpEmptyPreview component="gif-strip" />;
+  return <df-gif-strip className="df df-gif-strip" style={{ "--df-gif-radius": px(s.radius), marginBlock: `${px(s.margin_top)} ${px(s.margin_bottom)}` } as React.CSSProperties} lang="es" role="region" aria-label="El producto en acción">
+    <div className="df-gif-strip__header">
+      <div><p className="df-eyebrow">El producto en acción</p>{s.heading ? <p className="df-heading df-gif-strip__heading">{String(s.heading)}</p> : null}</div>
     </div>
-  );
+    <ul className="df-gif-strip__list" role="list" aria-label="Demostraciones del producto">
+      {gifs.map((src, index) => {
+        const item = content.gifs?.[index];
+        return <li key={index} className="df-gif-strip__item" aria-label={`Demostración ${index + 1} de ${gifs.length}`}>
+          <figure className="df-gif-strip__figure">
+            <div className="df-gif-strip__intro">
+              <p className="df-gif-strip__number"><span>Demostración</span><span>0{index + 1} / 0{gifs.length}</span></p>
+              {item?.heading ? <p className="df-gif-strip__lead">{item.heading}</p> : null}
+            </div>
+            <div className="df-gif-strip__frame" data-df-gif-frame="">
+              {/* La URL original conserva la animación; las variantes de tamaño pueden aplanarla. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt={item?.heading || facts.productName} loading="lazy" decoding="async" />
+              <canvas hidden aria-hidden="true" />
+              <button type="button" className="df-gif-strip__playback" data-df-gif-toggle="" hidden aria-label={`Pausar animación ${index + 1}`}>
+                <span data-df-gif-pause=""><DfIcon name="pause" />Pausar</span>
+                <span data-df-gif-play="" hidden><DfIcon name="play" />Reproducir</span>
+              </button>
+            </div>
+            {item?.bullets?.length ? <figcaption className="df-gif-strip__caption"><ul className="df-gif-strip__bullets" role="list">{item.bullets.map((line, i) => <li key={i} className="df-gif-strip__bullet"><DfIcon name={line.icon && ICON_PATHS[line.icon] ? line.icon : "check"} /><span>{line.text}</span></li>)}</ul></figcaption>
+              : item?.text ? <figcaption className="df-gif-strip__caption">{item.text}</figcaption> : null}
+          </figure>
+        </li>;
+      })}
+    </ul>
+  </df-gif-strip>;
 }

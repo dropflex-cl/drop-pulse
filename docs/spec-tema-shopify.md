@@ -408,6 +408,12 @@ recoloca los bloques históricos sin duplicarlos. Todas las reseñas aprobadas s
 con nota calculada sobre ese mismo conjunto; el orden aleatorio y las cifras reales se guardan
 por producto en localStorage.
 
+## GIFs elegidos y plantilla aplicada
+
+Cuando la publicación incluye `gif-strip` habilitado y medios seleccionados, `ensureGifTemplateVisible` sincroniza su presencia en la plantilla JSON utilizada por ese producto (sufijo; sin archivo específico, el respaldo `product.json` de Shopify). El `disabled` estructural del bloque no puede contradecir «Mostrar en la página» de DropFlex: se habilita únicamente `df-gif-strip` y se incorpora al orden si estaba omitido. El resto de los ajustes, bloques y secciones ocultas permanece intacto. La plantilla puede ser compartida; las exclusiones por producto continúan en `dropflex.conversion_supports`.
+
+Se escribe solo al publicar, tras guardar el contenido y sus archivos, y se vuelve a leer para verificar el resultado antes de registrar éxito. Sin medios, con el componente oculto o antes de instalar el tema no se escribe una plantilla. Un padre oculto, una composición desconocida, un bloque sin código o una plantilla Liquid específica requieren una acción concreta; no se recuperan otras secciones. No se añaden tablas, archivos por producto, campos de contenido ni herramientas MCP.
+
 El regalo usa archivos y título administrados por el comerciante (`gift_pdf`, `gift_cover`,
 `gift_title`), conservados entre publicaciones. Google usa la valoración compartida editable
 de `review-stars`, publicada en `review_summary`, sin mínimos, importación, evidencia ni

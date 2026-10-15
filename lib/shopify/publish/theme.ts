@@ -214,7 +214,7 @@ const FILE_BODY = /* GraphQL */ `
 `;
 
 /** El texto de un archivo del tema (TEXT, BASE64 o URL: Shopify usa los tres, spec principio 10). */
-async function readThemeFile(
+export async function readThemeFile(
   conn: ShopifyConnection,
   themeGid: string,
   name: string,

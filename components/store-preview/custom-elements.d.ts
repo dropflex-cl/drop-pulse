@@ -9,6 +9,7 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "df-slider": StoreElement;
+      "df-gif-strip": StoreElement;
       "df-buy-link": StoreElement;
       "df-comparison-table": StoreElement;
       "df-faq-and-text": StoreElement;

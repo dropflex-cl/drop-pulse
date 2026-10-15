@@ -9,22 +9,24 @@ Bajo el botón, después de la doble tarjeta y antes de las reseñas. Responde �
 ## Anatomía
 
 - **Título del bloque** opcional (ajuste del editor), apagado por defecto: tres niveles de texto sobre un clip lo vuelven folleto.
-- Una **fila por GIF**, a todo el ancho de la columna: línea en la tipografía de títulos, el GIF con radio (12 px por defecto) y debajo un párrafo o una lista de 2 a 4 líneas con ícono en el color de acento.
+- **Todas las demostraciones expuestas**, una debajo de otra: encabezado «El producto en acción», tarjeta con número y título sobre el acento suave, marco cuadrado sin recortes y párrafo o lista debajo. Cada tarjeta aparece al recorrer la página, sin pestañas ni controles de navegación. Especificación visual: [`design-system/gif-demonstrations.md`](../../../../design-system/gif-demonstrations.md).
 
 ## Datos
 
 | Origen | Qué |
 |---|---|
 | Metafield `dropflex.gif_strip` (IA) | `gifs[5]`: `{ heading, text? \| bullets?: [{ icon, text }] }` (un párrafo o una lista bajo cada GIF), el más fuerte primero |
-| `product.metafields.dropflex.gif_strip_media` (real) | los GIF que sube el comerciante en **Imágenes › GIFs**, en su orden, como WebP animado (Shopify Files) |
+| `product.metafields.dropflex.gif_strip_media` (real) | los GIF que sube el comerciante en **Página › GIFs**, en su orden, como WebP animado (Shopify Files) |
 | Ajustes del bloque | título opcional, radio, márgenes |
 
-**El GIF N lleva el texto N.** La IA escribe siempre 5 textos; el comerciante sube de 1 a 5 GIF y se muestran tantos como GIF haya: con 3, los 3 primeros textos. Por eso el prompt pide el más fuerte primero. La IA no ve los GIF (se escriben antes o al mismo tiempo): si un texto no calza con su GIF, se reordenan los GIF en Imágenes o se edita el texto en la Página del producto.
+**El GIF N lleva el texto N.** La IA escribe siempre 5 textos; el comerciante sube de 1 a 5 GIF y se muestran tantos como GIF haya: con 3, los 3 primeros textos. Por eso el prompt pide el más fuerte primero. Si un texto no calza con su GIF, se reordenan los GIF o se edita el texto en Página. El contrato de datos, el MCP y la skill conservan los mismos cinco textos y medios elegidos; este layout no necesita campos ni generaciones nuevos.
 
 ## Comportamiento
 
 - El `src` va **sin `width`**: toda variante que Shopify transforma se re-codifica y una animación re-codificada conserva un solo cuadro. El `width`/`height` intrínseco va en la etiqueta para reservar el espacio.
-- `loading="lazy"` y `decoding="async"`: el bloque está bajo el pliegue. Cada fila entra al desplazar y el GIF aparece con un fundido al cargar, sobre el fondo de reserva (`df-motion.js`, [`docs/spec-movimiento-tienda.md`](../../../../docs/spec-movimiento-tienda.md)).
+- `loading="lazy"` y `decoding="async"`: el bloque está bajo el pliegue. `df-gif-strip.js` reproduce continuamente todos los GIFs visibles y lo reanuda al volver al bloque, a la pieza o a la pestaña; no hay corte de cinco segundos. «Pausar» / «Reproducir» conservan el control del comprador. Con movimiento reducido comienza congelado. Un canvas conserva el cuadro fuera de vista sin transformar la URL ni crear otro archivo.
+- Marco, imagen y canvas usan `--df-radius-media`, compartido con el resto de las imágenes de la página. La caja de la imagen conserva su proporción, de modo que las esquinas de los GIFs verticales también se redondean.
+- Publicar contenido efectivo con GIFs seleccionados habilita su bloque en la plantilla JSON aplicada, conservando sus ajustes y el resto de la composición. Ocultarlo en DropFlex permanece como decisión por producto en `conversion_supports`. Guardar/subir no cambia el tema. Una sección padre oculta o plantilla incompatible devuelve un impedimento concreto; no se declara éxito con los GIFs invisibles.
 - Sin GIF, no se dibuja nada (aviso en el editor). Un texto vacío no se dibuja (ni párrafo en blanco ni espacio reservado).
 - Todo texto se imprime con `escape`; la lista es estructura (`icon`, `text`), nunca HTML del modelo.
 

@@ -101,6 +101,24 @@ function visualTree(html: string, id: string) {
 }
 
 describe("contrato visual Liquid → React", () => {
+  it.each([0, 1, 3, 5])("demostraciones: %i GIFs conservan texto, medios y controles en Liquid y React", async total => {
+    const content = CATALOG.find(component => component.id === "gif-strip")!.examples[0];
+    const f = { ...facts, gifs: Array.from({ length: total }, (_, index) => `https://example.test/demo-${index}.webp`) };
+    const Preview = PREVIEWS["gif-strip"];
+    const liquid = await liquidMarkup("gif-strip", content, f, {});
+    const react = renderToStaticMarkup(<Preview content={content} facts={f} images={{}} />);
+    expect(visualTree(react, "gif-strip")).toEqual(visualTree(liquid, "gif-strip"));
+    for (const markup of [react, liquid]) {
+      const document = parseHTML(markup).document;
+      expect(document.querySelectorAll(".df-gif-strip__item")).toHaveLength(total);
+      expect(document.querySelectorAll("[data-df-dots] button")).toHaveLength(0);
+      expect(document.querySelector("df-slider, [data-df-prev], [data-df-next], [data-df-track], [role=tab]")).toBeNull();
+      expect(document.querySelector(".df-gif-strip__item[hidden]")).toBeNull();
+      expect(document.querySelector("[data-autoplay]")).toBeNull();
+      expect(document.querySelectorAll("canvas[hidden]")).toHaveLength(total);
+      expect([...document.querySelectorAll(".df-gif-strip__frame img")].map(image => image.getAttribute("src"))).toEqual(f.gifs);
+    }
+  });
   it.each([
     { quantity: 100, management: "shopify", urgency_text: undefined },
     { quantity: 3, management: "shopify", urgency_text: "Últimas unidades disponibles" },

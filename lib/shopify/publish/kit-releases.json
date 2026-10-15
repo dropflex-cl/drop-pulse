@@ -59,6 +59,7 @@
     "aa43948962",
     "ab002b8d61",
     "af4319ff8b",
+    "b2919ecf91",
     "b392934dbf",
     "b3aacb1c39",
     "b6d9a4abfa",
@@ -197,6 +198,9 @@
     ],
     "assets/df-geist-600.woff2": [
       "7ad8a04a3bf212f6332037cc58a83c93"
+    ],
+    "assets/df-gif-strip.js": [
+      "34592378791ebbb79c0bcdf2df1a64fb"
     ],
     "assets/df-google-logo.svg": [
       "feaa6afe599f2840408005bb5d90691a"
@@ -835,6 +839,7 @@
       "9f07e1cbbc1acdcc8678325a706e6a31"
     ],
     "blocks/df-gif-strip.liquid": [
+      "10e484bdc0d296292c143278d8491a12",
       "6ca089f2ec0b9191afefc34388cd2a91",
       "ad75fb2b51c35ef8ec56de00fcdccce2",
       "bd501d5d71702097a9f9727e1cc64a09",
@@ -1732,6 +1737,7 @@
     ],
     "snippets/df-gif-strip-content.liquid": [
       "2a12b2b3c44e06b6dcda0c0b40f636bb",
+      "d25e3015eee304956efbcbc22dcfd491",
       "dd8f30c7d4d9293e6069d1dcab077f49"
     ],
     "snippets/df-google-rating.liquid": [

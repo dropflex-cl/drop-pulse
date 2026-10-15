@@ -24,6 +24,7 @@ import {
 } from "@/lib/product-intelligence/repository";
 import { PI_SCOPES } from "@/lib/product-intelligence/policy";
 import { assertLandingVariantTheme } from "@/lib/shopify/publish/theme";
+import { ensureGifTemplateVisible } from "@/lib/shopify/publish/gif-template";
 import {
   contentVariants,
   isVariants,
@@ -463,6 +464,7 @@ const PRODUCT = /* GraphQL */ `
       id
       handle
       onlineStoreUrl
+      templateSuffix
       options {
         name
         optionValues {
@@ -494,6 +496,7 @@ interface ProductQuery {
     id: string;
     handle: string;
     onlineStoreUrl: string | null;
+    templateSuffix: string | null;
     options: { name: string; optionValues: { name: string }[] }[];
     variants: {
       nodes: {
@@ -774,6 +777,8 @@ export async function runPublish(
     );
     await options.beforeWrite?.();
     const shopFacts = await publishShopFacts(conn, input.shopFacts);
+
+    await ensureGifTemplateVisible(conn, input, found.product.templateSuffix, options.beforeWrite);
 
     await savePublication(userId, productId, shop, {
       status: "published",
