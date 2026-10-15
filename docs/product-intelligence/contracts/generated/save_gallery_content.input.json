@@ -225,7 +225,7 @@
               "description": "Por qué ese mundo, en una frase para el comerciante, en el idioma del mercado: quién compra, dónde se usa y qué piden los ángulos."
             },
             "brand_art": {
-              "description": "La línea visual común de toda la galería, dentro del mundo elegido.",
+              "description": "La misma dirección de arte vigente para toda la galería: paleta, tipografía y tratamiento fotográfico comunes, dentro del mundo elegido. Varía escenas para mostrar solución, beneficios y antes/después pertinentes.",
               "$ref": "#/$defs/__schema6"
             },
             "props_allowed": {
@@ -293,14 +293,14 @@
                   },
                   "look": {
                     "type": "string",
-                    "description": "Una frase para el comerciante: cómo se verá la imagen. En el idioma del mercado."
+                    "description": "Una frase para el comerciante: qué problema resuelve, qué beneficio muestra y cómo se verá la imagen desde el hook elegido. En el idioma del mercado."
                   },
                   "art": {
                     "$ref": "#/$defs/__schema6"
                   },
                   "scene": {
                     "type": "string",
-                    "description": "En inglés, 30 a 70 palabras: fondo, superficie, props (solo de props_allowed, descritos con precisión), luz, elementos en movimiento."
+                    "description": "En inglés, 30 a 70 palabras: situación, acción del producto y beneficio o solución visible; fondo, superficie, props_allowed y luz. En antes/después conserva sujeto, escala, encuadre e iluminación comparables; no inventes resultados ni plazos."
                   },
                   "layout": {
                     "type": "string",

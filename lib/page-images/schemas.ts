@@ -13,8 +13,9 @@ import { BENEFIT_SHOTS, GALLERY_SHOTS, SHOT_TYPES, VISUAL_WORLDS, type VisualWor
  * los largos por rol en la descripción de cada texto y el «\\n» literal que el código convierte en salto
  * de línea (normalizePlan). 6: imágenes para COD con texto comercial también en portada y ambiente,
  * sin prohibiciones de precio/oferta ni límites editoriales de texto heredados de anuncios.
+ * 7: solución al problema, beneficios y antes/después pertinentes con la misma dirección de arte.
  */
-export const PAGE_IMAGES_PROMPT_VERSION = 6;
+export const PAGE_IMAGES_PROMPT_VERSION = 7;
 
 const art = z.object({
   palette: z.string().describe("En inglés: 2 a 4 colores con nombre, los del mundo visual elegido; el producto contrasta con el fondo y los textos van en un acento que se lee."),
@@ -34,9 +35,9 @@ const shot = z.object({
   benefit: z.number().int().nullable().describe("Solo slot benefit: el número del beneficio (1, 2…) de benefits. null en los demás."),
   type: z.enum(SHOT_TYPES),
   name: z.string().describe("Nombre corto para el comerciante, en el idioma del mercado."),
-  look: z.string().describe("Una frase para el comerciante: cómo se verá la imagen. En el idioma del mercado."),
+  look: z.string().describe("Una frase para el comerciante: qué problema resuelve, qué beneficio muestra y cómo se verá la imagen desde el hook elegido. En el idioma del mercado."),
   art,
-  scene: z.string().describe("En inglés, 30 a 70 palabras: fondo, superficie, props (solo de props_allowed, descritos con precisión), luz, elementos en movimiento."),
+  scene: z.string().describe("En inglés, 30 a 70 palabras: situación, acción del producto y beneficio o solución visible; fondo, superficie, props_allowed y luz. En antes/después conserva sujeto, escala, encuadre e iluminación comparables; no inventes resultados ni plazos."),
   layout: z.string().describe("En inglés, 20 a 50 palabras: dónde va el producto, cuánto del cuadro ocupa, zonas para el texto."),
   product_units: z.number().int().min(1).max(3),
   kit_parts: z.array(z.string()).describe("Partes del kit que aparecen, escritas igual que en kit. [] si ninguna."),
@@ -49,7 +50,7 @@ export const pagePlanSchema = z.object({
   kit: z.array(z.string()).describe("En inglés: todo lo demás que aparece en la IMAGEN BASE (caja, repuestos, cables, accesorios)."),
   visual_world: z.enum(VISUAL_WORLDS).describe("El mundo visual de toda la galería, elegido para este producto (ver MUNDOS VISUALES)."),
   visual_world_why: z.string().describe("Por qué ese mundo, en una frase para el comerciante, en el idioma del mercado: quién compra, dónde se usa y qué piden los ángulos."),
-  brand_art: art.describe("La línea visual común de toda la galería, dentro del mundo elegido."),
+  brand_art: art.describe("La misma dirección de arte vigente para toda la galería: paleta, tipografía y tratamiento fotográfico comunes, dentro del mundo elegido. Varía escenas para mostrar solución, beneficios y antes/después pertinentes."),
   props_allowed: z.array(z.string()).describe("En inglés: props de ambiente que refuerzan la sensación del producto sin prometer nada, cada uno descrito con precisión visual."),
   props_forbidden: z.array(z.string()).describe("En inglés: props tentadores pero engañosos, cada uno con el motivo entre paréntesis."),
   benefits: z

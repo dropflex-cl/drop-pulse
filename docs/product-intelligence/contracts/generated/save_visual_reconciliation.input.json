@@ -184,6 +184,7 @@
           }
         },
         "objective": {
+          "description": "Qué problema del hook resuelve esta pieza y qué beneficio concreto debe entender el comprador.",
           "$ref": "#/$defs/__schema2"
         },
         "product_identity": {
@@ -242,7 +243,8 @@
                 {
                   "type": "null"
                 }
-              ]
+              ],
+              "description": "Resultado deseado visible conectado con la acción del producto; en antes/después describe qué cambia manteniendo condiciones comparables. null si no aplica."
             },
             "people": {
               "type": "object",
@@ -347,6 +349,7 @@
           "type": "object",
           "properties": {
             "takeaway": {
+              "description": "Una idea de solución o beneficio dentro del hook elegido; no un eslogan intercambiable ni un atributo sin consecuencia para el comprador.",
               "$ref": "#/$defs/__schema2"
             },
             "overlay_text": {
@@ -544,6 +547,7 @@
               "$ref": "#/$defs/__schema2"
             },
             "consistency_notes": {
+              "description": "Dirección de arte común de la serie: conserva paleta, tipografía, luz, fotografía y recursos gráficos vigentes mientras cambian escenas y encuadres; en antes/después mantiene condiciones comparables.",
               "$ref": "#/$defs/__schema2"
             }
           },

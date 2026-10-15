@@ -44,6 +44,33 @@ describe("DropFlex · importación de skill MCP", () => {
       expect(session.execute).not.toHaveBeenCalled();
     } finally { await session.close(); }
   });
+  it("expone solución, antes/después y continuidad de arte en instrucciones, tools y skill", async () => {
+    const session = await connect();
+    try {
+      const instructions = session.client.getInstructions();
+      expect(instructions).toContain("La galería vende la solución al problema del hook elegido");
+      expect(instructions).toContain("misma dirección de arte vigente");
+      expect(instructions).toContain("sujeto, escala, encuadre e iluminación comparables");
+      let page = await session.client.listTools();
+      const tools = [...page.tools];
+      while (page.nextCursor) {
+        page = await session.client.listTools({ cursor: page.nextCursor });
+        tools.push(...page.tools);
+      }
+      for (const name of ["get_gallery_content", "save_gallery_content", "get_visual_generation_context", "save_visual_generation_plan"]) {
+        expect(tools.find(t => t.name === name)?.description).toMatch(/solución al problema/);
+      }
+      const schema = JSON.stringify(tools.find(t => t.name === "save_visual_generation_plan")?.inputSchema);
+      expect(schema).toContain("qué beneficio concreto");
+      expect(schema).toContain("condiciones comparables");
+      for (const path of ["SKILL.md", "references/production.md"]) {
+        const { contents } = await session.client.readResource({ uri: `skill://dropflex/optimize-product/${path}` });
+        expect(contents[0]).toMatchObject({ text: expect.stringContaining("antes/después") });
+        expect(contents[0]).toMatchObject({ text: expect.stringContaining("misma dirección de arte") });
+      }
+      expect(session.execute).not.toHaveBeenCalled();
+    } finally { await session.close(); }
+  });
   it("el servidor exige un pedido explícito antes de regenerar o descartar por un fallo visual", async () => {
     const session = await connect();
     try {

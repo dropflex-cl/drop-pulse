@@ -199,6 +199,19 @@ describe("pageRenderRequest", () => {
     expect(prompt).toContain("TEXT RULES");
   });
 
+  it("lleva la solución guardada al proveedor sin cambiar el arte ni añadir copy o comparaciones", () => {
+    const s = { ...stored(shot({ look: "Muestra cómo elimina el desorden del escritorio", texts: [] })), pairs: "Encuentra cada útil al necesitarlo" };
+    const prompt = String(pageRenderRequest("gallery", s, "Spanish").input.prompt);
+    expect(prompt).toContain("COMMERCIAL INTENT (brief, not extra overlay text): Muestra cómo elimina el desorden del escritorio");
+    expect(prompt).toContain("Benefit: Encuentra cada útil al necesitarlo");
+    expect(prompt).toContain("do not invent a before/after, result, claim or deadline");
+    expect(prompt).toContain("comparable subject, scale, camera and lighting");
+    expect(prompt).toContain(`STYLE: palette ${s.art.palette}; mood ${s.art.mood}`);
+    expect(prompt).toContain("NO TEXT");
+    expect(prompt).toContain(`SCENE: ${s.scene}`);
+    expect(prompt).toContain(`LAYOUT: ${s.layout}`);
+  });
+
   it("el pedido abre con el mundo visual; sin mundo (tomas de antes), el estudio de siempre", () => {
     const of = (world?: StoredShot["world"]) => String(pageRenderRequest("gallery", { ...stored(shot()), world }, "Spanish").input.prompt);
     expect(of()).toMatch(/^Square premium brand campaign image/);

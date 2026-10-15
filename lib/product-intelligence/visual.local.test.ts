@@ -77,6 +77,8 @@ describe.runIf(process.env.PI_LOCAL_TEST === "1")("Visual production · Supabase
   it("lee referencia consumible, CAS, dry-run y replay previo a CAS", async () => {
     const context = await call("get_visual_generation_context", { product_id: product });
     expect(context.data.canonical_reference).toMatchObject({ id: reference, width: 600, height: 600 });
+    expect(context.data.next_steps.join(" ")).toContain("La galería vende la solución al problema del hook elegido");
+    expect(context.data.next_steps.join(" ")).toContain("misma dirección de arte vigente");
     const ref = context.data.canonical_reference as { content_hash: string; url: string };
     expect((await fetch(ref.url)).ok).toBe(true);
     const write = { ...await preconditions(), identity: { ...visualFixture().identityInput, canonical_reference_image_id: reference, reference_content_hash: ref.content_hash } };

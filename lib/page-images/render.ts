@@ -47,6 +47,8 @@ export function pageImagePrompt(s: StoredShot, ratio: "1:1" | "3:4", language: s
   return [
     `${FORMAT[ratio]} ${WORLD_BRIEF[s.world ?? "studio_color"]}`,
     `PRODUCT: ${s.product_look.trim()}, kept exactly as in the reference image (same shape, colors, logo and printed details). ${units} ${kit} Never turn an item from the reference image into a different object. Do not print any word, logo or label on the product that is not on it in the reference image; text printed on the box never goes on the product.`,
+    `COMMERCIAL INTENT (brief, not extra overlay text): ${s.look.trim()}${s.pairs ? ` Benefit: ${s.pairs.trim()}` : ""}. Make the planned problem, solution or benefit visible through the scene and product action. Follow the saved scene; do not invent a before/after, result, claim or deadline.`,
+    "ART DIRECTION: keep the saved palette, typography, lighting treatment and photographic style consistent across this series. Vary framing and scene to explain the benefit. For a planned before/after, use comparable subject, scale, camera and lighting; only the problem and its resolution change.",
     `SCENE: ${s.scene.trim().replace(/\s+/g, " ")}${people}`,
     `Props exactly as described, nothing else decorative; no crystals or gemstones.${forbidden.length ? ` DO NOT INCLUDE: ${forbidden.join(", ")}.` : ""}`,
     `LAYOUT: ${s.layout.trim().replace(/\s+/g, " ")}`,
