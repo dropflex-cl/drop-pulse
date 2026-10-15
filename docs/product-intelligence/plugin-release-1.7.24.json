@@ -1,0 +1,95 @@
+{
+  "version": "1.7.24",
+  "plugin_id": "Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "release_id": "pluginrel_6ad1024e5acc8191921594d7a8b118b4",
+  "plugin_url": "https://chatgpt.com/plugins/Plugin_e3bca2a0f2208191a04ed05f2b5904fa",
+  "source_commits": [
+    "92fcf6bcc6227a23356b2dcc05502a547a37698d",
+    "5c2978c7a69c4c7b0f2a4de36054c01b1faec942"
+  ],
+  "main_and_origin_verified": true,
+  "production": {
+    "status": "Ready",
+    "environment": "Production",
+    "deployment_url": "https://vercel.com/dropflex-cl/drop-pulse/EJzjmSqNQWazKCxToWt6ZUydA4YV",
+    "commit": "5c2978c",
+    "domain": "drop-pulse.vercel.app",
+    "runtime_visual_context_verified": true,
+    "runtime_gallery_rules_and_contract_verified": true,
+    "read_only_product_revision": 3,
+    "region": "gru1"
+  },
+  "migrations": {
+    "database_required": false,
+    "theme_required": false
+  },
+  "contract": {
+    "fields_changed": false,
+    "limits_and_media_changed": false,
+    "writers_changed": false,
+    "editorial_direction": "Solución al problema del hook, beneficios, acción del producto y antes/después pertinentes con condiciones comparables y la misma dirección de arte vigente.",
+    "merchant_content_and_decisions_preserved": true
+  },
+  "readback": {
+    "files_verified": 15,
+    "files_changed": [
+      ".codex-plugin/plugin.json",
+      "plugin.json",
+      "skills/optimize-product/SKILL.md",
+      "skills/optimize-product/references/production.md"
+    ],
+    "archive_matches_source": true,
+    "connection_and_presentation_preserved": true,
+    "unrelated_inventory_preserved": true
+  },
+  "server": {
+    "catalog_announcement_evidence": "tools/list paginado con SDK oficial local; descripciones de producción importadas después de Refresh tools y contexto/contrato de producción devuelven la nueva dirección.",
+    "authenticated_tools_list_http_directly_checked": false
+  },
+  "client": {
+    "refresh_tools_completed": true,
+    "imported_catalog_names_and_descriptions_verified": [
+      "get_gallery_content",
+      "save_gallery_content",
+      "get_visual_generation_context",
+      "save_visual_generation_plan"
+    ],
+    "new_conversation": {
+      "url": "https://chatgpt.com/c/6ad102d5-bd54-83e9-a3e8-d38a6b5de4f0",
+      "skill_version_reported": "1.7.24",
+      "reads_reported_ok": [
+        "optimize-product/SKILL.md",
+        "references/production.md",
+        "get_visual_generation_context:gallery",
+        "get_gallery_content"
+      ],
+      "product_revision": 3,
+      "scope": "read-only",
+      "gallery_direction_confirmed": true
+    }
+  },
+  "validation": {
+    "general_tests": {
+      "passed": 1477,
+      "skipped": 184
+    },
+    "local_integration_tests": 14,
+    "final_followup_tests": 19,
+    "typecheck": "passed",
+    "eslint_changed_files": "passed",
+    "eslint_global": "Fails on preexisting design-system/reference and Shopify theme assets, plus untracked output files; none of these paths changed.",
+    "build_webpack": "passed",
+    "contracts": "70 input/output pairs exported and validated; changes only in field descriptions",
+    "design_tokens": "passed",
+    "skill_package": "15 files; versions, frontmatter, links, four-file update overlay and full remote readback verified",
+    "quick_validate_python": "Not run: default Python lacks PyYAML; frontmatter/resource checks passed in MCP SDK tests and package validation."
+  },
+  "operations": {
+    "generated_images": 0,
+    "product_writes": 0,
+    "product_publications": 0,
+    "meta_campaigns": 0
+  },
+  "verified_date": "2026-10-15",
+  "timezone": "America/Santiago"
+}
