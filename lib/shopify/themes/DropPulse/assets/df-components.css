@@ -685,9 +685,10 @@ df-landing-content > [data-df-active] { display: contents; }
 /* Las cifras compartidas sin nota permanecen ocultas hasta elegir una variante con valoración. */
 [data-df-rating-group][hidden], .df-stats-with-image__rating[hidden] { display: none !important; }
 
-/* CTA de compra: type-title y space-4/6; alto = space-12 + space-4 del design system. */
+/* CTA protagonista: design-system/purchase-cta.md; type-title, space-4/6 y base presionable. */
 .df-purchase-cta {
-  --df-cta-height: 64px;
+  --df-cta-height: 72px;
+  --df-cta-shadow: inset 0 -4px 0 color-mix(in srgb, var(--df-accent) 76%, var(--df-fg)), 0 0 0 4px var(--df-accent-soft), 0 1px 2px color-mix(in srgb, var(--df-fg) 6%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -698,6 +699,7 @@ df-landing-content > [data-df-active] { display: contents; }
   border: 0;
   border-radius: var(--df-radius);
   background: var(--df-accent);
+  box-shadow: var(--df-cta-shadow);
   color: var(--df-on-accent);
   font-family: var(--df-font-body);
   font-size: 1.25rem;

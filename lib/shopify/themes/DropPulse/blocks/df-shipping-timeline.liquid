@@ -25,31 +25,31 @@
   .df-shipping-timeline {
     /* Ticket compacto: type-heading (16), type-title (20), caption (12); geometría de space-1/2/3/4/6/8/12. */
     --df-st-scene: var(--df-accent);
-    --df-st-track: color-mix(in srgb, var(--df-on-accent) 24%, transparent);
+    --df-st-track: color-mix(in srgb, var(--df-accent-ink) 24%, transparent);
     --df-st-duration: calc(var(--df-dur-reveal) * 2 + var(--df-dur-base));
     display: grid; gap: calc(var(--df-gap) / 2); min-width: 0;
   }
   .df-shipping-timeline [hidden], .df-shipping-timeline__countdown[data-pending] { display: none; }
   .df-shipping-timeline p { margin: 0; }
-  .df-shipping-timeline__ticket { overflow: hidden; border-radius: var(--df-radius-lg); background: var(--df-accent); color: var(--df-on-accent); }
+  .df-shipping-timeline__ticket { overflow: hidden; border-radius: var(--df-radius-lg); background: var(--df-accent-soft); color: var(--df-fg); box-shadow: inset 0 0 0 1px var(--df-hairline); }
   .df-shipping-timeline__ticket-top { display: grid; grid-template-columns: minmax(0, 1fr) 64px; column-gap: calc(var(--df-gap) / 2); row-gap: calc(var(--df-gap) / 2); padding: var(--df-gap); }
-  .df-shipping-timeline__eyebrow { grid-column: 1; display: flex; align-items: center; gap: calc(var(--df-gap) / 2); font-size: .75rem; line-height: 1.4; font-weight: 500; overflow-wrap: anywhere; }
-  .df-shipping-timeline__eyebrow .df-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .df-shipping-timeline__eyebrow { grid-column: 1; display: flex; align-items: center; gap: calc(var(--df-gap) / 2); font-size: .75rem; line-height: 1.4; font-weight: 500; overflow-wrap: anywhere; color: var(--df-muted); }
+  .df-shipping-timeline__eyebrow .df-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--df-accent-ink); }
   .df-shipping-timeline__headline { grid-column: 1; margin: 0; font-family: var(--df-font-heading); font-size: 1rem; font-weight: 600; line-height: 1.375; overflow-wrap: anywhere; color: inherit; }
   .df-shipping-timeline__countdown { grid-column: 1 / -1; display: grid; gap: calc(var(--df-gap) / 2); }
   .df-shipping-timeline__clock { display: flex; flex-wrap: wrap; gap: calc(var(--df-gap) / 3); }
-  .df-shipping-timeline__unit { display: flex; align-items: baseline; gap: calc(var(--df-gap) / 4); min-width: 0; padding: calc(var(--df-gap) / 4) calc(var(--df-gap) / 2); border-radius: var(--df-radius-sm); background: var(--df-bg); color: var(--df-accent-ink); }
+  .df-shipping-timeline__unit { display: flex; align-items: baseline; gap: calc(var(--df-gap) / 4); min-width: 0; padding: calc(var(--df-gap) / 4) calc(var(--df-gap) / 2); border-radius: var(--df-radius-sm); background: var(--df-bg); color: var(--df-fg); }
   .df-shipping-timeline__unit strong { font-size: 1.25rem; line-height: 1.3; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .df-shipping-timeline__unit > span { font-size: .75rem; line-height: 1.4; }
+  .df-shipping-timeline__unit > span { font-size: .75rem; line-height: 1.4; color: var(--df-muted); }
   .df-shipping-timeline__colon { display: none; }
-  .df-shipping-timeline__cutoff { font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; }
+  .df-shipping-timeline__cutoff { font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; color: var(--df-muted); }
   .df-shipping-timeline__route { grid-column: 2; grid-row: 1 / span 2; align-self: center; position: relative; display: grid; justify-items: center; min-height: 64px; padding: 8px 4px; animation-duration: var(--df-st-duration); transition-timing-function: var(--df-ease-standard); }
   .df-shipping-timeline__rail { position: absolute; inset-inline: 0; bottom: 0; height: 2px; background: var(--df-st-track); }
-  .df-shipping-timeline__rail-fill { position: absolute; inset: 0; background: var(--df-on-accent); opacity: .5; transform-origin: left center; }
+  .df-shipping-timeline__rail-fill { position: absolute; inset: 0; background: var(--df-accent-ink); opacity: .5; transform-origin: left center; }
   .df-shipping-timeline__parcel { position: relative; width: 56px; min-height: 48px; padding: 16px 4px 4px; border-radius: var(--df-radius-sm); background: color-mix(in srgb, var(--df-accent) 24%, var(--df-bg)); color: var(--df-accent-ink); rotate: -8deg; }
   .df-shipping-timeline__parcel::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 24px; width: 8px; background: color-mix(in srgb, var(--df-accent) 43%, var(--df-bg)); }
   .df-shipping-timeline__parcel > span { position: relative; display: block; padding: calc(var(--df-gap) / 4); background: var(--df-bg); border-radius: var(--df-radius-sm); font-size: .75rem; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
-  .df-shipping-timeline__dates { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--df-gap); padding: calc(var(--df-gap) * .75) var(--df-gap); background: var(--df-accent-soft); color: var(--df-fg); }
+  .df-shipping-timeline__dates { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--df-gap); padding: calc(var(--df-gap) * .75) var(--df-gap); background: var(--df-surface); color: var(--df-fg); }
   .df-shipping-timeline__dates:not(:has([data-df-ship-date])) { grid-template-columns: 1fr; }
   .df-shipping-timeline__dates::before, .df-shipping-timeline__dates::after { content: ''; position: absolute; top: -8px; width: 16px; height: 16px; border-radius: var(--df-radius-pill); background: var(--df-bg); }
   .df-shipping-timeline__dates::before { inset-inline-start: -8px; }

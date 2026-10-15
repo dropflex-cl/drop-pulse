@@ -13,7 +13,8 @@
     con el teclado (hacen clic en el mismo nodo).
   - Botones: el que abre el formulario, la barra fija de la app, el de enviar y el de aceptar del
     downsell toman el botón principal del tema: el acento del producto (df-design-system), su
-    texto, su hover y su radio. Planos, sin el degradado ni la sombra de la app.
+    texto, su hover y su radio. Sin el degradado ni la sombra de la app; el que abre la compra
+    incorpora la base presionable compartida.
   - El de rechazar del downsell (y del upsell posterior a la compra) va como texto subrayado en
     gris: la salida no pesa lo mismo que la oferta. Por defecto el popup del downsell lo reemplaza
     df-downsell; esto es lo que se ve cuando ese ajuste está apagado o no aplica.
@@ -658,6 +659,7 @@
           ctaPadding: cs.padding,
           ctaSize: cs.fontSize,
           ctaLineHeight: cs.lineHeight,
+          ctaShadow: cs.boxShadow,
         };
         probe.remove();
         t.muted = mix(t.ink, t.bg, 0.68);
@@ -721,6 +723,7 @@
         }
         if (el.matches('#es-popup-button')) {
           primary['min-height'] = tokens.ctaHeight;
+          primary['box-shadow'] = tokens.ctaShadow;
           primary['border-width'] = '0';
           primary.padding = tokens.ctaPadding;
           primary['font-size'] = tokens.ctaSize;
