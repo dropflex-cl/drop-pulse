@@ -15,6 +15,7 @@ import type { ImagePick, ProductCopy } from "@/lib/types";
 import { PageAccent } from "./page-accent";
 import { ComponentEditor } from "./page/component-editor";
 import { EffectivePagePreview } from "./page/effective-page-preview";
+import { GifMedia } from "./page/gif-media";
 import { LandingVariantPicker } from "./page/landing-variant-picker";
 import { PersuasionWorkbench } from "./page/persuasion-workbench";
 
@@ -54,6 +55,7 @@ export function CopyScreen({ data }: { data: ProductCopy }) {
             <div className="flex items-center justify-between gap-3"><h3 className="text-heading">{componentName(row.component)}</h3><Button size="sm" variant="ghost" icon="edit" onClick={() => { setError(undefined); setEditing(row.component); }}>Editar</Button></div>
             {row.component === "listing" ? <p className="mt-2 text-body">{(selected.content as { title?: string; short_description?: string })?.title}</p> : null}
             <p className="mt-1 text-caption text-muted-foreground">{row.edited ? "Última versión editada por ti" : "Contenido guardado"}{row.enabled ? effectiveIds.includes(row.component) || row.component === "listing" ? " · En esta versión" : " · Fuera de esta versión" : " · Oculto"}</p>
+            {row.component === "gif-strip" ? <GifMedia productId={data.product.id} initial={data.gifs} content={selected.content} disabled={Boolean(busy)} /> : null}
             {row.component !== "listing" ? <Switch className="mt-3" label="Mostrar en la página" hint="Se aplica a todas las versiones. Ocultar conserva el contenido." checked={row.enabled} disabled={Boolean(busy)} onChange={enabled => update(row.component, { enabled })} /> : null}
             {row.edited && row.chatContent ? <Button className="mt-3" size="sm" variant="ghost" disabled={Boolean(busy)} onClick={() => void update(row.component, { content: row.chatContent })}>Usar el texto del chat</Button> : null}
           </article>;

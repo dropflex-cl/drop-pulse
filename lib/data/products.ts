@@ -12,8 +12,8 @@ import { IMAGE_COST_BY_PROVIDER } from "@/lib/image-provider";
 import { getAnthropicConnection } from "@/lib/integrations/anthropic/connection";
 import { imageProviderChoice, noProviderReason } from "@/lib/integrations/image-provider";
 import { sessionUser } from "@/lib/integrations/session";
-import { isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
-import { activeShots, latestPageImageRuns, pageImageRows, signedPageUrls, toSlotViews } from "@/lib/page-images/store";
+import { GIFS, isVisualWorld, VISUAL_WORLD_NAMES } from "@/lib/page-images/catalog";
+import { activeShots, latestPageImageRuns, pageImageRows, signedPageUrls, toOptionView, toSlotViews } from "@/lib/page-images/store";
 import { getPublications, type PublicationRow } from "@/lib/pipeline/publish";
 import { latestPackLabels, toPackLabelsProposal } from "@/lib/pricing/labels-store";
 import { getPricingPlan, pricingDefaults } from "@/lib/pricing/store";
@@ -258,9 +258,11 @@ export const getProductCopy = cache(async (id: string): Promise<ProductCopy | nu
 
 /** El estado de la etapa sin el producto: lo que devuelve el sondeo (/api/products/[id]/copy). */
 export async function copyState(uid: string, productId: string): Promise<CopyState> {
-  const [runs, rows, images, page] = await Promise.all([
-    latestCopyRuns(uid, [productId]), activeComponents(uid, [productId]), catalogImages(uid, productId), getEffectiveProductContent(uid, productId),
+  const [runs, rows, images, page, media] = await Promise.all([
+    latestCopyRuns(uid, [productId]), activeComponents(uid, [productId]), catalogImages(uid, productId), getEffectiveProductContent(uid, productId), pageImageRows(uid, [productId]),
   ]);
+  const gifs = media.filter(image => image.slot === GIFS);
+  const gifUrls = await signedPageUrls(gifs.flatMap(image => image.storage_path ? [image.storage_path] : []));
   const run = runs.get(productId);
   const videoRows = await activeScripts(uid, productId);
   const videos = videoRows.filter((s) => !["rejected", "archived"].includes(s.final_status ?? "") && s.final_storage_path).map((s) => ({ id: s.id, name: `${s.format === "mascot" ? "Mascota" : "Persona"} · ${String(s.input.angle_name ?? `Ángulo ${s.angle_slot}`)}` }));
@@ -270,6 +272,7 @@ export async function copyState(uid: string, productId: string): Promise<CopySta
     run: run ? { id: run.id, status: run.status, error: run.error_message ?? undefined, createdAt: run.created_at } : undefined,
     components: toComponentViews(rows.get(productId) ?? []),
     images,
+    gifs: gifs.map(image => toOptionView(image, image.storage_path ? gifUrls.get(image.storage_path) : undefined)),
     facts: page.facts,
   };
 }

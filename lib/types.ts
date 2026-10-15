@@ -202,6 +202,8 @@ export interface CopyState {
   components: PageComponentView[];
   /** Las imágenes del producto que se pueden elegir. */
   images: CatalogImage[];
+  /** GIFs del componente gif-strip, incluidos los guardados sin usar. */
+  gifs?: PageImageOptionView[];
   /** Los datos reales que llenan los componentes en la tienda (y en la vista previa). */
   facts: StoreFacts;
 
