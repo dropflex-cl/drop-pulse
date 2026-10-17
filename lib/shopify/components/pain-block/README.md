@@ -46,3 +46,7 @@ No hay datos reales: es texto editable, con cifras o plazos cuando el contenido 
   - `text`: 1 o 2 oraciones, 30 a 160 caracteres, en **primera** («me lavo la cara…») o **tercera persona** («quienes ya usan crema…»), con palabras de todos los días: cada momento sale del argumento de venta (el de su ángulo).
 - **Remate** (`bridge`): 20 a 120 caracteres; lleva al **diferenciador**, no a la oferta.
 - Sobrio: sin exclamaciones ni mayúsculas sostenidas.
+
+## Superficie y movimiento
+
+La presentación usa los tonos del acento existente y el revelado compartido de entrada única. Reglas, medidas y contraste: [superficies de tienda](../../../../design-system/storefront-surfaces.md). Los colores explícitos del editor se conservan donde existen. No cambia el contrato de contenido ni la selección de archivos.

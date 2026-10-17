@@ -16,6 +16,7 @@
     "245efbded4",
     "249317a3d5",
     "27c5c7d1b5",
+    "28cfa297a0",
     "2937337531",
     "2dc0ac4699",
     "2eafa77fc2",
@@ -167,6 +168,7 @@
       "3a3a085661cf1567b6e2afe7c8d4caad",
       "429499cc40210a3cbd41da44890a6021",
       "5651a874919acd51f5e25136feb58717",
+      "5c99b8eac84b142c026fee024a1ac9a7",
       "8baddb704a9952f6ae6d00a8323af0ff",
       "9a8d144c430f3f5a2b7faaf75bf8cd95",
       "a780c6bd1c55411d25104d6747e8722a",
@@ -269,6 +271,7 @@
       "b31d9594a17ff96822b28cba79edb6f6"
     ],
     "assets/df-rich-pdp.css": [
+      "28b6368481ee4b5e267f3f06099ad8b0",
       "55e814edb014772b259a6e173afcbbbf",
       "e288b793dc68ebb92132fce011f69e3a"
     ],
@@ -1321,6 +1324,7 @@
       "f860a17415890515311b99a9bd3a268e"
     ],
     "sections/df-before-after.liquid": [
+      "743e9369d1b562df1bb4eceacc4b99d1",
       "8b8b04ca0cc5d29ddc2a06194a9ef88f"
     ],
     "sections/df-comparison-table.liquid": [
@@ -1335,9 +1339,11 @@
       "da292ca6506287339a45de2956c23e22"
     ],
     "sections/df-customer-stories.liquid": [
-      "234b441f698a21a17bc0d56f3345b02c"
+      "234b441f698a21a17bc0d56f3345b02c",
+      "f028514b2e72cc878b510f81abe1089d"
     ],
     "sections/df-expert-endorsement.liquid": [
+      "12892d9a3cd3be0def9f3331771bb148",
       "8b7a0213fd3c3c4f9b4e2fb1a534f6c0"
     ],
     "sections/df-faq-and-text.liquid": [
@@ -1351,6 +1357,7 @@
       "fd10c5938714f976914dc96ad128933f"
     ],
     "sections/df-guarantee.liquid": [
+      "0705053fa21e39b8b20137ef86bb2216",
       "d141dce6bbb603fa977e27e2d3d70e81"
     ],
     "sections/df-image-with-benefits.liquid": [
@@ -1377,22 +1384,27 @@
       "e9d063ba94431fa6cf5bb77447e3adea"
     ],
     "sections/df-mechanism.liquid": [
+      "0c01f3a00a2ed913180d66d322f31fa8",
       "32691359ae8bd657f42d96d97336f43b"
     ],
     "sections/df-offer-summary.liquid": [
-      "181349c2e63529a312b1d72b464a6919"
+      "181349c2e63529a312b1d72b464a6919",
+      "f4f49987abf10d9121131538bdc01df6"
     ],
     "sections/df-pain-block.liquid": [
       "02dc8e812859447af882a5b203dcc776",
+      "70b42063ed2bcedae637bac720049cb5",
       "737fcdb1bb9b1c684b3d73e2658bf976",
       "a6d16ece7e1d793e389d5de60b79094b",
       "cabe0921a6a32be5891eb0b2e0f090a4",
       "cbf5ebda6b3232dc78d5da5b6ab0ac58"
     ],
     "sections/df-product-includes.liquid": [
+      "fcca58dc17f82d004a81f58d32ce54cc",
       "fe21367b7ac1cbc9a456106add6c13ff"
     ],
     "sections/df-results-timeline.liquid": [
+      "0251b9fcbface3c12589c9840b1fa357",
       "a08327d5c61231a5a0c52dc62cf92d3c"
     ],
     "sections/df-review-wall.liquid": [
@@ -1416,6 +1428,7 @@
       "c1d4247e84419d972fa29aedf4530fe1"
     ],
     "sections/df-stats-with-image.liquid": [
+      "1382e42e48dc0683568efa9e6d5a5780",
       "2fe1ee74c0d1e898e1373159c467ab3d",
       "3c9c26c2c65bd719093cb6a315192e1e",
       "3e9d288131bb3026d36673a37cd6f289",
@@ -1430,9 +1443,11 @@
       "e6df9a4a2ee146d165f48b90cb8288ab"
     ],
     "sections/df-usage-steps.liquid": [
-      "4718b4b75ad25b7af18f81569275221a"
+      "4718b4b75ad25b7af18f81569275221a",
+      "f4a851f64ce8f758bd7e21ac238042db"
     ],
     "sections/df-use-cases.liquid": [
+      "ca78072272bbb9bfa6bdfbc4e27c01f0",
       "d5215f985d6a103e8b0c9837afcb9fbd"
     ],
     "sections/divider.liquid": [
@@ -1806,7 +1821,8 @@
       "6c77c366ca35a20b8d5080dd78818903"
     ],
     "snippets/df-pain-block-content.liquid": [
-      "7758082316d32100f2c088fa40b9f912"
+      "7758082316d32100f2c088fa40b9f912",
+      "cadaa8d03618ace9a10a68c620f6fb31"
     ],
     "snippets/df-pdp-experience.liquid": [
       "041b8094b668cc324eb11342e4dcd8af",
@@ -1868,6 +1884,7 @@
       "f9b9ff41f0103a1e9f41d25b590fa1bc"
     ],
     "snippets/df-rich-pdp-content.liquid": [
+      "5fb2299f7ebac44dbb29a7a376e389da",
       "67e83ff6a7fbd43319c50494228d7f5a",
       "84182bbf52d698c80c46e46fd6b1a067",
       "cc50588c291b0a049251a97726ced8d6",
@@ -1883,6 +1900,9 @@
     "snippets/df-scrolling-benefits-item.liquid": [
       "cf02531b4e6012d8c7471a35c1afb078"
     ],
+    "snippets/df-section-wave.liquid": [
+      "c37af0d9ff721c35237312673f906f5e"
+    ],
     "snippets/df-shipping-timeline-content.liquid": [
       "3fd552e457b24df61eab90acd4748d7b",
       "4e68d76cdd783c4848c6bb622efe690b",
@@ -1895,6 +1915,7 @@
     ],
     "snippets/df-stats-with-image-content.liquid": [
       "31db17f7c5ceb8539ede4f4dbcbd93e2",
+      "7ab153fd29f4317240cd8ebc9d438fff",
       "93dc1f7699cec996585208e7f20cab86",
       "a8e74f2ba18d975835b79a1922ed8780",
       "be20a76eebb88da4ff0a05fc149b6579",

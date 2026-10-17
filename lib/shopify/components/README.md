@@ -78,6 +78,8 @@ Las carpetas `sections/`, `blocks/`, `snippets/` y `assets/` replican las de un 
 
 ## Contenido condicionado por URL
 
+Las superficies de problema, mecanismo, hero y confianza alternan tonos del acento por producto. Ondas decorativas y revelados reutilizan el movimiento compartido; sin JS la composición queda visible. Los colores explícitos del editor tienen prioridad. Tokens y límites: [superficies de tienda](../../../design-system/storefront-surfaces.md). No añaden campos al contrato del MCP.
+
 Los componentes leen objetos históricos o arrays de variantes. El archivo principal mantiene stylesheet/schema y scripts; `df-<id>-content.liquid` renderiza contenido/medios efectivos. `_shared/snippets/df-landing-selector.liquid` selecciona HTML inerte por `df_angle`/`df_hook`; default se renderiza desde servidor. [Contrato y límites](../../../docs/product-intelligence/landing-variants-mcp.md). Editar estas fuentes y regenerar copias y preview; nunca editar df-* directamente en el tema.
 
 ### Activación por defecto

@@ -143,10 +143,12 @@ export function StatsWithImagePreview({
           "--df-swi-pt": px(s.padding_top),
           "--df-swi-pb": px(s.padding_bottom),
           "--df-swi-radius": px(s.card_radius),
+          ...(s.background_color ? { "--df-bg": s.background_color, "--df-swi-bg": s.background_color } : {}),
+          ...(s.text_color ? { "--df-fg": s.text_color } : {}),
         } as React.CSSProperties
       }
     >
-      <div className="df-stats-with-image__card">
+      <div className={`df-stats-with-image__card${!s.background_color && !s.text_color ? " df-section-tone df-section-tone--deep" : ""}`}>
         {photos.length > 0 && (
           <div
             className={`df-stats-with-image__collage df-stats-with-image__collage--${photos.length}`}

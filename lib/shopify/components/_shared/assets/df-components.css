@@ -20,6 +20,12 @@
   --df-on-accent: var(--df-product-on-accent, var(--color-primary-button-text, #ffffff));
   --df-accent-ink: var(--df-product-accent-ink, var(--df-accent));
   --df-accent-soft: color-mix(in srgb, var(--df-accent) 10%, var(--df-bg));
+  /* Superficies de tienda: design-system/storefront-surfaces.md. */
+  --df-tone-anchor: #16181d;
+  --df-tone-paper: #ffffff;
+  --df-tone-wash: color-mix(in srgb, var(--df-accent) 6%, var(--df-bg));
+  --df-tone-soft: color-mix(in srgb, var(--df-accent) 12%, var(--df-bg));
+  --df-tone-deep: color-mix(in srgb, var(--df-accent) 32%, var(--df-tone-anchor));
   --df-radius: var(--style-border-radius-md, 12px);
   --df-radius-sm: var(--style-border-radius-sm, 8px);
   --df-radius-pill: var(--style-border-radius-pills, 999px);
@@ -90,6 +96,40 @@
 
 :where(.df-section-title) {
   font-size: var(--df-title-size);
+}
+
+/* Hitos del recorrido: el acento da ritmo sin volver cada tarjeta una llamada a la acción. */
+.df-section-tone {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  border-radius: var(--df-radius-lg);
+  background: var(--df-tone-soft);
+  --df-wave-color: color-mix(in srgb, var(--df-accent) 10%, transparent);
+}
+
+.df-section-tone > :not(.df-section-wave) { position: relative; z-index: 1; }
+
+.df-section-tone--deep {
+  --df-fg: var(--df-tone-paper);
+  --df-muted: color-mix(in srgb, var(--df-tone-paper) 90%, var(--df-tone-deep));
+  --df-surface: color-mix(in srgb, var(--df-tone-paper) 6%, var(--df-tone-deep));
+  --df-hairline: color-mix(in srgb, var(--df-tone-paper) 24%, var(--df-tone-deep));
+  --df-accent-ink: var(--df-tone-paper);
+  --df-accent-soft: color-mix(in srgb, var(--df-tone-paper) 12%, var(--df-tone-deep));
+  --df-wave-color: color-mix(in srgb, var(--df-tone-paper) 8%, transparent);
+  color: var(--df-fg);
+  background: var(--df-tone-deep);
+}
+
+.df-section-wave {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: calc(-1 * var(--df-gap));
+  height: var(--df-title-gap);
+  background: var(--df-wave-color);
+  pointer-events: none;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 64' preserveAspectRatio='none'%3E%3Cpath fill='black' opacity='.5' d='M0 24C240 64 480 0 720 24S1200 64 1440 16V64H0Z'/%3E%3Cpath fill='black' d='M0 48C240 8 480 64 720 40S1200 8 1440 40V64H0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
 /* Las clases base van con :where() (especificidad 0): en la tienda esta hoja se carga DESPUÉS del

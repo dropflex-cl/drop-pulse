@@ -88,6 +88,12 @@
   --df-on-accent: var(--df-product-on-accent, var(--color-primary-button-text, #ffffff));
   --df-accent-ink: var(--df-product-accent-ink, var(--df-accent));
   --df-accent-soft: color-mix(in srgb, var(--df-accent) 10%, var(--df-bg));
+  /* Superficies de tienda: design-system/storefront-surfaces.md. */
+  --df-tone-anchor: #16181d;
+  --df-tone-paper: #ffffff;
+  --df-tone-wash: color-mix(in srgb, var(--df-accent) 6%, var(--df-bg));
+  --df-tone-soft: color-mix(in srgb, var(--df-accent) 12%, var(--df-bg));
+  --df-tone-deep: color-mix(in srgb, var(--df-accent) 32%, var(--df-tone-anchor));
   --df-radius: var(--style-border-radius-md, 12px);
   --df-radius-sm: var(--style-border-radius-sm, 8px);
   --df-radius-pill: var(--style-border-radius-pills, 999px);
@@ -158,6 +164,40 @@
 
 :where(.df-section-title) {
   font-size: var(--df-title-size);
+}
+
+/* Hitos del recorrido: el acento da ritmo sin volver cada tarjeta una llamada a la acción. */
+.df-section-tone {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  border-radius: var(--df-radius-lg);
+  background: var(--df-tone-soft);
+  --df-wave-color: color-mix(in srgb, var(--df-accent) 10%, transparent);
+}
+
+.df-section-tone > :not(.df-section-wave) { position: relative; z-index: 1; }
+
+.df-section-tone--deep {
+  --df-fg: var(--df-tone-paper);
+  --df-muted: color-mix(in srgb, var(--df-tone-paper) 90%, var(--df-tone-deep));
+  --df-surface: color-mix(in srgb, var(--df-tone-paper) 6%, var(--df-tone-deep));
+  --df-hairline: color-mix(in srgb, var(--df-tone-paper) 24%, var(--df-tone-deep));
+  --df-accent-ink: var(--df-tone-paper);
+  --df-accent-soft: color-mix(in srgb, var(--df-tone-paper) 12%, var(--df-tone-deep));
+  --df-wave-color: color-mix(in srgb, var(--df-tone-paper) 8%, transparent);
+  color: var(--df-fg);
+  background: var(--df-tone-deep);
+}
+
+.df-section-wave {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: calc(-1 * var(--df-gap));
+  height: var(--df-title-gap);
+  background: var(--df-wave-color);
+  pointer-events: none;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 64' preserveAspectRatio='none'%3E%3Cpath fill='black' opacity='.5' d='M0 24C240 64 480 0 720 24S1200 64 1440 16V64H0Z'/%3E%3Cpath fill='black' d='M0 48C240 8 480 64 720 40S1200 8 1440 40V64H0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
 /* Las clases base van con :where() (especificidad 0): en la tienda esta hoja se carga DESPUÉS del
@@ -862,6 +902,16 @@ df-landing-content > [data-df-active] { display: contents; }
 .df-rich__price s { font-size: .875rem; color: var(--df-muted); font-weight: 400; }
 .df-rich__cta { display: flex; width: fit-content; min-height: var(--df-rich-touch); margin: var(--df-title-gap) auto 0; gap: var(--df-gap); align-items: center; justify-content: center; padding: var(--df-gap) var(--df-rich-pad); background: var(--df-accent); color: var(--df-on-accent); border-radius: var(--df-radius); text-decoration: none; font-weight: 600; }
 .df-rich :is(a, input, summary):focus-visible { outline: 2px solid var(--df-accent); outline-offset: 4px; }
+.df-rich.df-section-tone { width: calc(100% - var(--df-gutter) * 2); max-width: var(--df-container); padding-inline: var(--df-rich-pad); margin-block: var(--df-gap); }
+.df-mechanism.df-section-tone .df-rich__card { background: var(--df-bg); border-color: var(--df-accent-soft); }
+.df-rich.df-section-tone--deep :is(a, input, summary):focus-visible { outline-color: var(--df-tone-paper); }
+.df-guarantee .df-rich__card > .df-icon { width: var(--df-rich-touch); height: var(--df-rich-touch); padding: calc(var(--df-gap) / 2); border-radius: var(--df-radius); background: var(--df-accent-soft); }
+@container store (min-width: 990px) {
+  .df-mechanism.df-section-tone { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: var(--df-title-gap); }
+  .df-mechanism.df-section-tone > .df-rich__heading { grid-column: 1 / -1; margin-bottom: 0; }
+  .df-mechanism.df-section-tone > .df-rich__main-image { width: 100%; margin: 0 auto; }
+  .df-mechanism.df-section-tone > .df-rich__grid { grid-template-columns: minmax(0, 1fr); }
+}
 @container store (min-width: 750px) { .df-rich__expert { flex-direction: row; align-items: center; } .df-rich__case-body { grid-template-columns: auto 1fr; align-items: center; } }
 
 /* _event/snippets/df-event-badge.liquid */
@@ -3288,6 +3338,17 @@ df-insta-story {
   background: var(--df-pain-bg, transparent);
 }
 
+.df-pain-block.df-pain-block--tinted {
+  --df-pain-bg: var(--df-tone-wash);
+  background: var(--df-pain-bg);
+  border-radius: 0;
+}
+
+.df-pain-block--tinted .df-pain-block__item {
+  background: var(--df-bg);
+  border: 1px solid var(--df-accent-soft);
+}
+
 .df-pain-block__inner {
   max-width: calc(var(--df-container) + var(--df-gutter) * 2);
   margin-inline: auto;
@@ -4417,6 +4478,29 @@ a.df-review-stars__row:focus-visible {
   background: var(--df-swi-bg, var(--df-surface));
 }
 
+.df-stats-with-image__card.df-section-tone--deep {
+  background: var(--df-tone-deep);
+  border-radius: var(--df-swi-radius, var(--df-radius-lg));
+  width: calc(100% - var(--df-gutter) * 2);
+}
+
+.df-section-tone--deep .df-stats-with-image__review {
+  background: var(--df-surface);
+}
+
+.df-section-tone--deep .df-stats-with-image__cta {
+  background: var(--df-tone-paper);
+  color: var(--df-tone-deep);
+}
+
+.df-section-tone--deep .df-stats-with-image__stat {
+  border-color: var(--df-hairline);
+}
+
+.df-section-tone--deep .df-stats-with-image__cta:focus-visible {
+  outline-color: var(--df-tone-paper);
+}
+
 .df-stats-with-image__collage {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4647,6 +4731,8 @@ a.df-review-stars__row:focus-visible {
   .df-stats-with-image {
     padding-inline: var(--df-gutter);
   }
+
+  .df-stats-with-image__card.df-section-tone--deep { width: 100%; }
 
   .df-stats-with-image__card {
     border-radius: var(--df-swi-radius, 14px);

@@ -40,4 +40,14 @@
 .df-rich__price s { font-size: .875rem; color: var(--df-muted); font-weight: 400; }
 .df-rich__cta { display: flex; width: fit-content; min-height: var(--df-rich-touch); margin: var(--df-title-gap) auto 0; gap: var(--df-gap); align-items: center; justify-content: center; padding: var(--df-gap) var(--df-rich-pad); background: var(--df-accent); color: var(--df-on-accent); border-radius: var(--df-radius); text-decoration: none; font-weight: 600; }
 .df-rich :is(a, input, summary):focus-visible { outline: 2px solid var(--df-accent); outline-offset: 4px; }
+.df-rich.df-section-tone { width: calc(100% - var(--df-gutter) * 2); max-width: var(--df-container); padding-inline: var(--df-rich-pad); margin-block: var(--df-gap); }
+.df-mechanism.df-section-tone .df-rich__card { background: var(--df-bg); border-color: var(--df-accent-soft); }
+.df-rich.df-section-tone--deep :is(a, input, summary):focus-visible { outline-color: var(--df-tone-paper); }
+.df-guarantee .df-rich__card > .df-icon { width: var(--df-rich-touch); height: var(--df-rich-touch); padding: calc(var(--df-gap) / 2); border-radius: var(--df-radius); background: var(--df-accent-soft); }
+@media (min-width: 990px) {
+  .df-mechanism.df-section-tone { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: var(--df-title-gap); }
+  .df-mechanism.df-section-tone > .df-rich__heading { grid-column: 1 / -1; margin-bottom: 0; }
+  .df-mechanism.df-section-tone > .df-rich__main-image { width: 100%; margin: 0 auto; }
+  .df-mechanism.df-section-tone > .df-rich__grid { grid-template-columns: minmax(0, 1fr); }
+}
 @media (min-width: 750px) { .df-rich__expert { flex-direction: row; align-items: center; } .df-rich__case-body { grid-template-columns: auto 1fr; align-items: center; } }

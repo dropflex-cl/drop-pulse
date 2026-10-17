@@ -28,6 +28,11 @@ export function DfIcon({ name, className }: { name: string | undefined; classNam
   );
 }
 
+/** snippets/df-section-wave.liquid: separador decorativo estático. */
+export function SectionWave() {
+  return <span className="df-section-wave" aria-hidden="true" />;
+}
+
 /** snippets/df-stars.liquid: 5 estrellas con relleno parcial. */
 export function DfStars({ rating, size }: { rating: number; size?: string }) {
   const value = Math.min(5, Math.max(0, rating || 0));

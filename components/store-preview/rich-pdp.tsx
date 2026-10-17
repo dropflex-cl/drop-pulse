@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { PDP_EMPTY_STATES } from "@/lib/shopify/components/_shared/pdp-empty";
 import { imageOnlyPdpSlot } from "@/lib/shopify/components/_shared/pdp-content";
 import type { PreviewProps } from "./types";
-import { DfIcon, DfStars } from "./primitives";
+import { DfIcon, DfStars, SectionWave } from "./primitives";
 import { PdpEmptyPreview } from "./pdp-empty";
 
 interface Item {
@@ -94,22 +94,22 @@ export function RichPdpPreview({
     }).format(n);
   return (
     <section
-      className={`df df-rich df-${component} df-container`}
+      className={`df df-rich df-${component} df-container${component === "mechanism" ? " df-section-tone" : component === "guarantee" ? " df-section-tone df-section-tone--deep" : ""}`}
       aria-labelledby={id}
     >
-      <h2 className="df-heading df-rich__heading" id={id}>
+      <h2 className="df-heading df-rich__heading" data-df-reveal="" id={id}>
         {content.heading || (["guarantee", "offer-summary"].includes(component) ? PDP_EMPTY_STATES[component]?.heading : "")}
       </h2>
       {["product-includes", "mechanism", "usage-steps"].includes(component) ? (
         <>
           {component === "mechanism" ? (
-            <div className="df-rich__main-image">
+            <div className="df-rich__main-image" data-df-reveal="scale">
               <Image src={images.main?.[0]} alt={facts.productName} />
             </div>
           ) : null}
           <ol className="df-rich__grid" role="list">
             {items.map((item, i) => (
-              <li className="df-rich__card" key={i}>
+              <li className="df-rich__card" data-df-reveal="" key={i}>
                 {component === "usage-steps" ? (
                   <span className="df-rich__number">{i + 1}</span>
                 ) : null}
@@ -152,7 +152,7 @@ export function RichPdpPreview({
           <div
             data-df-comparison
             data-df-comparison-ready="true"
-            className="df-rich__comparison"
+            className="df-rich__comparison" data-df-reveal="scale"
             style={
               {
                 "--df-comparison-position": `${position}%`,
@@ -188,7 +188,7 @@ export function RichPdpPreview({
         <>
           <ol className="df-rich__timeline" role="list">
             {content.stages?.map((stage, i) => (
-              <li key={i} className="df-rich__card">
+              <li key={i} className="df-rich__card" data-df-reveal="">
                 <span className="df-rich__label">{stage.label}</span>
                 <h3 className="df-heading">{stage.title}</h3>
                 <p className="df-text">{stage.body}</p>
@@ -201,7 +201,7 @@ export function RichPdpPreview({
       {component === "customer-stories" ? (
         <div className="df-rich__grid">
           {stories.map(({ title, review }) => (
-            <article className="df-rich__card" key={review.id}>
+            <article className="df-rich__card" data-df-reveal="" key={review.id}>
               <Image src={review.photos[0]} alt={title} />
               <h3 className="df-heading">{title}</h3>
               {review.rating !== null ? <DfStars rating={review.rating} /> : null}
@@ -212,7 +212,7 @@ export function RichPdpPreview({
         </div>
       ) : null}
       {component === "expert-endorsement" ? (
-        <figure className="df-rich__expert df-rich__card">
+        <figure className="df-rich__expert df-rich__card" data-df-reveal="">
           <Image src={images.portrait?.[0]} alt={content.name} />
           <div>
             <blockquote className="df-text">{content.quote}</blockquote>
@@ -225,10 +225,10 @@ export function RichPdpPreview({
       ) : null}
       {component === "guarantee" ? (
         <>
-          <p className="df-text df-rich__intro">{content.body}</p>
+          <p className="df-text df-rich__intro" data-df-reveal="">{content.body}</p>
           <ul className="df-rich__grid" role="list">
             {policy.cod ? (
-              <li className="df-rich__card">
+              <li className="df-rich__card" data-df-reveal="">
                 <DfIcon name="cash" />
                 <h3 className="df-heading">Paga al recibir</h3>
                 <p className="df-text">
@@ -237,7 +237,7 @@ export function RichPdpPreview({
               </li>
             ) : null}
             {(policy.return_days ?? 0) > 0 ? (
-              <li className="df-rich__card">
+              <li className="df-rich__card" data-df-reveal="">
                 <DfIcon name="return" />
                 <h3 className="df-heading">Cambios y devoluciones</h3>
                 <p className="df-text">
@@ -246,7 +246,7 @@ export function RichPdpPreview({
               </li>
             ) : null}
             {(policy.warranty_months ?? 0) > 0 ? (
-              <li className="df-rich__card">
+              <li className="df-rich__card" data-df-reveal="">
                 <DfIcon name="shield" />
                 <h3 className="df-heading">Garantía</h3>
                 <p className="df-text">
@@ -256,7 +256,7 @@ export function RichPdpPreview({
               </li>
             ) : null}
             {policy.free_shipping ? (
-              <li className="df-rich__card">
+              <li className="df-rich__card" data-df-reveal="">
                 <DfIcon name="truck" />
                 <h3 className="df-heading">Envío gratis</h3>
                 <p className="df-text">
@@ -275,10 +275,10 @@ export function RichPdpPreview({
       ) : null}
       {component === "offer-summary" ? (
         <>
-          <p className="df-text df-rich__intro">{content.body}</p>
+          <p className="df-text df-rich__intro" data-df-reveal="">{content.body}</p>
           <ul className="df-rich__grid" role="list">
             {facts.packs?.map((pack) => (
-              <li className="df-rich__card" key={pack.units}>
+              <li className="df-rich__card" data-df-reveal="" key={pack.units}>
                 {pack.badge ? (
                   <span className="df-rich__label">{pack.badge}</span>
                 ) : null}
@@ -314,6 +314,7 @@ export function RichPdpPreview({
           ) : null}
         </>
       ) : null}
+      {["mechanism", "guarantee"].includes(component) ? <SectionWave /> : null}
     </section>
   );
 }

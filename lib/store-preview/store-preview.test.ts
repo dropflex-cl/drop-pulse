@@ -50,6 +50,21 @@ describe("lo que la vista previa toma del tema", () => {
 });
 
 describe("el acento, igual que df-accent-vars", () => {
+  it("los paneles sólidos mantienen contraste AA incluso con acentos claros", () => {
+    const css = readFileSync("lib/shopify/components/_shared/assets/df-components.css", "utf8");
+    const anchor = css.match(/--df-tone-anchor:\s*(#[0-9a-f]{6})/i)![1];
+    const paper = css.match(/--df-tone-paper:\s*(#[0-9a-f]{6})/i)![1];
+    const weight = Number(css.match(/--df-tone-deep:[^;]+var\(--df-accent\)\s+(\d+)%/)![1]) / 100;
+    const mix = (a: string, b: string, w: number) => "#" + [1, 3, 5].map((i) =>
+      Math.round(parseInt(a.slice(i, i + 2), 16) * w + parseInt(b.slice(i, i + 2), 16) * (1 - w)).toString(16).padStart(2, "0")
+    ).join("");
+    for (const accent of ["#ffffff", "#000000", "#ffff00", "#00ffff", "#0e7490", ...ACCENT_PALETTE.map((a) => a.hex)]) {
+      const panel = mix(accent, anchor, weight);
+      expect(contrast(paper, panel), accent).toBeGreaterThanOrEqual(6);
+      expect(contrast(mix(paper, panel, 0.9), panel), accent).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("filtros de Shopify", () => {
     expect(brightness("#ffffff")).toBe(255);
     expect(brightness("#000000")).toBe(0);

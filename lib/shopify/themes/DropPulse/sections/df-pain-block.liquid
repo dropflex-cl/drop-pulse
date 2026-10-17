@@ -29,6 +29,17 @@
     background: var(--df-pain-bg, transparent);
   }
 
+  .df-pain-block.df-pain-block--tinted {
+    --df-pain-bg: var(--df-tone-wash);
+    background: var(--df-pain-bg);
+    border-radius: 0;
+  }
+
+  .df-pain-block--tinted .df-pain-block__item {
+    background: var(--df-bg);
+    border: 1px solid var(--df-accent-soft);
+  }
+
   .df-pain-block__inner {
     max-width: calc(var(--df-container) + var(--df-gutter) * 2);
     margin-inline: auto;

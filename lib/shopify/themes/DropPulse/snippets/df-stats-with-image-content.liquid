@@ -259,7 +259,7 @@
     class="df df-stats-with-image{% if image_count > 0 %} df-stats-with-image--media{% endif %}{% if s.image_position == 'right' %} df-stats-with-image--reverse{% endif %}{% unless s.mobile_image_first %} df-stats-with-image--media-last{% endunless %}"
     style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ color_style }} --df-swi-pt: {{ s.padding_top }}px; --df-swi-pb: {{ s.padding_bottom }}px; --df-swi-radius: {{ s.card_radius }}px;"
   >
-    <div class="df-stats-with-image__card">
+    <div class="df-stats-with-image__card{% if s.background_color == blank and s.text_color == blank %} df-section-tone df-section-tone--deep{% endif %}">
       {%- if image_count > 0 -%}
         <div class="df-stats-with-image__collage df-stats-with-image__collage--{{ image_count }}">
           {%- case image_source -%}

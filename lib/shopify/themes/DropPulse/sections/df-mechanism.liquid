@@ -5,6 +5,7 @@
 {%- assign df_variants = df_product.metafields.dropflex.mechanism.value -%}
 {{ 'df-components.css' | asset_url | stylesheet_tag }}
 {{ 'df-rich-pdp.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'df-motion.js' | asset_url }}" defer></script>
 <script src="{{ 'df-rich-pdp.js' | asset_url }}" defer></script>
 {%- if df_variants.first.key != blank -%}
  <df-landing-content data-df-component="df-mechanism">

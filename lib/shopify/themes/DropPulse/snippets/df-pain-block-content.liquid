@@ -96,7 +96,7 @@
   {%- endcapture -%}
 
   <div
-    class="df df-pain-block df-pain-block--{{ s.layout }}"
+    class="df df-pain-block df-pain-block--{{ s.layout }}{% if s.background_color == blank and s.text_color == blank %} df-pain-block--tinted df-section-tone{% endif %}"
     style="{% render 'df-accent-vars', product: product, background: s.background_color %} {{ color_style }} --df-pain-pt: {{ s.padding_top }}px; --df-pain-pb: {{ s.padding_bottom }}px; --df-pain-heading: {{ s.heading_size }}px;"
   >
     <div class="df-pain-block__inner">
@@ -124,6 +124,7 @@
         </p>
       {%- endif -%}
     </div>
+    {% if s.background_color == blank and s.text_color == blank %}{% render 'df-section-wave' %}{% endif %}
   </div>
 {%- elsif request.design_mode -%}
   {{ 'df-components.css' | asset_url | stylesheet_tag }}

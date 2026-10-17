@@ -57,3 +57,7 @@ Desarrolla contenido propio con los campos vigentes de `content.ts`. Importar re
 ## Valoración compartida vigente
 
 La nota y cantidad agregadas se editan en `review-stars` mediante `save_landing_content` y se publican en `review_summary`. No requieren datos de Google, reseñas importadas, mínimos, evidencia ni verificación. Los campos antiguos rating/count de Hero son respaldo compatible, no una segunda fuente cuando Estrellas aporta esos valores. Las notas individuales de testimonios son independientes.
+
+## Superficie y movimiento
+
+La presentación usa los tonos del acento existente y el revelado compartido de entrada única. Reglas, medidas y contraste: [superficies de tienda](../../../../design-system/storefront-surfaces.md). Los colores explícitos del editor se conservan donde existen. No cambia el contrato de contenido ni la selección de archivos.

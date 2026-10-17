@@ -36,6 +36,29 @@
     background: var(--df-swi-bg, var(--df-surface));
   }
 
+  .df-stats-with-image__card.df-section-tone--deep {
+    background: var(--df-tone-deep);
+    border-radius: var(--df-swi-radius, var(--df-radius-lg));
+    width: calc(100% - var(--df-gutter) * 2);
+  }
+
+  .df-section-tone--deep .df-stats-with-image__review {
+    background: var(--df-surface);
+  }
+
+  .df-section-tone--deep .df-stats-with-image__cta {
+    background: var(--df-tone-paper);
+    color: var(--df-tone-deep);
+  }
+
+  .df-section-tone--deep .df-stats-with-image__stat {
+    border-color: var(--df-hairline);
+  }
+
+  .df-section-tone--deep .df-stats-with-image__cta:focus-visible {
+    outline-color: var(--df-tone-paper);
+  }
+
   .df-stats-with-image__collage {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -266,6 +289,8 @@
     .df-stats-with-image {
       padding-inline: var(--df-gutter);
     }
+
+    .df-stats-with-image__card.df-section-tone--deep { width: 100%; }
 
     .df-stats-with-image__card {
       border-radius: var(--df-swi-radius, 14px);
