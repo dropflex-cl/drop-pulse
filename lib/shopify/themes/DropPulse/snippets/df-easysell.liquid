@@ -38,6 +38,21 @@
   {{ 'df-easysell-bundles.css' | asset_url | stylesheet_tag }}
   <script src="{{ 'df-easysell-bundles.js' | asset_url }}" defer></script>
   <script src="{{ 'df-purchase-cta.js' | asset_url }}" data-df-cta-motion="{% if settings.df_easysell_motion == false %}off{% else %}on{% endif %}" defer></script>
+  {%- comment -%}
+    Transportistas confirmados por Datazo. No atribuir estos operadores a otras tiendas del kit.
+    El template es inerte: syncForm agrega solo este apoyo propio, sin mover nodos de EasySell.
+  {%- endcomment -%}
+  {%- if shop.permanent_domain == 'qs060z-e7.myshopify.com' -%}
+    <template id="df-es-carriers-template">
+      <aside class="df-es-carriers" data-df-es-carriers aria-label="Transportistas de despacho">
+        <p class="df-es-carriers__label">{% render 'df-icon', name: 'truck' %}<span>Despachamos con</span></p>
+        <div class="df-es-carriers__logos">
+          <span class="df-es-carriers__brand df-es-carriers__brand--starken"><img src="{{ 'df-carrier-starken.webp' | asset_url }}" alt="Starken" width="96" height="32" decoding="async"></span>
+          <span class="df-es-carriers__brand"><img src="{{ 'df-carrier-blue-express.svg' | asset_url }}" alt="Blue Express" width="64" height="32" decoding="async"></span>
+        </div>
+      </aside>
+    </template>
+  {%- endif -%}
   {% style %}
     #easysell,
     #easysell-embedded-bundles,
@@ -64,7 +79,108 @@
     }
 
     #easysell .es-form-container {
-      padding: 24px 20px 28px;
+      padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+      font-family: var(--df-ds-font, inherit);
+      font-size: 15px;
+      line-height: 22px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* type-title, type-body y type-label: una sola fuente, con jerarquía y sin negrita sintética. */
+    #easysell .es-form :is(input, select, textarea, button) {
+      font-family: var(--df-ds-font, inherit) !important;
+    }
+
+    #easysell .es-form :is(input, select, textarea) {
+      font-size: 16px !important;
+      line-height: 22px;
+      font-weight: 400;
+    }
+
+    #easysell .es-form-header p + p {
+      margin-top: 4px !important;
+    }
+
+    #easysell .es-form-header .flex-fill {
+      min-width: 0;
+      text-wrap: pretty;
+    }
+
+    #easysell .es-form > .es-group {
+      margin-bottom: 12px;
+    }
+
+    #easysell .es-form > [data-df-es-empty-group] {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    #easysell .es-input::placeholder {
+      color: var(--df-es-muted);
+      opacity: 1;
+    }
+
+    #easysell .es-form > .es-cta-group ~ .es-group[class*=' es-title'] {
+      margin-top: 12px;
+      margin-bottom: 0;
+    }
+
+    #easysell .es-form > aside.df-es-carriers {
+      order: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--df-es-border);
+    }
+
+    #easysell .df-es-carriers__label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: var(--df-es-muted);
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 400;
+    }
+
+    #easysell .df-es-carriers__label svg {
+      flex: none;
+      width: 16px;
+      height: 16px;
+    }
+
+    #easysell .df-es-carriers__logos {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #easysell .df-es-carriers__brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 4px 8px;
+      border-radius: var(--style-border-radius-sm, 6px);
+      background: var(--df-es-bg);
+    }
+
+    #easysell .df-es-carriers__brand--starken {
+      /* Color del logo oficial: design-system/cod-form.md; no es un estado de la interfaz. */
+      background: #009d4e;
+    }
+
+    #easysell .df-es-carriers__logos img {
+      display: block;
+      width: auto;
+      height: 32px;
+      max-width: 96px;
+      object-fit: contain;
     }
 
     /* Campos: el borde y el radio de los inputs del tema, y el foco del design system. Borde y
@@ -177,8 +293,12 @@
 
     /* Títulos de sección de la app («Tus datos de envío»). */
     #easysell .es-group[class*=' es-title'] > .mb-2 {
-      margin: 4px 0 12px !important;
+      margin: 0 !important;
       line-height: 22px;
+    }
+
+    #easysell .es-group[class*=' es-title'] p {
+      margin: 0;
     }
 
     /* Packs (BundlePicker): tarjeta con radio, la elegida en acento y el ahorro en verde. */
@@ -526,9 +646,13 @@
     /* Evita que la animación de la app compita con el efecto acotado del tema. */
     #es-popup-button.cart-shaker:not([data-df-es-shine]) { animation: none !important; }
 
-    /* Una sola acción legible. El subtítulo comercial de la app no compite con el pedido. */
+    /* El beneficio acompaña a la acción con type-label, sin competir con su título. */
     #es-popup-button .es-button-subtitle {
-      display: none !important;
+      display: block !important;
+      margin-top: 4px;
+      font-size: 13px !important;
+      line-height: 18px !important;
+      font-weight: 400 !important;
     }
 
     /* Una sola barra fija de compra (html.df-es-cod, lo pone el script cuando EasySell está en la
@@ -609,7 +733,16 @@
           return { 'font-size': tokens.ctaSize, 'font-weight': '600', 'line-height': tokens.ctaLineHeight };
         }],
         ['#easysell .es-form-header .flex-fill > .mb-2', function () {
-          return { color: tokens.ink, 'font-size': '18px', 'font-weight': '700', 'text-align': 'left' };
+          return { color: tokens.ink, 'font-size': '20px', 'line-height': '26px', 'font-weight': '600', 'text-align': 'left' };
+        }],
+        ['#easysell .es-form-header .flex-fill > .mb-2 > :first-child, #easysell .es-form-header .flex-fill > .mb-2 > :first-child *', function () {
+          return { color: tokens.ink, 'font-size': '20px', 'line-height': '26px', 'font-weight': '600' };
+        }],
+        ['#easysell .es-form-header .flex-fill > .mb-2 > :not(:first-child), #easysell .es-form-header .flex-fill > .mb-2 > :not(:first-child) *', function () {
+          return { color: tokens.muted, 'font-size': '13px', 'line-height': '18px', 'font-weight': '400' };
+        }],
+        ['#easysell .es-cta-group ~ .es-group[class*=" es-title"] > .mb-2, #easysell .es-cta-group ~ .es-group[class*=" es-title"] > .mb-2 *', function () {
+          return { color: tokens.muted, 'font-size': '13px', 'line-height': '18px', 'font-weight': '400', 'text-align': 'center' };
         }],
         ['#easysell .es-group[class*=" es-title"] > .mb-2', function () {
           return { color: tokens.ink, 'font-size': '16px', 'font-weight': '600', 'text-align': 'left' };
@@ -694,7 +827,8 @@
           return { 'background-image': 'none', 'background-color': tokens.accent };
         }
         if (el.matches(CARD)) {
-          return { 'border-radius': tokens.cardRadius, 'box-shadow': 'none', color: tokens.ink, 'background-color': tokens.bg };
+          return { 'border-radius': tokens.cardRadius, 'box-shadow': 'none', color: tokens.ink, 'background-color': tokens.bg,
+            'font-family': 'var(--df-ds-font, inherit)', 'font-size': '15px', 'line-height': '22px', 'font-weight': '400' };
         }
         if (isDecline(el)) {
           return {
@@ -803,6 +937,19 @@
       }
 
       function syncForm() {
+        /* Las envolturas vacías de Vue pueden tener hijos vacíos y no coincidir con :empty.
+           Solo se elimina su espacio; no se oculta contenido ni se altera el tracking de la app. */
+        var groups = document.querySelectorAll('#easysell .es-header-group, #easysell .es-cart_content-group');
+        for (var g = 0; g < groups.length; g++) {
+          var empty = !groups[g].textContent.trim() && !groups[g].querySelector('input, select, textarea, button, img, video, iframe, svg');
+          if (groups[g].hasAttribute('data-df-es-empty-group') !== empty) groups[g].toggleAttribute('data-df-es-empty-group', empty);
+        }
+        /* Una copia por montaje. No se reubican campos, ofertas ni botones de EasySell. */
+        var carrierTemplate = document.getElementById('df-es-carriers-template');
+        var form = document.querySelector('#easysell .es-form');
+        if (carrierTemplate && form && !form.querySelector('[data-df-es-carriers]')) {
+          form.appendChild(carrierTemplate.content.cloneNode(true));
+        }
         var packs = document.querySelectorAll(PACKS);
         if (packs.length) {
           setAttr(packs[0].parentElement, 'role', 'radiogroup');
@@ -833,6 +980,8 @@
         var shipping = document.querySelectorAll('#easysell .es-shipping-line');
         for (var k = 0; k < shipping.length; k++) {
           var value = shipping[k].querySelector('.label-value');
+          /* Traducción visual exacta; nunca inferir ni modificar una tarifa o un monto. */
+          if (value && /^free$/i.test(value.textContent.trim())) value.textContent = 'Gratis';
           shipping[k].toggleAttribute('data-df-es-free', Boolean(value) && !/\d/.test(value.textContent));
         }
       }

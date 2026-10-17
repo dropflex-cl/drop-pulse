@@ -12,6 +12,7 @@
     "19c336a3ca",
     "19dde7e7ba",
     "1c8a38a37b",
+    "2048ac76b1",
     "245efbded4",
     "249317a3d5",
     "27c5c7d1b5",
@@ -146,6 +147,12 @@
     ],
     "assets/copy-to-clipboard.js": [
       "49f0850481d5bc7a1bc798d49825ece9"
+    ],
+    "assets/df-carrier-blue-express.svg": [
+      "ca1860b24be257de0e3b620501e795ea"
+    ],
+    "assets/df-carrier-starken.webp": [
+      "6c1c202408301774fcfeca8e7d484f7d"
     ],
     "assets/df-comparison-table.js": [
       "1799dea3ef889a4d5c0339dc4ec26f66"
@@ -1681,6 +1688,7 @@
       "172e560f4934f83877c6431efca7b7e8",
       "3021de9ead22bfb22b3f474b65c6cac1",
       "576045c3889c3785ac9e65ab5395c639",
+      "5a5dd99d501dd3b512876e5dda36bdbb",
       "6c9070591f573868dd1722502556959f",
       "7b0e6964008647570cba3d4487ad9107",
       "8a692ad127194299caddec53776f829c",
